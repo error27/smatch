@@ -38,6 +38,7 @@ static int func_has_transition;
 STATE(locked);
 STATE(start_state);
 STATE(unlocked);
+STATE(impossible);
 
 enum action {
 	LOCK,
@@ -437,6 +438,12 @@ static struct smatch_state *get_start_state(struct sm_state *sm)
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	return &start_state;
+}
+
+static void pre_merge_hook(struct sm_state *sm)
+{
+	if (is_impossible_path())
+		set_state(my_id, sm->name, sm->sym, &impossible);
 }
 
 static void do_lock(const char *name)
@@ -939,6 +946,7 @@ void check_locking(int id)
 		return;
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_split_return_callback(match_return);
 	add_hook(&match_func_end, END_FUNC_HOOK);
 }

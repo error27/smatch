@@ -1,8 +1,8 @@
 _spin_lock(int name);
 _spin_unlock(int name);
 
-int a;
-int b;
+int a, b, c;
+
 int func (void)
 {
 	int mylock = 1;
@@ -21,7 +21,7 @@ int func (void)
 		return;
 	}
 
-	if (a)
+	if (c)
 		_spin_lock(mylock3);
 	return;
 }
