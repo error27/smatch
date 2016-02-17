@@ -29,7 +29,7 @@ void func (void)
  * check-output-start
 sm_implied8.c:11 func() x = s32min-(-1),1-s32max
 sm_implied8.c:13 func() x = 0
-sm_implied8.c:15 func() x = s32min-s32max
+sm_implied8.c:15 func() x = s32min-(-1),1-s32max
 sm_implied8.c:17 func() x = s32min-2,4-s32max
 sm_implied8.c:19 func() x = 3
 sm_implied8.c:22 func() x = s32min-9,11-s32max
