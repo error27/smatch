@@ -105,8 +105,8 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (owner != -1 && unreachable())
 		return NULL;
 
-	if (fake_cur_stree_stack && owner != -1)
-		return set_state_stree_stack(&fake_cur_stree_stack, owner, name, sym, state);
+	if (fake_cur_stree_stack)
+		set_state_stree_stack(&fake_cur_stree_stack, owner, name, sym, state);
 
 	ret = set_state_stree(&cur_stree, owner, name, sym, state);
 
