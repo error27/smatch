@@ -734,6 +734,8 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 				two_iter.sm->pool = implied_two;
 			}
 			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
+			add_possible_sm(tmp_sm, one_iter.sm);
+			add_possible_sm(tmp_sm, two_iter.sm);
 			avl_insert(&results, tmp_sm);
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
