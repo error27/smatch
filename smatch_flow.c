@@ -835,6 +835,16 @@ static void split_compound(struct statement *stmt)
 	__call_scope_hooks();
 }
 
+void __split_label_stmt(struct statement *stmt)
+{
+	if (stmt->label_identifier &&
+	    stmt->label_identifier->type == SYM_LABEL &&
+	    stmt->label_identifier->ident) {
+		loop_count |= 0x80000000;
+		__merge_gotos(stmt->label_identifier->ident->name);
+	}
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -945,12 +955,7 @@ void __split_stmt(struct statement *stmt)
 		__split_stmt(stmt->case_statement);
 		break;
 	case STMT_LABEL:
-		if (stmt->label_identifier &&
-		    stmt->label_identifier->type == SYM_LABEL &&
-		    stmt->label_identifier->ident) {
-			loop_count |= 0x80000000;
-			__merge_gotos(stmt->label_identifier->ident->name);
-		}
+		__split_label_stmt(stmt);
 		__split_stmt(stmt->label_statement);
 		break;
 	case STMT_GOTO:

@@ -162,7 +162,9 @@ static struct symbol *get_expr_stmt_type(struct statement *stmt)
 	if (stmt->type != STMT_COMPOUND)
 		return NULL;
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (!stmt || stmt->type != STMT_EXPRESSION)
+	if (stmt->type == STMT_LABEL)
+		stmt = stmt->label_statement;
+	if (stmt->type != STMT_EXPRESSION)
 		return NULL;
 	return get_type(stmt->expression);
 }

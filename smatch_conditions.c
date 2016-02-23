@@ -124,15 +124,24 @@ static void handle_compound_stmt(struct statement *stmt)
 	struct statement *s;
 
 	last = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (last->type != STMT_EXPRESSION)
+	if (last->type == STMT_LABEL) {
+		if (last->label_statement &&
+		    last->label_statement->type == STMT_EXPRESSION)
+			expr = last->label_statement->expression;
+		else
+			last = NULL;
+	} else if (last->type != STMT_EXPRESSION) {
 		last = NULL;
-	else
+	} else {
 		expr = last->expression;
+	}
 
 	FOR_EACH_PTR(stmt->stmts, s) {
 		if (s != last)
 			__split_stmt(s);
 	} END_FOR_EACH_PTR(s);
+	if (last->type == STMT_LABEL)
+		__split_label_stmt(last);
 	split_conditions(expr);
 	return;
 }
@@ -622,8 +631,13 @@ static struct statement *split_then_return_last(struct statement *stmt)
 
 	__push_scope_hooks();
 	FOR_EACH_PTR(stmt->stmts, tmp) {
-		if (tmp == last_stmt)
+		if (tmp == last_stmt) {
+			if (tmp->type == STMT_LABEL) {
+				__split_label_stmt(tmp);
+				return stmt->label_statement;
+			}
 			return last_stmt;
+		}
 		__split_stmt(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return NULL;

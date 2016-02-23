@@ -51,13 +51,24 @@ enum {
 
 static struct range_list *last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt)
 {
+	struct expression *expr;
+
 	if (!stmt)
 		return NULL;
 
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (stmt->type != STMT_EXPRESSION)
+	if (stmt->type == STMT_LABEL) {
+		if (stmt->label_statement &&
+		    stmt->label_statement->type == STMT_EXPRESSION)
+			expr = stmt->label_statement->expression;
+		else
+			return NULL;
+	} else if (stmt->type == STMT_EXPRESSION) {
+		expr = stmt->expression;
+	} else {
 		return NULL;
-	return _get_rl(stmt->expression, implied, recurse_cnt);
+	}
+	return _get_rl(expr, implied, recurse_cnt);
 }
 
 static struct range_list *handle_expression_statement_rl(struct expression *expr, int implied, int *recurse_cnt)

@@ -411,6 +411,7 @@ int in_expression_statement(void);
 void __process_post_op_stack(void);
 void set_parent_expr(struct expression *expr, struct expression *parent);
 void __split_expr(struct expression *expr);
+void __split_label_stmt(struct statement *stmt);
 void __split_stmt(struct statement *stmt);
 extern int __in_function_def;
 extern int option_assume_loops;
