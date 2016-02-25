@@ -142,7 +142,7 @@ static void match_condition(struct expression *expr)
 	case EXPR_DEREF:
 		sm = get_sm_state_expr(my_id, expr);
 		if (sm && slist_has_state(sm->possible, &allocated))
-			set_true_false_states_expr(my_id, expr, &allocated, &ok);
+			set_true_false_states_expr(my_id, expr, NULL, &ok);
 		return;
 	case EXPR_ASSIGNMENT:
 		 /* You have to deal with stuff like if (a = b = c) */
