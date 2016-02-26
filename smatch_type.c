@@ -154,6 +154,9 @@ static struct symbol *get_return_type(struct expression *expr)
 	tmp = get_type(expr->fn);
 	if (!tmp)
 		return NULL;
+	/* this is to handle __builtin_constant_p() */
+	if (tmp->type != SYM_FN)
+		tmp = get_base_type(tmp);
 	return get_real_base_type(tmp);
 }
 
