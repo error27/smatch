@@ -636,12 +636,12 @@ static void set_implied_states(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	FOR_EACH_SM(saved_implied_true, sm) {
-		__set_true_false_sm_if_not_already_set(sm, NULL);
+		__set_true_false_sm(sm, NULL);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&saved_implied_true);
 
 	FOR_EACH_SM(saved_implied_false, sm) {
-		__set_true_false_sm_if_not_already_set(NULL, sm);
+		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&saved_implied_false);
 }
