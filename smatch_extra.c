@@ -1067,6 +1067,70 @@ static sval_t sub_one(sval_t sval)
 	return sval;
 }
 
+static int handle_postop_inc(struct expression *left, int op, struct expression *right)
+{
+	struct statement *stmt;
+	struct expression *cond;
+	struct smatch_state *true_state, *false_state;
+	sval_t start;
+	sval_t limit;
+
+	/*
+	 * If we're decrementing here then that's a canonical while count down
+	 * so it's handled already.  We're only handling loops like:
+	 * i = 0;
+	 * do { ... } while (i++ < 3);
+	 */
+
+	if (left->type != EXPR_POSTOP || left->op != SPECIAL_INCREMENT)
+		return 0;
+
+	stmt = __cur_stmt->parent;
+	if (!stmt)
+		return 0;
+	if (stmt->type == STMT_COMPOUND)
+		stmt = stmt->parent;
+	if (!stmt || stmt->type != STMT_ITERATOR || !stmt->iterator_post_condition)
+		return 0;
+
+	cond = strip_expr(stmt->iterator_post_condition);
+	if (cond->type != EXPR_COMPARE || cond->op != op)
+		return 0;
+	if (left != strip_expr(cond->left) || right != strip_expr(cond->right))
+		return 0;
+
+	if (!get_implied_value(left->unop, &start))
+		return 0;
+	if (!get_implied_value(right, &limit))
+		return 0;
+
+	if (sval_cmp(start, limit) > 0)
+		return 0;
+
+	switch (op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		break;
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
+		limit = add_one(limit);
+	default:
+		return 0;
+
+	}
+
+	true_state = alloc_estate_range(add_one(start), limit);
+	false_state = alloc_estate_range(add_one(limit), add_one(limit));
+
+	/* Currently we just discard the false state but when two passes is
+	 * implimented correctly then it will use it.
+	 */
+
+	set_extra_expr_true_false(left->unop, true_state, false_state);
+
+	return 1;
+}
+
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
 	struct range_list *left_orig;
@@ -1087,6 +1151,8 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		if (left->type == EXPR_POSTOP) {
 			left->smatch_flags |= Handled;
 			left_postop = left->op;
+			if (handle_postop_inc(left, op, right))
+				return;
 		}
 		left = strip_parens(left->unop);
 	}
