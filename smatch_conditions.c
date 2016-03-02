@@ -140,10 +140,9 @@ static void handle_compound_stmt(struct statement *stmt)
 		if (s != last)
 			__split_stmt(s);
 	} END_FOR_EACH_PTR(s);
-	if (last->type == STMT_LABEL)
+	if (last && last->type == STMT_LABEL)
 		__split_label_stmt(last);
 	split_conditions(expr);
-	return;
 }
 
 static int handle_preop(struct expression *expr)
