@@ -99,8 +99,10 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 		return 1;
 
 	ret = strcmp(a->name, b->name);
-	if (ret)
-		return ret;
+	if (ret < 0)
+		return -1;
+	if (ret > 0)
+		return 1;
 
 	if (!b->sym && a->sym)
 		return -1;

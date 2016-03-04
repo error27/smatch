@@ -56,15 +56,6 @@ int unfree_stree;
 #define bal(side) ((side) == 0 ? -1 : 1)
 #define side(bal) ((bal)  == 1 ?  1 : 0)
 
-static int sign(int cmp)
-{
-	if (cmp < 0)
-		return -1;
-	if (cmp == 0)
-		return 0;
-	return 1;
-}
-
 struct stree *avl_new(void)
 {
 	struct stree *avl = malloc(sizeof(*avl));
@@ -225,7 +216,7 @@ static bool insert_sm(struct stree *avl, AvlNode **p, const struct sm_state *sm)
 		return true;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(cmp_tracker(sm, node->sm));
+		int      cmp  = cmp_tracker(sm, node->sm);
 
 		if (cmp == 0) {
 			node->sm = sm;
@@ -253,7 +244,7 @@ static bool remove_sm(struct stree *avl, AvlNode **p, const struct sm_state *sm,
 		return false;
 	} else {
 		AvlNode *node = *p;
-		int      cmp  = sign(cmp_tracker(sm, node->sm));
+		int      cmp  = cmp_tracker(sm, node->sm);
 
 		if (cmp == 0) {
 			*ret = node;
