@@ -58,6 +58,7 @@ void delete_state_stree_stack(struct stree_stack **stack, int owner, const char 
 
 void push_stree(struct stree_stack **list_stack, struct stree *stree);
 struct stree *pop_stree(struct stree_stack **list_stack);
+struct stree *top_stree(struct stree_stack *stack);
 
 void free_slist(struct state_list **slist);
 void free_stree_stack(struct stree_stack **stack);

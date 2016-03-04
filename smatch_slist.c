@@ -523,6 +523,11 @@ struct stree *pop_stree(struct stree_stack **stack)
 	return stree;
 }
 
+struct stree *top_stree(struct stree_stack *stack)
+{
+	return last_ptr_list((struct ptr_list *)stack);
+}
+
 void free_slist(struct state_list **slist)
 {
 	__free_ptr_list((struct ptr_list **)slist);
