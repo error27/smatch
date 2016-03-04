@@ -275,7 +275,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	} END_FOR_EACH_PTR(tmp);
 
 	FOR_EACH_SM(final_states, sm) {
-		__set_sm_cur_stree(sm);
+		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&final_states);
@@ -609,6 +609,9 @@ void function_comparison(struct expression *left, int comparison, struct express
 	sval_t sval;
 	int call_on_left;
 
+	if (unreachable())
+		return;
+
 	/* legacy cruft.  need to fix call_implies_callbacks(). */
 	call_on_left = 1;
 	call_expr = left;
@@ -718,7 +721,7 @@ static int db_return_states_assign(struct expression *expr)
 	free_stree(&stree);
 
 	FOR_EACH_SM(db_info.stree, sm) {
-		__set_sm_cur_stree(sm);
+		__set_sm(sm);
 		handled = 1;
 	} END_FOR_EACH_SM(sm);
 
@@ -894,6 +897,9 @@ static int is_condition_call(struct expression *expr)
 
 static void db_return_states_call(struct expression *expr)
 {
+	if (unreachable())
+		return;
+
 	if (is_assigned_call(expr))
 		return;
 	if (is_condition_call(expr))

@@ -180,7 +180,6 @@ static void handle_logical(struct expression *expr)
 	 */
 
 	split_conditions(expr->left);
-	__process_post_op_stack();
 
 	if (is_logical_and(expr))
 		__use_cond_true_states();
@@ -191,7 +190,6 @@ static void handle_logical(struct expression *expr)
 
 	__save_pre_cond_states();
 	split_conditions(expr->right);
-	__process_post_op_stack();
 	__discard_pre_cond_states();
 
 	if (is_logical_and(expr))
@@ -336,6 +334,7 @@ static void handle_select(struct expression *expr)
 	FOR_EACH_SM(a_T_b_F, sm) {
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
+	__free_set_states();
 
 	free_stree(&a_T_b_fake);
 	free_stree(&a_F_c_fake);
@@ -379,6 +378,14 @@ static void hackup_unsigned_compares(struct expression *expr)
 		expr->op = make_op_unsigned(expr->op);
 }
 
+static void do_condition(struct expression *expr)
+{
+	__fold_in_set_states();
+	__push_fake_cur_stree();
+	__pass_to_client(expr, CONDITION_HOOK);
+	__fold_in_set_states();
+}
+
 static void split_conditions(struct expression *expr)
 {
 	if (option_debug) {
@@ -389,8 +396,10 @@ static void split_conditions(struct expression *expr)
 	}
 
 	expr = strip_expr(expr);
-	if (!expr)
+	if (!expr) {
+		__fold_in_set_states();
 		return;
+	}
 
 	switch (expr->type) {
 	case EXPR_LOGICAL:
@@ -438,7 +447,7 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type != EXPR_POSTOP) {
 		__split_expr(expr);
 	}
-	__pass_to_client(expr, CONDITION_HOOK);
+	do_condition(expr);
 	if (expr->type == EXPR_COMPARE) {
 		if (expr->left->type == EXPR_POSTOP)
 			__split_expr(expr->left);
@@ -447,7 +456,9 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type == EXPR_POSTOP) {
 		__split_expr(expr);
 	}
+	__push_fake_cur_stree();
 	__process_post_op_stack();
+	__fold_in_set_states();
 	pop_expression(&big_condition_stack);
 	pop_expression(&big_expression_stack);
 }
@@ -462,8 +473,7 @@ void __split_whole_condition(struct expression *expr)
 	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, expr);
-	if (expr)
-		split_conditions(expr);
+	split_conditions(expr);
 	__use_cond_states();
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
@@ -511,6 +521,8 @@ int is_condition(struct expression *expr)
 int __handle_condition_assigns(struct expression *expr)
 {
 	struct expression *right;
+	struct stree *true_stree, *false_stree, *fake_stree;
+	struct sm_state *sm;
 
 	if (expr->op != '=')
 		return 0;
@@ -526,17 +538,42 @@ int __handle_condition_assigns(struct expression *expr)
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, right);
 	split_conditions(right);
+	true_stree = __get_true_states();
+	false_stree = __get_false_states();
 	__use_cond_states();
+	__push_fake_cur_stree();
 	set_extra_expr_mod(expr->left, alloc_estate_sval(sval_type_val(get_type(expr->left), 1)));
 	__pass_to_client(right, WHOLE_CONDITION_HOOK);
+
+	fake_stree = __pop_fake_cur_stree();
+	FOR_EACH_SM(fake_stree, sm) {
+		overwrite_sm_state_stree(&true_stree, sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&fake_stree);
+
 	pop_expression(&big_expression_stack);
 	inside_condition--;
 	sm_debug("%d done __handle_condition_assigns\n", get_lineno());
 
 	__push_true_states();
+
 	__use_false_states();
+	__push_fake_cur_stree();
 	set_extra_expr_mod(expr->left, alloc_estate_sval(sval_type_val(get_type(expr->left), 0)));
+
+	fake_stree = __pop_fake_cur_stree();
+	FOR_EACH_SM(fake_stree, sm) {
+		overwrite_sm_state_stree(&false_stree, sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&fake_stree);
+
 	__merge_true_states();
+	merge_stree(&true_stree, false_stree);
+	free_stree(&false_stree);
+	FOR_EACH_SM(true_stree, sm) {
+		__set_sm(sm);
+	} END_FOR_EACH_SM(sm);
+
 	__pass_to_client(expr, ASSIGNMENT_HOOK);
 	return 1;
 }

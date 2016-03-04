@@ -582,6 +582,8 @@ void __use_pre_cond_states(void);
 void __use_cond_true_states(void);
 void __use_cond_false_states(void);
 void __push_cond_stacks(void);
+void __fold_in_set_states(void);
+void __free_set_states(void);
 struct stree *__copy_cond_true_states(void);
 struct stree *__copy_cond_false_states(void);
 struct stree *__pop_cond_true_stack(void);
@@ -590,6 +592,8 @@ void __and_cond_states(void);
 void __or_cond_states(void);
 void __save_pre_cond_states(void);
 void __discard_pre_cond_states(void);
+struct stree *__get_true_states(void);
+struct stree *__get_false_states(void);
 void __use_cond_states(void);
 extern struct state_list *__last_base_slist;
 

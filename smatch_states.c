@@ -110,10 +110,6 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 	ret = set_state_stree(&cur_stree, owner, name, sym, state);
 
-	if (cond_true_stack) {
-		set_state_stree_stack(&cond_true_stack, owner, name, sym, state);
-		set_state_stree_stack(&cond_false_stack, owner, name, sym, state);
-	}
 	return ret;
 }
 
@@ -217,11 +213,6 @@ void __set_sm(struct sm_state *sm)
 		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
 
 	overwrite_sm_state_stree(&cur_stree, sm);
-
-	if (cond_true_stack) {
-		overwrite_sm_state_stree_stack(&cond_true_stack, sm);
-		overwrite_sm_state_stree_stack(&cond_false_stack, sm);
-	}
 }
 
 void __set_sm_cur_stree(struct sm_state *sm)
@@ -603,6 +594,7 @@ void clear_all_states(void)
 	check_stree_stack_free(&break_stack);
 	check_stree_stack_free(&switch_stack);
 	check_stree_stack_free(&continue_stack);
+	check_stree_stack_free(&fake_cur_stree_stack);
 
 	free_goto_stack();
 
@@ -613,6 +605,28 @@ void __push_cond_stacks(void)
 {
 	push_stree(&cond_true_stack, NULL);
 	push_stree(&cond_false_stack, NULL);
+	__push_fake_cur_stree();
+}
+
+void __fold_in_set_states(void)
+{
+	struct stree *new_states;
+	struct sm_state *sm;
+
+	new_states = __pop_fake_cur_stree();
+	FOR_EACH_SM(new_states, sm) {
+		__set_sm(sm);
+		__set_true_false_sm(sm, sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&new_states);
+}
+
+void __free_set_states(void)
+{
+	struct stree *new_states;
+
+	new_states = __pop_fake_cur_stree();
+	free_stree(&new_states);
 }
 
 struct stree *__copy_cond_true_states(void)
@@ -715,6 +729,16 @@ void __discard_pre_cond_states(void)
 
 	tmp = pop_stree(&pre_cond_stack);
 	free_stree(&tmp);
+}
+
+struct stree *__get_true_states(void)
+{
+	return clone_stree(top_stree(cond_true_stack));
+}
+
+struct stree *__get_false_states(void)
+{
+	return clone_stree(top_stree(cond_false_stack));
 }
 
 void __use_cond_states(void)
