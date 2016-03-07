@@ -789,12 +789,37 @@ void __merge_false_states(void)
 	free_stree(&stree);
 }
 
+static void update_fake_stree_with_merged(void)
+{
+	struct stree *stree;
+	struct state_list *slist = NULL;
+	struct sm_state *sm, *new;
+
+	if (!fake_cur_stree_stack)
+		return;
+	stree = pop_stree(&fake_cur_stree_stack);
+	FOR_EACH_SM(stree, sm) {
+		new = get_sm_state(sm->owner, sm->name, sm->sym);
+		if (!new)
+			continue;
+		add_ptr_list(&slist, new);
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_PTR(slist, sm) {
+		overwrite_sm_state_stree(&stree, sm);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&slist);
+	push_stree(&fake_cur_stree_stack, stree);
+}
+
 void __merge_true_states(void)
 {
 	struct stree *stree;
 
 	stree = pop_stree(&true_stack);
 	merge_stree(&cur_stree, stree);
+	update_fake_stree_with_merged();
 	free_stree(&stree);
 }
 
