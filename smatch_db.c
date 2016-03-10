@@ -301,13 +301,22 @@ static void sql_select_return_states_pointer(const char *cols,
 		cols, ptr);
 }
 
+static int is_local_symbol(struct expression *expr)
+{
+	if (expr->type != EXPR_SYMBOL)
+		return 0;
+	if (expr->symbol->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
+		return 0;
+	return 1;
+}
+
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
 	if (is_fake_call(call))
 		return;
 
-	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol) {
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol || is_local_symbol(call->fn)) {
 		sql_select_return_states_pointer(cols, call, callback, info);
 		return;
 	}
