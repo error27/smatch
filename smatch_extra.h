@@ -190,6 +190,7 @@ struct expression *assign_expression(struct expression *left, struct expression 
 struct expression *binop_expression(struct expression *left, int op, struct expression *right);
 struct expression *array_element_expression(struct expression *array, struct expression *offset);
 struct expression *symbol_expression(struct symbol *sym);
+struct expression *compare_expression(struct expression *left, int op, struct expression *right);
 struct expression *unknown_value_expression(struct expression *expr);
 int is_fake_call(struct expression *expr);
 

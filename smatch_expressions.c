@@ -105,3 +105,13 @@ struct expression *symbol_expression(struct symbol *sym)
 	return expr;
 }
 
+struct expression *compare_expression(struct expression *left, int op, struct expression *right)
+{
+	struct expression *expr;
+
+	expr = alloc_expression(get_cur_pos(), EXPR_COMPARE);
+	expr->op = op;
+	expr->left = left;
+	expr->right = right;
+	return expr;
+}
