@@ -964,6 +964,109 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 	return ret;
 }
 
+static const char *get_return_ranges_str(struct expression *expr)
+{
+	struct range_list *rl;
+	char *return_ranges;
+	sval_t sval;
+	char *compare_str;
+	char *math_str;
+	char buf[128];
+
+	if (!expr)
+		return alloc_sname("");
+
+	if (get_implied_value(expr, &sval))
+		return sval_to_str(sval);
+
+	compare_str = expr_equal_to_param(expr, -1);
+	math_str = get_value_in_terms_of_parameter_math(expr);
+
+	if (get_implied_rl(expr, &rl)) {
+		rl = cast_rl(cur_func_return_type(), rl);
+		return_ranges = show_rl(rl);
+	} else {
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
+		return_ranges = show_rl(rl);
+	}
+
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
+	}
+
+	if (math_str) {
+		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
+		return alloc_sname(buf);
+	}
+
+	compare_str = expr_lte_to_param(expr, -1);
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
+	}
+	return return_ranges;
+}
+
+static int split_positive_from_negative(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct range_list *rl;
+	const char *return_ranges;
+	int undo;
+
+	/* We're going to print the states 3 times */
+	if (stree_count(__get_cur_stree()) > 10000 / 3)
+		return 0;
+
+	if (!get_implied_rl(expr, &rl) || !rl)
+		return 0;
+	if (is_whole_rl(rl) || is_whole_rl_non_zero(rl))
+		return 0;
+	/* Forget about INT_MAX and larger */
+	if (rl_max(rl).value <= 0)
+		return 0;
+	if (!sval_is_negative(rl_min(rl)))
+		return 0;
+
+	if (!assume(compare_expression(expr, '>', zero_expr())))
+		return 0;
+
+	return_id++;
+	return_ranges = get_return_ranges_str(expr);
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, (char *)return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	end_assume();
+
+	if (rl_has_sval(rl, sval_type_val(rl_type(rl), 0))) {
+		undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
+
+		return_id++;
+		return_ranges = get_return_ranges_str(expr);
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, (char *)return_ranges, expr);
+		} END_FOR_EACH_PTR(cb);
+
+		if (undo)
+			end_assume();
+	}
+
+	undo = assume(compare_expression(expr, '<', zero_expr()));
+
+	return_id++;
+	return_ranges = get_return_ranges_str(expr);
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, (char *)return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	if (undo)
+		end_assume();
+
+	return 1;
+}
+
 static int call_return_state_hooks_split_possible(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1007,6 +1110,10 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 
 		overwrite_states_using_pool(tmp);
 
+		if (split_positive_from_negative(expr)) {
+			__free_fake_cur_stree();
+			continue;
+		}
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
 
@@ -1080,50 +1187,6 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	return 1;
 }
 
-static const char *get_return_ranges_str(struct expression *expr)
-{
-	struct range_list *rl;
-	char *return_ranges;
-	sval_t sval;
-	char *compare_str;
-	char *math_str;
-	char buf[128];
-
-	if (!expr)
-		return alloc_sname("");
-
-	if (get_implied_value(expr, &sval))
-		return sval_to_str(sval);
-
-	compare_str = expr_equal_to_param(expr, -1);
-	math_str = get_value_in_terms_of_parameter_math(expr);
-
-	if (get_implied_rl(expr, &rl)) {
-		rl = cast_rl(cur_func_return_type(), rl);
-		return_ranges = show_rl(rl);
-	} else {
-		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
-		return_ranges = show_rl(rl);
-	}
-
-	if (compare_str) {
-		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-		return alloc_sname(buf);
-	}
-
-	if (math_str) {
-		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
-		return alloc_sname(buf);
-	}
-
-	compare_str = expr_lte_to_param(expr, -1);
-	if (compare_str) {
-		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-		return alloc_sname(buf);
-	}
-	return return_ranges;
-}
-
 static int is_boolean(struct expression *expr)
 {
 	struct range_list *rl;
@@ -1177,6 +1240,8 @@ static void call_return_state_hooks(struct expression *expr)
 	} else if (call_return_state_hooks_split_success_fail(expr)) {
 		return;
 	} else if (splitable_function_call(expr)) {
+		return;
+	} else if (split_positive_from_negative(expr)) {
 		return;
 	}
 

@@ -496,6 +496,25 @@ int is_whole_rl(struct range_list *rl)
 	return 0;
 }
 
+int is_whole_rl_non_zero(struct range_list *rl)
+{
+	struct data_range *drange;
+
+	if (ptr_list_empty(rl))
+		return 0;
+	drange = first_ptr_list((struct ptr_list *)rl);
+	if (sval_unsigned(drange->min) &&
+	    drange->min.value == 1 &&
+	    sval_is_max(drange->max))
+		return 1;
+	if (!sval_is_min(drange->min) || drange->max.value != -1)
+		return 0;
+	drange = last_ptr_list((struct ptr_list *)rl);
+	if (drange->min.value != 1 || !sval_is_max(drange->max))
+		return 0;
+	return 1;
+}
+
 sval_t rl_min(struct range_list *rl)
 {
 	struct data_range *drange;
