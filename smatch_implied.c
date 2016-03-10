@@ -591,18 +591,23 @@ static int handled_by_stored_conditions(struct expression *expr,
 	return 1;
 }
 
+static int found_implications;
 static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
 	if (handled_by_implied_hook(expr, implied_true, implied_false))
-		return;
+		goto found;
 
 	if (handled_by_extra_states(expr, implied_true, implied_false))
-		return;
+		goto found;
 
 	if (handled_by_stored_conditions(expr, implied_true, implied_false))
-		return;
+		goto found;
+
+	return;
+found:
+	found_implications = 1;
 }
 
 static struct stree *saved_implied_true;
@@ -811,6 +816,31 @@ void overwrite_states_using_pool(struct sm_state *sm)
 		if (sm_state_in_slist(old, new->possible))
 			set_state(old->owner, old->name, old->sym, old->state);
 	} END_FOR_EACH_SM(old);
+}
+
+int assume(struct expression *expr)
+{
+	int orig_final_pass = final_pass;
+
+	final_pass = 0;
+	__push_fake_cur_stree();
+	found_implications = 0;
+	__split_whole_condition(expr);
+	final_pass = orig_final_pass;
+
+	if (!found_implications) {
+		__discard_false_states();
+		__free_fake_cur_stree();
+		return 0;
+	}
+
+	return 1;
+}
+
+void end_assume(void)
+{
+	__discard_false_states();
+	__free_fake_cur_stree();
 }
 
 void __extra_match_condition(struct expression *expr);
