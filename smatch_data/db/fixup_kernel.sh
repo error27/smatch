@@ -74,6 +74,7 @@ insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0
 update return_states set return = '0,500000000-577777777' where function = 'kmalloc_slab' and return = 's64min-s64max';
 update return_states set return = '0,500000000-577777777' where function = 'slab_alloc_node' and return = 's64min-s64max';
 update return_states set return = '0,500000000-577777777' where function = 'kmalloc_large' and return != '0';
+update return_states set return = '0,500000000-577777777' where function = 'kmalloc_order_trace' and return != '0';
 
 delete from return_states where function = 'vmalloc';
 insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0,    0, -1, '', '');
