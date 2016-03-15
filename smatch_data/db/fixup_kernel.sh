@@ -110,8 +110,8 @@ update return_states set return = '0-u32max[==\$0]' where function = '__fswab32'
 update return_states set return = '0-u16max[==\$0]' where function = '__fswab16';
 
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
-delete from return_states where function = 'pci_bus_read_config_word' and return = 135;
-delete from return_states where function = 'pci_bus_write_config_word' and return = 135;
+/* Just delete a lot of returns that everyone ignores */
+delete from return_states where file = 'drivers/pci/access.c' and (return >= 129 and return <= 137);
 
 update return_states set return = '(-4095)-s32max[<=\$3]' where function = 'get_user_pages' and return = 's32min-s32max';
 update return_states set return = '(-4095)-s64max[<=\$3]' where function = 'get_user_pages' and return = 's64min-s64max';
