@@ -54,6 +54,44 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 }
 
 /*
+ * This function is is a dirty hack because extra_mod_hook is giving us a NULL
+ *  sym instead of a vsl.
+ */
+static void match_array_assignment(struct expression *expr)
+{
+	struct expression *array, *offset;
+	char *name;
+	struct symbol *sym;
+	struct range_list *rl;
+	sval_t sval;
+	char buf[256];
+
+	if (__in_fake_assign)
+		return;
+
+	if (!is_array(expr->left))
+		return;
+	array = get_array_base(expr->left);
+	offset = get_array_offset(expr->left);
+
+	/* These are handled by extra_mod_hook() */
+	if (get_value(offset, &sval))
+		return;
+	name = expr_to_var_sym(array, &sym);
+	if (!name || !sym)
+		goto free;
+	if (get_param_num_from_sym(sym) < 0)
+		goto free;
+	get_absolute_rl(expr->right, &rl);
+	rl = cast_rl(get_type(expr->left), rl);
+
+	snprintf(buf, sizeof(buf), "*%s", name);
+	set_state(my_id, buf, sym, alloc_estate_rl(rl));
+free:
+	free_string(name);
+}
+
+/*
  * This relies on the fact that these states are stored so that
  * foo->bar is before foo->bar->baz.
  */
@@ -96,11 +134,13 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!estate_rl(sm->state))
 			continue;
 		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
-		if (!estate_rl(extra))
-			continue;
-		rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
-		if (!rl)
-			continue;
+		if (extra) {
+			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
+			if (!rl)
+				continue;
+		} else {
+			rl = estate_rl(sm->state);
+		}
 
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
@@ -155,6 +195,7 @@ void register_param_set(int id)
 	my_id = id;
 
 	add_extra_mod_hook(&extra_mod_hook);
+	add_hook(match_array_assignment, ASSIGNMENT_HOOK);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_estates);
 	add_split_return_callback(&print_return_value_param);
