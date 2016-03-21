@@ -250,6 +250,28 @@ static int handle_comma_assigns(struct expression *expr)
 	return 1;
 }
 
+/* This is to handle *p++ = foo; assignments */
+static int handle_postop_assigns(struct expression *expr)
+{
+	struct expression *left, *fake_left;
+	struct expression *assign;
+
+	left = strip_expr(expr->left);
+	if (left->type != EXPR_PREOP || left->op != '*')
+		return 0;
+	left = strip_expr(left->unop);
+	if (left->type != EXPR_POSTOP)
+		return 0;
+
+	fake_left = deref_expression(strip_expr(left->unop));
+	assign = assign_expression(fake_left, expr->right);
+
+	__split_expr(assign);
+	__split_expr(expr->left);
+
+	return 1;
+}
+
 static int prev_expression_is_getting_address(struct expression *expr)
 {
 	struct expression *parent;
@@ -352,6 +374,8 @@ void __split_expr(struct expression *expr)
 			break;
 		/* foo = (3, 4); */
 		if (handle_comma_assigns(expr))
+			break;
+		if (handle_postop_assigns(expr))
 			break;
 
 		__split_expr(expr->right);
