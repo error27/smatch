@@ -1228,6 +1228,9 @@ static void call_return_state_hooks(struct expression *expr)
 
 	expr = strip_expr(expr);
 
+	if (is_impossible_path())
+		goto vanilla;
+
 	if (!get_implied_value(expr, &sval) &&
 	    (is_condition(expr) || is_boolean(expr))) {
 		call_return_state_hooks_compare(expr);
@@ -1245,6 +1248,7 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	}
 
+vanilla:
 	return_ranges = get_return_ranges_str(expr);
 
 	return_id++;
