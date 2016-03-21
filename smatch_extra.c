@@ -1167,10 +1167,10 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	/* FIXME: we should be able to use get_real_absolute_rl() here but
 	 * apparently that is buggy.
 	 */
-	get_absolute_rl(left, &left_orig);
+	get_real_absolute_rl(left, &left_orig);
 	left_orig = cast_rl(type, left_orig);
 
-	get_absolute_rl(right, &right_orig);
+	get_real_absolute_rl(right, &right_orig);
 	right_orig = cast_rl(type, right_orig);
 
 	min = sval_type_min(type);
