@@ -1590,6 +1590,7 @@ static struct stree *clone_estates_perm(struct stree *orig)
 	return ret;
 }
 
+struct position last_pos;
 static void split_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -1611,6 +1612,7 @@ static void split_functions(struct symbol_list *sym_list)
 			split_function(sym);
 			process_inlines();
 		}
+		last_pos = sym->pos;
 	} END_FOR_EACH_PTR(sym);
 	split_inlines(sym_list);
 	__pass_to_client(sym_list, END_FILE_HOOK);
@@ -1618,9 +1620,11 @@ static void split_functions(struct symbol_list *sym_list)
 
 void smatch(int argc, char **argv)
 {
-
 	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
+	struct timeval stop, start;
+
+	gettimeofday(&start, NULL);
 
 	if (argc < 2) {
 		printf("Usage:  smatch [--debug] <filename.c>\n");
@@ -1642,4 +1646,10 @@ void smatch(int argc, char **argv)
 		sym_list = sparse_keep_tokens(base_file);
 		split_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(base_file);
+
+	gettimeofday(&stop, NULL);
+
+	set_position(last_pos);
+	if (option_time)
+		sm_msg("time: %lu", stop.tv_sec - start.tv_sec);
 }
