@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <sqlite3.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
@@ -482,6 +483,7 @@ static void match_call_marker(struct expression *expr)
 static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
+	struct symbol *type;
 	struct sm_state *sm;
 	char *name;
 	struct symbol *sym;
@@ -494,6 +496,10 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		expr = strip_expr(expr->unop);
 		is_address = 1;
 	}
+
+	type = get_type(expr);
+	if (type && (type->type != SYM_PTR && type->type != SYM_STRUCT))
+		return;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
@@ -511,6 +517,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
 			snprintf(printed_name, sizeof(printed_name), "*$");
 		} else if (strncmp(name, sm->name, len) == 0) {
+			if (isalnum(sm->name[len]))
+				continue;
 			if (is_address)
 				snprintf(printed_name, sizeof(printed_name), "$->%s", sm->name + len + 1);
 			else
