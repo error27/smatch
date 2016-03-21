@@ -161,20 +161,16 @@ static void clear_array_states(struct expression *array)
 static struct sm_state *set_extra_array_mod(struct expression *expr, struct smatch_state *state)
 {
 	struct expression *array;
-	struct expression *offset;
 	struct var_sym_list *vsl;
 	struct var_sym *vs;
 	char *name;
 	struct symbol *sym;
-	sval_t sval;
 	struct sm_state *ret = NULL;
 
 	array = get_array_base(expr);
-	offset = get_array_offset(expr);
 
 	name = expr_to_chunk_sym_vsl(expr, &sym, &vsl);
-
-	if (!name || !vsl || !get_value(offset, &sval)) {
+	if (!name || !vsl) {
 		clear_array_states(array);
 		goto free;
 	}
@@ -183,6 +179,7 @@ static struct sm_state *set_extra_array_mod(struct expression *expr, struct smat
 		store_link(link_id, vs->var, vs->sym, name, sym);
 	} END_FOR_EACH_PTR(vs);
 
+	call_extra_mod_hooks(name, sym, state);
 	ret = set_state(SMATCH_EXTRA, name, sym, state);
 free:
 	free_string(name);
