@@ -1415,6 +1415,7 @@ static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	int loop_num_bak = loop_num;
+	int loop_count_bak = loop_count;
 	int final_pass_bak = final_pass;
 	char *cur_func_bak = cur_func;
 	struct statement_list *big_statement_stack_bak = big_statement_stack;
@@ -1444,6 +1445,7 @@ static void parse_inline(struct expression *call)
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	loop_num = 0;
+	loop_count = 0;
 	start_function_definition(call->fn->symbol);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
@@ -1456,6 +1458,7 @@ static void parse_inline(struct expression *call)
 	free_goto_stack();
 
 	loop_num = loop_num_bak;
+	loop_count = loop_count_bak;
 	final_pass = final_pass_bak;
 	cur_func_sym = cur_func_sym_bak;
 	cur_func = cur_func_bak;
