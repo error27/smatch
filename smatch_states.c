@@ -94,11 +94,11 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 		s = get_state(owner, name, sym);
 		if (!s)
-			sm_msg("new state. name='%s' [%s] %s",
-				name, check_name(owner), show_state(state));
+			sm_msg("%s new [%s] '%s' %s", __func__,
+			       check_name(owner), name, show_state(state));
 		else
-			sm_msg("state change name='%s' [%s] %s => %s",
-				name, check_name(owner), show_state(s),
+			sm_msg("%s change [%s] '%s' %s => %s",
+				__func__, check_name(owner), name, show_state(s),
 				show_state(state));
 	}
 
@@ -197,13 +197,10 @@ void __set_sm(struct sm_state *sm)
 
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			sm_msg("new state. name='%s' [%s] %s",
-				sm->name, check_name(sm->owner),
-				show_state(sm->state));
+			sm_msg("%s new %s", __func__, show_sm(sm));
 		else
-			sm_msg("state change name='%s' [%s] %s => %s",
-				sm->name, check_name(sm->owner), show_state(s),
-				show_state(sm->state));
+			sm_msg("%s change %s (was %s)",	__func__, show_sm(sm),
+			       show_state(s));
 	}
 
 	if (unreachable())
@@ -226,13 +223,10 @@ void __set_sm_cur_stree(struct sm_state *sm)
 
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			sm_msg("new state. name='%s' [%s] %s",
-				sm->name, check_name(sm->owner),
-				show_state(sm->state));
+			sm_msg("%s new %s", __func__, show_sm(sm));
 		else
-			sm_msg("state change name='%s' [%s] %s => %s",
-				sm->name, check_name(sm->owner), show_state(s),
-				show_state(sm->state));
+			sm_msg("%s change %s (was %s)",
+				__func__, show_sm(sm), show_state(s));
 	}
 
 	if (unreachable())
@@ -252,13 +246,10 @@ void __set_sm_fake_stree(struct sm_state *sm)
 
 		s = get_state(sm->owner, sm->name, sm->sym);
 		if (!s)
-			sm_msg("new state. name='%s' [%s] %s",
-				sm->name, check_name(sm->owner),
-				show_state(sm->state));
+			sm_msg("%s new %s", __func__, show_sm(sm));
 		else
-			sm_msg("state change name='%s' [%s] %s => %s",
-				sm->name, check_name(sm->owner), show_state(s),
-				show_state(sm->state));
+			sm_msg("%s change %s (was %s)",
+				__func__, show_sm(sm), show_state(s));
 	}
 
 	if (unreachable())
@@ -402,8 +393,8 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);
-		sm_msg("set_true_false '%s'.  Was %s.  Now T:%s F:%s\n",
-		       name, show_state(tmp),
+		sm_msg("set_true_false [%s] '%s'.  Was %s.  Now T:%s F:%s\n",
+		       check_name(owner),  name, show_state(tmp),
 		       show_state(true_state), show_state(false_state));
 	}
 
