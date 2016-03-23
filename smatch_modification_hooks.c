@@ -121,7 +121,6 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 
 static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr, int late)
 {
-	struct stree *stree;
 	struct sm_state *sm;
 	struct smatch_state *prev;
 	int match;
@@ -129,9 +128,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 	prev = get_state(my_id, name, sym);
 	set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
 
-	stree = __get_cur_stree();
-
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner > num_checks)
 			continue;
 		match = matches(name, sym, sm);
