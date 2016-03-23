@@ -679,7 +679,6 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 		__set_sm_fake_stree(tmp);
 	} END_FOR_EACH_SM(tmp);
 
-
 	free_stree(&implied_true);
 	free_stree(&implied_false);
 free:
