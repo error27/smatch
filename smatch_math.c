@@ -807,13 +807,13 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 	case RL_REAL_ABSOLUTE:
 		state = get_extra_state(expr);
 		if (!state || !state->data || is_whole_rl(estate_rl(state))) {
+			state = get_real_absolute_state(expr);
+			if (state && state->data)
+				return clone_rl(estate_rl(state));
 			if (get_local_rl(expr, &rl))
 				return rl;
 			if (get_db_type_rl(expr, &rl))
 				return rl;
-			state = get_real_absolute_state(expr);
-			if (state && state->data)
-				return clone_rl(estate_rl(state));
 			return NULL;
 		}
 		return clone_rl(estate_rl(state));
