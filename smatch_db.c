@@ -1162,7 +1162,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 		return 0;
 	if (!get_implied_rl(expr, &rl))
 		return 0;
-	if (rl_min(rl).value < -4095)
+	if (rl_min(rl).value < -4095 || rl_min(rl).value >= 0)
 		return 0;
 	if (rl_max(rl).value != 0)
 		return 0;
