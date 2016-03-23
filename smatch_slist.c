@@ -346,10 +346,10 @@ struct state_list *clone_slist(struct state_list *from_slist)
 	return to_slist;
 }
 
-struct smatch_state *merge_states(int owner, const char *name,
-				  struct symbol *sym,
-				  struct smatch_state *state1,
-				  struct smatch_state *state2)
+static struct smatch_state *merge_states(int owner, const char *name,
+					 struct symbol *sym,
+					 struct smatch_state *state1,
+					 struct smatch_state *state2)
 {
 	struct smatch_state *ret;
 
