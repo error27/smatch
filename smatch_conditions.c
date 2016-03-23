@@ -553,7 +553,6 @@ int __handle_condition_assigns(struct expression *expr)
 
 	pop_expression(&big_expression_stack);
 	inside_condition--;
-	sm_debug("%d done __handle_condition_assigns\n", get_lineno());
 
 	__push_true_states();
 
@@ -568,13 +567,14 @@ int __handle_condition_assigns(struct expression *expr)
 	free_stree(&fake_stree);
 
 	__merge_true_states();
-	merge_stree(&true_stree, false_stree);
+	merge_fake_stree(&true_stree, false_stree);
 	free_stree(&false_stree);
 	FOR_EACH_SM(true_stree, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK);
+	sm_debug("%d done __handle_condition_assigns\n", get_lineno());
 	return 1;
 }
 
