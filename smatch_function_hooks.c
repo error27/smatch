@@ -490,6 +490,9 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	handle_ret_equals_param(argv[1], ret_range, db_info->expr);
 
+	if (type == INTERNAL)
+		set_state(-1, "unnull_path", NULL, &true_state);
+
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
@@ -679,6 +682,9 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		ret_range = alloc_whole_rl(get_type(strip_expr(db_info->expr->right)));
 	ret_range = cast_rl(get_type(db_info->expr->right), ret_range);
 
+	if (type == INTERNAL)
+		set_state(-1, "unnull_path", NULL, &true_state);
+
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
@@ -832,6 +838,9 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
+
+	if (type == INTERNAL)
+		set_state(-1, "unnull_path", NULL, &true_state);
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
