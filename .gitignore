@@ -5,6 +5,7 @@
 *.so
 *~
 .*.swp
+.gdb_history
 
 # generated
 pre-process.h
