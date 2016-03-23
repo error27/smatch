@@ -157,7 +157,6 @@ static int condition_too_complicated(struct expression *expr)
 	if (get_complication_score(expr) > 2)
 		return 1;
 	return 0;
-
 }
 
 void __stored_condition(struct expression *expr)
@@ -245,7 +244,6 @@ struct sm_state *stored_condition_implication_hook(struct expression *expr,
 	struct stree *stree;
 
 	expr = strip_expr(expr);
-
 
 	name = expr_to_str(expr);
 	if (!name)
