@@ -31,9 +31,9 @@ struct hook_container {
 };
 ALLOCATOR(hook_container, "hook functions");
 DECLARE_PTR_LIST(hook_func_list, struct hook_container);
-static struct hook_func_list *hook_funcs;
 static struct hook_func_list *merge_funcs;
 static struct hook_func_list *unmatched_state_funcs;
+static struct hook_func_list *hook_array[NUM_HOOKS] = {};
 void (**pre_merge_hooks)(struct sm_state *sm);
 
 struct scope_container {
@@ -48,6 +48,7 @@ static struct scope_hook_stack *scope_hooks;
 void add_hook(void *func, enum hook_type type)
 {
 	struct hook_container *container = __alloc_hook_container(0);
+
 	container->hook_type = type;
 	container->fn = func;
 	switch (type) {
@@ -157,7 +158,7 @@ void add_hook(void *func, enum hook_type type)
 		container->data_type = SYM_LIST_PTR;
 		break;
 	}
-	add_ptr_list(&hook_funcs, container);
+	add_ptr_list(&hook_array[type], container);
 }
 
 void add_merge_hook(int client_id, merge_func_t *func)
@@ -215,22 +216,21 @@ void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
 
-	FOR_EACH_PTR(hook_funcs, container) {
-		if (container->hook_type == type) {
-			switch (container->data_type) {
-			case EXPR_PTR:
-				pass_expr_to_client(container->fn, data);
-				break;
-			case STMT_PTR:
-				pass_stmt_to_client(container->fn, data);
-				break;
-			case SYMBOL_PTR:
-				pass_sym_to_client(container->fn, data);
-				break;
-			case SYM_LIST_PTR:
-				pass_sym_list_to_client(container->fn, data);
-				break;
-			}
+
+	FOR_EACH_PTR(hook_array[type], container) {
+		switch (container->data_type) {
+		case EXPR_PTR:
+			pass_expr_to_client(container->fn, data);
+			break;
+		case STMT_PTR:
+			pass_stmt_to_client(container->fn, data);
+			break;
+		case SYMBOL_PTR:
+			pass_sym_to_client(container->fn, data);
+			break;
+		case SYM_LIST_PTR:
+			pass_sym_list_to_client(container->fn, data);
+			break;
 		}
 	} END_FOR_EACH_PTR(container);
 }
@@ -239,9 +239,8 @@ void __pass_to_client_no_data(enum hook_type type)
 {
 	struct hook_container *container;
 
-	FOR_EACH_PTR(hook_funcs, container) {
-		if (container->hook_type == type)
-			pass_to_client(container->fn);
+	FOR_EACH_PTR(hook_array[type], container) {
+		pass_to_client(container->fn);
 	} END_FOR_EACH_PTR(container);
 }
 
@@ -252,9 +251,8 @@ void __pass_case_to_client(struct expression *switch_expr,
 				 struct expression *case_expr);
 	struct hook_container *container;
 
-	FOR_EACH_PTR(hook_funcs, container) {
-		if (container->hook_type == CASE_HOOK)
-			((case_func *) container->fn)(switch_expr, case_expr);
+	FOR_EACH_PTR(hook_array[CASE_HOOK], container) {
+		((case_func *) container->fn)(switch_expr, case_expr);
 	} END_FOR_EACH_PTR(container);
 }
 

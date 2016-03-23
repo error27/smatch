@@ -127,6 +127,7 @@ enum hook_type {
 	INLINE_FN_START,
 	INLINE_FN_END,
 	END_FILE_HOOK,
+	NUM_HOOKS,
 };
 
 #define TRUE 1
