@@ -20,6 +20,7 @@
  * but return the number of bytes to copy instead.
  */
 
+#include <string.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
@@ -57,7 +58,7 @@ static void match_condition(struct expression *expr)
  *    and there is a possibility that we return negative as well
  *    then complain.
  */
-static void match_return(struct expression *ret_value)
+static void match_return_var(struct expression *ret_value)
 {
 	struct smatch_state *state;
 	struct sm_state *sm;
@@ -78,6 +79,43 @@ static void match_return(struct expression *ret_value)
 	sm_msg("warn: maybe return -EFAULT instead of the bytes remaining?");
 }
 
+static void match_return_call(struct expression *ret_value)
+{
+	struct expression *fn;
+	struct range_list *rl;
+	const char *fn_name;
+	char *cur_func;
+
+	if (!ret_value || ret_value->type != EXPR_CALL)
+		return;
+	cur_func = get_function();
+	if (!cur_func)
+		return;
+	if (strstr(cur_func, "_to_user") ||
+	    strstr(cur_func, "_from_user"))
+		return;
+
+	fn = strip_expr(ret_value->fn);
+	if (fn->type != EXPR_SYMBOL)
+		return;
+	if (!fn->symbol_name->name)
+		return;
+	fn_name = fn->symbol_name->name;
+	if (strcmp(fn_name, "copy_to_user") != 0 &&
+	    strcmp(fn_name, "__copy_to_user") != 0 &&
+	    strcmp(fn_name, "copy_from_user") != 0 &&
+	    strcmp(fn_name, "__copy_from_user"))
+		return;
+
+	rl = db_return_vals_from_str(get_function());
+	if (!rl)
+		return;
+
+	if (!sval_is_negative(rl_min(rl)))
+		return;
+	sm_msg("warn: maybe return -EFAULT instead of the bytes remaining?");
+}
+
 void check_return_efault(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -90,6 +128,7 @@ void check_return_efault(int id)
 	add_function_assign_hook("__copy_from_user", &match_copy, NULL);
 	add_function_assign_hook("clear_user", &match_copy, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_hook(&match_return, RETURN_HOOK);
+	add_hook(&match_return_var, RETURN_HOOK);
+	add_hook(&match_return_call, RETURN_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
 }

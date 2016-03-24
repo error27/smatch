@@ -469,6 +469,18 @@ struct range_list *db_return_vals(struct expression *expr)
 	return return_range_list;
 }
 
+struct range_list *db_return_vals_from_str(const char *fn_name)
+{
+	static_returns_call = NULL;
+	return_type = &llong_ctype;
+
+	return_range_list = NULL;
+	run_sql(db_return_callback, NULL,
+		"select distinct return from return_states where function = '%s';",
+		fn_name);
+	return return_range_list;
+}
+
 static void match_call_marker(struct expression *expr)
 {
 	/*
