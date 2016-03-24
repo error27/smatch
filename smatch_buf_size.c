@@ -774,6 +774,25 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, BUF_SIZE, param, printed_name, sm->state->name);
 }
 
+/*
+ * This is slightly (very) weird because half of this stuff is handled in
+ * smatch_parse_call_math.c which is poorly named.  But anyway, add some buf
+ * sizes here.
+ *
+ */
+static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr)
+{
+	char buf[16];
+	int size;
+
+	size = get_array_size_bytes(expr);
+	if (!size)
+		return;
+
+	snprintf(buf, sizeof(buf), "%d", size);
+	sql_insert_return_states(return_id, return_ranges, BUF_SIZE, -1, "", buf);
+}
+
 void register_buf_size(int id)
 {
 	my_size_id = id;
@@ -782,6 +801,7 @@ void register_buf_size(int id)
 
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
+	add_split_return_callback(print_returned_allocations);
 
 	allocation_funcs = create_function_hashtable(100);
 	add_allocation_function("malloc", &match_alloc, 0);
