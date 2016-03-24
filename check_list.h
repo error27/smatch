@@ -41,6 +41,7 @@ CK(register_impossible)
 CK(register_impossible_return)
 CK(register_param_used)
 CK(register_strings)
+CK(register_real_absolute)
 
 CK(check_debug)
 CK(check_user_data)
