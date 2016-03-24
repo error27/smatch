@@ -68,6 +68,34 @@ static void match_returns_err_ptr(const char *fn, struct expression *expr,
 	set_state_expr(my_id, expr->left, &err_ptr);
 }
 
+static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+{
+	struct sm_state *sm;
+	struct smatch_state *estate;
+	struct symbol *sym;
+	char *name;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	sm = get_sm_state(my_id, name, sym);
+	if (!sm)
+		goto free;
+
+	if (!slist_has_state(sm->possible, &err_ptr))
+		goto free;
+
+	estate = get_state(SMATCH_EXTRA, name, sym);
+	if (!estate || !possibly_true_rl(estate_rl(estate), SPECIAL_EQUAL, err_ptr_rl))
+		goto free;
+
+	sm_msg("error: '%s' dereferencing possible ERR_PTR()", sm->name);
+	set_state(my_id, sm->name, sm->sym, &checked);
+
+free:
+	free_string(name);
+}
 
 static void match_checked(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *unused)
@@ -207,5 +235,7 @@ void check_err_ptr_deref(int id)
 	add_function_hook("vfree", &match_kfree, INT_PTR(0));
 
 	err_ptr_rl = clone_rl_permanent(alloc_rl(err_ptr_min, err_ptr_max));
+
+	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
 }
 
