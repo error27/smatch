@@ -156,6 +156,7 @@ CK(check_wine_WtoA)
 
 #include "check_list_local.h"
 
+CK(register_scope)
 CK(register_stored_conditions)
 CK(register_stored_conditions_links)
 CK(register_sval)

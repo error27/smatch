@@ -352,6 +352,56 @@ free:
 	free_string(name);
 }
 
+static void delete_all_states_stree_sym(struct stree **stree, struct symbol *sym)
+{
+	struct state_list *slist = NULL;
+	struct sm_state *sm;
+
+	FOR_EACH_SM(*stree, sm) {
+		if (sm->sym == sym)
+			add_ptr_list(&slist, sm);
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_PTR(slist, sm) {
+		delete_state_stree(stree, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_PTR(sm);
+
+	free_slist(&slist);
+}
+
+static void delete_all_states_stree_stack_sym(struct stree_stack **stack, struct symbol *sym)
+{
+	struct stree *stree;
+
+	if (!*stack)
+		return;
+
+	stree = pop_stree(stack);
+	delete_all_states_stree_sym(&stree, sym);
+	push_stree(stack, stree);
+}
+
+void __delete_all_states_sym(struct symbol *sym)
+{
+	delete_all_states_stree_sym(&cur_stree, sym);
+
+	delete_all_states_stree_stack_sym(&true_stack, sym);
+	delete_all_states_stree_stack_sym(&true_stack, sym);
+	delete_all_states_stree_stack_sym(&false_stack, sym);
+	delete_all_states_stree_stack_sym(&pre_cond_stack, sym);
+	delete_all_states_stree_stack_sym(&cond_true_stack, sym);
+	delete_all_states_stree_stack_sym(&cond_false_stack, sym);
+	delete_all_states_stree_stack_sym(&fake_cur_stree_stack, sym);
+	delete_all_states_stree_stack_sym(&break_stack, sym);
+	delete_all_states_stree_stack_sym(&switch_stack, sym);
+	delete_all_states_stree_stack_sym(&continue_stack, sym);
+
+	/*
+	 * deleting from the goto stack is problematic because we don't know
+	 * if the label is in scope and also we need the value for --two-passes.
+	 */
+}
+
 struct stree *get_all_states_from_stree(int owner, struct stree *source)
 {
 	struct stree *ret = NULL;
