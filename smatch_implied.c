@@ -480,7 +480,9 @@ static int handle_comparison(struct expression *expr,
 		return 0;
 	}
 
-	type = estate_type(sm->state);
+	type = get_type(expr);
+	if (!type)
+		return 0;
 	if (type_positive_bits(rl_type(rl)) > type_positive_bits(type))
 		type = rl_type(rl);
 	if (type_positive_bits(type) < 31)
