@@ -44,6 +44,34 @@ typedef void (untracked_hook)(struct expression *call, int param);
 DECLARE_PTR_LIST(untracked_hook_list, untracked_hook *);
 static struct untracked_hook_list *untracked_hooks;
 
+DECLARE_PTR_LIST(int_stack, int);
+struct int_stack *tracked_stack;
+
+static void push_int(struct int_stack **stack, int num)
+{
+	int *munged;
+
+	/*
+	 * Just put the int on directly instead of a pointer to the int.
+	 * Shift it to the left because Sparse uses the last two bits.
+	 * This is sort of a dirty hack, yes.
+	 */
+
+	munged = INT_PTR(tracked << 2);
+
+	add_ptr_list(stack, munged);
+}
+
+static int pop_int(struct int_stack **stack)
+{
+	int *num;
+
+	num = last_ptr_list((struct ptr_list *)*stack);
+	delete_ptr_list_last((struct ptr_list **)stack);
+
+	return PTR_INT(num) >> 2;
+}
+
 void add_untracked_param_hook(void (func)(struct expression *call, int param))
 {
 	untracked_hook **p = malloc(sizeof(untracked_hook *));
@@ -109,7 +137,6 @@ static void match_after_call(struct expression *expr)
 	struct expression *arg;
 	struct symbol *type;
 	int i;
-
 
 	if (lost_in_va_args(expr))
 		tracked = 0;
@@ -203,6 +230,16 @@ static void match_param_assign_in_asm(struct statement *stmt)
 	} END_FOR_EACH_PTR(expr);
 }
 
+static void match_inline_start(struct expression *expr)
+{
+	push_int(&tracked_stack, tracked);
+}
+
+static void match_inline_end(struct expression *expr)
+{
+	tracked = pop_int(&tracked_stack);
+}
+
 void register_untracked_param(int id)
 {
 	my_id = id;
@@ -215,4 +252,7 @@ void register_untracked_param(int id)
 
 	add_hook(&match_param_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_param_assign_in_asm, ASM_HOOK);
+
+	add_hook(&match_inline_start, INLINE_FN_START);
+	add_hook(&match_inline_end, INLINE_FN_END);
 }
