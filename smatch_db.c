@@ -954,8 +954,10 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 		ret = 1;
 		__push_fake_cur_stree();
 
+		nullify_path();
+		__unnullify_path();
 		FOR_EACH_SM(orig_stree, orig_sm) {
-			__set_sm(orig_sm);
+			__set_sm_cur_stree(orig_sm);
 		} END_FOR_EACH_SM(orig_sm);
 
 		overwrite_states_using_pool(tmp);
