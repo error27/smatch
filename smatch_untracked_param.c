@@ -246,7 +246,7 @@ void register_untracked_param(int id)
 
 	select_return_states_hook(INTERNAL, &assume_tracked);
 	select_return_states_hook(UNTRACKED_PARAM, &mark_untracked);
-	add_hook(&match_after_call, FUNCTION_CALL_HOOK_AFTER);
+	add_hook(&match_after_call, FUNCTION_CALL_HOOK_AFTER_DB);
 
 	add_split_return_callback(&print_untracked_params);
 

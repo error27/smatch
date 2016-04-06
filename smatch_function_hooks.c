@@ -169,13 +169,14 @@ static void call_return_states_before_hooks(void)
 	} END_FOR_EACH_PTR(fn);
 }
 
-static void call_return_states_after_hooks(void)
+static void call_return_states_after_hooks(struct expression *expr)
 {
 	void_fn **fn;
 
 	FOR_EACH_PTR(return_states_after, fn) {
 		(*fn)();
 	} END_FOR_EACH_PTR(fn);
+	__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER_DB);
 }
 
 static int call_call_backs(struct call_back_list *list, int type,
@@ -592,7 +593,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	free_stree(&true_states);
 	free_stree(&false_states);
 
-	call_return_states_after_hooks();
+	call_return_states_after_hooks(call_expr);
 
 	FOR_EACH_SM(implied_true, sm) {
 		__set_true_false_sm(sm, NULL);
@@ -732,7 +733,7 @@ static int db_return_states_assign(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&db_info.stree);
-	call_return_states_after_hooks();
+	call_return_states_after_hooks(right);
 
 	return handled;
 }
@@ -887,7 +888,7 @@ static void db_return_states(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&db_info.stree);
-	call_return_states_after_hooks();
+	call_return_states_after_hooks(expr);
 }
 
 static int is_condition_call(struct expression *expr)

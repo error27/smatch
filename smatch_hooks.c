@@ -112,7 +112,7 @@ void add_hook(void *func, enum hook_type type)
 	case CALL_HOOK_AFTER_INLINE:
 		container->data_type = EXPR_PTR;
 		break;
-	case FUNCTION_CALL_HOOK_AFTER:
+	case FUNCTION_CALL_HOOK_AFTER_DB:
 		container->data_type = EXPR_PTR;
 		break;
 	case DEREF_HOOK:

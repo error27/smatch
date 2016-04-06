@@ -389,8 +389,6 @@ void __split_expr(struct expression *expr)
 		tmp = strip_expr(expr->right);
 		if (expr->op == '=' && tmp->type == EXPR_CALL) {
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
-			if (!is_fake_call(tmp))
-				__pass_to_client(tmp, FUNCTION_CALL_HOOK_AFTER);
 		}
 		if (get_macro_name(tmp->pos) &&
 		    get_macro_name(expr->pos) != get_macro_name(tmp->pos))
@@ -465,8 +463,6 @@ void __split_expr(struct expression *expr)
 			parse_inline(expr);
 		}
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
-		if (!is_assigned_call(expr))
-			__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
 		break;
