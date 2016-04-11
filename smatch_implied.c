@@ -299,17 +299,17 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		ret->merged = 1;
 		ret->right = right;
 		ret->left = NULL;
-		ret->pool = sm->pool;
 	} else if (!right) {
 		ret = clone_sm(left);
 		ret->merged = 1;
 		ret->left = left;
 		ret->right = NULL;
-		ret->pool = sm->pool;
 	} else {
 		ret = merge_sm_states(left, right);
-		ret->pool = sm->pool;
 	}
+
+	ret->pool = sm->pool;
+
 	ret->implied = 1;
 	DIMPLIED("partial %s => ", show_sm(sm));
 	DIMPLIED("%s from %d [stree %d]\n", show_sm(ret), sm->line, get_stree_id(sm->pool));
