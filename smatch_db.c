@@ -1150,6 +1150,64 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	return ret;
 }
 
+static int call_return_state_hooks_split_null_non_null(struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct range_list *rl;
+	char *return_ranges;
+	struct smatch_state *state;
+	int nr_states;
+	int final_pass_orig = final_pass;
+
+	if (!expr || expr_equal_to_param(expr, -1))
+		return 0;
+	if (expr->type == EXPR_CALL)
+		return 0;
+	if (!is_pointer(expr))
+		return 0;
+
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (!state || !estate_rl(state))
+		return 0;
+	if (estate_min(state).value == 0 && estate_max(state).value == 0)
+		return 0;
+	if (!rl_has_sval(estate_rl(state), sval_type_val(estate_type(state), 0)))
+		return 0;
+
+	nr_states = stree_count(__get_cur_stree());
+	if (option_info && nr_states >= 1500)
+		return 0;
+
+	rl = estate_rl(state);
+
+	__push_fake_cur_stree();
+
+	final_pass = 0;
+	__split_whole_condition(expr);
+	final_pass = final_pass_orig;
+
+	return_ranges = show_rl(rl_filter(rl, rl_zero()));
+
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__push_true_states();
+	__use_false_states();
+
+	return_ranges = alloc_sname("0");;
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+
+	__merge_true_states();
+	__free_fake_cur_stree();
+
+	return 1;
+}
+
 static int call_return_state_hooks_split_success_fail(struct expression *expr)
 {
 	struct range_list *rl;
@@ -1255,6 +1313,8 @@ static void call_return_state_hooks(struct expression *expr)
 		call_return_state_hooks_conditional(expr);
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
+		return;
+	} else if (call_return_state_hooks_split_null_non_null(expr)) {
 		return;
 	} else if (call_return_state_hooks_split_success_fail(expr)) {
 		return;
