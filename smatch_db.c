@@ -783,7 +783,6 @@ static void match_call_implies(struct expression *expr)
 	static_call_expr = expr;
 	sql_select_call_implies("function, type, parameter, key, value", expr,
 				call_implies_callbacks);
-	return;
 }
 
 static void print_initializer_list(struct expression_list *expr_list,
