@@ -1128,53 +1128,16 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	return 1;
 }
 
-static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
+static void handle_comparison_rl(struct range_list *left_orig, int op, struct range_list *right_orig,
+		struct range_list **left_true_rl, struct range_list **left_false_rl,
+		struct range_list **right_true_rl, struct range_list **right_false_rl)
 {
-	struct range_list *left_orig;
-	struct range_list *left_true;
-	struct range_list *left_false;
-	struct range_list *right_orig;
-	struct range_list *right_true;
-	struct range_list *right_false;
-	struct smatch_state *left_true_state;
-	struct smatch_state *left_false_state;
-	struct smatch_state *right_true_state;
-	struct smatch_state *right_false_state;
-	sval_t min, max, dummy, hard_max;
-	int left_postop = 0;
-	int right_postop = 0;
+	struct range_list *left_true, *left_false;
+	struct range_list *right_true, *right_false;
+	sval_t min, max;
 
-	if (left->op == SPECIAL_INCREMENT || left->op == SPECIAL_DECREMENT) {
-		if (left->type == EXPR_POSTOP) {
-			left->smatch_flags |= Handled;
-			left_postop = left->op;
-			if (handle_postop_inc(left, op, right))
-				return;
-		}
-		left = strip_parens(left->unop);
-	}
-	while (left->type == EXPR_ASSIGNMENT)
-		left = strip_parens(left->left);
-
-	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
-		if (right->type == EXPR_POSTOP) {
-			right->smatch_flags |= Handled;
-			right_postop = right->op;
-		}
-		right = strip_parens(right->unop);
-	}
-
-	/* FIXME: we should be able to use get_real_absolute_rl() here but
-	 * apparently that is buggy.
-	 */
-	get_real_absolute_rl(left, &left_orig);
-	left_orig = cast_rl(type, left_orig);
-
-	get_real_absolute_rl(right, &right_orig);
-	right_orig = cast_rl(type, right_orig);
-
-	min = sval_type_min(type);
-	max = sval_type_max(type);
+	min = sval_type_min(rl_type(left_orig));
+	max = sval_type_max(rl_type(left_orig));
 
 	left_true = clone_rl(left_orig);
 	left_false = clone_rl(left_orig);
@@ -1266,8 +1229,62 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	default:
+		sm_msg("internal error: unhandled comparison %d", op);
 		return;
 	}
+
+	*left_true_rl = left_true;
+	*left_false_rl = left_false;
+	*right_true_rl = right_true;
+	*right_false_rl = right_false;
+}
+
+static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
+{
+	struct range_list *left_orig;
+	struct range_list *left_true;
+	struct range_list *left_false;
+	struct range_list *right_orig;
+	struct range_list *right_true;
+	struct range_list *right_false;
+	struct smatch_state *left_true_state;
+	struct smatch_state *left_false_state;
+	struct smatch_state *right_true_state;
+	struct smatch_state *right_false_state;
+	sval_t dummy, hard_max;
+	int left_postop = 0;
+	int right_postop = 0;
+
+	if (left->op == SPECIAL_INCREMENT || left->op == SPECIAL_DECREMENT) {
+		if (left->type == EXPR_POSTOP) {
+			left->smatch_flags |= Handled;
+			left_postop = left->op;
+			if (handle_postop_inc(left, op, right))
+				return;
+		}
+		left = strip_parens(left->unop);
+	}
+	while (left->type == EXPR_ASSIGNMENT)
+		left = strip_parens(left->left);
+
+	if (right->op == SPECIAL_INCREMENT || right->op == SPECIAL_DECREMENT) {
+		if (right->type == EXPR_POSTOP) {
+			right->smatch_flags |= Handled;
+			right_postop = right->op;
+		}
+		right = strip_parens(right->unop);
+	}
+
+	/* FIXME: we should be able to use get_real_absolute_rl() here but
+	 * apparently that is buggy.
+	 */
+	get_real_absolute_rl(left, &left_orig);
+	left_orig = cast_rl(type, left_orig);
+
+	get_real_absolute_rl(right, &right_orig);
+	right_orig = cast_rl(type, right_orig);
+
+	handle_comparison_rl(left_orig, op, right_orig, &left_true, &left_false, &right_true, &right_false); 
 
 	left_true = rl_truncate_cast(get_type(strip_expr(left)), left_true);
 	left_false = rl_truncate_cast(get_type(strip_expr(left)), left_false);
