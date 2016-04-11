@@ -1300,6 +1300,9 @@ static void call_return_state_hooks(struct expression *expr)
 	int nr_states;
 	sval_t sval;
 
+	if (__path_is_null())
+		return;
+
 	expr = strip_expr(expr);
 
 	if (is_impossible_path())
