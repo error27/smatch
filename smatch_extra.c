@@ -1275,9 +1275,6 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		right = strip_parens(right->unop);
 	}
 
-	/* FIXME: we should be able to use get_real_absolute_rl() here but
-	 * apparently that is buggy.
-	 */
 	get_real_absolute_rl(left, &left_orig);
 	left_orig = cast_rl(type, left_orig);
 
