@@ -354,7 +354,7 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	elements = get_array_size(arg);
-	bytes = get_array_size_bytes(arg);
+	bytes = get_array_size_bytes_max(arg);
 
 	name = expr_to_str(arg);
 	sm_msg("buf size: '%s' %d elements, %d bytes", name, elements, bytes);
