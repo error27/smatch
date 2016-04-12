@@ -493,6 +493,7 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 	match_print_implied(fn, expr, NULL);
 	match_buf_size(fn, expr, NULL);
 	match_strlen(fn, expr, NULL);
+	match_real_absolute(fn, expr, NULL);
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
@@ -504,7 +505,7 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (strcmp(sm->name, name) != 0)
 			continue;
-		sm_msg("%s '%s' = '%s'", check_name(sm->owner), sm->name, sm->state->name);
+		sm_msg("%s", show_sm(sm));
 	} END_FOR_EACH_SM(sm);
 }
 
