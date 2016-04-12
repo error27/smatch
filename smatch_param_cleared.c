@@ -47,6 +47,7 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, param);
+	arg = strip_expr(arg);
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
