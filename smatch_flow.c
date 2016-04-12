@@ -707,6 +707,7 @@ static struct range_list *get_case_rl(struct expression *case_expr,
 
 	return rl;
 }
+
 static void split_known_switch(struct statement *stmt, sval_t sval)
 {
 	struct statement *tmp;
@@ -726,7 +727,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 		__smatch_lineno = tmp->pos.line;
 		if (is_case_val(tmp, sval)) {
 			__merge_switches(top_expression(switch_expr_stack),
-					 get_case_rl(stmt->case_expression, stmt->case_to));
+					 alloc_rl(sval, sval));
 			__pass_case_to_client(top_expression(switch_expr_stack),
 					      stmt->case_expression);
 		}
