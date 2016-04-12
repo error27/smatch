@@ -712,9 +712,8 @@ free:
 	return ret;
 }
 
-struct stree *__implied_case_stree(struct expression *switch_expr,
-					struct expression *case_expr,
-					struct expression *case_to,
+struct stree *__implied_case_stree_rl(struct expression *switch_expr,
+					struct range_list *rl,
 					struct range_list_stack **remaining_cases,
 					struct stree **raw_stree)
 {
@@ -725,24 +724,11 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	struct stree *false_states = NULL;
 	struct stree *extra_states = NULL;
 	struct stree *ret = clone_stree(*raw_stree);
-	sval_t start, end;
-	struct range_list *rl = NULL;
 
 	name = expr_to_var_sym(switch_expr, &sym);
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state_stree(*raw_stree, SMATCH_EXTRA, name, sym);
-
-	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
-		filter_top_rl(remaining_cases, start, end);
-		add_range(&rl, start, end);
-	} else if (get_value(case_expr, &start)) {
-		filter_top_rl(remaining_cases, start, start);
-		add_range(&rl, start, start);
-	} else {
-		rl = clone_rl(top_rl(*remaining_cases));
-	}
-
 	if (sm)
 		separate_and_filter(sm, SPECIAL_EQUAL, rl, *raw_stree, &true_states, &false_states);
 
@@ -758,6 +744,28 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 free:
 	free_string(name);
 	return ret;
+}
+
+struct stree *__implied_case_stree(struct expression *switch_expr,
+					struct expression *case_expr,
+					struct expression *case_to,
+					struct range_list_stack **remaining_cases,
+					struct stree **raw_stree)
+{
+	sval_t start, end;
+	struct range_list *rl = NULL;
+
+	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
+		filter_top_rl(remaining_cases, start, end);
+		add_range(&rl, start, end);
+	} else if (get_value(case_expr, &start)) {
+		filter_top_rl(remaining_cases, start, start);
+		add_range(&rl, start, start);
+	} else {
+		rl = clone_rl(top_rl(*remaining_cases));
+	}
+
+	return __implied_case_stree_rl(switch_expr, rl, remaining_cases, raw_stree);
 }
 
 static void match_end_func(struct symbol *sym)
