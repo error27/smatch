@@ -1285,7 +1285,7 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	get_real_absolute_rl(right, &right_orig);
 	right_orig = cast_rl(type, right_orig);
 
-	handle_comparison_rl(left_orig, op, right_orig, &left_true, &left_false, &right_true, &right_false); 
+	handle_comparison_rl(left_orig, op, right_orig, &left_true, &left_false, &right_true, &right_false);
 
 	left_true = rl_truncate_cast(get_type(strip_expr(left)), left_true);
 	left_false = rl_truncate_cast(get_type(strip_expr(left)), left_false);
