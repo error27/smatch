@@ -687,31 +687,6 @@ free:
 	free_string(name);
 }
 
-struct range_list *__get_implied_values(struct expression *switch_expr)
-{
-	char *name;
-	struct symbol *sym;
-	struct smatch_state *state;
-	struct range_list *ret = NULL;
-
-	name = expr_to_var_sym(switch_expr, &sym);
-	if (!name || !sym)
-		goto free;
-	state = get_state(SMATCH_EXTRA, name, sym);
-	if (!state)
-		goto free;
-	ret = clone_rl(estate_rl(state));
-free:
-	free_string(name);
-	if (!ret) {
-		struct symbol *type;
-
-		type = get_type(switch_expr);
-		ret = alloc_rl(sval_type_min(type), sval_type_max(type));
-	}
-	return ret;
-}
-
 struct stree *__implied_case_stree(struct expression *switch_expr,
 				   struct range_list *rl,
 				   struct range_list_stack **remaining_cases,

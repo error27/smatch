@@ -945,7 +945,11 @@ void __use_breaks(void)
 
 void __save_switch_states(struct expression *switch_expr)
 {
-	push_rl(&remaining_cases, __get_implied_values(switch_expr));
+	struct range_list *rl;
+
+	get_absolute_rl(switch_expr, &rl);
+
+	push_rl(&remaining_cases, rl);
 	push_stree(&switch_stack, clone_stree(cur_stree));
 }
 

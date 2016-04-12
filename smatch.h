@@ -458,7 +458,6 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 				   struct range_list *case_rl,
 				   struct range_list_stack **remaining_cases,
 				   struct stree **raw_stree);
-struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
 void add_pool(struct stree_stack **pools, struct stree *new);
 int assume(struct expression *expr);
