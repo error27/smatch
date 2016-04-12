@@ -693,6 +693,20 @@ static int is_case_val(struct statement *stmt, sval_t sval)
 	return 0;
 }
 
+static struct range_list *get_case_rl(struct expression *case_expr,
+				      struct expression *case_to)
+{
+	sval_t start, end;
+	struct range_list *rl = NULL;
+
+	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
+		add_range(&rl, start, end);
+	} else if (get_value(case_expr, &start)) {
+		add_range(&rl, start, start);
+	}
+
+	return rl;
+}
 static void split_known_switch(struct statement *stmt, sval_t sval)
 {
 	struct statement *tmp;
@@ -712,7 +726,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 		__smatch_lineno = tmp->pos.line;
 		if (is_case_val(tmp, sval)) {
 			__merge_switches(top_expression(switch_expr_stack),
-					 stmt->case_expression, stmt->case_to);
+					 get_case_rl(stmt->case_expression, stmt->case_to));
 			__pass_case_to_client(top_expression(switch_expr_stack),
 					      stmt->case_expression);
 		}
@@ -727,8 +741,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 out:
 	__call_scope_hooks();
 	if (!__pop_default())
-		__merge_switches(top_expression(switch_expr_stack),
-				 NULL, NULL);
+		__merge_switches(top_expression(switch_expr_stack), NULL);
 	__discard_switches();
 	__merge_breaks();
 	pop_expression(&switch_expr_stack);
@@ -957,15 +970,14 @@ void __split_stmt(struct statement *stmt)
 		__push_breaks();
 		__split_stmt(stmt->switch_statement);
 		if (!__pop_default())
-			__merge_switches(top_expression(switch_expr_stack),
-				      NULL, NULL);
+			__merge_switches(top_expression(switch_expr_stack), NULL);
 		__discard_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);
 		break;
 	case STMT_CASE:
 		__merge_switches(top_expression(switch_expr_stack),
-				      stmt->case_expression, stmt->case_to);
+				 get_case_rl(stmt->case_expression, stmt->case_to));
 		__pass_case_to_client(top_expression(switch_expr_stack),
 				      stmt->case_expression);
 		if (!stmt->case_expression)

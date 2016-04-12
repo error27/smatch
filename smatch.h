@@ -455,10 +455,9 @@ extern int option_debug_related;
 struct range_list_stack;
 void param_limit_implications(struct expression *expr, int param, char *key, char *value);
 struct stree *__implied_case_stree(struct expression *switch_expr,
-				 struct expression *case_expr,
-				 struct expression *case_to,
-				 struct range_list_stack **remaining_cases,
-				 struct stree **raw_stree);
+				   struct range_list *case_rl,
+				   struct range_list_stack **remaining_cases,
+				   struct stree **raw_stree);
 struct range_list *__get_implied_values(struct expression *switch_expr);
 void overwrite_states_using_pool(struct sm_state *sm);
 void add_pool(struct stree_stack **pools, struct stree *new);
@@ -614,7 +613,7 @@ void __use_breaks(void);
 
 void __save_switch_states(struct expression *switch_expr);
 void __discard_switches(void);
-void __merge_switches(struct expression *switch_expr, struct expression *case_expr, struct expression *case_to);
+void __merge_switches(struct expression *switch_expr, struct range_list *case_rl);
 void __push_default(void);
 void __set_default(void);
 int __pop_default(void);
