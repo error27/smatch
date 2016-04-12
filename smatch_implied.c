@@ -722,7 +722,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	struct sm_state *sm;
 	struct stree *true_states = NULL;
 	struct stree *false_states = NULL;
-	struct stree *extra_states = NULL;
+	struct stree *extra_states;
 	struct stree *ret = clone_stree(*raw_stree);
 
 	name = expr_to_var_sym(switch_expr, &sym);
