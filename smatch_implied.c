@@ -730,7 +730,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 		goto free;
 
 	if (rl)
-		filter_top_rl(remaining_cases, rl_min(rl), rl_max(rl));
+		filter_top_rl(remaining_cases, rl);
 	else
 		rl = clone_rl(top_rl(*remaining_cases));
 
