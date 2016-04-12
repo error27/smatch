@@ -748,6 +748,19 @@ out:
 	pop_expression(&switch_expr_stack);
 }
 
+static void split_case(struct statement *stmt)
+{
+	__merge_switches(top_expression(switch_expr_stack),
+			 get_case_rl(stmt->case_expression, stmt->case_to));
+	__pass_case_to_client(top_expression(switch_expr_stack),
+			      stmt->case_expression);
+	if (!stmt->case_expression)
+		__set_default();
+	__split_expr(stmt->case_expression);
+	__split_expr(stmt->case_to);
+	__split_stmt(stmt->case_statement);
+}
+
 static int taking_too_long(void)
 {
 	int ms;
@@ -977,15 +990,7 @@ void __split_stmt(struct statement *stmt)
 		pop_expression(&switch_expr_stack);
 		break;
 	case STMT_CASE:
-		__merge_switches(top_expression(switch_expr_stack),
-				 get_case_rl(stmt->case_expression, stmt->case_to));
-		__pass_case_to_client(top_expression(switch_expr_stack),
-				      stmt->case_expression);
-		if (!stmt->case_expression)
-			__set_default();
-		__split_expr(stmt->case_expression);
-		__split_expr(stmt->case_to);
-		__split_stmt(stmt->case_statement);
+		split_case(stmt);
 		break;
 	case STMT_LABEL:
 		__split_label_stmt(stmt);
