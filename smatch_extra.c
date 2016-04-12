@@ -1233,10 +1233,14 @@ static void handle_comparison_rl(struct range_list *left_orig, int op, struct ra
 		return;
 	}
 
-	*left_true_rl = left_true;
-	*left_false_rl = left_false;
-	*right_true_rl = right_true;
-	*right_false_rl = right_false;
+	if (left_true_rl) {
+		*left_true_rl = left_true;
+		*left_false_rl = left_false;
+	}
+	if (right_true_rl) {
+		*right_true_rl = right_true;
+		*right_false_rl = right_false;
+	}
 }
 
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
@@ -1287,6 +1291,26 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	left_false = rl_truncate_cast(get_type(strip_expr(left)), left_false);
 	right_true = rl_truncate_cast(get_type(strip_expr(right)), right_true);
 	right_false = rl_truncate_cast(get_type(strip_expr(right)), right_false);
+
+	if (!left_true || !left_false) {
+		struct range_list *tmp_true, *tmp_false;
+
+		handle_comparison_rl(alloc_whole_rl(type), op, right_orig, &tmp_true, &tmp_false, NULL, NULL);
+		tmp_true = rl_truncate_cast(get_type(strip_expr(left)), tmp_true);
+		tmp_false = rl_truncate_cast(get_type(strip_expr(left)), tmp_false);
+		if (tmp_true && tmp_false)
+			__save_imaginary_state(left, tmp_true, tmp_false);
+	}
+
+	if (!right_true || !right_false) {
+		struct range_list *tmp_true, *tmp_false;
+
+		handle_comparison_rl(alloc_whole_rl(type), op, right_orig, NULL, NULL, &tmp_true, &tmp_false);
+		tmp_true = rl_truncate_cast(get_type(strip_expr(right)), tmp_true);
+		tmp_false = rl_truncate_cast(get_type(strip_expr(right)), tmp_false);
+		if (tmp_true && tmp_false)
+			__save_imaginary_state(right, tmp_true, tmp_false);
+	}
 
 	left_true_state = alloc_estate_rl(left_true);
 	left_false_state = alloc_estate_rl(left_false);

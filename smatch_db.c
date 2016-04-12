@@ -1001,6 +1001,9 @@ static const char *get_return_ranges_str(struct expression *expr)
 	if (get_implied_rl(expr, &rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
 		return_ranges = show_rl(rl);
+	} else if (get_imaginary_absolute(expr, &rl)){
+		rl = cast_rl(cur_func_return_type(), rl);
+		return alloc_sname(show_rl(rl));
 	} else {
 		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
 		return_ranges = show_rl(rl);

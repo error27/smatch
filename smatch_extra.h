@@ -200,3 +200,8 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);
 
 /* smatch_real_absolute.c */
 struct smatch_state *get_real_absolute_state(struct expression *expr);
+
+/* smatch_imaginary_absolute.c */
+void __save_imaginary_state(struct expression *expr, struct range_list *true_rl, struct range_list *false_rl);
+int get_imaginary_absolute(struct expression *expr, struct range_list **rl);
+
