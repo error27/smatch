@@ -37,4 +37,10 @@ fi
 ${bin_dir}/remove_mixed_up_pointer_params.pl $db_file
 ${bin_dir}/mark_function_ptrs_searchable.pl $db_file
 
+test -e  ${bin_dir}/${PROJ}.return_fixes && \
+cat ${bin_dir}/${PROJ}.return_fixes | \
+while read func old new ; do
+    echo "update return_states set return = '$new' where function = '$func' and return = '$old';" | sqlite3 $db_file
+done
+
 mv $db_file smatch_db.sqlite
