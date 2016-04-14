@@ -750,14 +750,30 @@ out:
 
 static void split_case(struct statement *stmt)
 {
-	__merge_switches(top_expression(switch_expr_stack),
-			 get_case_rl(stmt->case_expression, stmt->case_to));
+	struct range_list *rl = NULL;
+
+	/* FIXME:  Just delete this? */
 	__pass_case_to_client(top_expression(switch_expr_stack),
 			      stmt->case_expression);
+
+	rl = get_case_rl(stmt->case_expression, stmt->case_to);
+	while (stmt->case_statement->type == STMT_CASE) {
+		struct range_list *tmp;
+
+		tmp = get_case_rl(stmt->case_statement->case_expression,
+				  stmt->case_statement->case_to);
+		if (!tmp)
+			break;
+		rl = rl_union(rl, tmp);
+		if (!stmt->case_expression)
+			__set_default();
+		stmt = stmt->case_statement;
+	}
+
+	__merge_switches(top_expression(switch_expr_stack), rl);
+
 	if (!stmt->case_expression)
 		__set_default();
-	__split_expr(stmt->case_expression);
-	__split_expr(stmt->case_to);
 	__split_stmt(stmt->case_statement);
 }
 
