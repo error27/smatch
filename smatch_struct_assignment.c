@@ -346,6 +346,17 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void unop_expr(struct expression *expr)
+{
+	if (expr->op != SPECIAL_INCREMENT &&
+	    expr->op != SPECIAL_DECREMENT)
+		return;
+
+	if (!is_pointer(expr))
+		return;
+	__struct_members_copy(COPY_MEMCPY, expr, expr->unop, NULL);
+}
+
 static void register_clears_param(void)
 {
 	struct token *token;
@@ -417,6 +428,7 @@ void register_struct_assignment(int id)
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
+	add_hook(&unop_expr, OP_HOOK);
 	register_clears_param();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 }

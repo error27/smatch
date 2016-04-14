@@ -967,6 +967,29 @@ static struct smatch_state *decrement_state(struct smatch_state *state)
 	return alloc_estate_range(min, max);
 }
 
+static void clear_pointed_at_state(struct expression *expr)
+{
+	struct symbol *type;
+
+	/*
+         * ALERT: This is sort of a mess.  If it's is a struct assigment like
+	 * "foo = bar;", then that's handled by smatch_struct_assignment.c.
+	 * the same thing for p++ where "p" is a struct.  Most modifications
+	 * are handled by the assignment hook or the db.  Smatch_extra.c doesn't
+	 * use smatch_modification.c because we have to get the ordering right
+	 * or something.  So if you have p++ where p is a pointer to a standard
+	 * c type then we handle that here.  What a mess.
+	 */
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_BASETYPE)
+		return;
+	set_extra_expr_mod(deref_expression(expr), alloc_estate_whole(type));
+}
+
 static void unop_expr(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -981,6 +1004,7 @@ static void unop_expr(struct expression *expr)
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
+		clear_pointed_at_state(expr->unop);
 		break;
 	case SPECIAL_DECREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
@@ -988,6 +1012,7 @@ static void unop_expr(struct expression *expr)
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
 		set_extra_expr_mod(expr->unop, state);
+		clear_pointed_at_state(expr->unop);
 		break;
 	default:
 		return;
