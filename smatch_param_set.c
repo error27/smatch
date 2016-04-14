@@ -117,7 +117,6 @@ static int parent_set(struct string_list *list, const char *name)
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct stree *stree;
 	struct sm_state *sm;
 	struct smatch_state *extra;
 	int param;
@@ -128,9 +127,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	char buf[256];
 	sval_t sval;
 
-	stree = __get_cur_stree();
-
-	FOR_EACH_MY_SM(my_id, stree, sm) {
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!estate_rl(sm->state))
 			continue;
 		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
