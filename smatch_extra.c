@@ -1153,121 +1153,6 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	return 1;
 }
 
-static void handle_comparison_rl(struct range_list *left_orig, int op, struct range_list *right_orig,
-		struct range_list **left_true_rl, struct range_list **left_false_rl,
-		struct range_list **right_true_rl, struct range_list **right_false_rl)
-{
-	struct range_list *left_true, *left_false;
-	struct range_list *right_true, *right_false;
-	sval_t min, max;
-
-	min = sval_type_min(rl_type(left_orig));
-	max = sval_type_max(rl_type(left_orig));
-
-	left_true = clone_rl(left_orig);
-	left_false = clone_rl(left_orig);
-	right_true = clone_rl(right_orig);
-	right_false = clone_rl(right_orig);
-
-	switch (op) {
-	case '<':
-	case SPECIAL_UNSIGNED_LT:
-		left_true = remove_range(left_orig, rl_max(right_orig), max);
-		if (!sval_is_min(rl_min(right_orig))) {
-			left_false = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
-		}
-
-		right_true = remove_range(right_orig, min, rl_min(left_orig));
-		if (!sval_is_max(rl_max(left_orig)))
-			right_false = remove_range(right_orig, add_one(rl_max(left_orig)), max);
-		break;
-	case SPECIAL_UNSIGNED_LTE:
-	case SPECIAL_LTE:
-		if (!sval_is_max(rl_max(right_orig)))
-			left_true = remove_range(left_orig, add_one(rl_max(right_orig)), max);
-		left_false = remove_range(left_orig, min, rl_min(right_orig));
-
-		if (!sval_is_min(rl_min(left_orig)))
-			right_true = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
-		right_false = remove_range(right_orig, rl_max(left_orig), max);
-
-		if (sval_cmp(rl_min(left_orig), rl_min(right_orig)) == 0)
-			left_false = remove_range(left_false, rl_min(left_orig), rl_min(left_orig));
-		if (sval_cmp(rl_max(left_orig), rl_max(right_orig)) == 0)
-			right_false = remove_range(right_false, rl_max(left_orig), rl_max(left_orig));
-		break;
-	case SPECIAL_EQUAL:
-		if (!sval_is_max(rl_max(right_orig))) {
-			left_true = remove_range(left_true, add_one(rl_max(right_orig)), max);
-		}
-		if (!sval_is_min(rl_min(right_orig))) {
-			left_true = remove_range(left_true, min, sub_one(rl_min(right_orig)));
-		}
-		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
-			left_false = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
-
-		if (!sval_is_max(rl_max(left_orig)))
-			right_true = remove_range(right_true, add_one(rl_max(left_orig)), max);
-		if (!sval_is_min(rl_min(left_orig)))
-			right_true = remove_range(right_true, min, sub_one(rl_min(left_orig)));
-		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
-			right_false = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
-		break;
-	case SPECIAL_UNSIGNED_GTE:
-	case SPECIAL_GTE:
-		if (!sval_is_min(rl_min(right_orig)))
-			left_true = remove_range(left_orig, min, sub_one(rl_min(right_orig)));
-		left_false = remove_range(left_orig, rl_max(right_orig), max);
-
-		if (!sval_is_max(rl_max(left_orig)))
-			right_true = remove_range(right_orig, add_one(rl_max(left_orig)), max);
-		right_false = remove_range(right_orig, min, rl_min(left_orig));
-
-		if (sval_cmp(rl_min(left_orig), rl_min(right_orig)) == 0)
-			right_false = remove_range(right_false, rl_min(left_orig), rl_min(left_orig));
-		if (sval_cmp(rl_max(left_orig), rl_max(right_orig)) == 0)
-			left_false = remove_range(left_false, rl_max(left_orig), rl_max(left_orig));
-		break;
-	case '>':
-	case SPECIAL_UNSIGNED_GT:
-		left_true = remove_range(left_orig, min, rl_min(right_orig));
-		if (!sval_is_max(rl_max(right_orig)))
-			left_false = remove_range(left_orig, add_one(rl_max(right_orig)), max);
-
-		right_true = remove_range(right_orig, rl_max(left_orig), max);
-		if (!sval_is_min(rl_min(left_orig)))
-			right_false = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
-		break;
-	case SPECIAL_NOTEQUAL:
-		if (!sval_is_max(rl_max(right_orig)))
-			left_false = remove_range(left_false, add_one(rl_max(right_orig)), max);
-		if (!sval_is_min(rl_min(right_orig)))
-			left_false = remove_range(left_false, min, sub_one(rl_min(right_orig)));
-		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
-			left_true = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
-
-		if (!sval_is_max(rl_max(left_orig)))
-			right_false = remove_range(right_false, add_one(rl_max(left_orig)), max);
-		if (!sval_is_min(rl_min(left_orig)))
-			right_false = remove_range(right_false, min, sub_one(rl_min(left_orig)));
-		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
-			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
-		break;
-	default:
-		sm_msg("internal error: unhandled comparison %d", op);
-		return;
-	}
-
-	if (left_true_rl) {
-		*left_true_rl = left_true;
-		*left_false_rl = left_false;
-	}
-	if (right_true_rl) {
-		*right_true_rl = right_true;
-		*right_false_rl = right_false;
-	}
-}
-
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
 	struct range_list *left_orig;
@@ -1310,7 +1195,7 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	get_real_absolute_rl(right, &right_orig);
 	right_orig = cast_rl(type, right_orig);
 
-	handle_comparison_rl(left_orig, op, right_orig, &left_true, &left_false, &right_true, &right_false);
+	split_comparison_rl(left_orig, op, right_orig, &left_true, &left_false, &right_true, &right_false);
 
 	left_true = rl_truncate_cast(get_type(strip_expr(left)), left_true);
 	left_false = rl_truncate_cast(get_type(strip_expr(left)), left_false);
@@ -1320,7 +1205,7 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	if (!left_true || !left_false) {
 		struct range_list *tmp_true, *tmp_false;
 
-		handle_comparison_rl(alloc_whole_rl(type), op, right_orig, &tmp_true, &tmp_false, NULL, NULL);
+		split_comparison_rl(alloc_whole_rl(type), op, right_orig, &tmp_true, &tmp_false, NULL, NULL);
 		tmp_true = rl_truncate_cast(get_type(strip_expr(left)), tmp_true);
 		tmp_false = rl_truncate_cast(get_type(strip_expr(left)), tmp_false);
 		if (tmp_true && tmp_false)
@@ -1330,7 +1215,7 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	if (!right_true || !right_false) {
 		struct range_list *tmp_true, *tmp_false;
 
-		handle_comparison_rl(alloc_whole_rl(type), op, right_orig, NULL, NULL, &tmp_true, &tmp_false);
+		split_comparison_rl(alloc_whole_rl(type), op, right_orig, NULL, NULL, &tmp_true, &tmp_false);
 		tmp_true = rl_truncate_cast(get_type(strip_expr(right)), tmp_true);
 		tmp_false = rl_truncate_cast(get_type(strip_expr(right)), tmp_false);
 		if (tmp_true && tmp_false)

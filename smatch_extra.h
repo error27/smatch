@@ -101,6 +101,9 @@ int custom_get_absolute_rl(struct expression *expr,
 			   struct range_list *(*fn)(struct expression *expr),
 			   struct range_list **rl);
 int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_list **rl);
+void split_comparison_rl(struct range_list *left_orig, int op, struct range_list *right_orig,
+		struct range_list **left_true_rl, struct range_list **left_false_rl,
+		struct range_list **right_true_rl, struct range_list **right_false_rl);
 
 void free_rl(struct range_list **rlist);
 void free_data_info_allocs(void);
