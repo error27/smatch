@@ -580,6 +580,16 @@ static struct range_list *handle_comparison_rl(struct expression *expr, int impl
 	sval_t left, right;
 	int res;
 
+	if (expr->op == SPECIAL_EQUAL && expr->left->type == EXPR_TYPE) {
+		struct symbol *left, *right;
+
+		left = get_real_base_type(expr->left->symbol);
+		right = get_real_base_type(expr->left->symbol);
+		if (left == right)
+			return rl_one();
+		return rl_zero();
+	}
+
 	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
 		struct data_range tmp_left, tmp_right;
 
