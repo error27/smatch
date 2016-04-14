@@ -139,6 +139,8 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				op = '.';
 			} else {
 				deref = deref->unop;
+				if (!is_pointer(deref))
+					op = '.';
 			}
 		}
 
