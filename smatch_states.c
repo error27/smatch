@@ -480,8 +480,28 @@ free:
 
 void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 {
+	int owner;
+	const char *name;
+	struct symbol *sym;
+
+	if (!true_sm && !false_sm)
+		return;
+
 	if (unreachable())
 		return;
+
+	owner = true_sm ? true_sm->owner : false_sm->owner;
+	name = true_sm ? true_sm->name : false_sm->name;
+	sym = true_sm ? true_sm->sym : false_sm->sym;
+	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
+		struct smatch_state *tmp;
+
+		tmp = get_state(owner, name, sym);
+		sm_msg("set_true_false [%s] '%s'.  Was %s.  Now T:%s F:%s\n",
+		       check_name(owner),  name, show_state(tmp),
+		       show_state(true_sm ? true_sm->state : NULL),
+		       show_state(false_sm ? false_sm->state : NULL));
+	}
 
 	if (!cond_false_stack || !cond_true_stack) {
 		printf("Error:  missing true/false stacks\n");
