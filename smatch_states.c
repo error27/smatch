@@ -443,7 +443,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);
-		sm_msg("set_true_false [%s] '%s'.  Was %s.  Now T:%s F:%s\n",
+		sm_msg("%s [%s] '%s'.  Was %s.  Now T:%s F:%s", __func__,
 		       check_name(owner),  name, show_state(tmp),
 		       show_state(true_state), show_state(false_state));
 	}
@@ -497,7 +497,7 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 		struct smatch_state *tmp;
 
 		tmp = get_state(owner, name, sym);
-		sm_msg("set_true_false [%s] '%s'.  Was %s.  Now T:%s F:%s\n",
+		sm_msg("%s [%s] '%s'.  Was %s.  Now T:%s F:%s", __func__,
 		       check_name(owner),  name, show_state(tmp),
 		       show_state(true_sm ? true_sm->state : NULL),
 		       show_state(false_sm ? false_sm->state : NULL));
