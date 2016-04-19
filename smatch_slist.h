@@ -31,6 +31,7 @@ struct state_list *clone_slist(struct state_list *from_slist);
 int slist_has_state(struct state_list *slist, struct smatch_state *state);
 
 int too_many_possible(struct sm_state *sm);
+void add_possible_sm(struct sm_state *to, struct sm_state *new);
 struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two);
 struct smatch_state *get_state_stree(struct stree *stree, int owner, const char *name,
 		    struct symbol *sym);
