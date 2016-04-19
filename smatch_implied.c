@@ -514,7 +514,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 static struct expression *get_left_most_expr(struct expression *expr)
 {
-	expr = strip_expr(expr);
+	expr = strip_parens(expr);
 	if (expr->type == EXPR_ASSIGNMENT)
 		return get_left_most_expr(expr->left);
 	return expr;
