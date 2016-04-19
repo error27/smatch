@@ -89,17 +89,21 @@ static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 		return;
 
 	if (istrue && isfalse) {
-		printf("'%s = %s' from %d does not exist.\n", sm->name,
-			show_state(sm->state), sm->line);
+		printf("%s: %d: does not exist.\n", show_sm(sm), sm->line);
 	} else if (istrue) {
-		printf("'%s = %s' from %d is true. [stree %d]\n", sm->name, show_state(sm->state),
-			sm->line, get_stree_id(sm->pool));
+		printf("'%s = %s' from %d is true. %s[stree %d]\n", sm->name, show_state(sm->state),
+			sm->line, sm->merged ? "[merged]" : "[leaf]",
+			get_stree_id(sm->pool));
 	} else if (isfalse) {
-		printf("'%s = %s' from %d is false. [stree %d]\n", sm->name, show_state(sm->state),
-			sm->line, get_stree_id(sm->pool));
+		printf("'%s = %s' from %d is false. %s[stree %d]\n", sm->name, show_state(sm->state),
+			sm->line,
+			sm->merged ? "[merged]" : "[leaf]",
+			get_stree_id(sm->pool));
 	} else {
-		printf("'%s = %s' from %d could be true or false. [stree %d]\n", sm->name,
-			show_state(sm->state), sm->line, get_stree_id(sm->pool));
+		printf("'%s = %s' from %d could be true or false. %s[stree %d]\n", sm->name,
+			show_state(sm->state), sm->line,
+			sm->merged ? "[merged]" : "[leaf]",
+			get_stree_id(sm->pool));
 	}
 }
 
@@ -307,8 +311,8 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 	if (sm->nr_children > 4000) {
 		if (option_debug || option_debug_implied) {
 			static char buf[1028];
-			snprintf(buf, sizeof(buf), "debug: separate_pools: nr_children over 4000 (%d). (%s %s)",
-				 sm->nr_children, sm->name, show_state(sm->state));
+			snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
+				 __func__, sm->nr_children, sm->name, show_state(sm->state));
 			implied_debug_msg = buf;
 		}
 		return;
