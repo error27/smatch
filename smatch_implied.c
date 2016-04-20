@@ -107,27 +107,6 @@ static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 	}
 }
 
-/*
- * add_pool() adds a slist to *pools. If the slist has already been
- * added earlier then it doesn't get added a second time.
- */
-void add_pool(struct stree_stack **pools, struct stree *new)
-{
-	struct stree *tmp;
-
-	FOR_EACH_PTR(*pools, tmp) {
-		if (tmp < new)
-			continue;
-		else if (tmp == new) {
-			return;
-		} else {
-			INSERT_CURRENT(new, tmp);
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-	add_ptr_list(pools, new);
-}
-
 static int create_fake_history(struct sm_state *sm, int comparison, struct range_list *rl)
 {
 	struct range_list *orig_rl;
