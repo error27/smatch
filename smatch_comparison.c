@@ -1686,8 +1686,8 @@ void register_comparison_inc_dec_links(int id)
 }
 
 static void filter_by_sm(struct sm_state *sm, int op,
-		       struct stree_stack **true_stack,
-		       struct stree_stack **false_stack)
+		       struct state_list **true_stack,
+		       struct state_list **false_stack)
 {
 	struct compare_data *data;
 	int istrue = 0;
@@ -1713,9 +1713,9 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		isfalse = 1;
 
 	if (istrue)
-		add_pool(true_stack, sm->pool);
+		add_ptr_list(true_stack, sm);
 	if (isfalse)
-		add_pool(false_stack, sm->pool);
+		add_ptr_list(false_stack, sm);
 
 	if (sm->merged) {
 		filter_by_sm(sm->left, op, true_stack, false_stack);
@@ -1724,8 +1724,8 @@ static void filter_by_sm(struct sm_state *sm, int op,
 }
 
 struct sm_state *comparison_implication_hook(struct expression *expr,
-				struct stree_stack **true_stack,
-				struct stree_stack **false_stack)
+				struct state_list **true_stack,
+				struct state_list **false_stack)
 {
 	struct sm_state *sm;
 	char *left, *right;

@@ -198,8 +198,8 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
  * the false pools.  If we're not sure, then we don't add it to either.
  */
 static void do_compare(struct sm_state *sm, int comparison, struct range_list *rl,
-			struct stree_stack **true_stack,
-			struct stree_stack **false_stack, int *mixed, struct sm_state *gate_sm)
+			struct state_list **true_stack,
+			struct state_list **false_stack, int *mixed, struct sm_state *gate_sm)
 {
 	struct sm_state *s;
 	int istrue;
@@ -246,22 +246,22 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	}
 
 	if (istrue)
-		add_pool(true_stack, s->pool);
+		add_ptr_list(true_stack, s);
 
 	if (isfalse)
-		add_pool(false_stack, s->pool);
+		add_ptr_list(false_stack, s);
 }
 
 static int pool_in_pools(struct stree *pool,
-			 const struct stree_stack *pools)
+			 const struct state_list *slist)
 {
-	struct stree *tmp;
+	struct sm_state *tmp;
 
-	FOR_EACH_PTR(pools, tmp) {
-		if (tmp == pool)
+	FOR_EACH_PTR(slist, tmp) {
+		if (!tmp->pool)
+			continue;
+		if (tmp->pool == pool)
 			return 1;
-		if (tmp > pool)
-			return 0;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
@@ -286,8 +286,8 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  * do_compare() for each time 'foo' was set.
  */
 static void __separate_pools(struct sm_state *sm, int comparison, struct range_list *rl,
-			struct stree_stack **true_stack,
-			struct stree_stack **false_stack,
+			struct state_list **true_stack,
+			struct state_list **false_stack,
 			struct state_list **checked, int *mixed, struct sm_state *gate_sm)
 {
 	int free_checked = 0;
@@ -335,16 +335,16 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 }
 
 static void separate_pools(struct sm_state *sm, int comparison, struct range_list *rl,
-			struct stree_stack **true_stack,
-			struct stree_stack **false_stack,
+			struct state_list **true_stack,
+			struct state_list **false_stack,
 			struct state_list **checked, int *mixed)
 {
 	__separate_pools(sm, comparison, rl, true_stack, false_stack, checked, mixed, sm);
 }
 
 struct sm_state *filter_pools(struct sm_state *sm,
-			      const struct stree_stack *remove_stack,
-			      const struct stree_stack *keep_stack,
+			      const struct state_list *remove_stack,
+			      const struct state_list *keep_stack,
 			      int *modified)
 {
 	struct sm_state *ret = NULL;
@@ -434,8 +434,8 @@ static int highest_stree_id(struct sm_state *sm)
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
 				       struct stree *pre_stree,
-				       const struct stree_stack *remove_stack,
-				       const struct stree_stack *keep_stack)
+				       const struct state_list *remove_stack,
+				       const struct state_list *keep_stack)
 {
 	struct stree *ret = NULL;
 	struct sm_state *tmp;
@@ -475,8 +475,8 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 		struct stree **false_states,
 		int *mixed)
 {
-	struct stree_stack *true_stack = NULL;
-	struct stree_stack *false_stack = NULL;
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
 	struct timeval time_before;
 	struct timeval time_after;
 
@@ -498,8 +498,8 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
 	DIMPLIED("filtering false stack.\n");
 	*false_states = filter_stack(sm, pre_stree, true_stack, false_stack);
-	free_stree_stack(&true_stack);
-	free_stree_stack(&false_stack);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
 	if (option_debug_implied || option_debug) {
 		printf("These are the implied states for the true path:\n");
 		__print_stree(*true_states);
@@ -649,8 +649,8 @@ static int handled_by_implied_hook(struct expression *expr,
 				   struct stree **implied_true,
 				   struct stree **implied_false)
 {
-	struct stree_stack *true_stack = NULL;
-	struct stree_stack *false_stack = NULL;
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
 	struct stree *pre_stree;
 	struct sm_state *sm;
 
@@ -664,8 +664,8 @@ static int handled_by_implied_hook(struct expression *expr,
 	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
 
 	free_stree(&pre_stree);
-	free_stree_stack(&true_stack);
-	free_stree_stack(&false_stack);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
 
 	return 1;
 }
@@ -684,8 +684,8 @@ static int handled_by_stored_conditions(struct expression *expr,
 					struct stree **implied_true,
 					struct stree **implied_false)
 {
-	struct stree_stack *true_stack = NULL;
-	struct stree_stack *false_stack = NULL;
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
 	struct stree *pre_stree;
 	struct sm_state *sm;
 
@@ -699,8 +699,8 @@ static int handled_by_stored_conditions(struct expression *expr,
 	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
 
 	free_stree(&pre_stree);
-	free_stree_stack(&true_stack);
-	free_stree_stack(&false_stack);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
 
 	return 1;
 }

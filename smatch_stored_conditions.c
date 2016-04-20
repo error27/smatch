@@ -210,8 +210,8 @@ void register_stored_conditions_links(int id)
 #define RECURSE_LIMIT 50
 
 static void filter_by_sm(struct sm_state *sm,
-		       struct stree_stack **true_stack,
-		       struct stree_stack **false_stack,
+		       struct state_list **true_stack,
+		       struct state_list **false_stack,
 		       int *recurse_cnt)
 {
 	if (!sm)
@@ -221,9 +221,9 @@ static void filter_by_sm(struct sm_state *sm,
 		return;
 
 	if (strcmp(sm->state->name, "true") == 0) {
-		add_pool(true_stack, sm->pool);
+		add_ptr_list(true_stack, sm);
 	} else if (strcmp(sm->state->name, "false") == 0) {
-		add_pool(false_stack, sm->pool);
+		add_ptr_list(false_stack, sm);
 	}
 
 	if (sm->merged) {
@@ -233,15 +233,15 @@ static void filter_by_sm(struct sm_state *sm,
 }
 
 struct sm_state *stored_condition_implication_hook(struct expression *expr,
-				struct stree_stack **true_stack,
-				struct stree_stack **false_stack)
+				struct state_list **true_stack,
+				struct state_list **false_stack)
 {
 	struct sm_state *sm;
 	char *name;
 	int recurse_cnt = 0;
-	struct stree_stack *tmp_true = NULL;
-	struct stree_stack *tmp_false = NULL;
-	struct stree *stree;
+	struct state_list *tmp_true = NULL;
+	struct state_list *tmp_false = NULL;
+	struct sm_state *tmp;
 
 	expr = strip_expr(expr);
 
@@ -264,17 +264,17 @@ struct sm_state *stored_condition_implication_hook(struct expression *expr,
 		goto free;
 	}
 
-	FOR_EACH_PTR(tmp_true, stree) {
-		add_pool(true_stack, stree);
-	} END_FOR_EACH_PTR(stree);
+	FOR_EACH_PTR(tmp_true, tmp) {
+		add_ptr_list(true_stack, tmp);
+	} END_FOR_EACH_PTR(tmp);
 
-	FOR_EACH_PTR(tmp_false, stree) {
-		add_pool(false_stack, stree);
-	} END_FOR_EACH_PTR(stree);
+	FOR_EACH_PTR(tmp_false, tmp) {
+		add_ptr_list(false_stack, tmp);
+	} END_FOR_EACH_PTR(tmp);
 
 free:
-	free_stree_stack(&tmp_true);
-	free_stree_stack(&tmp_false);
+	free_slist(&tmp_true);
+	free_slist(&tmp_false);
 	return sm;
 }
 
