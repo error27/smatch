@@ -393,22 +393,18 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	return ret;
 }
 
-static int highest_stree_id(struct sm_state *sm)
+static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_gates)
 {
-	int left = 0;
-	int right = 0;
+	struct sm_state *tmp, *old;
 
-	if (!sm->left && !sm->right)
-		return 0;
-
-	if (sm->left)
-		left = get_stree_id(sm->left->pool);
-	if (sm->right)
-		right = get_stree_id(sm->right->pool);
-
-	if (right > left)
-		return right;
-	return left;
+	FOR_EACH_PTR(keep_gates, tmp) {
+		if (is_merged(tmp))
+			continue;
+		old = get_sm_state_stree(tmp->pool, sm->owner, sm->name, sm->sym);
+		if (old == sm)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
 }
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
@@ -427,12 +423,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	FOR_EACH_SM(pre_stree, tmp) {
 		if (!tmp->merged)
 			continue;
-		if (highest_stree_id(tmp) < highest_stree_id(gate_sm)) {
-			DIMPLIED("skipping %s.  set before.  %d vs %d\n",
-					tmp->name, highest_stree_id(tmp),
-					highest_stree_id(gate_sm));
+		if (sm_in_keep_leafs(tmp, keep_stack))
 			continue;
-		}
 		modified = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified);
 		if (filtered_sm && modified) {
