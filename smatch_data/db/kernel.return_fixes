@@ -1,3 +1,4 @@
 i2c_master_recv s32min-s32max 1-s32max[<=$2]
 hid_hw_output_report s32min-s32max 1-s32max[<=$2]
 _regmap_read s32min-(-1),1-s32max (-4095)-(-1)
+regmap_bulk_read s32min-(-1),1-s32max (-4095)-(-1)
