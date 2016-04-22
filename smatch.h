@@ -341,12 +341,9 @@ int expr_equiv(struct expression *one, struct expression *two);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
-int type_bits(struct symbol *type);
 int type_bytes(struct symbol *type);
-int type_positive_bits(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
-int type_unsigned(struct symbol *base_type);
 int type_signed(struct symbol *base_type);
 int expr_unsigned(struct expression *expr);
 int expr_signed(struct expression *expr);
@@ -835,7 +832,6 @@ sval_t sval_from_val(struct expression *expr, long long val);
 int sval_unsigned(sval_t sval);
 int sval_signed(sval_t sval);
 int sval_bits(sval_t sval);
-int sval_positive_bits(sval_t sval);
 int sval_bits_used(sval_t sval);
 int sval_is_negative(sval_t sval);
 int sval_is_positive(sval_t sval);
@@ -844,7 +840,6 @@ int sval_is_max(sval_t sval);
 int sval_is_a_min(sval_t sval);
 int sval_is_a_max(sval_t sval);
 int sval_is_negative_min(sval_t sval);
-int sval_cmp(sval_t one, sval_t two);
 int sval_cmp_t(struct symbol *type, sval_t one, sval_t two);
 int sval_cmp_val(sval_t one, long long val);
 sval_t sval_min(sval_t one, sval_t two);
@@ -923,5 +918,72 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym);
 
 /* smatch_buf_comparison.c */
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
+
+static inline int type_bits(struct symbol *type)
+{
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR)  /* Sparse doesn't set this for &pointers */
+		return bits_in_pointer;
+	if (!type->examined)
+		examine_symbol_type(type);
+	return type->bit_size;
+}
+
+static inline int type_unsigned(struct symbol *base_type)
+{
+	if (!base_type)
+		return 0;
+	if (base_type->ctype.modifiers & MOD_UNSIGNED)
+		return 1;
+	return 0;
+}
+
+static inline int type_positive_bits(struct symbol *type)
+{
+	if (!type)
+		return 0;
+//	if (type->type == SYM_PTR)
+//		return bits_in_pointer;
+	if (type_unsigned(type))
+		return type_bits(type);
+	return type_bits(type) - 1;
+}
+
+static inline int sval_positive_bits(sval_t sval)
+{
+	return type_positive_bits(sval.type);
+}
+
+/*
+ * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
+ */
+static inline int sval_cmp(sval_t one, sval_t two)
+{
+	struct symbol *type;
+
+	type = one.type;
+	if (sval_positive_bits(two) > sval_positive_bits(one))
+		type = two.type;
+	if (type_bits(type) < 31)
+		type = &int_ctype;
+
+	one = sval_cast(type, one);
+	two = sval_cast(type, two);
+
+	if (type_unsigned(type)) {
+		if (one.uvalue < two.uvalue)
+			return -1;
+		if (one.uvalue == two.uvalue)
+			return 0;
+		return 1;
+	}
+	/* fix me handle type promotion and unsigned values */
+	if (one.value < two.value)
+		return -1;
+	if (one.value == two.value)
+		return 0;
+	return 1;
+}
 
 #endif 	    /* !SMATCH_H_ */

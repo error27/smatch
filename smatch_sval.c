@@ -100,11 +100,6 @@ int sval_bits(sval_t sval)
 	return type_bits(sval.type);
 }
 
-int sval_positive_bits(sval_t sval)
-{
-	return type_positive_bits(sval.type);
-}
-
 int sval_bits_used(sval_t sval)
 {
 	int i;
@@ -188,37 +183,6 @@ int sval_is_negative_min(sval_t sval)
 	if (!sval_is_negative(sval))
 		return 0;
 	return sval_is_min(sval);
-}
-
-/*
- * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
- */
-int sval_cmp(sval_t one, sval_t two)
-{
-	struct symbol *type;
-
-	type = one.type;
-	if (sval_positive_bits(two) > sval_positive_bits(one))
-		type = two.type;
-	if (type_bits(type) < 31)
-		type = &int_ctype;
-
-	one = sval_cast(type, one);
-	two = sval_cast(type, two);
-
-	if (type_unsigned(type)) {
-		if (one.uvalue < two.uvalue)
-			return -1;
-		if (one.uvalue == two.uvalue)
-			return 0;
-		return 1;
-	}
-	/* fix me handle type promotion and unsigned values */
-	if (one.value < two.value)
-		return -1;
-	if (one.value == two.value)
-		return 0;
-	return 1;
 }
 
 int sval_cmp_t(struct symbol *type, sval_t one, sval_t two)

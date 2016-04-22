@@ -37,17 +37,6 @@ struct symbol *get_real_base_type(struct symbol *sym)
 	return ret;
 }
 
-int type_bits(struct symbol *type)
-{
-	if (!type)
-		return 0;
-	if (type->type == SYM_PTR)  /* Sparse doesn't set this for &pointers */
-		return bits_in_pointer;
-	if (!type->examined)
-		examine_symbol_type(type);
-	return type->bit_size;
-}
-
 int type_bytes(struct symbol *type)
 {
 	int bits = type_bits(type);
@@ -55,15 +44,6 @@ int type_bytes(struct symbol *type)
 	if (bits < 0)
 		return 0;
 	return bits_to_bytes(bits);
-}
-
-int type_positive_bits(struct symbol *type)
-{
-	if (!type)
-		return 0;
-	if (type_unsigned(type))
-		return type_bits(type);
-	return type_bits(type) - 1;
 }
 
 static struct symbol *get_binop_type(struct expression *expr)
@@ -288,15 +268,6 @@ struct symbol *get_type(struct expression *expr)
 
 	expr->ctype = ret;
 	return ret;
-}
-
-int type_unsigned(struct symbol *base_type)
-{
-	if (!base_type)
-		return 0;
-	if (base_type->ctype.modifiers & MOD_UNSIGNED)
-		return 1;
-	return 0;
 }
 
 int type_signed(struct symbol *base_type)
