@@ -296,6 +296,11 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 	if (!get_implied_rl(arg, &right_orig))
 		return NULL;
 
+	if (rl_type(start_rl) == &int_ctype &&
+	    sval_is_negative(rl_min(start_rl)) &&
+	    type_unsigned(rl_type(right_orig)))
+		right_orig = cast_rl(&int_ctype, right_orig);
+
 	filter_by_comparison(&start_rl, comparison, right_orig);
 	return start_rl;
 }
