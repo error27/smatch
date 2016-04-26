@@ -319,6 +319,11 @@ int is_merged(struct sm_state *sm)
 	return sm->merged;
 }
 
+int is_leaf(struct sm_state *sm)
+{
+	return !sm->merged;
+}
+
 int is_implied(struct sm_state *sm)
 {
 	return sm->implied;
