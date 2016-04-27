@@ -839,6 +839,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	__push_fake_cur_stree();
 	__unnullify_path();
 	set_extra_nomod(name, sym, alloc_estate_rl(rl));
+	__pass_case_to_client(switch_expr, rl);
 	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);
 	overwrite_stree(true_states, &ret);

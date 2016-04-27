@@ -245,14 +245,14 @@ void __pass_to_client_no_data(enum hook_type type)
 }
 
 void __pass_case_to_client(struct expression *switch_expr,
-			   struct expression *case_expr)
+			   struct range_list *rl)
 {
 	typedef void (case_func)(struct expression *switch_expr,
-				 struct expression *case_expr);
+				 struct range_list *rl);
 	struct hook_container *container;
 
 	FOR_EACH_PTR(hook_array[CASE_HOOK], container) {
-		((case_func *) container->fn)(switch_expr, case_expr);
+		((case_func *) container->fn)(switch_expr, rl);
 	} END_FOR_EACH_PTR(container);
 }
 

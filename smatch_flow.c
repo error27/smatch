@@ -711,6 +711,7 @@ static struct range_list *get_case_rl(struct expression *case_expr,
 static void split_known_switch(struct statement *stmt, sval_t sval)
 {
 	struct statement *tmp;
+	struct range_list *rl;
 
 	__split_expr(stmt->switch_expression);
 
@@ -726,10 +727,9 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
 		if (is_case_val(tmp, sval)) {
-			__merge_switches(top_expression(switch_expr_stack),
-					 alloc_rl(sval, sval));
-			__pass_case_to_client(top_expression(switch_expr_stack),
-					      stmt->case_expression);
+			rl = alloc_rl(sval, sval);
+			__merge_switches(top_expression(switch_expr_stack), rl);
+			__pass_case_to_client(top_expression(switch_expr_stack), rl);
 		}
 		if (__path_is_null())
 			continue;
@@ -751,10 +751,6 @@ out:
 static void split_case(struct statement *stmt)
 {
 	struct range_list *rl = NULL;
-
-	/* FIXME:  Just delete this? */
-	__pass_case_to_client(top_expression(switch_expr_stack),
-			      stmt->case_expression);
 
 	rl = get_case_rl(stmt->case_expression, stmt->case_to);
 	while (stmt->case_statement->type == STMT_CASE) {
@@ -865,6 +861,16 @@ static void fake_a_return(void)
 		__pass_to_client(unknown_value_expression(NULL), RETURN_HOOK);
 		nullify_path();
 	}
+}
+
+static void fake_an_empty_default(struct position pos)
+{
+	static struct statement none = {};
+
+	none.pos = pos;
+	none.type = STMT_NONE;
+	__merge_switches(top_expression(switch_expr_stack), NULL);
+	__split_stmt(&none);
 }
 
 static void split_compound(struct statement *stmt)
@@ -1000,7 +1006,7 @@ void __split_stmt(struct statement *stmt)
 		__push_breaks();
 		__split_stmt(stmt->switch_statement);
 		if (!__pop_default())
-			__merge_switches(top_expression(switch_expr_stack), NULL);
+			fake_an_empty_default(stmt->pos);
 		__discard_switches();
 		__merge_breaks();
 		pop_expression(&switch_expr_stack);

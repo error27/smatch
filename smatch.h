@@ -624,7 +624,7 @@ void __print_cur_stree(void);
 void __pass_to_client(void *data, enum hook_type type);
 void __pass_to_client_no_data(enum hook_type type);
 void __pass_case_to_client(struct expression *switch_expr,
-			   struct expression *case_expr);
+			   struct range_list *rl);
 int __has_merge_function(int client_id);
 struct smatch_state *__client_merge_function(int owner,
 					     struct smatch_state *s1,
