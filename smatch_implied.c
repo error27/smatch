@@ -483,8 +483,31 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 		__bail_on_rest_of_function = 1;
 }
 
+static struct expression *get_last_expr(struct statement *stmt)
+{
+	struct statement *last;
+
+	last = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (last->type == STMT_EXPRESSION)
+		return last->expression;
+
+	if (last->type == STMT_LABEL) {
+		if (last->label_statement &&
+		    last->label_statement->type == STMT_EXPRESSION)
+			return last->label_statement->expression;
+	}
+
+	return NULL;
+}
+
 static struct expression *get_left_most_expr(struct expression *expr)
 {
+	struct statement *compound;
+
+	compound = get_expression_statement(expr);
+	if (compound)
+		return get_last_expr(compound);
+
 	expr = strip_parens(expr);
 	if (expr->type == EXPR_ASSIGNMENT)
 		return get_left_most_expr(expr->left);

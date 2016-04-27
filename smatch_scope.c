@@ -17,6 +17,8 @@
 
 #include "smatch.h"
 
+static struct statement_list *stmt_list;
+
 static int end_of_function(struct statement *stmt)
 {
 	struct symbol *fn = get_base_type(cur_func_sym);
@@ -57,7 +59,51 @@ static void match_end_of_block(struct statement *stmt)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static int is_outer_stmt(struct statement *stmt)
+{
+	struct symbol *fn = get_base_type(cur_func_sym);
+
+	if (!fn)
+		return 0;
+	/*
+	 * There are times when ->parent is not set but it's set for
+	 * the outer statement so ignoring NULLs works as a work-around.
+	 */
+	if (!stmt->parent)
+		return 0;
+	if (stmt->parent == fn->stmt ||
+	    stmt->parent == fn->inline_stmt)
+		return 1;
+	return 0;
+}
+
+static void match_stmt(struct statement *stmt)
+{
+	struct statement *tmp;
+
+	if (__inline_fn)
+		return;
+
+	add_ptr_list(&stmt_list, stmt);
+
+	if (!is_outer_stmt(stmt))
+		return;
+
+	FOR_EACH_PTR(stmt_list, tmp) {
+		match_end_of_block(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	free_ptr_list(&stmt_list);
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	if (__inline_fn)
+		return;
+	free_ptr_list(&stmt_list);
+}
+
 void register_scope(int id)
 {
-	add_hook(&match_end_of_block, STMT_HOOK_AFTER);
+	add_hook(&match_stmt, STMT_HOOK_AFTER);
+	add_hook(&match_end_func, END_FUNC_HOOK);
 }
