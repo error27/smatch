@@ -48,15 +48,15 @@ static void handle_compare(struct expression *left, int op, struct expression *r
 		return;
 
 	set_true_false_states(my_id, "impossible", NULL,
-			      true_impossible ? &impossible : &undefined,
-			      false_impossible ? &impossible : &undefined);
+			      true_impossible ? &impossible : NULL,
+			      false_impossible ? &impossible : NULL);
 
 	if (inside_loop())
 		return;
 
 	set_true_false_states(my_return_id, "impossible", NULL,
-			      true_impossible ? &impossible : &undefined,
-			      false_impossible ? &impossible : &undefined);
+			      true_impossible ? &impossible : NULL,
+			      false_impossible ? &impossible : NULL);
 }
 
 static void match_condition(struct expression *expr)
