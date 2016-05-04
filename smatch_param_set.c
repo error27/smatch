@@ -187,6 +187,13 @@ int param_was_set(struct expression *expr)
 	return 0;
 }
 
+int param_was_set_var_sym(const char *name, struct symbol *sym)
+{
+	if (get_state(my_id, name, sym))
+		return 1;
+	return 0;
+}
+
 void register_param_set(int id)
 {
 	my_id = id;

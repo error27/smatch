@@ -882,6 +882,7 @@ int get_formatted_string_size(struct expression *call, int arg);
 
 /* smatch_param_set.c */
 int param_was_set(struct expression *expr);
+int param_was_set_var_sym(const char *name, struct symbol *sym);
 /* smatch_param_filter.c */
 int param_has_filter_data(struct sm_state *sm);
 
