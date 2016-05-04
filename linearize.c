@@ -1946,7 +1946,11 @@ static pseudo_t linearize_iterator(struct entrypoint *ep, struct statement *stmt
 	struct statement  *post_statement = stmt->iterator_post_statement;
 	struct expression *post_condition = stmt->iterator_post_condition;
 	struct basic_block *loop_top, *loop_body, *loop_continue, *loop_end;
+	struct symbol *sym;
 
+	FOR_EACH_PTR(stmt->iterator_syms, sym) {
+		linearize_one_symbol(ep, sym);
+	} END_FOR_EACH_PTR(sym);
 	concat_symbol_list(stmt->iterator_syms, &ep->syms);
 	linearize_statement(ep, pre_statement);
 
