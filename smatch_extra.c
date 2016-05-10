@@ -1503,8 +1503,11 @@ static void handle_AND_condition(struct expression *expr)
 {
 	struct range_list *rl = NULL;
 	sval_t known;
+	int bit;
 
 	if (get_implied_value(expr->left, &known) && known.value > 0) {
+		bit = ffsll(known.value) - 1;
+		known.uvalue = 1ULL << bit;
 		known.value--;
 		get_absolute_rl(expr->right, &rl);
 		rl = remove_range(rl, sval_type_val(known.type, 0), known);
@@ -1513,6 +1516,8 @@ static void handle_AND_condition(struct expression *expr)
 	}
 
 	if (get_implied_value(expr->right, &known) && known.value > 0) {
+		bit = ffsll(known.value) - 1;
+		known.uvalue = 1ULL << bit;
 		known.value--;
 		get_absolute_rl(expr->left, &rl);
 		rl = remove_range(rl, sval_type_val(known.type, 0), known);
