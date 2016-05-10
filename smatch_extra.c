@@ -1045,6 +1045,8 @@ static void check_dereference(struct expression *expr)
 {
 	if (outside_of_function())
 		return;
+	if (implied_not_equal(expr, 0))
+		return;
 	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 }
 
