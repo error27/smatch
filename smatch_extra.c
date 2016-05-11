@@ -20,6 +20,9 @@
  *
  */
 
+#define _GNU_SOURCE
+#include <string.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #ifndef __USE_ISOC99
