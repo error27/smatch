@@ -1516,7 +1516,7 @@ void register_db_call_marker(int id)
 	add_hook(&match_call_marker, FUNCTION_CALL_HOOK);
 }
 
-char *return_state_to_var_sym(struct expression *expr, int param, char *key, struct symbol **sym)
+char *return_state_to_var_sym(struct expression *expr, int param, const char *key, struct symbol **sym)
 {
 	struct expression *arg;
 	char *name = NULL;
@@ -1555,7 +1555,7 @@ char *return_state_to_var_sym(struct expression *expr, int param, char *key, str
 	return get_variable_from_key(arg, key, sym);
 }
 
-char *get_variable_from_key(struct expression *arg, char *key, struct symbol **sym)
+char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
 	char buf[256];
 	char *tmp;
