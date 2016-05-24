@@ -920,6 +920,8 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym);
 /* smatch_buf_comparison.c */
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
 
+struct stree *get_all_return_states(void);
+
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)

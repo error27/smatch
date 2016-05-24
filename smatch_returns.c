@@ -71,6 +71,11 @@ static void match_restore_states(struct expression *expr)
 	all_return_states = pop_stree(&saved_stack);
 }
 
+struct stree *get_all_return_states(void)
+{
+	return all_return_states;
+}
+
 void register_returns(int id)
 {
 	my_id = id;
