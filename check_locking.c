@@ -364,6 +364,7 @@ struct locks_on_return {
 	int line;
 	struct tracker_list *locked;
 	struct tracker_list *unlocked;
+	struct tracker_list *impossible;
 	struct range_list *return_values;
 };
 DECLARE_PTR_LIST(return_list, struct locks_on_return);
@@ -582,6 +583,7 @@ static struct locks_on_return *alloc_return(struct expression *expr)
 	ret->line = get_lineno();
 	ret->locked = NULL;
 	ret->unlocked = NULL;
+	ret->impossible = NULL;
 	return ret;
 }
 
@@ -657,6 +659,9 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 			if (s == &unlocked)
 				add_tracker(&ret->unlocked, tmp->owner,tmp->name,
 					     tmp->sym);
+		} else if (tmp->state == &impossible) {
+			add_tracker(&ret->impossible, tmp->owner, tmp->name,
+				    tmp->sym);
 		} else {
 			if (check_possible(tmp)) {
 				if (expr)
@@ -759,6 +764,8 @@ static int matches_return_type(struct range_list *rl, enum return_type type)
 
 static int match_held(struct tracker *lock, struct locks_on_return *this_return, struct smatch_state *start)
 {
+	if (in_tracker_list(this_return->impossible, lock->owner, lock->name, lock->sym))
+		return 0;
 	if (in_tracker_list(this_return->unlocked, lock->owner, lock->name, lock->sym))
 		return 0;
 	if (in_tracker_list(this_return->locked, lock->owner, lock->name, lock->sym))
@@ -770,6 +777,8 @@ static int match_held(struct tracker *lock, struct locks_on_return *this_return,
 
 static int match_released(struct tracker *lock, struct locks_on_return *this_return, struct smatch_state *start)
 {
+	if (in_tracker_list(this_return->impossible, lock->owner, lock->name, lock->sym))
+		return 0;
 	if (in_tracker_list(this_return->unlocked, lock->owner, lock->name, lock->sym))
 		return 1;
 	if (in_tracker_list(this_return->locked, lock->owner, lock->name, lock->sym))
