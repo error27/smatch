@@ -1088,12 +1088,6 @@ static sval_t add_one(sval_t sval)
 	return sval;
 }
 
-static sval_t sub_one(sval_t sval)
-{
-	sval.value--;
-	return sval;
-}
-
 static int handle_postop_inc(struct expression *left, int op, struct expression *right)
 {
 	struct statement *stmt;
