@@ -614,7 +614,7 @@ struct range_list *alloc_whole_rl(struct symbol *type)
 
 void add_range(struct range_list **list, sval_t min, sval_t max)
 {
-	struct data_range *tmp = NULL;
+	struct data_range *tmp;
 	struct data_range *new = NULL;
 	int check_next = 0;
 
