@@ -592,5 +592,5 @@ static void free_svals(struct symbol *sym)
 
 void register_sval(int my_id)
 {
-	add_hook(&free_svals, END_FUNC_HOOK);
+	add_hook(&free_svals, AFTER_FUNC_HOOK);
 }

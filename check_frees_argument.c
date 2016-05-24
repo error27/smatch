@@ -106,12 +106,18 @@ static void print_arg(struct symbol *sym)
 
 static void match_end_func(struct symbol *sym)
 {
-	struct tracker *tracker;
-
 	if (__inline_fn)
 		return;
 	if (is_reachable())
 		match_return(NULL);
+}
+
+static void match_after_func(struct symbol *sym)
+{
+	struct tracker *tracker;
+
+	if (__inline_fn)
+		return;
 
 	FOR_EACH_PTR(freed_args, tracker) {
 		print_arg(tracker->sym);
@@ -134,4 +140,5 @@ void check_frees_argument(int id)
 		add_function_hook("free", &match_kfree, NULL);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 }

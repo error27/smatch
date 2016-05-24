@@ -409,6 +409,12 @@ static void match_end_func(struct symbol *sym)
 	if (__inline_fn)
 		return;
 	check_for_allocated();
+}
+
+static void match_after_func(struct symbol *sym)
+{
+	if (__inline_fn)
+		return;
 	free_trackers_and_list(&arguments);
 }
 
@@ -449,6 +455,7 @@ void check_memory(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	add_modification_hook(my_id, &set_unfree);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("kfree", &match_free_func, (void *)0);

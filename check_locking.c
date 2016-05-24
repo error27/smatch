@@ -882,6 +882,12 @@ static void match_func_end(struct symbol *sym)
 
 	if (func_has_transition)
 		check_consistency(sym);
+}
+
+static void match_after_func(struct symbol *sym)
+{
+	if (__inline_fn)
+		return;
 	clear_lists();
 }
 
@@ -949,4 +955,6 @@ void check_locking(int id)
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_split_return_callback(match_return);
 	add_hook(&match_func_end, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
+
 }

@@ -105,5 +105,5 @@ static void match_end_func(struct symbol *sym)
 void register_scope(int id)
 {
 	add_hook(&match_stmt, STMT_HOOK_AFTER);
-	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_end_func, AFTER_FUNC_HOOK);
 }

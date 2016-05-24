@@ -51,5 +51,5 @@ static void clear_ignores(void)
 
 void register_smatch_ignore(int id)
 {
-	add_hook(&clear_ignores, END_FUNC_HOOK);
+	add_hook(&clear_ignores, AFTER_FUNC_HOOK);
 }

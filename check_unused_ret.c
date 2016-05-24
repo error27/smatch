@@ -187,6 +187,12 @@ static void match_end_func(struct symbol *sym)
 		sm_printf("warn: unused return: %s = %s()\n",
 			tmp->name, tmp->function);
 	} END_FOR_EACH_PTR(tmp);
+}
+
+static void match_after_func(struct symbol *sym)
+{
+	if (__inline_fn)
+		return;
 	clear_assignment_alloc();
 	__free_ptr_list((struct ptr_list **)&assignment_list);
 }
@@ -202,6 +208,7 @@ void check_unused_ret(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	ignored_funcs = create_function_hashtable(100);
 	if (option_project == PROJ_KERNEL) {
 		int i;

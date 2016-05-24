@@ -392,7 +392,10 @@ static void match_end_func_info(struct symbol *sym)
 	FOR_EACH_SM(fn_type_val, sm) {
 		sql_insert_function_type_value(sm->name, sm->state->name);
 	} END_FOR_EACH_SM(sm);
+}
 
+static void match_after_func(struct symbol *sym)
+{
 	free_stree(&fn_type_val);
 }
 
@@ -424,6 +427,7 @@ void register_type_val(int id)
 	add_hook(&match_inline_end, INLINE_FN_END);
 
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
 	add_hook(&match_global_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&match_end_file, END_FILE_HOOK);

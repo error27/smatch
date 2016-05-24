@@ -143,6 +143,10 @@ static void match_func_end(struct symbol *sym)
 		return;
 	if (is_reachable())
 		match_return(NULL);
+}
+
+static void match_after_func(struct symbol *sym)
+{
 	clear_lists();
 }
 
@@ -200,5 +204,6 @@ void check_balanced(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_func_end, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	register_funcs_from_file();
 }

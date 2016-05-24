@@ -668,7 +668,7 @@ void check_user_data2(int id)
 		return;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
-	add_hook(&free_start_states, END_FUNC_HOOK);
+	add_hook(&free_start_states, AFTER_FUNC_HOOK);
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
 

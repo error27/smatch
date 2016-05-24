@@ -277,5 +277,5 @@ void check_double_checking(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_id, &set_modified);
 	add_hook(after_loop, STMT_HOOK_AFTER);
-	add_hook(&match_func_end, END_FUNC_HOOK);
+	add_hook(&match_func_end, AFTER_FUNC_HOOK);
 }

@@ -196,7 +196,7 @@ void register_param_filter(int id)
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
-	add_hook(&free_start_states, END_FUNC_HOOK);
+	add_hook(&free_start_states, AFTER_FUNC_HOOK);
 
 	add_extra_mod_hook(&extra_mod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);

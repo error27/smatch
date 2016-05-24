@@ -62,6 +62,6 @@ void register_start_states(int id)
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
-	add_hook(&match_end_func, END_FUNC_HOOK);
+	add_hook(&match_end_func, AFTER_FUNC_HOOK);
 }
 

@@ -1385,7 +1385,7 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	free_string(name);
 }
 
-static void reset_memdb(void)
+static void reset_memdb(struct symbol *sym)
 {
 	mem_sql(NULL, NULL, "delete from caller_info;");
 	mem_sql(NULL, NULL, "delete from return_states;");
@@ -1397,8 +1397,12 @@ static void match_end_func_info(struct symbol *sym)
 	if (__path_is_null())
 		return;
 	call_return_state_hooks(NULL);
+}
+
+static void match_after_func(struct symbol *sym)
+{
 	if (!__inline_fn)
-		reset_memdb();
+		reset_memdb(sym);
 }
 
 static void init_memdb(void)
@@ -1504,6 +1508,7 @@ void register_definition_db_callbacks(int id)
 	add_split_return_callback(print_returned_struct_members);
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, CALL_HOOK_AFTER_INLINE);
