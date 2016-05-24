@@ -1222,7 +1222,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 	__push_true_states();
 	__use_false_states();
 
-	return_ranges = alloc_sname("0");;
+	return_ranges = alloc_sname("0");
 	null_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&null_rl, null_sval, null_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(null_rl));
@@ -1283,7 +1283,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	__push_true_states();
 	__use_false_states();
 
-	return_ranges = alloc_sname("0");;
+	return_ranges = alloc_sname("0");
 	zero_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&zero_rl, zero_sval, zero_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(zero_rl));
