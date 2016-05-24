@@ -11,6 +11,7 @@ CK(register_project)
 CK(register_untracked_param)
 CK(register_buf_comparison)
 CK(register_buf_comparison_links)
+CK(register_returns_early)
 
 CK(register_smatch_ignore)
 CK(register_buf_size)

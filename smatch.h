@@ -461,6 +461,7 @@ void end_assume(void);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 1 /* this is my_id from smatch extra set in smatch.c */
+extern int RETURN_ID;
 
 struct data_range {
 	sval_t min;
@@ -921,6 +922,7 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym);
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
 
 struct stree *get_all_return_states(void);
+struct stree_stack *get_all_return_strees(void);
 
 static inline int type_bits(struct symbol *type)
 {

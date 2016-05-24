@@ -17,8 +17,9 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
-static int my_id;
+int RETURN_ID;
 
 struct return_states_callback {
 	void (*callback)(struct stree *stree);
@@ -27,6 +28,23 @@ ALLOCATOR(return_states_callback, "return states callbacks");
 DECLARE_PTR_LIST(callback_list, struct return_states_callback);
 static struct callback_list *callback_list;
 
+DECLARE_PTR_LIST(stree_stack_stack, struct stree_stack);
+static void push_stree_stack(struct stree_stack_stack **stack_stack, struct stree_stack *stack)
+{
+	add_ptr_list(stack_stack, stack);
+}
+
+static struct stree_stack *pop_stree_stack(struct stree_stack_stack **stack_stack)
+{
+	struct stree_stack *stack;
+
+	stack = last_ptr_list((struct ptr_list *)*stack_stack);
+	delete_ptr_list_last((struct ptr_list **)stack_stack);
+	return stack;
+}
+
+static struct stree_stack *return_stree_stack;
+static struct stree_stack_stack *saved_stack_stack;
 static struct stree *all_return_states;
 static struct stree_stack *saved_stack;
 
@@ -47,28 +65,41 @@ static void call_hooks(void)
 	} END_FOR_EACH_PTR(rs_cb);
 }
 
-static void match_return(struct expression *ret_value)
+static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
-	merge_stree_no_pools(&all_return_states, __get_cur_stree());
+	struct stree *stree;
+
+	stree = clone_stree(__get_cur_stree());
+	merge_stree_no_pools(&all_return_states, stree);
+	push_stree(&return_stree_stack, stree);
 }
 
 static void match_end_func(struct symbol *sym)
 {
+	/*
+	 * FIXME: either this isn't needed or we need to copy a stree into the
+	 * return_stree_stack as well.
+	 */
 	merge_stree(&all_return_states, __get_cur_stree());
 	call_hooks();
-	free_stree(&all_return_states);
 }
 
 static void match_save_states(struct expression *expr)
 {
 	push_stree(&saved_stack, all_return_states);
 	all_return_states = NULL;
+
+	push_stree_stack(&saved_stack_stack, return_stree_stack);
+	return_stree_stack = NULL;
 }
 
 static void match_restore_states(struct expression *expr)
 {
+	/* This free_stree() isn't needed is it?? */
 	free_stree(&all_return_states);
+
 	all_return_states = pop_stree(&saved_stack);
+	return_stree_stack = pop_stree_stack(&saved_stack_stack);
 }
 
 struct stree *get_all_return_states(void)
@@ -76,12 +107,34 @@ struct stree *get_all_return_states(void)
 	return all_return_states;
 }
 
+struct stree_stack *get_all_return_strees(void)
+{
+	return return_stree_stack;
+}
+
+static void free_resources(struct symbol *sym)
+{
+	struct stree *tmp;
+
+	free_stree(&all_return_states);
+
+	FOR_EACH_PTR(return_stree_stack, tmp) {
+		free_stree(&tmp);
+	} END_FOR_EACH_PTR(tmp);
+	free_stree_stack(&return_stree_stack);
+}
+
+void register_returns_early(int id)
+{
+	RETURN_ID = id;
+
+	add_split_return_callback(match_return);
+}
+
 void register_returns(int id)
 {
-	my_id = id;
-
-	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
+	add_hook(&free_resources, AFTER_FUNC_HOOK);
 }
