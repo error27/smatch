@@ -122,6 +122,13 @@ struct expression *get_faked_expression(void)
 	return faked_expression;
 }
 
+static void split_fake_expr(struct expression *expr)
+{
+	__in_fake_assign++;
+	__split_expr(expr);
+	__in_fake_assign--;
+}
+
 static void set_inner_struct_members(int mode, struct expression *faked, struct expression *left, struct expression *right, struct symbol *member)
 {
 	struct expression *left_member;
@@ -168,12 +175,8 @@ static void set_inner_struct_members(int mode, struct expression *faked, struct 
 		}
 
 		assign = assign_expression(left_member, right_member);
-		__in_fake_assign++;
-		__split_expr(assign);
-		__in_fake_assign--;
+		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
-
-
 }
 
 static void __struct_members_copy(int mode, struct expression *faked,
@@ -212,9 +215,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		else
 			right = unknown_value_expression(left);
 		assign = assign_expression(left, right);
-		__in_fake_assign++;
-		__split_expr(assign);
-		__in_fake_assign--;
+		split_fake_expr(assign);
 		goto done;
 	}
 
@@ -260,9 +261,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 			continue;
 		}
 		assign = assign_expression(left_member, right_member);
-		__in_fake_assign++;
-		__split_expr(assign);
-		__in_fake_assign--;
+		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 
 done:
