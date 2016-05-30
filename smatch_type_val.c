@@ -431,5 +431,4 @@ void register_type_val(int id)
 
 	add_hook(&match_global_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&match_end_file, END_FILE_HOOK);
-
 }

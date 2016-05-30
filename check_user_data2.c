@@ -116,8 +116,6 @@ static void tag_inner_struct_members(struct expression *expr, struct symbol *mem
 		edge_member = member_expression(expr, '.', tmp->ident);
 		set_state_expr(my_id, edge_member, alloc_estate_whole(type));
 	} END_FOR_EACH_PTR(tmp);
-
-
 }
 
 static void tag_struct_members(struct symbol *type, struct expression *expr)
