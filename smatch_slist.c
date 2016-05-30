@@ -389,6 +389,24 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	copy_possibles(result, one);
 	copy_possibles(result, two);
 
+	/*
+	 * The ->line information is used by deref_check where we complain about
+	 * checking pointers that have already been dereferenced.  Let's say we
+	 * dereference a pointer on both the true and false paths and then merge
+	 * the states here.  The result state is &derefed, but the ->line number
+	 * is on the line where the pointer is merged not where it was
+	 * dereferenced..
+	 *
+	 * So in that case, let's just pick one dereference and set the ->line
+	 * to point at it.
+	 *
+	 */
+
+	if (result->state == one->state)
+		result->line = one->line;
+	if (result->state == two->state)
+		result->line = two->line;
+
 	if (option_debug ||
 	    strcmp(check_name(one->owner), option_debug_check) == 0) {
 		struct sm_state *tmp;
