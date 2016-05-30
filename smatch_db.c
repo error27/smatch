@@ -1640,28 +1640,33 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	return alloc_string(buf);
 }
 
-const char *get_param_name(struct sm_state *sm)
+const char *get_param_name_var_sym(const char *name, struct symbol *sym)
 {
 	char *param_name;
 	int name_len;
 	static char buf[256];
 
-	if (!sm->sym || !sm->sym->ident)
+	if (!sym || !sym->ident)
 		return NULL;
 
-	param_name = sm->sym->ident->name;
+	param_name = sym->ident->name;
 	name_len = strlen(param_name);
 
-	if (strcmp(sm->name, param_name) == 0) {
+	if (strcmp(name, param_name) == 0) {
 		return "$";
-	} else if (sm->name[name_len] == '-' && /* check for '-' from "->" */
-	    strncmp(sm->name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "$%s", sm->name + name_len);
+	} else if (name[name_len] == '-' && /* check for '-' from "->" */
+	    strncmp(name, param_name, name_len) == 0) {
+		snprintf(buf, sizeof(buf), "$%s", name + name_len);
 		return buf;
-	} else if (sm->name[0] == '*' && strcmp(sm->name + 1, param_name) == 0) {
+	} else if (name[0] == '*' && strcmp(name + 1, param_name) == 0) {
 		return "*$";
 	}
 	return NULL;
+}
+
+const char *get_param_name(struct sm_state *sm)
+{
+	return get_param_name_var_sym(sm->name, sm->sym);
 }
 
 char *get_data_info_name(struct expression *expr)
