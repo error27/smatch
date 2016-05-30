@@ -256,16 +256,21 @@ void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_li
  */
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 {
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
 	char *name;
 	struct symbol *sym;
 
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
+	name = expr_to_chunk_sym_vsl(expr, &sym, &vsl);
+	if (!name || !vsl)
 		goto free;
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
 	set_extra_nomod(name, sym, state);
 free:
 	free_string(name);
-
 }
 
 static void set_extra_true_false(const char *name, struct symbol *sym,
@@ -1795,6 +1800,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	struct expression *arg;
 	char *name;
 	struct symbol *sym;
+	struct var_sym_list *vsl = NULL;
 	struct sm_state *sm;
 	struct symbol *compare_type, *var_type;
 	struct range_list *rl;
@@ -1810,8 +1816,10 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (!arg)
 		return;
 
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
+	name = get_chunk_from_key(arg, key, &sym, &vsl);
+	if (!name)
+		return;
+	if (op != PARAM_LIMIT && !sym)
 		goto free;
 
 	if (strcmp(key, "$") == 0)
@@ -1836,7 +1844,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		__set_sm(sm);
 	else {
 		if (op == PARAM_LIMIT)
-			set_extra_nomod(name, sym, alloc_estate_rl(new));
+			set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(new));
 		else
 			set_extra_mod(name, sym, alloc_estate_rl(new));
 	}

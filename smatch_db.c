@@ -1640,6 +1640,15 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	return alloc_string(buf);
 }
 
+char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl)
+{
+	*vsl = NULL;
+
+	if (strcmp("$", key) == 0)
+		return expr_to_chunk_sym_vsl(arg, sym, vsl);
+	return get_variable_from_key(arg, key, sym);
+}
+
 const char *get_param_name_var_sym(const char *name, struct symbol *sym)
 {
 	char *param_name;
