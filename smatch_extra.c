@@ -98,7 +98,7 @@ static char *get_other_name_sym(const char *name, struct symbol *sym, struct sym
 
 	*new_sym = NULL;
 
-	if (!sym->ident)
+	if (!sym || !sym->ident)
 		return NULL;
 
 	skip = strlen(sym->ident->name);
@@ -238,6 +238,17 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 			continue;
 		set_state(SMATCH_EXTRA, rel->name, rel->sym, clone_estate_cast(estate_type(estate), state));
 	} END_FOR_EACH_PTR(rel);
+}
+
+void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct smatch_state *state)
+{
+	struct var_sym *vs;
+
+	FOR_EACH_PTR(vsl, vs) {
+		store_link(link_id, vs->var, vs->sym, name, sym);
+	} END_FOR_EACH_PTR(vs);
+
+	set_extra_nomod(name, sym, state);
 }
 
 /*

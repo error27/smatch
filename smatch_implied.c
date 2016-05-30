@@ -817,14 +817,15 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 {
 	char *name;
 	struct symbol *sym;
+	struct var_sym_list *vsl;
 	struct sm_state *sm;
 	struct stree *true_states = NULL;
 	struct stree *false_states = NULL;
 	struct stree *extra_states;
 	struct stree *ret = clone_stree(*raw_stree);
 
-	name = expr_to_var_sym(switch_expr, &sym);
-	if (!name || !sym)
+	name = expr_to_chunk_sym_vsl(switch_expr, &sym, &vsl);
+	if (!name)
 		goto free;
 
 	if (rl)
@@ -838,7 +839,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 
 	__push_fake_cur_stree();
 	__unnullify_path();
-	set_extra_nomod(name, sym, alloc_estate_rl(rl));
+	set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(rl));
 	__pass_case_to_client(switch_expr, rl);
 	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);
