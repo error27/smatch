@@ -122,6 +122,11 @@ sub print_info($$)
     my $printed_range = "";
     my $i = 0;
 
+    if ($#$union > 100) {
+        print "$type " . scalar @$union . "\n";
+        return;
+    }
+
     foreach my $range (@$union) {
         if ($i) {
             $printed_range = $printed_range . ",";
