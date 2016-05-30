@@ -81,8 +81,7 @@ static void match_assign(struct expression *expr)
 		return;
 
 	rl = cast_rl(type, rl);
-	if (sval_cmp(rl_max(rl), sval_type_max(type)) == 0 &&
-	    sval_cmp(rl_min(rl), sval_type_min(type)))
+	if (is_whole_rl(rl) && !get_state_expr(my_id, expr->left))
 		return;
 
 	set_state_expr(my_id, expr->left, alloc_estate_rl(clone_rl(rl)));
