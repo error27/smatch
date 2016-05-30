@@ -24,6 +24,7 @@
 #include "allocate.h"
 #include "smatch.h"
 #include "smatch_extra.h"
+#include "smatch_slist.h"
 
 #define VAR_LEN 512
 
@@ -77,6 +78,20 @@ struct smatch_state *alloc_state_str(const char *name)
 
 	state = __alloc_smatch_state(0);
 	state->name = alloc_string(name);
+	return state;
+}
+
+struct smatch_state *alloc_state_expr(struct expression *expr)
+{
+	struct smatch_state *state;
+	char *name;
+
+	state = __alloc_smatch_state(0);
+	expr = strip_expr(expr);
+	name = expr_to_str(expr);
+	state->name = alloc_sname(name);
+	free_string(name);
+	state->data = expr;
 	return state;
 }
 

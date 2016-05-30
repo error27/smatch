@@ -279,6 +279,7 @@ void append(char *dest, const char *data, int buff_len);
 void remove_parens(char *str);
 struct smatch_state *alloc_state_num(int num);
 struct smatch_state *alloc_state_str(const char *name);
+struct smatch_state *alloc_state_expr(struct expression *expr);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
 
