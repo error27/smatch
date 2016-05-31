@@ -636,6 +636,35 @@ void function_comparison(struct expression *left, int comparison, struct express
 	free_stree(&implied_false);
 }
 
+static void call_ranged_return_hooks(struct db_callback_info *db_info)
+{
+	struct call_back_list *call_backs;
+	struct expression *expr;
+	struct fcall_back *tmp;
+	char *fn;
+
+	expr = strip_expr(db_info->expr);
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL ||
+	    expr->fn->type != EXPR_SYMBOL)
+		return;
+
+	fn = expr->fn->symbol_name->name;
+
+	call_backs = search_callback(func_hash, fn);
+	FOR_EACH_PTR(call_backs, tmp) {
+		struct range_list *range_rl = NULL;
+
+		if (tmp->type != RANGED_CALL)
+			continue;
+		add_range(&range_rl, tmp->range->min, tmp->range->max);
+		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
+		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
+			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static int db_assign_return_states_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -656,6 +685,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	value = argv[5];
 
 	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+		call_ranged_return_hooks(db_info);
 		set_return_state(db_info->expr->left, db_info);
 		stree = __pop_fake_cur_stree();
 		if (!db_info->cull)
@@ -721,6 +751,7 @@ static int db_return_states_assign(struct expression *expr)
 			db_info.prev_return_id,
 			db_info.ret_state ? db_info.ret_state->name : "'<empty'");
 	}
+	call_ranged_return_hooks(&db_info);
 	set_return_state(db_info.expr->left, &db_info);
 	stree = __pop_fake_cur_stree();
 	if (!db_info.cull)
@@ -783,7 +814,8 @@ static void match_assign_call(struct expression *expr)
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 
 	handled |= db_return_states_assign(expr);
-	handled |= assign_ranged_funcs(fn, expr, call_backs);
+	if (!handled)
+		handled = assign_ranged_funcs(fn, expr, call_backs);
 	handled |= handle_implied_return(expr);
 
 	if (handled)
