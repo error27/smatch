@@ -321,6 +321,14 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 	__separate_pools(sm, comparison, rl, true_stack, false_stack, checked, mixed, sm);
 }
 
+/*
+ * NOTE: If a state is in both the keep stack and the remove stack then it is
+ * removed.  If that happens it means you have a bug.  Only add states which are
+ * definitely true or definitely false.  If you have a leaf state that could be
+ * both true and false, then create a fake split history where one side is true
+ * and one side is false.  Otherwise, if you can't do that, then don't add it to
+ * either list, and it will be treated as true.
+ */
 struct sm_state *filter_pools(struct sm_state *sm,
 			      const struct state_list *remove_stack,
 			      const struct state_list *keep_stack,
