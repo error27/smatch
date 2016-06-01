@@ -920,7 +920,19 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	__free_fake_cur_stree();
 }
 
-static int split_helper(struct sm_state *sm, struct expression *expr)
+static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (strcmp(tmp->state->name, sm->state->name) == 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 {
 	struct returned_state_callback *cb;
 	struct range_list *rl;
@@ -930,8 +942,7 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 	int nr_possible, nr_states;
 	char *compare_str;
 	char buf[128];
-	struct stree *orig_stree;
-	struct sm_state *orig_sm;
+	struct state_list *already_handled = NULL;
 
 	if (!sm || !sm->merged)
 		return 0;
@@ -942,35 +953,25 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
 	nr_states = stree_count(__get_cur_stree());
-	/*
-	 * the main thing option_info because we don't want to print a
-	 * million lines of output.  If someone else, like check_locking.c
-	 * wants this data, then it doesn't cause a slow down to provide it.
-	 */
 	if (option_info && nr_states * nr_possible >= 2000)
 		return 0;
 
-	compare_str = expr_lte_to_param(expr, -1);
-
-	orig_stree = clone_stree(__get_cur_stree());
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->merged)
 			continue;
+		if (ptr_in_list(tmp, already_handled))
+			continue;
+		add_ptr_list(&already_handled, tmp);
 
 		ret = 1;
 		__push_fake_cur_stree();
 
-		nullify_path();
-		__unnullify_path();
-		FOR_EACH_SM(orig_stree, orig_sm) {
-			__set_sm_cur_stree(orig_sm);
-		} END_FOR_EACH_SM(orig_sm);
-
-		overwrite_states_using_pool(tmp);
+		overwrite_states_using_pool(sm, tmp);
 
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(clone_rl(rl)));
+		compare_str = expr_lte_to_param(expr, -1);
 		if (compare_str) {
 			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 			return_ranges = alloc_sname(buf);
@@ -984,8 +985,20 @@ static int split_helper(struct sm_state *sm, struct expression *expr)
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
 
-	free_stree(&orig_stree);
+	free_slist(&already_handled);
+
 	return ret;
+}
+
+static int call_return_state_hooks_split_possible(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	if (!expr || expr_equal_to_param(expr, -1))
+		return 0;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	return split_possible_helper(sm, expr);
 }
 
 static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
@@ -1101,74 +1114,6 @@ static int split_positive_from_negative(struct expression *expr)
 		end_assume();
 
 	return 1;
-}
-
-static int call_return_state_hooks_split_possible(struct expression *expr)
-{
-	struct returned_state_callback *cb;
-	struct range_list *rl;
-	char *return_ranges;
-	struct sm_state *sm;
-	struct sm_state *tmp;
-	int ret = 0;
-	int nr_possible, nr_states;
-	char *compare_str;
-	char buf[128];
-
-	if (!expr || expr_equal_to_param(expr, -1))
-		return 0;
-
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
-	if (!sm || !sm->merged)
-		return 0;
-
-	if (too_many_possible(sm))
-		return 0;
-
-	/* bail if it gets too complicated */
-	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
-	nr_states = stree_count(__get_cur_stree());
-	/*
-	 * the main thing option_info because we don't want to print a
-	 * million lines of output.  If someone else, like check_locking.c
-	 * wants this data, then it doesn't cause a slow down to provide it.
-	 */
-	if (option_info && nr_states * nr_possible >= 2000)
-		return 0;
-
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->merged)
-			continue;
-
-		ret = 1;
-		__push_fake_cur_stree();
-
-		overwrite_states_using_pool(tmp);
-
-		if (split_positive_from_negative(expr)) {
-			__free_fake_cur_stree();
-			continue;
-		}
-		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
-		return_ranges = show_rl(rl);
-		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(clone_rl(rl)));
-
-		compare_str = expr_lte_to_param(expr, -1);
-		if (compare_str) {
-			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-			return_ranges = alloc_sname(buf);
-		}
-
-		return_id++;
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
-
-		__free_fake_cur_stree();
-	} END_FOR_EACH_PTR(tmp);
-
-	return ret;
 }
 
 static int call_return_state_hooks_split_null_non_null(struct expression *expr)
@@ -1327,7 +1272,7 @@ static int splitable_function_call(struct expression *expr)
 		return 0;
 	snprintf(buf, sizeof(buf), "return %p", expr);
 	sm = get_sm_state(SMATCH_EXTRA, buf, NULL);
-	return split_helper(sm, expr);
+	return split_possible_helper(sm, expr);
 }
 
 static void call_return_state_hooks(struct expression *expr)

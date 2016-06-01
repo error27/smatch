@@ -878,27 +878,70 @@ static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
 	return 0;
 }
 
+static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
+				    struct sm_state *pool_sm,
+				    struct state_list **true_stack,
+				    struct state_list **false_stack)
+{
+	struct sm_state *tmp;
+	int possibly_true = 0;
+
+	if (!gate_sm)
+		return;
+
+	if (strcmp(gate_sm->state->name, pool_sm->state->name) == 0) {
+		add_ptr_list(true_stack, pool_sm);
+		return;
+	}
+
+	FOR_EACH_PTR(gate_sm->possible, tmp) {
+		if (strcmp(tmp->state->name, pool_sm->state->name) == 0) {
+			possibly_true = 1;
+			break;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	if (!possibly_true) {
+		add_ptr_list(false_stack, gate_sm);
+		return;
+	}
+
+	get_tf_stacks_from_pool(gate_sm->left, pool_sm, true_stack, false_stack);
+	get_tf_stacks_from_pool(gate_sm->right, pool_sm, true_stack, false_stack);
+}
+
 /*
  * The situation is we have a SMATCH_EXTRA state and we want to break it into
  * each of the ->possible states and find the implications of each.  The caller
  * has to use __push_fake_cur_stree() to preserve the correct states so they
  * can be restored later.
  */
-void overwrite_states_using_pool(struct sm_state *sm)
+void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool_sm)
 {
-	struct sm_state *old;
-	struct sm_state *new;
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
+	struct stree *pre_stree;
+	struct stree *implied_true;
+	struct sm_state *tmp;
 
-	if (!sm->pool)
+	if (!pool_sm->pool)
 		return;
 
-	FOR_EACH_SM(sm->pool, old) {
-		new = get_sm_state(old->owner, old->name, old->sym);
-		if (!new)  /* the variable went out of scope */
-			continue;
-		if (sm_state_in_slist(old, new->possible))
-			set_state(old->owner, old->name, old->sym, old->state);
-	} END_FOR_EACH_SM(old);
+	get_tf_stacks_from_pool(gate_sm, pool_sm, &true_stack, &false_stack);
+
+	pre_stree = clone_stree(__get_cur_stree());
+
+	implied_true = filter_stack(gate_sm, pre_stree, false_stack, true_stack);
+
+	free_stree(&pre_stree);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
+
+	FOR_EACH_SM(implied_true, tmp) {
+		set_state(tmp->owner, tmp->name, tmp->sym, tmp->state);
+	} END_FOR_EACH_SM(tmp);
+
+	free_stree(&implied_true);
 }
 
 int assume(struct expression *expr)
