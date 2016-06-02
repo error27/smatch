@@ -792,6 +792,20 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto done;
 	}
 
+	if (__in_fake_assign) {
+		struct smatch_state *right_state;
+
+		right_state = get_state(SMATCH_EXTRA, right_name, right_sym);
+		if (right_state) {
+			/* simple assignment */
+			state = clone_estate(right_state);
+			goto done;
+		}
+
+		state = alloc_estate_rl(alloc_whole_rl(left_type));
+		goto done;
+	}
+
 	comparison = get_comparison(left, right);
 	if (comparison) {
 		comparison = flip_comparison(comparison);
