@@ -265,6 +265,12 @@ char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
 
+	/* This can only happen on buggy code.  Return invalid SQL. */
+	if (!sym) {
+		sql_filter[0] = '\0';
+		return sql_filter;
+	}
+
 	if (sym->ctype.modifiers & MOD_STATIC) {
 		snprintf(sql_filter, sizeof(sql_filter),
 			 "file = '%s' and function = '%s' and static = '1'",
