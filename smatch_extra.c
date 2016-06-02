@@ -1076,6 +1076,8 @@ static void asm_expr(struct statement *stmt)
 
 static void check_dereference(struct expression *expr)
 {
+	if (__in_fake_assign)
+		return;
 	if (outside_of_function())
 		return;
 	if (implied_not_equal(expr, 0))
