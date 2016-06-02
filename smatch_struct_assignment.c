@@ -287,8 +287,19 @@ static int returns_zeroed_mem(struct expression *expr)
 void __fake_struct_member_assignments(struct expression *expr)
 {
 	struct symbol *struct_type;
+	struct symbol *left_type;
+
+	if (expr->op != '=')
+		return;
 
 	if (is_zero(expr->right))
+		return;
+
+	left_type = get_type(expr->left);
+	if (left_type &&
+	    left_type->type != SYM_PTR &&
+	    left_type->type != SYM_STRUCT &&
+	    left_type != &ulong_ctype)
 		return;
 
 	struct_type = get_struct_type(expr->left);
