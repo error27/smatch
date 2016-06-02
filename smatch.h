@@ -531,6 +531,8 @@ static const sval_t vmalloc_seg_max = {
 	{.value = 677777777},
 };
 
+char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
+
 #define STRLEN_MAX_RET 1010101
 
 /* smatch_absolute.c */

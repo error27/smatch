@@ -88,7 +88,7 @@ struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, stru
 	return set_state(SMATCH_EXTRA, name, sym, state);
 }
 
-static char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
 	char *orig_name = NULL;
