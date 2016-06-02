@@ -2075,6 +2075,9 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 	links = sm->state->data;
 
 	FOR_EACH_PTR(links, tmp) {
+		if (sm->sym == tmp->sym &&
+		    strcmp(sm->name, tmp->var) == 0)
+			continue;
 		state = get_state(SMATCH_EXTRA, tmp->var, tmp->sym);
 		if (!state)
 			continue;
