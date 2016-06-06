@@ -927,6 +927,7 @@ void __split_stmt(struct statement *stmt)
 	if (out_of_memory() || taking_too_long()) {
 
 		__bail_on_rest_of_function = 1;
+		final_pass = 1;
 		sm_msg("Function too hairy.  Giving up.");
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
