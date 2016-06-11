@@ -693,15 +693,21 @@ static int is_case_val(struct statement *stmt, sval_t sval)
 	return 0;
 }
 
-static struct range_list *get_case_rl(struct expression *case_expr,
+static struct range_list *get_case_rl(struct expression *switch_expr,
+				      struct expression *case_expr,
 				      struct expression *case_to)
 {
 	sval_t start, end;
 	struct range_list *rl = NULL;
+	struct symbol *switch_type;
 
+	switch_type = get_type(switch_expr);
 	if (get_value(case_to, &end) && get_value(case_expr, &start)) {
+		start = sval_cast(switch_type, start);
+		end = sval_cast(switch_type, end);
 		add_range(&rl, start, end);
 	} else if (get_value(case_expr, &start)) {
+		start = sval_cast(switch_type, start);
 		add_range(&rl, start, start);
 	}
 
@@ -714,6 +720,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	struct range_list *rl;
 
 	__split_expr(stmt->switch_expression);
+	sval = sval_cast(get_type(stmt->switch_expression), sval);
 
 	push_expression(&switch_expr_stack, stmt->switch_expression);
 	__save_switch_states(top_expression(switch_expr_stack));
@@ -752,11 +759,13 @@ static void split_case(struct statement *stmt)
 {
 	struct range_list *rl = NULL;
 
-	rl = get_case_rl(stmt->case_expression, stmt->case_to);
+	rl = get_case_rl(top_expression(switch_expr_stack),
+			 stmt->case_expression, stmt->case_to);
 	while (stmt->case_statement->type == STMT_CASE) {
 		struct range_list *tmp;
 
-		tmp = get_case_rl(stmt->case_statement->case_expression,
+		tmp = get_case_rl(top_expression(switch_expr_stack),
+				  stmt->case_statement->case_expression,
 				  stmt->case_statement->case_to);
 		if (!tmp)
 			break;
