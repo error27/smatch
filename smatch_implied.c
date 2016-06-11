@@ -867,17 +867,6 @@ static void match_end_func(struct symbol *sym)
 	implied_debug_msg = NULL;
 }
 
-static int sm_state_in_slist(struct sm_state *sm, struct state_list *slist)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(slist, tmp) {
-		if (tmp == sm)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
 static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 				    struct sm_state *pool_sm,
 				    struct state_list **true_stack,
