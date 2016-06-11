@@ -705,6 +705,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 
 		fake_expr_stmt.pos = last_stmt->pos;
 		fake_expr_stmt.type = EXPR_STATEMENT;
+		fake_expr_stmt.op = 0;
 		fake_expr_stmt.statement = last_stmt;
 
 		fake_assign.pos = last_stmt->pos;
