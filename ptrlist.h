@@ -78,6 +78,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	if (!list)
 		return NULL;
 	list = list->prev;
+	while (list->nr == 0)
+		list = list->prev;
 	return PTR_ENTRY(list, list->nr-1);
 }
 
