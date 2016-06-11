@@ -744,6 +744,17 @@ struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max)
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
 
+	if (!list)
+		return NULL;
+
+	min = sval_cast(rl_type(list), min);
+	max = sval_cast(rl_type(list), max);
+	if (sval_cmp(min, max) > 0) {
+		sval_t tmp = min;
+		min = max;
+		max = tmp;
+	}
+
 	FOR_EACH_PTR(list, tmp) {
 		if (sval_cmp(tmp->max, min) < 0) {
 			add_range(&ret, tmp->min, tmp->max);
