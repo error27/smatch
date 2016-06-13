@@ -347,6 +347,7 @@ struct db_callback_info {
 	int cull;
 	struct smatch_state *ret_state;
 	struct expression *var_expr;
+	int handled;
 };
 
 static void store_return_state(struct db_callback_info *db_info, struct smatch_state *state)
@@ -710,6 +711,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	if (type == PARAM_LIMIT)
 		param_limit_implications(db_info->expr, param, key, value);
 
+	db_info->handled = 1;
 	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
 	__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
 	if (!ret_range)
@@ -742,6 +744,7 @@ static int db_return_states_assign(struct expression *expr)
 	db_info.prev_return_id = -1;
 	db_info.expr = expr;
 	db_info.stree = NULL;
+	db_info.handled = 0;
 
 	call_return_states_before_hooks();
 
@@ -754,7 +757,8 @@ static int db_return_states_assign(struct expression *expr)
 			db_info.prev_return_id,
 			db_info.ret_state ? db_info.ret_state->name : "'<empty'");
 	}
-	call_ranged_return_hooks(&db_info);
+	if (db_info.handled)
+		call_ranged_return_hooks(&db_info);
 	set_return_state(db_info.expr->left, &db_info);
 	stree = __pop_fake_cur_stree();
 	if (!db_info.cull)
