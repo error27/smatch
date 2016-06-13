@@ -794,6 +794,13 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	if (__in_fake_assign) {
 		struct smatch_state *right_state;
+		sval_t sval;
+
+		if (get_value(right, &sval)) {
+			sval = sval_cast(left_type, sval);
+			state = alloc_estate_sval(sval);
+			goto done;
+		}
 
 		right_state = get_state(SMATCH_EXTRA, right_name, right_sym);
 		if (right_state) {
