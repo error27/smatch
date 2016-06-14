@@ -1449,7 +1449,7 @@ static void split_function(struct symbol *sym)
 	cur_func_sym = sym;
 	if (sym->ident)
 		cur_func = sym->ident->name;
-	__smatch_lineno = sym->pos.line;
+	set_position(sym->pos);
 	loop_count = 0;
 	last_goto_statement_handled = 0;
 	sm_debug("new function:  %s\n", cur_func);
