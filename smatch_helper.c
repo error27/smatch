@@ -888,3 +888,27 @@ free:
 	return ret;
 }
 
+void push_int(struct int_stack **stack, int num)
+{
+	int *munged;
+
+	/*
+	 * Just put the int on directly instead of a pointer to the int.
+	 * Shift it to the left because Sparse uses the last two bits.
+	 * This is sort of a dirty hack, yes.
+	 */
+
+	munged = INT_PTR(num << 2);
+
+	add_ptr_list(stack, munged);
+}
+
+int pop_int(struct int_stack **stack)
+{
+	int *num;
+
+	num = last_ptr_list((struct ptr_list *)*stack);
+	delete_ptr_list_last((struct ptr_list **)stack);
+
+	return PTR_INT(num) >> 2;
+}

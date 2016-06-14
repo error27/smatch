@@ -44,33 +44,7 @@ typedef void (untracked_hook)(struct expression *call, int param);
 DECLARE_PTR_LIST(untracked_hook_list, untracked_hook *);
 static struct untracked_hook_list *untracked_hooks;
 
-DECLARE_PTR_LIST(int_stack, int);
 struct int_stack *tracked_stack;
-
-static void push_int(struct int_stack **stack, int num)
-{
-	int *munged;
-
-	/*
-	 * Just put the int on directly instead of a pointer to the int.
-	 * Shift it to the left because Sparse uses the last two bits.
-	 * This is sort of a dirty hack, yes.
-	 */
-
-	munged = INT_PTR(tracked << 2);
-
-	add_ptr_list(stack, munged);
-}
-
-static int pop_int(struct int_stack **stack)
-{
-	int *num;
-
-	num = last_ptr_list((struct ptr_list *)*stack);
-	delete_ptr_list_last((struct ptr_list **)stack);
-
-	return PTR_INT(num) >> 2;
-}
 
 void add_untracked_param_hook(void (func)(struct expression *call, int param))
 {

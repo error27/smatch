@@ -276,6 +276,7 @@ struct stree *__get_cur_stree(void);
 int is_reachable(void);
 
 /* smatch_helper.c */
+DECLARE_PTR_LIST(int_stack, int);
 char *alloc_string(const char *str);
 void free_string(char *str);
 void append(char *dest, const char *data, int buff_len);
@@ -342,6 +343,8 @@ int parent_is_gone_var_sym(const char *name, struct symbol *sym);
 int parent_is_gone(struct expression *expr);
 int invert_op(int op);
 int expr_equiv(struct expression *one, struct expression *two);
+void push_int(struct int_stack **stack, int num);
+int pop_int(struct int_stack **stack);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
