@@ -1158,6 +1158,38 @@ static int rl_type_consistent(struct range_list *rl)
 	return 1;
 }
 
+static struct range_list *cast_to_bool(struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+	int has_one = 0;
+	int has_zero = 0;
+	sval_t min = { .type = &bool_ctype };
+	sval_t max = { .type = &bool_ctype };
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (tmp->min.value || tmp->max.value)
+			has_one = 1;
+		if (sval_is_negative(tmp->min) &&
+		    sval_is_negative(tmp->max))
+			continue;
+		if (tmp->min.value == 0 ||
+		    tmp->max.value == 0)
+			has_zero = 1;
+		if (sval_is_negative(tmp->min) &&
+		    tmp->max.value > 0)
+			has_zero = 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (!has_zero)
+		min.value = 1;
+	if (has_one)
+		max.value = 1;
+
+	add_range(&ret, min, max);
+	return ret;
+}
+
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
@@ -1172,6 +1204,9 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 		return alloc_whole_rl(type);
 	if (type == rl_type(rl) && rl_type_consistent(rl))
 		return rl;
+
+	if (type == &bool_ctype)
+		return cast_to_bool(rl);
 
 	FOR_EACH_PTR(rl, tmp) {
 		add_range_t(type, &ret, tmp->min, tmp->max);
