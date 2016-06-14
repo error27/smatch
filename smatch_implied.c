@@ -487,8 +487,10 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	}
 
 	gettimeofday(&time_after, NULL);
-	if (time_after.tv_sec - time_before.tv_sec > 7)
-		__bail_on_rest_of_function = 1;
+	if (time_after.tv_sec - time_before.tv_sec > 20) {
+		sm->nr_children = 4000;
+		sm_msg("Function too hairy.  Giving up.");
+	}
 }
 
 static struct expression *get_last_expr(struct statement *stmt)
