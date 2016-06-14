@@ -760,7 +760,7 @@ static int db_return_states_assign(struct expression *expr)
 		sm_msg("%s return_id %d return_ranges %s",
 			db_info.cull ? "culled" : "merging",
 			db_info.prev_return_id,
-			db_info.ret_state ? db_info.ret_state->name : "'<empty'");
+			db_info.ret_state ? db_info.ret_state->name : "'<empty>'");
 	}
 	if (db_info.handled)
 		call_ranged_return_hooks(&db_info);
