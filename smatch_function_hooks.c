@@ -661,8 +661,12 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 			continue;
 		add_range(&range_rl, tmp->range->min, tmp->range->max);
 		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
-		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
-			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state))) {
+			if (!possibly_false_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
+				(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+			else
+				db_info->handled = -1;
+		}
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -736,7 +740,6 @@ static int db_return_states_assign(struct expression *expr)
 	struct expression *right;
 	struct sm_state *sm;
 	struct stree *stree;
-	int handled = 0;
 	struct db_callback_info db_info = {};
 
 	right = strip_expr(expr->right);
@@ -767,13 +770,12 @@ static int db_return_states_assign(struct expression *expr)
 
 	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);
-		handled = 1;
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&db_info.stree);
 	call_return_states_after_hooks(right);
 
-	return handled;
+	return db_info.handled;
 }
 
 static int handle_implied_return(struct expression *expr)
@@ -820,8 +822,9 @@ static void match_assign_call(struct expression *expr)
 	call_backs = search_callback(func_hash, (char *)fn);
 	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 
-	handled |= db_return_states_assign(expr);
-	if (!handled)
+	if (db_return_states_assign(expr) == 1)
+		handled = 1;
+	else
 		handled = assign_ranged_funcs(fn, expr, call_backs);
 	handled |= handle_implied_return(expr);
 
