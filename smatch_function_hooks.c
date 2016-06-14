@@ -357,10 +357,13 @@ static void store_return_state(struct db_callback_info *db_info, struct smatch_s
 
 static void set_return_state(struct expression *expr, struct db_callback_info *db_info)
 {
+	struct smatch_state *state;
+
 	if (!db_info->ret_state)
 		return;
 
-	set_extra_expr_mod(expr, db_info->ret_state);
+	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
+	set_extra_expr_mod(expr, state);
 	db_info->ret_state = NULL;
 }
 
@@ -729,7 +732,6 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	ret_range = cast_rl(get_type(db_info->expr->left), ret_range);
 	store_return_state(db_info, alloc_estate_rl(ret_range));
 
 	return 0;
