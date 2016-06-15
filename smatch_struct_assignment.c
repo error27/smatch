@@ -107,11 +107,17 @@ static struct expression *get_right_base_expr(struct symbol *left_type, struct e
 
 static struct expression *remove_addr(struct expression *expr)
 {
+	struct symbol *type;
+
 	expr = strip_expr(expr);
 
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		return strip_expr(expr->unop);
-	return expr;
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return expr;
+
+	return deref_expression(expr);
 }
 
 static struct expression *faked_expression;
