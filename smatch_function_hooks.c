@@ -770,6 +770,8 @@ static int db_return_states_assign(struct expression *expr)
 		merge_fake_stree(&db_info.stree, stree);
 	free_stree(&stree);
 
+	if (!db_info.stree && db_info.cull) /* this means we culled everything */
+		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
 	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
