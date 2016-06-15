@@ -946,7 +946,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	struct sm_state *tmp;
 	int ret = 0;
 	int nr_possible, nr_states;
-	char *compare_str;
+	char *compare_str = NULL;
 	char buf[128];
 	struct state_list *already_handled = NULL;
 
@@ -1281,6 +1281,115 @@ static int splitable_function_call(struct expression *expr)
 	return split_possible_helper(sm, expr);
 }
 
+static struct sm_state *find_bool_param(void)
+{
+	struct stree *start_states;
+	struct symbol *arg;
+	struct sm_state *sm, *tmp;
+	sval_t sval;
+
+	start_states = get_start_states();
+
+	FOR_EACH_PTR_REVERSE(cur_func_sym->ctype.base_type->arguments, arg) {
+		if (!arg->ident || !arg->ident->name)
+			continue;
+		sm = get_sm_state_stree(start_states, SMATCH_EXTRA, arg->ident->name, arg);
+		if (!sm)
+			continue;
+		if (rl_min(estate_rl(sm->state)).value != 0 ||
+		    rl_max(estate_rl(sm->state)).value != 1)
+			continue;
+		goto found;
+	} END_FOR_EACH_PTR_REVERSE(arg);
+
+	return NULL;
+
+found:
+	/*
+	 * Check if it's splitable.  If not, then splitting it up is likely not
+	 * useful for the callers.
+	 */
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (is_merged(tmp))
+			continue;
+		if (!estate_get_single_value(tmp->state, &sval))
+			return NULL;
+	} END_FOR_EACH_PTR(tmp);
+
+	return sm;
+}
+
+static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
+{
+	struct returned_state_callback *cb;
+	struct range_list *ret_rl;
+	const char *return_ranges;
+	struct sm_state *tmp;
+	int ret = 0;
+	int nr_possible, nr_states;
+	char *compare_str = NULL;
+	char buf[128];
+	struct state_list *already_handled = NULL;
+
+	if (!sm || !sm->merged)
+		return 0;
+
+	if (too_many_possible(sm))
+		return 0;
+
+	/* bail if it gets too complicated */
+	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
+	nr_states = stree_count(__get_cur_stree());
+	if (option_info && nr_states * nr_possible >= 2000)
+		return 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->merged)
+			continue;
+		if (ptr_in_list(tmp, already_handled))
+			continue;
+		add_ptr_list(&already_handled, tmp);
+
+		ret = 1;
+		__push_fake_cur_stree();
+
+		overwrite_states_using_pool(sm, tmp);
+
+		return_ranges = get_return_ranges_str(expr, &ret_rl);
+		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
+		compare_str = expr_lte_to_param(expr, -1);
+		if (compare_str) {
+			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+			return_ranges = alloc_sname(buf);
+		}
+
+		return_id++;
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, (char *)return_ranges, expr);
+		} END_FOR_EACH_PTR(cb);
+
+		__free_fake_cur_stree();
+	} END_FOR_EACH_PTR(tmp);
+
+	free_slist(&already_handled);
+
+	return ret;
+}
+
+static int split_by_bool_param(struct expression *expr)
+{
+	struct sm_state *start_sm, *sm;
+	sval_t sval;
+
+	start_sm = find_bool_param();
+	if (!start_sm)
+		return 0;
+	sm = get_sm_state(SMATCH_EXTRA, start_sm->name, start_sm->sym);
+	if (!sm || estate_get_single_value(sm->state, &sval))
+		return 0;
+	return split_on_bool_sm(sm, expr);
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1313,6 +1422,8 @@ static void call_return_state_hooks(struct expression *expr)
 	} else if (splitable_function_call(expr)) {
 		return;
 	} else if (split_positive_from_negative(expr)) {
+		return;
+	} else if (split_by_bool_param(expr)) {
 		return;
 	}
 
