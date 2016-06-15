@@ -927,6 +927,16 @@ void __split_label_stmt(struct statement *stmt)
 	}
 }
 
+static void find_asm_gotos(struct statement *stmt)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(stmt->asm_labels, sym) {
+		if (sym->ident)
+			__save_gotos(sym->ident->name);
+	} END_FOR_EACH_PTR(sym);
+}
+
 void __split_stmt(struct statement *stmt)
 {
 	sval_t sval;
@@ -1053,6 +1063,7 @@ void __split_stmt(struct statement *stmt)
 	case STMT_NONE:
 		break;
 	case STMT_ASM:
+		find_asm_gotos(stmt);
 		__pass_to_client(stmt, ASM_HOOK);
 		__split_expr(stmt->asm_string);
 		split_asm_constraints(stmt->asm_outputs);
