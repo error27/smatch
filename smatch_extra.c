@@ -1818,6 +1818,18 @@ static void db_limited_after(void)
 	free_stree(&unmatched_stree);
 }
 
+static int rl_fits_in_type(struct range_list *rl, struct symbol *type)
+{
+	if (type_bits(rl_type(rl)) <= type_bits(type))
+		return 1;
+	if (sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
+		return 0;
+	if (sval_is_negative(rl_min(rl)) &&
+	    sval_cmp(rl_min(rl), sval_type_min(type)) < 0)
+		return 0;
+	return 1;
+}
+
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
@@ -1855,6 +1867,9 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		rl = estate_rl(sm->state);
 	else
 		rl = alloc_whole_rl(compare_type);
+
+	if (op == PARAM_LIMIT && !rl_fits_in_type(rl, compare_type))
+		goto free;
 
 	call_results_to_rl(expr, compare_type, value, &limit);
 	new = rl_intersection(rl, limit);
