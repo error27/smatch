@@ -64,6 +64,7 @@ struct stree *avl_new(void)
 	assert(avl != NULL);
 
 	avl->root = NULL;
+	avl->base_stree = NULL;
 	avl->count = 0;
 	avl->stree_id = 0;
 	avl->references = 1;
@@ -122,6 +123,7 @@ static struct stree *clone_stree_real(struct stree *orig)
 	avl_foreach(i, orig)
 		avl_insert(&new, i.sm);
 
+	new->base_stree = orig->base_stree;
 	return new;
 }
 

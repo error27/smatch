@@ -731,6 +731,10 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 
 		set_stree_id(&implied_one, ++__stree_id);
 		set_stree_id(&implied_two, ++__stree_id);
+		if (implied_one->base_stree)
+			set_stree_id(&implied_one->base_stree, ++__stree_id);
+		if (implied_two->base_stree)
+			set_stree_id(&implied_two->base_stree, ++__stree_id);
 	}
 
 	push_stree(&all_pools, implied_one);
@@ -748,7 +752,11 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			if (add_pool && one_iter.sm != two_iter.sm) {
 				one_iter.sm->pool = implied_one;
+				if (implied_one->base_stree)
+					one_iter.sm->pool = implied_one->base_stree;
 				two_iter.sm->pool = implied_two;
+				if (implied_two->base_stree)
+					two_iter.sm->pool = implied_two->base_stree;
 			}
 			tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
 			add_possible_sm(tmp_sm, one_iter.sm);
@@ -833,6 +841,16 @@ void merge_fake_stree(struct stree **to, struct stree *stree)
 	FOR_EACH_PTR(add_to_two, sm) {
 		avl_insert(&two, sm);
 	} END_FOR_EACH_PTR(sm);
+
+	one->base_stree = clone_stree(__get_cur_stree());
+	FOR_EACH_SM(one, sm) {
+		avl_insert(&one->base_stree, sm);
+	} END_FOR_EACH_SM(sm);
+
+	two->base_stree = clone_stree(__get_cur_stree());
+	FOR_EACH_SM(two, sm) {
+		avl_insert(&two->base_stree, sm);
+	} END_FOR_EACH_SM(sm);
 
 	free_slist(&add_to_one);
 	free_slist(&add_to_two);

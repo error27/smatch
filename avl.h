@@ -33,6 +33,7 @@ typedef struct AvlIter       AvlIter;
 
 struct stree {
 	AvlNode    *root;
+	struct stree *base_stree;
 	size_t      count;
 	int stree_id;
 	int references;
