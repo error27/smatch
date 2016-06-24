@@ -63,7 +63,7 @@
 #include "smatch_extra.h"
 
 char *implied_debug_msg;
-#define DIMPLIED(msg...) do { if (option_debug_implied) printf(msg); } while (0)
+#define DIMPLIED(msg...) do { if (option_debug_implied || option_debug) printf(msg); } while (0)
 
 int option_debug_implied = 0;
 
@@ -353,29 +353,30 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
-		DIMPLIED("removed %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
+		DIMPLIED("removed [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		*modified = 1;
 		return NULL;
 	}
 
 	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack)) {
-		DIMPLIED("kept %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
+		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
 	}
 
-	DIMPLIED("checking %s from %d (%d) [stree %d] left = %s [stree %d] right = %s [stree %d]\n",
-		 show_sm(sm), sm->line, sm->nr_children, get_stree_id(sm->pool),
-		 sm->left ? show_sm(sm->left) : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
-		 sm->right ? show_sm(sm->right) : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
+	DIMPLIED("checking [stree %d] %s from %d (%d) left = %s [stree %d] right = %s [stree %d]\n",
+		 get_stree_id(sm->pool),
+		 show_sm(sm), sm->line, sm->nr_children,
+		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
+		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	left = filter_pools(sm->left, remove_stack, keep_stack, &removed);
 	right = filter_pools(sm->right, remove_stack, keep_stack, &removed);
 	if (!removed) {
-		DIMPLIED("kept %s from %d [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
+		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
 	}
 	*modified = 1;
 	if (!left && !right) {
-		DIMPLIED("removed %s from %d <none> [stree %d]\n", show_sm(sm), sm->line, get_stree_id(sm->pool));
+		DIMPLIED("removed [stree %d] %s from %d <none>\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return NULL;
 	}
 
@@ -429,6 +430,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
+		if (option_debug)
+			sm_msg("%s: %s", __func__, show_sm(tmp));
 		if (!tmp->merged)
 			continue;
 		if (sm_in_keep_leafs(tmp, keep_stack))
