@@ -173,12 +173,64 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 }
 
 /*
+ * add_pool() adds a slist to *pools. If the slist has already been
+ * added earlier then it doesn't get added a second time.
+ */
+void add_pool(struct state_list **pools, struct sm_state *new)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(*pools, tmp) {
+		if (tmp->pool < new->pool)
+			continue;
+		else if (tmp->pool == new->pool) {
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(pools, new);
+}
+
+static int pool_in_pools(struct stree *pool,
+			 const struct state_list *slist)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(slist, tmp) {
+		if (!tmp->pool)
+			continue;
+		if (tmp->pool == pool)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
+static int remove_pool(struct state_list **pools, struct stree *remove)
+{
+	struct sm_state *tmp;
+	int ret = 0;
+
+	FOR_EACH_PTR(*pools, tmp) {
+		if (tmp->pool == remove) {
+			DELETE_CURRENT_PTR(tmp);
+			ret = 1;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
+/*
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
  */
 static void do_compare(struct sm_state *sm, int comparison, struct range_list *rl,
 			struct state_list **true_stack,
-			struct state_list **false_stack, int *mixed, struct sm_state *gate_sm)
+			struct state_list **maybe_stack,
+			struct state_list **false_stack,
+			int *mixed, struct sm_state *gate_sm)
 {
 	struct sm_state *s;
 	int istrue;
@@ -188,13 +240,7 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	if (!sm->pool)
 		return;
 
-	if (is_implied(sm)) {
-		s = get_sm_state_stree(sm->pool,
-				sm->owner, sm->name,
-				sm->sym);
-	} else {
-		s = sm;
-	}
+	s = sm;
 
 	if (!s) {
 		if (option_debug_implied || option_debug)
@@ -225,24 +271,12 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	}
 
 	if (istrue)
-		add_ptr_list(true_stack, s);
+		add_pool(true_stack, s);
+	else if (isfalse)
+		add_pool(false_stack, s);
+	else
+		add_pool(maybe_stack, s);
 
-	if (isfalse)
-		add_ptr_list(false_stack, s);
-}
-
-static int pool_in_pools(struct stree *pool,
-			 const struct state_list *slist)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(slist, tmp) {
-		if (!tmp->pool)
-			continue;
-		if (tmp->pool == pool)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
 }
 
 static int is_checked(struct state_list *checked, struct sm_state *sm)
@@ -266,6 +300,7 @@ static int is_checked(struct state_list *checked, struct sm_state *sm)
  */
 static void __separate_pools(struct sm_state *sm, int comparison, struct range_list *rl,
 			struct state_list **true_stack,
+			struct state_list **maybe_stack,
 			struct state_list **false_stack,
 			struct state_list **checked, int *mixed, struct sm_state *gate_sm)
 {
@@ -305,10 +340,10 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 		return;
 	add_ptr_list(checked, sm);
 
-	do_compare(sm, comparison, rl, true_stack, false_stack, mixed, gate_sm);
+	do_compare(sm, comparison, rl, true_stack, maybe_stack, false_stack, mixed, gate_sm);
 
-	__separate_pools(sm->left, comparison, rl, true_stack, false_stack, checked, mixed, gate_sm);
-	__separate_pools(sm->right, comparison, rl, true_stack, false_stack, checked, mixed, gate_sm);
+	__separate_pools(sm->left, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm);
+	__separate_pools(sm->right, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -318,7 +353,41 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 			struct state_list **false_stack,
 			struct state_list **checked, int *mixed)
 {
-	__separate_pools(sm, comparison, rl, true_stack, false_stack, checked, mixed, sm);
+	struct state_list *maybe_stack = NULL;
+	struct sm_state *tmp;
+
+	__separate_pools(sm, comparison, rl, true_stack, &maybe_stack, false_stack, checked, mixed, sm);
+
+	if (option_debug) {
+		struct sm_state *sm;
+
+		FOR_EACH_PTR(*true_stack, sm) {
+			sm_msg("TRUE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+		} END_FOR_EACH_PTR(sm);
+
+		FOR_EACH_PTR(maybe_stack, sm) {
+			sm_msg("MAYBE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+		} END_FOR_EACH_PTR(sm);
+
+		FOR_EACH_PTR(*false_stack, sm) {
+			sm_msg("FALSE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+		} END_FOR_EACH_PTR(sm);
+	}
+	/* if it's a maybe then remove it from the false stack */
+	FOR_EACH_PTR(maybe_stack, tmp) {
+		remove_pool(false_stack, tmp->pool);
+	} END_FOR_EACH_PTR(tmp);
+
+	/* and the true stack */
+	FOR_EACH_PTR(maybe_stack, tmp) {
+		remove_pool(true_stack, tmp->pool);
+	} END_FOR_EACH_PTR(tmp);
+
+	/* if it's both true and false remove it from both */
+	FOR_EACH_PTR(*true_stack, tmp) {
+		if (remove_pool(false_stack, tmp->pool))
+			DELETE_CURRENT_PTR(tmp);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_gates)
