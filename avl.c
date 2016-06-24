@@ -512,6 +512,6 @@ void set_stree_id(struct stree **stree, int stree_id)
 int get_stree_id(struct stree *stree)
 {
 	if (!stree)
-		return 0;
+		return -1;
 	return stree->stree_id;
 }
