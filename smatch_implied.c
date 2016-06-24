@@ -438,15 +438,15 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 			continue;
 		modified = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified);
-		if (filtered_sm && modified) {
-			/* the assignments here are for borrowed implications */
-			filtered_sm->name = tmp->name;
-			filtered_sm->sym = tmp->sym;
-			avl_insert(&ret, filtered_sm);
-			if (out_of_memory())
-				return NULL;
+		if (!filtered_sm || !modified)
+			continue;
+		/* the assignments here are for borrowed implications */
+		filtered_sm->name = tmp->name;
+		filtered_sm->sym = tmp->sym;
+		avl_insert(&ret, filtered_sm);
+		if (out_of_memory())
+			return NULL;
 
-		}
 	} END_FOR_EACH_SM(tmp);
 	return ret;
 }
