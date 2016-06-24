@@ -321,6 +321,22 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 	__separate_pools(sm, comparison, rl, true_stack, false_stack, checked, mixed, sm);
 }
 
+static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_gates)
+{
+	struct sm_state *tmp, *old;
+
+	FOR_EACH_PTR(keep_gates, tmp) {
+		if (is_merged(tmp))
+			continue;
+		old = get_sm_state_stree(tmp->pool, sm->owner, sm->name, sm->sym);
+		if (!old)
+			continue;
+		if (old == sm)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 /*
  * NOTE: If a state is in both the keep stack and the remove stack then it is
  * removed.  If that happens it means you have a bug.  Only add states which are
@@ -358,7 +374,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		return NULL;
 	}
 
-	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack)) {
+	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack) || sm_in_keep_leafs(sm, keep_stack)) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
 	}
@@ -400,20 +416,6 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	DIMPLIED("partial %s => ", show_sm(sm));
 	DIMPLIED("%s from %d [stree %d]\n", show_sm(ret), sm->line, get_stree_id(sm->pool));
 	return ret;
-}
-
-static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_gates)
-{
-	struct sm_state *tmp, *old;
-
-	FOR_EACH_PTR(keep_gates, tmp) {
-		if (is_merged(tmp))
-			continue;
-		old = get_sm_state_stree(tmp->pool, sm->owner, sm->name, sm->sym);
-		if (old == sm)
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
 }
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
