@@ -139,7 +139,6 @@ sub print_info($$)
 }
 
 
-$db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");
 $db->do("PRAGMA count_changes = OFF");

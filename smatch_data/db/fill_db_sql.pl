@@ -13,7 +13,6 @@ if (!defined($warns)) {
 }
 
 my $db = DBI->connect("dbi:SQLite:$db_file", "", "", {AutoCommit => 0});
-$db->do("PRAGMA synchronous = OFF");
 $db->do("PRAGMA cache_size = 800000");
 $db->do("PRAGMA journal_mode = OFF");
 $db->do("PRAGMA count_changes = OFF");
