@@ -1907,8 +1907,27 @@ struct token *typename(struct token *token, struct symbol **p, int *forced)
 	return token;
 }
 
+static struct token *parse_underscore_Pragma(struct token *token)
+{
+	struct token *next;
+
+	next = token->next;
+	if (!match_op(next, '('))
+		return next;
+	next = next->next;
+	if (next->pos.type != TOKEN_STRING)
+		return next;
+	next = next->next;
+	if (!match_op(next, ')'))
+		return next;
+	return next->next;
+}
+
 static struct token *expression_statement(struct token *token, struct expression **tree)
 {
+	if (match_ident(token, &_Pragma_ident))
+		return parse_underscore_Pragma(token);
+
 	token = parse_expression(token, tree);
 	return expect(token, ';', "at end of statement");
 }
@@ -2719,6 +2738,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	struct symbol *base_type;
 	unsigned long mod;
 	int is_typedef;
+
+	if (match_ident(token, &_Pragma_ident))
+		return parse_underscore_Pragma(token);
 
 	/* Top-level inline asm? */
 	if (token_type(token) == TOKEN_IDENT) {

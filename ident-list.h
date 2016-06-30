@@ -99,6 +99,7 @@ IDENT(static);
 IDENT(defined);
 IDENT(once);
 __IDENT(pragma_ident, "__pragma__", 0);
+__IDENT(_Pragma_ident, "_Pragma", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
 __IDENT(__LINE___ident, "__LINE__", 0);
 __IDENT(__FILE___ident, "__FILE__", 0);
