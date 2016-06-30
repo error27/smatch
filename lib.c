@@ -1071,6 +1071,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
+	init_include_path();
 
 	args = argv;
 	for (;;) {

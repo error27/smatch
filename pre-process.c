@@ -1982,6 +1982,36 @@ static void do_preprocess(struct token **list)
 	}
 }
 
+void init_include_path(void)
+{
+	FILE *fp;
+	char path[256];
+	char arch[32];
+	char os[32];
+
+	fp = popen("/bin/uname -m", "r");
+	if (!fp)
+		return;
+	if (!fgets(arch, sizeof(arch) - 1, fp))
+		return;
+	pclose(fp);
+	if (arch[strlen(arch) - 1] == '\n')
+		arch[strlen(arch) - 1] = '\0';
+
+	fp = popen("/bin/uname -o", "r");
+	if (!fp)
+		return;
+	fgets(os, sizeof(os) - 1, fp);
+	pclose(fp);
+
+	if (strcmp(os, "GNU/Linux\n") != 0)
+		return;
+	strcpy(os, "linux-gnu");
+
+	snprintf(path, sizeof(path), "/usr/include/%s-%s/", arch, os);
+	add_pre_buffer("#add_include \"%s/\"\n", path);
+}
+
 struct token * preprocess(struct token *token)
 {
 	preprocessing = 1;

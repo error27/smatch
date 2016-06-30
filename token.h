@@ -228,6 +228,7 @@ extern struct token * tokenize(const char *, int, struct token *, const char **n
 extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 
 extern void show_identifier_stats(void);
+extern void init_include_path(void);
 extern struct token *preprocess(struct token *);
 
 extern void store_all_tokens(struct token *token);
