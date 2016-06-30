@@ -1,13 +1,14 @@
 #!/bin/bash
 
 file=$1
+project=$(echo "$2" | cut -d = -f 2)
 
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 <file with smatch messages>"
+    echo "Usage:  $0 <file with smatch messages> -p=<project>"
     exit 1
 fi
 
-outfile="kernel.sizeof_param"
+outfile="${project}.sizeof_param"
 bin_dir=$(dirname $0)
 remove=$(echo ${bin_dir}/../smatch_data/${outfile}.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)

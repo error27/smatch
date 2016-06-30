@@ -1,12 +1,16 @@
 #!/bin/bash
 
 file=$1
+project=$(echo "$2" | cut -d = -f 2)
 
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 <file with smatch messages>"
+    echo "Usage:  $0 <file with smatch messages> -p=<project>"
     exit 1
 fi
 
+if [[ "$project" != "kernel" ]] ; then
+    exit 0
+fi
 
 outfile="kernel.expects_err_ptr"
 bin_dir=$(dirname $0)
