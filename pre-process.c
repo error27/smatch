@@ -2009,7 +2009,7 @@ void init_include_path(void)
 	strcpy(os, "linux-gnu");
 
 	snprintf(path, sizeof(path), "/usr/include/%s-%s/", arch, os);
-	add_pre_buffer("#add_include \"%s/\"\n", path);
+	add_pre_buffer("#add_system \"%s/\"\n", path);
 }
 
 struct token * preprocess(struct token *token)
