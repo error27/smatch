@@ -232,7 +232,6 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 			struct state_list **false_stack,
 			int *mixed, struct sm_state *gate_sm)
 {
-	struct sm_state *s;
 	int istrue;
 	int isfalse;
 	struct range_list *var_rl;
@@ -240,21 +239,12 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	if (!sm->pool)
 		return;
 
-	s = sm;
-
-	if (!s) {
-		if (option_debug_implied || option_debug)
-			sm_msg("%s from %d, has borrowed implications.",
-				sm->name, sm->line);
-		return;
-	}
-
-	var_rl = cast_rl(rl_type(rl), estate_rl(s->state));
+	var_rl = cast_rl(rl_type(rl), estate_rl(sm->state));
 
 	istrue = !possibly_false_rl(var_rl, comparison, rl);
 	isfalse = !possibly_true_rl(var_rl, comparison, rl);
 
-	print_debug_tf(s, istrue, isfalse);
+	print_debug_tf(sm, istrue, isfalse);
 
 	/* give up if we have borrowed implications (smatch_equiv.c) */
 	if (sm->sym != gate_sm->sym ||
@@ -271,11 +261,11 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	}
 
 	if (istrue)
-		add_pool(true_stack, s);
+		add_pool(true_stack, sm);
 	else if (isfalse)
-		add_pool(false_stack, s);
+		add_pool(false_stack, sm);
 	else
-		add_pool(maybe_stack, s);
+		add_pool(maybe_stack, sm);
 
 }
 
