@@ -898,21 +898,22 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	struct stree *ret = clone_stree(*raw_stree);
 
 	name = expr_to_chunk_sym_vsl(switch_expr, &sym, &vsl);
-	if (!name)
-		goto free;
 
 	if (rl)
 		filter_top_rl(remaining_cases, rl);
 	else
 		rl = clone_rl(top_rl(*remaining_cases));
 
-	sm = get_sm_state_stree(*raw_stree, SMATCH_EXTRA, name, sym);
-	if (sm)
-		separate_and_filter(sm, SPECIAL_EQUAL, rl, *raw_stree, &true_states, &false_states, NULL);
+	if (name) {
+		sm = get_sm_state_stree(*raw_stree, SMATCH_EXTRA, name, sym);
+		if (sm)
+			separate_and_filter(sm, SPECIAL_EQUAL, rl, *raw_stree, &true_states, &false_states, NULL);
+	}
 
 	__push_fake_cur_stree();
 	__unnullify_path();
-	set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(rl));
+	if (name)
+		set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(rl));
 	__pass_case_to_client(switch_expr, rl);
 	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);
@@ -920,7 +921,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	free_stree(&extra_states);
 	free_stree(&true_states);
 	free_stree(&false_states);
-free:
+
 	free_string(name);
 	return ret;
 }
