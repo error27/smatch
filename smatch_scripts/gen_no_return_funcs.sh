@@ -8,10 +8,6 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
-if [[ "$project" != "kernel" ]] ; then
-    exit 0
-fi
-
 outfile="${project}.no_return_funcs"
 bin_dir=$(dirname $0)
 add_file=$(echo ${bin_dir}/../smatch_data/${outfile}.add)
