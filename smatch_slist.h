@@ -26,7 +26,6 @@ void free_every_single_sm_state(void);
 struct sm_state *clone_sm(struct sm_state *s);
 int is_merged(struct sm_state *sm);
 int is_leaf(struct sm_state *sm);
-int is_implied(struct sm_state *sm);
 struct state_list *clone_slist(struct state_list *from_slist);
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state);

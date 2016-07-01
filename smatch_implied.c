@@ -471,7 +471,6 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	ret->pool = sm->pool;
 
-	ret->implied = 1;
 	DIMPLIED("partial %s => ", show_sm(sm));
 	DIMPLIED("%s from %d [stree %d]\n", show_sm(ret), sm->line, get_stree_id(sm->pool));
 	return ret;

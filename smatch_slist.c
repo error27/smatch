@@ -163,7 +163,6 @@ struct sm_state *alloc_sm_state(int owner, const char *name,
 	sm_state->state = state;
 	sm_state->line = get_lineno();
 	sm_state->merged = 0;
-	sm_state->implied = 0;
 	sm_state->pool = NULL;
 	sm_state->left = NULL;
 	sm_state->right = NULL;
@@ -303,7 +302,6 @@ struct sm_state *clone_sm(struct sm_state *s)
 
 	ret = alloc_state_no_name(s->owner, s->name, s->sym, s->state);
 	ret->merged = s->merged;
-	ret->implied = s->implied;
 	ret->line = s->line;
 	/* clone_sm() doesn't copy the pools.  Each state needs to have
 	   only one pool. */
@@ -322,11 +320,6 @@ int is_merged(struct sm_state *sm)
 int is_leaf(struct sm_state *sm)
 {
 	return !sm->merged;
-}
-
-int is_implied(struct sm_state *sm)
-{
-	return sm->implied;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)
