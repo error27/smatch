@@ -1542,27 +1542,33 @@ static void match_comparison(struct expression *expr)
 
 static void handle_AND_condition(struct expression *expr)
 {
-	struct range_list *rl = NULL;
+	struct range_list *orig_rl, *true_rl;
 	sval_t known;
 	int bit;
 
-	if (get_implied_value(expr->left, &known) && known.value > 0) {
-		bit = ffsll(known.value) - 1;
-		known.uvalue = 1ULL << bit;
-		known.value--;
-		get_absolute_rl(expr->right, &rl);
-		rl = remove_range(rl, sval_type_val(known.type, 0), known);
-		set_extra_expr_true_false(expr->right, alloc_estate_rl(rl), NULL);
+	if (get_implied_value(expr->left, &known)) {
+		if (known.value > 0) {
+			sval_t low_mask = known;
+
+			bit = ffsll(known.value) - 1;
+			low_mask.uvalue = (1ULL << bit) - 1;
+			get_absolute_rl(expr->right, &orig_rl);
+			true_rl = remove_range(orig_rl, sval_type_val(known.type, 0), low_mask);
+			set_extra_expr_true_false(expr->right, alloc_estate_rl(true_rl), NULL);
+		}
 		return;
 	}
 
-	if (get_implied_value(expr->right, &known) && known.value > 0) {
-		bit = ffsll(known.value) - 1;
-		known.uvalue = 1ULL << bit;
-		known.value--;
-		get_absolute_rl(expr->left, &rl);
-		rl = remove_range(rl, sval_type_val(known.type, 0), known);
-		set_extra_expr_true_false(expr->left, alloc_estate_rl(rl), NULL);
+	if (get_implied_value(expr->right, &known)) {
+		if (known.value > 0) {
+			sval_t low_mask = known;
+
+			bit = ffsll(known.value) - 1;
+			low_mask.uvalue = (1ULL << bit) - 1;
+			get_absolute_rl(expr->left, &orig_rl);
+			true_rl = remove_range(orig_rl, sval_type_val(known.type, 0), low_mask);
+			set_extra_expr_true_false(expr->left, alloc_estate_rl(true_rl), NULL);
+		}
 		return;
 	}
 }
