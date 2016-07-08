@@ -291,10 +291,10 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 	int comparison;
 
 	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
-		return NULL;
+		return start_rl;
 
 	if (!get_implied_rl(arg, &right_orig))
-		return NULL;
+		return start_rl;
 
 	if (rl_type(start_rl) == &int_ctype &&
 	    sval_is_negative(rl_min(start_rl)) &&
