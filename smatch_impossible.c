@@ -67,16 +67,21 @@ static void match_condition(struct expression *expr)
 		handle_compare(expr, SPECIAL_NOTEQUAL, zero_expr());
 }
 
-static void match_case(struct expression *expr, struct range_list *rl)
+void set_path_impossible(void)
 {
-	if (rl)
-		return;
 	set_state(my_id, "impossible", NULL, &impossible);
 
 	if (inside_loop())
 		return;
 
 	set_state(my_return_id, "impossible", NULL, &impossible);
+}
+
+static void match_case(struct expression *expr, struct range_list *rl)
+{
+	if (rl)
+		return;
+	set_path_impossible();
 }
 
 static void print_impossible_return(int return_id, char *return_ranges, struct expression *expr)

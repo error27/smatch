@@ -557,6 +557,11 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	}
 	free_stree(&stree);
 	true_states = db_info.stree;
+	if (db_info.cull && !true_states) {
+		__push_fake_cur_stree();
+		set_path_impossible();
+		true_states = __pop_fake_cur_stree();
+	}
 
 	nullify_path();
 	__unnullify_path();
@@ -578,6 +583,11 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	}
 	free_stree(&stree);
 	false_states = db_info.stree;
+	if (db_info.cull && !false_states) {
+		__push_fake_cur_stree();
+		set_path_impossible();
+		false_states = __pop_fake_cur_stree();
+	}
 
 	nullify_path();
 	__unnullify_path();

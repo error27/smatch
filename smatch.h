@@ -195,6 +195,7 @@ int is_silenced_function(void);
 
 /* smatch_impossible.c */
 int is_impossible_path(void);
+void set_path_impossible(void);
 
 extern FILE *sm_outfd;
 #define sm_printf(msg...) do { if (final_pass || option_debug || local_debug) fprintf(sm_outfd, msg); } while (0)
