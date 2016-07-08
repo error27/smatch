@@ -900,6 +900,10 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 	sval_t sval = { .type = &int_ctype };
+	sval_t ret;
+
+	if (!get_implied_value(expr, &ret))
+		ret.value = -1;
 
 	__push_fake_cur_stree();
 
@@ -907,25 +911,30 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	__split_whole_condition(expr);
 	final_pass = final_pass_orig;
 
-	return_ranges = alloc_sname("1");
-	sval.value = 1;
-	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
+	if (ret.value != 0) {
+		return_ranges = alloc_sname("1");
+		sval.value = 1;
+		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
 
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+		return_id++;
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, return_ranges, expr);
+		} END_FOR_EACH_PTR(cb);
+	}
 
 	__push_true_states();
 	__use_false_states();
 
-	return_ranges = alloc_sname("0");
-	sval.value = 0;
-	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	if (ret.value != 1) {
+		return_ranges = alloc_sname("0");
+		sval.value = 0;
+		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
+
+		return_id++;
+		FOR_EACH_PTR(returned_state_callbacks, cb) {
+			cb->callback(return_id, return_ranges, expr);
+		} END_FOR_EACH_PTR(cb);
+	}
 
 	__merge_true_states();
 	__free_fake_cur_stree();
@@ -1411,7 +1420,8 @@ static void call_return_state_hooks(struct expression *expr)
 	if (is_impossible_path())
 		goto vanilla;
 
-	if (!get_implied_value(expr, &sval) &&
+	if (expr && (expr->type == EXPR_COMPARE ||
+		     !get_implied_value(expr, &sval)) &&
 	    (is_condition(expr) || is_boolean(expr))) {
 		call_return_state_hooks_compare(expr);
 		return;
