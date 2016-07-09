@@ -516,6 +516,10 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 
 void nullify_path(void)
 {
+	if (fake_cur_stree_stack) {
+		__free_fake_cur_stree();
+		__push_fake_cur_stree();
+	}
 	free_stree(&cur_stree);
 }
 
