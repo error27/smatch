@@ -424,6 +424,13 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 	return 1;
 }
 
+static int is_impossible_data(int type, struct expression *expr, int param, char *key, char *value)
+{
+	if (type == PARAM_LIMIT && impossible_limit(expr, param, key, value))
+		return 1;
+	return 0;
+}
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -463,7 +470,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		db_info->cull = 1;
 		return 0;
 	}
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+
+	if (is_impossible_data(type, db_info->expr, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
@@ -720,7 +728,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		db_info->cull = 1;
 		return 0;
 	}
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+	if (is_impossible_data(type, db_info->expr, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
@@ -888,7 +896,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		db_info->cull = 1;
 		return 0;
 	}
-	if (type == PARAM_LIMIT && impossible_limit(db_info->expr, param, key, value)) {
+	if (is_impossible_data(type, db_info->expr, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
