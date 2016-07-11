@@ -55,7 +55,7 @@ static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
 	return vs->sym;
 }
 
-static struct smatch_state *alloc_compare_state(
+struct smatch_state *alloc_compare_state(
 		const char *var1, struct var_sym_list *vsl1,
 		int comparison,
 		const char *var2, struct var_sym_list *vsl2)
@@ -75,7 +75,7 @@ static struct smatch_state *alloc_compare_state(
 	return state;
 }
 
-static int state_to_comparison(struct smatch_state *state)
+int state_to_comparison(struct smatch_state *state)
 {
 	if (!state || !state->data)
 		return 0;
@@ -237,7 +237,7 @@ static int remove_unsigned_from_comparison(int op)
  * This is for when you merge states "a < b" and "a == b", the result is that
  * we can say for sure, "a <= b" after the merge.
  */
-static int merge_comparisons(int one, int two)
+int merge_comparisons(int one, int two)
 {
 	int LT, EQ, GT;
 
@@ -311,7 +311,7 @@ static int merge_comparisons(int one, int two)
  * merge_comparison('<', '==') returns '<='
  * get_combined_comparison('<', '==') returns '<'
  */
-static int combine_comparisons(int left_compare, int right_compare)
+int combine_comparisons(int left_compare, int right_compare)
 {
 	int LT, EQ, GT;
 
@@ -488,7 +488,7 @@ static int filter_comparison(int orig, int op)
 	return 0;
 }
 
-static struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch_state *s2)
+struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct compare_data *data = s1->data;
 	int op;
