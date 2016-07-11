@@ -940,7 +940,7 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
 }
 
-static void handle_comparison(struct expression *expr_left, int op, struct expression *expr_right, char **_state_name, struct smatch_state **_false_state)
+static void handle_comparison(struct expression *left_expr, int op, struct expression *right_expr, char **_state_name, struct smatch_state **_false_state)
 {
 	char *left = NULL;
 	char *right = NULL;
@@ -956,35 +956,38 @@ static void handle_comparison(struct expression *expr_left, int op, struct expre
 	false_op = negate_comparison(op);
 
 	if (op == SPECIAL_UNSIGNED_LT &&
-	    get_implied_value(expr_left, &sval) &&
+	    get_implied_value(left_expr, &sval) &&
 	    sval.value == 0)
 		false_op = SPECIAL_EQUAL;
 
 	if (op == SPECIAL_UNSIGNED_GT &&
-	    get_implied_value(expr_right, &sval) &&
+	    get_implied_value(right_expr, &sval) &&
 	    sval.value == 0)
 		false_op = SPECIAL_EQUAL;
 
-	left = chunk_to_var_sym(expr_left, &left_sym);
+	left = chunk_to_var_sym(left_expr, &left_sym);
 	if (!left)
 		goto free;
-	left_vsl = expr_to_vsl(expr_left);
-	right = chunk_to_var_sym(expr_right, &right_sym);
+	left_vsl = expr_to_vsl(left_expr);
+	right = chunk_to_var_sym(right_expr, &right_sym);
 	if (!right)
 		goto free;
-	right_vsl = expr_to_vsl(expr_right);
+	right_vsl = expr_to_vsl(right_expr);
 
 	if (strcmp(left, right) > 0) {
 		struct symbol *tmp_sym = left_sym;
 		char *tmp_name = left;
 		struct var_sym_list *tmp_vsl = left_vsl;
+		struct expression *tmp_expr = left_expr;
 
 		left = right;
 		left_sym = right_sym;
 		left_vsl = right_vsl;
+		left_expr = right_expr;
 		right = tmp_name;
 		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
+		right_expr = tmp_expr;
 		op = flip_comparison(op);
 		false_op = flip_comparison(false_op);
 	}
@@ -1002,8 +1005,8 @@ static void handle_comparison(struct expression *expr_left, int op, struct expre
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
-	save_link(expr_left, state_name);
-	save_link(expr_right, state_name);
+	save_link(left_expr, state_name);
+	save_link(right_expr, state_name);
 
 	if (_false_state)
 		*_false_state = false_state;
