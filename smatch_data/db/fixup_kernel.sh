@@ -114,8 +114,8 @@ delete from return_states where function = 'bitmap_allocate_region' and return =
 /* Just delete a lot of returns that everyone ignores */
 delete from return_states where file = 'drivers/pci/access.c' and (return >= 129 and return <= 137);
 
-update return_states set return = '(-4095)-s32max[<=\$3]' where function = 'get_user_pages' and return = 's32min-s32max';
-update return_states set return = '(-4095)-s64max[<=\$3]' where function = 'get_user_pages' and return = 's64min-s64max';
+update return_states set return = '(-4095)-s32max[<=\$1]' where function = 'get_user_pages' and return = 's32min-s32max';
+update return_states set return = '(-4095)-s64max[<=\$1]' where function = 'get_user_pages' and return = 's64min-s64max';
 
 /* Smatch can't parse wait_for_completion() */
 update return_states set return = '(-108),(-22),0' where function = '__spi_sync' and return = '(-115),(-108),(-22)';
