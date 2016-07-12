@@ -914,7 +914,31 @@ static void split_compound(struct statement *stmt)
 		__split_stmt(cur);
 	}
 
-	__call_scope_hooks();
+	/*
+	 * For function scope, then delay calling the scope hooks until the
+	 * end of function hooks can run.  I'm not positive this is the right
+	 * thing...
+	 */
+	if (!is_last_stmt(cur))
+		__call_scope_hooks();
+}
+
+/*
+ * This is a hack, work around for detecting empty functions.
+ */
+static int need_delayed_scope_hooks(void)
+{
+	struct symbol *fn = get_base_type(cur_func_sym);
+	struct statement *stmt;
+
+	if (!fn)
+		return 0;
+	stmt = fn->stmt;
+	if (!stmt)
+		stmt = fn->inline_stmt;
+	if (stmt && stmt->type == STMT_COMPOUND)
+		return 1;
+	return 0;
 }
 
 void __split_label_stmt(struct statement *stmt)
@@ -1485,6 +1509,8 @@ static void split_function(struct symbol *sym)
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(sym, END_FUNC_HOOK);
+	if (need_delayed_scope_hooks())
+		__call_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 
 	clear_all_states();
