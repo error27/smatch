@@ -264,19 +264,6 @@ static void asm_expr_late(struct statement *stmt)
 	asm_expr(stmt, LATE);
 }
 
-static void scope_end(void *_sym)
-{
-	struct symbol *sym = _sym;
-	struct expression *expr = symbol_expression(sym);
-
-	call_modification_hooks(expr, NULL, BOTH);
-}
-
-static void match_declaration(struct symbol *sym)
-{
-	add_scope_hook(&scope_end, sym); 
-}
-
 struct smatch_state *get_modification_state(struct expression *expr)
 {
 	return get_state_expr(my_id, expr);
@@ -310,6 +297,5 @@ void register_modification_hooks_late(int id)
 
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_add);
-	add_hook(&match_declaration, DECLARATION_HOOK);
 }
 
