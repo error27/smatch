@@ -138,6 +138,9 @@ update caller_info set value = 4096 where caller='fill_read_buffer' and function
 /* smatch sees the memset() but not the subsequent changes */
 update return_states set value = "" where function = 'gfs2_ea_find' and return = '0' and type = 101 and parameter = 3;
 
+delete from type_value where type = '(struct fd)->file';
+delete from type_value where type = '(struct fd)->flags';
+
 EOF
 
 # fixme: this is totally broken
