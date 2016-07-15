@@ -1592,6 +1592,41 @@ free:
 	return ret_str;
 }
 
+char *get_printed_param_name(struct expression *call, const char *param_name, struct symbol *param_sym)
+{
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+	static char buf[256];
+	int len;
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(call->args, arg) {
+		i++;
+
+		name = expr_to_var_sym(arg, &sym);
+		if (!name || !sym)
+			continue;
+		if (sym != param_sym)
+			continue;
+
+		len = strlen(name);
+		if (strncmp(name, param_name, len) != 0)
+			continue;
+		if (param_name[len] == '\0') {
+			snprintf(buf, sizeof(buf), "$%d", i);
+			return buf;
+		}
+		if (param_name[len] != '-')
+			continue;
+		snprintf(buf, sizeof(buf), "$%d%s", i, param_name + len);
+		return buf;
+	} END_FOR_EACH_PTR(arg);
+
+	return NULL;
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct expression *arg;
@@ -1616,6 +1651,10 @@ static void match_call_info(struct expression *expr)
 
 		links = state->data;
 		FOR_EACH_PTR(links, link) {
+			struct var_sym_list *right_vsl;
+			struct var_sym *right_vs;
+
+
 			if (strstr(link, " orig"))
 				continue;
 			sm = get_sm_state(compare_id, link, NULL);
@@ -1628,16 +1667,25 @@ static void match_call_info(struct expression *expr)
 			if (!arg_name)
 				continue;
 
+			right_vsl = NULL;
 			if (strcmp(data->var1, arg_name) == 0) {
 				comparison = data->comparison;
 				right_name = data->var2;
+				right_vsl = data->vsl2;
+
 			} else if (strcmp(data->var2, arg_name) == 0) {
 				comparison = flip_comparison(data->comparison);
 				right_name = data->var1;
-			} else {
-				goto free;
+				right_vsl = data->vsl1;
 			}
-
+			if (!right_vsl || ptr_list_size((struct ptr_list *)right_vsl) != 1)
+				goto free;
+			right_vs = first_ptr_list((struct ptr_list *)right_vsl);
+			if (strcmp(right_vs->var, right_name) != 0)
+				continue;
+			right_name = get_printed_param_name(expr, right_vs->var, right_vs->sym);
+			if (!right_name)
+				continue;
 			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(comparison), right_name);
 			sql_insert_caller_info(expr, PARAM_COMPARE, i, "$", info_buf);
 

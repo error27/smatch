@@ -833,6 +833,7 @@ int possible_comparison(struct expression *a, int comparison, struct expression 
 struct state_list *get_all_comparisons(struct expression *expr);
 struct state_list *get_all_possible_equal_comparisons(struct expression *expr);
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range);
+char *get_printed_param_name(struct expression *call, const char *param_name, struct symbol *param_sym);
 char *name_sym_to_param_comparison(const char *name, struct symbol *sym);
 char *expr_equal_to_param(struct expression *expr, int ignore);
 char *expr_lte_to_param(struct expression *expr, int ignore);
