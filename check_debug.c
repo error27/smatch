@@ -86,7 +86,12 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 		found = 1;
 	} END_FOR_EACH_SM(sm);
 
-	if (!found)
+	if (found)
+		return;
+
+	if (!id_from_name(check_arg->string->data))
+		sm_msg("invalid check name '%s'", check_arg->string->data);
+	else
 		sm_msg("%s: no states", check_arg->string->data);
 }
 
