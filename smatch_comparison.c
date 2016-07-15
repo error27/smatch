@@ -1843,6 +1843,12 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 				continue;
 			snprintf(right_buf, sizeof(right_buf), "$%d%s", right_param, tmp_name + 1);
 
+			/*
+			 * FIXME: this should reject $ type variables (as
+			 * opposed to $->foo type).  Those should come from
+			 * smatch_param_compare_limit.c.
+			 */
+
 			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(data->comparison), right_buf);
 			sql_insert_return_states(return_id, return_ranges,
 					PARAM_COMPARE, left_param, left_buf, info_buf);
