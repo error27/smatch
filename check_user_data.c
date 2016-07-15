@@ -237,7 +237,12 @@ free:
 
 int is_user_data(struct expression *expr)
 {
+	struct range_list *rl;
 	int user_data;
+
+	if (is_capped(expr))
+		return 0;
+	return get_user_rl(expr, &rl);
 
 	if (!expr)
 		return 0;
