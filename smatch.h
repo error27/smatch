@@ -841,6 +841,7 @@ char *expr_lte_to_param(struct expression *expr, int ignore);
 char *expr_param_comparison(struct expression *expr, int ignore);
 int flip_comparison(int op);
 int negate_comparison(int op);
+int param_compare_limit_is_impossible(struct expression *expr, int left_param, char *left_key, char *value);
 void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right);
 struct sm_state *comparison_implication_hook(struct expression *expr,
 			struct state_list **true_stack,

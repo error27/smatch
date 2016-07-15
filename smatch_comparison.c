@@ -1988,6 +1988,55 @@ free:
 	free_string(right_name);
 }
 
+int param_compare_limit_is_impossible(struct expression *expr, int left_param, char *left_key, char *value)
+{
+	struct smatch_state *state;
+	char *left_name = NULL;
+	char *right_name = NULL;
+	struct symbol *left_sym, *right_sym;
+	struct expression *left_arg, *right_arg;
+	int op;
+	int right_param;
+	char *right_key;
+	int ret = 0;
+	char buf[256];
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return 0;
+
+	if (!split_op_param_key(value, &op, &right_param, &right_key))
+		return 0;
+
+	left_arg = get_argument_from_call_expr(expr->args, left_param);
+	if (!left_arg)
+		return 0;
+
+	right_arg = get_argument_from_call_expr(expr->args, right_param);
+	if (!right_arg)
+		return 0;
+
+	left_name = get_variable_from_key(left_arg, left_key, &left_sym);
+	right_name = get_variable_from_key(right_arg, right_key, &right_sym);
+	if (!left_name || !right_name)
+		goto free;
+
+	snprintf(buf, sizeof(buf), "%s vs %s", left_name, right_name);
+	state = get_state(compare_id, buf, NULL);
+	if (!state)
+		goto free;
+	if (!state_to_comparison(state))
+		goto free;
+
+	if (!filter_comparison(state_to_comparison(state), op))
+		ret = 1;
+free:
+	free_string(left_name);
+	free_string(right_name);
+	return ret;
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)
