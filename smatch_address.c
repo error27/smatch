@@ -146,6 +146,9 @@ static void add_offset_to_min(struct range_list **rl, int offset)
 
 static struct range_list *where_allocated_rl(struct symbol *sym)
 {
+	if (!sym)
+		return NULL;
+
 	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_STATIC)) {
 		if (sym->initializer)
 			return alloc_rl(data_seg_min, data_seg_max);
