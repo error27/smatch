@@ -17,6 +17,7 @@ static inline void __smatch_user_rl(long long val){}
 static inline void __smatch_hard_max(long long val){}
 static inline void __smatch_fuzzy_max(long long val){}
 
+static inline void __smatch_absolute(long long val){}
 static inline void __smatch_absolute_min(long long val){}
 static inline void __smatch_absolute_max(long long val){}
 static inline void __smatch_real_absolute(long long val){}

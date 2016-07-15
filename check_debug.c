@@ -244,6 +244,21 @@ static void match_print_fuzzy_max(const char *fn, struct expression *expr, void 
 	free_string(name);
 }
 
+static void match_print_absolute(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+
+	get_absolute_rl(arg, &rl);
+	sm_msg("absolute: %s = %s", name, show_rl(rl));
+
+	free_string(name);
+}
+
 static void match_print_absolute_min(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
