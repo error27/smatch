@@ -1741,6 +1741,246 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	} END_FOR_EACH_PTR(link);
 }
 
+static void print_return_value_comparison(int return_id, char *return_ranges, struct expression *expr)
+{
+	char *name;
+	const char *tmp_name;
+	struct symbol *sym;
+	int param;
+	char info_buf[256];
+
+	/*
+	 * TODO: This only prints == comparisons. That's probably the most
+	 * useful comparison because == max has lots of implications.  But it
+	 * would be good to capture the rest as well.
+	 *
+	 * This information is already in the DB but it's in the parameter math
+	 * bits and it's awkward to use it.  This is is the simpler, possibly
+	 * cleaner way, but not necessarily the best, I don't know.
+	 */
+
+	if (!expr)
+		return;
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	param = get_param_num_from_sym(sym);
+	if (param < 0)
+		goto free;
+	if (param_was_set_var_sym(name, sym))
+		goto free;
+
+	tmp_name = get_param_name_var_sym(name, sym);
+	if (!tmp_name)
+		goto free;
+
+	snprintf(info_buf, sizeof(info_buf), "== $%d%s", param, tmp_name + 1);
+	sql_insert_return_states(return_id, return_ranges,
+				PARAM_COMPARE, -1, "$", info_buf);
+free:
+	free_string(name);
+}
+
+static void print_return_comparison(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct sm_state *tmp;
+	struct string_list *links;
+	char *link;
+	struct sm_state *sm;
+	struct compare_data *data;
+	struct var_sym *left, *right;
+	int left_param, right_param;
+	char left_buf[256];
+	char right_buf[256];
+	char info_buf[256];
+	const char *tmp_name;
+
+	print_return_value_comparison(return_id, return_ranges, expr);
+
+	FOR_EACH_MY_SM(link_id, __get_cur_stree(), tmp) {
+		if (get_param_num_from_sym(tmp->sym) < 0)
+			continue;
+		links = tmp->state->data;
+		FOR_EACH_PTR(links, link) {
+			sm = get_sm_state(compare_id, link, NULL);
+			if (!sm)
+				continue;
+			data = sm->state->data;
+			if (!data || !data->comparison)
+				continue;
+			if (ptr_list_size((struct ptr_list *)data->vsl1) != 1 ||
+			    ptr_list_size((struct ptr_list *)data->vsl2) != 1)
+				continue;
+			left = first_ptr_list((struct ptr_list *)data->vsl1);
+			right = first_ptr_list((struct ptr_list *)data->vsl2);
+			if (left->sym == right->sym &&
+			    strcmp(left->var, right->var) == 0)
+				continue;
+			/*
+			 * Both parameters link to this comparison so only
+			 * record the first one.
+			 */
+			if (left->sym != tmp->sym ||
+			    strcmp(left->var, tmp->name) != 0)
+				continue;
+
+			if (strstr(right->var, " orig"))
+				continue;
+
+			left_param = get_param_num_from_sym(left->sym);
+			right_param = get_param_num_from_sym(right->sym);
+			if (left_param < 0 || right_param < 0)
+				continue;
+
+			tmp_name = get_param_name_var_sym(left->var, left->sym);
+			if (!tmp_name)
+				continue;
+			snprintf(left_buf, sizeof(left_buf), "%s", tmp_name);
+
+			tmp_name = get_param_name_var_sym(right->var, right->sym);
+			if (!tmp_name || tmp_name[0] != '$')
+				continue;
+			snprintf(right_buf, sizeof(right_buf), "$%d%s", right_param, tmp_name + 1);
+
+			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(data->comparison), right_buf);
+			sql_insert_return_states(return_id, return_ranges,
+					PARAM_COMPARE, left_param, left_buf, info_buf);
+		} END_FOR_EACH_PTR(link);
+
+	} END_FOR_EACH_SM(tmp);
+}
+
+static int parse_comparison(char **value, int *op)
+{
+
+	*op = **value;
+
+	switch (*op) {
+	case '<':
+		(*value)++;
+		if (**value == '=') {
+			(*value)++;
+			*op = SPECIAL_LTE;
+		}
+		break;
+	case '=':
+		(*value)++;
+		(*value)++;
+		*op = SPECIAL_EQUAL;
+		break;
+	case '!':
+		(*value)++;
+		(*value)++;
+		*op = SPECIAL_NOTEQUAL;
+		break;
+	case '>':
+		(*value)++;
+		if (**value == '=') {
+			(*value)++;
+			*op = SPECIAL_GTE;
+		}
+		break;
+	default:
+		return 0;
+	}
+
+	if (**value != ' ') {
+		sm_msg("internal error parsing comparison.  %s", *value);
+		return 0;
+	}
+
+	(*value)++;
+	return 1;
+}
+
+static int split_op_param_key(char *value, int *op, int *param, char **key)
+{
+	static char buf[256];
+	char *p;
+
+	if (!parse_comparison(&value, op))
+		return 0;
+
+	snprintf(buf, sizeof(buf), value);
+
+	p = buf;
+	if (*p++ != '$')
+		return 0;
+
+	*param = atoi(p);
+	if (*param < 0 || *param > 99)
+		return 0;
+	p++;
+	if (*param > 9)
+		p++;
+	p--;
+	*p = '$';
+	*key = p;
+
+	return 1;
+}
+
+static void db_return_comparison(struct expression *expr, int left_param, char *key, char *value)
+{
+	struct expression *left_arg, *right_arg;
+	char *left_name = NULL;
+	struct symbol *left_sym;
+	char *right_name = NULL;
+	struct symbol *right_sym;
+	int op;
+	int right_param;
+	char *right_key;
+	struct var_sym_list *left_vsl = NULL, *right_vsl = NULL;
+
+	if (left_param == -1) {
+		if (expr->type != EXPR_ASSIGNMENT)
+			return;
+		left_arg = strip_expr(expr->left);
+
+		while (expr->type == EXPR_ASSIGNMENT)
+			expr = strip_expr(expr->right);
+		if (expr->type != EXPR_CALL)
+			return;
+	} else {
+		while (expr->type == EXPR_ASSIGNMENT)
+			expr = strip_expr(expr->right);
+		if (expr->type != EXPR_CALL)
+			return;
+
+		left_arg = get_argument_from_call_expr(expr->args, left_param);
+		if (!left_arg)
+			return;
+	}
+
+	if (!split_op_param_key(value, &op, &right_param, &right_key))
+		return;
+
+	right_arg = get_argument_from_call_expr(expr->args, right_param);
+	if (!right_arg)
+		return;
+
+	left_name = get_variable_from_key(left_arg, key, &left_sym);
+	if (!left_name || !left_sym)
+		goto free;
+
+	right_name = get_variable_from_key(right_arg, right_key, &right_sym);
+	if (!right_name || !right_sym)
+		goto free;
+
+	add_var_sym(&left_vsl, left_name, left_sym);
+	add_var_sym(&right_vsl, right_name, right_sym);
+
+	if (local_debug)
+		sm_msg("SET compare: %s %s %s", left_name, show_special(op), right_name);
+
+	add_comparison_var_sym(left_name, left_vsl, op, right_name, right_vsl);
+
+free:
+	free_string(left_name);
+	free_string(right_name);
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)
@@ -1756,6 +1996,9 @@ void register_comparison(int id)
 	add_merge_hook(compare_id, &merge_compare_states);
 	add_hook(&free_data, AFTER_FUNC_HOOK);
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	add_split_return_callback(&print_return_comparison);
+
+	select_return_states_hook(PARAM_COMPARE, &db_return_comparison);
 }
 
 void register_comparison_late(int id)
