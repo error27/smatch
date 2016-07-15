@@ -189,6 +189,7 @@ extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
 extern int option_info;
+extern int option_spammy;
 extern char *trace_variable;
 extern struct stree *global_states;
 int is_silenced_function(void);
@@ -766,7 +767,6 @@ extern char *option_debug_check;
 extern char *option_project_str;
 extern char *data_dir;
 extern int option_no_data;
-extern int option_spammy;
 extern int option_full_path;
 extern int option_param_mapper;
 extern int option_call_tree;
@@ -928,9 +928,6 @@ struct expression *get_size_variable(struct expression *buf);
 
 /* smatch_untracked_param.c */
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
-
-/* smatch_impossible.c */
-int is_impossible_path(void);
 
 /* smatch_strings.c */
 struct state_list *get_strings(struct expression *expr);
