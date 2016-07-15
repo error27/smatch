@@ -500,6 +500,7 @@ void __split_expr(struct expression *expr)
 static int is_forever_loop(struct statement *stmt)
 {
 	struct expression *expr;
+	sval_t sval;
 
 	expr = strip_expr(stmt->iterator_pre_condition);
 	if (!expr)
@@ -509,7 +510,7 @@ static int is_forever_loop(struct statement *stmt)
 		return 1;
 	}
 
-	if (expr->type == EXPR_VALUE && expr->value == 1)
+	if (get_value(expr, &sval) && sval.value != 0)
 		return 1;
 
 	return 0;
