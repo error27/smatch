@@ -907,7 +907,10 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied, i
 {
 	struct range_list *rl;
 
-	if (sym_name_is("__builtin_expect", expr->fn)) {
+	if (sym_name_is("__builtin_expect", expr->fn) ||
+	    sym_name_is("__builtin_bswap16", expr->fn) ||
+	    sym_name_is("__builtin_bswap32", expr->fn) ||
+	    sym_name_is("__builtin_bswap64", expr->fn)) {
 		struct expression *arg;
 
 		arg = get_argument_from_call_expr(expr->args, 0);
