@@ -1695,6 +1695,52 @@ free:
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *link_sm)
+{
+	struct sm_state *compare_sm;
+	struct string_list *links;
+	char *link;
+	struct compare_data *data;
+	struct var_sym *left, *right;
+	static char info_buf[256];
+	const char *right_name;
+
+	if (strstr(printed_name, " orig"))
+		return;
+
+	links = link_sm->state->data;
+	FOR_EACH_PTR(links, link) {
+		compare_sm = get_sm_state(compare_id, link, NULL);
+		if (!compare_sm)
+			continue;
+		data = compare_sm->state->data;
+		if (!data || !data->comparison)
+			continue;
+
+		if (ptr_list_size((struct ptr_list *)data->vsl1) != 1 ||
+		    ptr_list_size((struct ptr_list *)data->vsl2) != 1)
+			continue;
+		left = first_ptr_list((struct ptr_list *)data->vsl1);
+		right = first_ptr_list((struct ptr_list *)data->vsl2);
+		if (left->sym == right->sym &&
+		    strcmp(left->var, right->var) == 0)
+			continue;
+		/*
+		 * Both parameters link to this comparison so only
+		 * record the first one.
+		 */
+		if (left->sym != link_sm->sym ||
+		    strcmp(left->var, link_sm->name) != 0)
+			continue;
+
+		right_name = get_printed_param_name(call, right->var, right->sym);
+		if (!right_name)
+			continue;
+		snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(data->comparison), right_name);
+		sql_insert_caller_info(call, PARAM_COMPARE, param, printed_name, info_buf);
+	} END_FOR_EACH_PTR(link);
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)
@@ -1722,6 +1768,8 @@ void register_comparison_links(int id)
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook_late(link_id, &match_modify);
+
+	add_member_info_callback(link_id, struct_member_callback);
 }
 
 void register_comparison_inc_dec(int id)
