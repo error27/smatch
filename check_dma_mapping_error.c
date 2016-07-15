@@ -71,6 +71,7 @@ void check_dma_mapping_error(int id)
 
 	my_id = id;
 	add_function_assign_hook("dma_mapping_error", &match_assign, NULL);
+	add_function_assign_hook("pci_dma_mapping_error", &match_assign, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
