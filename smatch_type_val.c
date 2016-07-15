@@ -301,7 +301,11 @@ static void match_global_assign(struct expression *expr)
 {
 	char *member;
 	struct range_list *rl;
+	struct symbol *type;
 
+	type = get_type(expr->left);
+	if (type && (type->type == SYM_ARRAY || type->type == SYM_STRUCT))
+		return;
 	member = get_member_name(expr->left);
 	if (!member)
 		return;
