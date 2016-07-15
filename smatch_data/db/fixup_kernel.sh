@@ -135,6 +135,9 @@ insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)
 /* config fs confuses smatch a little */
 update caller_info set value = 4096 where caller='fill_read_buffer' and function='(struct configfs_item_operations)->show_attribute' and type = 1002 and parameter = 2;
 
+/* smatch sees the memset() but not the subsequent changes */
+update return_states set value = "" where function = 'gfs2_ea_find' and return = '0' and type = 101 and parameter = 3;
+
 EOF
 
 # fixme: this is totally broken
