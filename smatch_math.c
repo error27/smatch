@@ -856,7 +856,9 @@ static sval_t handle_sizeof(struct expression *expr)
 		 * Expressions of restricted types will possibly get
 		 * promoted - check that here
 		 */
-		if (is_restricted_type(sym)) {
+		if (!sym)
+			sym = &int_ctype;
+		else if (is_restricted_type(sym)) {
 			if (type_bits(sym) < bits_in_int)
 				sym = &int_ctype;
 		} else if (is_fouled_type(sym)) {
