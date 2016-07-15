@@ -1109,19 +1109,26 @@ static void match_pointer_as_array(struct expression *expr)
 	check_dereference(get_array_base(expr));
 }
 
+static void find_dereferences(struct expression *expr)
+{
+	while (expr->type == EXPR_PREOP) {
+		if (expr->op == '*')
+			check_dereference(expr->unop);
+		expr = strip_expr(expr->unop);
+	}
+}
+
 static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;
 
 	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-
-	set_extra_nomod(name, sym, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
-
-free:
+	if (name && sym)
+		set_extra_nomod(name, sym, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
 	free_string(name);
+
+	find_dereferences(arg);
 }
 
 static sval_t add_one(sval_t sval)
