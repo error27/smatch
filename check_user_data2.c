@@ -262,7 +262,14 @@ static int is_skb_data(struct expression *expr)
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	if (!expr || expr->type != EXPR_DEREF)
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
+		return 0;
+
+	expr = strip_expr(expr->unop);
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		expr = strip_expr(expr->left);
+
+	if (expr->type != EXPR_DEREF)
 		return 0;
 
 	if (!expr->member)
@@ -299,8 +306,6 @@ static int comes_from_skb_data(struct expression *expr)
 			return 1;
 		return 0;
 	case EXPR_PREOP:
-		return comes_from_skb_data(expr->unop);
-	case EXPR_DEREF:
 		if (is_skb_data(expr))
 			return 1;
 		return comes_from_skb_data(expr->deref);
