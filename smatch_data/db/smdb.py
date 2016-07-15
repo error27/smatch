@@ -78,6 +78,12 @@ db_types = {   0: "INTERNAL",
             1027: "BYTE_UNITS",
             1028: "PARAM_COMPARE",
             8017: "USER_DATA2",
+            8018: "NO_OVERFLOW",
+            8019: "NO_OVERFLOW_SIMPLE",
+            8020: "LOCKED",
+            8021: "UNLOCKED",
+            8023: "ATOMIC_INC",
+            8024: "ATOMIC_DEC",
 };
 
 def type_to_str(type_int):
