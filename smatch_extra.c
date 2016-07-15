@@ -1540,35 +1540,92 @@ static void match_comparison(struct expression *expr)
 	}
 }
 
+static sval_t get_high_mask(sval_t known)
+{
+	sval_t ret;
+	int i;
+
+	ret = known;
+	ret.value = 0;
+
+	for (i = type_bits(known.type) - 1; i >= 0; i--) {
+		if (known.uvalue & (1ULL << i))
+			ret.uvalue |= (1ULL << i);
+		else
+			return ret;
+
+	}
+	return ret;
+}
+
 static void handle_AND_condition(struct expression *expr)
 {
-	struct range_list *orig_rl, *true_rl;
+	struct range_list *orig_rl;
+	struct range_list *true_rl = NULL;
+	struct range_list *false_rl = NULL;
 	sval_t known;
 	int bit;
 
 	if (get_implied_value(expr->left, &known)) {
-		if (known.value > 0) {
-			sval_t low_mask = known;
+		sval_t low_mask = known;
+		sval_t high_mask;
 
+		if (known.value > 0) {
 			bit = ffsll(known.value) - 1;
 			low_mask.uvalue = (1ULL << bit) - 1;
 			get_absolute_rl(expr->right, &orig_rl);
 			true_rl = remove_range(orig_rl, sval_type_val(known.type, 0), low_mask);
-			set_extra_expr_true_false(expr->right, alloc_estate_rl(true_rl), NULL);
 		}
+		high_mask = get_high_mask(known);
+		if (high_mask.value) {
+			bit = ffsll(high_mask.value) - 1;
+			low_mask.uvalue = (1ULL << bit) - 1;
+
+			get_absolute_rl(expr->left, &orig_rl);
+			if (sval_is_negative(rl_min(orig_rl)))
+				orig_rl = remove_range(orig_rl, sval_type_min(known.type), sval_type_val(known.type, -1));
+			false_rl = remove_range(orig_rl, low_mask, sval_type_max(known.type));
+			if (type_signed(high_mask.type) && type_unsigned(rl_type(false_rl))) {
+				false_rl = remove_range(false_rl,
+							sval_type_val(rl_type(false_rl), sval_type_max(known.type).uvalue),
+							sval_type_val(rl_type(false_rl), -1));
+			}
+		}
+		set_extra_expr_true_false(expr->right,
+					  true_rl ? alloc_estate_rl(true_rl) : NULL,
+					  false_rl ? alloc_estate_rl(false_rl) : NULL);
+
 		return;
 	}
 
 	if (get_implied_value(expr->right, &known)) {
-		if (known.value > 0) {
-			sval_t low_mask = known;
+		sval_t low_mask = known;
+		sval_t high_mask;
 
+		if (known.value > 0) {
 			bit = ffsll(known.value) - 1;
 			low_mask.uvalue = (1ULL << bit) - 1;
 			get_absolute_rl(expr->left, &orig_rl);
 			true_rl = remove_range(orig_rl, sval_type_val(known.type, 0), low_mask);
-			set_extra_expr_true_false(expr->left, alloc_estate_rl(true_rl), NULL);
 		}
+		high_mask = get_high_mask(known);
+		if (high_mask.value) {
+			bit = ffsll(high_mask.value) - 1;
+			low_mask.uvalue = (1ULL << bit) - 1;
+
+			get_absolute_rl(expr->left, &orig_rl);
+			if (sval_is_negative(rl_min(orig_rl)))
+				orig_rl = remove_range(orig_rl, sval_type_min(known.type), sval_type_val(known.type, -1));
+			false_rl = remove_range(orig_rl, low_mask, sval_type_max(known.type));
+			if (type_signed(high_mask.type) && type_unsigned(rl_type(false_rl))) {
+				false_rl = remove_range(false_rl,
+							sval_type_val(rl_type(false_rl), sval_type_max(known.type).uvalue),
+							sval_type_val(rl_type(false_rl), -1));
+			}
+		}
+		set_extra_expr_true_false(expr->left,
+					  true_rl ? alloc_estate_rl(true_rl) : NULL,
+					  false_rl ? alloc_estate_rl(false_rl) : NULL);
 		return;
 	}
 }
