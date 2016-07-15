@@ -33,6 +33,11 @@ static int my_id;
 STATE(capped);
 STATE(uncapped);
 
+static void set_uncapped(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(my_id, sm->name, sm->sym, &uncapped);
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -262,6 +267,7 @@ void register_capped(int id)
 	select_caller_info_hook(set_param_capped_data, CAPPED_DATA);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_modification_hook(my_id, &set_uncapped);
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
