@@ -1005,6 +1005,7 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
+	__compare_param_limit_hook(left_expr, right_expr, state_name, true_state, false_state);
 	save_link(left_expr, state_name);
 	save_link(right_expr, state_name);
 

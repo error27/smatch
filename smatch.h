@@ -684,7 +684,8 @@ enum info_type {
 	CULL_PATH	= 1024,
 	PARAM_SET	= 1025,
 	PARAM_USED	= 1026,
-	PARAM_COMPARE	= 1028,
+	COMPARE_LIMIT	= 1028,
+	PARAM_COMPARE	= 1029,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
@@ -844,6 +845,10 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 struct sm_state *comparison_implication_hook(struct expression *expr,
 			struct state_list **true_stack,
 			struct state_list **false_stack);
+void __compare_param_limit_hook(struct expression *left_expr, struct expression *right_expr,
+				const char *state_name,
+				struct smatch_state *true_state, struct smatch_state *false_state);
+
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);
