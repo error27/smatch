@@ -217,7 +217,7 @@ static struct range_list *size_from_db(struct expression *expr)
 		this_file_only = 1;
 	}
 	if (!name)
-		return 0;
+		return NULL;
 
 	if (this_file_only) {
 		db_size_rl = NULL;
@@ -226,7 +226,7 @@ static struct range_list *size_from_db(struct expression *expr)
 			name, get_filename());
 		if (db_size_rl)
 			return db_size_rl;
-		return 0;
+		return NULL;
 	}
 
 	db_size_rl = NULL;
@@ -462,9 +462,9 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 			return NULL;
 		type = get_type(expr->left);
 		if (!type)
-			return 0;
+			return NULL;
 		if (type->type != SYM_ARRAY && type->type != SYM_PTR)
-			return 0;
+			return NULL;
 		type = get_real_base_type(type);
 		bytes = type_bytes(type);
 		if (bytes == 0)
