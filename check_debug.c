@@ -621,6 +621,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_user_rl", &match_user_rl, NULL);
 	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
 	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
+	add_function_hook("__smatch_absolute", &match_print_absolute, NULL);
 	add_function_hook("__smatch_absolute_min", &match_print_absolute_min, NULL);
 	add_function_hook("__smatch_absolute_max", &match_print_absolute_max, NULL);
 	add_function_hook("__smatch_real_absolute", &match_real_absolute, NULL);
