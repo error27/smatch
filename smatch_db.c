@@ -1305,7 +1305,7 @@ static struct sm_state *find_bool_param(void)
 	start_states = get_start_states();
 
 	FOR_EACH_PTR_REVERSE(cur_func_sym->ctype.base_type->arguments, arg) {
-		if (!arg->ident || !arg->ident->name)
+		if (!arg->ident)
 			continue;
 		sm = get_sm_state_stree(start_states, SMATCH_EXTRA, arg->ident->name, arg);
 		if (!sm)

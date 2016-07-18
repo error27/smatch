@@ -123,7 +123,7 @@ static int name_in_union(struct symbol *type, const char *name)
 		return 0;
 
 	FOR_EACH_PTR(type->symbol_list, tmp) {
-		if (tmp->ident && tmp->ident->name &&
+		if (tmp->ident &&
 		    strcmp(name, tmp->ident->name) == 0)
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
@@ -167,7 +167,7 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 	offset = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		if (!found) {
-			if ((tmp->ident && tmp->ident->name &&
+			if ((tmp->ident &&
 			     strcmp(expr->member->name, tmp->ident->name) == 0) ||
 			    name_in_union(tmp, expr->member->name))
 				found = 1;

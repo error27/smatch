@@ -76,7 +76,7 @@ int get_member_offset(struct symbol *type, char *member_name)
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		if (!type->ctype.attribute->is_packed)
 			offset = ALIGN(offset, tmp->ctype.alignment);
-		if (tmp->ident && tmp->ident->name &&
+		if (tmp->ident &&
 		    strcmp(member_name, tmp->ident->name) == 0) {
 			return offset;
 		}
@@ -98,7 +98,7 @@ int get_member_offset_from_deref(struct expression *expr)
 		return expr->member_offset;
 
 	member = expr->member;
-	if (!member || !member->name)
+	if (!member)
 		return -1;
 
 	type = get_type(expr->deref);

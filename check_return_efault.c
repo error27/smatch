@@ -98,8 +98,6 @@ static void match_return_call(struct expression *ret_value)
 	fn = strip_expr(ret_value->fn);
 	if (fn->type != EXPR_SYMBOL)
 		return;
-	if (!fn->symbol_name->name)
-		return;
 	fn_name = fn->symbol_name->name;
 	if (strcmp(fn_name, "copy_to_user") != 0 &&
 	    strcmp(fn_name, "__copy_to_user") != 0 &&

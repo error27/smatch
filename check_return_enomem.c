@@ -53,7 +53,7 @@ static void match_return(struct expression *ret_value)
 			continue;
 		if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 			continue;
-		if (!expr->fn->symbol_name && !expr->fn->symbol_name->name)
+		if (!expr->fn->symbol_name)
 			continue;
 		/* To be honest the correct check is:
 		 * if (strstr(expr->fn->symbol_name->name, "alloc"))
