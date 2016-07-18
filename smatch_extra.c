@@ -1510,6 +1510,46 @@ static int match_func_comparison(struct expression *expr)
 	return 0;
 }
 
+/* Handle conditions like "if (foo + bar < foo) {" */
+static int handle_integer_overflow_test(struct expression *expr)
+{
+	struct expression *left, *right;
+	struct symbol *type;
+	sval_t left_min, right_min, min, max;
+
+	if (expr->op != '<' && expr->op != SPECIAL_UNSIGNED_LT)
+		return 0;
+
+	left = strip_parens(expr->left);
+	right = strip_parens(expr->right);
+
+	if (left->op != '+')
+		return 0;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type_positive_bits(type) == 32) {
+		max.type = &uint_ctype;
+		max.uvalue = (unsigned int)-1;
+	} else if (type_positive_bits(type) == 64) {
+		max.type = &ulong_ctype;
+		max.value = (unsigned long long)-1;
+	} else {
+		return 0;
+	}
+
+	if (!expr_equiv(left->left, right) && !expr_equiv(left->right, right))
+		return 0;
+
+	get_absolute_min(left->left, &left_min);
+	get_absolute_min(left->right, &right_min);
+	min = sval_binop(left_min, '+', right_min);
+
+	set_extra_chunk_true_false(left, NULL, alloc_estate_range(min, max));
+	return 1;
+}
+
 static void match_comparison(struct expression *expr)
 {
 	struct expression *left_orig = strip_parens(expr->left);
@@ -1524,6 +1564,9 @@ static void match_comparison(struct expression *expr)
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;
+
+	if (handle_integer_overflow_test(expr))
+		return;
 
 	left = left_orig;
 	right = right_orig;
