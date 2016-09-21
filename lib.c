@@ -888,7 +888,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long double __builtin_nanl(const char *);\n");
 
 	/* And some __FORTIFY_SOURCE ones.. */
-	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(void *, int);\n");
+	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(const void *, int);\n");
 	add_pre_buffer ("extern void * __builtin___memcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
 	add_pre_buffer ("extern void * __builtin___memmove_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
 	add_pre_buffer ("extern void * __builtin___mempcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
