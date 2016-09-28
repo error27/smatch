@@ -512,6 +512,8 @@ const char *ignored_attributes[] = {
 	"__always_inline__",
 	"artificial",
 	"__artificial__",
+	"assume_aligned",
+	"__assume_aligned__",
 	"bounded",
 	"__bounded__",
 	"cdecl",
