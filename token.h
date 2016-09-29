@@ -230,7 +230,7 @@ extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 extern void show_identifier_stats(void);
 extern struct token *preprocess(struct token *);
 
-static inline int match_op(struct token *token, int op)
+static inline int match_op(struct token *token, unsigned int op)
 {
 	return token->pos.type == TOKEN_SPECIAL && token->special == op;
 }
