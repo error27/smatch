@@ -504,6 +504,8 @@ static struct init_keyword {
 const char *ignored_attributes[] = {
 	"alias",
 	"__alias__",
+	"alloc_align",
+	"__alloc_align__",
 	"alloc_size",
 	"__alloc_size__",
 	"always_inline",
