@@ -251,7 +251,7 @@ int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
-int Wunknown_attribute = 1;
+int Wunknown_attribute = 0;
 int Wvla = 1;
 
 int dump_macro_defs = 0;
