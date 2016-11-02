@@ -729,7 +729,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 			mod2 = t2->ctype.modifiers;
 			as2 = t2->ctype.as;
 
-			if (base1->variadic != base2->variadic)
+			if (t1->variadic != t2->variadic)
 				return "incompatible variadic arguments";
 			examine_fn_arguments(t1);
 			examine_fn_arguments(t2);
