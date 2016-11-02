@@ -240,6 +240,7 @@ int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
+int Wunknown_attribute = 1;
 int Wvla = 1;
 
 int dbg_entry = 0;
@@ -463,6 +464,7 @@ static const struct warning {
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
+	{ "unknown-attribute", &Wunknown_attribute },
 	{ "vla", &Wvla },
 };
 
