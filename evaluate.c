@@ -117,7 +117,6 @@ static struct symbol *evaluate_string(struct expression *expr)
 /* type has come from classify_type and is an integer type */
 static inline struct symbol *integer_promotion(struct symbol *type)
 {
-	struct symbol *orig_type = type;
 	unsigned long mod =  type->ctype.modifiers;
 	int width = type->bit_size;
 
@@ -128,7 +127,6 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 	 */
 	if (type->type == SYM_BITFIELD) {
 		type = type->ctype.base_type;
-		orig_type = type;
 	}
 	mod = type->ctype.modifiers;
 	if (width < bits_in_int)
@@ -140,7 +138,7 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 			return &uint_ctype;
 		return &int_ctype;
 	}
-	return orig_type;
+	return type;
 }
 
 /*
