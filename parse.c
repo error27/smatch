@@ -501,7 +501,7 @@ static struct init_keyword {
 	{ "__word__",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
 };
 
-const char *ignored_attributes[] = {
+static const char *ignored_attributes[] = {
 	"alias",
 	"__alias__",
 	"alloc_align",
