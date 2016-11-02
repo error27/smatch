@@ -4,6 +4,7 @@
 #include "allocate.h"
 #include "token.h"
 #include "expression.h"
+#include "char.h"
 
 static const char *parse_escape(const char *p, unsigned *val, const char *end, int bits, struct position pos)
 {
