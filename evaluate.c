@@ -2172,7 +2172,7 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int evaluate_arguments(struct symbol *f, struct symbol *fn, struct expression_list *head)
+static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 {
 	struct expression *expr;
 	struct symbol_list *argument_types = fn->arguments;
@@ -2885,7 +2885,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 		if (!sym->op->args(expr))
 			return NULL;
 	} else {
-		if (!evaluate_arguments(sym, ctype, arglist))
+		if (!evaluate_arguments(ctype, arglist))
 			return NULL;
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
