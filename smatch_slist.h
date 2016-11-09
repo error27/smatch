@@ -5,6 +5,7 @@ DECLARE_PTR_LIST(state_list_stack, struct state_list);
 
 struct named_stree {
 	char *name;
+	struct symbol *sym;
 	struct stree *stree;
 };
 DECLARE_ALLOCATOR(named_stree);
@@ -82,7 +83,8 @@ void or_stree_stack(struct stree_stack **pre_conds,
 		    struct stree_stack **stack);
 
 struct stree **get_named_stree(struct named_stree_stack *stack,
-				    const char *name);
+			       const char *name,
+			       struct symbol *sym);
 
 void overwrite_stree(struct stree *from, struct stree **to);
 

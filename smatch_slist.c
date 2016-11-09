@@ -947,12 +947,14 @@ void or_stree_stack(struct stree_stack **pre_conds,
  * get_named_stree() is only used for gotos.
  */
 struct stree **get_named_stree(struct named_stree_stack *stack,
-					      const char *name)
+			       const char *name,
+			       struct symbol *sym)
 {
 	struct named_stree *tmp;
 
 	FOR_EACH_PTR(stack, tmp) {
-		if (!strcmp(tmp->name, name))
+		if (tmp->sym == sym &&
+		    strcmp(tmp->name, name) == 0)
 			return &tmp->stree;
 	} END_FOR_EACH_PTR(tmp);
 	return NULL;

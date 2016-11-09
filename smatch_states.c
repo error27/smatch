@@ -1004,21 +1004,22 @@ int __pop_default(void)
 	return 0;
 }
 
-static struct named_stree *alloc_named_stree(const char *name, struct stree *stree)
+static struct named_stree *alloc_named_stree(const char *name, struct symbol *sym, struct stree *stree)
 {
 	struct named_stree *named_stree = __alloc_named_stree(0);
 
 	named_stree->name = (char *)name;
 	named_stree->stree = stree;
+	named_stree->sym = sym;
 	return named_stree;
 }
 
-void __save_gotos(const char *name)
+void __save_gotos(const char *name, struct symbol *sym)
 {
 	struct stree **stree;
 	struct stree *clone;
 
-	stree = get_named_stree(goto_stack, name);
+	stree = get_named_stree(goto_stack, name, sym);
 	if (stree) {
 		merge_stree(stree, cur_stree);
 		return;
@@ -1026,16 +1027,16 @@ void __save_gotos(const char *name)
 		struct named_stree *named_stree;
 
 		clone = clone_stree(cur_stree);
-		named_stree = alloc_named_stree(name, clone);
+		named_stree = alloc_named_stree(name, sym, clone);
 		add_ptr_list(&goto_stack, named_stree);
 	}
 }
 
-void __merge_gotos(const char *name)
+void __merge_gotos(const char *name, struct symbol *sym)
 {
 	struct stree **stree;
 
-	stree = get_named_stree(goto_stack, name);
+	stree = get_named_stree(goto_stack, name, sym);
 	if (stree)
 		merge_stree(&cur_stree, *stree);
 }

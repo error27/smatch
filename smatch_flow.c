@@ -550,7 +550,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 
-	__merge_gotos(loop_name);
+	__merge_gotos(loop_name, NULL);
 
 	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 	__in_pre_condition++;
@@ -570,7 +570,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	if (is_forever_loop(stmt)) {
 		__merge_continues();
-		__save_gotos(loop_name);
+		__save_gotos(loop_name, NULL);
 
 		__push_fake_cur_stree();
 		__split_stmt(stmt->iterator_post_statement);
@@ -589,7 +589,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__prev_stmt = stmt->iterator_post_statement;
 		__cur_stmt = stmt;
 
-		__save_gotos(loop_name);
+		__save_gotos(loop_name, NULL);
 		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
 		__in_pre_condition--;
@@ -622,11 +622,11 @@ static void handle_post_loop(struct statement *stmt)
 
 	__push_continues();
 	__push_breaks();
-	__merge_gotos(loop_name);
+	__merge_gotos(loop_name, NULL);
 	__split_stmt(stmt->iterator_statement);
 	__merge_continues();
 	if (!is_zero(stmt->iterator_post_condition))
-		__save_gotos(loop_name);
+		__save_gotos(loop_name, NULL);
 
 	if (is_forever_loop(stmt)) {
 		__use_breaks();
@@ -948,7 +948,7 @@ void __split_label_stmt(struct statement *stmt)
 	    stmt->label_identifier->type == SYM_LABEL &&
 	    stmt->label_identifier->ident) {
 		loop_count |= 0x80000000;
-		__merge_gotos(stmt->label_identifier->ident->name);
+		__merge_gotos(stmt->label_identifier->ident->name, stmt->label_identifier);
 	}
 }
 
@@ -957,8 +957,7 @@ static void find_asm_gotos(struct statement *stmt)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(stmt->asm_labels, sym) {
-		if (sym->ident)
-			__save_gotos(sym->ident->name);
+		__save_gotos(sym->ident->name, sym);
 	} END_FOR_EACH_PTR(sym);
 }
 
@@ -1079,7 +1078,7 @@ void __split_stmt(struct statement *stmt)
 		} else if (stmt->goto_label &&
 			   stmt->goto_label->type == SYM_LABEL &&
 			   stmt->goto_label->ident) {
-			__save_gotos(stmt->goto_label->ident->name);
+			__save_gotos(stmt->goto_label->ident->name, stmt->goto_label);
 		}
 		nullify_path();
 		if (is_last_stmt(stmt))

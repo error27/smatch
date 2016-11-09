@@ -626,8 +626,8 @@ int __pop_default(void);
 void __push_conditions(void);
 void __discard_conditions(void);
 
-void __save_gotos(const char *name);
-void __merge_gotos(const char *name);
+void __save_gotos(const char *name, struct symbol *sym);
+void __merge_gotos(const char *name, struct symbol *sym);
 
 void __print_cur_stree(void);
 
