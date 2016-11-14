@@ -105,7 +105,7 @@ enum {
 };
 
 enum {
-	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar
+	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar, CMax,
 };
 
 enum {
@@ -1281,7 +1281,7 @@ static const char *storage_class[] =
 
 static unsigned long storage_modifiers(struct decl_state *ctx)
 {
-	static unsigned long mod[] = 
+	static unsigned long mod[CMax] =
 	{
 		[SAuto] = MOD_AUTO,
 		[SExtern] = MOD_EXTERN,
