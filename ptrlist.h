@@ -67,19 +67,43 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 
 static inline void *first_ptr_list(struct ptr_list *list)
 {
+	struct ptr_list *head = list;
+
 	if (!list)
 		return NULL;
+
+	while (list->nr == 0) {
+		list = list->next;
+		if (list == head)
+			return NULL;
+	}
 	return PTR_ENTRY(list, 0);
 }
 
 static inline void *last_ptr_list(struct ptr_list *list)
 {
+	struct ptr_list *head = list;
 
 	if (!list)
 		return NULL;
 	list = list->prev;
+	while (list->nr == 0) {
+		if (list == head)
+			return NULL;
+		list = list->prev;
+	}
 	return PTR_ENTRY(list, list->nr-1);
 }
+
+#define PTR_DEREF(__head, idx, PTR_ENTRY) ({						\
+	struct ptr_list *__list = __head;						\
+	while (__list && __list->nr == 0) {						\
+		__list = __list->next;							\
+		if (__list == __head)							\
+			__list = NULL;							\
+	}										\
+	__list ? PTR_ENTRY(__list, idx) : NULL;						\
+})
 
 #define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)				\
 	do {										\
@@ -87,8 +111,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		struct ptr_list *__list = __head;					\
 		int __nr = 0;								\
 		CHECK_TYPE(head,ptr);							\
-		if (__head) ptr = PTR_ENTRY(__head, 0);					\
-		else ptr = NULL
+		ptr = PTR_DEREF(__head, 0, PTR_ENTRY);					\
 
 #define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
 		if (ptr) {								\
@@ -110,7 +133,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	do {										\
 		__nr = 0;								\
 		__list = __head;							\
-		if (__head) ptr = PTR_ENTRY(__head, 0);					\
+		if (__head) ptr = PTR_DEREF(__head, 0, PTR_ENTRY);			\
 	} while (0)
 
 #define DO_FINISH(ptr, __head, __list, __nr)						\
