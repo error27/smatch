@@ -56,6 +56,8 @@ int main(int argc, char **argv)
 	char *file;
 	struct string_list *filelist = NULL;
 
+	bits_in_bool = 8;
+
 	clean_up_symbols(sparse_initialize(argc, argv, &filelist));
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		struct symbol_list *list;
