@@ -359,7 +359,7 @@ const char *show_instruction(struct instruction *insn)
 	}
 	case OP_SWITCH: {
 		struct multijmp *jmp;
-		buf += sprintf(buf, "%s", show_pseudo(insn->target));
+		buf += sprintf(buf, "%s", show_pseudo(insn->cond));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
 				buf += sprintf(buf, ", %d -> .L%u", jmp->begin, jmp->target->nr);
