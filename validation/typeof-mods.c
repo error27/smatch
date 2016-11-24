@@ -102,7 +102,6 @@ static void test_nocast(void)
 
 /*
  * check-name: typeof-mods
- * check-known-to-fail
  *
  * check-error-start
  * check-error-end

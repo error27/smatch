@@ -466,12 +466,16 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
 		if (base) {
+			unsigned long mod = 0;
+
 			if (is_bitfield_type(base))
 				warning(base->pos, "typeof applied to bitfield type");
-			if (base->type == SYM_NODE)
+			if (base->type == SYM_NODE) {
+				mod |= base->ctype.modifiers & MOD_TYPEOF;
 				base = base->ctype.base_type;
+			}
 			sym->type = SYM_NODE;
-			sym->ctype.modifiers = 0;
+			sym->ctype.modifiers = mod;
 			sym->ctype.base_type = base;
 			return examine_node_type(sym);
 		}
