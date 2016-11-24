@@ -5,5 +5,5 @@ int foo(int (*f)(int, void *))
     return 0;
 }
 /*
- * check-name: Function pointer modifier inheritance
+ * check-name: Function pointer inheritance
  */
