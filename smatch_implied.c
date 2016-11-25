@@ -469,6 +469,16 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		ret->left = left;
 		ret->right = NULL;
 	} else {
+		if (left->sym != sm->sym || strcmp(left->name, sm->name) != 0) {
+			left = clone_sm(left);
+			left->sym = sm->sym;
+			left->name = sm->name;
+		}
+		if (right->sym != sm->sym || strcmp(right->name, sm->name) != 0) {
+			right = clone_sm(right);
+			right->sym = sm->sym;
+			right->name = sm->name;
+		}
 		ret = merge_sm_states(left, right);
 	}
 
