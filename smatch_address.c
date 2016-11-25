@@ -24,7 +24,6 @@ static bool is_non_null_array(struct expression *expr)
 	struct symbol *type;
 	struct symbol *sym;
 	struct symbol *tmp;
-	char *name;
 	int i;
 
 	type = get_type(expr);
@@ -38,9 +37,8 @@ static bool is_non_null_array(struct expression *expr)
 	/* verify that it's not the first member of the struct */
 	if (expr->type != EXPR_DEREF || !expr->member)
 		return 0;
-	name = expr_to_var_sym(expr, &sym);
-	free_string(name);
-	if (!name || !sym)
+	sym = expr_to_sym(expr);
+	if (!sym)
 		return 0;
 	type = get_real_base_type(sym);
 	if (!type || type->type != SYM_PTR)
