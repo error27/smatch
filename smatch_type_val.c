@@ -65,6 +65,7 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 {
 	char *member;
 	struct range_list *tmp;
+	struct symbol *type;
 
 	member = get_member_name(expr);
 	if (!member)
@@ -76,8 +77,8 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 	free_string(member);
 	if (!db_vals)
 		return 0;
-	str_to_rl(&llong_ctype, db_vals, &tmp);
-	tmp = cast_rl(get_type(expr), tmp);
+	type = get_type(expr);
+	str_to_rl(type, db_vals, &tmp);
 	if (is_whole_rl(tmp))
 		return 0;
 	*rl = tmp;
