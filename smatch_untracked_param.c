@@ -144,7 +144,8 @@ static void print_untracked_params(int return_id, char *return_ranges, struct ex
 
 		if (!arg->ident)
 			continue;
-		if (!get_state(my_id, arg->ident->name, arg))
+		if (!get_state(my_id, arg->ident->name, arg) &&
+		    !__bail_on_rest_of_function)  /* hairy functions are untrackable */
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges,
