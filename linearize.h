@@ -9,7 +9,6 @@
 #include "symbol.h"
 
 struct instruction;
-DECLARE_PTR_LIST(pseudo_ptr_list, pseudo_t);
 
 struct pseudo_user {
 	struct instruction *insn;
@@ -308,11 +307,6 @@ static inline int bb_terminated(struct basic_block *bb)
 static inline int bb_reachable(struct basic_block *bb)
 {
 	return bb != NULL;
-}
-
-static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
-{
-	add_ptr_list(list, ptr);
 }
 
 static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_user_list **list)
