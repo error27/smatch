@@ -383,8 +383,7 @@ static void match_assign(struct expression *expr)
 	if (handle_struct_assignment(expr))
 		return;
 
-	if (expr->right->type == EXPR_CALL ||
-	    !get_user_rl(expr->right, &rl))
+	if (!get_user_rl(expr->right, &rl))
 		goto clear_old_state;
 
 	rl = cast_rl(get_type(expr->left), rl);
@@ -430,6 +429,44 @@ static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 	return 0;
 }
 
+struct db_info {
+	struct range_list *rl;
+	struct expression *call;
+};
+static int returned_rl_callback(void *_info, int argc, char **argv, char **azColName)
+{
+	struct db_info *db_info = _info;
+	struct range_list *rl;
+
+	if (argc != 1)
+		return 0;
+
+	call_results_to_rl(db_info->call, get_type(db_info->call), argv[0], &rl);
+	db_info->rl = rl_union(db_info->rl, rl);
+
+	return 0;
+}
+
+static int db_returned_user_rl(struct expression *call, struct range_list **rl)
+{
+	struct db_info db_info = {};
+
+	/* for function pointers assume everything is used */
+	if (call->fn->type != EXPR_SYMBOL)
+		return 0;
+	if (is_fake_call(call))
+		return 0;
+
+	db_info.call = call;
+	run_sql(&returned_rl_callback, &db_info,
+		"select value from return_states where %s and type = %d and parameter = -1 and key = '$';",
+		get_static_filter(call->fn->symbol), USER_DATA3);
+	if (!db_info.rl)
+		return 0;
+	*rl = db_info.rl;
+	return 1;
+}
+
 static int user_data_flag;
 static struct range_list *var_user_rl(struct expression *expr)
 {
@@ -450,6 +487,9 @@ static struct range_list *var_user_rl(struct expression *expr)
 		rl = estate_rl(state);
 		goto found;
 	}
+
+	if (expr->type == EXPR_CALL && db_returned_user_rl(expr, &rl))
+		goto found;
 
 	return NULL;
 found:
@@ -580,13 +620,34 @@ static void match_syscall_definition(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static void returns_param_user_data(struct expression *expr, int param, char *key, char *value)
+static void set_to_user_data(struct expression *expr, char *key, char *value)
 {
-	struct expression *arg;
 	char *name;
 	struct symbol *sym;
 	struct symbol *type;
 	struct range_list *rl = NULL;
+
+	type = get_member_type_from_key(expr, key);
+	name = get_variable_from_key(expr, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	call_results_to_rl(expr, type, value, &rl);
+
+	set_state(my_id, name, sym, alloc_estate_rl(rl));
+free:
+	free_string(name);
+
+}
+
+static void returns_param_user_data(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+
+	if (param == -1) {
+		set_to_user_data(expr->left, key, value);
+		return;
+	}
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -596,16 +657,7 @@ static void returns_param_user_data(struct expression *expr, int param, char *ke
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return;
-	type = get_member_type_from_key(arg, key);
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-
-	call_results_to_rl(expr, type, value, &rl);
-
-	set_state(my_id, name, sym, alloc_estate_rl(rl));
-free:
-	free_string(name);
+	set_to_user_data(arg, key, value);
 }
 
 static int has_empty_state(struct sm_state *sm)
@@ -624,6 +676,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 {
 	struct sm_state *sm;
 	struct smatch_state *start_state;
+	struct range_list *rl;
 	int param;
 	const char *param_name;
 
@@ -659,6 +712,11 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		sql_insert_return_states(return_id, return_ranges, USER_DATA3,
 					 param, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
+
+	if (get_user_rl(expr, &rl)) {
+		sql_insert_return_states(return_id, return_ranges, USER_DATA3,
+					 -1, "$", show_rl(rl));
+	}
 }
 
 void check_user_data2(int id)

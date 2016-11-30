@@ -925,6 +925,12 @@ static struct range_list *handle_call_rl(struct expression *expr, int implied, i
 	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
 		return NULL;
 
+	if (custom_handle_variable) {
+		rl = custom_handle_variable(expr);
+		if (rl)
+			return rl;
+	}
+
 	if (get_implied_return(expr, &rl))
 		return rl;
 	return db_return_vals(expr);
