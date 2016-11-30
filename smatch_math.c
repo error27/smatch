@@ -260,7 +260,7 @@ static struct range_list *handle_mod_rl(struct expression *expr, int implied, in
 	if (rl && rl_max(rl).uvalue < right.uvalue)
 		right.uvalue = rl_max(rl).uvalue;
 
-	return alloc_rl(zero, right);
+	return alloc_rl(sval_cast(right.type, zero), right);
 }
 
 static sval_t sval_lowest_set_bit(sval_t sval)
