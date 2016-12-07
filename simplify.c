@@ -651,6 +651,23 @@ static int simplify_unop(struct instruction *insn)
 		return REPEAT_CSE;
 	if (constant(insn->src1))
 		return simplify_constant_unop(insn);
+
+	switch (insn->opcode) {
+		struct instruction *def;
+
+	case OP_NOT:
+		def = insn->src->def;
+		if (def && def->opcode == OP_NOT)
+			return replace_with_pseudo(insn, def->src);
+		break;
+	case OP_NEG:
+		def = insn->src->def;
+		if (def && def->opcode == OP_NEG)
+			return replace_with_pseudo(insn, def->src);
+		break;
+	default:
+		return 0;
+	}
 	return 0;
 }
 
