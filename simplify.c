@@ -556,6 +556,39 @@ static int simplify_constant_binop(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
+static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
+{
+	switch (insn->opcode) {
+	case OP_SET_NE:
+	case OP_SET_LT: case OP_SET_GT:
+	case OP_SET_B:  case OP_SET_A:
+	case OP_SUB:
+	case OP_XOR:
+		return replace_with_pseudo(insn, value_pseudo(0));
+
+	case OP_SET_EQ:
+	case OP_SET_LE: case OP_SET_GE:
+	case OP_SET_BE: case OP_SET_AE:
+		return replace_with_pseudo(insn, value_pseudo(1));
+
+	case OP_AND:
+	case OP_OR:
+		return replace_with_pseudo(insn, arg);
+
+	case OP_AND_BOOL:
+	case OP_OR_BOOL:
+		// simplification is correct only if the operands
+		// have already been compared against zero which
+		// is not enforced.
+		break;
+
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 static int simplify_binop(struct instruction *insn)
 {
 	if (dead_insn(insn, &insn->src1, &insn->src2, NULL))
@@ -567,6 +600,8 @@ static int simplify_binop(struct instruction *insn)
 	}
 	if (constant(insn->src2))
 		return simplify_constant_rightside(insn);
+	if (insn->src1 == insn->src2)
+		return simplify_binop_same_args(insn, insn->src1);
 	return 0;
 }
 
