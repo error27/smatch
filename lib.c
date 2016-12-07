@@ -236,6 +236,7 @@ int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
 int Wshadow = 0;
 int Wsizeof_bool = 0;
+int Wtautological_compare = 0;
 int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
@@ -464,6 +465,7 @@ static const struct warning {
 	{ "return-void", &Wreturn_void },
 	{ "shadow", &Wshadow },
 	{ "sizeof-bool", &Wsizeof_bool },
+	{ "tautological-compare", &Wtautological_compare },
 	{ "transparent-union", &Wtransparent_union },
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },

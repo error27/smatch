@@ -562,6 +562,8 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 	case OP_SET_NE:
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
+		if (Wtautological_compare)
+			warning(insn->pos, "self-comparison always evaluates to false");
 	case OP_SUB:
 	case OP_XOR:
 		return replace_with_pseudo(insn, value_pseudo(0));
@@ -569,6 +571,8 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 	case OP_SET_EQ:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_BE: case OP_SET_AE:
+		if (Wtautological_compare)
+			warning(insn->pos, "self-comparison always evaluates to true");
 		return replace_with_pseudo(insn, value_pseudo(1));
 
 	case OP_AND:
