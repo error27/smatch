@@ -23,10 +23,6 @@ static void phi_defines(struct instruction * phi_node, pseudo_t target,
 		def = phi->def;
 		if (!def || !def->bb)
 			continue;
-		if (def->opcode == OP_PHI) {
-			phi_defines(def, target, defines);
-			continue;
-		}
 		defines(def->bb, phi->def, target);
 	} END_FOR_EACH_PTR(phi);
 }
