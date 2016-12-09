@@ -101,6 +101,7 @@ enum {
 	Set_Short = 256,
 	Set_Long = 512,
 	Set_Vlong = 1024,
+	Set_Int128 = 2048,
 	Set_Any = Set_T | Set_Short | Set_Long | Set_Signed | Set_Unsigned
 };
 
@@ -251,6 +252,12 @@ static struct symbol_op long_op = {
 	.type = KW_SPECIFIER | KW_LONG,
 	.test = Set_S|Set_Char|Set_Float|Set_Short|Set_Vlong,
 	.set = Set_Long,
+};
+
+static struct symbol_op int128_op = {
+	.type = KW_SPECIFIER | KW_LONG,
+	.test = Set_S|Set_T|Set_Char|Set_Short|Set_Int|Set_Float|Set_Double|Set_Long|Set_Vlong|Set_Int128,
+	.set =  Set_T|Set_Int128,
 };
 
 static struct symbol_op if_op = {
@@ -408,6 +415,7 @@ static struct init_keyword {
 	{ "__signed",	NS_TYPEDEF, .op = &signed_op },
 	{ "__signed__",	NS_TYPEDEF, .op = &signed_op },
 	{ "unsigned",	NS_TYPEDEF, .op = &unsigned_op },
+	{ "__int128",	NS_TYPEDEF, .op = &int128_op },
 	{ "_Bool",	NS_TYPEDEF, .type = &bool_ctype, .op = &spec_op },
 
 	/* Predeclared types */
@@ -1497,6 +1505,8 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 			seen |= s->op->set;
 			class += s->op->class;
+			if (s->op->set & Set_Int128)
+				size = 2;
 			if (s->op->type & KW_SHORT) {
 				size = -1;
 			} else if (s->op->type & KW_LONG && size++) {
