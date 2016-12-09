@@ -1430,7 +1430,7 @@ Catch_all:
 }
 
 static struct symbol * const int_types[] =
-	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype};
+	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
 static struct symbol * const signed_types[] =
 	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
 	 &slllong_ctype};
