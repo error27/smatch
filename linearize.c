@@ -1156,6 +1156,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 	struct access_data ad = { NULL, };
 	struct expression *target = expr->left;
 	struct expression *src = expr->right;
+	struct symbol *ctype;
 	pseudo_t value;
 
 	value = linearize_expression(ep, src);
@@ -1181,10 +1182,11 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 		if (!src)
 			return VOID;
 
-		oldvalue = cast_pseudo(ep, oldvalue, src->ctype, expr->ctype);
-		opcode = opcode_sign(op_trans[expr->op - SPECIAL_BASE], src->ctype);
-		dst = add_binary_op(ep, src->ctype, opcode, oldvalue, value);
-		value = cast_pseudo(ep, dst, expr->ctype, src->ctype);
+		ctype = src->ctype;
+		oldvalue = cast_pseudo(ep, oldvalue, target->ctype, ctype);
+		opcode = opcode_sign(op_trans[expr->op - SPECIAL_BASE], ctype);
+		dst = add_binary_op(ep, ctype, opcode, oldvalue, value);
+		value = cast_pseudo(ep, dst, ctype, expr->ctype);
 	}
 	value = linearize_store_gen(ep, value, &ad);
 	finish_address_gen(ep, &ad);

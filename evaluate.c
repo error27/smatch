@@ -1256,7 +1256,7 @@ static int evaluate_assign_op(struct expression *expr)
 			if (!restricted_value(expr->right, t))
 				return 1;
 		} else if (!(sclass & TYPE_RESTRICT))
-			goto Cast;
+			goto usual;
 		/* source and target would better be identical restricted */
 		if (t == s)
 			return 1;
@@ -1279,6 +1279,9 @@ static int evaluate_assign_op(struct expression *expr)
 	expression_error(expr, "invalid assignment");
 	return 0;
 
+usual:
+	target = usual_conversions(op, expr->left, expr->right,
+				tclass, sclass, target, source);
 Cast:
 	expr->right = cast_to(expr->right, target);
 	return 1;
