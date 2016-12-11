@@ -535,28 +535,41 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 		break;
 	}
-
-	/* Binary comparison */
-	case OP_BINCMP ... OP_BINCMP_END: {
-		LLVMTypeRef dst_type = insn_symbol_type(fn->module, insn);
-
-		if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
-			LLVMIntPredicate op = translate_op(insn->opcode);
-
-			target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
-		} else {
-			LLVMRealPredicate op = translate_fop(insn->opcode);
-
-			target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
-		}
-
-		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
-		break;
-	}
 	default:
 		assert(0);
 		break;
 	}
+
+	insn->target->priv = target;
+}
+
+static void output_op_compare(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef lhs, rhs, target;
+	char target_name[64];
+
+	lhs = pseudo_to_value(fn, insn, insn->src1);
+
+	if (insn->src2->type == PSEUDO_VAL)
+		rhs = LLVMConstInt(LLVMTypeOf(lhs), insn->src2->value, 1);
+	else
+		rhs = pseudo_to_value(fn, insn, insn->src2);
+
+	pseudo_name(insn->target, target_name);
+
+	LLVMTypeRef dst_type = insn_symbol_type(fn->module, insn);
+
+	if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+		LLVMIntPredicate op = translate_op(insn->opcode);
+
+		target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
+	} else {
+		LLVMRealPredicate op = translate_fop(insn->opcode);
+
+		target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
+	}
+
+	target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 
 	insn->target->priv = target;
 }
@@ -874,8 +887,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_ptrcast(fn, insn);
 		break;
 	case OP_BINARY ... OP_BINARY_END:
-	case OP_BINCMP ... OP_BINCMP_END:
 		output_op_binary(fn, insn);
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		output_op_compare(fn, insn);
 		break;
 	case OP_SEL:
 		output_op_sel(fn, insn);
