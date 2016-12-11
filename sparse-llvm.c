@@ -801,34 +801,6 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	insn->target->priv = target;
 }
 
-static void output_op_copy(struct function *fn, struct instruction *insn,
-			   pseudo_t pseudo)
-{
-	LLVMValueRef src, target;
-	LLVMTypeRef const_type;
-	char target_name[64];
-
-	pseudo_name(insn->target, target_name);
-	src = pseudo_to_value(fn, insn, pseudo);
-	const_type = insn_symbol_type(fn->module, insn);
-
-	/*
-	 * This is nothing more than 'target = src'
-	 *
-	 * TODO: find a better way to provide an identity function,
-	 * than using "X + 0" simply to produce a new LLVM pseudo
-	 */
-
-	if (symbol_is_fp_type(insn->type))
-		target = LLVMBuildFAdd(fn->builder, src,
-			LLVMConstReal(const_type, 0.0), target_name);
-	else
-		target = LLVMBuildAdd(fn->builder, src,
-			LLVMConstInt(const_type, 0, 0), target_name);
-
-	insn->target->priv = target;
-}
-
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -929,7 +901,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_COPY:
-		output_op_copy(fn, insn, insn->src);
+		assert(0);
 		break;
 	default:
 		break;
