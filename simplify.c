@@ -365,6 +365,67 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int compare_opcode(int opcode, int inverse)
+{
+	if (!inverse)
+		return opcode;
+
+	switch (opcode) {
+	case OP_SET_EQ:	return OP_SET_NE;
+	case OP_SET_NE:	return OP_SET_EQ;
+
+	case OP_SET_LT:	return OP_SET_GE;
+	case OP_SET_LE:	return OP_SET_GT;
+	case OP_SET_GT:	return OP_SET_LE;
+	case OP_SET_GE:	return OP_SET_LT;
+
+	case OP_SET_A:	return OP_SET_BE;
+	case OP_SET_AE:	return OP_SET_B;
+	case OP_SET_B:	return OP_SET_AE;
+	case OP_SET_BE:	return OP_SET_A;
+
+	default:
+		return opcode;
+	}
+}
+
+static int simplify_seteq_setne(struct instruction *insn, long long value)
+{
+	struct instruction *def = insn->src1->def;
+	pseudo_t src1, src2;
+	int inverse;
+	int opcode;
+
+	if (value != 0 && value != 1)
+		return 0;
+
+	if (!def)
+		return 0;
+
+	inverse = (insn->opcode == OP_SET_NE) == value;
+	opcode = def->opcode;
+	switch (opcode) {
+	case OP_BINCMP ... OP_BINCMP_END:
+		// Convert:
+		//	setcc.n	%t <- %a, %b
+		//	setne.m %r <- %t, $0
+		// into:
+		//	setcc.n	%t <- %a, %b
+		//	setcc.m %r <- %a, $b
+		// and similar for setne/eq ... 0/1
+		src1 = def->src1;
+		src2 = def->src2;
+		remove_usage(insn->src1, &insn->src1);
+		insn->opcode = compare_opcode(opcode, inverse);
+		use_pseudo(insn, src1, &insn->src1);
+		use_pseudo(insn, src2, &insn->src2);
+		return REPEAT_CSE;
+
+	default:
+		return 0;
+	}
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
@@ -410,6 +471,10 @@ static int simplify_constant_rightside(struct instruction *insn)
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);
 		return 0;
+
+	case OP_SET_NE:
+	case OP_SET_EQ:
+		return simplify_seteq_setne(insn, value);
 	}
 	return 0;
 }
