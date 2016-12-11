@@ -646,10 +646,10 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 
 	case OP_AND_BOOL:
 	case OP_OR_BOOL:
-		// simplification is correct only if the operands
-		// have already been compared against zero which
-		// is not enforced.
-		break;
+		remove_usage(arg, &insn->src2);
+		insn->src2 = value_pseudo(0);
+		insn->opcode = OP_SET_NE;
+		return REPEAT_CSE;
 
 	default:
 		break;
