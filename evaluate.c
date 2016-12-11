@@ -271,6 +271,8 @@ warn_for_different_enum_types (struct position pos,
 	}
 }
 
+static struct symbol *cast_to_bool(struct expression *expr);
+
 /*
  * This gets called for implicit casts in assignments and
  * integer promotion. We often want to try to move the
@@ -325,6 +327,10 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
+
+	if (is_bool_type(type))
+		cast_to_bool(expr);
+
 	return expr;
 }
 
@@ -2687,6 +2693,28 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 		expression_error(*ep, "invalid initializer");
 }
 
+static struct symbol *cast_to_bool(struct expression *expr)
+{
+	struct expression *old = expr->cast_expression;
+	struct expression *zero;
+	struct symbol *otype;
+	int oclass = classify_type(degenerate(old), &otype);
+	struct symbol *ctype;
+
+	if (oclass & TYPE_COMPOUND)
+		return NULL;
+
+	zero = alloc_const_expression(expr->pos, 0);
+	expr->op = SPECIAL_NOTEQUAL;
+	ctype = usual_conversions(expr->op, old, zero,
+			oclass, TYPE_NUM, otype, zero->ctype);
+	expr->type = EXPR_COMPARE;
+	expr->left = cast_to(old, ctype);
+	expr->right = cast_to(zero, ctype);
+
+	return expr->ctype;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *target = expr->cast_expression;
@@ -2815,6 +2843,10 @@ static struct symbol *evaluate_cast(struct expression *expr)
 			}
 		}
 	}
+
+	if (t1 == &bool_ctype)
+		cast_to_bool(expr);
+
 out:
 	return ctype;
 }
