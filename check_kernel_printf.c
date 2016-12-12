@@ -599,11 +599,15 @@ static void address_val(const char *fmt, struct symbol *type, struct symbol *bas
 
 static void block_device(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
+	const char *tag = "block_device";
+
 	assert(fmt[0] == 'g');
 	if (isalnum(fmt[1])) {
 		sm_msg("warn: %%pg cannot be followed by '%c'", fmt[1]);
-		return;
 	}
+	if (!is_struct_tag(basetype, tag))
+		sm_msg("error: '%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
+			fmt[0], tag, vaidx, type_to_str(type));
 }
 
 static void flag_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
