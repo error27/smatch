@@ -30,6 +30,32 @@
 #include <assert.h>
 
 
+static int simplify_phi_node(struct instruction *phi, pseudo_t tmp)
+{
+	pseudo_t target = phi->target;
+	struct pseudo_user *pu;
+	pseudo_t src;
+
+	// verify if this phi can be simplified
+	FOR_EACH_PTR(phi->phi_list, src) {
+		struct instruction *def = src->def;
+
+		if (!def)
+			continue;
+		if (def->bb == phi->bb)
+			return 0;
+	} END_FOR_EACH_PTR(src);
+
+	// no need to make a copy of this one
+	// -> replace the target pseudo by the tmp
+	FOR_EACH_PTR(target->users, pu) {
+		use_pseudo(pu->insn, tmp, pu->userp);
+	} END_FOR_EACH_PTR(pu);
+
+	phi->bb = NULL;
+	return 1;
+}
+
 static void replace_phi_node(struct instruction *phi)
 {
 	pseudo_t tmp;
@@ -39,6 +65,9 @@ static void replace_phi_node(struct instruction *phi)
 	tmp->type = phi->target->type;
 	tmp->ident = phi->target->ident;
 	tmp->def = NULL;		// defined by all the phisrc
+
+	// can we avoid to make of copy?
+	simplify_phi_node(phi, tmp);
 
 	// rewrite all it's phi_src to copy to a new tmp
 	FOR_EACH_PTR(phi->phi_list, p) {
@@ -52,6 +81,9 @@ static void replace_phi_node(struct instruction *phi)
 		def->opcode = OP_COPY;
 		def->target = tmp;
 	} END_FOR_EACH_PTR(p);
+
+	if (!phi->bb)
+		return;
 
 	// rewrite the phi node:
 	//	phi	%rt, ...
