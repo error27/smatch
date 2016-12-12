@@ -49,9 +49,6 @@ static void replace_phi_node(struct instruction *phi)
 	tmp->ident = phi->target->ident;
 	tmp->def = NULL;		// defined by all the phisrc
 	
-	// update the current liveness
-	remove_pseudo(&phi->bb->needs, phi->target);
-	add_pseudo(&phi->bb->needs, tmp);
 	track_phi_uses(phi);
 
 	phi->opcode = OP_COPY;
