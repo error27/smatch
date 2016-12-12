@@ -15,10 +15,14 @@
  * as the corresponding OP_PHISOURCE.
  *
  * While very simple this method create a lot more copies that really necessary.
+ * We eliminate some of these copies but most probably most of them are still
+ * useless.
  * Ideally, "Sreedhar method III" should be used:
  * "Translating Out of Static Single Assignment Form", V. C. Sreedhar, R. D.-C. Ju,
  * D. M. Gillies and V. Santhanam.  SAS'99, Vol. 1694 of Lecture Notes in Computer
  * Science, Springer-Verlag, pp. 194-210, 1999.
+ * But for this we need precise liveness, on each %phi and not only on OP_PHI's
+ * target pseudos.
  *
  * Copyright (C) 2005 Luc Van Oostenryck
  */
