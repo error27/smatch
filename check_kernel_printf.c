@@ -614,26 +614,26 @@ static void flag_string(const char *fmt, struct symbol *type, struct symbol *bas
 {
 	static struct typedef_lookup gfp = { .name = "gfp_t" };
 
-	assert(fmt[0] == 'j');
+	assert(fmt[0] == 'G');
 	if (!isalnum(fmt[1])) {
-		sm_msg("error: %%pj must be followed by one of [gpv]");
+		sm_msg("error: %%pG must be followed by one of [gpv]");
 		return;
 	}
 	switch (fmt[1]) {
 	case 'p':
 	case 'v':
 		if (basetype != &ulong_ctype)
-			sm_msg("error: '%%pj%c' expects argument of type 'unsigned long *', argument %d has type '%s'",
+			sm_msg("error: '%%pG%c' expects argument of type 'unsigned long *', argument %d has type '%s'",
 				fmt[1], vaidx, type_to_str(type));
 		break;
 	case 'g':
 		typedef_lookup(&gfp);
 		if (basetype != gfp.sym)
-			sm_msg("error: '%%pjg' expects argument of type 'gfp_t *', argument %d has type '%s'",
+			sm_msg("error: '%%pGg' expects argument of type 'gfp_t *', argument %d has type '%s'",
 				vaidx, type_to_str(type));
 		break;
 	default:
-		sm_msg("error: '%%pj' must be followed by one of [gpv]");
+		sm_msg("error: '%%pG' must be followed by one of [gpv]");
 	}
 }
 
