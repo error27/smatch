@@ -812,7 +812,8 @@ check_format_string(const char *fmt, const char *caller)
 			 * this.
 			 */
 			if (!(('0' <= f[1] && f[1] <= '7') ||
-			      f[1] == 'd' ||
+			      f[1] == 'd' || /* KERN_DEFAULT */
+			      f[1] == 'c' || /* KERN_CONT */
 			      (f[1] == '%' && f[2] == 'c')))
 				sm_msg("warn: invalid KERN_* level: KERN_SOH_ASCII followed by '\\x%02x'", (unsigned char)f[1]);
 			break;
