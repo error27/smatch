@@ -30,6 +30,11 @@
 #include <assert.h>
 
 
+static inline int nbr_pseudo_users(pseudo_t p)
+{
+	return ptr_list_size((struct ptr_list *)p->users);
+}
+
 static int simplify_phi_node(struct instruction *phi, pseudo_t tmp)
 {
 	pseudo_t target = phi->target;
@@ -72,6 +77,7 @@ static void replace_phi_node(struct instruction *phi)
 	// rewrite all it's phi_src to copy to a new tmp
 	FOR_EACH_PTR(phi->phi_list, p) {
 		struct instruction *def = p->def;
+		pseudo_t src;
 
 		if (p == VOID)
 			continue;
@@ -80,6 +86,22 @@ static void replace_phi_node(struct instruction *phi)
 
 		def->opcode = OP_COPY;
 		def->target = tmp;
+
+		// can we eliminate the copy?
+		src = def->phi_src;
+		if (src->type != PSEUDO_REG)
+			continue;
+		switch (nbr_pseudo_users(src)) {
+			struct instruction *insn;
+		case 1:
+			insn = src->def;
+			if (!insn)
+				break;
+			insn->target = tmp;
+		case 0:
+			kill_instruction(def);
+			def->bb = NULL;
+		}
 	} END_FOR_EACH_PTR(p);
 
 	if (!phi->bb)
