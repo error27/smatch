@@ -303,8 +303,9 @@ static void sql_select_return_states_pointer(const char *cols,
 
 	run_sql(callback, info,
 		"select %s from return_states join function_ptr where "
-		"return_states.function == function_ptr.function and ptr = '%s'"
-		"and searchable = 1 order by return_id, type;",
+		"return_states.function == function_ptr.function and ptr = '%s' "
+		"and searchable = 1 "
+		"order by function_ptr.file, return_states.file, return_id, type;",
 		cols, ptr);
 }
 
