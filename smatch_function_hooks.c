@@ -454,7 +454,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	key = argv[4];
 	value = argv[5];
 
-	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		set_return_state(db_info->var_expr, db_info);
 		stree = __pop_fake_cur_stree();
 
@@ -712,7 +712,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	key = argv[4];
 	value = argv[5];
 
-	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		call_ranged_return_hooks(db_info);
 		set_return_state(db_info->expr->left, db_info);
 		stree = __pop_fake_cur_stree();
@@ -881,7 +881,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	key = argv[4];
 	value = argv[5];
 
-	if (db_info->prev_return_id != -1 && return_id != db_info->prev_return_id) {
+	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		stree = __pop_fake_cur_stree();
 		if (!db_info->cull)
 			merge_fake_stree(&db_info->stree, stree);
