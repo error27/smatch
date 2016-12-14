@@ -54,8 +54,7 @@ void cse_collect(struct instruction *insn)
 	case OP_AND: case OP_OR:
 
 	/* Binary logical */
-	case OP_XOR: case OP_AND_BOOL:
-	case OP_OR_BOOL:
+	case OP_XOR:
 
 	/* Binary comparison */
 	case OP_SET_EQ: case OP_SET_NE:
@@ -175,7 +174,6 @@ static int insn_compare(const void *_i1, const void *_i2)
 	/* commutative binop */
 	case OP_ADD:
 	case OP_MUL:
-	case OP_AND_BOOL: case OP_OR_BOOL:
 	case OP_AND: case OP_OR:
 	case OP_XOR:
 	case OP_SET_EQ: case OP_SET_NE:

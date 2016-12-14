@@ -213,8 +213,6 @@ static const char *opcodes[] = {
 	[OP_AND] = "and",
 	[OP_OR] = "or",
 	[OP_XOR] = "xor",
-	[OP_AND_BOOL] = "and-bool",
-	[OP_OR_BOOL] = "or-bool",
 
 	/* Binary comparison */
 	[OP_SET_EQ] = "seteq",

@@ -601,30 +601,6 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		assert(!is_float_type(insn->type));
 		target = LLVMBuildXor(fn->builder, lhs, rhs, target_name);
 		break;
-	case OP_AND_BOOL: {
-		LLVMValueRef lhs_nz, rhs_nz;
-		LLVMTypeRef dst_type;
-
-		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, LLVMGetValueName(lhs));
-		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, LLVMGetValueName(rhs));
-		target = LLVMBuildAnd(fn->builder, lhs_nz, rhs_nz, target_name);
-
-		dst_type = insn_symbol_type(insn);
-		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
-		break;
-	}
-	case OP_OR_BOOL: {
-		LLVMValueRef lhs_nz, rhs_nz;
-		LLVMTypeRef dst_type;
-
-		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, LLVMGetValueName(lhs));
-		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, LLVMGetValueName(rhs));
-		target = LLVMBuildOr(fn->builder, lhs_nz, rhs_nz, target_name);
-
-		dst_type = insn_symbol_type(insn);
-		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
-		break;
-	}
 	default:
 		assert(0);
 		break;

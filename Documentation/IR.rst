@@ -125,14 +125,6 @@ They all follow the same signature:
 .. op:: OP_XOR
 	Logical XOR
 
-Boolean ops
------------
-.. op:: OP_AND_BOOL
-	Boolean AND
-
-.. op:: OP_OR_BOOL
-	Boolean OR
-
 Integer compares
 ----------------
 They all have the following signature:

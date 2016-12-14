@@ -489,12 +489,6 @@ static pseudo_t eval_insn(struct instruction *insn)
 	case OP_XOR:
 		res = left ^ right;
 		break;
-	case OP_AND_BOOL:
-		res = left && right;
-		break;
-	case OP_OR_BOOL:
-		res = left || right;
-		break;
 
 	/* Binary comparison */
 	case OP_SET_EQ:
@@ -637,11 +631,6 @@ static int simplify_constant_rightside(struct instruction *insn)
 	long long bits = sbit | (sbit - 1);
 
 	switch (insn->opcode) {
-	case OP_OR_BOOL:
-		if (value == 1)
-			return replace_with_pseudo(insn, insn->src2);
-		goto case_neutral_zero;
-
 	case OP_OR:
 		if ((value & bits) == bits)
 			return replace_with_pseudo(insn, insn->src2);
@@ -680,10 +669,6 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_MUL:
 		return simplify_mul_div(insn, value);
 
-	case OP_AND_BOOL:
-		if (value == 1)
-			return replace_with_pseudo(insn, insn->src1);
-	/* Fall through */
 	case OP_AND:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);
@@ -752,13 +737,6 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 	case OP_AND:
 	case OP_OR:
 		return replace_with_pseudo(insn, arg);
-
-	case OP_AND_BOOL:
-	case OP_OR_BOOL:
-		remove_usage(arg, &insn->src2);
-		insn->src2 = value_pseudo(0);
-		insn->opcode = OP_SET_NE;
-		return REPEAT_CSE;
 
 	default:
 		break;
@@ -1197,7 +1175,6 @@ int simplify_instruction(struct instruction *insn)
 	switch (insn->opcode) {
 	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
-	case OP_AND_BOOL: case OP_OR_BOOL:
 		canonicalize_commutative(insn);
 		if (simplify_binop(insn))
 			return REPEAT_CSE;

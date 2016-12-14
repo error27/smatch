@@ -43,8 +43,6 @@ static const char *opcodes[] = {
 	[OP_AND] = "and",
 	[OP_OR] = "or",
 	[OP_XOR] = "xor",
-	[OP_AND_BOOL] = "and-bool",
-	[OP_OR_BOOL] = "or-bool",
 
 	/* Binary comparison */
 	[OP_SET_EQ] = "seteq",
@@ -1402,7 +1400,6 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
-	case OP_AND_BOOL: case OP_OR_BOOL:
 		generate_commutative_binop(state, insn);
 		break;
 

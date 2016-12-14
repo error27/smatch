@@ -178,9 +178,7 @@ enum opcode {
 	OP_AND,
 	OP_OR,
 	OP_XOR,
-	OP_AND_BOOL,
-	OP_OR_BOOL,
-	OP_BINARY_END = OP_OR_BOOL,
+	OP_BINARY_END = OP_XOR,
 
 	/* floating-point comparison */
 	OP_FPCMP,
