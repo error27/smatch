@@ -1156,6 +1156,26 @@ static int opcode_sign(int opcode, struct symbol *ctype)
 	return opcode;
 }
 
+static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, struct symbol *type)
+{
+	pseudo_t zero;
+	int op;
+
+	if (is_bool_type(type))
+		return src;
+	zero = value_pseudo(0);
+	op = OP_SET_NE;
+	return add_binary_op(ep, &bool_ctype, op, src, zero);
+}
+
+static pseudo_t linearize_expression_to_bool(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t dst;
+	dst = linearize_expression(ep, expr);
+	dst = add_convert_to_bool(ep, dst, expr->ctype);
+	return dst;
+}
+
 static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *expr)
 {
 	struct access_data ad = { NULL, };
@@ -1276,6 +1296,19 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	return retval;
 }
 
+static pseudo_t linearize_binop_bool(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t src1, src2, dst;
+	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_OR_BOOL : OP_AND_BOOL;
+
+	src1 = linearize_expression_to_bool(ep, expr->left);
+	src2 = linearize_expression_to_bool(ep, expr->right);
+	dst = add_binary_op(ep, &bool_ctype, op, src1, src2);
+	if (expr->ctype != &bool_ctype)
+		dst = cast_pseudo(ep, dst, &bool_ctype, expr->ctype);
+	return dst;
+}
+
 static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src1, src2, dst;
@@ -1286,8 +1319,6 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 		['|'] = OP_OR,  ['^'] = OP_XOR,
 		[SPECIAL_LEFTSHIFT] = OP_SHL,
 		[SPECIAL_RIGHTSHIFT] = OP_LSR,
-		[SPECIAL_LOGICAL_AND] = OP_AND_BOOL,
-		[SPECIAL_LOGICAL_OR] = OP_OR_BOOL,
 	};
 	int op;
 
@@ -1570,6 +1601,8 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_call_expression(ep, expr);
 
 	case EXPR_BINOP:
+		if (expr->op == SPECIAL_LOGICAL_AND || expr->op == SPECIAL_LOGICAL_OR)
+			return linearize_binop_bool(ep, expr);
 		return linearize_binop(ep, expr);
 
 	case EXPR_LOGICAL:
