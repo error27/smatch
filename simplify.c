@@ -620,10 +620,17 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
+	long long sbit = 1ULL << (insn->size - 1);
+	long long bits = sbit | (sbit - 1);
 
 	switch (insn->opcode) {
 	case OP_OR_BOOL:
 		if (value == 1)
+			return replace_with_pseudo(insn, insn->src2);
+		goto case_neutral_zero;
+
+	case OP_OR:
+		if ((value & bits) == bits)
 			return replace_with_pseudo(insn, insn->src2);
 		goto case_neutral_zero;
 
@@ -635,7 +642,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 		}
 	/* Fall through */
 	case OP_ADD:
-	case OP_OR: case OP_XOR:
+	case OP_XOR:
 	case OP_SHL:
 	case OP_LSR:
 	case_neutral_zero:
