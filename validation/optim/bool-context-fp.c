@@ -5,6 +5,10 @@ bool bfexp(float a) { return (bool)a; }
 
 bool bfnot(float a) { return !a; }
 int  ifnot(float a) { return !a; }
+bool bfior(float a, float b) { return a || b; }
+int  ifior(float a, float b) { return a || b; }
+bool bfand(float a, float b) { return a && b; }
+int  ifand(float a, float b) { return a && b; }
 
 /*
  * check-name: bool context fp
@@ -41,6 +45,50 @@ ifnot:
 	setfval.32  %r15 <- 0.000000
 	fcmpoeq.32  %r16 <- %arg1, %r15
 	ret.32      %r16
+
+
+bfior:
+.L8:
+	<entry-point>
+	setfval.32  %r19 <- 0.000000
+	fcmpune.1   %r20 <- %arg1, %r19
+	fcmpune.1   %r23 <- %arg2, %r19
+	or-bool.1   %r24 <- %r20, %r23
+	setne.1     %r26 <- %r24, $0
+	ret.1       %r26
+
+
+ifior:
+.L10:
+	<entry-point>
+	setfval.32  %r29 <- 0.000000
+	fcmpune.1   %r30 <- %arg1, %r29
+	fcmpune.1   %r33 <- %arg2, %r29
+	or-bool.1   %r34 <- %r30, %r33
+	zext.32     %r35 <- (1) %r34
+	ret.32      %r35
+
+
+bfand:
+.L12:
+	<entry-point>
+	setfval.32  %r38 <- 0.000000
+	fcmpune.1   %r39 <- %arg1, %r38
+	fcmpune.1   %r42 <- %arg2, %r38
+	and-bool.1  %r43 <- %r39, %r42
+	setne.1     %r45 <- %r43, $0
+	ret.1       %r45
+
+
+ifand:
+.L14:
+	<entry-point>
+	setfval.32  %r48 <- 0.000000
+	fcmpune.1   %r49 <- %arg1, %r48
+	fcmpune.1   %r52 <- %arg2, %r48
+	and-bool.1  %r53 <- %r49, %r52
+	zext.32     %r54 <- (1) %r53
+	ret.32      %r54
 
 
  * check-output-end
