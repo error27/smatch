@@ -634,6 +634,13 @@ static int simplify_constant_rightside(struct instruction *insn)
 			return replace_with_pseudo(insn, insn->src2);
 		goto case_neutral_zero;
 
+	case OP_XOR:
+		if ((value & bits) == bits) {
+			insn->opcode = OP_NOT;
+			return REPEAT_CSE;
+		}
+		goto case_neutral_zero;
+
 	case OP_SUB:
 		if (value) {
 			insn->opcode = OP_ADD;
@@ -642,7 +649,6 @@ static int simplify_constant_rightside(struct instruction *insn)
 		}
 	/* Fall through */
 	case OP_ADD:
-	case OP_XOR:
 	case OP_SHL:
 	case OP_LSR:
 	case_neutral_zero:
