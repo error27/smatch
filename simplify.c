@@ -590,6 +590,7 @@ static int simplify_or_lsr(struct instruction *insn, pseudo_t src, pseudo_t othe
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
 	struct instruction *def;
+	unsigned long long mask;
 	unsigned long long nval;
 	unsigned int size;
 	pseudo_t src2;
@@ -643,6 +644,19 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		if (value >= size)
 			goto zero;
 		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_AND:
+			// replace (A & M) >> S
+			// by      (A >> S) & (M >> S)
+			if (!constant(def->src2))
+				break;
+			if (nbr_users(pseudo) > 1)
+				break;
+			mask = def->src2->value;
+			def->opcode = OP_LSR;
+			def->src2 = insn->src2;
+			insn->opcode = OP_AND;
+			insn->src2 = value_pseudo(mask >> value);
+			return REPEAT_CSE;
 		case OP_LSR:
 			goto case_shift_shift;
 		case OP_OR:
