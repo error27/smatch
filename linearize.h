@@ -338,6 +338,11 @@ static inline int has_users(pseudo_t p)
 	return pseudo_user_list_size(p->users) != 0;
 }
 
+static inline int nbr_users(pseudo_t p)
+{
+	return pseudo_user_list_size(p->users);
+}
+
 static inline struct pseudo_user *alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)
 {
 	struct pseudo_user *user = __alloc_pseudo_user(0);
