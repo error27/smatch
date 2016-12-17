@@ -370,6 +370,13 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 	return REPEAT_CSE;
 }
 
+static inline int def_opcode(pseudo_t p)
+{
+	if (p->type != PSEUDO_REG)
+		return OP_BADOP;
+	return p->def->opcode;
+}
+
 static unsigned int value_size(long long value)
 {
 	value >>= 8;
