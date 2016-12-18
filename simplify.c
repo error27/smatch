@@ -470,6 +470,20 @@ static inline int replace_with_value(struct instruction *insn, long long val)
 	return replace_with_pseudo(insn, value_pseudo(val));
 }
 
+///
+// replace a binop with an unop
+// @insn: the instruction to be replaced
+// @op: the instruction's new opcode
+// @src: the instruction's new operand
+// @return: REPEAT_CSE
+static inline int replace_with_unop(struct instruction *insn, int op, pseudo_t src)
+{
+	insn->opcode = op;
+	replace_pseudo(insn, &insn->src1, src);
+	remove_usage(insn->src2, &insn->src2);
+	return REPEAT_CSE;
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
