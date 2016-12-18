@@ -1358,6 +1358,20 @@ static int simplify_associative_binop(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
+static int simplify_sub(struct instruction *insn)
+{
+	pseudo_t src2 = insn->src2;
+	struct instruction *def;
+
+	switch (DEF_OPCODE(def, src2)) {
+	case OP_NEG:				// (x - -y) --> (x + y)
+		insn->opcode = OP_ADD;
+		return replace_pseudo(insn, &insn->src2, def->src);
+	}
+
+	return 0;
+}
+
 static int simplify_constant_unop(struct instruction *insn)
 {
 	long long val = insn->src1->value;
@@ -1818,8 +1832,8 @@ int simplify_instruction(struct instruction *insn)
 	}
 
 	switch (insn->opcode) {
+	case OP_SUB: return simplify_sub(insn);
 	case OP_ADD:
-	case OP_SUB:
 	case OP_MUL:
 	case OP_AND:
 	case OP_OR:
