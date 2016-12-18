@@ -1360,8 +1360,16 @@ static int simplify_associative_binop(struct instruction *insn)
 
 static int simplify_add(struct instruction *insn)
 {
+	pseudo_t src1 = insn->src1;
 	pseudo_t src2 = insn->src2;
 	struct instruction *def;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NEG:				// (-x + y) --> (y - x)
+		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
+		insn->opcode = OP_SUB;
+		return replace_pseudo(insn, &insn->src2, def->src);
+	}
 
 	switch (DEF_OPCODE(def, src2)) {
 	case OP_NEG:				// (x + -y) --> (x - y)
