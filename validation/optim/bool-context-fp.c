@@ -54,8 +54,7 @@ bfior:
 	fcmpune.1   %r20 <- %arg1, %r19
 	fcmpune.1   %r23 <- %arg2, %r19
 	or.1        %r24 <- %r20, %r23
-	setne.1     %r26 <- %r24, $0
-	ret.1       %r26
+	ret.1       %r24
 
 
 ifior:
@@ -76,8 +75,7 @@ bfand:
 	fcmpune.1   %r39 <- %arg1, %r38
 	fcmpune.1   %r42 <- %arg2, %r38
 	and.1       %r43 <- %r39, %r42
-	setne.1     %r45 <- %r43, $0
-	ret.1       %r45
+	ret.1       %r43
 
 
 ifand:

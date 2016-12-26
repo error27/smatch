@@ -591,6 +591,14 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		return 0;
 
 	inverse = (insn->opcode == OP_SET_NE) == value;
+	if (!inverse && def->size == 1) {
+		// Replace:
+		//	setne   %r <- %s, $0
+		// or:
+		//	seteq   %r <- %s, $1
+		// by %s when boolean
+		return replace_with_pseudo(insn, old);
+	}
 	opcode = def->opcode;
 	switch (opcode) {
 	case OP_FPCMP ... OP_BINCMP_END:
