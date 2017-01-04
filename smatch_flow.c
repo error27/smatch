@@ -365,6 +365,8 @@ void __split_expr(struct expression *expr)
 		if (!expr->right)
 			break;
 
+		right = strip_expr(expr->right);
+
 		__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
 
 		/* foo = !bar() */
@@ -390,13 +392,13 @@ void __split_expr(struct expression *expr)
 
 		__fake_struct_member_assignments(expr);
 
-		right = strip_expr(expr->right);
-		if (expr->op == '=' && right->type == EXPR_CALL) {
+		if (expr->op == '=' && right->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
-		}
+
 		if (get_macro_name(right->pos) &&
 		    get_macro_name(expr->pos) != get_macro_name(right->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
+
 		__split_expr(expr->left);
 		break;
 	}
