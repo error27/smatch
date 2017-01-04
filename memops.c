@@ -99,6 +99,9 @@ static void simplify_loads(struct basic_block *bb)
 			/* Check for illegal offsets.. */
 			check_access(insn);
 
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				continue;
+
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
 				if (!dom->bb)
