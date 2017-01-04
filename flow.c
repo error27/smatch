@@ -316,6 +316,17 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 	return 1;
 }
 
+static int phisrc_in_bb(struct pseudo_list *list, struct basic_block *bb)
+{
+	pseudo_t p;
+	FOR_EACH_PTR(list, p) {
+		if (p->def->bb == bb)
+			return 1;
+	} END_FOR_EACH_PTR(p);
+
+	return 0;
+}
+
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
 	int local, int loads)
@@ -358,6 +369,8 @@ no_dominance:
 		continue;
 
 found_dominator:
+		if (dominators && phisrc_in_bb(*dominators, parent))
+			continue;
 		br = delete_last_instruction(&parent->insns);
 		phi = alloc_phi(parent, one->target, one->size);
 		phi->ident = phi->ident ? : pseudo->ident;
