@@ -1243,11 +1243,9 @@ static void set_inner_struct_members(struct expression *expr, struct symbol *mem
 		if (!type)
 			continue;
 
-		if (tmp->ident) {
-			edge_member = member_expression(expr, '.', tmp->ident);
-			if (get_state_expr(SMATCH_EXTRA, edge_member))
-				continue;
-		}
+		edge_member = member_expression(expr, '.', tmp->ident);
+		if (get_state_expr(SMATCH_EXTRA, edge_member))
+			continue;
 
 		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
 			set_inner_struct_members(expr, tmp);
