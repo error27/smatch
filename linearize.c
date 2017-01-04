@@ -2035,8 +2035,7 @@ pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 		if (label->used) {
 			add_label(ep, label);
 		}
-		linearize_statement(ep, stmt->label_statement);
-		break;
+		return linearize_statement(ep, stmt->label_statement);
 	}
 
 	case STMT_GOTO: {
