@@ -451,6 +451,7 @@ static struct init_keyword {
 	{ "static",	NS_TYPEDEF, .op = &static_op },
 	{ "extern",	NS_TYPEDEF, .op = &extern_op },
 	{ "__thread",	NS_TYPEDEF, .op = &thread_op },
+	{ "_Thread_local",	NS_TYPEDEF, .op = &thread_op },
 
 	/* Statement */
 	{ "if",		NS_KEYWORD, .op = &if_op },
