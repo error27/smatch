@@ -129,6 +129,12 @@ static struct symbol_op noreturn_op = {
 	.declarator = noreturn_specifier,
 };
 
+static declarator_t alignas_specifier;
+static struct symbol_op alignas_op = {
+	.type = KW_MODIFIER,
+	.declarator = alignas_specifier,
+};
+
 static struct symbol_op auto_op = {
 	.type = KW_MODIFIER,
 	.declarator = auto_specifier,
@@ -447,6 +453,8 @@ static struct init_keyword {
 	{ "__inline__",	NS_TYPEDEF, .op = &inline_op },
 
 	{ "_Noreturn",	NS_TYPEDEF, .op = &noreturn_op },
+
+	{ "_Alignas",	NS_TYPEDEF, .op = &alignas_op },
 
 	/* Ignored for now.. */
 	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
@@ -1389,6 +1397,41 @@ static struct token *noreturn_specifier(struct token *next, struct decl_state *c
 {
 	apply_qualifier(&next->pos, &ctx->ctype, MOD_NORETURN);
 	return next;
+}
+
+static struct token *alignas_specifier(struct token *token, struct decl_state *ctx)
+{
+	int alignment = 0;
+
+	if (!match_op(token, '(')) {
+		sparse_error(token->pos, "expected '(' after _Alignas");
+		return token;
+	}
+	if (lookup_type(token->next)) {
+		struct symbol *sym = NULL;
+		token = typename(token->next, &sym, NULL);
+		sym = examine_symbol_type(sym);
+		alignment = sym->ctype.alignment;
+		token = expect(token, ')', "after _Alignas(...");
+	} else {
+		struct expression *expr = NULL;
+		token = parens_expression(token, &expr, "after _Alignas");
+		if (!expr)
+			return token;
+		alignment = const_expression_value(expr);
+	}
+
+	if (alignment < 0) {
+		warning(token->pos, "non-positive alignment");
+		return token;
+	}
+	if (alignment & (alignment-1)) {
+		warning(token->pos, "non-power-of-2 alignment");
+		return token;
+	}
+	if (alignment > ctx->ctype.alignment)
+		ctx->ctype.alignment = alignment;
+	return token;
 }
 
 static struct token *const_qualifier(struct token *next, struct decl_state *ctx)
