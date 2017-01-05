@@ -342,7 +342,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	if (row_count > 3000)
 		return;
 
-	run_sql(callback, info, "select %s from return_states where %s order by return_id, type;",
+	run_sql(callback, info, "select %s from return_states where %s order by file, return_id, type;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
