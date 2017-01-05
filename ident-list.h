@@ -31,6 +31,7 @@ IDENT(L);
 /* Extended gcc identifiers */
 IDENT(asm); IDENT_RESERVED(__asm); IDENT_RESERVED(__asm__);
 IDENT(alignof); IDENT_RESERVED(__alignof); IDENT_RESERVED(__alignof__); 
+IDENT_RESERVED(_Alignof);
 IDENT_RESERVED(__sizeof_ptr__);
 IDENT_RESERVED(__builtin_types_compatible_p);
 IDENT_RESERVED(__builtin_offsetof);
