@@ -251,6 +251,8 @@ int preprocess_only;
 static enum { STANDARD_C89,
               STANDARD_C94,
               STANDARD_C99,
+              STANDARD_C11,
+              STANDARD_GNU11,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
@@ -564,6 +566,8 @@ static void handle_switch_W_finalize(void)
 			case STANDARD_C99:
 			case STANDARD_GNU89:
 			case STANDARD_GNU99:
+			case STANDARD_C11:
+			case STANDARD_GNU11:
 				Wdeclarationafterstatement = 0;
 				break;
 
@@ -668,6 +672,14 @@ static char **handle_switch_s(char *arg, char **next)
 
 		else if (!strcmp (arg, "gnu99") || !strcmp (arg, "gnu9x"))
 			standard = STANDARD_GNU99;
+
+		else if (!strcmp(arg, "c11") ||
+			 !strcmp(arg, "c1x") ||
+			 !strcmp(arg, "iso9899:2011"))
+			standard = STANDARD_C11;
+
+		else if (!strcmp(arg, "gnu11"))
+			standard = STANDARD_GNU11;
 
 		else
 			die ("Unsupported C dialect");
@@ -988,6 +1000,15 @@ void create_builtin_stream(void)
 
 		case STANDARD_GNU99:
 			add_pre_buffer("#weak_define __STDC_VERSION__ 199901L\n");
+			break;
+
+		case STANDARD_C11:
+			add_pre_buffer("#weak_define __STRICT_ANSI__ 1\n");
+		case STANDARD_GNU11:
+			add_pre_buffer("#weak_define __STDC_NO_ATOMICS__ 1\n");
+			add_pre_buffer("#weak_define __STDC_NO_COMPLEX__ 1\n");
+			add_pre_buffer("#weak_define __STDC_NO_THREADS__ 1\n");
+			add_pre_buffer("#weak_define __STDC_VERSION__ 201112L\n");
 			break;
 
 		default:
