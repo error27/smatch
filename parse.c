@@ -123,6 +123,12 @@ static struct symbol_op inline_op = {
 	.declarator = inline_specifier,
 };
 
+static declarator_t noreturn_specifier;
+static struct symbol_op noreturn_op = {
+	.type = KW_MODIFIER,
+	.declarator = noreturn_specifier,
+};
+
 static struct symbol_op auto_op = {
 	.type = KW_MODIFIER,
 	.declarator = auto_specifier,
@@ -439,6 +445,8 @@ static struct init_keyword {
 	{ "inline",	NS_TYPEDEF, .op = &inline_op },
 	{ "__inline",	NS_TYPEDEF, .op = &inline_op },
 	{ "__inline__",	NS_TYPEDEF, .op = &inline_op },
+
+	{ "_Noreturn",	NS_TYPEDEF, .op = &noreturn_op },
 
 	/* Ignored for now.. */
 	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
@@ -1374,6 +1382,12 @@ static struct token *attribute_force(struct token *token, struct symbol *attr, s
 static struct token *inline_specifier(struct token *next, struct decl_state *ctx)
 {
 	ctx->is_inline = 1;
+	return next;
+}
+
+static struct token *noreturn_specifier(struct token *next, struct decl_state *ctx)
+{
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_NORETURN);
 	return next;
 }
 
