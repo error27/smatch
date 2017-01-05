@@ -105,11 +105,11 @@ enum {
 };
 
 enum {
-	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar, CMax,
+	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar,
 };
 
 enum {
-	SNone = 0, STypedef, SAuto, SRegister, SExtern, SStatic, SForced
+	SNone = 0, STypedef, SAuto, SRegister, SExtern, SStatic, SForced, SMax,
 };
 
 static struct symbol_op typedef_op = {
@@ -1281,7 +1281,7 @@ static const char *storage_class[] =
 
 static unsigned long storage_modifiers(struct decl_state *ctx)
 {
-	static unsigned long mod[CMax] =
+	static unsigned long mod[SMax] =
 	{
 		[SAuto] = MOD_AUTO,
 		[SExtern] = MOD_EXTERN,
