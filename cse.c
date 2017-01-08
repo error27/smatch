@@ -95,14 +95,12 @@ void cse_collect(struct instruction *insn)
 	case OP_TRUNC:
 	case OP_PTRCAST:
 	case OP_UTPTR: case OP_PTRTU:
-		/*
-		 * This is crap! Many "orig_types" are the
-		 * same as far as casts go, we should generate
-		 * some kind of "type hash" that is identical
-		 * for identical casts
-		 */
-		hash += hashval(insn->orig_type);
+		if (!insn->orig_type || insn->orig_type->bit_size < 0)
+			return;
 		hash += hashval(insn->src);
+
+		// Note: see corresponding line in insn_compare()
+		hash += hashval(insn->orig_type->bit_size);
 		break;
 
 	/* Other */
@@ -165,6 +163,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 {
 	const struct instruction *i1 = _i1;
 	const struct instruction *i2 = _i2;
+	int size1, size2;
 	int diff;
 
 	if (i1->opcode != i2->opcode)
@@ -243,13 +242,18 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_TRUNC:
 	case OP_PTRCAST:
 	case OP_UTPTR: case OP_PTRTU:
-		/*
-		 * This is crap! See the comments on hashing.
-		 */
-		if (i1->orig_type != i2->orig_type)
-			return i1->orig_type < i2->orig_type ? -1 : 1;
 		if (i1->src != i2->src)
 			return i1->src < i2->src ? -1 : 1;
+
+		// Note: if it can be guaranted that identical ->src
+		// implies identical orig_type->bit_size, then this
+		// test and the hashing of the original size in
+		// cse_collect() are not needed.
+		// It must be generaly true but it isn't guaranted (yet).
+		size1 = i1->orig_type->bit_size;
+		size2 = i2->orig_type->bit_size;
+		if (size1 != size2)
+			return size1 < size2 ? -1 : 1;
 		break;
 
 	default:
