@@ -369,6 +369,28 @@ static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, p
 	return REPEAT_CSE;
 }
 
+static inline bool has_target(struct instruction *insn)
+{
+	return opcode_table[insn->opcode].flags & OPF_TARGET;
+}
+
+void remove_dead_insns(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR_REVERSE(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			if (!has_target(insn))
+				continue;
+			if (!has_users(insn->target))
+				kill_instruction(insn);
+		} END_FOR_EACH_PTR_REVERSE(insn);
+	} END_FOR_EACH_PTR_REVERSE(bb);
+}
+
 static inline int constant(pseudo_t pseudo)
 {
 	return pseudo->type == PSEUDO_VAL;
