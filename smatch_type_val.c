@@ -79,10 +79,10 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 		return 0;
 	type = get_type(expr);
 	str_to_rl(type, db_vals, &tmp);
+	free_string(db_vals);
 	if (is_whole_rl(tmp))
 		return 0;
 	*rl = tmp;
-	free_string(db_vals);
 
 	return 1;
 }
