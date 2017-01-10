@@ -392,12 +392,10 @@ static void handle_ret_equals_param(char *ret_string, struct range_list *rl, str
 static int impossible_limit(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
+	struct smatch_state *state;
 	struct range_list *passed;
 	struct range_list *limit;
 	struct symbol *compare_type;
-
-	if (strcmp(key, "$") != 0)
-		return 0;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -407,12 +405,34 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return 0;
-	if (!get_implied_rl(arg, &passed))
-		return 0;
-	if (!passed || is_whole_rl(passed))
-		return 0;
 
-	compare_type = get_arg_type(expr->fn, param);
+	if (strcmp(key, "$") == 0) {
+		if (!get_implied_rl(arg, &passed))
+			return 0;
+
+		compare_type = get_arg_type(expr->fn, param);
+	} else {
+		char *name;
+		struct symbol *sym;
+
+		name = get_variable_from_key(arg, key, &sym);
+		if (!name || !sym)
+			return 0;
+
+		state = get_state(SMATCH_EXTRA, name, sym);
+		if (!state) {
+			free_string(name);
+			return 0;
+		}
+		passed = estate_rl(state);
+		if (!passed || is_whole_rl(passed)) {
+			free_string(name);
+			return 0;
+		}
+
+		compare_type = get_member_type_from_key(arg, key);
+	}
+
 	passed = cast_rl(compare_type, passed);
 	call_results_to_rl(expr, compare_type, value, &limit);
 	if (!limit || is_whole_rl(limit))
