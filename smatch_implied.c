@@ -856,7 +856,7 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	struct sm_state *tmp;
 	struct stree *implied_true = NULL;
 	struct stree *implied_false = NULL;
-	struct range_list *orig, *limit, *rl;
+	struct range_list *orig, *limit;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -884,9 +884,8 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	orig = cast_rl(compare_type, orig);
 
 	call_results_to_rl(expr, compare_type, value, &limit);
-	rl = rl_intersection(orig, limit);
 
-	separate_and_filter(sm, SPECIAL_EQUAL, rl, __get_cur_stree(), &implied_true, &implied_false, NULL);
+	separate_and_filter(sm, SPECIAL_EQUAL, limit, __get_cur_stree(), &implied_true, &implied_false, NULL);
 
 	FOR_EACH_SM(implied_true, tmp) {
 		__set_sm_fake_stree(tmp);
