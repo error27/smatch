@@ -120,7 +120,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!state)
 			state = tmp->state;
 
-		if (estate_is_whole(state))
+		if (estate_is_whole(state) || estate_is_empty(state))
 			continue;
 		old = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
 		if (old && estates_equiv(old, state))
