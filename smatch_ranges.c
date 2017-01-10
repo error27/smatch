@@ -620,6 +620,34 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 	struct data_range *new = NULL;
 	int check_next = 0;
 
+	/*
+	 * There is at least on valid reason why the types might be confusing
+	 * and that's when you have a void pointer and on some paths you treat
+	 * it as a u8 pointer and on other paths you treat it as a u16 pointer.
+	 * This case is hard to deal with.
+	 *
+	 * There are other cases where we probably should be more specific about
+	 * the types than we are.  For example, we end up merging a lot of ulong
+	 * with pointers and I have not figured out why we do that.
+	 *
+	 * But this hack works for both cases, I think.  We cast it to pointers
+	 * or we use the bigger size.
+	 *
+	 */
+	if (*list && rl_type(*list) != min.type) {
+		if (rl_type(*list)->type == SYM_PTR) {
+			min = sval_cast(rl_type(*list), min);
+			max = sval_cast(rl_type(*list), max);
+		} else if (min.type->type == SYM_PTR) {
+			*list = cast_rl(min.type, *list);
+		} else if (type_bits(rl_type(*list)) >= type_bits(min.type)) {
+			min = sval_cast(rl_type(*list), min);
+			max = sval_cast(rl_type(*list), max);
+		} else {
+			*list = cast_rl(min.type, *list);
+		}
+	}
+
 	if (sval_cmp(min, max) > 0) {
 		min = sval_type_min(min.type);
 		max = sval_type_max(min.type);
