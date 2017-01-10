@@ -556,9 +556,11 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	free_slist(&true_stack);
 	free_slist(&false_stack);
 	if (option_debug_implied || option_debug) {
-		printf("These are the implied states for the true path:\n");
+		printf("These are the implied states for the true path: (%s %s %s)\n",
+		       sm->name, show_special(comparison), show_rl(rl));
 		__print_stree(*true_states);
-		printf("These are the implied states for the false path:\n");
+		printf("These are the implied states for the false path: (%s %s %s)\n",
+		       sm->name, show_special(comparison), show_rl(rl));
 		__print_stree(*false_states);
 	}
 
