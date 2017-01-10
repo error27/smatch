@@ -857,20 +857,30 @@ static void match_assign_call(struct expression *expr)
 	}
 
 	fn = right->fn->symbol->ident->name;
+	call_backs = search_callback(func_hash, (char *)fn);
 
 	/*
-	 * some of these conflict (they try to set smatch extra twice), so we
-	 * call them in order from least important to most important.
+	 * The ordering here is sort of important.
+	 * One example, of how this matters is that when we do:
+	 *
+	 * 	len = strlen(str);
+	 *
+	 * That is handled by smatch_common_functions.c and smatch_strlen.c.
+	 * They use implied_return and function_assign_hook respectively.
+	 * We want to get the implied return first before we do the function
+	 * assignment hook otherwise we end up writing the wrong thing for len
+	 * in smatch_extra.c because we assume that it already holds the
+	 * strlen() when we haven't set it yet.
 	 */
-
-	call_backs = search_callback(func_hash, (char *)fn);
-	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 
 	if (db_return_states_assign(expr) == 1)
 		handled = 1;
 	else
 		handled = assign_ranged_funcs(fn, expr, call_backs);
 	handled |= handle_implied_return(expr);
+
+
+	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
 
 	if (handled)
 		return;
