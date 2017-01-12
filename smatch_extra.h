@@ -122,6 +122,7 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 int estates_equiv(struct smatch_state *one, struct smatch_state *two);
 int estate_is_whole(struct smatch_state *state);
+int estate_is_empty(struct smatch_state *state);
 
 struct range_list *estate_rl(struct smatch_state *state);
 struct related_list *estate_related(struct smatch_state *state);
