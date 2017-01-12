@@ -5,3 +5,5 @@ __arch_hweight8
 __arch_hweight16
 __arch_hweight32
 __arch_hweight64
+__write_once_size
+atomic_set

@@ -144,6 +144,11 @@ update return_states set value = "" where function = 'gfs2_ea_find' and return =
 delete from type_value where type = '(struct fd)->file';
 delete from type_value where type = '(struct fd)->flags';
 
+/* this is handled in check_kernel.c */
+delete from return_states where function = "__write_once_size";
+
+update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_set' and parameter = 0 and type = 1025;
+
 EOF
 
 # fixme: this is totally broken

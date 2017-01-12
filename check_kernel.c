@@ -228,6 +228,47 @@ static void match_end_file(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR_REVERSE(sym);
 }
 
+static struct expression *get_val_expr(struct expression *expr)
+{
+	struct symbol *sym, *val;
+
+	if (expr->type != EXPR_DEREF)
+		return NULL;
+	expr = expr->deref;
+	if (expr->type != EXPR_SYMBOL)
+		return NULL;
+	if (strcmp(expr->symbol_name->name, "__u") != 0)
+		return NULL;
+	sym = get_base_type(expr->symbol);
+	val = first_ptr_list((struct ptr_list *)sym->symbol_list);
+	if (!val || strcmp(val->ident->name, "__val") != 0)
+		return NULL;
+	return member_expression(expr, '.', val->ident);
+}
+
+static void match__write_once_size(const char *fn, struct expression *call,
+			       void *unused)
+{
+	struct expression *dest, *data, *assign;
+	struct range_list *rl;
+
+	dest = get_argument_from_call_expr(call->args, 0);
+	if (dest->type != EXPR_PREOP || dest->op != '&')
+		return;
+	dest = strip_expr(dest->unop);
+
+	data = get_argument_from_call_expr(call->args, 1);
+	data = get_val_expr(data);
+	if (!data)
+		return;
+	get_absolute_rl(data, &rl);
+	assign = assign_expression(dest, data);
+
+	__in_fake_assign++;
+	__split_expr(assign);
+	__in_fake_assign--;
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -251,6 +292,7 @@ void check_kernel(int id)
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
 
 	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
+	add_function_hook("__write_once_size", &match__write_once_size, NULL);
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
