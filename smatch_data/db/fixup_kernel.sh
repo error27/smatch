@@ -109,6 +109,9 @@ update return_states set return = '0-64' where function = '__arch_hweight64';
 update return_states set return = '0-u64max[==\$0]' where function = '__fswab64';
 update return_states set return = '0-u32max[==\$0]' where function = '__fswab32';
 update return_states set return = '0-u16max[==\$0]' where function = '__fswab16';
+update return_states set return = '0-u64max[==\$0]' where function = '__builtin_bswap64';
+update return_states set return = '0-u32max[==\$0]' where function = '__builtin_bswap32';
+update return_states set return = '0-u16max[==\$0]' where function = '__builtin_bswap16';
 
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
 /* Just delete a lot of returns that everyone ignores */
