@@ -727,7 +727,7 @@ free:
 	return ret;
 }
 
-static int handled_by_implied_hook(struct expression *expr,
+static int handled_by_comparison_hook(struct expression *expr,
 				   struct stree **implied_true,
 				   struct stree **implied_false)
 {
@@ -797,7 +797,7 @@ static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
-	if (handled_by_implied_hook(expr, implied_true, implied_false))
+	if (handled_by_comparison_hook(expr, implied_true, implied_false))
 		goto found;
 
 	if (handled_by_extra_states(expr, implied_true, implied_false)) {
