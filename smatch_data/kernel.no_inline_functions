@@ -1,6 +1,9 @@
 __fswab16
 __fswab32
 __fswab64
+__builtin_bswap16
+__builtin_bswap32
+__builtin_bswap64
 __arch_hweight8
 __arch_hweight16
 __arch_hweight32
