@@ -149,7 +149,7 @@ EOF
 # fixme: this is totally broken
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1, 1003, '*\$', '0-1000000000');" | sqlite3 $db_file
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1003, 1, '*\$', '');" | sqlite3 $db_file
 done
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
