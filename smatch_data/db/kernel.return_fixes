@@ -1,12 +1,16 @@
 i2c_master_recv s32min-s32max 1-s32max[<=$2]
+i2c_master_recv s32min-0,2-s32max 1-s32max[<=$2]
 hid_hw_output_report s32min-s32max 1-s32max[<=$2]
 _regmap_read s32min-(-1),1-s32max (-4095)-(-1)
 regmap_bulk_read s32min-(-1),1-s32max (-4095)-(-1)
 scnprintf s32min-s32max 0-s32max[<$1]
 scnprintf s32min-(-2),0-2147483646[<$1] 0-s32max[<$1]
+scnprintf s32min-(-2),0-2147483646 0-s32max[<$1]
 scnprintf s32min-s32max[<=$1] 0-s32max[<$1]
 down_interruptible s32min-s32max (-62),(-4)
 __sock_create s32min-(-1),1-s32max (-4095)-(-1)
 sock_create_kern s32min-(-1),1-s32max (-4095)-(-1)
 nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-s32max (-4095)-(-18),(-16)-(-1)
 nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-(-3),(-1),1-s32max (-4095)-(-18),(-16)-(-3),(-1)
+nilfs_mdt_insert_new_block s32min-(-23),(-21)-(-1),1-s32max (-4095)-(-23),(-21)-(-1)
+simple_write_to_buffer s64min-s64max 0-s32max[<=$1]
