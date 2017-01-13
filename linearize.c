@@ -1104,9 +1104,9 @@ static pseudo_t linearize_postop(struct entrypoint *ep, struct expression *expr)
 static struct instruction *alloc_cast_instruction(struct symbol *src, struct symbol *ctype)
 {
 	int opcode = OP_CAST;
-	struct symbol *base = src;
+	struct symbol *base = ctype;
 
-	if (base->ctype.modifiers & MOD_SIGNED)
+	if (src->ctype.modifiers & MOD_SIGNED)
 		opcode = OP_SCAST;
 	if (base->type == SYM_NODE)
 		base = base->ctype.base_type;
