@@ -283,12 +283,14 @@ char *get_static_filter(struct symbol *sym)
 	return sql_filter;
 }
 
-static int row_count;
-static int get_row_count(void *unused, int argc, char **argv, char **azColName)
+static int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
 {
+	int *row_count = _row_count;
+
+	*row_count = 0;
 	if (argc != 1)
 		return 0;
-	row_count = atoi(argv[0]);
+	*row_count = atoi(argv[0]);
 	return 0;
 }
 
@@ -321,6 +323,8 @@ static int is_local_symbol(struct expression *expr)
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
+	int row_count;
+
 	if (is_fake_call(call))
 		return;
 
@@ -336,8 +340,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		return;
 	}
 
-	row_count = 0;
-	run_sql(get_row_count, info, "select count(*) from return_states where %s;",
+	run_sql(get_row_count, &row_count, "select count(*) from return_states where %s;",
 		get_static_filter(call->fn->symbol));
 	if (row_count > 3000)
 		return;
