@@ -2066,7 +2066,7 @@ void register_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook_late(link_id, &match_modify);
+	add_modification_hook(link_id, &match_modify);
 
 	add_member_info_callback(link_id, struct_member_callback);
 }
