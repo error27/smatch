@@ -345,6 +345,7 @@ struct db_callback_info {
 	struct db_implies_list *callbacks;
 	int prev_return_id;
 	int cull;
+	int has_states;
 	struct smatch_state *ret_state;
 	struct expression *var_expr;
 	int handled;
@@ -474,6 +475,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	key = argv[4];
 	value = argv[5];
 
+	db_info->has_states = 1;
 	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		set_return_state(db_info->var_expr, db_info);
 		stree = __pop_fake_cur_stree();
@@ -587,7 +589,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	}
 	free_stree(&stree);
 	true_states = db_info.stree;
-	if (db_info.cull && !true_states) {
+	if (!true_states && db_info.has_states) {
 		__push_fake_cur_stree();
 		set_path_impossible();
 		true_states = __pop_fake_cur_stree();
@@ -613,7 +615,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	}
 	free_stree(&stree);
 	false_states = db_info.stree;
-	if (db_info.cull && !false_states) {
+	if (!false_states && db_info.has_states) {
 		__push_fake_cur_stree();
 		set_path_impossible();
 		false_states = __pop_fake_cur_stree();
