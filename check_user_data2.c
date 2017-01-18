@@ -662,6 +662,8 @@ static void returns_param_user_data(struct expression *expr, int param, char *ke
 	struct expression *arg;
 
 	if (param == -1) {
+		if (expr->type != EXPR_ASSIGNMENT)
+			return;
 		set_to_user_data(expr->left, key, value);
 		return;
 	}
