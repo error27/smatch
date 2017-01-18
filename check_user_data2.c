@@ -437,11 +437,28 @@ static int returned_rl_callback(void *_info, int argc, char **argv, char **azCol
 {
 	struct db_info *db_info = _info;
 	struct range_list *rl;
+	char *return_ranges = argv[0];
+	char *user_ranges = argv[1];
+	struct expression *arg;
+	int comparison;
 
-	if (argc != 1)
+	if (argc != 2)
 		return 0;
 
-	call_results_to_rl(db_info->call, get_type(db_info->call), argv[0], &rl);
+	if (local_debug)
+		sm_msg("ARGV %s %s", argv[0], argv[1]);
+
+	call_results_to_rl(db_info->call, get_type(db_info->call), user_ranges, &rl);
+	if (str_to_comparison_arg(return_ranges, db_info->call, &comparison, &arg) &&
+	    comparison == SPECIAL_EQUAL) {
+		struct range_list *orig_rl;
+
+		if (!get_user_rl(arg, &orig_rl))
+			return 0;
+		rl = rl_intersection(rl, orig_rl);
+		if (!rl)
+			return 0;
+	}
 	db_info->rl = rl_union(db_info->rl, rl);
 
 	return 0;
@@ -459,7 +476,7 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 
 	db_info.call = call;
 	run_sql(&returned_rl_callback, &db_info,
-		"select value from return_states where %s and type = %d and parameter = -1 and key = '$';",
+		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
 		get_static_filter(call->fn->symbol), USER_DATA3);
 	if (!db_info.rl)
 		return 0;
