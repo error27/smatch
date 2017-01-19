@@ -298,9 +298,18 @@ static void sql_select_return_states_pointer(const char *cols,
 	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
 	char *ptr;
+	int return_count;
 
 	ptr = get_fnptr_name(call->fn);
 	if (!ptr)
+		return;
+
+	run_sql(get_row_count, &return_count,
+		"select count(*) from return_states join function_ptr "
+		"where return_states.function == function_ptr.function and "
+		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
+	/* The magic number 100 is just from testing on the kernel. */
+	if (return_count > 100)
 		return;
 
 	run_sql(callback, info,
