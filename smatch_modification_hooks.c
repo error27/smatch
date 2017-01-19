@@ -291,7 +291,7 @@ void register_modification_hooks_late(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 
-	add_hook(&match_assign_late, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_late, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&unop_expr_late, OP_HOOK);
 	add_hook(&asm_expr_late, ASM_HOOK);
 

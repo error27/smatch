@@ -97,7 +97,7 @@ free:
 void check_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
-	add_hook(&match_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook(my_id, &undef);
 }
 

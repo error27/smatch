@@ -399,6 +399,8 @@ void __split_expr(struct expression *expr)
 		    get_macro_name(expr->pos) != get_macro_name(right->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 
+		__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
+
 		__split_expr(expr->left);
 		break;
 	}
