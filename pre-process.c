@@ -35,6 +35,8 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -885,6 +887,125 @@ static int free_preprocessor_line(struct token *token)
 	return 1;
 }
 
+const char *find_include(const char *skip, const char *look_for)
+{
+	DIR *dp;
+	struct dirent *entry;
+	struct stat statbuf;
+	const char *ret;
+	char cwd[PATH_MAX];
+	static char buf[PATH_MAX + 1];
+
+	dp = opendir(".");
+	if (!dp)
+		return NULL;
+
+	if (!getcwd(cwd, sizeof(cwd)))
+		return NULL;
+
+	while ((entry = readdir(dp))) {
+		lstat(entry->d_name, &statbuf);
+
+		if (strcmp(entry->d_name, look_for) == 0) {
+			snprintf(buf, sizeof(buf), "%s/%s", cwd, entry->d_name);
+			return buf;
+		}
+
+		if (S_ISDIR(statbuf.st_mode)) {
+			/* Found a directory, but ignore . and .. */
+			if (strcmp(".", entry->d_name) == 0 ||
+			    strcmp("..", entry->d_name) == 0 ||
+			    strcmp(skip, entry->d_name) == 0)
+				continue;
+
+			chdir(entry->d_name);
+			ret = find_include("", look_for);
+			chdir("..");
+			if (ret)
+				return ret;
+		}
+	}
+	closedir(dp);
+
+	return NULL;
+}
+
+const char *search_dir(const char *stop, const char *look_for)
+{
+	char cwd[PATH_MAX];
+	int len;
+	const char *ret;
+
+	if (!getcwd(cwd, sizeof(cwd)))
+		return NULL;
+
+	len = strlen(cwd);
+	while (len >= 0) {
+		ret = find_include(cwd + len + 1, look_for);
+		if (ret)
+			return ret;
+
+		if (strcmp(cwd, stop) == 0 ||
+		    strcmp(cwd, "/usr/include") == 0 ||
+		    strcmp(cwd, "/usr/local/include") == 0 ||
+		    strlen(cwd) <= 10 ||  /* heck...  don't search /usr/lib/ */
+		    strcmp(cwd, "/") == 0)
+			return NULL;
+
+		while (--len >= 0) {
+			if (cwd[len] == '/') {
+				cwd[len] = '\0';
+				break;
+			}
+		}
+
+		chdir("..");
+	}
+	return NULL;
+}
+
+static void use_best_guess_header_file(struct token *token, const char *filename, struct token **list)
+{
+	char cwd[PATH_MAX];
+	char dir_part[PATH_MAX];
+	const char *file_part;
+	const char *include_name;
+	int len;
+
+	if (!filename || filename[0] == '\0')
+		return;
+
+	file_part = filename;
+	while ((filename = strchr(filename, '/'))) {
+		++filename;
+		if (filename[0])
+			file_part = filename;
+	}
+
+	snprintf(dir_part, sizeof(dir_part), "%s", stream_name(token->pos.stream));
+	len = strlen(dir_part);
+	while (--len >= 0) {
+		if (dir_part[len] == '/') {
+			dir_part[len] = '\0';
+			break;
+		}
+	}
+	if (len < 0)
+		sprintf(dir_part, ".");
+
+	if (!getcwd(cwd, sizeof(cwd)))
+		return;
+
+	chdir(dir_part);
+	include_name = search_dir(cwd, file_part);
+	chdir(cwd);
+	if (!include_name)
+		return;
+	sparse_error(token->pos, "using '%s'", include_name);
+
+	try_include("", include_name, strlen(include_name), list, includepath);
+}
+
 static int handle_include_path(struct stream *stream, struct token **list, struct token *token, int how)
 {
 	const char *filename;
@@ -934,7 +1055,9 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 	if (do_include_path(path, list, token, filename, flen))
 		return 0;
 out:
-	error_die(token->pos, "unable to open '%s'", filename);
+	sparse_error(token->pos, "unable to open '%s'", filename);
+	use_best_guess_header_file(token, filename, list);
+	return 0;
 }
 
 static int handle_include(struct stream *stream, struct token **list, struct token *token)
