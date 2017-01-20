@@ -258,7 +258,9 @@ void sql_insert_data_info(struct expression *data, int type, const char *value)
 	data_name = get_data_info_name(data);
 	if (!data_name)
 		return;
-	sql_insert(data_info, "'%s', '%s', %d, '%s'", get_base_file(), data_name, type, value);
+	sql_insert(data_info, "'%s', '%s', %d, '%s'",
+		   is_static(data) ? get_base_file() : "extern",
+		   data_name, type, value);
 }
 
 char *get_static_filter(struct symbol *sym)
