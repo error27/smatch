@@ -831,8 +831,6 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 
 		if (get_local_rl(expr, &rl))
 			return rl;
-		if (get_db_data_rl(expr, &rl))
-			return rl;
 		if (get_db_type_rl(expr, &rl))
 			return rl;
 		return NULL;
