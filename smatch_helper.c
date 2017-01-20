@@ -191,7 +191,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		}
 
 		if (expr->op == '(') {
-			if (!no_parens)
+			if (!no_parens && expr->unop->type != EXPR_SYMBOL)
 				append(buf, "(", len);
 		} else if (expr->op != '*' || !get_array_expr(expr->unop)) {
 			tmp = show_special(expr->op);
@@ -200,7 +200,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		__get_variable_from_expr(sym_ptr, buf, expr->unop,
 						 len, complicated, no_parens);
 
-		if (expr->op == '(' && !no_parens)
+		if (expr->op == '(' && !no_parens && expr->unop->type != EXPR_SYMBOL)
 			append(buf, ")", len);
 
 		if (expr->op == SPECIAL_DECREMENT ||
