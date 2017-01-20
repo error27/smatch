@@ -30,6 +30,7 @@ static int my_id;
 static int my_call_id;
 
 STATE(called);
+static bool func_gets_user_data;
 
 static const char * kstr_funcs[] = {
 	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
@@ -191,6 +192,8 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_para
 	int param = PTR_INT(_param);
 	struct expression *dest;
 
+	func_gets_user_data = true;
+
 	dest = get_argument_from_call_expr(expr->args, param);
 	dest = strip_expr(dest);
 	if (!dest)
@@ -202,6 +205,8 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *arg;
 	int i;
+
+	func_gets_user_data = true;
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
@@ -398,12 +403,16 @@ clear_old_state:
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
 {
+	func_gets_user_data = true;
+
 	tag_as_user_data(expr->left);
 	set_points_to_user_data(expr->left);
 }
 
 static void match_simple_strtoul(const char *fn, struct expression *expr, void *unused)
 {
+	func_gets_user_data = true;
+
 	set_state_expr(my_id, expr->left, alloc_estate_whole(get_type(expr->left)));
 }
 
@@ -461,6 +470,33 @@ static int returned_rl_callback(void *_info, int argc, char **argv, char **azCol
 	return 0;
 }
 
+static int has_user_data(struct symbol *sym)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), tmp) {
+		if (tmp->sym == sym)
+			return 1;
+	} END_FOR_EACH_SM(tmp);
+	return 0;
+}
+
+static int we_pass_user_data(struct expression *call)
+{
+	struct expression *arg;
+	struct symbol *sym;
+
+	FOR_EACH_PTR(call->args, arg) {
+		sym = expr_to_sym(arg);
+		if (!sym)
+			continue;
+		if (has_user_data(sym))
+			return 1;
+	} END_FOR_EACH_PTR(arg);
+
+	return 0;
+}
+
 static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 {
 	struct db_info db_info = {};
@@ -474,11 +510,25 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 	db_info.call = call;
 	run_sql(&returned_rl_callback, &db_info,
 		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
+		get_static_filter(call->fn->symbol), USER_DATA3_SET);
+	if (db_info.rl) {
+		func_gets_user_data = true;
+		*rl = db_info.rl;
+		return 1;
+	}
+
+	run_sql(&returned_rl_callback, &db_info,
+		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
 		get_static_filter(call->fn->symbol), USER_DATA3);
-	if (!db_info.rl)
-		return 0;
-	*rl = db_info.rl;
-	return 1;
+	if (db_info.rl) {
+		if (!we_pass_user_data(call))
+			return 0;
+		func_gets_user_data = true;
+		*rl = db_info.rl;
+		return 1;
+	}
+
+	return 0;
 }
 
 static int user_data_flag;
@@ -657,6 +707,35 @@ free:
 static void returns_param_user_data(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
+	struct expression *call;
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return;
+
+	if (!we_pass_user_data(call))
+		return;
+
+	if (param == -1) {
+		if (expr->type != EXPR_ASSIGNMENT)
+			return;
+		set_to_user_data(expr->left, key, value);
+		return;
+	}
+
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+	set_to_user_data(arg, key, value);
+}
+
+static void returns_param_user_data_set(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+
+	func_gets_user_data = true;
 
 	if (param == -1) {
 		if (expr->type != EXPR_ASSIGNMENT)
@@ -725,14 +804,21 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (strcmp(param_name, "$") == 0)
 			continue;
 
-		sql_insert_return_states(return_id, return_ranges, USER_DATA3,
+		sql_insert_return_states(return_id, return_ranges,
+					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
 					 param, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
 
 	if (get_user_rl(expr, &rl)) {
-		sql_insert_return_states(return_id, return_ranges, USER_DATA3,
+		sql_insert_return_states(return_id, return_ranges,
+					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
 					 -1, "$", show_rl(rl));
 	}
+}
+
+static void match_function_def(struct symbol *sym)
+{
+	func_gets_user_data = false;
 }
 
 void check_user_data2(int id)
@@ -743,6 +829,8 @@ void check_user_data2(int id)
 
 	if (option_project != PROJ_KERNEL)
 		return;
+
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_hook(&free_start_states, AFTER_FUNC_HOOK);
@@ -778,6 +866,7 @@ void check_user_data2(int id)
 	add_member_info_callback(my_id, struct_member_callback);
 	select_caller_info_hook(set_param_user_data, USER_DATA3);
 	select_return_states_hook(USER_DATA3, &returns_param_user_data);
+	select_return_states_hook(USER_DATA3_SET, &returns_param_user_data_set);
 	add_split_return_callback(&param_set_to_user_data);
 }
 

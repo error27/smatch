@@ -694,6 +694,7 @@ enum info_type {
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
+	USER_DATA3_SET	= 9017,
 	NO_OVERFLOW	= 8018,
 	NO_OVERFLOW_SIMPLE = 8019,
 	LOCKED		= 8020,
