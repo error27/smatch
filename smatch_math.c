@@ -814,19 +814,29 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 		if (implied == RL_HARD && !estate_has_hard_max(state))
 			return NULL;
 		return clone_rl(estate_rl(state));
-	case RL_REAL_ABSOLUTE:
+	case RL_REAL_ABSOLUTE: {
+		struct smatch_state *abs_state;
+
 		state = get_extra_state(expr);
-		if (!state || !state->data || is_whole_rl(estate_rl(state))) {
-			state = get_real_absolute_state(expr);
-			if (state && state->data)
-				return clone_rl(estate_rl(state));
-			if (get_local_rl(expr, &rl))
-				return rl;
-			if (get_db_type_rl(expr, &rl))
-				return rl;
-			return NULL;
+		abs_state = get_real_absolute_state(expr);
+
+		if (estate_rl(state) && estate_rl(abs_state)) {
+			return clone_rl(rl_intersection(estate_rl(state),
+							estate_rl(abs_state)));
+		} else if (estate_rl(state)) {
+			return clone_rl(estate_rl(state));
+		} else if (estate_rl(abs_state)) {
+			return clone_rl(estate_rl(abs_state));
 		}
-		return clone_rl(estate_rl(state));
+
+		if (get_local_rl(expr, &rl))
+			return rl;
+		if (get_db_data_rl(expr, &rl))
+			return rl;
+		if (get_db_type_rl(expr, &rl))
+			return rl;
+		return NULL;
+	}
 	case RL_FUZZY:
 		if (!get_fuzzy_min_helper(expr, &min))
 			min = sval_type_min(get_type(expr));
