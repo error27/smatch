@@ -134,7 +134,7 @@ void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const cha
 		return;
 
 	rc = sqlite3_exec(db, sql, callback, data, &err);
-	if (rc != SQLITE_OK) {
+	if (rc != SQLITE_OK && !parse_error) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
 	}
