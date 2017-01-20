@@ -64,6 +64,27 @@ static void reset(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
 }
 
+static int in_iterator_pre_statement(void)
+{
+	struct statement *stmt;
+
+	/*
+	 * we can't use __cur_stmt because that isn't set for
+	 * iterator_pre_statement.  Kind of a mess.
+	 *
+	 */
+
+	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
+
+	if (!stmt || !stmt->parent)
+		return 0;
+	if (stmt->parent->type != STMT_ITERATOR)
+		return 0;
+	if (stmt->parent->iterator_pre_statement != stmt)
+		return 0;
+	return 1;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
@@ -72,6 +93,8 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 	if (is_fake_call(expr->right))
+		return;
+	if (in_iterator_pre_statement())
 		return;
 
 	get_real_absolute_rl(expr->right, &rl);
