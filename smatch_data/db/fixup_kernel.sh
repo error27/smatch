@@ -172,7 +172,7 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
     echo "update caller_info
           set function = '$drv (struct rtl_hal_ops)->set_hw_reg'
           where function = '(struct rtl_hal_ops)->set_hw_reg' and file like 'drivers/net/wireless/rtlwifi/$drv/%';" \
-         | sqlite3 smatch_db.sqlite
+         | sqlite3 $db_file
 
     echo "insert into function_ptr values ('$file', '$function', '$drv (struct rtl_hal_ops)->set_hw_reg', 1);" \
          | sqlite3 $db_file
