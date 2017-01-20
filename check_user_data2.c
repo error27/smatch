@@ -401,6 +401,28 @@ clear_old_state:
 		set_state_expr(my_id, expr->left, alloc_estate_empty());
 }
 
+static void match_condition(struct expression *expr)
+{
+	struct smatch_state *left_orig = NULL;
+	struct smatch_state *right_orig = NULL;
+
+	if (expr->type != EXPR_COMPARE || expr->op != SPECIAL_EQUAL)
+		return;
+
+	left_orig = get_state_expr(my_id, expr->left);
+	right_orig = get_state_expr(my_id, expr->right);
+
+	if (!left_orig && !right_orig)
+		return;
+	if (left_orig && right_orig)
+		return;
+
+	if (left_orig)
+		set_true_false_states_expr(my_id, expr->left, alloc_estate_empty(), NULL);
+	else
+		set_true_false_states_expr(my_id, expr->right, alloc_estate_empty(), NULL);
+}
+
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
 {
 	func_gets_user_data = true;
@@ -861,6 +883,7 @@ void check_user_data2(int id)
 	add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
