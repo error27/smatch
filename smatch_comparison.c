@@ -1978,9 +1978,6 @@ static void db_return_comparison(struct expression *expr, int left_param, char *
 	add_var_sym(&left_vsl, left_name, left_sym);
 	add_var_sym(&right_vsl, right_name, right_sym);
 
-	if (local_debug)
-		sm_msg("SET compare: %s %s %s", left_name, show_special(op), right_name);
-
 	add_comparison_var_sym(left_name, left_vsl, op, right_name, right_vsl);
 
 free:
