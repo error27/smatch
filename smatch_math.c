@@ -862,18 +862,24 @@ static sval_t handle_sizeof(struct expression *expr)
 	sym = expr->cast_type;
 	if (!sym) {
 		sym = evaluate_expression(expr->cast_expression);
-		/*
-		 * Expressions of restricted types will possibly get
-		 * promoted - check that here
-		 */
 		if (!sym)
 			sym = &int_ctype;
-		else if (is_restricted_type(sym)) {
+#if 0
+		/*
+		 * Expressions of restricted types will possibly get
+		 * promoted - check that here.  I'm not sure how this works,
+		 * the problem is that sizeof(le16) shouldn't be promoted and
+		 * the original code did that...  Let's if zero this out and
+		 * see what breaks.
+		 */
+
+		if (is_restricted_type(sym)) {
 			if (type_bits(sym) < bits_in_int)
 				sym = &int_ctype;
-		} else if (is_fouled_type(sym)) {
-			sym = &int_ctype;
 		}
+#endif
+		if (is_fouled_type(sym))
+			sym = &int_ctype;
 	}
 	examine_symbol_type(sym);
 
