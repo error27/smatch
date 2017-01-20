@@ -263,6 +263,13 @@ void sql_insert_data_info(struct expression *data, int type, const char *value)
 		   data_name, type, value);
 }
 
+void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type, const char *value)
+{
+	sql_insert(data_info, "'%s', '%s', %d, '%s'",
+		   (sym->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+		   var, type, value);
+}
+
 char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
