@@ -877,7 +877,6 @@ static void match_assign(struct expression *expr)
 	struct expression *right;
 	struct expression *binop_expr;
 	struct symbol *left_type;
-	struct symbol *right_type;
 	struct symbol *sym;
 	char *name;
 	sval_t left_min, left_max;
@@ -906,7 +905,6 @@ static void match_assign(struct expression *expr)
 		return;
 
 	left_type = get_type(left);
-	right_type = get_type(right);
 
 	res_min = sval_type_min(left_type);
 	res_max = sval_type_max(left_type);
@@ -922,12 +920,12 @@ static void match_assign(struct expression *expr)
 		    get_implied_min(right, &right_min) &&
 		    !sval_is_negative_min(right_min)) {
 			res_min = sval_binop(left_min, '+', right_min);
-			res_min = sval_cast(right_type, res_min);
+			res_min = sval_cast(left_type, res_min);
 		}
 		if (inside_loop())  /* we are assuming loops don't lead to wrapping */
 			break;
 		res_max = sval_binop(left_max, '+', right_max);
-		res_max = sval_cast(right_type, res_max);
+		res_max = sval_cast(left_type, res_max);
 		break;
 	case SPECIAL_SUB_ASSIGN:
 		if (get_implied_max(left, &left_max) &&
@@ -935,16 +933,17 @@ static void match_assign(struct expression *expr)
 		    get_implied_min(right, &right_min) &&
 		    !sval_is_min(right_min)) {
 			res_max = sval_binop(left_max, '-', right_min);
-			res_max = sval_cast(right_type, res_max);
+			res_max = sval_cast(left_type, res_max);
 		}
 		if (inside_loop())
 			break;
 		if (get_implied_min(left, &left_min) &&
 		    !sval_is_min(left_min) &&
 		    get_implied_max(right, &right_max) &&
-		    !sval_is_max(right_max)) {
+		    !sval_is_max(right_max) &&
+		    sval_cmp(left_min, right_max) > 0) {
 			res_min = sval_binop(left_min, '-', right_max);
-			res_min = sval_cast(right_type, res_min);
+			res_min = sval_cast(left_type, res_min);
 		}
 		break;
 	case SPECIAL_AND_ASSIGN:
