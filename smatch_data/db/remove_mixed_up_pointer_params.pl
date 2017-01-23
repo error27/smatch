@@ -19,7 +19,7 @@ my ($select, $select_type, $remove, $file, $caller, $function, $param, $src_para
 
 $remove = $db->prepare_cached('DELETE FROM caller_info WHERE file = ? AND caller = ? AND function = ? AND parameter = ? AND type != 1014');
 $select = $db->prepare('SELECT file, caller, function, parameter, value FROM caller_info WHERE function LIKE "% param %" AND type = 1014 AND value LIKE "p %"');
-$select_type = $db->prepare_cached('SELECT value from function_type_info WHERE file = ? AND function = ? AND parameter = ? limit 1');
+$select_type = $db->prepare_cached('SELECT value from function_type WHERE file = ? AND function = ? AND parameter = ? limit 1');
 $select->execute();
 
 while (($file, $caller, $function, $param, $value) = $select->fetchrow_array()) {

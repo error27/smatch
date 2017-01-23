@@ -33,7 +33,7 @@ static void match_def(struct symbol *sym)
 	i = -1;
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
 		i++;
-		sql_insert_function_type_info(i, type_to_str(get_real_base_type(arg)));
+		sql_insert_function_type(i, type_to_str(get_real_base_type(arg)));
 	} END_FOR_EACH_PTR(arg);
 }
 
