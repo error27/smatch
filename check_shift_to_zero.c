@@ -59,7 +59,7 @@ static void match_binop2(struct expression *expr)
 	if (!get_implied_value(left->right, &mask))
 		return;
 
-	if ((unsigned long long)-1 & mask.uvalue >> shift.uvalue)
+	if (mask.uvalue >> shift.uvalue)
 		return;
 
 	sm_msg("warn: mask and shift to zero");
