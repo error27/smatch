@@ -363,13 +363,9 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 			sm_msg("FALSE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
 		} END_FOR_EACH_PTR(sm);
 	}
-	/* if it's a maybe then remove it from the false stack */
+	/* if it's a maybe then remove it */
 	FOR_EACH_PTR(maybe_stack, tmp) {
 		remove_pool(false_stack, tmp->pool);
-	} END_FOR_EACH_PTR(tmp);
-
-	/* and the true stack */
-	FOR_EACH_PTR(maybe_stack, tmp) {
 		remove_pool(true_stack, tmp->pool);
 	} END_FOR_EACH_PTR(tmp);
 
