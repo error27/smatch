@@ -56,7 +56,7 @@ int unfree_stree;
 #define bal(side) ((side) == 0 ? -1 : 1)
 #define side(bal) ((bal)  == 1 ?  1 : 0)
 
-struct stree *avl_new(void)
+static struct stree *avl_new(void)
 {
 	struct stree *avl = malloc(sizeof(*avl));
 
@@ -65,6 +65,7 @@ struct stree *avl_new(void)
 
 	avl->root = NULL;
 	avl->base_stree = NULL;
+	avl->has_states = calloc(num_checks + 1, sizeof(char));
 	avl->count = 0;
 	avl->stree_id = 0;
 	avl->references = 1;
@@ -96,6 +97,9 @@ struct sm_state *avl_lookup(const struct stree *avl, const struct sm_state *sm)
 	AvlNode *found;
 
 	if (!avl)
+		return NULL;
+	if (sm->owner != USHRT_MAX &&
+	    !avl->has_states[sm->owner])
 		return NULL;
 	found = lookup(avl, avl->root, sm);
 	if (!found)
@@ -138,6 +142,9 @@ bool avl_insert(struct stree **avl, const struct sm_state *sm)
 		*avl = clone_stree_real(*avl);
 	}
 	old_count = (*avl)->count;
+	/* fortunately we never call get_state() on "unnull_path" */
+	if (sm->owner != USHRT_MAX)
+		(*avl)->has_states[sm->owner] = 1;
 	insert_sm(*avl, &(*avl)->root, sm);
 	return (*avl)->count != old_count;
 }
