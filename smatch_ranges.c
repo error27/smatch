@@ -1524,6 +1524,27 @@ static struct range_list *handle_XOR_rl(struct range_list *left, struct range_li
 	return cast_rl(rl_type(left), alloc_rl(zero, max));
 }
 
+static struct range_list *handle_AND_rl(struct range_list *left, struct range_list *right)
+{
+	unsigned long long left_set, left_maybe;
+	unsigned long long right_set, right_maybe;
+	sval_t zero, max;
+
+	return NULL;
+
+	left_set = rl_bits_always_set(left);
+	left_maybe = rl_bits_maybe_set(left);
+
+	right_set = rl_bits_always_set(right);
+	right_maybe = rl_bits_maybe_set(right);
+
+	zero = max = rl_min(left);
+	zero.uvalue = 0;
+	max.uvalue = fls_mask((left_maybe | right_maybe) ^ (left_set & right_set));
+
+	return cast_rl(rl_type(left), alloc_rl(zero, max));
+}
+
 struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)
 {
 	struct symbol *cast_type;
@@ -1564,10 +1585,12 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	case '^':
 		ret = handle_XOR_rl(left, right);
 		break;
+	case '&':
+		ret = handle_AND_rl(left, right);
+		break;
 
 	/* FIXME:  Do the rest as well */
 	case '-':
-	case '&':
 	case SPECIAL_RIGHTSHIFT:
 	case SPECIAL_LEFTSHIFT:
 		break;
