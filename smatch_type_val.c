@@ -261,12 +261,12 @@ static void match_assign_value(struct expression *expr)
 		goto free;
 	}
 
-	if (expr->op != '=') {
-		add_type_val(member, alloc_whole_rl(get_type(expr->left)));
-		goto free;
-	}
-	get_absolute_rl(expr->right, &rl);
-	rl = cast_rl(type, rl);
+	/*
+	 * This is a bit cheating.  We order it so this will already be set
+	 * by smatch_extra.c and we just look up the value.
+	 */
+
+	get_absolute_rl(expr->left, &rl);
 	add_type_val(member, rl);
 free:
 	free_string(right_member);
@@ -420,7 +420,7 @@ void register_type_val(int id)
 
 	my_id = id;
 
-	add_hook(&match_assign_value, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_value, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&match_assign_pointer, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
