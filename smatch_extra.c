@@ -1875,13 +1875,60 @@ static int filter_unused_kzalloc_info(struct expression *call, int param, char *
 	return 1;
 }
 
+struct range_list *intersect_with_real_abs_var_sym(const char *name, struct symbol *sym, struct range_list *start)
+{
+	struct smatch_state *state;
+
+	/*
+	 * Here is the difference between implied value and real absolute, say
+	 * you have:
+	 *
+	 *	int a = (u8)x;
+	 *
+	 * Then you know that a is 0-255.  That's real absolute.  But you don't
+	 * know for sure that it actually goes up to 255.  So it's not implied.
+	 * Implied indicates a degree of certainty.
+	 *
+	 * But then say you cap "a" at 8.  That means you know it goes up to
+	 * 8.  So now the implied value is s32min-8.  But you can combine it
+	 * with the real absolute to say that actually it's 0-8.
+	 *
+	 * We are combining it here.  But now that I think about it, this is
+	 * probably not the ideal place to combine it because it should proably
+	 * be done earlier.  Oh well, this is an improvement on what was there
+	 * before so I'm going to commit this code.
+	 *
+	 */
+
+	state = get_real_absolute_state_var_sym(name, sym);
+	if (!state || !estate_rl(state))
+		return start;
+
+	return rl_intersection(estate_rl(state), start);
+}
+
+struct range_list *intersect_with_real_abs_expr(struct expression *expr, struct range_list *start)
+{
+	struct smatch_state *state;
+
+	state = get_real_absolute_state(expr);
+	if (!state || !estate_rl(state))
+		return start;
+
+	return rl_intersection(estate_rl(state), start);
+}
+
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
+	struct range_list *rl;
+
 	if (estate_is_whole(sm->state))
 		return;
 	if (filter_unused_kzalloc_info(call, param, printed_name, sm))
 		return;
-	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, sm->state->name);
+	rl = estate_rl(sm->state);
+	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
+	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, show_rl(rl));
 	if (estate_has_fuzzy_max(sm->state))
 		sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
 				       sval_to_str(estate_get_fuzzy_max(sm->state)));
@@ -2107,8 +2154,10 @@ static void match_call_info(struct expression *expr)
 		else
 			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
 
-		if (!is_whole_rl(rl))
+		if (!is_whole_rl(rl)) {
+			rl = intersect_with_real_abs_expr(arg, rl);
 			sql_insert_caller_info(expr, PARAM_VALUE, i, "$", show_rl(rl));
+		}
 		state = get_state_expr(SMATCH_EXTRA, arg);
 		if (estate_has_fuzzy_max(state)) {
 			sql_insert_caller_info(expr, FUZZY_MAX, i, "$",
