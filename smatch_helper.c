@@ -678,6 +678,29 @@ int getting_address(void)
 	return 0;
 }
 
+int get_struct_and_member(struct expression *expr, const char **type, const char **member)
+{
+	struct symbol *sym;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_DEREF)
+		return 0;
+	if (!expr->member)
+		return 0;
+
+	sym = get_type(expr->deref);
+	if (!sym)
+		return 0;
+	if (sym->type == SYM_UNION)
+		return 0;
+	if (!sym->ident)
+		return 0;
+
+	*type = sym->ident->name;
+	*member = expr->member->name;
+	return 1;
+}
+
 char *get_member_name(struct expression *expr)
 {
 	char buf[256];
