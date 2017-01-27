@@ -19,16 +19,42 @@
 
 static int my_id;
 
-static void match_condition(struct expression *expr)
+static void check_constant(struct expression *expr)
 {
 	sval_t val;
-
-	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
-		return;
 
 	if (!get_value(expr->right, &val))
 		return;
 	sm_msg("warn: was '== %s' instead of '='", sval_to_str(val));
+}
+
+static void check_address(struct expression *expr)
+{
+	char *str;
+	struct expression *right = strip_expr(expr->right);
+
+	if (!__cur_stmt || __cur_stmt->type != STMT_IF)
+		return;
+
+	if (right->type != EXPR_PREOP ||
+	    right->op != '&')
+		return;
+
+	if (get_macro_name(expr->pos))
+		return;
+
+	str = expr_to_str(right);
+	sm_msg("warn: was '== %s' instead of '='", str);
+	free_string(str);
+}
+
+static void match_condition(struct expression *expr)
+{
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return;
+
+	check_constant(expr);
+	check_address(expr);
 }
 
 void check_assign_vs_compare(int id)
