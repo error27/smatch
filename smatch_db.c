@@ -1426,6 +1426,29 @@ static int split_by_bool_param(struct expression *expr)
 	return split_on_bool_sm(sm, expr);
 }
 
+static int split_by_null_nonnull_param(struct expression *expr)
+{
+	struct symbol *arg;
+	struct sm_state *sm;
+
+	/* function must only take one pointer */
+	if (ptr_list_size((struct ptr_list *)cur_func_sym->ctype.base_type->arguments) != 1)
+		return 0;
+	arg = first_ptr_list((struct ptr_list *)cur_func_sym->ctype.base_type->arguments);
+	if (!arg->ident)
+		return 0;
+	if (get_real_base_type(arg)->type != SYM_PTR)
+		return 0;
+
+	if (param_was_set_var_sym(arg->ident->name, arg))
+		return 0;
+	sm = get_sm_state(SMATCH_EXTRA, arg->ident->name, arg);
+	if (!sm)
+		return 0;
+
+	return split_on_bool_sm(sm, expr);
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1461,6 +1484,7 @@ static void call_return_state_hooks(struct expression *expr)
 	} else if (split_positive_from_negative(expr)) {
 		return;
 	} else if (split_by_bool_param(expr)) {
+	} else if (split_by_null_nonnull_param(expr)) {
 		return;
 	}
 
