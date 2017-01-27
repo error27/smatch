@@ -203,6 +203,8 @@ static int pool_in_pools(struct stree *pool,
 			continue;
 		if (tmp->pool == pool)
 			return 1;
+		if (tmp->pool > pool)
+			return 0;
 	} END_FOR_EACH_PTR(tmp);
 	return 0;
 }
