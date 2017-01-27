@@ -113,7 +113,6 @@ static void enable_checks(const char *s)
 		default:
 			fprintf(stderr, "invalid character '%c'\n", *s);
 			exit(1);
-			
 		}
 	} while (*s++);
 }
