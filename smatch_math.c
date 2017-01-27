@@ -120,13 +120,12 @@ static struct range_list *handle_bitwise_negate(struct expression *expr, int imp
 static struct range_list *handle_minus_preop(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct range_list *rl;
-	sval_t sval;
+	sval_t min, max;
 
 	rl = _get_rl(expr->unop, implied, recurse_cnt);
-	if (!rl_to_sval(rl, &sval))
-		return NULL;
-	sval = sval_preop(sval, '-');
-	return alloc_rl(sval, sval);
+	min = sval_preop(rl_max(rl), '-');
+	max = sval_preop(rl_min(rl), '-');
+	return alloc_rl(min, max);
 }
 
 static struct range_list *handle_preop_rl(struct expression *expr, int implied, int *recurse_cnt)
