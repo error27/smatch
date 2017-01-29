@@ -374,6 +374,28 @@ static inline int is_bool_type(struct symbol *type)
 	return type == &bool_ctype;
 }
 
+static inline int is_scalar_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	switch (type->type) {
+	case SYM_ENUM:
+	case SYM_BITFIELD:
+	case SYM_PTR:
+	case SYM_ARRAY:		// OK, will be a PTR after conversion
+	case SYM_FN:
+	case SYM_RESTRICT:	// OK, always integer types
+		return 1;
+	default:
+		break;
+	}
+	if (type->ctype.base_type == &int_type)
+		return 1;
+	if (type->ctype.base_type == &fp_type)
+		return 1;
+	return 0;
+}
+
 static inline int is_function(struct symbol *type)
 {
 	return type && type->type == SYM_FN;
