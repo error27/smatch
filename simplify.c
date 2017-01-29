@@ -225,6 +225,7 @@ void kill_instruction(struct instruction *insn)
 		kill_use(&insn->src3);
 		return;
 	case OP_BR:
+	case OP_COMPUTEDGOTO:
 		insn->bb = NULL;
 		repeat_phase |= REPEAT_CSE;
 		if (insn->bb_true && insn->bb_false)
