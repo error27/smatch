@@ -253,6 +253,26 @@ static inline int constant(pseudo_t pseudo)
 static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
 	convert_instruction_target(insn, pseudo);
+
+	switch (insn->opcode) {
+	case OP_SEL:
+	case OP_RANGE:
+		kill_use(&insn->src3);
+	case OP_BINARY ... OP_BINCMP_END:
+		kill_use(&insn->src2);
+	case OP_NOT:
+	case OP_NEG:
+	case OP_SYMADDR:
+	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
+	case OP_PTRCAST:
+		kill_use(&insn->src1);
+		break;
+
+	default:
+		assert(0);
+	}
 	insn->bb = NULL;
 	return REPEAT_CSE;
 }
