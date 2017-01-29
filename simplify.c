@@ -221,7 +221,7 @@ void kill_instruction(struct instruction *insn)
 	case OP_BR:
 		insn->bb = NULL;
 		repeat_phase |= REPEAT_CSE;
-		if (insn->cond)
+		if (insn->bb_true && insn->bb_false)
 			kill_use(&insn->cond);
 		return;
 	}
