@@ -195,6 +195,10 @@ void kill_instruction(struct instruction *insn)
 		repeat_phase |= REPEAT_CSE;
 		return;
 
+	case OP_CAST:
+	case OP_SCAST:
+	case OP_FPCAST:
+	case OP_PTRCAST:
 	case OP_NOT: case OP_NEG:
 		insn->bb = NULL;
 		kill_use(&insn->src1);
