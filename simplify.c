@@ -216,6 +216,7 @@ void kill_instruction(struct instruction *insn)
 		repeat_phase |= REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return;
 
+	case OP_SEL:
 	case OP_RANGE:
 		insn->bb = NULL;
 		repeat_phase |= REPEAT_CSE;
