@@ -231,6 +231,10 @@ void kill_instruction(struct instruction *insn)
 		if (insn->bb_true && insn->bb_false)
 			kill_use(&insn->cond);
 		return;
+
+	case OP_ENTRY:
+		/* ignore */
+		return;
 	}
 }
 
