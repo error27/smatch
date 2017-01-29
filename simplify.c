@@ -188,54 +188,49 @@ void kill_instruction(struct instruction *insn)
 		return;
 
 	switch (insn->opcode) {
+	case OP_SEL:
+	case OP_RANGE:
+		kill_use(&insn->src3);
+		/* fall through */
+
 	case OP_BINARY ... OP_BINCMP_END:
-		insn->bb = NULL;
-		kill_use(&insn->src1);
 		kill_use(&insn->src2);
-		repeat_phase |= REPEAT_CSE;
-		return;
+		/* fall through */
 
 	case OP_CAST:
 	case OP_SCAST:
 	case OP_FPCAST:
 	case OP_PTRCAST:
 	case OP_NOT: case OP_NEG:
-		insn->bb = NULL;
 		kill_use(&insn->src1);
-		repeat_phase |= REPEAT_CSE;
-		return;
+		break;
 
 	case OP_PHI:
 		clear_phi(insn);
-		insn->bb = NULL;
-		repeat_phase |= REPEAT_CSE;
-		return;
+		break;
 
 	case OP_SYMADDR:
-		insn->bb = NULL;
-		repeat_phase |= REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
-		return;
+		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
+		break;
 
-	case OP_SEL:
-	case OP_RANGE:
-		insn->bb = NULL;
-		repeat_phase |= REPEAT_CSE;
-		kill_use(&insn->src1);
-		kill_use(&insn->src2);
-		kill_use(&insn->src3);
-		return;
 	case OP_BR:
+		if (!insn->bb_true || !insn->bb_false)
+			break;
+		/* fall through */
+
 	case OP_COMPUTEDGOTO:
-		insn->bb = NULL;
-		repeat_phase |= REPEAT_CSE;
-		if (insn->bb_true && insn->bb_false)
-			kill_use(&insn->cond);
-		return;
+		kill_use(&insn->cond);
+		break;
 
 	case OP_ENTRY:
+	default:
 		/* ignore */
 		return;
 	}
+
+	insn->bb = NULL;
+	repeat_phase |= REPEAT_CSE;
+	return;
 }
 
 /*
