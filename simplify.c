@@ -202,6 +202,7 @@ void kill_instruction(struct instruction *insn)
 		return;
 
 	case OP_PHI:
+		clear_phi(insn);
 		insn->bb = NULL;
 		repeat_phase |= REPEAT_CSE;
 		return;

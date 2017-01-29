@@ -1,0 +1,18 @@
+void foo(int a, int *b, unsigned int g);
+void foo(int a, int *b, unsigned int g)
+{
+	int d = 0;
+
+	if ((!a || *b) && g)
+		d = 16;
+	else
+		d = 8;
+}
+
+/*
+ * check-name: kill-phi-node
+ * check-command: test-linearize $file
+ *
+ * check-output-ignore
+ * check-output-excludes: phisrc\\.
+ */
