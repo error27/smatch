@@ -869,6 +869,11 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 	if (ctype) {
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
+		if (!is_scalar_type(ctype)) {
+			sparse_error(expr->pos, "incorrect type in conditional");
+			info(expr->pos, "   got %s", show_typename(ctype));
+			ctype = NULL;
+		}
 	}
 
 	return ctype;
