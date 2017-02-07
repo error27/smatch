@@ -800,6 +800,11 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+static void predefined_macros(void)
+{
+	add_pre_buffer("#define __CHECKER__ 1\n");
+}
+
 void declare_builtin_functions(void)
 {
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
@@ -1152,7 +1157,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		init_ctype();
 
 		create_builtin_stream();
-		add_pre_buffer("#define __CHECKER__ 1\n");
+		predefined_macros();
 		if (!preprocess_only)
 			declare_builtin_functions();
 
