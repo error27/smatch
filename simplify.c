@@ -337,6 +337,21 @@ static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long val
 	return 0;
 }
 
+static int simplify_mul_div(struct instruction *insn, long long value)
+{
+	if (value == 1)
+		return replace_with_pseudo(insn, insn->src1);
+
+	switch (insn->opcode) {
+	case OP_MULS:
+	case OP_MULU:
+		if (value == 0)
+			return replace_with_pseudo(insn, insn->src2);
+	}
+
+	return 0;
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
@@ -361,6 +376,8 @@ static int simplify_constant_rightside(struct instruction *insn)
 		return simplify_asr(insn, insn->src1, value);
 
 	case OP_MULU: case OP_MULS:
+		return simplify_mul_div(insn, value);
+
 	case OP_AND_BOOL:
 		if (value == 1)
 			return replace_with_pseudo(insn, insn->src1);
