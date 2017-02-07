@@ -350,6 +350,8 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 	case OP_MULU:
 		if (value == 0)
 			return replace_with_pseudo(insn, insn->src2);
+	/* Fall through */
+	case OP_DIVS:
 		if (!(value & sbit))	// positive
 			break;
 
