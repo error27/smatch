@@ -388,6 +388,11 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_ASR:
 		return simplify_asr(insn, insn->src1, value);
 
+	case OP_MODU: case OP_MODS:
+		if (value == 1)
+			return replace_with_pseudo(insn, value_pseudo(0));
+		return 0;
+
 	case OP_DIVU: case OP_DIVS:
 	case OP_MULU: case OP_MULS:
 		return simplify_mul_div(insn, value);
