@@ -339,6 +339,9 @@ static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long val
 
 static int simplify_mul_div(struct instruction *insn, long long value)
 {
+	unsigned long long sbit = 1ULL << (insn->size - 1);
+	unsigned long long bits = sbit | (sbit - 1);
+
 	if (value == 1)
 		return replace_with_pseudo(insn, insn->src1);
 
@@ -347,6 +350,14 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 	case OP_MULU:
 		if (value == 0)
 			return replace_with_pseudo(insn, insn->src2);
+		if (!(value & sbit))	// positive
+			break;
+
+		value |= ~bits;
+		if (value == -1) {
+			insn->opcode = OP_NEG;
+			return REPEAT_CSE;
+		}
 	}
 
 	return 0;
