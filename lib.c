@@ -802,7 +802,13 @@ static char **handle_switch(char *arg, char **next)
 
 static void predefined_macros(void)
 {
+	unsigned long long val;
+
 	add_pre_buffer("#define __CHECKER__ 1\n");
+
+	val = (1ULL << (bits_in_long-1)) - 1;
+	add_pre_buffer("#weak_define __LONG_MAX__ %#llxLL\n", val);
+	add_pre_buffer("#weak_define __SIZEOF_POINTER__ %d\n", bits_in_pointer/8);
 }
 
 void declare_builtin_functions(void)
