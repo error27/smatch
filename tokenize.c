@@ -615,9 +615,6 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 			want_hex = 0;
 			escape = next == '\\';
 		} else {
-			if (!(cclass[next + 1] & Escape))
-				warning(stream_pos(stream),
-					"Unknown escape '%c'", next);
 			escape = 0;
 			want_hex = next == 'x';
 		}

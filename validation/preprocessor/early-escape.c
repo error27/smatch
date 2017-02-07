@@ -11,7 +11,6 @@
  *	for a token which is excluded by the preprocessor.
  * check-name: early-escape
  * check-command: sparse -E $file
- * check-known-to-fail
  *
  * check-output-start
 

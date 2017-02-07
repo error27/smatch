@@ -54,7 +54,13 @@ static const char *parse_escape(const char *p, unsigned *val, const char *end, i
 		break;
 	}
 	default:	/* everything else is left as is */
+		warning(pos, "unknown escape sequence: '\\%c'", c);
 		break;
+	case '\\':
+	case '\'':
+	case '"':
+	case '?':
+		break;	/* those are legal, so no warnings */
 	}
 	*val = c & ~((~0U << (bits - 1)) << 1);
 	return p;

@@ -18,10 +18,10 @@ static char d_oct[3] = "\141";
  * check-name: Character escape sequences
  *
  * check-error-start
-escapes.c:6:26: warning: Unknown escape 'c'
 escapes.c:3:34: warning: hex escape sequence out of range
 escapes.c:3:44: warning: hex escape sequence out of range
 escapes.c:4:18: warning: hex escape sequence out of range
+escapes.c:6:24: warning: unknown escape sequence: '\c'
 escapes.c:6:30: warning: multi-character character constant
 escapes.c:6:39: warning: multi-character character constant
 escapes.c:6:47: warning: hex escape sequence out of range
