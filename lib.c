@@ -257,10 +257,14 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
+#define ARCH_LP32  0
+#define ARCH_LP64  1
+#define ARCH_LLP64 2
+
 #ifdef __x86_64__
-#define ARCH_M64_DEFAULT 1
+#define ARCH_M64_DEFAULT ARCH_LP64
 #else
-#define ARCH_M64_DEFAULT 0
+#define ARCH_M64_DEFAULT ARCH_LP32
 #endif
 
 int arch_m64 = ARCH_M64_DEFAULT;
@@ -387,9 +391,11 @@ static char **handle_multiarch_dir(char *arg, char **next)
 static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
-		arch_m64 = 1;
+		arch_m64 = ARCH_LP64;
 	} else if (!strcmp(arg, "m32")) {
-		arch_m64 = 0;
+		arch_m64 = ARCH_LP32;
+	} else if (!strcmp(arg, "msize-llp64")) {
+		arch_m64 = ARCH_LLP64;
 	} else if (!strcmp(arg, "msize-long")) {
 		arch_msize_long = 1;
 	} else if (!strcmp(arg, "multiarch-dir"))
@@ -399,18 +405,32 @@ static char **handle_switch_m(char *arg, char **next)
 
 static void handle_arch_m64_finalize(void)
 {
-	if (arch_m64) {
+	switch (arch_m64) {
+	case ARCH_LP32:
+		/* default values */
+		return;
+	case ARCH_LP64:
 		bits_in_long = 64;
 		max_int_alignment = 8;
-		bits_in_pointer = 64;
-		pointer_alignment = 8;
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
 		add_pre_buffer("#weak_define __LP64__ 1\n");
 		add_pre_buffer("#weak_define _LP64 1\n");
+		goto case_64bit_common;
+	case ARCH_LLP64:
+		bits_in_long = 32;
+		max_int_alignment = 4;
+		size_t_ctype = &ullong_ctype;
+		ssize_t_ctype = &llong_ctype;
+		add_pre_buffer("#weak_define __LLP64__ 1\n");
+		goto case_64bit_common;
+	case_64bit_common:
+		bits_in_pointer = 64;
+		pointer_alignment = 8;
 #ifdef __x86_64__
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
 #endif
+		break;
 	}
 }
 
