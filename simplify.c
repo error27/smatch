@@ -201,6 +201,7 @@ void kill_instruction(struct instruction *insn)
 	case OP_SCAST:
 	case OP_FPCAST:
 	case OP_PTRCAST:
+	case OP_SETVAL:
 	case OP_NOT: case OP_NEG:
 		kill_use(&insn->src1);
 		break;

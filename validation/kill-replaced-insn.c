@@ -30,6 +30,12 @@ static int kill_select(int a)
 	return (a ? 1 : 0) && 0;
 }
 
+static int kill_setval(int a)
+{
+l:
+	return &&l && 0;
+}
+
 static int kill_load(int *a)
 {
 	return *a && 0;
@@ -51,4 +57,5 @@ static int kill_store(int *a)
  * check-output-excludes: ptrcast\\.
  * check-output-excludes: fpcast\\.
  * check-output-excludes: sel\\.
+ * check-output-excludes: set\\.
  */
