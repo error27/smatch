@@ -867,9 +867,14 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
+static char *function_signature(void)
+{
+	return type_to_str(get_real_base_type(cur_func_sym));
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
-	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", "");
+	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", function_signature());
 }
 
 static void call_return_state_hooks_conditional(struct expression *expr)

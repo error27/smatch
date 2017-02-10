@@ -454,6 +454,37 @@ static int is_impossible_data(int type, struct expression *expr, int param, char
 	return 0;
 }
 
+static int func_type_mismatch(struct expression *expr, const char *value)
+{
+	struct symbol *type;
+
+	/* This makes faking returns easier */
+	if (!value || value[0] == '\0')
+		return 0;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+
+	/*
+	 * Short cut:  We only care about function pointers that are struct
+	 * members.
+	 *
+	 */
+	if (expr->fn->type == EXPR_SYMBOL)
+		return 0;
+
+	type = get_type(expr->fn);
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR)
+		type = get_real_base_type(type);
+
+	if (strcmp(type_to_str(type), value) == 0)
+		return 0;
+
+	return 1;
+}
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -488,6 +519,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == INTERNAL && func_type_mismatch(db_info->expr, value))
+		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
 	if (type == CULL_PATH) {
@@ -746,6 +779,8 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == INTERNAL && func_type_mismatch(db_info->expr, value))
+		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
 	if (type == CULL_PATH) {
@@ -924,6 +959,8 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	}
 	db_info->prev_return_id = return_id;
 
+	if (type == INTERNAL && func_type_mismatch(db_info->expr, value))
+		db_info->cull = 1;
 	if (db_info->cull)
 		return 0;
 	if (type == CULL_PATH) {
