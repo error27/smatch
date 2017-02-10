@@ -352,6 +352,7 @@ int pop_int(struct int_stack **stack);
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);
 int type_bytes(struct symbol *type);
+int array_bytes(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
 int type_signed(struct symbol *base_type);

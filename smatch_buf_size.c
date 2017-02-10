@@ -314,7 +314,7 @@ static int get_bytes_from_address(struct expression *expr)
 	if (type->type == SYM_PTR)
 		type = get_base_type(type);
 
-	ret = type_bytes(type);
+	ret = array_bytes(type);
 	if (ret == 1)
 		return 0;  /* ignore char pointers */
 
@@ -427,7 +427,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 	if (!estate_to_size(state))
 		return 0;
 
-	return estate_to_size(state) - type_bytes(base_sym) + type_bytes(get_type(expr));
+	return estate_to_size(state) - type_bytes(base_sym) + array_bytes(get_type(expr));
 }
 
 static struct range_list *alloc_int_rl(int value)

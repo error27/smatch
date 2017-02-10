@@ -39,11 +39,22 @@ struct symbol *get_real_base_type(struct symbol *sym)
 
 int type_bytes(struct symbol *type)
 {
-	int bits = type_bits(type);
+	int bits;
 
+	if (type && type->type == SYM_ARRAY)
+		return array_bytes(type);
+
+	bits = type_bits(type);
 	if (bits < 0)
 		return 0;
 	return bits_to_bytes(bits);
+}
+
+int array_bytes(struct symbol *type)
+{
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+	return bits_to_bytes(type->bit_size);
 }
 
 static struct symbol *get_binop_type(struct expression *expr)
