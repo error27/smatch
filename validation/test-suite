@@ -146,6 +146,8 @@ do_test()
 	actual_exit_value=$?
 
 	for stream in output error; do
+		grep -s -q "check-$stream-ignore" $file && continue
+
 		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."

@@ -29,6 +29,12 @@ check-output-start / check-output-end (optional)
 	The expected output (stdout and stderr) of check-command lies between
 	those two tags. It defaults to no output.
 
+check-output-ignore / check-error-ignore (optional)
+	Don't check the expected output (stdout or stderr) of check-command
+	(usefull when this output is not comparable or if you're only interested
+	in the exit value).
+	By default this check is done.
+
 check-known-to-fail (optional)
 	Mark the test as being known to fail.
 
