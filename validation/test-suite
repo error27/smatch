@@ -2,6 +2,8 @@
 
 #set -x
 
+cd $(dirname "$0")
+
 default_path=".."
 default_cmd="sparse \$file"
 tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
