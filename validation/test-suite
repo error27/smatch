@@ -126,7 +126,7 @@ verbose()
 # error(string[, die]) - prints an error and exits with value die if given
 error()
 {
-	echo "error: $1"
+	[ "$quiet" -ne 1 ] && echo "error: $1"
 	[ -n "$2" ] && exit $2
 	return 0
 }
@@ -223,7 +223,7 @@ do_test()
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."
 			error  "see $file.$stream.* for further investigation."
-			cat "$file".$stream.diff
+			[ $quiet -ne 1 ] && cat "$file".$stream.diff
 			test_failed=1
 		fi
 	done
