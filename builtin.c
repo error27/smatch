@@ -176,6 +176,33 @@ static struct symbol_op choose_op = {
 	.args = arguments_choose,
 };
 
+/* The argument is constant and valid if the cost is zero */
+static int expand_bswap(struct expression *expr, int cost)
+{
+	long long val;
+
+	if (cost)
+		return cost;
+
+	/* the arguments number & type have already been checked */
+	val = const_expression_value(first_expression(expr->args));
+	switch (expr->ctype->bit_size) {
+	case 16: expr->value = __builtin_bswap16(val); break;
+	case 32: expr->value = __builtin_bswap32(val); break;
+	case 64: expr->value = __builtin_bswap64(val); break;
+	default: /* impossible error */
+		return SIDE_EFFECTS;
+	}
+
+	expr->type = EXPR_VALUE;
+	expr->taint = 0;
+	return 0;
+}
+
+static struct symbol_op bswap_op = {
+	.expand = expand_bswap,
+};
+
 
 /*
  * Builtin functions
@@ -192,6 +219,9 @@ static struct sym_init {
 	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
 	{ "__builtin_expect", &builtin_fn_type, MOD_TOPLEVEL, &expect_op },
 	{ "__builtin_choose_expr", &builtin_fn_type, MOD_TOPLEVEL, &choose_op },
+	{ "__builtin_bswap16", NULL, MOD_TOPLEVEL, &bswap_op },
+	{ "__builtin_bswap32", NULL, MOD_TOPLEVEL, &bswap_op },
+	{ "__builtin_bswap64", NULL, MOD_TOPLEVEL, &bswap_op },
 	{ NULL,		NULL,		0 }
 };
 

@@ -867,38 +867,9 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
 
 	/* And byte swaps.. */
-	add_pre_buffer("extern unsigned short ____builtin_bswap16(unsigned short);\n");
-	add_pre_buffer("extern unsigned int ____builtin_bswap32(unsigned int);\n");
-	add_pre_buffer("extern unsigned long long ____builtin_bswap64(unsigned long long);\n");
-	add_pre_buffer("#define __sparse_constant_swab16(x) ((unsigned short)("
-		       "	(((unsigned short)(x) & (unsigned short)0x00ffU) << 8) |"
-		       "	(((unsigned short)(x) & (unsigned short)0xff00U) >> 8)))\n");
-	add_pre_buffer("#define __sparse_constant_swab32(x) ((unsigned int)("
-		       "	(((unsigned int)(x) & (unsigned int)0x000000ffUL) << 24) |"
-		       "	(((unsigned int)(x) & (unsigned int)0x0000ff00UL) <<  8) |"
-		       "	(((unsigned int)(x) & (unsigned int)0x00ff0000UL) >>  8) |"
-		       "	(((unsigned int)(x) & (unsigned int)0xff000000UL) >> 24)))\n");
-	add_pre_buffer("#define __sparse_constant_swab64(x) ((unsigned long long)("
-		       "	(((unsigned long long)(x) & (unsigned long long)0x00000000000000ffULL) << 56) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x000000000000ff00ULL) << 40) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x0000000000ff0000ULL) << 24) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x00000000ff000000ULL) <<  8) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x000000ff00000000ULL) >>  8) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x0000ff0000000000ULL) >> 24) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0x00ff000000000000ULL) >> 40) |"
-		       "	(((unsigned long long)(x) & (unsigned long long)0xff00000000000000ULL) >> 56)))\n");
-	add_pre_buffer("#define __builtin_bswap16(x)"
-		       "	(__builtin_constant_p((unsigned short)(x)) ?"
-		       "	__sparse_constant_swab16(x) :"
-		       "	____builtin_bswap16(x))\n");
-	add_pre_buffer("#define __builtin_bswap32(x)"
-		       "	(__builtin_constant_p((unsigned int)(x)) ?"
-		       "	__sparse_constant_swab32(x) :"
-		       "	____builtin_bswap32(x))\n");
-	add_pre_buffer("#define __builtin_bswap64(x)"
-		       "	(__builtin_constant_p((unsigned long long)(x)) ?"
-		       "	__sparse_constant_swab64(x) :"
-		       "	____builtin_bswap64(x))\n");
+	add_pre_buffer("extern unsigned short __builtin_bswap16(unsigned short);\n");
+	add_pre_buffer("extern unsigned int __builtin_bswap32(unsigned int);\n");
+	add_pre_buffer("extern unsigned long long __builtin_bswap64(unsigned long long);\n");
 
 	/* And atomic memory access functions.. */
 	add_pre_buffer("extern int __sync_fetch_and_add(void *, ...);\n");

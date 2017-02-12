@@ -17,7 +17,7 @@ unsigned long long bswap64(void)
 }
 
 /*
- * check-name: builtin-eval
+ * check-name: builtin-bswap-constant
  * check-command: test-linearize $file
  *
  * check-output-ignore

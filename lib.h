@@ -201,6 +201,11 @@ static inline struct instruction *first_instruction(struct instruction_list *hea
 	return first_ptr_list((struct ptr_list *)head);
 }
 
+static inline struct expression *first_expression(struct expression_list *head)
+{
+	return first_ptr_list((struct ptr_list *)head);
+}
+
 static inline pseudo_t first_pseudo(struct pseudo_list *head)
 {
 	return first_ptr_list((struct ptr_list *)head);
