@@ -2879,8 +2879,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			}
 		}
 		check_declaration(decl);
-		if (decl->same_symbol)
+		if (decl->same_symbol) {
 			decl->definition = decl->same_symbol->definition;
+			decl->op = decl->same_symbol->op;
+		}
 
 		if (!match_op(token, ','))
 			break;
