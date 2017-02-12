@@ -214,6 +214,8 @@ do_test()
 
 	get_tag "check-known-to-fail" $file
 	must_fail=`expr "$?" = 0`
+	quiet=0
+	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
 	known_ko_tests=`expr $known_ko_tests + $must_fail`
 
 	for stream in output error; do
