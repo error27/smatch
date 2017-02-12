@@ -41,12 +41,8 @@
 #include "symbol.h"
 #include "target.h"
 #include "expression.h"
+#include "expand.h"
 
-/* Random cost numbers */
-#define SIDE_EFFECTS 10000	/* The expression has side effects */
-#define UNSAFE 100		/* The expression may be "infinitely costly" due to exceptions */
-#define SELECT_COST 20		/* Cut-off for turning a conditional into a select */
-#define BRANCH_COST 10		/* Cost of a conditional branch */
 
 static int expand_expression(struct expression *);
 static int expand_statement(struct statement *);
@@ -782,24 +778,6 @@ static int expand_cast(struct expression *expr)
 		return 0;
 	}
 	return cost + 1;
-}
-
-/* The arguments are constant if the cost of all of them is zero */
-int expand_constant_p(struct expression *expr, int cost)
-{
-	expr->type = EXPR_VALUE;
-	expr->value = !cost;
-	expr->taint = 0;
-	return 0;
-}
-
-/* The arguments are safe, if their cost is less than SIDE_EFFECTS */
-int expand_safe_p(struct expression *expr, int cost)
-{
-	expr->type = EXPR_VALUE;
-	expr->value = (cost < SIDE_EFFECTS);
-	expr->taint = 0;
-	return 0;
 }
 
 /*

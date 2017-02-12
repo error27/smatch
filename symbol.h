@@ -128,8 +128,6 @@ struct symbol_op {
 	int test, set, class;
 };
 
-extern int expand_safe_p(struct expression *expr, int cost);
-extern int expand_constant_p(struct expression *expr, int cost);
 
 #define SYM_ATTR_WEAK		0
 #define SYM_ATTR_NORMAL		1
@@ -291,6 +289,7 @@ extern const char * type_difference(struct ctype *c1, struct ctype *c2,
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
+extern void init_builtins(int stream);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
