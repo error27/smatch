@@ -212,6 +212,10 @@ do_test()
 	$cmd 1> $file.output.got 2> $file.error.got
 	actual_exit_value=$?
 
+	get_tag "check-known-to-fail" $file
+	must_fail=`expr "$?" = 0`
+	known_ko_tests=`expr $known_ko_tests + $must_fail`
+
 	for stream in output error; do
 		grep -s -q "check-$stream-ignore" $file && continue
 
@@ -248,10 +252,6 @@ do_test()
 		error "Actual output doesn't contain the pattern the expected number."
 		test_failed=1
 	fi
-
-	get_tag "check-known-to-fail" $file
-	must_fail=`expr "$?" = 0`
-	known_ko_tests=`expr $known_ko_tests + $must_fail`
 
 	[ "$test_failed" -eq "$must_fail" ] || failed=1
 
