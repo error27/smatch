@@ -54,6 +54,46 @@ get_tag()
 }
 
 ##
+# helper for has_(each|none)_patterns()
+has_patterns()
+{
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	cmp="$4"
+	grep "$patt:" "$ifile" | \
+	sed -e "s/^.*$patt: *\(.*\)$/\1/" | \
+	while read val; do
+		grep -s -q "$val" "$ofile"
+		if [ "$?" $cmp 0 ]; then
+			return 1
+		fi
+	done
+
+	return $?
+}
+
+##
+# has_each_patterns(ifile tag ofile) - does ofile contains some
+#                        of the patterns given by ifile's tags?
+#
+# returns 0 if all present, 1 otherwise
+has_each_patterns()
+{
+	has_patterns "$1" "$2" "$3" -ne
+}
+
+##
+# has_none_patterns(ifile tag ofile) - does ofile contains some
+#                        of the patterns given by ifile's tags?
+#
+# returns 1 if any present, 0 otherwise
+has_none_patterns()
+{
+	has_patterns "$1" "$2" "$3" -eq
+}
+
+##
 # verbose(string) - prints string if we are in verbose mode
 verbose()
 {
@@ -166,6 +206,18 @@ do_test()
 	if [ "$actual_exit_value" -ne "$expected_exit_value" ]; then
 		error "Actual exit value does not match the expected one."
 		error "expected $expected_exit_value, got $actual_exit_value."
+		test_failed=1
+	fi
+
+	# verify the 'check-output-contains/excludes' tags
+	has_each_patterns "$file" 'check-output-contains' $file.output.got
+	if [ "$?" -ne "0" ]; then
+		error "Actual output doesn't contain some of the expected patterns."
+		test_failed=1
+	fi
+	has_none_patterns "$file" 'check-output-excludes' $file.output.got
+	if [ "$?" -ne "0" ]; then
+		error "Actual output contains some patterns which are not expected."
 		test_failed=1
 	fi
 

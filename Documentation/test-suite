@@ -38,6 +38,16 @@ check-output-ignore / check-error-ignore (optional)
 check-known-to-fail (optional)
 	Mark the test as being known to fail.
 
+check-output-contains: <pattern> (optional)
+	Check that the output (stdout) contains the given pattern.
+	Several such tags can be given, in which case the output
+	must contains all the patterns.
+
+check-output-excludes: <pattern> (optional)
+	Similar than the above one, but with opposite logic.
+	Check that the output (stdout) doesn't contain the given pattern.
+	Several such tags can be given, in which case the output
+	must contains none of the patterns.
 
 	Using test-suite
 	~~~~~~~~~~~~~~~~
