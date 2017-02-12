@@ -94,6 +94,27 @@ has_none_patterns()
 }
 
 ##
+# nbr_patterns(ifile tag ofile) - does ofile contains the
+#                        the patterns given by ifile's tags
+#                        the right number of time?
+nbr_patterns()
+{
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	grep "$patt-[0-9][0-9]*-times:" "$ifile" | \
+	sed -e "s/^.*$patt-\([0-9][0-9]*\)-times: *\(.*\)/\1 \2/" | \
+	while read nbr pat; do
+		n=$(grep -s "$pat" "$ofile" | wc -l)
+		if [ "$n" -ne "$nbr" ]; then
+			return 1
+		fi
+	done
+
+	return $?
+}
+
+##
 # verbose(string) - prints string if we are in verbose mode
 verbose()
 {
@@ -218,6 +239,13 @@ do_test()
 	has_none_patterns "$file" 'check-output-excludes' $file.output.got
 	if [ "$?" -ne "0" ]; then
 		error "Actual output contains some patterns which are not expected."
+		test_failed=1
+	fi
+
+	# verify the 'check-output-pattern-X-times' tags
+	nbr_patterns "$file" 'check-output-pattern' $file.output.got
+	if [ "$?" -ne "0" ]; then
+		error "Actual output doesn't contain the pattern the expected number."
 		test_failed=1
 	fi
 
