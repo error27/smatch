@@ -259,7 +259,7 @@ do_test()
 		if [ "$test_failed" -eq "1" ]; then
 			echo "info: test '$file' is known to fail"
 		else
-			echo "info: test '$file' is known to fail but succeed!"
+			echo "error: test '$file' is known to fail but succeed!"
 			test_failed=1
 		fi
 	fi
