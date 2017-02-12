@@ -11,6 +11,10 @@ if [ ! -x "$default_path/sparse-llvm" ]; then
 	disabled_cmds="sparsec sparsei sparse-llvm"
 fi
 
+# flags:
+#	- some tests gave an unexpected result
+failed=0
+
 # counts:
 #	- tests that have not been converted to test-suite format
 #	- tests that are disabled
@@ -163,18 +167,27 @@ do_test()
 		test_failed=1
 	fi
 
+	get_tag "check-known-to-fail" $file
+	must_fail=`expr "$?" = 0`
+	known_ko_tests=`expr $known_ko_tests + $must_fail`
+
+	[ "$test_failed" -eq "$must_fail" ] || failed=1
+
+	if [ "$must_fail" -eq "1" ]; then
+		if [ "$test_failed" -eq "1" ]; then
+			echo "info: test '$file' is known to fail"
+		else
+			echo "info: test '$file' is known to fail but succeed!"
+			test_failed=1
+		fi
+	fi
+
 	if [ "$test_failed" -eq "1" ]; then
 		ko_tests=`expr $ko_tests + 1`
-		get_tag "check-known-to-fail" $file
-		if [ "$?" -eq "0" ]; then
-			echo "info: test '$file' is known to fail"
-			known_ko_tests=`expr $known_ko_tests + 1`
-		fi
-		return 1
 	else
 		ok_tests=`expr $ok_tests + 1`
-		return 0
 	fi
+	return $test_failed
 }
 
 do_test_suite()
@@ -273,5 +286,5 @@ case "$1" in
 		;;
 esac
 
-exit 0
+exit $failed
 
