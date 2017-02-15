@@ -104,10 +104,6 @@ struct statement {
 			struct expression *goto_expression;
 			struct symbol_list *target_list;
 		};
-		struct /* goto_bb */ {
-			struct expression *bb_conditional;
-			struct symbol *bb_target;
-		};
 		struct /* asm */ {
 			struct expression *asm_string;
 			struct expression_list *asm_outputs;
