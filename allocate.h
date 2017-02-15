@@ -75,7 +75,6 @@ DECLARE_ALLOCATOR(basic_block);
 DECLARE_ALLOCATOR(entrypoint);
 DECLARE_ALLOCATOR(instruction);
 DECLARE_ALLOCATOR(multijmp);
-DECLARE_ALLOCATOR(phi);
 DECLARE_ALLOCATOR(pseudo);
 
 #endif
