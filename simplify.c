@@ -110,7 +110,7 @@ static int if_convert_phi(struct instruction *insn)
 	 * the conditional branch too.
 	 */
 	insert_select(source, br, insn, p1, p2);
-	clear_phi(insn);
+	kill_instruction(insn);
 	return REPEAT_CSE;
 }
 
@@ -140,7 +140,7 @@ static int clean_up_phi(struct instruction *insn)
 	if (same) {
 		pseudo_t pseudo = last ? last->src1 : VOID;
 		convert_instruction_target(insn, pseudo);
-		clear_phi(insn);
+		kill_instruction(insn);
 		return REPEAT_CSE;
 	}
 
@@ -1142,7 +1142,7 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_cast(insn);
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL, NULL)) {
-			clear_phi(insn);
+			kill_use_list(insn->phi_list);
 			return REPEAT_CSE;
 		}
 		return clean_up_phi(insn);
