@@ -218,7 +218,7 @@ void kill_instruction(struct instruction *insn)
 		break;
 
 	case OP_PHI:
-		clear_phi(insn);
+		kill_use_list(insn->phi_list);
 		break;
 	case OP_PHISOURCE:
 		kill_use(&insn->phi_src);

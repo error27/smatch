@@ -9,6 +9,15 @@ void foo(int a, int *b, unsigned int g)
 		d = 8;
 }
 
+int bar(void);
+int bar(void)
+{
+	int i;
+	for (i = 0; i; i--)
+		;
+	return 0;
+}
+
 /*
  * check-name: kill-phi-node
  * check-command: test-linearize $file
