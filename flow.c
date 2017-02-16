@@ -121,6 +121,8 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
+		if (changed)
+			kill_use(THIS_ADDRESS(phi));
 	} END_FOR_EACH_PTR(phi);
 	return changed;
 }
