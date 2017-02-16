@@ -936,6 +936,8 @@ static int simplify_cast(struct instruction *insn)
 		int op = (orig_type->ctype.modifiers & MOD_SIGNED) ? OP_SCAST : OP_CAST;
 		if (insn->opcode == op)
 			goto simplify;
+		if (insn->opcode == OP_FPCAST && is_float_type(orig_type))
+			goto simplify;
 	}
 
 	return 0;
