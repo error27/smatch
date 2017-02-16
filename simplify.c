@@ -203,6 +203,7 @@ void kill_instruction(struct instruction *insn)
 	case OP_PTRCAST:
 	case OP_SETVAL:
 	case OP_NOT: case OP_NEG:
+	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;
 
