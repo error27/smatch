@@ -255,6 +255,13 @@ void kill_insn(struct instruction *insn, int force)
 		kill_use(&insn->src);
 		break;
 
+	case OP_STORE:
+		if (!force)
+			return;
+		kill_use(&insn->src);
+		kill_use(&insn->target);
+		break;
+
 	case OP_ENTRY:
 		/* ignore */
 		return;
