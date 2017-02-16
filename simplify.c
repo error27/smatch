@@ -26,16 +26,6 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 	return first_basic_block(source->parents);
 }
 
-static void clear_phi(struct instruction *insn)
-{
-	pseudo_t phi;
-
-	insn->bb = NULL;
-	FOR_EACH_PTR(insn->phi_list, phi) {
-		*THIS_ADDRESS(phi) = VOID;
-	} END_FOR_EACH_PTR(phi);
-}
-
 static int if_convert_phi(struct instruction *insn)
 {
 	pseudo_t array[3];
