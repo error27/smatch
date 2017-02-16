@@ -245,6 +245,8 @@ void kill_insn(struct instruction *insn, int force)
 				return;
 		}
 		kill_use_list(insn->arguments);
+		if (insn->func->type == PSEUDO_REG)
+			kill_use(&insn->func);
 		break;
 
 	case OP_ENTRY:
