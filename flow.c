@@ -759,13 +759,12 @@ void kill_bb(struct basic_block *bb)
 	struct basic_block *child, *parent;
 
 	FOR_EACH_PTR(bb->insns, insn) {
-		kill_instruction(insn);
+		kill_instruction_force(insn);
 		kill_defs(insn);
 		/*
 		 * We kill unreachable instructions even if they
 		 * otherwise aren't "killable" (e.g. volatile loads)
 		 */
-		insn->bb = NULL;
 	} END_FOR_EACH_PTR(insn);
 	bb->insns = NULL;
 

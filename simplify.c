@@ -182,7 +182,16 @@ static void kill_use_list(struct pseudo_list *list)
 	} END_FOR_EACH_PTR(p);
 }
 
-void kill_instruction(struct instruction *insn)
+/*
+ * kill an instruction:
+ * - remove it from its bb
+ * - remove the usage of all its operands
+ * If forse is zero, the normal case, the function only for
+ * instructions free of (possible) side-effects. Otherwise
+ * the function does that unconditionally (must only be used
+ * for unreachable instructions.
+ */
+void kill_insn(struct instruction *insn, int force)
 {
 	if (!insn || !insn->bb)
 		return;
