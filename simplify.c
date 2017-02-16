@@ -249,6 +249,12 @@ void kill_insn(struct instruction *insn, int force)
 			kill_use(&insn->func);
 		break;
 
+	case OP_LOAD:
+		if (!force && insn->type->ctype.modifiers & MOD_VOLATILE)
+			return;
+		kill_use(&insn->src);
+		break;
+
 	case OP_ENTRY:
 		/* ignore */
 		return;
