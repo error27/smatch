@@ -180,18 +180,39 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	free_ptr_list((struct ptr_list **)&set_list);
 }
 
-int param_was_set(struct expression *expr)
+int param_was_set_var_sym(const char *name, struct symbol *sym)
 {
-	if (get_state_expr(my_id, expr))
-		return 1;
+	struct sm_state *sm;
+	int len;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->sym != sym)
+			continue;
+		len = strlen(sm->name);
+		if (strncmp(sm->name, name, len) != 0)
+			continue;
+		if (name[len] == '\0' ||
+		    name[len] == '-')
+			return 1;
+	} END_FOR_EACH_SM(sm);
+
 	return 0;
 }
 
-int param_was_set_var_sym(const char *name, struct symbol *sym)
+int param_was_set(struct expression *expr)
 {
-	if (get_state(my_id, name, sym))
-		return 1;
-	return 0;
+	char *name;
+	struct symbol *sym;
+	int ret = 0;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = param_was_set_var_sym(name, sym);
+free:
+	free_string(name);
+	return ret;
 }
 
 void register_param_set(int id)
