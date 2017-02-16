@@ -236,6 +236,17 @@ void kill_insn(struct instruction *insn, int force)
 		kill_use(&insn->cond);
 		break;
 
+	case OP_CALL:
+		if (!force) {
+			/* a "pure" function can be killed too */
+			if (!(insn->func->type == PSEUDO_SYM))
+				return;
+			if (!(insn->func->sym->ctype.modifiers & MOD_PURE))
+				return;
+		}
+		kill_use_list(insn->arguments);
+		break;
+
 	case OP_ENTRY:
 		/* ignore */
 		return;
