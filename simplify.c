@@ -210,6 +210,9 @@ void kill_instruction(struct instruction *insn)
 	case OP_PHI:
 		clear_phi(insn);
 		break;
+	case OP_PHISOURCE:
+		kill_use(&insn->phi_src);
+		break;
 
 	case OP_SYMADDR:
 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
