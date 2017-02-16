@@ -401,7 +401,7 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * pseudo.
 	 */
 	FOR_EACH_PTR(dominators, phi) {
-		phi->def->bb = NULL;
+		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
 	convert_load_instruction(insn, new);
 	return;
