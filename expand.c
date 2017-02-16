@@ -796,7 +796,7 @@ static int expand_symbol_call(struct expression *expr, int cost)
 		return ctype->op->expand(expr, cost);
 
 	if (ctype->ctype.modifiers & MOD_PURE)
-		return 0;
+		return cost + 1;
 
 	return SIDE_EFFECTS;
 }
