@@ -228,9 +228,11 @@ void kill_instruction(struct instruction *insn)
 		break;
 
 	case OP_ENTRY:
-	default:
 		/* ignore */
 		return;
+
+	default:
+		break;
 	}
 
 	insn->bb = NULL;
