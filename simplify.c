@@ -182,6 +182,16 @@ void kill_use(pseudo_t *usep)
 	}
 }
 
+static void kill_use_list(struct pseudo_list *list)
+{
+	pseudo_t p;
+	FOR_EACH_PTR(list, p) {
+		if (p == VOID)
+			continue;
+		kill_use(THIS_ADDRESS(p));
+	} END_FOR_EACH_PTR(p);
+}
+
 void kill_instruction(struct instruction *insn)
 {
 	if (!insn || !insn->bb)
