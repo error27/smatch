@@ -174,30 +174,36 @@ static int insn_compare(const void *_i1, const void *_i2)
 		return i1->opcode < i2->opcode ? -1 : 1;
 
 	switch (i1->opcode) {
+
+	/* commutative binop */
+	case OP_ADD:
+	case OP_MULU: case OP_MULS:
+	case OP_AND_BOOL: case OP_OR_BOOL:
+	case OP_AND: case OP_OR:
+	case OP_XOR:
+	case OP_SET_EQ: case OP_SET_NE:
+		if (i1->src1 == i2->src2 && i1->src2 == i2->src1)
+			return 0;
+		goto case_binops;
+
 	case OP_SEL:
 		if (i1->src3 != i2->src3)
 			return i1->src3 < i2->src3 ? -1 : 1;
 		/* Fall-through to binops */
 
 	/* Binary arithmetic */
-	case OP_ADD: case OP_SUB:
-	case OP_MULU: case OP_MULS:
+	case OP_SUB:
 	case OP_DIVU: case OP_DIVS:
 	case OP_MODU: case OP_MODS:
 	case OP_SHL:
 	case OP_LSR: case OP_ASR:
-	case OP_AND: case OP_OR:
-
-	/* Binary logical */
-	case OP_XOR: case OP_AND_BOOL:
-	case OP_OR_BOOL:
 
 	/* Binary comparison */
-	case OP_SET_EQ: case OP_SET_NE:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+	case_binops:
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
 		/* Fall through to unops */
