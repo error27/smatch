@@ -541,7 +541,7 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 
 	break; case EXPR_INITIALIZER:
 		m_addr = 0;
-		FOR_EACH_PTR(expr->expr_list, m_expr)
+		FOR_EACH_PTR(expr->expr_list, m_expr) {
 			if (type->type == SYM_ARRAY) {
 				m_type = base_type(type);
 				if (m_expr->type == EXPR_INDEX)
@@ -567,7 +567,7 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 			}
 			do_initializer(m_type, m_expr);
 			m_addr++;
-		END_FOR_EACH_PTR(m_expr);
+		} END_FOR_EACH_PTR(m_expr);
 	}
 
 	return type;
