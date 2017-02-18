@@ -79,6 +79,7 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 
 static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
+	attribute_bitwise,
 	attribute_address_space, attribute_context,
 	attribute_designated_init,
 	attribute_transparent_union, ignore_attribute,
@@ -339,6 +340,10 @@ static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
 
+static struct symbol_op attr_bitwise_op = {
+	.attribute = attribute_bitwise,
+};
+
 static struct symbol_op attr_force_op = {
 	.attribute = attribute_force,
 };
@@ -496,8 +501,8 @@ static struct init_keyword {
 	{ "noderef",	NS_KEYWORD,	MOD_NODEREF,	.op = &attr_mod_op },
 	{ "safe",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
 	{ "force",	NS_KEYWORD,	.op = &attr_force_op },
-	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_mod_op },
-	{ "__bitwise__",NS_KEYWORD,	MOD_BITWISE,	.op = &attr_mod_op },
+	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
+	{ "__bitwise__",NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
@@ -1102,6 +1107,13 @@ static void apply_qualifier(struct position *pos, struct ctype *ctx, unsigned lo
 static struct token *attribute_modifier(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	apply_qualifier(&token->pos, &ctx->ctype, attr->ctype.modifiers);
+	return token;
+}
+
+static struct token *attribute_bitwise(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	if (Wbitwise)
+		attribute_modifier(token, attr, ctx);
 	return token;
 }
 

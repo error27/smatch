@@ -216,7 +216,7 @@ static struct token *pre_buffer_begin = NULL;
 static struct token *pre_buffer_end = NULL;
 
 int Waddress_space = 1;
-int Wbitwise = 0;
+int Wbitwise = 1;
 int Wcast_to_as = 0;
 int Wcast_truncate = 1;
 int Wcontext = 1;
