@@ -453,6 +453,14 @@ static inline int get_sym_type(struct symbol *type)
 	return type->type;
 }
 
+static inline long long extend_value(long long val, struct symbol *ctype)
+{
+	int is_signed = !(ctype->ctype.modifiers & MOD_UNSIGNED);
+	unsigned size = ctype->bit_size;
+
+	return bits_extend(val, size, is_signed);
+}
+
 static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace ns)
 {
 	if (!ident->keyword)

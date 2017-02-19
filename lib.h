@@ -34,6 +34,7 @@
 #include "compat.h"
 #include "ptrlist.h"
 #include "utils.h"
+#include "bits.h"
 
 #define DO_STRINGIFY(x) #x
 #define STRINGIFY(x) DO_STRINGIFY(x)
