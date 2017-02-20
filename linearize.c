@@ -1866,7 +1866,7 @@ static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
 	struct basic_block *active;
 	pseudo_t src = linearize_expression(ep, expr);
 	active = ep->active;
-	if (active && src != &void_pseudo) {
+	if (active && src != VOID) {
 		struct instruction *phi_node = first_instruction(bb_return->insns);
 		pseudo_t phi;
 		if (!phi_node) {
