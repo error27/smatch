@@ -2805,7 +2805,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		t2 = unfoul(t2);
 
 	if (t1 != t2) {
-		if (class1 & TYPE_RESTRICT)
+		if ((class1 & TYPE_RESTRICT) && restricted_value(target, t1))
 			warning(expr->pos, "cast to %s",
 				show_typename(t1));
 		if (class2 & TYPE_RESTRICT)
