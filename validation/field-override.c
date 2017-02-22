@@ -69,7 +69,6 @@ static struct s b[2] = {
 /*
  * check-name: field-override
  * check-command: sparse -Woverride-init -Woverride-init-all $file
- * check-known-to-fail
  *
  * check-error-start
 field-override.c:2:10: warning: Initializer entry defined twice

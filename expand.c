@@ -896,6 +896,20 @@ static unsigned long bit_offset(const struct expression *expr)
 	return offset;
 }
 
+static unsigned long bit_range(const struct expression *expr)
+{
+	unsigned long range = 0;
+	unsigned long size = 0;
+	while (expr->type == EXPR_POS) {
+		unsigned long nr = expr->init_nr;
+		size = expr->ctype->bit_size;
+		range += (nr - 1) * size;
+		expr = expr->init_expr;
+	}
+	range += size;
+	return range;
+}
+
 static int compare_expressions(const void *_a, const void *_b)
 {
 	const struct expression *a = _a;
@@ -914,21 +928,28 @@ static void sort_expression_list(struct expression_list **list)
 static void verify_nonoverlapping(struct expression_list **list)
 {
 	struct expression *a = NULL;
+	unsigned long max = 0;
 	struct expression *b;
 
 	if (!Woverride_init)
 		return;
 
 	FOR_EACH_PTR(*list, b) {
+		unsigned long off, end;
 		if (!b->ctype || !b->ctype->bit_size)
 			continue;
-		if (a && bit_offset(a) == bit_offset(b)) {
+		off = bit_offset(b);
+		if (a && off < max) {
 			warning(a->pos, "Initializer entry defined twice");
 			info(b->pos, "  also defined here");
 			if (!Woverride_init_all)
 				return;
 		}
-		a = b;
+		end = off + bit_range(b);
+		if (end > max) {
+			max = end;
+			a = b;
+		}
 	} END_FOR_EACH_PTR(b);
 }
 
