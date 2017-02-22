@@ -925,10 +925,11 @@ static void sort_expression_list(struct expression_list **list)
 	sort_list((struct ptr_list **)list, compare_expressions);
 }
 
-static void verify_nonoverlapping(struct expression_list **list)
+static void verify_nonoverlapping(struct expression_list **list, struct expression *expr)
 {
 	struct expression *a = NULL;
 	unsigned long max = 0;
+	unsigned long whole = expr->ctype->bit_size;
 	struct expression *b;
 
 	if (!Woverride_init)
@@ -946,6 +947,14 @@ static void verify_nonoverlapping(struct expression_list **list)
 				return;
 		}
 		end = off + bit_range(b);
+		if (!a && !Woverride_init_whole_range) {
+			// If first entry is the whole range, do not let
+			// any warning about it (this allow to initialize
+			// an array with some default value and then override
+			// some specific entries).
+			if (off == 0 && end == whole)
+				continue;
+		}
 		if (end > max) {
 			max = end;
 			a = b;
@@ -1019,7 +1028,7 @@ static int expand_expression(struct expression *expr)
 
 	case EXPR_INITIALIZER:
 		sort_expression_list(&expr->expr_list);
-		verify_nonoverlapping(&expr->expr_list);
+		verify_nonoverlapping(&expr->expr_list, expr);
 		return expand_expression_list(expr->expr_list);
 
 	case EXPR_IDENTIFIER:
