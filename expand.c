@@ -925,7 +925,8 @@ static void verify_nonoverlapping(struct expression_list **list)
 		if (a && bit_offset(a) == bit_offset(b)) {
 			warning(a->pos, "Initializer entry defined twice");
 			info(b->pos, "  also defined here");
-			return;
+			if (!Woverride_init_all)
+				return;
 		}
 		a = b;
 	} END_FOR_EACH_PTR(b);

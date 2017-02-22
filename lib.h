@@ -118,6 +118,7 @@ extern int Wnon_pointer_null;
 extern int Wold_initializer;
 extern int Wone_bit_signed_bitfield;
 extern int Woverride_init;
+extern int Woverride_init_all;
 extern int Wparen_string;
 extern int Wptr_subtraction_blows;
 extern int Wreturn_void;

@@ -232,6 +232,7 @@ int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wone_bit_signed_bitfield = 1;
 int Woverride_init = 1;
+int Woverride_init_all = 0;
 int Wparen_string = 0;
 int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
@@ -482,6 +483,7 @@ static const struct warning {
 	{ "old-initializer", &Wold_initializer },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
 	{ "override-init", &Woverride_init },
+	{ "override-init-all", &Woverride_init_all },
 	{ "paren-string", &Wparen_string },
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "return-void", &Wreturn_void },

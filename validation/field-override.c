@@ -68,21 +68,53 @@ static struct s b[2] = {
 
 /*
  * check-name: field-override
- * check-command: sparse -Woverride-init $file
+ * check-command: sparse -Woverride-init -Woverride-init-all $file
  * check-known-to-fail
  *
  * check-error-start
 field-override.c:2:10: warning: Initializer entry defined twice
 field-override.c:6:10:   also defined here
+field-override.c:3:10: warning: Initializer entry defined twice
+field-override.c:5:10:   also defined here
 field-override.c:14:10: warning: Initializer entry defined twice
 field-override.c:15:10:   also defined here
+field-override.c:14:10: warning: Initializer entry defined twice
+field-override.c:16:10:   also defined here
+field-override.c:14:10: warning: Initializer entry defined twice
+field-override.c:17:10:   also defined here
+field-override.c:14:10: warning: Initializer entry defined twice
+field-override.c:18:10:   also defined here
+field-override.c:14:10: warning: Initializer entry defined twice
+field-override.c:19:10:   also defined here
 field-override.c:23:10: warning: Initializer entry defined twice
 field-override.c:24:10:   also defined here
 field-override.c:23:10: warning: Initializer entry defined twice
 field-override.c:25:10:   also defined here
+field-override.c:23:10: warning: Initializer entry defined twice
+field-override.c:26:10:   also defined here
+field-override.c:26:10: warning: Initializer entry defined twice
+field-override.c:27:10:   also defined here
+field-override.c:26:10: warning: Initializer entry defined twice
+field-override.c:28:10:   also defined here
 field-override.c:34:10: warning: Initializer entry defined twice
 field-override.c:35:10:   also defined here
+field-override.c:34:10: warning: Initializer entry defined twice
+field-override.c:36:10:   also defined here
+field-override.c:34:10: warning: Initializer entry defined twice
+field-override.c:37:10:   also defined here
+field-override.c:34:10: warning: Initializer entry defined twice
+field-override.c:38:10:   also defined here
+field-override.c:34:10: warning: Initializer entry defined twice
+field-override.c:39:10:   also defined here
+field-override.c:34:10: warning: Initializer entry defined twice
+field-override.c:40:10:   also defined here
 field-override.c:62:10: warning: Initializer entry defined twice
 field-override.c:63:10:   also defined here
+field-override.c:62:10: warning: Initializer entry defined twice
+field-override.c:65:10:   also defined here
+field-override.c:62:10: warning: Initializer entry defined twice
+field-override.c:66:10:   also defined here
+field-override.c:62:10: warning: Initializer entry defined twice
+field-override.c:64:10:   also defined here
  * check-error-end
  */
