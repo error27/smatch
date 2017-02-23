@@ -615,9 +615,19 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		remove_usage(old, &insn->src1);
 		return REPEAT_CSE;
 
-	default:
-		return 0;
+	case OP_ZEXT:
+		if (def->orig_type->bit_size == 1) {
+			// Convert:
+			//	zext.m	%s <- (1) %a
+			//	setne.1 %r <- %s, $0
+			// into:
+			//	setne.1 %s <- %a, $0
+			// and same for setne/eq ... 0/1
+			return replace_pseudo(insn, &insn->src1, def->src1);
+		}
+		break;
 	}
+	return 0;
 }
 
 static int simplify_constant_rightside(struct instruction *insn)

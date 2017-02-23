@@ -29,7 +29,7 @@ static bool babbb(bool a, bool b, bool c) { return a && b && c; }
  *
  * check-output-pattern(36): setne\\.
  * check-output-pattern(4):  seteq\\.
- * check-output-pattern(24): zext\\.
+ * check-output-pattern(8): zext\\.
  * check-output-pattern(12): and
  * check-output-pattern(12): or
  * check-output-end
@@ -75,8 +75,7 @@ boii:
 	setne.1     %r23 <- %arg1, $0
 	setne.1     %r25 <- %arg2, $0
 	or-bool.1   %r26 <- %r23, %r25
-	zext.32     %r27 <- (1) %r26
-	setne.1     %r28 <- %r27, $0
+	setne.1     %r28 <- %r26, $0
 	ret.1       %r28
 
 
@@ -86,8 +85,7 @@ baii:
 	setne.1     %r31 <- %arg1, $0
 	setne.1     %r33 <- %arg2, $0
 	and-bool.1  %r34 <- %r31, %r33
-	zext.32     %r35 <- (1) %r34
-	setne.1     %r36 <- %r35, $0
+	setne.1     %r36 <- %r34, $0
 	ret.1       %r36
 
 
@@ -97,8 +95,7 @@ ioiii:
 	setne.1     %r39 <- %arg1, $0
 	setne.1     %r41 <- %arg2, $0
 	or-bool.1   %r42 <- %r39, %r41
-	zext.32     %r43 <- (1) %r42
-	setne.1     %r44 <- %r43, $0
+	setne.1     %r44 <- %r42, $0
 	setne.1     %r46 <- %arg3, $0
 	or-bool.1   %r47 <- %r44, %r46
 	zext.32     %r48 <- (1) %r47
@@ -111,8 +108,7 @@ iaiii:
 	setne.1     %r51 <- %arg1, $0
 	setne.1     %r53 <- %arg2, $0
 	and-bool.1  %r54 <- %r51, %r53
-	zext.32     %r55 <- (1) %r54
-	setne.1     %r56 <- %r55, $0
+	setne.1     %r56 <- %r54, $0
 	setne.1     %r58 <- %arg3, $0
 	and-bool.1  %r59 <- %r56, %r58
 	zext.32     %r60 <- (1) %r59
@@ -125,12 +121,10 @@ boiii:
 	setne.1     %r63 <- %arg1, $0
 	setne.1     %r65 <- %arg2, $0
 	or-bool.1   %r66 <- %r63, %r65
-	zext.32     %r67 <- (1) %r66
-	setne.1     %r68 <- %r67, $0
+	setne.1     %r68 <- %r66, $0
 	setne.1     %r70 <- %arg3, $0
 	or-bool.1   %r71 <- %r68, %r70
-	zext.32     %r72 <- (1) %r71
-	setne.1     %r73 <- %r72, $0
+	setne.1     %r73 <- %r71, $0
 	ret.1       %r73
 
 
@@ -140,12 +134,10 @@ baiii:
 	setne.1     %r76 <- %arg1, $0
 	setne.1     %r78 <- %arg2, $0
 	and-bool.1  %r79 <- %r76, %r78
-	zext.32     %r80 <- (1) %r79
-	setne.1     %r81 <- %r80, $0
+	setne.1     %r81 <- %r79, $0
 	setne.1     %r83 <- %arg3, $0
 	and-bool.1  %r84 <- %r81, %r83
-	zext.32     %r85 <- (1) %r84
-	setne.1     %r86 <- %r85, $0
+	setne.1     %r86 <- %r84, $0
 	ret.1       %r86
 
 
@@ -183,8 +175,7 @@ bobb:
 .L28:
 	<entry-point>
 	or-bool.1   %r107 <- %arg1, %arg2
-	zext.32     %r108 <- (1) %r107
-	setne.1     %r109 <- %r108, $0
+	setne.1     %r109 <- %r107, $0
 	ret.1       %r109
 
 
@@ -192,8 +183,7 @@ babb:
 .L30:
 	<entry-point>
 	and-bool.1  %r113 <- %arg1, %arg2
-	zext.32     %r114 <- (1) %r113
-	setne.1     %r115 <- %r114, $0
+	setne.1     %r115 <- %r113, $0
 	ret.1       %r115
 
 
@@ -201,8 +191,7 @@ iobbb:
 .L32:
 	<entry-point>
 	or-bool.1   %r119 <- %arg1, %arg2
-	zext.32     %r120 <- (1) %r119
-	setne.1     %r121 <- %r120, $0
+	setne.1     %r121 <- %r119, $0
 	or-bool.1   %r123 <- %r121, %arg3
 	zext.32     %r124 <- (1) %r123
 	ret.32      %r124
@@ -212,8 +201,7 @@ iabbb:
 .L34:
 	<entry-point>
 	and-bool.1  %r128 <- %arg1, %arg2
-	zext.32     %r129 <- (1) %r128
-	setne.1     %r130 <- %r129, $0
+	setne.1     %r130 <- %r128, $0
 	and-bool.1  %r132 <- %r130, %arg3
 	zext.32     %r133 <- (1) %r132
 	ret.32      %r133
@@ -223,11 +211,9 @@ bobbb:
 .L36:
 	<entry-point>
 	or-bool.1   %r137 <- %arg1, %arg2
-	zext.32     %r138 <- (1) %r137
-	setne.1     %r139 <- %r138, $0
+	setne.1     %r139 <- %r137, $0
 	or-bool.1   %r141 <- %r139, %arg3
-	zext.32     %r142 <- (1) %r141
-	setne.1     %r143 <- %r142, $0
+	setne.1     %r143 <- %r141, $0
 	ret.1       %r143
 
 
@@ -235,11 +221,9 @@ babbb:
 .L38:
 	<entry-point>
 	and-bool.1  %r147 <- %arg1, %arg2
-	zext.32     %r148 <- (1) %r147
-	setne.1     %r149 <- %r148, $0
+	setne.1     %r149 <- %r147, $0
 	and-bool.1  %r151 <- %r149, %arg3
-	zext.32     %r152 <- (1) %r151
-	setne.1     %r153 <- %r152, $0
+	setne.1     %r153 <- %r151, $0
 	ret.1       %r153
 
 
