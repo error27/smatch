@@ -54,7 +54,7 @@ ioii:
 	<entry-point>
 	setne.1     %r9 <- %arg1, $0
 	setne.1     %r11 <- %arg2, $0
-	or-bool.1   %r12 <- %r9, %r11
+	or.1        %r12 <- %r9, %r11
 	zext.32     %r13 <- (1) %r12
 	ret.32      %r13
 
@@ -64,7 +64,7 @@ iaii:
 	<entry-point>
 	setne.1     %r16 <- %arg1, $0
 	setne.1     %r18 <- %arg2, $0
-	and-bool.1  %r19 <- %r16, %r18
+	and.1       %r19 <- %r16, %r18
 	zext.32     %r20 <- (1) %r19
 	ret.32      %r20
 
@@ -74,7 +74,7 @@ boii:
 	<entry-point>
 	setne.1     %r23 <- %arg1, $0
 	setne.1     %r25 <- %arg2, $0
-	or-bool.1   %r26 <- %r23, %r25
+	or.1        %r26 <- %r23, %r25
 	setne.1     %r28 <- %r26, $0
 	ret.1       %r28
 
@@ -84,7 +84,7 @@ baii:
 	<entry-point>
 	setne.1     %r31 <- %arg1, $0
 	setne.1     %r33 <- %arg2, $0
-	and-bool.1  %r34 <- %r31, %r33
+	and.1       %r34 <- %r31, %r33
 	setne.1     %r36 <- %r34, $0
 	ret.1       %r36
 
@@ -94,10 +94,10 @@ ioiii:
 	<entry-point>
 	setne.1     %r39 <- %arg1, $0
 	setne.1     %r41 <- %arg2, $0
-	or-bool.1   %r42 <- %r39, %r41
+	or.1        %r42 <- %r39, %r41
 	setne.1     %r44 <- %r42, $0
 	setne.1     %r46 <- %arg3, $0
-	or-bool.1   %r47 <- %r44, %r46
+	or.1        %r47 <- %r44, %r46
 	zext.32     %r48 <- (1) %r47
 	ret.32      %r48
 
@@ -107,10 +107,10 @@ iaiii:
 	<entry-point>
 	setne.1     %r51 <- %arg1, $0
 	setne.1     %r53 <- %arg2, $0
-	and-bool.1  %r54 <- %r51, %r53
+	and.1       %r54 <- %r51, %r53
 	setne.1     %r56 <- %r54, $0
 	setne.1     %r58 <- %arg3, $0
-	and-bool.1  %r59 <- %r56, %r58
+	and.1       %r59 <- %r56, %r58
 	zext.32     %r60 <- (1) %r59
 	ret.32      %r60
 
@@ -120,10 +120,10 @@ boiii:
 	<entry-point>
 	setne.1     %r63 <- %arg1, $0
 	setne.1     %r65 <- %arg2, $0
-	or-bool.1   %r66 <- %r63, %r65
+	or.1        %r66 <- %r63, %r65
 	setne.1     %r68 <- %r66, $0
 	setne.1     %r70 <- %arg3, $0
-	or-bool.1   %r71 <- %r68, %r70
+	or.1        %r71 <- %r68, %r70
 	setne.1     %r73 <- %r71, $0
 	ret.1       %r73
 
@@ -133,10 +133,10 @@ baiii:
 	<entry-point>
 	setne.1     %r76 <- %arg1, $0
 	setne.1     %r78 <- %arg2, $0
-	and-bool.1  %r79 <- %r76, %r78
+	and.1       %r79 <- %r76, %r78
 	setne.1     %r81 <- %r79, $0
 	setne.1     %r83 <- %arg3, $0
-	and-bool.1  %r84 <- %r81, %r83
+	and.1       %r84 <- %r81, %r83
 	setne.1     %r86 <- %r84, $0
 	ret.1       %r86
 
@@ -158,7 +158,7 @@ bnb:
 iobb:
 .L24:
 	<entry-point>
-	or-bool.1   %r97 <- %arg1, %arg2
+	or.1        %r97 <- %arg1, %arg2
 	zext.32     %r98 <- (1) %r97
 	ret.32      %r98
 
@@ -166,7 +166,7 @@ iobb:
 iabb:
 .L26:
 	<entry-point>
-	and-bool.1  %r102 <- %arg1, %arg2
+	and.1       %r102 <- %arg1, %arg2
 	zext.32     %r103 <- (1) %r102
 	ret.32      %r103
 
@@ -174,7 +174,7 @@ iabb:
 bobb:
 .L28:
 	<entry-point>
-	or-bool.1   %r107 <- %arg1, %arg2
+	or.1        %r107 <- %arg1, %arg2
 	setne.1     %r109 <- %r107, $0
 	ret.1       %r109
 
@@ -182,7 +182,7 @@ bobb:
 babb:
 .L30:
 	<entry-point>
-	and-bool.1  %r113 <- %arg1, %arg2
+	and.1       %r113 <- %arg1, %arg2
 	setne.1     %r115 <- %r113, $0
 	ret.1       %r115
 
@@ -190,9 +190,9 @@ babb:
 iobbb:
 .L32:
 	<entry-point>
-	or-bool.1   %r119 <- %arg1, %arg2
+	or.1        %r119 <- %arg1, %arg2
 	setne.1     %r121 <- %r119, $0
-	or-bool.1   %r123 <- %r121, %arg3
+	or.1        %r123 <- %r121, %arg3
 	zext.32     %r124 <- (1) %r123
 	ret.32      %r124
 
@@ -200,9 +200,9 @@ iobbb:
 iabbb:
 .L34:
 	<entry-point>
-	and-bool.1  %r128 <- %arg1, %arg2
+	and.1       %r128 <- %arg1, %arg2
 	setne.1     %r130 <- %r128, $0
-	and-bool.1  %r132 <- %r130, %arg3
+	and.1       %r132 <- %r130, %arg3
 	zext.32     %r133 <- (1) %r132
 	ret.32      %r133
 
@@ -210,9 +210,9 @@ iabbb:
 bobbb:
 .L36:
 	<entry-point>
-	or-bool.1   %r137 <- %arg1, %arg2
+	or.1        %r137 <- %arg1, %arg2
 	setne.1     %r139 <- %r137, $0
-	or-bool.1   %r141 <- %r139, %arg3
+	or.1        %r141 <- %r139, %arg3
 	setne.1     %r143 <- %r141, $0
 	ret.1       %r143
 
@@ -220,9 +220,9 @@ bobbb:
 babbb:
 .L38:
 	<entry-point>
-	and-bool.1  %r147 <- %arg1, %arg2
+	and.1       %r147 <- %arg1, %arg2
 	setne.1     %r149 <- %r147, $0
-	and-bool.1  %r151 <- %r149, %arg3
+	and.1       %r151 <- %r149, %arg3
 	setne.1     %r153 <- %r151, $0
 	ret.1       %r153
 

@@ -1487,7 +1487,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 static pseudo_t linearize_binop_bool(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src1, src2, dst;
-	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_OR_BOOL : OP_AND_BOOL;
+	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_OR : OP_AND;
 
 	src1 = linearize_expression_to_bool(ep, expr->left);
 	src2 = linearize_expression_to_bool(ep, expr->right);
