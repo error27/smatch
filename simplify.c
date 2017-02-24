@@ -578,7 +578,6 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
 	struct instruction *def;
-	pseudo_t src1, src2;
 	int inverse;
 	int opcode;
 
@@ -602,11 +601,9 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		//	setcc.n	%t <- %a, %b
 		//	setcc.m %r <- %a, $b
 		// and similar for setne/eq ... 0/1
-		src1 = def->src1;
-		src2 = def->src2;
 		insn->opcode = inverse ? opcode_table[opcode].negate : opcode;
-		use_pseudo(insn, src1, &insn->src1);
-		use_pseudo(insn, src2, &insn->src2);
+		use_pseudo(insn, def->src1, &insn->src1);
+		use_pseudo(insn, def->src2, &insn->src2);
 		remove_usage(old, &insn->src1);
 		return REPEAT_CSE;
 
