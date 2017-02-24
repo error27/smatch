@@ -432,7 +432,8 @@ static int compare_opcode(int opcode, int inverse)
 
 static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
-	struct instruction *def = insn->src1->def;
+	pseudo_t old = insn->src1;
+	struct instruction *def = old->def;
 	pseudo_t src1, src2;
 	int inverse;
 	int opcode;
@@ -456,10 +457,10 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		// and similar for setne/eq ... 0/1
 		src1 = def->src1;
 		src2 = def->src2;
-		remove_usage(insn->src1, &insn->src1);
 		insn->opcode = compare_opcode(opcode, inverse);
 		use_pseudo(insn, src1, &insn->src1);
 		use_pseudo(insn, src2, &insn->src2);
+		remove_usage(old, &insn->src1);
 		return REPEAT_CSE;
 
 	default:
