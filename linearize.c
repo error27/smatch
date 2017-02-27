@@ -32,6 +32,7 @@ static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
 struct access_data;
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *);
 static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *);
+static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *from, struct symbol *to);
 
 struct pseudo void_pseudo = {};
 
@@ -999,7 +1000,8 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad
 		pseudo_t newval = add_binary_op(ep, ad->source_type, OP_LSR, new, shift);
 		new = newval;
 	}
-		
+	if (ad->bit_size != type_size(ad->source_type))
+		new = cast_pseudo(ep, new, ad->source_type, ad->result_type);
 	return new;
 }
 
