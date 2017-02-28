@@ -237,10 +237,6 @@ struct basic_block {
 	};
 };
 
-static inline int is_branch_goto(struct instruction *br)
-{
-	return br && br->opcode==OP_BR && (!br->bb_true || !br->bb_false);
-}
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)
 {
