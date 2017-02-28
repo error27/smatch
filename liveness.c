@@ -56,7 +56,8 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		USES(src);
 		break;
 
-	case OP_BR: case OP_SWITCH:
+	case OP_CBR:
+	case OP_SWITCH:
 		USES(cond);
 		break;
 

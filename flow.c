@@ -111,7 +111,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 		br = last_instruction(source->insns);
 		if (!br)
 			continue;
-		if (br->opcode != OP_BR)
+		if (br->opcode != OP_CBR && br->opcode != OP_BR)
 			continue;
 		true = pseudo_truth_value(pseudo);
 		if (true < 0)
@@ -176,7 +176,7 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 	if (target == bb)
 		return 0;
 	insn = last_instruction(target->insns);
-	if (!insn || insn->opcode != OP_BR || insn->cond != br->cond)
+	if (!insn || insn->opcode != OP_CBR || insn->cond != br->cond)
 		return 0;
 	/*
 	 * Ahhah! We've found a branch to a branch on the same conditional!
@@ -218,7 +218,7 @@ static int simplify_branch_nodes(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *br = last_instruction(bb->insns);
 
-		if (!br || br->opcode != OP_BR || !br->bb_false)
+		if (!br || br->opcode != OP_CBR)
 			continue;
 		changed |= simplify_one_branch(bb, br);
 	} END_FOR_EACH_PTR(bb);
@@ -811,9 +811,11 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 		return 0;
 
 	switch (insn->opcode) {
+	case OP_CBR:
+		changed |= rewrite_branch(bb, &insn->bb_false, old, new);
+		/* fall through */
 	case OP_BR:
 		changed |= rewrite_branch(bb, &insn->bb_true, old, new);
-		changed |= rewrite_branch(bb, &insn->bb_false, old, new);
 		assert(changed);
 		return changed;
 	case OP_SWITCH: {
@@ -835,7 +837,7 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 	struct basic_block *target = br->bb_true;
 	struct basic_block *false = br->bb_false;
 
-	if (target && false) {
+	if (br->opcode == OP_CBR) {
 		pseudo_t cond = br->cond;
 		if (cond->type != PSEUDO_VAL)
 			return NULL;
@@ -886,9 +888,11 @@ static void vrfy_children(struct basic_block *bb)
 	}
 	switch (br->opcode) {
 		struct multijmp *jmp;
+	case OP_CBR:
+		vrfy_bb_in_list(br->bb_false, bb->children);
+		/* fall through */
 	case OP_BR:
 		vrfy_bb_in_list(br->bb_true, bb->children);
-		vrfy_bb_in_list(br->bb_false, bb->children);
 		break;
 	case OP_SWITCH:
 	case OP_COMPUTEDGOTO:
@@ -945,6 +949,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 			switch (first->opcode) {
 			case OP_NOP: case OP_LNOP: case OP_SNOP:
 				continue;
+			case OP_CBR:
 			case OP_BR: {
 				struct basic_block *replace;
 				replace = rewrite_branch_bb(bb, first);

@@ -642,19 +642,19 @@ static LLVMValueRef bool_value(struct function *fn, LLVMValueRef value)
 	return value;
 }
 
+static void output_op_cbr(struct function *fn, struct instruction *br)
+{
+	LLVMValueRef cond = bool_value(fn,
+			pseudo_to_value(fn, br, br->cond));
+
+	LLVMBuildCondBr(fn->builder, cond,
+			br->bb_true->priv,
+			br->bb_false->priv);
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
-	if (br->cond) {
-		LLVMValueRef cond = bool_value(fn,
-				pseudo_to_value(fn, br, br->cond));
-
-		LLVMBuildCondBr(fn->builder, cond,
-				br->bb_true->priv,
-				br->bb_false->priv);
-	} else
-		LLVMBuildBr(fn->builder,
-			    br->bb_true ? br->bb_true->priv :
-			    br->bb_false->priv);
+	LLVMBuildBr(fn->builder, br->bb_true->priv);
 }
 
 static void output_op_sel(struct function *fn, struct instruction *insn)
@@ -809,6 +809,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_BR:
 		output_op_br(fn, insn);
+		break;
+	case OP_CBR:
+		output_op_cbr(fn, insn);
 		break;
 	case OP_SYMADDR:
 		assert(0);

@@ -170,6 +170,7 @@ static const char *opcodes[] = {
 	/* Terminator */
 	[OP_RET] = "ret",
 	[OP_BR] = "br",
+	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
 	[OP_INVOKE] = "invoke",
 	[OP_COMPUTEDGOTO] = "jmp *",
@@ -304,12 +305,13 @@ const char *show_instruction(struct instruction *insn)
 		if (insn->src && insn->src != VOID)
 			buf += sprintf(buf, "%s", show_pseudo(insn->src));
 		break;
+
+	case OP_CBR:
+		buf += sprintf(buf, "%s, .L%u, .L%u", show_pseudo(insn->cond), insn->bb_true->nr, insn->bb_false->nr);
+		break;
+
 	case OP_BR:
-		if (insn->bb_true && insn->bb_false) {
-			buf += sprintf(buf, "%s, .L%u, .L%u", show_pseudo(insn->cond), insn->bb_true->nr, insn->bb_false->nr);
-			break;
-		}
-		buf += sprintf(buf, ".L%u", insn->bb_true ? insn->bb_true->nr : insn->bb_false->nr);
+		buf += sprintf(buf, ".L%u", insn->bb_true->nr);
 		break;
 
 	case OP_SYMADDR: {
@@ -724,7 +726,7 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 	struct instruction *br;
 
 	if (bb_reachable(bb)) {
-       		br = alloc_instruction(OP_BR, 0);
+		br = alloc_instruction(OP_CBR, 0);
 		use_pseudo(br, cond, &br->cond);
 		br->bb_true = bb_true;
 		br->bb_false = bb_false;

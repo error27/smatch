@@ -67,7 +67,7 @@ static int if_convert_phi(struct instruction *insn)
 	 * stuff. Verify that here.
 	 */
 	br = last_instruction(source->insns);
-	if (!br || br->opcode != OP_BR)
+	if (!br || br->opcode != OP_CBR)
 		return 0;
 
 	assert(br->cond);
@@ -227,11 +227,7 @@ void kill_insn(struct instruction *insn, int force)
 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		break;
 
-	case OP_BR:
-		if (!insn->bb_true || !insn->bb_false)
-			break;
-		/* fall through */
-
+	case OP_CBR:
 	case OP_COMPUTEDGOTO:
 		kill_use(&insn->cond);
 		break;
@@ -266,6 +262,7 @@ void kill_insn(struct instruction *insn, int force)
 		/* ignore */
 		return;
 
+	case OP_BR:
 	default:
 		break;
 	}
@@ -1035,9 +1032,6 @@ static int simplify_branch(struct instruction *insn)
 {
 	pseudo_t cond = insn->cond;
 
-	if (!cond)
-		return 0;
-
 	/* Constant conditional */
 	if (constant(cond)) {
 		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
@@ -1053,6 +1047,7 @@ static int simplify_branch(struct instruction *insn)
 		insn->bb_false = NULL;
 		kill_use(&insn->cond);
 		insn->cond = NULL;
+		insn->opcode = OP_BR;
 		return REPEAT_CSE;
 	}
 
@@ -1182,7 +1177,7 @@ int simplify_instruction(struct instruction *insn)
 		break;
 	case OP_SEL:
 		return simplify_select(insn);
-	case OP_BR:
+	case OP_CBR:
 		return simplify_branch(insn);
 	case OP_SWITCH:
 		return simplify_switch(insn);
