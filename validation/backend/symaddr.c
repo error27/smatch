@@ -10,7 +10,9 @@ void lfoo(int *p, int a)
 	useip(p);
 	useip(larra);
 	useip(larrb + 1);
+	useip(larrc + a);
 	useip(&larrd[1]);
+	useip(&larre[a]);
 	useia(&larrf);
 }
 
@@ -22,7 +24,9 @@ void sfoo(int *p, int a)
 	useip(&s);
 	useip(sarra);
 	useip(sarrb + 1);
+	useip(sarrc + a);
 	useip(&sarrd[1]);
+	useip(&sarre[a]);
 	useia(&sarrf);
 	usevp(sfun);
 	usevp(&spun);
@@ -36,7 +40,9 @@ void xfoo(int *p, int a)
 	useip(&x);
 	useip(xarra);
 	useip(xarrb + 1);
+	useip(xarrc + a);
 	useip(&xarrd[1]);
+	useip(&xarre[a]);
 	useia(&xarrf);
 	usevp(xfun);
 	usevp(&xpun);
@@ -50,7 +56,9 @@ void gfoo(int *p, int a)
 	useip(&g);
 	useip(garra);
 	useip(garrb + 1);
+	useip(garrc + a);
 	useip(&garrd[1]);
+	useip(&garre[a]);
 	useia(&garrf);
 	usevp(gfun);
 	usevp(&gpun);

@@ -408,6 +408,33 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 	return result;
 }
 
+static LLVMValueRef value_to_ivalue(struct function *fn, LLVMValueRef val)
+{
+	if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMPointerTypeKind) {
+		LLVMTypeRef dtype = LLVMIntType(bits_in_pointer);
+		val = LLVMBuildPtrToInt(fn->builder, val, dtype, "");
+	}
+	return val;
+}
+
+static LLVMValueRef value_to_pvalue(struct function *fn, struct symbol *ctype, LLVMValueRef val)
+{
+	if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind) {
+		LLVMTypeRef dtype = symbol_type(ctype);
+		val = LLVMBuildIntToPtr(fn->builder, val, dtype, "");
+	}
+	return val;
+}
+
+static LLVMValueRef adjust_type(struct function *fn, struct symbol *ctype, LLVMValueRef val)
+{
+	if (is_int_type(ctype))
+		return value_to_ivalue(fn, val);
+	if (is_ptr_type(ctype))
+		return value_to_pvalue(fn, ctype, val);
+	return val;
+}
+
 static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValueRef off)
 {
 	LLVMTypeRef type = LLVMTypeOf(base);
@@ -467,8 +494,10 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	char target_name[64];
 
 	lhs = pseudo_to_value(fn, insn, insn->src1);
+	lhs = value_to_ivalue(fn, lhs);
 
 	rhs = pseudo_to_value(fn, insn, insn->src2);
+	rhs = value_to_ivalue(fn, rhs);
 
 	pseudo_name(insn->target, target_name);
 
@@ -569,6 +598,7 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		break;
 	}
 
+	target = adjust_type(fn, insn->type, target);
 	insn->target->priv = target;
 }
 
