@@ -44,6 +44,7 @@ extern bool ptr_list_multiple(const struct ptr_list *head);
 extern int linearize_ptr_list(struct ptr_list *, void **, int);
 extern void *first_ptr_list(struct ptr_list *);
 extern void *last_ptr_list(struct ptr_list *);
+extern void *ptr_list_nth_entry(struct ptr_list *, unsigned int idx);
 extern void pack_ptr_list(struct ptr_list **);
 
 /*

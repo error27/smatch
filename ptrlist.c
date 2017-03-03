@@ -115,6 +115,28 @@ void *last_ptr_list(struct ptr_list *head)
 }
 
 ///
+// get the nth element of a ptrlist
+// @head: the head of the list
+// @return: the nth element of the list or ``NULL`` if the list is too short.
+void *ptr_list_nth_entry(struct ptr_list *list, unsigned int idx)
+{
+	struct ptr_list *head = list;
+
+	if (!head)
+		return NULL;
+
+	do {
+		unsigned int nr = list->nr;
+
+		if (idx < nr)
+			return list->list[idx];
+		else
+			idx -= nr;
+	} while ((list = list->next) != head);
+	return NULL;
+}
+
+///
 // linearize the entries of a list
 //
 // @head: the list to be linearized
