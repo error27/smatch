@@ -32,7 +32,7 @@ static int c99(void)
  * check-name: C99 for-loop declarations
  *
  * check-error-start
-c99-for-loop-decl.c:22:27: warning: symbol with external linkage has initializer
+c99-for-loop-decl.c:22:27: error: non-local var 'l' in for-loop initializer
 c99-for-loop-decl.c:24:27: error: non-local var 'm' in for-loop initializer
 c99-for-loop-decl.c:26:27: error: non-local var 'n' in for-loop initializer
 c99-for-loop-decl.c:9:16: error: undefined identifier 'i'

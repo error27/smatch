@@ -2890,15 +2890,16 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	for (;;) {
 		if (!is_typedef && match_op(token, '=')) {
-			if (decl->ctype.modifiers & MOD_EXTERN) {
-				warning(decl->pos, "symbol with external linkage has initializer");
-				decl->ctype.modifiers &= ~MOD_EXTERN;
-			}
 			token = initializer(&decl->initializer, token->next);
 		}
 		if (!is_typedef) {
 			if (validate_decl)
 				validate_decl(decl);
+
+			if (decl->initializer && decl->ctype.modifiers & MOD_EXTERN) {
+				warning(decl->pos, "symbol with external linkage has initializer");
+				decl->ctype.modifiers &= ~MOD_EXTERN;
+			}
 
 			if (!(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE))) {
 				add_symbol(list, decl);
