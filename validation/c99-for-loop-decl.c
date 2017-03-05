@@ -30,7 +30,6 @@ static int c99(void)
 
 /*
  * check-name: C99 for-loop declarations
- * check-known-to-fail
  *
  * check-error-start
 c99-for-loop-decl.c:22:27: warning: symbol with external linkage has initializer

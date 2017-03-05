@@ -2229,6 +2229,17 @@ static struct token *parse_return_statement(struct token *token, struct statemen
 	return expression_statement(token->next, &stmt->ret_value);
 }
 
+static void validate_for_loop_decl(struct symbol *sym)
+{
+	unsigned long storage = sym->ctype.modifiers & MOD_STORAGE;
+
+	if (storage & ~(MOD_AUTO | MOD_REGISTER)) {
+		const char *name = show_ident(sym->ident);
+		sparse_error(sym->pos, "non-local var '%s' in for-loop initializer", name);
+		sym->ctype.modifiers &= ~MOD_STORAGE;
+	}
+}
+
 static struct token *parse_for_statement(struct token *token, struct statement *stmt)
 {
 	struct symbol_list *syms;
@@ -2242,7 +2253,7 @@ static struct token *parse_for_statement(struct token *token, struct statement *
 	e1 = NULL;
 	/* C99 variable declaration? */
 	if (lookup_type(token)) {
-		token = external_declaration(token, &syms, NULL);
+		token = external_declaration(token, &syms, validate_for_loop_decl);
 	} else {
 		token = parse_expression(token, &e1);
 		token = expect(token, ';', "in 'for'");
