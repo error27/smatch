@@ -958,9 +958,8 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	function.builder = LLVMCreateBuilder();
 
-	static int nr_bb;
-
 	FOR_EACH_PTR(ep->bbs, bb) {
+		static int nr_bb;
 		LLVMBasicBlockRef bbr;
 		char bbname[32];
 		struct instruction *insn;
