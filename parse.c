@@ -2242,7 +2242,7 @@ static struct token *parse_for_statement(struct token *token, struct statement *
 	e1 = NULL;
 	/* C99 variable declaration? */
 	if (lookup_type(token)) {
-		token = external_declaration(token, &syms);
+		token = external_declaration(token, &syms, NULL);
 	} else {
 		token = parse_expression(token, &e1);
 		token = expect(token, ';', "in 'for'");
@@ -2469,7 +2469,7 @@ static struct token * statement_list(struct token *token, struct statement_list 
 				seen_statement = 0;
 			}
 			stmt = alloc_statement(token->pos, STMT_DECLARATION);
-			token = external_declaration(token, &stmt->declaration);
+			token = external_declaration(token, &stmt->declaration, NULL);
 		} else {
 			seen_statement = Wdeclarationafterstatement;
 			token = statement(token, &stmt);
@@ -2797,7 +2797,8 @@ static struct token *toplevel_asm_declaration(struct token *token, struct symbol
 	return token;
 }
 
-struct token *external_declaration(struct token *token, struct symbol_list **list)
+struct token *external_declaration(struct token *token, struct symbol_list **list,
+		validate_decl_t validate_decl)
 {
 	struct ident *ident = NULL;
 	struct symbol *decl;
@@ -2885,6 +2886,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			token = initializer(&decl->initializer, token->next);
 		}
 		if (!is_typedef) {
+			if (validate_decl)
+				validate_decl(decl);
+
 			if (!(decl->ctype.modifiers & (MOD_EXTERN | MOD_INLINE))) {
 				add_symbol(list, decl);
 				fn_local_symbol(decl);

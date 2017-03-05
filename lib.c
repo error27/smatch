@@ -1085,7 +1085,7 @@ static struct symbol_list *sparse_tokenstream(struct token *token)
 
 	// Parse the resulting C code
 	while (!eof_token(token))
-		token = external_declaration(token, &translation_unit_used_list);
+		token = external_declaration(token, &translation_unit_used_list, NULL);
 	return translation_unit_used_list;
 }
 
