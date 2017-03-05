@@ -911,11 +911,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	}
 }
 
-static void output_bb(struct function *fn, struct basic_block *bb, unsigned long generation)
+static void output_bb(struct function *fn, struct basic_block *bb)
 {
 	struct instruction *insn;
-
-	bb->generation = generation;
 
 	FOR_EACH_PTR(bb->insns, insn) {
 		if (!insn->bb)
@@ -930,7 +928,6 @@ static void output_bb(struct function *fn, struct basic_block *bb, unsigned long
 
 static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 {
-	unsigned long generation = ++bb_generation;
 	struct symbol *sym = ep->name;
 	struct symbol *base_type = sym->ctype.base_type;
 	struct symbol *ret_type = sym->ctype.base_type->ctype.base_type;
@@ -964,9 +961,6 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	static int nr_bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		if (bb->generation == generation)
-			continue;
-
 		LLVMBasicBlockRef bbr;
 		char bbname[32];
 		struct instruction *insn;
@@ -997,12 +991,9 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	END_FOR_EACH_PTR(bb);
 
 	FOR_EACH_PTR(ep->bbs, bb) {
-		if (bb->generation == generation)
-			continue;
-
 		LLVMPositionBuilderAtEnd(function.builder, bb->priv);
 
-		output_bb(&function, bb, generation);
+		output_bb(&function, bb);
 	}
 	END_FOR_EACH_PTR(bb);
 }
