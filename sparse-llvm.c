@@ -935,6 +935,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	struct symbol *arg;
 	const char *name;
 	int nr_args = 0;
+	int i;
 
 	FOR_EACH_PTR(base_type->arguments, arg) {
 		struct symbol *arg_base_type = arg->ctype.base_type;
@@ -955,6 +956,17 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	function.builder = LLVMCreateBuilder();
 
+	/* give a name to each argument */
+	for (i = 0; i < nr_args; i++) {
+		char name[MAX_PSEUDO_NAME];
+		LLVMValueRef arg;
+
+		arg = LLVMGetParam(function.fn, i);
+		snprintf(name, sizeof(name), "ARG%d", i+1);
+		LLVMSetValueName(arg, name);
+	}
+
+	/* create the BBs */
 	FOR_EACH_PTR(ep->bbs, bb) {
 		static int nr_bb;
 		LLVMBasicBlockRef bbr;
