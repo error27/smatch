@@ -132,7 +132,6 @@ const char *modifier_string(unsigned long mod)
 		{MOD_LONG,		"[long]"},
 		{MOD_LONGLONG,		"[long long]"},
 		{MOD_LONGLONGLONG,	"[long long long]"},
-		{MOD_TYPEDEF,		"[typedef]"},
 		{MOD_TLS,		"[tls]"},
 		{MOD_INLINE,		"inline"},
 		{MOD_ADDRESSABLE,	"[addressable]"},

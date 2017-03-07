@@ -216,8 +216,6 @@ struct symbol {
 #define MOD_LONGLONGLONG	0x1000
 #define MOD_PURE	0x2000
 
-#define MOD_TYPEDEF	0x10000
-
 #define MOD_TLS		0x20000
 #define MOD_INLINE	0x40000
 #define MOD_ADDRESSABLE	0x80000
