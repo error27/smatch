@@ -348,6 +348,35 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 	return result;
 }
 
+static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
+{
+	LLVMTypeRef itype;
+	LLVMValueRef result;
+
+	switch (LLVMGetTypeKind(dtype)) {
+	case LLVMPointerTypeKind:
+		itype = LLVMIntType(bits_in_pointer);
+		result = LLVMConstInt(itype, val, 1);
+		result = LLVMConstIntToPtr(result, dtype);
+		break;
+	case LLVMIntegerTypeKind:
+		result = LLVMConstInt(dtype, val, 1);
+		break;
+	default:
+		assert(0);
+	}
+	return result;
+}
+
+static LLVMValueRef val_to_value(unsigned long long val, struct symbol *ctype)
+{
+	LLVMTypeRef dtype;
+
+	assert(ctype);
+	dtype = symbol_type(ctype);
+	return constant_value(val, dtype);
+}
+
 static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *insn, pseudo_t pseudo)
 {
 	LLVMValueRef result = NULL;
@@ -360,7 +389,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		result = get_sym_value(fn, pseudo->sym);
 		break;
 	case PSEUDO_VAL:
-		result = LLVMConstInt(insn_symbol_type(insn), pseudo->value, 1);
+		result = val_to_value(pseudo->value, insn->type);
 		break;
 	case PSEUDO_ARG: {
 		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
