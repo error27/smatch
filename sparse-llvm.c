@@ -578,9 +578,8 @@ static void output_op_compare(struct function *fn, struct instruction *insn)
 	char target_name[64];
 
 	lhs = pseudo_to_value(fn, insn, insn->src1);
-
 	if (insn->src2->type == PSEUDO_VAL)
-		rhs = LLVMConstInt(LLVMTypeOf(lhs), insn->src2->value, 1);
+		rhs = constant_value(insn->src2->value, LLVMTypeOf(lhs));
 	else
 		rhs = pseudo_to_value(fn, insn, insn->src2);
 
