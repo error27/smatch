@@ -709,10 +709,7 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	struct pseudo *arg;
 	LLVMValueRef *args;
 
-	FOR_EACH_PTR(insn->arguments, arg) {
-		n_arg++;
-	} END_FOR_EACH_PTR(arg);
-
+	n_arg = pseudo_list_size(insn->arguments);
 	args = calloc(n_arg, sizeof(LLVMValueRef));
 
 	i = 0;
