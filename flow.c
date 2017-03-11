@@ -254,7 +254,8 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 			*pu->userp = src;
 		}
 	} END_FOR_EACH_PTR(pu);
-	concat_user_list(target->users, &src->users);
+	if (has_use_list(src))
+		concat_user_list(target->users, &src->users);
 	target->users = NULL;
 }
 
