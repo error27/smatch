@@ -1118,8 +1118,7 @@ static struct instruction *alloc_cast_instruction(struct symbol *src, struct sym
 		base = base->ctype.base_type;
 		if (base != &void_ctype)
 			opcode = OP_PTRCAST;
-	}
-	if (base->ctype.base_type == &fp_type)
+	} else if (base->ctype.base_type == &fp_type)
 		opcode = OP_FPCAST;
 	return alloc_typed_instruction(opcode, ctype);
 }
