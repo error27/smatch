@@ -2177,6 +2177,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	struct smatch_state *state;
 	struct symbol *type;
 	char fullname[256];
+	sval_t dummy;
 
 	if (strcmp(key, "*$") == 0)
 		snprintf(fullname, sizeof(fullname), "*%s", name);
@@ -2188,6 +2189,8 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	type = get_member_type_from_key(symbol_expression(sym), key);
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
+	if (estate_get_single_value(state, &dummy))
+		estate_set_hard_max(state);
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
