@@ -384,11 +384,15 @@ char *get_value_in_terms_of_parameter_math(struct expression *expr)
 {
 	struct expression *tmp;
 	char buf[256];
+	sval_t dummy;
 	int ret;
 
 	tmp = get_assigned_expr(expr);
 	if (tmp)
 		expr = tmp;
+
+	if (get_implied_value(expr, &dummy))
+		return NULL;
 
 	ret = format_expr_helper(buf, sizeof(buf), expr);
 	if (ret == 0)
