@@ -1418,10 +1418,12 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 {
 	struct expression *left = *left_p;
 	struct expression *right = *right_p;
-	sval_t sval;
+	sval_t sval, dummy;
 
 	if (get_implied_value(left, &sval)) {
 		if (!is_simple_math(right))
+			return;
+		if (get_implied_value(right, &dummy))
 			return;
 		if (right->op == '*') {
 			sval_t divisor;
@@ -1448,6 +1450,8 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 	}
 	if (get_implied_value(right, &sval)) {
 		if (!is_simple_math(left))
+			return;
+		if (get_implied_value(left, &dummy))
 			return;
 		if (left->op == '*') {
 			sval_t divisor;
