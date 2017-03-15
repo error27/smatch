@@ -123,7 +123,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (estate_is_whole(state) || estate_is_empty(state))
 			continue;
 		old = get_state_stree(start_states, SMATCH_EXTRA, tmp->name, tmp->sym);
-		if (old && estates_equiv(old, state))
+		if (old && rl_equiv(estate_rl(old), estate_rl(state)))
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
