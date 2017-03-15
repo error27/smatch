@@ -47,6 +47,7 @@ do {										\
 		if (rc != SQLITE_OK) {						\
 			fprintf(stderr, "SQL error #2: %s\n", err);		\
 			fprintf(stderr, "SQL: '%s'\n", buf);			\
+			parse_error = 1;					\
 		}								\
 		break;								\
 	}									\
@@ -137,6 +138,7 @@ void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const cha
 	if (rc != SQLITE_OK && !parse_error) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
+		parse_error = 1;
 	}
 }
 
@@ -152,6 +154,7 @@ void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL error #2: %s\n", err);
 		fprintf(stderr, "SQL: '%s'\n", sql);
+		parse_error = 1;
 	}
 }
 
