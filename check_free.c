@@ -35,6 +35,12 @@ static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 		set_state(my_id, sm->name, sm->sym, &ok);
 }
 
+static void pre_merge_hook(struct sm_state *sm)
+{
+	if (is_impossible_path())
+		set_state(my_id, sm->name, sm->sym, &ok);
+}
+
 static int is_freed(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -49,6 +55,9 @@ static void match_symbol(struct expression *expr)
 {
 	char *name;
 
+	if (is_impossible_path())
+		return;
+
 	if (!is_freed(expr))
 		return;
 	name = expr_to_var(expr);
@@ -62,8 +71,11 @@ static void match_dereferences(struct expression *expr)
 
 	if (expr->type != EXPR_PREOP)
 		return;
-	expr = strip_expr(expr->unop);
 
+	if (is_impossible_path())
+		return;
+
+	expr = strip_expr(expr->unop);
 	if (!is_freed(expr))
 		return;
 	name = expr_to_var(expr);
@@ -134,6 +146,9 @@ static void match_call(struct expression *expr)
 	char *name;
 	int i;
 
+	if (is_impossible_path())
+		return;
+
 	set_ignored_params(expr);
 
 	i = -1;
@@ -160,6 +175,9 @@ static void match_return(struct expression *expr)
 {
 	char *name;
 
+	if (is_impossible_path())
+		return;
+
 	if (!expr)
 		return;
 	if (!is_freed(expr))
@@ -174,6 +192,9 @@ static void match_return(struct expression *expr)
 static void match_free(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
+
+	if (is_impossible_path())
+		return;
 
 	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
@@ -259,4 +280,5 @@ void check_free(int id)
 
 	add_modification_hook(my_id, &ok_to_use);
 	select_call_implies_hook(PARAM_FREED, &set_param_freed);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 }
