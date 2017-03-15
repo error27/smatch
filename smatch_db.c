@@ -1003,7 +1003,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
 	nr_states = stree_count(__get_cur_stree());
-	if (option_info && nr_states * nr_possible >= 2000)
+	if (nr_states * nr_possible >= 2000)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
@@ -1384,7 +1384,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
 	nr_states = stree_count(__get_cur_stree());
-	if (option_info && nr_states * nr_possible >= 2000)
+	if (nr_states * nr_possible >= 2000)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
