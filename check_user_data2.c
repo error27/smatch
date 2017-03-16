@@ -267,14 +267,9 @@ static int is_skb_data(struct expression *expr)
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
+	if (!expr)
 		return 0;
-
-	expr = strip_expr(expr->unop);
-	if (expr->type == EXPR_BINOP && expr->op == '+')
-		expr = strip_expr(expr->left);
-
-	if (expr->type != EXPR_DEREF)
+	if (expr->type != EXPR_DEREF || expr->op != '.')
 		return 0;
 
 	if (!expr->member)
@@ -300,25 +295,15 @@ static int is_skb_data(struct expression *expr)
 static int comes_from_skb_data(struct expression *expr)
 {
 	expr = strip_expr(expr);
-	if (!expr)
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
 		return 0;
 
-	switch (expr->type) {
-	case EXPR_BINOP:
-		if (comes_from_skb_data(expr->left))
-			return 1;
-		if (comes_from_skb_data(expr->right))
-			return 1;
-		return 0;
-	case EXPR_PREOP:
-		if (is_skb_data(expr))
-			return 1;
-		return comes_from_skb_data(expr->deref);
-	default:
-		return 0;
-	}
+	expr = strip_expr(expr->unop);
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		expr = strip_expr(expr->left);
+
+	return is_skb_data(expr);
 }
-
 
 static int handle_struct_assignment(struct expression *expr)
 {
