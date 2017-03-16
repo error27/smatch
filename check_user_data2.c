@@ -805,7 +805,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		 * Let's mark this as a TODO.
 		 */
 		start_state = get_state_stree(start_states, my_id, sm->name, sm->sym);
-		if (start_state && estates_equiv(sm->state, start_state))
+		if (start_state && rl_equiv(estate_rl(sm->state), estate_rl(start_state)))
 			continue;
 
 		param_name = get_param_name(sm);
