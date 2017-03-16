@@ -266,6 +266,9 @@ static int is_skb_data(struct expression *expr)
 {
 	struct symbol *sym;
 
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		return is_skb_data(expr->left);
+
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
