@@ -88,8 +88,7 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 	long long value, mask, signmask;
 	long long oldmask, oldsignmask, dropped;
 
-	if (newtype->ctype.base_type == &fp_type ||
-	    oldtype->ctype.base_type == &fp_type)
+	if (is_float_type(newtype) || is_float_type(oldtype))
 		goto Float;
 
 	// For pointers and integers, we can just move the value around
