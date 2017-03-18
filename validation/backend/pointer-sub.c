@@ -14,5 +14,4 @@ long subvx3(void *p, int   a) { return (p - ((void*)0)) ^ 3; }
 /*
  * check-name: pointer-sub
  * check-command: sparsec -Wno-decl -c $file -o tmp.o
- * check-known-to-fail
  */

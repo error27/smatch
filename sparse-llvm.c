@@ -652,6 +652,7 @@ static void output_op_ret(struct function *fn, struct instruction *insn)
 	if (pseudo && pseudo != VOID) {
 		LLVMValueRef result = pseudo_to_value(fn, insn, pseudo);
 
+		result = adjust_type(fn, insn->type, result);
 		LLVMBuildRet(fn->builder, result);
 	} else
 		LLVMBuildRetVoid(fn->builder);
