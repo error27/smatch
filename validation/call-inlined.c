@@ -19,7 +19,7 @@ const char *qus(void) { return lstrip(messg); }
 
 /*
  * check-name: call-inlined
- * check-command: test-linearize -Wno-decl $file
+ * check-command: test-linearize -Wno-decl -m64 $file
  *
  * check-output-start
 foo:
@@ -27,14 +27,12 @@ foo:
 	<entry-point>
 	add.32      %r3 <- %arg1, %arg2
 	add.32      %r5 <- %r3, $1
-	# call      %r5 <- add, %r3, $1
 	ret.32      %r5
 
 
 bar:
 .L3:
 	<entry-point>
-	# call      %r12 <- add, %r10, $1
 	ret
 
 
@@ -42,7 +40,6 @@ bas:
 .L6:
 	<entry-point>
 	add.64      %r16 <- "abc", $1
-	# call      %r16 <- lstrip, %r14
 	ret.64      %r16
 
 
@@ -50,7 +47,6 @@ qus:
 .L9:
 	<entry-point>
 	add.64      %r21 <- messg, $1
-	# call      %r21 <- lstrip, %r19
 	ret.64      %r21
 
 

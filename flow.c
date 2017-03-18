@@ -964,6 +964,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 				continue;
 			switch (first->opcode) {
 			case OP_NOP: case OP_LNOP: case OP_SNOP:
+			case OP_INLINED_CALL:
 				continue;
 			case OP_CBR:
 			case OP_BR: {
