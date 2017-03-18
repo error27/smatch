@@ -69,5 +69,4 @@ void global(void)
 /*
  * check-name: degenerated pointer handling
  * check-command: ./sparsec -c $file -o tmp.o
- * check-known-to-fail
  */

@@ -150,5 +150,4 @@ void ops(int a, int *p, struct ops *ops)
 /*
  * check-name: Function pointer code generation
  * check-command: sparsec -c $file -o tmp.o
- * check-known-to-fail
  */

@@ -67,5 +67,4 @@ void gfoo(int *p, int a)
 /*
  * check-name: symbol address
  * check-command: ./sparsec -Wno-decl -c $file -o tmp.o
- * check-known-to-fail
  */

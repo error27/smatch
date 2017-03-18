@@ -403,6 +403,16 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct symbol *ctype, p
 	return result;
 }
 
+static LLVMValueRef pseudo_to_rvalue(struct function *fn, struct symbol *ctype, pseudo_t pseudo)
+{
+	LLVMValueRef val = pseudo_to_value(fn, ctype, pseudo);
+	LLVMTypeRef dtype = symbol_type(ctype);
+	char name[MAX_PSEUDO_NAME];
+
+	pseudo_name(pseudo, name);
+	return LLVMBuildBitCast(fn->builder, val, dtype, name);
+}
+
 static LLVMValueRef value_to_ivalue(struct function *fn, struct symbol *ctype, LLVMValueRef val)
 {
 	const char *name = LLVMGetValueName(val);
@@ -712,7 +722,7 @@ static void output_op_store(struct function *fn, struct instruction *insn)
 
 	addr = calc_memop_addr(fn, insn);
 
-	target_in = pseudo_to_value(fn, insn->type, insn->target);
+	target_in = pseudo_to_rvalue(fn, insn->type, insn->target);
 
 	/* perform store */
 	LLVMBuildStore(fn->builder, target_in, addr);
@@ -800,7 +810,7 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	i = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
 		NEXT_PTR_LIST(ctype);
-		args[i++] = pseudo_to_value(fn, ctype, arg);
+		args[i++] = pseudo_to_rvalue(fn, ctype, arg);
 	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(ctype);
 
