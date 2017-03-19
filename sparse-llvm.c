@@ -857,6 +857,23 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	insn->target->priv = target;
 }
 
+static void output_op_setval(struct function *fn, struct instruction *insn)
+{
+	struct expression *val = insn->val;
+	LLVMTypeRef dtype = symbol_type(insn->type);
+	LLVMValueRef target;
+
+	switch (val->type) {
+	case EXPR_FVALUE:
+		target = LLVMConstReal(dtype, val->fvalue);
+		break;
+	default:
+		assert(0);
+	}
+
+	insn->target->priv = target;
+}
+
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -873,7 +890,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_SETVAL:
-		assert(0);
+		output_op_setval(fn, insn);
 		break;
 	case OP_SWITCH:
 		output_op_switch(fn, insn);
