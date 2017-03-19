@@ -77,7 +77,7 @@ static struct basic_block *alloc_basic_block(struct entrypoint *ep, struct posit
 	return bb;
 }
 
-static struct multijmp *alloc_multijmp(struct basic_block *target, int begin, int end)
+static struct multijmp *alloc_multijmp(struct basic_block *target, long long begin, long long end)
 {
 	struct multijmp *multijmp = __alloc_multijmp(0);
 	multijmp->target = target;
@@ -370,9 +370,9 @@ const char *show_instruction(struct instruction *insn)
 		buf += sprintf(buf, "%s", show_pseudo(insn->cond));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			if (jmp->begin == jmp->end)
-				buf += sprintf(buf, ", %d -> .L%u", jmp->begin, jmp->target->nr);
+				buf += sprintf(buf, ", %lld -> .L%u", jmp->begin, jmp->target->nr);
 			else if (jmp->begin < jmp->end)
-				buf += sprintf(buf, ", %d ... %d -> .L%u", jmp->begin, jmp->end, jmp->target->nr);
+				buf += sprintf(buf, ", %lld ... %lld -> .L%u", jmp->begin, jmp->end, jmp->target->nr);
 			else
 				buf += sprintf(buf, ", default -> .L%u", jmp->target->nr);
 		} END_FOR_EACH_PTR(jmp);
@@ -1931,7 +1931,7 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 			default_case = bb_case;
 			continue;
 		} else {
-			int begin, end;
+			long long begin, end;
 
 			begin = end = case_stmt->case_expression->value;
 			if (case_stmt->case_to)
