@@ -761,15 +761,13 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 				 def ? def->priv : NULL, n_jmp);
 
 	FOR_EACH_PTR(insn->multijmp_list, jmp) {
-		long val;
+		long long val;
 
 		for (val = jmp->begin; val <= jmp->end; val++) {
 			LLVMValueRef Val = val_to_value(val, insn->type);
 			LLVMAddCase(target, Val, jmp->target->priv);
 		}
 	} END_FOR_EACH_PTR(jmp);
-
-	insn->target->priv = target;
 }
 
 static void output_op_call(struct function *fn, struct instruction *insn)
