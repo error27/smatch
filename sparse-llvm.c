@@ -415,10 +415,19 @@ static LLVMValueRef value_to_ivalue(struct function *fn, LLVMValueRef val)
 
 static LLVMValueRef value_to_pvalue(struct function *fn, struct symbol *ctype, LLVMValueRef val)
 {
-	if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind) {
-		LLVMTypeRef dtype = symbol_type(ctype);
-		const char *name = LLVMGetValueName(val);
+	const char *name = LLVMGetValueName(val);
+	LLVMTypeRef dtype = symbol_type(ctype);
+
+	assert(is_ptr_type(ctype));
+	switch (LLVMGetTypeKind(LLVMTypeOf(val))) {
+	case LLVMIntegerTypeKind:
 		val = LLVMBuildIntToPtr(fn->builder, val, dtype, name);
+		break;
+	case LLVMPointerTypeKind:
+		val = LLVMBuildBitCast(fn->builder, val, dtype, name);
+		break;
+	default:
+		break;
 	}
 	return val;
 }
