@@ -456,6 +456,27 @@ static LLVMValueRef adjust_type(struct function *fn, struct symbol *ctype, LLVMV
 	return val;
 }
 
+/*
+ * Get the LLVMValue corresponding to the pseudo
+ * and force the type corresponding to ctype.
+ */
+static LLVMValueRef get_operand(struct function *fn, struct symbol *ctype, pseudo_t pseudo)
+{
+	LLVMValueRef target = pseudo_to_value(fn, ctype, pseudo);
+	return adjust_type(fn, ctype, target);
+}
+
+/*
+ * Get the LLVMValue corresponding to the pseudo
+ * and force the type corresponding to ctype but
+ * map all pointers to intptr_t.
+ */
+static LLVMValueRef get_ioperand(struct function *fn, struct symbol *ctype, pseudo_t pseudo)
+{
+	LLVMValueRef target = pseudo_to_value(fn, ctype, pseudo);
+	return value_to_ivalue(fn, ctype, target);
+}
+
 static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValueRef off)
 {
 	LLVMTypeRef type = LLVMTypeOf(base);
@@ -515,11 +536,8 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	LLVMValueRef lhs, rhs, target;
 	char target_name[64];
 
-	lhs = pseudo_to_value(fn, insn->type, insn->src1);
-	lhs = value_to_ivalue(fn, insn->type, lhs);
-
-	rhs = pseudo_to_value(fn, insn->type, insn->src2);
-	rhs = value_to_ivalue(fn, insn->type, rhs);
+	lhs = get_ioperand(fn, insn->type, insn->src1);
+	rhs = get_ioperand(fn, insn->type, insn->src2);
 
 	pseudo_name(insn->target, target_name);
 
@@ -807,6 +825,10 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	args = calloc(n_arg, sizeof(LLVMValueRef));
 
 	PREPARE_PTR_LIST(insn->fntypes, ctype);
+	if (insn->func->type == PSEUDO_REG || insn->func->type == PSEUDO_PHI)
+		func = get_operand(fn, ctype, insn->func);
+	else
+		func = pseudo_to_value(fn, ctype, insn->func);
 	i = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
 		NEXT_PTR_LIST(ctype);
@@ -814,7 +836,6 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(ctype);
 
-	func = pseudo_to_value(fn, NULL, insn->func);
 	pseudo_name(insn->target, name);
 	target = LLVMBuildCall(fn->builder, func, args, n_arg, name);
 
