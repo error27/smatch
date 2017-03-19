@@ -407,7 +407,8 @@ static LLVMValueRef value_to_ivalue(struct function *fn, LLVMValueRef val)
 {
 	if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMPointerTypeKind) {
 		LLVMTypeRef dtype = LLVMIntType(bits_in_pointer);
-		val = LLVMBuildPtrToInt(fn->builder, val, dtype, "");
+		const char *name = LLVMGetValueName(val);
+		val = LLVMBuildPtrToInt(fn->builder, val, dtype, name);
 	}
 	return val;
 }
@@ -416,7 +417,8 @@ static LLVMValueRef value_to_pvalue(struct function *fn, struct symbol *ctype, L
 {
 	if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMIntegerTypeKind) {
 		LLVMTypeRef dtype = symbol_type(ctype);
-		val = LLVMBuildIntToPtr(fn->builder, val, dtype, "");
+		const char *name = LLVMGetValueName(val);
+		val = LLVMBuildIntToPtr(fn->builder, val, dtype, name);
 	}
 	return val;
 }
@@ -436,13 +438,14 @@ static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValu
 	unsigned int as = LLVMGetPointerAddressSpace(type);
 	LLVMTypeRef bytep = LLVMPointerType(LLVMInt8Type(), as);
 	LLVMValueRef addr;
+	const char *name = LLVMGetValueName(off);
 
 	/* convert base to char* type */
-	base = LLVMBuildPointerCast(builder, base, bytep, "");
+	base = LLVMBuildPointerCast(builder, base, bytep, name);
 	/* addr = base + off */
-	addr = LLVMBuildInBoundsGEP(builder, base, &off, 1, "");
+	addr = LLVMBuildInBoundsGEP(builder, base, &off, 1, name);
 	/* convert back to the actual pointer type */
-	addr = LLVMBuildPointerCast(builder, addr, type, "");
+	addr = LLVMBuildPointerCast(builder, addr, type, name);
 	return addr;
 }
 
@@ -568,8 +571,8 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		LLVMValueRef lhs_nz, rhs_nz;
 		LLVMTypeRef dst_type;
 
-		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, "");
-		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, "");
+		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, LLVMGetValueName(lhs));
+		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, LLVMGetValueName(rhs));
 		target = LLVMBuildAnd(fn->builder, lhs_nz, rhs_nz, target_name);
 
 		dst_type = insn_symbol_type(insn);
@@ -580,8 +583,8 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		LLVMValueRef lhs_nz, rhs_nz;
 		LLVMTypeRef dst_type;
 
-		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, "");
-		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, "");
+		lhs_nz = LLVMBuildIsNotNull(fn->builder, lhs, LLVMGetValueName(lhs));
+		rhs_nz = LLVMBuildIsNotNull(fn->builder, rhs, LLVMGetValueName(rhs));
 		target = LLVMBuildOr(fn->builder, lhs_nz, rhs_nz, target_name);
 
 		dst_type = insn_symbol_type(insn);
@@ -667,7 +670,7 @@ static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *ins
 	src = pseudo_to_value(fn, insn, insn->src);
 	as = LLVMGetPointerAddressSpace(LLVMTypeOf(src));
 	addr_type = LLVMPointerType(insn_symbol_type(insn), as);
-	src = LLVMBuildPointerCast(fn->builder, src, addr_type, "");
+	src = LLVMBuildPointerCast(fn->builder, src, addr_type, LLVMGetValueName(src));
 
 	/* addr = src + off */
 	addr = calc_gep(fn->builder, src, off);
@@ -678,11 +681,13 @@ static LLVMValueRef calc_memop_addr(struct function *fn, struct instruction *ins
 static void output_op_load(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef addr, target;
+	char name[MAX_PSEUDO_NAME];
 
 	addr = calc_memop_addr(fn, insn);
 
 	/* perform load */
-	target = LLVMBuildLoad(fn->builder, addr, "load_target");
+	pseudo_name(insn->target, name);
+	target = LLVMBuildLoad(fn->builder, addr, name);
 
 	insn->target->priv = target;
 }
@@ -702,7 +707,7 @@ static void output_op_store(struct function *fn, struct instruction *insn)
 static LLVMValueRef bool_value(struct function *fn, LLVMValueRef value)
 {
 	if (LLVMTypeOf(value) != LLVMInt1Type())
-		value = LLVMBuildIsNotNull(fn->builder, value, "cond");
+		value = LLVMBuildIsNotNull(fn->builder, value, LLVMGetValueName(value));
 
 	return value;
 }
@@ -725,12 +730,14 @@ static void output_op_br(struct function *fn, struct instruction *br)
 static void output_op_sel(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, src1, src2, src3;
+	char name[MAX_PSEUDO_NAME];
 
 	src1 = bool_value(fn, pseudo_to_value(fn, insn, insn->src1));
 	src2 = pseudo_to_value(fn, insn, insn->src2);
 	src3 = pseudo_to_value(fn, insn, insn->src3);
 
-	target = LLVMBuildSelect(fn->builder, src1, src2, src3, "select");
+	pseudo_name(insn->target, name);
+	target = LLVMBuildSelect(fn->builder, src1, src2, src3, name);
 
 	insn->target->priv = target;
 }
