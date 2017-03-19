@@ -1907,16 +1907,17 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 	struct instruction *switch_ins;
 	struct basic_block *switch_end = alloc_basic_block(ep, stmt->pos);
 	struct basic_block *active, *default_case;
+	struct expression *expr = stmt->switch_expression;
 	struct multijmp *jmp;
 	pseudo_t pseudo;
 
-	pseudo = linearize_expression(ep, stmt->switch_expression);
+	pseudo = linearize_expression(ep, expr);
 
 	active = ep->active;
 	if (!bb_reachable(active))
 		return VOID;
 
-	switch_ins = alloc_instruction(OP_SWITCH, 0);
+	switch_ins = alloc_typed_instruction(OP_SWITCH, expr->ctype);
 	use_pseudo(switch_ins, pseudo, &switch_ins->cond);
 	add_one_insn(ep, switch_ins);
 	finish_block(ep);
