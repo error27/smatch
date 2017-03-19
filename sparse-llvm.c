@@ -270,31 +270,26 @@ static LLVMLinkage function_linkage(struct symbol *sym)
 
 #define MAX_PSEUDO_NAME 64
 
-static void pseudo_name(pseudo_t pseudo, char *buf)
+static const char *pseudo_name(pseudo_t pseudo, char *buf)
 {
 	switch (pseudo->type) {
 	case PSEUDO_REG:
 		snprintf(buf, MAX_PSEUDO_NAME, "R%d", pseudo->nr);
 		break;
-	case PSEUDO_SYM:
-		assert(0);
-		break;
-	case PSEUDO_VAL:
-		assert(0);
-		break;
-	case PSEUDO_ARG: {
-		assert(0);
-		break;
-	}
 	case PSEUDO_PHI:
 		snprintf(buf, MAX_PSEUDO_NAME, "PHI%d", pseudo->nr);
 		break;
+	case PSEUDO_SYM:
+	case PSEUDO_VAL:
+	case PSEUDO_ARG:
 	case PSEUDO_VOID:
 		buf[0] = '\0';
 		break;
 	default:
 		assert(0);
 	}
+
+	return buf;
 }
 
 static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
