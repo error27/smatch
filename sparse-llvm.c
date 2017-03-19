@@ -931,9 +931,8 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 	struct symbol *base_type = sym->ctype.base_type;
-	struct symbol *ret_type = sym->ctype.base_type->ctype.base_type;
 	LLVMTypeRef arg_types[MAX_ARGS];
-	LLVMTypeRef return_type;
+	LLVMTypeRef ret_type = symbol_type(base_type->ctype.base_type);
 	LLVMTypeRef fun_type;
 	struct function function = { .module = module };
 	struct basic_block *bb;
@@ -950,9 +949,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 
 	name = show_ident(sym->ident);
 
-	return_type = symbol_type(ret_type);
-
-	fun_type = LLVMFunctionType(return_type, arg_types, nr_args, 0);
+	fun_type = LLVMFunctionType(ret_type, arg_types, nr_args, 0);
 
 	function.fn = LLVMAddFunction(module, name, fun_type);
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
