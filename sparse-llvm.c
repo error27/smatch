@@ -917,7 +917,7 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 
 	assert(!is_float_type(insn->type));
 
-	dtype = insn_symbol_type(insn);
+	dtype = symbol_type(insn->type);
 	switch (LLVMGetTypeKind(LLVMTypeOf(src))) {
 	case LLVMPointerTypeKind:
 		op = LLVMPtrToInt;
@@ -928,6 +928,14 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 			op = LLVMTrunc;
 		else if (insn->size == width)
 			op = LLVMBitCast;
+		break;
+	case LLVMHalfTypeKind:
+	case LLVMFloatTypeKind:
+	case LLVMDoubleTypeKind:
+	case LLVMX86_FP80TypeKind:
+	case LLVMFP128TypeKind:
+	case LLVMPPC_FP128TypeKind:
+		op = (op == LLVMZExt) ? LLVMFPToUI : LLVMFPToSI;
 		break;
 	default:
 		assert(0);

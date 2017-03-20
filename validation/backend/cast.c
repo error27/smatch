@@ -40,10 +40,8 @@ DEFINE_CASTS(long)
 DEFINE_CASTS(ulong)
 DEFINE_CASTS(longlong)
 DEFINE_CASTS(ulonglong)
-/*
 DEFINE_CASTS(float)
 DEFINE_CASTS(double)
-*/
 
 /*
  * check-name: Cast code generation
