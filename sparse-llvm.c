@@ -878,21 +878,17 @@ static void output_op_ptrcast(struct function *fn, struct instruction *insn)
 	LLVMOpcode op;
 	char target_name[64];
 
+	assert(is_ptr_type(insn->type));
 
 	src = get_operand(fn, otype, insn->src);
 	pseudo_name(insn->target, target_name);
 
-	assert(!is_float_type(insn->type));
-
-	dtype = insn_symbol_type(insn);
-	switch (LLVMGetTypeKind(LLVMTypeOf(src))) {
-	case LLVMPointerTypeKind:
+	dtype = symbol_type(insn->type);
+	if (is_ptr_type(otype)) {
 		op = LLVMBitCast;
-		break;
-	case LLVMIntegerTypeKind:
+	} else if (is_int_type(otype)) {
 		op = LLVMIntToPtr;
-		break;
-	default:
+	} else {
 		assert(0);
 	}
 
@@ -906,38 +902,27 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	LLVMTypeRef dtype;
 	struct symbol *otype = insn->orig_type;
 	char target_name[64];
-	unsigned int width;
 
 	if (is_ptr_type(insn->type))	// cast to void* is OP_CAST ...
 		return output_op_ptrcast(fn, insn);
 
+	assert(is_int_type(insn->type));
 
 	src = get_operand(fn, otype, insn->src);
 	pseudo_name(insn->target, target_name);
 
-	assert(!is_float_type(insn->type));
-
 	dtype = symbol_type(insn->type);
-	switch (LLVMGetTypeKind(LLVMTypeOf(src))) {
-	case LLVMPointerTypeKind:
+	if (is_ptr_type(otype)) {
 		op = LLVMPtrToInt;
-		break;
-	case LLVMIntegerTypeKind:
-		width = LLVMGetIntTypeWidth(LLVMTypeOf(src));
+	} else if (is_float_type(otype)) {
+		op = (op == LLVMZExt) ? LLVMFPToUI : LLVMFPToSI;
+	} else if (is_int_type(otype)) {
+		unsigned int width = otype->bit_size;
 		if (insn->size < width)
 			op = LLVMTrunc;
 		else if (insn->size == width)
 			op = LLVMBitCast;
-		break;
-	case LLVMHalfTypeKind:
-	case LLVMFloatTypeKind:
-	case LLVMDoubleTypeKind:
-	case LLVMX86_FP80TypeKind:
-	case LLVMFP128TypeKind:
-	case LLVMPPC_FP128TypeKind:
-		op = (op == LLVMZExt) ? LLVMFPToUI : LLVMFPToSI;
-		break;
-	default:
+	} else {
 		assert(0);
 	}
 
