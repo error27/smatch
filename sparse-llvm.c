@@ -879,13 +879,12 @@ static void output_op_ptrcast(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef src, target;
 	LLVMTypeRef dtype;
+	struct symbol *otype = insn->orig_type;
 	LLVMOpcode op;
 	char target_name[64];
 
-	src = insn->src->priv;
-	if (!src)
-		src = pseudo_to_value(fn, insn->type, insn->src);
 
+	src = get_operand(fn, otype, insn->src);
 	pseudo_name(insn->target, target_name);
 
 	assert(!is_float_type(insn->type));
@@ -910,16 +909,15 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 {
 	LLVMValueRef src, target;
 	LLVMTypeRef dtype;
+	struct symbol *otype = insn->orig_type;
 	char target_name[64];
 	unsigned int width;
 
 	if (is_ptr_type(insn->type))	// cast to void* is OP_CAST ...
 		return output_op_ptrcast(fn, insn);
 
-	src = insn->src->priv;
-	if (!src)
-		src = pseudo_to_value(fn, insn->type, insn->src);
 
+	src = get_operand(fn, otype, insn->src);
 	pseudo_name(insn->target, target_name);
 
 	assert(!is_float_type(insn->type));
