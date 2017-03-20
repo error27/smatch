@@ -949,15 +949,6 @@ static int show_symbol_init(struct symbol *sym)
 	return 0;
 }
 
-static int type_is_signed(struct symbol *sym)
-{
-	if (sym->type == SYM_NODE)
-		sym = sym->ctype.base_type;
-	if (sym->type == SYM_PTR)
-		return 0;
-	return !(sym->ctype.modifiers & MOD_UNSIGNED);
-}
-
 static int show_cast_expr(struct expression *expr)
 {
 	struct symbol *old_type, *new_type;
@@ -973,7 +964,7 @@ static int show_cast_expr(struct expression *expr)
 	if (oldbits >= newbits)
 		return op;
 	new = new_pseudo();
-	is_signed = type_is_signed(old_type);
+	is_signed = is_signed_type(old_type);
 	if (is_signed) {
 		printf("\tsext%d.%d\tv%d,v%d\n", oldbits, newbits, new, op);
 	} else {

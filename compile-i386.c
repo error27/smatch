@@ -193,7 +193,6 @@ static const char *current_section;
 static void emit_comment(const char * fmt, ...) FORMAT_ATTR(1);
 static void emit_move(struct storage *src, struct storage *dest,
 		      struct symbol *ctype, const char *comment);
-static int type_is_signed(struct symbol *sym);
 static struct storage *x86_address_gen(struct expression *expr);
 static struct storage *x86_symbol_expr(struct symbol *sym);
 static void x86_symbol(struct symbol *sym);
@@ -1163,7 +1162,7 @@ static void emit_move(struct storage *src, struct storage *dest,
 
 	if (ctype) {
 		bits = ctype->bit_size;
-		is_signed = type_is_signed(ctype);
+		is_signed = is_signed_type(ctype);
 	} else {
 		bits = 32;
 		is_signed = 0;
@@ -1355,7 +1354,7 @@ static struct storage *emit_binop(struct expression *expr)
 	if ((expr->op == '/') || (expr->op == '%'))
 		return emit_divide(expr, left, right);
 
-	is_signed = type_is_signed(expr->ctype);
+	is_signed = is_signed_type(expr->ctype);
 
 	switch (expr->op) {
 	case '+':
@@ -2262,15 +2261,6 @@ static void x86_symbol_init(struct symbol *sym)
 	}
 
 	priv->addr = new;
-}
-
-static int type_is_signed(struct symbol *sym)
-{
-	if (sym->type == SYM_NODE)
-		sym = sym->ctype.base_type;
-	if (sym->type == SYM_PTR)
-		return 0;
-	return !(sym->ctype.modifiers & MOD_UNSIGNED);
 }
 
 static struct storage *x86_label_expr(struct expression *expr)

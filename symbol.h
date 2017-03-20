@@ -332,6 +332,15 @@ static inline int is_enum_type(const struct symbol *type)
 	return (type->type == SYM_ENUM);
 }
 
+static inline int is_signed_type(struct symbol *sym)
+{
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	if (sym->type == SYM_PTR)
+		return 0;
+	return !(sym->ctype.modifiers & MOD_UNSIGNED);
+}
+
 static inline int is_type_type(struct symbol *type)
 {
 	return (type->ctype.modifiers & MOD_TYPE) != 0;
