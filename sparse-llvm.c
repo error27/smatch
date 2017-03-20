@@ -937,6 +937,26 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	insn->target->priv = target;
 }
 
+static void output_op_fpcast(struct function *fn, struct instruction *insn)
+{
+	LLVMTypeRef dtype = symbol_type(insn->type);
+	LLVMValueRef src, target;
+	struct symbol *otype = insn->orig_type;
+	char name[64];
+
+	assert(is_float_type(insn->type));
+
+	pseudo_name(insn->target, name);
+	src = get_operand(fn, otype, insn->src);
+	if (is_float_type(otype))
+		target = LLVMBuildFPCast(fn->builder, src, dtype, name);
+	else if (is_signed_type(otype))
+		target = LLVMBuildSIToFP(fn->builder, src, dtype, name);
+	else
+		target = LLVMBuildUIToFP(fn->builder, src, dtype, name);
+	insn->target->priv = target;
+}
+
 static void output_op_setval(struct function *fn, struct instruction *insn)
 {
 	struct expression *val = insn->val;
@@ -1011,7 +1031,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_cast(fn, insn, LLVMSExt);
 		break;
 	case OP_FPCAST:
-		assert(0);
+		output_op_fpcast(fn, insn);
 		break;
 	case OP_PTRCAST:
 		output_op_ptrcast(fn, insn);
