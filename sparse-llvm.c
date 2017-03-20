@@ -867,6 +867,9 @@ static void output_op_setval(struct function *fn, struct instruction *insn)
 	case EXPR_FVALUE:
 		target = LLVMConstReal(dtype, val->fvalue);
 		break;
+	case EXPR_LABEL:
+		target = LLVMBlockAddress(fn->fn, val->symbol->bb_target->priv);
+		break;
 	default:
 		assert(0);
 	}
