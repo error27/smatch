@@ -741,13 +741,13 @@ static int canonical_order(pseudo_t p1, pseudo_t p2)
 	return 1;
 }
 
-static int simplify_commutative_binop(struct instruction *insn)
+static int canonicalize_commutative(struct instruction *insn)
 {
-	if (!canonical_order(insn->src1, insn->src2)) {
-		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
-		return REPEAT_CSE;
-	}
-	return 0;
+	if (canonical_order(insn->src1, insn->src2))
+		return 0;
+
+	switch_pseudo(insn, &insn->src1, insn, &insn->src2);
+	return repeat_phase |= REPEAT_CSE;
 }
 
 static inline int simple_pseudo(pseudo_t pseudo)
@@ -1148,17 +1148,15 @@ int simplify_instruction(struct instruction *insn)
 	case OP_ADD: case OP_MULS:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
+		canonicalize_commutative(insn);
 		if (simplify_binop(insn))
-			return REPEAT_CSE;
-		if (simplify_commutative_binop(insn))
 			return REPEAT_CSE;
 		return simplify_associative_binop(insn);
 
 	case OP_MULU:
 	case OP_SET_EQ: case OP_SET_NE:
-		if (simplify_binop(insn))
-			return REPEAT_CSE;
-		return simplify_commutative_binop(insn);
+		canonicalize_commutative(insn);
+		return simplify_binop(insn);
 
 	case OP_SUB:
 	case OP_DIVU: case OP_DIVS:
