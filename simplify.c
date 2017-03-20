@@ -750,6 +750,16 @@ static int canonicalize_commutative(struct instruction *insn)
 	return repeat_phase |= REPEAT_CSE;
 }
 
+static int canonicalize_compare(struct instruction *insn)
+{
+	if (canonical_order(insn->src1, insn->src2))
+		return 0;
+
+	switch_pseudo(insn, &insn->src1, insn, &insn->src2);
+	insn->opcode = opcode_table[insn->opcode].swap;
+	return repeat_phase |= REPEAT_CSE;
+}
+
 static inline int simple_pseudo(pseudo_t pseudo)
 {
 	return pseudo->type == PSEUDO_VAL || pseudo->type == PSEUDO_SYM;
@@ -1158,15 +1168,17 @@ int simplify_instruction(struct instruction *insn)
 		canonicalize_commutative(insn);
 		return simplify_binop(insn);
 
+	case OP_SET_LE: case OP_SET_GE:
+	case OP_SET_LT: case OP_SET_GT:
+	case OP_SET_B:  case OP_SET_A:
+	case OP_SET_BE: case OP_SET_AE:
+		canonicalize_compare(insn);
+		/* fall through */
 	case OP_SUB:
 	case OP_DIVU: case OP_DIVS:
 	case OP_MODU: case OP_MODS:
 	case OP_SHL:
 	case OP_LSR: case OP_ASR:
-	case OP_SET_LE: case OP_SET_GE:
-	case OP_SET_LT: case OP_SET_GT:
-	case OP_SET_B:  case OP_SET_A:
-	case OP_SET_BE: case OP_SET_AE:
 		return simplify_binop(insn);
 
 	case OP_NOT: case OP_NEG:

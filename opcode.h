@@ -4,6 +4,7 @@
 
 extern const struct opcode_table {
 	int	negate:8;
+	int	swap:8;
 } opcode_table[];
 
 #endif

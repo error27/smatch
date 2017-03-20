@@ -23,14 +23,14 @@
 #include "linearize.h"
 
 const struct opcode_table opcode_table[OP_LAST] = {
-	[OP_SET_EQ] = {	.negate = OP_SET_NE, },
-	[OP_SET_NE] = {	.negate = OP_SET_EQ, },
-	[OP_SET_LT] = {	.negate = OP_SET_GE, },
-	[OP_SET_LE] = {	.negate = OP_SET_GT, },
-	[OP_SET_GE] = {	.negate = OP_SET_LT, },
-	[OP_SET_GT] = {	.negate = OP_SET_LE, },
-	[OP_SET_B ] = {	.negate = OP_SET_AE, },
-	[OP_SET_BE] = {	.negate = OP_SET_A , },
-	[OP_SET_AE] = {	.negate = OP_SET_B , },
-	[OP_SET_A ] = {	.negate = OP_SET_BE, },
+	[OP_SET_EQ] = {	.negate = OP_SET_NE, .swap = OP_SET_EQ, },
+	[OP_SET_NE] = {	.negate = OP_SET_EQ, .swap = OP_SET_NE, },
+	[OP_SET_LT] = {	.negate = OP_SET_GE, .swap = OP_SET_GT, },
+	[OP_SET_LE] = {	.negate = OP_SET_GT, .swap = OP_SET_GE, },
+	[OP_SET_GE] = {	.negate = OP_SET_LT, .swap = OP_SET_LE, },
+	[OP_SET_GT] = {	.negate = OP_SET_LE, .swap = OP_SET_LT, },
+	[OP_SET_B ] = {	.negate = OP_SET_AE, .swap = OP_SET_A , },
+	[OP_SET_BE] = {	.negate = OP_SET_A , .swap = OP_SET_AE, },
+	[OP_SET_AE] = {	.negate = OP_SET_B , .swap = OP_SET_BE, },
+	[OP_SET_A ] = {	.negate = OP_SET_BE, .swap = OP_SET_B , },
 };
