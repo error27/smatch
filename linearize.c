@@ -120,7 +120,7 @@ const char *show_pseudo(pseudo_t pseudo)
 			break;
 		}
 		expr = sym->initializer;
-		snprintf(buf, 64, "<anon symbol:%p>", sym);
+		snprintf(buf, 64, "<anon symbol:%p>", verbose ? sym : NULL);
 		if (expr) {
 			switch (expr->type) {
 			case EXPR_VALUE:
@@ -328,7 +328,7 @@ const char *show_instruction(struct instruction *insn)
 			buf += sprintf(buf, "%s", show_ident(sym->ident));
 			break;
 		}
-		buf += sprintf(buf, "<anon symbol:%p>", sym);
+		buf += sprintf(buf, "<anon symbol:%p>", verbose ? sym : NULL);
 		break;
 	}
 		
