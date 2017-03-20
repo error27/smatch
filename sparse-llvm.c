@@ -920,7 +920,6 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_INLINED_CALL:
-		assert(0);
 		break;
 	case OP_CALL:
 		output_op_call(fn, insn);
