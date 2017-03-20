@@ -773,13 +773,13 @@ static void output_op_sel(struct function *fn, struct instruction *insn)
 	char name[MAX_PSEUDO_NAME];
 
 	src1 = bool_value(fn, pseudo_to_value(fn, NULL, insn->src1));
-	src2 = pseudo_to_value(fn, insn->type, insn->src2);
-	src3 = pseudo_to_value(fn, insn->type, insn->src3);
+	src2 = get_operand(fn, insn->type, insn->src2);
+	src3 = get_operand(fn, insn->type, insn->src3);
 
 	pseudo_name(insn->target, name);
 	target = LLVMBuildSelect(fn->builder, src1, src2, src3, name);
 
-	insn->target->priv = target;
+	insn->target->priv = adjust_type(fn, insn->type, target);
 }
 
 static void output_op_switch(struct function *fn, struct instruction *insn)
