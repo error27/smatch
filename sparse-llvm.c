@@ -303,7 +303,7 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 	assert(sym->bb_target == NULL);
 
 	expr = sym->initializer;
-	if (expr) {
+	if (expr && !sym->ident) {
 		switch (expr->type) {
 		case EXPR_STRING: {
 			const char *s = expr->string->data;
@@ -317,13 +317,6 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 
 			result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
 			return result;
-		}
-		case EXPR_SYMBOL: {
-			struct symbol *sym = expr->symbol;
-
-			result = LLVMGetNamedGlobal(fn->module, show_ident(sym->ident));
-			assert(result != NULL);
-			break;
 		}
 		default:
 			break;
@@ -1215,7 +1208,7 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 		initial_value = LLVMConstNull(type);
 	}
 
-	name = show_ident(sym->ident);
+	name = sym->ident ? show_ident(sym->ident) : "" ;
 
 	data = LLVMAddGlobal(module, LLVMTypeOf(initial_value), name);
 
