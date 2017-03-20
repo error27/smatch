@@ -295,6 +295,8 @@ static const char *pseudo_name(pseudo_t pseudo, char *buf)
 
 static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 {
+	const char *name = show_ident(sym->ident);
+	LLVMTypeRef type = symbol_type(sym);
 	LLVMValueRef result = NULL;
 	struct expression *expr;
 
@@ -314,7 +316,7 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 			LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
 
 			result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
-			break;
+			return result;
 		}
 		case EXPR_SYMBOL: {
 			struct symbol *sym = expr->symbol;
@@ -324,21 +326,18 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 			break;
 		}
 		default:
-			assert(0);
+			break;
 		}
-	} else {
-		const char *name = show_ident(sym->ident);
-		LLVMTypeRef type = symbol_type(sym);
+	}
 
-		if (LLVMGetTypeKind(type) == LLVMFunctionTypeKind) {
-			result = LLVMGetNamedFunction(fn->module, name);
-			if (!result)
-				result = LLVMAddFunction(fn->module, name, type);
-		} else {
-			result = LLVMGetNamedGlobal(fn->module, name);
-			if (!result)
-				result = LLVMAddGlobal(fn->module, type, name);
-		}
+	if (LLVMGetTypeKind(type) == LLVMFunctionTypeKind) {
+		result = LLVMGetNamedFunction(fn->module, name);
+		if (!result)
+			result = LLVMAddFunction(fn->module, name, type);
+	} else {
+		result = LLVMGetNamedGlobal(fn->module, name);
+		if (!result)
+			result = LLVMAddGlobal(fn->module, type, name);
 	}
 
 	return result;
