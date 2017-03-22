@@ -101,6 +101,7 @@ extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;
 
+extern int Waddress;
 extern int Waddress_space;
 extern int Wbitwise;
 extern int Wcast_to_as;
