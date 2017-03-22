@@ -354,6 +354,13 @@ static inline int is_func_type(struct symbol *type)
 	return type->type == SYM_FN;
 }
 
+static inline int is_array_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_ARRAY;
+}
+
 static inline int is_float_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
