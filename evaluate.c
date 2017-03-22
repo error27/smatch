@@ -881,6 +881,7 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 			ctype = NULL;
 		}
 	}
+	ctype = degenerate(expr);
 
 	return ctype;
 }
