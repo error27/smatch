@@ -395,8 +395,6 @@ static inline int is_scalar_type(struct symbol *type)
 	case SYM_ENUM:
 	case SYM_BITFIELD:
 	case SYM_PTR:
-	case SYM_ARRAY:		// OK, will be a PTR after conversion
-	case SYM_FN:
 	case SYM_RESTRICT:	// OK, always integer types
 		return 1;
 	default:
