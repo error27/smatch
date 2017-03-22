@@ -401,6 +401,8 @@ const char *show_instruction(struct instruction *insn)
 		const char *s = " <-";
 		buf += sprintf(buf, "%s", show_pseudo(insn->target));
 		FOR_EACH_PTR(insn->phi_list, phi) {
+			if (phi == VOID && !verbose)
+				continue;
 			buf += sprintf(buf, "%s %s", s, show_pseudo(phi));
 			s = ",";
 		} END_FOR_EACH_PTR(phi);
