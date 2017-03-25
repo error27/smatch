@@ -163,6 +163,24 @@ enum opcode {
 	OP_OR_BOOL,
 	OP_BINARY_END = OP_OR_BOOL,
 
+	/* floating-point comparison */
+	OP_FPCMP,
+	OP_FCMP_ORD = OP_FPCMP,
+	OP_FCMP_OEQ,
+	OP_FCMP_ONE,
+	OP_FCMP_OLE,
+	OP_FCMP_OGE,
+	OP_FCMP_OLT,
+	OP_FCMP_OGT,
+	OP_FCMP_UEQ,
+	OP_FCMP_UNE,
+	OP_FCMP_ULE,
+	OP_FCMP_UGE,
+	OP_FCMP_ULT,
+	OP_FCMP_UGT,
+	OP_FCMP_UNO,
+	OP_FPCMP_END = OP_FCMP_UNO,
+
 	/* Binary comparison */
 	OP_BINCMP,
 	OP_SET_EQ = OP_BINCMP,

@@ -450,7 +450,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	inverse = (insn->opcode == OP_SET_NE) == value;
 	opcode = def->opcode;
 	switch (opcode) {
-	case OP_BINCMP ... OP_BINCMP_END:
+	case OP_FPCMP ... OP_BINCMP_END:
 		// Convert:
 		//	setcc.n	%t <- %a, %b
 		//	setne.m %r <- %t, $0

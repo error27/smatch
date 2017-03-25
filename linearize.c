@@ -208,6 +208,22 @@ static const char *opcodes[] = {
 	[OP_SET_BE] = "setbe",
 	[OP_SET_AE] = "setae",
 
+	/* floating-point comparison */
+	[OP_FCMP_ORD] = "fcmpord",
+	[OP_FCMP_OEQ] = "fcmpoeq",
+	[OP_FCMP_ONE] = "fcmpone",
+	[OP_FCMP_OLE] = "fcmpole",
+	[OP_FCMP_OGE] = "fcmpoge",
+	[OP_FCMP_OLT] = "fcmpolt",
+	[OP_FCMP_OGT] = "fcmpogt",
+	[OP_FCMP_UEQ] = "fcmpueq",
+	[OP_FCMP_UNE] = "fcmpune",
+	[OP_FCMP_ULE] = "fcmpule",
+	[OP_FCMP_UGE] = "fcmpuge",
+	[OP_FCMP_ULT] = "fcmpult",
+	[OP_FCMP_UGT] = "fcmpugt",
+	[OP_FCMP_UNO] = "fcmpuno",
+
 	/* Uni */
 	[OP_NOT] = "not",
 	[OP_NEG] = "neg",
@@ -435,6 +451,7 @@ const char *show_instruction(struct instruction *insn)
 			show_pseudo(insn->src));
 		break;
 	case OP_BINARY ... OP_BINARY_END:
+	case OP_FPCMP ... OP_FPCMP_END:
 	case OP_BINCMP ... OP_BINCMP_END:
 		buf += sprintf(buf, "%s <- %s, %s", show_pseudo(insn->target), show_pseudo(insn->src1), show_pseudo(insn->src2));
 		break;
@@ -1472,10 +1489,10 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 		[SPECIAL_UNSIGNED_LTE] = OP_SET_BE,
 		[SPECIAL_UNSIGNED_GTE] = OP_SET_AE,
 	};
-
+	int op = opcode_float(cmpop[expr->op], expr->right->ctype);
 	pseudo_t src1 = linearize_expression(ep, expr->left);
 	pseudo_t src2 = linearize_expression(ep, expr->right);
-	pseudo_t dst = add_binary_op(ep, expr->ctype, cmpop[expr->op], src1, src2);
+	pseudo_t dst = add_binary_op(ep, expr->ctype, op, src1, src2);
 	return dst;
 }
 

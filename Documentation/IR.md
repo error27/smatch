@@ -95,7 +95,7 @@ They all follow the same signature:
 #### OP_AND_BOOL
 #### OP_OR_BOOL
 
-### Comparisons
+### Integer compares
 They all have the following signature:
 - .src1, .src2: operands (types must be compatible)
 - .target: result of the operation (0/1 valued integer)
@@ -130,6 +130,60 @@ Compare less-than-or-equal (unsigned).
 
 #### OP_SET_AE
 Compare greater-than-or-equal (unsigned).
+
+### Floating-point compares
+They all have the same signature as the integer compares.
+The usual 6 operations exist in two versions: 'ordered' and
+'unordered'. Theses operations first check if any operand is a
+NaN and if it is the case the ordered compares return false
+and then unordered return true, otherwise the result of the
+comparison, now garanted to be done on non-NaNs, is returned.
+
+#### OP_FCMP_OEQ
+Floating-point compare ordered equal
+
+#### OP_FCMP_ONE
+Floating-point compare ordered not-equal
+
+#### OP_FCMP_OLE
+Floating-point compare ordered less-than-or-equal
+
+#### OP_FCMP_OGE
+Floating-point compare ordered greater-or-equal
+
+#### OP_FCMP_OLT
+Floating-point compare ordered less-than
+
+#### OP_FCMP_OGT
+Floating-point compare ordered greater-than
+
+
+#### OP_FCMP_UEQ
+Floating-point compare unordered equal
+
+#### OP_FCMP_UNE
+Floating-point compare unordered not-equal
+
+#### OP_FCMP_ULE
+Floating-point compare unordered less-than-or-equal
+
+#### OP_FCMP_UGE
+Floating-point compare unordered greater-or-equal
+
+#### OP_FCMP_ULT
+Floating-point compare unordered less-than
+
+#### OP_FCMP_UGT
+Floating-point compare unordered greater-than
+
+
+#### OP_FCMP_ORD
+Floating-point compare ordered: return true if both operands are ordered
+(none of the operands are a NaN) and false otherwise.
+
+#### OP_FCMP_UNO
+Floating-point compare unordered: return false if no operands is ordered
+and true otherwise.
 
 ### Unary ops
 #### OP_NOT

@@ -497,17 +497,20 @@ static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValu
 static LLVMRealPredicate translate_fop(int opcode)
 {
 	static const LLVMRealPredicate trans_tbl[] = {
-		[OP_SET_EQ]	= LLVMRealOEQ,
-		[OP_SET_NE]	= LLVMRealUNE,
-		[OP_SET_LE]	= LLVMRealOLE,
-		[OP_SET_GE]	= LLVMRealOGE,
-		[OP_SET_LT]	= LLVMRealOLT,
-		[OP_SET_GT]	= LLVMRealOGT,
-		/* Are these used with FP? */
-		[OP_SET_B]	= LLVMRealOLT,
-		[OP_SET_A]	= LLVMRealOGT,
-		[OP_SET_BE]	= LLVMRealOLE,
-		[OP_SET_AE]	= LLVMRealOGE,
+		[OP_FCMP_ORD]	= LLVMRealORD,
+		[OP_FCMP_OEQ]	= LLVMRealOEQ,
+		[OP_FCMP_ONE]	= LLVMRealONE,
+		[OP_FCMP_OLE]	= LLVMRealOLE,
+		[OP_FCMP_OGE]	= LLVMRealOGE,
+		[OP_FCMP_OLT]	= LLVMRealOLT,
+		[OP_FCMP_OGT]	= LLVMRealOGT,
+		[OP_FCMP_UEQ]	= LLVMRealUEQ,
+		[OP_FCMP_UNE]	= LLVMRealUNE,
+		[OP_FCMP_ULE]	= LLVMRealULE,
+		[OP_FCMP_UGE]	= LLVMRealUGE,
+		[OP_FCMP_ULT]	= LLVMRealULT,
+		[OP_FCMP_UGT]	= LLVMRealUGT,
+		[OP_FCMP_UNO]	= LLVMRealUNO,
 	};
 
 	return trans_tbl[opcode];
@@ -1043,7 +1046,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_BINARY ... OP_BINARY_END:
 		output_op_binary(fn, insn);
 		break;
-	case OP_BINCMP ... OP_BINCMP_END:
+	case OP_FPCMP ... OP_BINCMP_END:
 		output_op_compare(fn, insn);
 		break;
 	case OP_SEL:

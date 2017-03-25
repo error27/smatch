@@ -67,6 +67,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	
 	/* Binary */
 	case OP_BINARY ... OP_BINARY_END:
+	case OP_FPCMP ... OP_FPCMP_END:
 	case OP_BINCMP ... OP_BINCMP_END:
 		USES(src1); USES(src2); DEFINES(target);
 		break;
