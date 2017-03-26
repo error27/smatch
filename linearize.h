@@ -4,6 +4,7 @@
 #include "lib.h"
 #include "allocate.h"
 #include "token.h"
+#include "opcode.h"
 #include "parse.h"
 #include "symbol.h"
 
@@ -217,6 +218,8 @@ enum opcode {
 
 	/* Needed to translate SSA back to normal form */
 	OP_COPY,
+
+	OP_LAST,			/* keep this one last! */
 };
 
 struct basic_block_list;
