@@ -45,32 +45,32 @@ Computed goto / branch to register
 ### Arithmetic binops
 They all follow the same signature:
 - .src1, .src1: operands (types must be compatible with .target)
-- .target: result of the operation
+- .target: result of the operation (must be an integral type)
 - .type: type of .target
 
 #### OP_ADD
-Addition.
+Integer addition.
 
 #### OP_SUB
-Subtraction.
+Integer subtraction.
 
 #### OP_MULU
-Multiplication (unsigned ints & floating-points)
+Integer unsigned multiplication.
 
 #### OP_MULS
-Multiplication (signed ints)
+Integer signed multiplication.
 
 #### OP_DIVU
-Division (unsigned ints & floating-points)
+Integer unsigned division.
 
 #### OP_DIVS
-Division (signed ints)
+Integer signed division.
 
 #### OP_MODU
-Modulo (unsigned division remainder, integer only)
+Integer unsigned remainder.
 
 #### OP_MODS
-Modulo (signed division remainder, integer only)
+Integer signed remainder.
 
 #### OP_SHL
 Shift left (integer only)
@@ -80,6 +80,24 @@ Logical Shift right (integer only)
 
 #### OP_ASR
 Arithmetic Shift right (integer only)
+
+### Floating-point binops
+They all follow the same signature:
+- .src1, .src1: operands (types must be compatible with .target)
+- .target: result of the operation (must be a floating-point type)
+- .type: type of .target
+
+#### OP_FADD
+Floating-point addition.
+
+#### OP_FSUB
+Floating-point subtraction.
+
+#### OP_FMUL
+Floating-point multiplication.
+
+#### OP_FDIV
+Floating-point division.
 
 ### Logical ops
 They all follow the same signature:
@@ -193,9 +211,15 @@ Logical not.
 - .type: type of .target, must be an integral type
 
 #### OP_NEG
-Arithmetic negation.
+Integer negation.
 - .src: operand (type must be compatible with .target)
-- .target: result of the operation
+- .target: result of the operation (must be an integral type)
+- .type: type of .target
+
+#### OP_FNEG
+Floating-point negation.
+- .src: operand (type must be compatible with .target)
+- .target: result of the operation (must be a floating-point type)
 - .type: type of .target
 
 #### OP_COPY

@@ -70,11 +70,18 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+
+	/* floating-point arithmetic */
+	case OP_FADD:
+	case OP_FSUB:
+	case OP_FMUL:
+	case OP_FDIV:
 		hash += hashval(insn->src2);
 		/* Fall through */
 	
 	/* Unary */
 	case OP_NOT: case OP_NEG:
+	case OP_FNEG:
 		hash += hashval(insn->src1);
 		break;
 
@@ -205,6 +212,12 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+
+	/* floating-point arithmetic */
+	case OP_FADD:
+	case OP_FSUB:
+	case OP_FMUL:
+	case OP_FDIV:
 	case_binops:
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
@@ -212,6 +225,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 
 	/* Unary */
 	case OP_NOT: case OP_NEG:
+	case OP_FNEG:
 		if (i1->src1 != i2->src1)
 			return i1->src1 < i2->src1 ? -1 : 1;
 		break;

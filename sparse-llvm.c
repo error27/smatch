@@ -547,32 +547,20 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	switch (insn->opcode) {
 	/* Binary */
 	case OP_ADD:
-		if (is_float_type(insn->type))
-			target = LLVMBuildFAdd(fn->builder, lhs, rhs, target_name);
-		else
-			target = LLVMBuildAdd(fn->builder, lhs, rhs, target_name);
+		target = LLVMBuildAdd(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_SUB:
-		if (is_float_type(insn->type))
-			target = LLVMBuildFSub(fn->builder, lhs, rhs, target_name);
-		else
-			target = LLVMBuildSub(fn->builder, lhs, rhs, target_name);
+		target = LLVMBuildSub(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MULU:
-		if (is_float_type(insn->type))
-			target = LLVMBuildFMul(fn->builder, lhs, rhs, target_name);
-		else
-			target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
+		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_MULS:
 		assert(!is_float_type(insn->type));
 		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_DIVU:
-		if (is_float_type(insn->type))
-			target = LLVMBuildFDiv(fn->builder, lhs, rhs, target_name);
-		else
-			target = LLVMBuildUDiv(fn->builder, lhs, rhs, target_name);
+		target = LLVMBuildUDiv(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_DIVS:
 		assert(!is_float_type(insn->type));
@@ -597,6 +585,20 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	case OP_ASR:
 		assert(!is_float_type(insn->type));
 		target = LLVMBuildAShr(fn->builder, lhs, rhs, target_name);
+		break;
+
+	/* floating-point */
+	case OP_FADD:
+		target = LLVMBuildFAdd(fn->builder, lhs, rhs, target_name);
+		break;
+	case OP_FSUB:
+		target = LLVMBuildFSub(fn->builder, lhs, rhs, target_name);
+		break;
+	case OP_FMUL:
+		target = LLVMBuildFMul(fn->builder, lhs, rhs, target_name);
+		break;
+	case OP_FDIV:
+		target = LLVMBuildFDiv(fn->builder, lhs, rhs, target_name);
 		break;
 	
 	/* Logical */
@@ -1068,6 +1070,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		insn->target->priv = target;
 		break;
 	}
+	case OP_FNEG:
 	case OP_NEG: {
 		LLVMValueRef src, target;
 		char target_name[64];
@@ -1076,7 +1079,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 
 		pseudo_name(insn->target, target_name);
 
-		if (is_float_type(insn->type))
+		if (insn->opcode == OP_FNEG)
 			target = LLVMBuildFNeg(fn->builder, src, target_name);
 		else
 			target = LLVMBuildNeg(fn->builder, src, target_name);

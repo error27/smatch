@@ -155,6 +155,12 @@ enum opcode {
 	OP_SHL,
 	OP_LSR, OP_ASR,
 	
+	/* Floating-point binops */
+	OP_FADD,
+	OP_FSUB,
+	OP_FMUL,
+	OP_FDIV,
+
 	/* Logical */
 	OP_AND,
 	OP_OR,
@@ -198,6 +204,7 @@ enum opcode {
 	/* Uni */
 	OP_NOT,
 	OP_NEG,
+	OP_FNEG,
 
 	/* Select - three input values */
 	OP_SEL,

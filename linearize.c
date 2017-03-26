@@ -189,6 +189,12 @@ static const char *opcodes[] = {
 	[OP_LSR] = "lsr",
 	[OP_ASR] = "asr",
 	
+	/* Floating-point Binary */
+	[OP_FADD] = "fadd",
+	[OP_FSUB] = "fsub",
+	[OP_FMUL] = "fmul",
+	[OP_FDIV] = "fdiv",
+
 	/* Logical */
 	[OP_AND] = "and",
 	[OP_OR] = "or",
@@ -227,6 +233,7 @@ static const char *opcodes[] = {
 	/* Uni */
 	[OP_NOT] = "not",
 	[OP_NEG] = "neg",
+	[OP_FNEG] = "fneg",
 
 	/* Special three-input */
 	[OP_SEL] = "select",
@@ -466,6 +473,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_NOT: case OP_NEG:
+	case OP_FNEG:
 		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 
@@ -1064,6 +1072,7 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 		return VOID;
 
 	old = linearize_load_gen(ep, &ad);
+	op = opcode_float(op, expr->ctype);
 	if (is_float_type(expr->ctype))
 		one = add_setfval(ep, expr->ctype, expr->op_value);
 	else
@@ -1112,7 +1121,7 @@ static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression
 	case '~':
 		return add_uniop(ep, expr, OP_NOT, pre);
 	case '-':
-		return add_uniop(ep, expr, OP_NEG, pre);
+		return add_uniop(ep, expr, opcode_float(OP_NEG, expr->ctype), pre);
 	}
 	return VOID;
 }
@@ -1180,8 +1189,10 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 	return result;
 }
 
-static int opcode_sign(int opcode, struct symbol *ctype)
+static int map_opcode(int opcode, struct symbol *ctype)
 {
+	if (ctype && is_float_type(ctype))
+		return opcode_table[opcode].to_float;
 	if (ctype && (ctype->ctype.modifiers & MOD_SIGNED)) {
 		switch(opcode) {
 		case OP_MULU: case OP_DIVU: case OP_MODU: case OP_LSR:
@@ -1244,7 +1255,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 
 		ctype = src->ctype;
 		oldvalue = cast_pseudo(ep, oldvalue, target->ctype, ctype);
-		opcode = opcode_sign(op_trans[expr->op - SPECIAL_BASE], ctype);
+		opcode = map_opcode(op_trans[expr->op - SPECIAL_BASE], ctype);
 		dst = add_binary_op(ep, ctype, opcode, oldvalue, value);
 		value = cast_pseudo(ep, dst, ctype, expr->ctype);
 	}
@@ -1360,7 +1371,7 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 
 	src1 = linearize_expression(ep, expr->left);
 	src2 = linearize_expression(ep, expr->right);
-	op = opcode_sign(opcode[expr->op], expr->ctype);
+	op = map_opcode(opcode[expr->op], expr->ctype);
 	dst = add_binary_op(ep, expr->ctype, op, src1, src2);
 	return dst;
 }
