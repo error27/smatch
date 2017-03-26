@@ -987,6 +987,18 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 	return target;
 }
 
+static pseudo_t add_setfval(struct entrypoint *ep, struct symbol *ctype, long double fval)
+{
+	struct instruction *insn = alloc_typed_instruction(OP_SETVAL, ctype);
+	struct expression *expr = alloc_expression(insn->pos, EXPR_FVALUE);
+	pseudo_t target = alloc_pseudo(insn);
+	insn->target = target;
+	insn->val = expr;
+	expr->fvalue = fval;
+	add_one_insn(ep, insn);
+	return target;
+}
+
 static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
 {
 	struct instruction *insn = alloc_instruction(OP_SYMADDR, bits_in_pointer);
@@ -1025,7 +1037,6 @@ static pseudo_t linearize_access(struct entrypoint *ep, struct expression *expr)
 	return value;
 }
 
-/* FIXME: FP */
 static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr, int postop)
 {
 	struct access_data ad = { NULL, };
@@ -1036,7 +1047,10 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 		return VOID;
 
 	old = linearize_load_gen(ep, &ad);
-	one = value_pseudo(expr->op_value);
+	if (is_float_type(expr->ctype))
+		one = add_setfval(ep, expr->ctype, expr->op_value);
+	else
+		one = value_pseudo(expr->op_value);
 	new = add_binary_op(ep, expr->ctype, op, old, one);
 	linearize_store_gen(ep, new, &ad);
 	finish_address_gen(ep, &ad);
