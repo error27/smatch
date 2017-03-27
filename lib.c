@@ -844,11 +844,21 @@ static void predefined_macros(void)
 {
 	add_pre_buffer("#define __CHECKER__ 1\n");
 
+	predefined_sizeof("SHORT", bits_in_short);
+
 	predefined_type_size("INT", "", bits_in_int);
 	predefined_type_size("LONG", "L", bits_in_long);
 	predefined_type_size("LONG_LONG", "LL", bits_in_longlong);
 
+	predefined_sizeof("INT128", 128);
+
+	predefined_sizeof("SIZE_T", bits_in_pointer);
+	predefined_sizeof("PTRDIFF_T", bits_in_pointer);
 	predefined_sizeof("POINTER", bits_in_pointer);
+
+	predefined_sizeof("FLOAT", bits_in_float);
+	predefined_sizeof("DOUBLE", bits_in_double);
+	predefined_sizeof("LONG_DOUBLE", bits_in_longdouble);
 }
 
 void declare_builtin_functions(void)
