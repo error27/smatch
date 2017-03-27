@@ -433,30 +433,6 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 	return 0;
 }
 
-static int compare_opcode(int opcode, int inverse)
-{
-	if (!inverse)
-		return opcode;
-
-	switch (opcode) {
-	case OP_SET_EQ:	return OP_SET_NE;
-	case OP_SET_NE:	return OP_SET_EQ;
-
-	case OP_SET_LT:	return OP_SET_GE;
-	case OP_SET_LE:	return OP_SET_GT;
-	case OP_SET_GT:	return OP_SET_LE;
-	case OP_SET_GE:	return OP_SET_LT;
-
-	case OP_SET_A:	return OP_SET_BE;
-	case OP_SET_AE:	return OP_SET_B;
-	case OP_SET_B:	return OP_SET_AE;
-	case OP_SET_BE:	return OP_SET_A;
-
-	default:
-		return opcode;
-	}
-}
-
 static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
@@ -484,7 +460,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		// and similar for setne/eq ... 0/1
 		src1 = def->src1;
 		src2 = def->src2;
-		insn->opcode = compare_opcode(opcode, inverse);
+		insn->opcode = inverse ? opcode_table[opcode].negate : opcode;
 		use_pseudo(insn, src1, &insn->src1);
 		use_pseudo(insn, src2, &insn->src2);
 		remove_usage(old, &insn->src1);
