@@ -827,15 +827,28 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+static void predefined_sizeof(const char *name, unsigned bits)
+{
+	add_pre_buffer("#weak_define __SIZEOF_%s__ %d\n", name, bits/8);
+}
+
+static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+{
+	unsigned long long max = (1ULL << (bits - 1 )) - 1;
+
+	add_pre_buffer("#weak_define __%s_MAX__ %#llx%s\n", name, max, suffix);
+	predefined_sizeof(name, bits);
+}
+
 static void predefined_macros(void)
 {
-	unsigned long long val;
-
 	add_pre_buffer("#define __CHECKER__ 1\n");
 
-	val = (1ULL << (bits_in_long-1)) - 1;
-	add_pre_buffer("#weak_define __LONG_MAX__ %#llxLL\n", val);
-	add_pre_buffer("#weak_define __SIZEOF_POINTER__ %d\n", bits_in_pointer/8);
+	predefined_type_size("INT", "", bits_in_int);
+	predefined_type_size("LONG", "L", bits_in_long);
+	predefined_type_size("LONG_LONG", "LL", bits_in_longlong);
+
+	predefined_sizeof("POINTER", bits_in_pointer);
 }
 
 void declare_builtin_functions(void)
