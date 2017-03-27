@@ -16,7 +16,7 @@ static _Bool fres(le16 a) { return (_Bool)a; }
 
 /*
  * check-name: bool-cast-explicit
- * check-command: test-linearize $file
+ * check-command: test-linearize -m64 $file
  * check-output-ignore
  * check-output-excludes: cast\\.
  *
