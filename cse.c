@@ -35,16 +35,10 @@ static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 }
 
 
-static void clean_up_one_instruction(struct basic_block *bb, struct instruction *insn)
+static void cse_collect(struct instruction *insn)
 {
 	unsigned long hash;
 
-	if (!insn->bb)
-		return;
-	assert(insn->bb == bb);
-	repeat_phase |= simplify_instruction(insn);
-	if (!insn->bb)
-		return;
 	hash = (insn->opcode << 3) + (insn->size >> 3);
 	switch (insn->opcode) {
 	case OP_SEL:
@@ -144,7 +138,11 @@ static void clean_up_insns(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn;
 		FOR_EACH_PTR(bb->insns, insn) {
-			clean_up_one_instruction(bb, insn);
+			repeat_phase |= simplify_instruction(insn);
+			if (!insn->bb)
+				continue;
+			assert(insn->bb == bb);
+			cse_collect(insn);
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
 }
