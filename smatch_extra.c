@@ -1683,6 +1683,70 @@ static void handle_AND_condition(struct expression *expr)
 	}
 }
 
+static void handle_MOD_condition(struct expression *expr)
+{
+	struct range_list *orig_rl;
+	struct range_list *true_rl;
+	struct range_list *false_rl = NULL;
+	sval_t right;
+	sval_t zero = {
+		.value = 0,
+	};
+
+	if (!get_implied_value(expr->right, &right) || right.value == 0)
+		return;
+	get_absolute_rl(expr->left, &orig_rl);
+
+	zero.type = rl_type(orig_rl);
+
+	/* We're basically dorking around the min and max here */
+	true_rl = remove_range(orig_rl, zero, zero);
+	if (!sval_is_max(rl_max(true_rl)) &&
+	    !(rl_max(true_rl).value % right.value))
+		true_rl = remove_range(true_rl, rl_max(true_rl), rl_max(true_rl));
+
+	if (rl_equiv(true_rl, orig_rl))
+		true_rl = NULL;
+
+	if (sval_is_positive(rl_min(orig_rl)) &&
+	    (rl_max(orig_rl).value - rl_min(orig_rl).value) / right.value < 5) {
+		sval_t add;
+		int i;
+
+		add = rl_min(orig_rl);
+		add.value += right.value - (add.value % right.value);
+		add.value -= right.value;
+
+		for (i = 0; i < 5; i++) {
+			add.value += right.value;
+			if (add.value > rl_max(orig_rl).value)
+				break;
+			add_range(&false_rl, add, add);
+		}
+	} else {
+		if (rl_min(orig_rl).uvalue != 0 &&
+		    rl_min(orig_rl).uvalue < right.uvalue) {
+			sval_t chop = right;
+			chop.value--;
+			false_rl = remove_range(orig_rl, zero, chop);
+		}
+
+		if (!sval_is_max(rl_max(orig_rl)) &&
+		    (rl_max(orig_rl).value % right.value)) {
+			sval_t chop = rl_max(orig_rl);
+			chop.value -= chop.value % right.value;
+			chop.value++;
+			if (!false_rl)
+				false_rl = clone_rl(orig_rl);
+			false_rl = remove_range(false_rl, chop, rl_max(orig_rl));
+		}
+	}
+
+	set_extra_expr_true_false(expr->left,
+				  true_rl ? alloc_estate_rl(true_rl) : NULL,
+				  false_rl ? alloc_estate_rl(false_rl) : NULL);
+}
+
 /* this is actually hooked from smatch_implied.c...  it's hacky, yes */
 void __extra_match_condition(struct expression *expr)
 {
@@ -1721,6 +1785,8 @@ void __extra_match_condition(struct expression *expr)
 	case EXPR_BINOP:
 		if (expr->op == '&')
 			handle_AND_condition(expr);
+		if (expr->op == '%')
+			handle_MOD_condition(expr);
 		return;
 	}
 }
