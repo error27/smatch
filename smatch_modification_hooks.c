@@ -35,21 +35,13 @@
 #include "smatch_slist.h"
 
 enum {
-	match_none = 0,
-	match_exact,
-	match_indirect
-};
-
-enum {
 	EARLY = 0,
 	LATE = 1,
 	BOTH = 2
 };
 
 static modification_hook **hooks;
-static modification_hook **indirect_hooks;  /* parent struct modified etc */
 static modification_hook **hooks_late;
-static modification_hook **indirect_hooks_late;  /* parent struct modified etc */
 
 ALLOCATOR(modification_data, "modification data");
 
@@ -79,19 +71,9 @@ void add_modification_hook(int owner, modification_hook *call_back)
 	hooks[owner] = call_back;
 }
 
-void add_indirect_modification_hook(int owner, modification_hook *call_back)
-{
-	indirect_hooks[owner] = call_back;
-}
-
 void add_modification_hook_late(int owner, modification_hook *call_back)
 {
 	hooks_late[owner] = call_back;
-}
-
-void add_indirect_modification_hook_late(int owner, modification_hook *call_back)
-{
-	indirect_hooks_late[owner] = call_back;
 }
 
 static int matches(char *name, struct symbol *sym, struct sm_state *sm)
@@ -99,24 +81,24 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 	int len;
 
 	if (sym != sm->sym)
-		return match_none;
+		return false;
 
 	len = strlen(name);
 	if (strncmp(sm->name, name, len) == 0) {
 		if (sm->name[len] == '\0')
-			return match_exact;
+			return true;
 		if (sm->name[len] == '-' || sm->name[len] == '.')
-			return match_indirect;
+			return true;
 	}
 	if (sm->name[0] != '*')
-		return match_none;
+		return false;
 	if (strncmp(sm->name + 1, name, len) == 0) {
 		if (sm->name[len + 1] == '\0')
-			return match_indirect;
+			return true;
 		if (sm->name[len + 1] == '-' || sm->name[len + 1] == '.')
-			return match_indirect;
+			return true;
 	}
-	return match_none;
+	return false;
 }
 
 static void call_modification_hooks_name_sym(char *name, struct symbol *sym, struct expression *mod_expr, int late)
@@ -138,14 +120,10 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 		if (late == EARLY || late == BOTH) {
 			if (hooks[sm->owner])
 				(hooks[sm->owner])(sm, mod_expr);
-			if (match == match_indirect && indirect_hooks[sm->owner])
-				(indirect_hooks[sm->owner])(sm, mod_expr);
 		}
 		if (late == LATE || late == BOTH) {
 			if (hooks_late[sm->owner])
 				(hooks_late[sm->owner])(sm, mod_expr);
-			if (match == match_indirect && indirect_hooks_late[sm->owner])
-				(indirect_hooks_late[sm->owner])(sm, mod_expr);
 		}
 
 	} END_FOR_EACH_SM(sm);
@@ -275,12 +253,8 @@ void register_modification_hooks(int id)
 
 	hooks = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
-	indirect_hooks = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(indirect_hooks, 0, (num_checks + 1) * sizeof(*hooks));
 	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
-	indirect_hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(indirect_hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
 
 	add_hook(&match_assign_early, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr_early, OP_HOOK);
