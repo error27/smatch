@@ -3019,10 +3019,12 @@ static struct symbol *evaluate_call(struct expression *expr)
 			return NULL;
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
-		if (args < fnargs)
+		if (args < fnargs) {
 			expression_error(expr,
 				     "not enough arguments for function %s",
 				     show_ident(sym->ident));
+			return NULL;
+		}
 		if (args > fnargs && !ctype->variadic)
 			expression_error(expr,
 				     "too many arguments for function %s",
