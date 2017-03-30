@@ -2451,13 +2451,13 @@ static struct expression *next_designators(struct expression *old,
 }
 
 static int handle_initializer(struct expression **ep, int nested,
-				     int class, struct symbol *ctype);
+		int class, struct symbol *ctype, unsigned long mods);
 
 /*
  * deal with traversing subobjects [6.7.8(17,18,20)]
  */
 static void handle_list_initializer(struct expression *expr,
-				    int class, struct symbol *ctype)
+		int class, struct symbol *ctype, unsigned long mods)
 {
 	struct expression *e, *last = NULL, *top = NULL, *next;
 	int jumped = 0;
@@ -2515,7 +2515,8 @@ found:
 		else
 			v = &top->ident_expression;
 
-		if (handle_initializer(v, 1, lclass, top->ctype))
+		mods |= ctype->ctype.modifiers & MOD_STORAGE;
+		if (handle_initializer(v, 1, lclass, top->ctype, mods))
 			continue;
 
 		if (!(lclass & TYPE_COMPOUND)) {
@@ -2608,7 +2609,7 @@ static struct expression *handle_scalar(struct expression *e, int nested)
  * until we dig into the inner struct.
  */
 static int handle_initializer(struct expression **ep, int nested,
-				     int class, struct symbol *ctype)
+		int class, struct symbol *ctype, unsigned long mods)
 {
 	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
@@ -2648,7 +2649,7 @@ static int handle_initializer(struct expression **ep, int nested,
 				goto String;
 			}
 		}
-		handle_list_initializer(e, class, ctype);
+		handle_list_initializer(e, class, ctype, mods);
 		return 1;
 	}
 
@@ -2696,7 +2697,7 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct symbol *type;
 	int class = classify_type(ctype, &type);
-	if (!handle_initializer(ep, 0, class, ctype))
+	if (!handle_initializer(ep, 0, class, ctype, 0))
 		expression_error(*ep, "invalid initializer");
 }
 
