@@ -34,6 +34,22 @@ static int evaluate_to_int_const_expr(struct expression *expr)
 	return 1;
 }
 
+static int evaluate_pure_unop(struct expression *expr)
+{
+	struct expression *arg = first_expression(expr->args);
+	int flags = arg->flags;
+
+	/*
+	 * Allow such functions with a constant integer expression
+	 * argument to be treated as a *constant* integer.
+	 * This allow us to use them in switch() { case ...:
+	 */
+	flags |= (flags & CEF_ICE) ? CEF_SET_INT : 0;
+	expr->flags = flags;
+	return 1;
+}
+
+
 static int evaluate_expect(struct expression *expr)
 {
 	/* Should we evaluate it to return the type of the first argument? */
@@ -201,6 +217,7 @@ static int expand_bswap(struct expression *expr, int cost)
 }
 
 static struct symbol_op bswap_op = {
+	.evaluate = evaluate_pure_unop,
 	.expand = expand_bswap,
 };
 
