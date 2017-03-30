@@ -3030,11 +3030,11 @@ static struct symbol *evaluate_call(struct expression *expr)
 				     "too many arguments for function %s",
 				     show_ident(sym->ident));
 	}
+	expr->ctype = ctype->ctype.base_type;
 	if (sym->type == SYM_NODE) {
 		if (evaluate_symbol_call(expr))
 			return expr->ctype;
 	}
-	expr->ctype = ctype->ctype.base_type;
 	return expr->ctype;
 }
 
