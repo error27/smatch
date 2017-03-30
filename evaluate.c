@@ -2450,7 +2450,7 @@ static struct expression *next_designators(struct expression *old,
 	return new;
 }
 
-static int handle_simple_initializer(struct expression **ep, int nested,
+static int handle_initializer(struct expression **ep, int nested,
 				     int class, struct symbol *ctype);
 
 /*
@@ -2515,7 +2515,7 @@ found:
 		else
 			v = &top->ident_expression;
 
-		if (handle_simple_initializer(v, 1, lclass, top->ctype))
+		if (handle_initializer(v, 1, lclass, top->ctype))
 			continue;
 
 		if (!(lclass & TYPE_COMPOUND)) {
@@ -2607,7 +2607,7 @@ static struct expression *handle_scalar(struct expression *e, int nested)
  * { "string", ...} - we need to preserve that string literal recognizable
  * until we dig into the inner struct.
  */
-static int handle_simple_initializer(struct expression **ep, int nested,
+static int handle_initializer(struct expression **ep, int nested,
 				     int class, struct symbol *ctype)
 {
 	int is_string = is_string_type(ctype);
@@ -2696,7 +2696,7 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct symbol *type;
 	int class = classify_type(ctype, &type);
-	if (!handle_simple_initializer(ep, 0, class, ctype))
+	if (!handle_initializer(ep, 0, class, ctype))
 		expression_error(*ep, "invalid initializer");
 }
 
