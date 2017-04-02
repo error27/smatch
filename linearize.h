@@ -111,6 +111,9 @@ struct instruction {
 			pseudo_t symbol;		/* Subtle: same offset as "src" !! */
 			struct expression *val;
 		};
+		struct /* setfval */ {
+			long double fvalue;
+		};
 		struct /* call */ {
 			pseudo_t func;
 			struct pseudo_list *arguments;
@@ -216,6 +219,7 @@ enum opcode {
 	OP_LOAD,
 	OP_STORE,
 	OP_SETVAL,
+	OP_SETFVAL,
 	OP_SYMADDR,
 	OP_GET_ELEMENT_PTR,
 

@@ -91,6 +91,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	case OP_SETVAL:
+	case OP_SETFVAL:
 		DEFINES(target);
 		break;
 

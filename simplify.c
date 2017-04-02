@@ -293,6 +293,7 @@ void kill_insn(struct instruction *insn, int force)
 		return;
 
 	case OP_BR:
+	case OP_SETFVAL:
 	default:
 		break;
 	}

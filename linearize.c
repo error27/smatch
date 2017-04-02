@@ -245,6 +245,7 @@ static const char *opcodes[] = {
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
 	[OP_SETVAL] = "set",
+	[OP_SETFVAL] = "setfval",
 	[OP_SYMADDR] = "symaddr",
 	[OP_GET_ELEMENT_PTR] = "getelem",
 
@@ -388,6 +389,11 @@ const char *show_instruction(struct instruction *insn)
 		}
 		break;
 	}
+	case OP_SETFVAL:
+		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
+		buf += sprintf(buf, "%Lf", insn->fvalue);
+		break;
+
 	case OP_SWITCH: {
 		struct multijmp *jmp;
 		buf += sprintf(buf, "%s", show_pseudo(insn->cond));
@@ -1014,12 +1020,10 @@ static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct e
 
 static pseudo_t add_setfval(struct entrypoint *ep, struct symbol *ctype, long double fval)
 {
-	struct instruction *insn = alloc_typed_instruction(OP_SETVAL, ctype);
-	struct expression *expr = alloc_expression(insn->pos, EXPR_FVALUE);
+	struct instruction *insn = alloc_typed_instruction(OP_SETFVAL, ctype);
 	pseudo_t target = alloc_pseudo(insn);
 	insn->target = target;
-	insn->val = expr;
-	expr->fvalue = fval;
+	insn->fvalue = fval;
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -1627,8 +1631,12 @@ static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *e
 	case EXPR_VALUE:
 		return value_pseudo(expr->value);
 
-	case EXPR_STRING: case EXPR_FVALUE: case EXPR_LABEL:
+	case EXPR_STRING:
+	case EXPR_LABEL:
 		return add_setval(ep, expr->ctype, expr);
+
+	case EXPR_FVALUE:
+		return add_setfval(ep, expr->ctype, expr->fvalue);
 
 	case EXPR_STATEMENT:
 		return linearize_statement(ep, expr->statement);

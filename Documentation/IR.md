@@ -281,11 +281,15 @@ Create a pseudo corresponding to the address of a symbol.
 - .symbol: (pseudo_t) input symbol (alias .src)
 - .target: symbol's address
 
+#### OP_SETFVAL
+Create a pseudo corresponding to a floating-point literal.
+- .fvalue: the literal's value (long double)
+- .target: the corresponding pseudo
+- .type: type of the literal & .target
+
 #### OP_SETVAL
-Create a pseudo corresponding to a value.
-The value is given as an expression EXPR_STRING, EXPR_FVALUE or
-EXPR_LABEL (pseudos for integral constants are directly created
-at linearization and doesn't need this instruction)
+Create a pseudo corresponding to a string literal or a label-as-value.
+The value is given as an expression EXPR_STRING or EXPR_LABEL.
 - .val: (expression) input expression
 - .target: the resulting value
 - .type: type of .target, the value

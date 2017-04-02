@@ -971,13 +971,9 @@ static void output_op_fpcast(struct function *fn, struct instruction *insn)
 static void output_op_setval(struct function *fn, struct instruction *insn)
 {
 	struct expression *val = insn->val;
-	LLVMTypeRef dtype = symbol_type(insn->type);
 	LLVMValueRef target;
 
 	switch (val->type) {
-	case EXPR_FVALUE:
-		target = LLVMConstReal(dtype, val->fvalue);
-		break;
 	case EXPR_LABEL:
 		target = LLVMBlockAddress(fn->fn, val->symbol->bb_target->priv);
 		break;
@@ -985,6 +981,15 @@ static void output_op_setval(struct function *fn, struct instruction *insn)
 		assert(0);
 	}
 
+	insn->target->priv = target;
+}
+
+static void output_op_setfval(struct function *fn, struct instruction *insn)
+{
+	LLVMTypeRef dtype = symbol_type(insn->type);
+	LLVMValueRef target;
+
+	target = LLVMConstReal(dtype, insn->fvalue);
 	insn->target->priv = target;
 }
 
@@ -1005,6 +1010,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_SETVAL:
 		output_op_setval(fn, insn);
+		break;
+	case OP_SETFVAL:
+		output_op_setfval(fn, insn);
 		break;
 	case OP_SWITCH:
 		output_op_switch(fn, insn);
