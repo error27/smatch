@@ -57,6 +57,20 @@ static void test_restrict(void)
 	obj = *ptr;
 }
 
+static void test_atomic(void)
+{
+	int _Atomic obj, *ptr;
+	typeof(obj) var = obj;
+	typeof(ptr) ptr2 = ptr;
+	typeof(*ptr) var2 = obj;
+	typeof(*ptr) *ptr3 = ptr;
+	typeof(obj) *ptr4 = ptr;
+	obj = obj;
+	ptr = ptr;
+	ptr = &obj;
+	obj = *ptr;
+}
+
 static void test_bitwise(void)
 {
 	typedef int __bitwise type_t;

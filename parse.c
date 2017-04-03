@@ -59,6 +59,7 @@ static declarator_t
 	register_specifier, static_specifier, extern_specifier,
 	thread_specifier, const_qualifier, volatile_qualifier;
 static declarator_t restrict_qualifier;
+static declarator_t atomic_qualifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
 static struct token *parse_return_statement(struct token *token, struct statement *stmt);
@@ -176,6 +177,11 @@ static struct symbol_op volatile_op = {
 static struct symbol_op restrict_op = {
 	.type = KW_QUALIFIER,
 	.declarator = restrict_qualifier,
+};
+
+static struct symbol_op atomic_op = {
+	.type = KW_QUALIFIER,
+	.declarator = atomic_qualifier,
 };
 
 static struct symbol_op typeof_op = {
@@ -427,6 +433,7 @@ static struct init_keyword {
 	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
 	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
 	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
+	{ "_Atomic",	NS_TYPEDEF, .op = &atomic_op},
 
 	/* Typedef.. */
 	{ "typedef",	NS_TYPEDEF, .op = &typedef_op },
@@ -1470,6 +1477,12 @@ static struct token *volatile_qualifier(struct token *next, struct decl_state *c
 static struct token *restrict_qualifier(struct token *next, struct decl_state *ctx)
 {
 	apply_qualifier(&next->pos, &ctx->ctype, MOD_RESTRICT);
+	return next;
+}
+
+static struct token *atomic_qualifier(struct token *next, struct decl_state *ctx)
+{
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_ATOMIC);
 	return next;
 }
 
