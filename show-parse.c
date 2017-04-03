@@ -137,7 +137,6 @@ const char *modifier_string(unsigned long mod)
 		{MOD_ADDRESSABLE,	"[addressable]"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
-		{MOD_ACCESSED,		"[accessed]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
 		{MOD_ASSIGNED,		"[assigned]"},
 		{MOD_TYPE,		"[type]"},

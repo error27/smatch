@@ -48,9 +48,9 @@ struct symbol_list *translation_unit_used_list = NULL;
 void access_symbol(struct symbol *sym)
 {
 	if (sym->ctype.modifiers & MOD_INLINE) {
-		if (!(sym->ctype.modifiers & MOD_ACCESSED)) {
+		if (!sym->accessed) {
 			add_symbol(&translation_unit_used_list, sym);
-			sym->ctype.modifiers |= MOD_ACCESSED;
+			sym->accessed = 1;
 		}
 	}
 }

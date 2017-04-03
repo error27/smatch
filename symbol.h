@@ -173,6 +173,7 @@ struct symbol {
 					string:1,
 					designated_init:1,
 					forced_arg:1,
+					accessed:1,
 					transparent_union:1;
 			struct expression *array_size;
 			struct ctype ctype;
@@ -222,7 +223,6 @@ struct symbol {
 
 #define MOD_NOCAST	0x100000
 #define MOD_NODEREF	0x200000
-#define MOD_ACCESSED	0x400000
 #define MOD_TOPLEVEL	0x800000	// scoping..
 
 #define MOD_ASSIGNED	0x2000000
@@ -242,7 +242,7 @@ struct symbol {
 #define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
-	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
+	MOD_ASSIGNED | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED)
 #define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
 #define MOD_TYPEOF	(MOD_VOLATILE | MOD_CONST | MOD_NOCAST | MOD_SPECIFIER)
