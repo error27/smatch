@@ -125,6 +125,7 @@ const char *modifier_string(unsigned long mod)
 		{MOD_EXTERN,		"extern"},
 		{MOD_CONST,		"const"},
 		{MOD_VOLATILE,		"volatile"},
+		{MOD_RESTRICT,		"restrict"},
 		{MOD_SIGNED,		"[signed]"},
 		{MOD_UNSIGNED,		"[unsigned]"},
 		{MOD_CHAR,		"[char]"},

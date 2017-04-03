@@ -107,6 +107,9 @@ define gdb_show_ctype
 	if ($arg0->modifiers & MOD_VOLATILE)
 		printf "MOD_VOLATILE "
 	end
+	if ($arg0->modifiers & MOD_RESTRICT)
+		printf "MOD_RESTRICT "
+	end
 	if ($arg0->modifiers & MOD_SIGNED)
 		printf "MOD_SIGNED "
 	end

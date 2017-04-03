@@ -58,6 +58,7 @@ static declarator_t
 	typedef_specifier, inline_specifier, auto_specifier,
 	register_specifier, static_specifier, extern_specifier,
 	thread_specifier, const_qualifier, volatile_qualifier;
+static declarator_t restrict_qualifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
 static struct token *parse_return_statement(struct token *token, struct statement *stmt);
@@ -174,6 +175,7 @@ static struct symbol_op volatile_op = {
 
 static struct symbol_op restrict_op = {
 	.type = KW_QUALIFIER,
+	.declarator = restrict_qualifier,
 };
 
 static struct symbol_op typeof_op = {
@@ -422,6 +424,9 @@ static struct init_keyword {
 	{ "volatile",	NS_TYPEDEF, .op = &volatile_op },
 	{ "__volatile",		NS_TYPEDEF, .op = &volatile_op },
 	{ "__volatile__", 	NS_TYPEDEF, .op = &volatile_op },
+	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
+	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
+	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
 
 	/* Typedef.. */
 	{ "typedef",	NS_TYPEDEF, .op = &typedef_op },
@@ -466,11 +471,6 @@ static struct init_keyword {
 	{ "_Noreturn",	NS_TYPEDEF, .op = &noreturn_op },
 
 	{ "_Alignas",	NS_TYPEDEF, .op = &alignas_op },
-
-	/* Ignored for now.. */
-	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
 
 	/* Static assertion */
 	{ "_Static_assert", NS_KEYWORD, .op = &static_assert_op },
@@ -1464,6 +1464,12 @@ static struct token *const_qualifier(struct token *next, struct decl_state *ctx)
 static struct token *volatile_qualifier(struct token *next, struct decl_state *ctx)
 {
 	apply_qualifier(&next->pos, &ctx->ctype, MOD_VOLATILE);
+	return next;
+}
+
+static struct token *restrict_qualifier(struct token *next, struct decl_state *ctx)
+{
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_RESTRICT);
 	return next;
 }
 
