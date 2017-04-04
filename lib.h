@@ -75,6 +75,7 @@ DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);
 DECLARE_PTR_LIST(multijmp_list, struct multijmp);
 DECLARE_PTR_LIST(pseudo_list, struct pseudo);
+DECLARE_PTR_LIST(ident_list, struct ident);
 DECLARE_PTR_LIST(string_list, char);
 
 typedef struct pseudo *pseudo_t;
@@ -243,6 +244,11 @@ static inline void add_statement(struct statement_list **list, struct statement 
 static inline void add_expression(struct expression_list **list, struct expression *expr)
 {
 	add_ptr_list(list, expr);
+}
+
+static inline void add_ident(struct ident_list **list, struct ident *ident)
+{
+	add_ptr_list(list, ident);
 }
 
 #define hashval(x) ((unsigned long)(x))
