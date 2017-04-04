@@ -165,6 +165,11 @@ static void expand_file(struct token *token)
 	replace_with_string(token, stream_name(token->pos.stream));
 }
 
+static void expand_basefile(struct token *token)
+{
+	replace_with_string(token, base_filename);
+}
+
 static time_t t = 0;
 static void expand_date(struct token *token)
 {
@@ -1924,6 +1929,7 @@ static void init_preprocessor(void)
 	} dynamic[] = {
 		{ "__LINE__",		expand_line },
 		{ "__FILE__",		expand_file },
+		{ "__BASE_FILE__",	expand_basefile },
 		{ "__DATE__",		expand_date },
 		{ "__TIME__",		expand_time },
 		{ "__COUNTER__",	expand_counter },

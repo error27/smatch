@@ -4,6 +4,9 @@ __LINE__
 #if defined(__FILE__)
 __FILE__
 #endif
+#if defined(__BASE_FILE__)
+__BASE_FILE__
+#endif
 #if defined(__DATE__)
 date
 #endif
@@ -24,6 +27,7 @@ __INCLUDE_LEVEL__
  * check-output-start
 
 2
+"preprocessor/dynamic.c"
 "preprocessor/dynamic.c"
 date
 time

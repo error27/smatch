@@ -46,6 +46,8 @@ extern int die_if_error;
 extern int repeat_phase;
 extern int gcc_major, gcc_minor, gcc_patchlevel;
 
+extern const char *base_filename;
+
 extern unsigned int hexval(unsigned int c);
 
 struct position {

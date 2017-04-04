@@ -60,6 +60,8 @@ int gcc_major = __GNUC__;
 int gcc_minor = __GNUC_MINOR__;
 int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
+const char *base_filename;
+
 static const char *gcc_base_dir = GCC_BASE;
 static const char *multiarch_dir = MULTIARCH_TRIPLET;
 
@@ -1256,9 +1258,6 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");
 
-	/* FIXME! We need to do these as special magic macros at expansion time! */
-	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
-
 	if (optimize_level)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
@@ -1314,6 +1313,7 @@ static struct symbol_list *sparse_file(const char *filename)
 		if (fd < 0)
 			die("No such file: %s", filename);
 	}
+	base_filename = filename;
 
 	// Tokenize the input stream
 	token = tokenize(filename, fd, NULL, includepath);
