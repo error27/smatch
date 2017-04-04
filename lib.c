@@ -1100,8 +1100,13 @@ void create_builtin_stream(void)
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
 {
+	int builtin = token && !token->pos.stream;
+
 	// Preprocess the stream
 	token = preprocess(token);
+
+	if (dump_macro_defs && !builtin)
+		dump_macro_definitions();
 
 	if (preprocess_only) {
 		while (!eof_token(token)) {
