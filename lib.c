@@ -248,6 +248,8 @@ int Wuninitialized = 1;
 int Wunknown_attribute = 1;
 int Wvla = 1;
 
+int dump_macro_defs = 0;
+
 int dbg_entry = 0;
 int dbg_dead = 0;
 
@@ -569,6 +571,19 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
+static struct warning dumps[] = {
+	{ "D", &dump_macro_defs},
+};
+
+static char **handle_switch_d(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, dumps, ARRAY_SIZE(dumps));
+	if (ret)
+		return ret;
+
+	return next;
+}
+
 
 static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
 {
@@ -802,6 +817,7 @@ static char **handle_switch(char *arg, char **next)
 	switch (*arg) {
 	case 'a': return handle_switch_a(arg, next);
 	case 'D': return handle_switch_D(arg, next);
+	case 'd': return handle_switch_d(arg, next);
 	case 'E': return handle_switch_E(arg, next);
 	case 'f': return handle_switch_f(arg, next);
 	case 'g': return handle_switch_g(arg, next);

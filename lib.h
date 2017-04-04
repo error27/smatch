@@ -135,6 +135,8 @@ extern int Wuninitialized;
 extern int Wunknown_attribute;
 extern int Wvla;
 
+extern int dump_macro_defs;
+
 extern int dbg_entry;
 extern int dbg_dead;
 
