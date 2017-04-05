@@ -478,7 +478,7 @@ static int expand_comma(struct expression *expr)
 	return cost;
 }
 
-#define MOD_IGN (MOD_VOLATILE | MOD_CONST)
+#define MOD_IGN (MOD_QUALIFIER)
 
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {

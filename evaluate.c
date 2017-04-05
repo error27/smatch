@@ -627,7 +627,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 
 static void examine_fn_arguments(struct symbol *fn);
 
-#define MOD_IGN (MOD_VOLATILE | MOD_CONST | MOD_PURE)
+#define MOD_IGN (MOD_QUALIFIER | MOD_PURE)
 
 const char *type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2)
