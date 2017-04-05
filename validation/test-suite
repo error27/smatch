@@ -270,6 +270,7 @@ do_test()
 		ko_tests=`expr $ko_tests + 1`
 	else
 		ok_tests=`expr $ok_tests + 1`
+		rm -f $file.{error,output}.{expected,got,diff}
 	fi
 	return $test_failed
 }
