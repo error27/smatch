@@ -47,6 +47,7 @@
 
 int verbose, optimize, optimize_size, preprocessing;
 int die_if_error = 0;
+int has_error = 0;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
@@ -133,7 +134,7 @@ static void do_error(struct position pos, const char * fmt, va_list args)
         die_if_error = 1;
 	show_info = 1;
 	/* Shut up warnings after an error */
-	max_warnings = 0;
+	has_error |= ERROR_CURR_PHASE;
 	if (errors > 100) {
 		static int once = 0;
 		show_info = 0;
@@ -158,7 +159,7 @@ void warning(struct position pos, const char * fmt, ...)
 		return;
 	}
 
-	if (!max_warnings) {
+	if (!max_warnings || has_error) {
 		show_info = 0;
 		return;
 	}
@@ -1294,6 +1295,8 @@ struct symbol_list * sparse(char *filename)
 {
 	struct symbol_list *res = __sparse(filename);
 
+	if (has_error & ERROR_CURR_PHASE)
+		has_error = ERROR_PREV_PHASE;
 	/* Evaluate the complete symbol list */
 	evaluate_symbol_list(res);
 

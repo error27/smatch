@@ -3227,6 +3227,7 @@ void evaluate_symbol_list(struct symbol_list *list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(list, sym) {
+		has_error &= ~ERROR_CURR_PHASE;
 		evaluate_symbol(sym);
 		check_duplicates(sym);
 	} END_FOR_EACH_PTR(sym);
