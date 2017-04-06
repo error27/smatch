@@ -252,6 +252,7 @@ int dbg_entry = 0;
 int dbg_dead = 0;
 
 int fmem_report = 0;
+int fdump_linearize;
 
 int preprocess_only;
 
@@ -668,12 +669,33 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_fdump(char *arg, char **next)
+{
+	if (!strncmp(arg, "linearize", 9)) {
+		arg += 9;
+		if (*arg == '\0')
+			fdump_linearize = 1;
+		else if (!strcmp(arg, "=only"))
+			fdump_linearize = 2;
+		else
+			goto err;
+	}
+
+	/* ignore others flags */
+	return next;
+
+err:
+	die("error: unknown flag \"-fdump-%s\"", arg);
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	arg++;
 
 	if (!strncmp(arg, "tabstop=", 8))
 		return handle_switch_ftabstop(arg+8, next);
+	if (!strncmp(arg, "dump-", 5))
+		return handle_switch_fdump(arg+5, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
 	if (handle_simple_switch(arg, "mem-report", &fmem_report))

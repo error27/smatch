@@ -138,6 +138,7 @@ extern int dbg_entry;
 extern int dbg_dead;
 
 extern int fmem_report;
+extern int fdump_linearize;
 
 extern int arch_m64;
 
