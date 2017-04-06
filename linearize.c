@@ -1634,6 +1634,21 @@ static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 
 	sym->initialized = 1;
 	ad.address = symbol_pseudo(ep, sym);
+
+	if (sym->initializer && !is_scalar_type(sym)) {
+		// default zero initialization [6.7.9.21]
+		// FIXME: this init the whole aggregate while
+		// only the existing fields need to be initialized.
+		// FIXME: this init the whole aggregate even if
+		// all fields arelater  explicitely initialized.
+		struct expression *expr = sym->initializer;
+		ad.pos = expr->pos;
+		ad.result_type = sym;
+		ad.source_type = base_type(sym);
+		ad.address = symbol_pseudo(ep, sym);
+		linearize_store_gen(ep, value_pseudo(0), &ad);
+	}
+
 	value = linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
 	return value;
