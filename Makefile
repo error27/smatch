@@ -47,14 +47,14 @@ BASIC_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
 endif
 
 DESTDIR=
-PREFIX=$(HOME)
-BINDIR=$(PREFIX)/bin
-LIBDIR=$(PREFIX)/lib
-MANDIR=$(PREFIX)/share/man
+INSTALL_PREFIX ?=$(HOME)
+BINDIR=$(INSTALL_PREFIX)/bin
+LIBDIR=$(INSTALL_PREFIX)/lib
+MANDIR=$(INSTALL_PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
-INCLUDEDIR=$(PREFIX)/include
+INCLUDEDIR=$(INSTALL_PREFIX)/include
 PKGCONFIGDIR=$(LIBDIR)/pkgconfig
-SMATCHDATADIR=$(PREFIX)/share/smatch
+SMATCHDATADIR=$(INSTALL_PREFIX)/share/smatch
 
 SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_helper.o smatch_type.o smatch_hooks.o smatch_function_hooks.o \
@@ -174,7 +174,7 @@ define INSTALL_FILE
 endef
 
 SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
-	      s|@prefix@|$(PREFIX)|g;		\
+	      s|@prefix@|$(INSTALL_PREFIX)|g;		\
 	      s|@libdir@|$(LIBDIR)|g;		\
 	      s|@includedir@|$(INCLUDEDIR)|g'
 
