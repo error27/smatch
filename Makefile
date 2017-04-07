@@ -83,6 +83,25 @@ SMATCH_DATA=smatch_data/kernel.allocation_funcs smatch_data/kernel.balanced_func
 	smatch_data/kernel.dma_funcs smatch_data/kernel.returns_held_funcs \
 	smatch_data/kernel.no_return_funcs
 
+SMATCH_SCRIPTS=smatch_scripts/add_gfp_to_allocations.sh \
+	smatch_scripts/build_kernel_data.sh \
+	smatch_scripts/call_tree.pl smatch_scripts/filter_kernel_deref_check.sh \
+	smatch_scripts/find_expanded_holes.pl smatch_scripts/find_null_params.sh \
+	smatch_scripts/follow_params.pl smatch_scripts/gen_allocation_list.sh \
+	smatch_scripts/gen_bit_shifters.sh smatch_scripts/gen_dma_funcs.sh \
+	smatch_scripts/generisize.pl smatch_scripts/gen_err_ptr_list.sh \
+	smatch_scripts/gen_expects_err_ptr.sh smatch_scripts/gen_frees_list.sh \
+	smatch_scripts/gen_gfp_flags.sh smatch_scripts/gen_no_return_funcs.sh \
+	smatch_scripts/gen_puts_list.sh smatch_scripts/gen_returns_held.sh \
+	smatch_scripts/gen_rosenberg_funcs.sh smatch_scripts/gen_sizeof_param.sh \
+	smatch_scripts/gen_unwind_functions.sh smatch_scripts/kchecker \
+	smatch_scripts/kpatch.sh smatch_scripts/new_bugs.sh \
+	smatch_scripts/show_errs.sh smatch_scripts/show_ifs.sh \
+	smatch_scripts/show_unreachable.sh smatch_scripts/strip_whitespace.pl \
+	smatch_scripts/summarize_errs.sh smatch_scripts/test_kernel.sh \
+	smatch_scripts/trace_params.pl smatch_scripts/unlocked_paths.pl \
+	smatch_scripts/whitespace_only.sh smatch_scripts/wine_checker.sh \
+
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
 	 test-linearize example test-unssa test-dissect ctags
 INST_PROGRAMS=smatch cgcc
@@ -195,12 +214,14 @@ install: all-installable
 	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
 	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
 	$(Q)install -d $(DESTDIR)$(SMATCHDATADIR)/smatch_data
+	$(Q)install -d $(DESTDIR)$(SMATCHDATADIR)/smatch_scripts
 	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
 	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
 	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
 	$(foreach f,$(LIB_H),$(call INSTALL_FILE,$f,$(INCLUDEDIR)/sparse))
 	$(call INSTALL_FILE,sparse.pc,$(PKGCONFIGDIR))
 	$(foreach f,$(SMATCH_DATA),$(call INSTALL_FILE,$f,$(SMATCHDATADIR)))
+	$(foreach f,$(SMATCH_SCRIPTS),$(call INSTALL_EXEC,$f,$(SMATCHDATADIR)))
 
 sparse.pc: sparse.pc.in
 	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
