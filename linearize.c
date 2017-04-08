@@ -843,7 +843,6 @@ struct access_data {
 	struct symbol *result_type;	// result ctype
 	struct symbol *source_type;	// source ctype
 	pseudo_t address;		// pseudo containing address ..
-	pseudo_t origval;		// pseudo for original value ..
 	unsigned int offset;		// byte offset
 	struct position pos;
 };
@@ -909,13 +908,8 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	struct instruction *insn;
 	pseudo_t new;
 
-	new = ad->origval;
-	if (0 && new)
-		return new;
-
 	insn = alloc_typed_instruction(OP_LOAD, ad->source_type);
 	new = alloc_pseudo(insn);
-	ad->origval = new;
 
 	insn->target = new;
 	insn->offset = ad->offset;
