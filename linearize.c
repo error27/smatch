@@ -844,7 +844,7 @@ struct access_data {
 	struct symbol *source_type;	// source ctype
 	pseudo_t address;		// pseudo containing address ..
 	pseudo_t origval;		// pseudo for original value ..
-	unsigned int offset, alignment;	// byte offset
+	unsigned int offset;		// byte offset
 	struct position pos;
 };
 
@@ -897,7 +897,6 @@ static int linearize_address_gen(struct entrypoint *ep,
 	ad->pos = expr->pos;
 	ad->result_type = ctype;
 	ad->source_type = base_type(ctype);
-	ad->alignment = ctype->ctype.alignment;
 	if (expr->type == EXPR_PREOP && expr->op == '*')
 		return linearize_simple_address(ep, expr->unop, ad);
 
