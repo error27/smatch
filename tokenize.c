@@ -483,7 +483,7 @@ enum {
 	Quote = 64,
 };
 
-static const long cclass[257] = {
+static const char cclass[257] = {
 	['0' + 1 ... '7' + 1] = Digit | Hex,	/* \<octal> */
 	['8' + 1 ... '9' + 1] = Digit | Hex,
 	['A' + 1 ... 'D' + 1] = Letter | Hex,
