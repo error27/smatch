@@ -56,6 +56,7 @@ static struct stree_stack *fake_cur_stree_stack;
 static int read_only;
 
 static struct stree_stack *break_stack;
+static struct stree_stack *fake_break_stack;
 static struct stree_stack *switch_stack;
 static struct range_list_stack *remaining_cases;
 static struct stree_stack *default_stack;
@@ -393,6 +394,7 @@ void __delete_all_states_sym(struct symbol *sym)
 	delete_all_states_stree_stack_sym(&cond_false_stack, sym);
 	delete_all_states_stree_stack_sym(&fake_cur_stree_stack, sym);
 	delete_all_states_stree_stack_sym(&break_stack, sym);
+	delete_all_states_stree_stack_sym(&fake_break_stack, sym);
 	delete_all_states_stree_stack_sym(&switch_stack, sym);
 	delete_all_states_stree_stack_sym(&continue_stack, sym);
 
@@ -578,6 +580,9 @@ void save_all_states(void)
 
 	__add_ptr_list(&backup, break_stack, 0);
 	break_stack = NULL;
+	__add_ptr_list(&backup, fake_break_stack, 0);
+	fake_break_stack = NULL;
+
 	__add_ptr_list(&backup, switch_stack, 0);
 	switch_stack = NULL;
 	__add_ptr_list(&backup, remaining_cases, 0);
@@ -608,6 +613,7 @@ void restore_all_states(void)
 	default_stack = pop_backup();
 	remaining_cases = pop_backup();
 	switch_stack = pop_backup();
+	fake_break_stack = pop_backup();
 	break_stack = pop_backup();
 
 	fake_cur_stree_stack = pop_backup();
@@ -641,6 +647,7 @@ void clear_all_states(void)
 	check_stree_stack_free(&cond_true_stack);
 	check_stree_stack_free(&cond_false_stack);
 	check_stree_stack_free(&break_stack);
+	check_stree_stack_free(&fake_break_stack);
 	check_stree_stack_free(&switch_stack);
 	check_stree_stack_free(&continue_stack);
 	check_stree_stack_free(&fake_cur_stree_stack);
@@ -931,6 +938,8 @@ void __merge_continues(void)
 void __push_breaks(void)
 {
 	push_stree(&break_stack, NULL);
+	if (fake_cur_stree_stack)
+		push_stree(&fake_break_stack, NULL);
 }
 
 void __process_breaks(void)
@@ -942,8 +951,17 @@ void __process_breaks(void)
 		stree = clone_stree(cur_stree);
 	else
 		merge_stree(&stree, cur_stree);
-
 	push_stree(&break_stack, stree);
+
+	if (!fake_cur_stree_stack)
+		return;
+
+	stree = pop_stree(&fake_break_stack);
+	if (!stree)
+		stree = clone_stree(top_stree(fake_cur_stree_stack));
+	else
+		merge_stree(&stree, top_stree(fake_cur_stree_stack));
+	push_stree(&fake_break_stack, stree);
 }
 
 int __has_breaks(void)
@@ -960,16 +978,40 @@ int __has_breaks(void)
 void __merge_breaks(void)
 {
 	struct stree *stree;
+	struct sm_state *sm;
 
 	stree = pop_stree(&break_stack);
 	merge_stree(&cur_stree, stree);
+	free_stree(&stree);
+
+	if (!fake_cur_stree_stack)
+		return;
+
+	stree = pop_stree(&fake_break_stack);
+	update_stree_with_merged(&stree);
+	FOR_EACH_SM(stree, sm) {
+		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
+	} END_FOR_EACH_SM(sm);
 	free_stree(&stree);
 }
 
 void __use_breaks(void)
 {
+	struct stree *stree;
+	struct sm_state *sm;
+
 	free_stree(&cur_stree);
 	cur_stree = pop_stree(&break_stack);
+
+	if (!fake_cur_stree_stack)
+		return;
+	stree = pop_stree(&fake_break_stack);
+	FOR_EACH_SM(stree, sm) {
+		overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
+
+
 }
 
 void __save_switch_states(struct expression *switch_expr)
