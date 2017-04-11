@@ -127,6 +127,14 @@ void show_allocations(struct allocator_struct *x)
 		(double) x->useful_bytes / x->allocations);
 }
 
+void get_allocator_stats(struct allocator_struct *x, struct allocator_stats *s)
+{
+	s->name = x->name;
+	s->allocations = x->allocations;
+	s->useful_bytes = x->useful_bytes;
+	s->total_bytes = x->total_bytes;
+}
+
 ALLOCATOR(ident, "identifiers");
 ALLOCATOR(token, "tokens");
 ALLOCATOR(context, "contexts");
