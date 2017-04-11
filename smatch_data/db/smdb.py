@@ -86,6 +86,210 @@ db_types = {   0: "INTERNAL",
             8024: "ATOMIC_DEC",
 };
 
+def add_range(rl, min_val, max_val):
+    check_next = 0
+    done = 0
+    ret = []
+    idx = 0
+
+    if not ret:
+        return [[min_val, max_val]]
+
+    for idx in range(len(rl)):
+        cur_min = rl[idx][0]
+        cur_max = rl[idx][1]
+
+        # we already merged the new range but we might need to change later
+        # ranges if they over lap with more than one
+        if check_next:
+            # join with added range
+            if max_val + 1 == cur_min:
+                ret[len(ret) - 1][1] = cur_max
+                done = 1
+                break
+            # don't overlap
+            if max_val < cur_min:
+                ret.append([cur_min, cur_max])
+                done = 1
+                break
+            # partially overlap
+            if max_val < cur_max:
+                ret[len(ret) - 1][1] = cur_max
+                done = 1
+                break
+            # completely overlap
+            continue
+
+        # join 2 ranges into one
+        if max_val + 1 == cur_min:
+            ret.append([min_val, cur_max])
+            done = 1
+            break
+        # range is entirely below
+        if max_val < cur_min:
+            ret.append([min_val, max_val])
+            ret.append([cur_min, cur_max])
+            done = 1
+            break
+        # range is partially below
+        if min_val < cur_min:
+            if max_val <= cur_max:
+                ret.append([min_val, cur_max])
+                done = 1
+                break
+            else:
+                ret.append([min_val, max_val])
+                check_next = 1
+                continue
+        # range already included
+        if max_val <= cur_max:
+            ret.append([cur_min, cur_max])
+            done = 1
+            break;
+        # range partially above
+        if min_val <= cur_max:
+            ret.append([cur_min, max_val])
+            check_next = 1
+            continue
+        # join 2 ranges on the other side
+        if min_val - 1 == cur_max:
+            ret.append([cur_min, max_val])
+            check_next = 1
+            continue
+        # range is above
+        ret.append([cur_min, cur_max])
+
+    if idx + 1 < len(rl):          # we hit a break statement
+        ret.append(rl[idx + 1:])
+    elif done:                     # we hit a break on the last iteration
+        pass
+    elif not check_next:           # it's past the end of the rl
+        ret.append([min_val, max_val])
+
+    return ret;
+
+def rl_union(rl1, rl2):
+    ret = []
+    for r in rl1:
+        ret = add_range(ret, r[0], r[1])
+    for r in rl2:
+        ret = add_range(ret, r[0], r[1])
+
+    if (rl1 or rl2) and not ret:
+        print "bug: merging %s + %s gives empty" %(rl1, rl2)
+
+    return ret
+
+def txt_to_val(txt):
+    if txt == "s64min":
+        return -(2**63)
+    elif txt == "s32min":
+        return -(2**31)
+    elif txt == "s16min":
+        return -(2**15)
+    elif txt == "s64max":
+        return 2**63 - 1
+    elif txt == "s32max":
+        return 2**31 - 1
+    elif txt == "s16max":
+        return 2**15 - 1
+    elif txt == "u64max":
+        return 2**64 - 1
+    elif txt == "u32max":
+        return 2**32 - 1
+    elif txt == "u16max":
+        return 2**16 - 1
+    else:
+        try:
+            return int(txt)
+        except ValueError:
+            return 0
+
+def val_to_txt(val):
+    if val == -(2**63):
+        return "s64min"
+    elif val == -(2**31):
+        return "s32min"
+    elif val == -(2**15):
+        return "s16min"
+    elif val == 2**63 - 1:
+        return "s64max"
+    elif val == 2**31 - 1:
+        return "s32max"
+    elif val == 2**15 - 1:
+        return "s16max"
+    elif val == 2**64 - 1:
+        return "u64max"
+    elif val == 2**32 - 1:
+        return "u32max"
+    elif val == 2**16 - 1:
+        return "u16max"
+    elif val < 0:
+        return "(%d)" %(val)
+    else:
+        return "%d" %(val)
+
+def get_next_str(txt):
+    val = ""
+    parsed = 0
+
+    if txt[0] == '(':
+        parsed += 1
+        for char in txt[1:]:
+            if char == ')':
+                break
+            parsed += 1
+        val = txt[1:parsed]
+        parsed += 1
+    elif txt[0] == 's' or txt[0] == 'u':
+        parsed += 6
+        val = txt[:parsed]
+    else:
+        if txt[0] == '-':
+            parsed += 1
+        for char in txt[parsed:]:
+            if char == '-':
+                break
+            parsed += 1
+        val = txt[:parsed]
+    return [parsed, val]
+
+def txt_to_rl(txt):
+    ret = []
+    pairs = txt.split(",")
+    for pair in pairs:
+        cnt, min_str = get_next_str(pair)
+        if cnt == len(pair):
+            max_str = min_str
+        else:
+            cnt, max_str = get_next_str(pair[cnt + 1:])
+        min_val = txt_to_val(min_str)
+        max_val = txt_to_val(max_str)
+        ret.append([min_val, max_val])
+
+#    Hm...  Smatch won't call INT_MAX s32max if the variable is unsigned.
+#    if txt != rl_to_txt(ret):
+#        print "bug: converting: text = %s rl = %s internal = %s" %(txt, rl_to_txt(ret), ret)
+
+    return ret
+
+def rl_to_txt(rl):
+    ret = ""
+    for idx in range(len(rl)):
+        cur_min = rl[idx][0]
+        cur_max = rl[idx][1]
+
+        if idx != 0:
+            ret += ","
+
+        if cur_min == cur_max:
+            ret += val_to_txt(cur_min)
+        else:
+            ret += val_to_txt(cur_min)
+            ret += "-"
+            ret += val_to_txt(cur_max)
+    return ret
+
 def type_to_str(type_int):
 
     t = int(type_int)
@@ -122,6 +326,85 @@ def get_caller_info(ptrs, my_type):
 def print_caller_info(func, my_type = ""):
     ptrs = get_function_pointers(func)
     get_caller_info(ptrs, my_type)
+
+def merge_values(param_names, vals, cur):
+    for txt in cur:
+        parameter = int(txt[0])
+        name = txt[1]
+        rl = txt_to_rl(txt[2])
+        if parameter in param_names:
+            name = name.replace("$", param_names[parameter])
+
+        if not parameter in vals:
+            vals[parameter] = {}
+
+        if name in vals[parameter]:
+            vals[parameter][name] = [vals[parameter][name][0] + 1, rl_union(vals[parameter][name][1], rl)]
+        else:
+            vals[parameter][name] = [1, rl]
+
+def get_param_names(filename, func):
+    cur = con.cursor()
+    param_names = {}
+    cur.execute("select parameter, value from parameter_name where file = '%s' and function = '%s';" %(filename, func))
+    for txt in cur:
+        parameter = int(txt[0])
+        name = txt[1]
+        param_names[parameter] = name
+    return param_names
+
+def get_caller_count(ptrs):
+    cur = con.cursor()
+    count = 0
+    for ptr in ptrs:
+        cur.execute("select count(distinct(call_id)) from caller_info where function = '%s';" %(ptr))
+        for txt in cur:
+            count += int(txt[0])
+    return count
+
+def print_merged_caller_values(filename, func, ptrs, param_names, call_cnt):
+    cur = con.cursor()
+    vals = {}
+    for ptr in ptrs:
+        cur.execute("select parameter, key, value from caller_info where function = '%s' and type = %d;" %(ptr, type_to_int("PARAM_VALUE")))
+        merge_values(param_names, vals, cur);
+
+    for param in sorted(vals):
+        for name in sorted(vals[param]):
+            if vals[param][name][0] != call_cnt:
+                continue
+            print "%d %s -> %s" %(param, name, rl_to_txt(vals[param][name][1]))
+
+
+def print_unmerged_caller_values(filename, func, ptrs, param_names):
+    cur = con.cursor()
+    for ptr in ptrs:
+        prev = -1
+        cur.execute("select file, caller, call_id, parameter, key, value from caller_info where function = '%s' and type = %d;" %(ptr, type_to_int("PARAM_VALUE")))
+        for filename, caller, call_id, parameter, name, value in cur:
+            if prev != int(call_id):
+                prev = int(call_id)
+
+            parameter = int(parameter)
+            if param_names[parameter]:
+                name = name.replace("$", param_names[parameter])
+            else:
+                name = name.replace("$", "$%d" %(parameter))
+
+            print "%s | %s | %s | %s" %(filename, caller, name, value)
+        print "=========================="
+
+def print_caller_values(filename, func, ptrs):
+    param_names = get_param_names(filename, func)
+    call_cnt = get_caller_count(ptrs)
+
+    print_merged_caller_values(filename, func, ptrs, param_names, call_cnt)
+    print "=========================="
+    print_unmerged_caller_values(filename, func, ptrs, param_names)
+
+def caller_info_values(filename, func):
+    ptrs = get_function_pointers(func)
+    print_caller_values(filename, func, ptrs)
 
 def print_return_states(func):
     cur = con.cursor()
@@ -277,6 +560,13 @@ if len(sys.argv) < 2:
 
 if len(sys.argv) == 2:
     func = sys.argv[1]
+    print_caller_info(func)
+elif sys.argv[1] == "call_info":
+    if len(sys.argv) != 4:
+        usage()
+    filename = sys.argv[2]
+    func = sys.argv[3]
+    caller_info_values(filename, func)
     print_caller_info(func)
 elif sys.argv[1] == "user_data":
     func = sys.argv[2]
