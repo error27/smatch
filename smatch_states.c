@@ -838,27 +838,48 @@ void __merge_false_states(void)
 	free_stree(&stree);
 }
 
-static void update_fake_stree_with_merged(void)
+/*
+ * This function probably seemed common sensical when I wrote it but, oh wow,
+ * does it look subtle in retrospect.  Say we set a state on one side of the if
+ * else path but not on the other, then what we should record in the fake stree
+ * is the merged state.
+ *
+ * This function relies on the fact that the we always set the cur_stree as well
+ * and we already have the infrastructure to merge things correctly into the
+ * cur_stree.
+ *
+ * So instead of merging fake strees together which is probably a lot of work,
+ * we just use it as a list of set states and look up the actual current values
+ * in the cur_stree.
+ *
+ */
+static void update_stree_with_merged(struct stree **stree)
 {
-	struct stree *stree;
 	struct state_list *slist = NULL;
 	struct sm_state *sm, *new;
 
-	if (!fake_cur_stree_stack)
-		return;
-	stree = pop_stree(&fake_cur_stree_stack);
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_SM(*stree, sm) {
 		new = get_sm_state(sm->owner, sm->name, sm->sym);
-		if (!new)
+		if (!new)  /* This can happen if we go out of scope */
 			continue;
 		add_ptr_list(&slist, new);
 	} END_FOR_EACH_SM(sm);
 
 	FOR_EACH_PTR(slist, sm) {
-		overwrite_sm_state_stree(&stree, sm);
+		overwrite_sm_state_stree(stree, sm);
 	} END_FOR_EACH_PTR(sm);
 
 	free_slist(&slist);
+}
+
+static void update_fake_stree_with_merged(void)
+{
+	struct stree *stree;
+
+	if (!fake_cur_stree_stack)
+		return;
+	stree = pop_stree(&fake_cur_stree_stack);
+	update_stree_with_merged(&stree);
 	push_stree(&fake_cur_stree_stack, stree);
 }
 
