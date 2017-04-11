@@ -46,6 +46,7 @@ CK(register_param_used)
 CK(register_strings)
 CK(register_real_absolute)
 CK(register_imaginary_absolute)
+CK(register_parameter_names)
 
 CK(check_debug)
 CK(check_user_data)

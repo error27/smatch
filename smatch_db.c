@@ -254,6 +254,12 @@ void sql_insert_function_type(int param, const char *value)
 		   get_base_file(), get_function(), fn_static(), param, value);
 }
 
+void sql_insert_parameter_name(int param, const char *value)
+{
+	sql_insert(parameter_name, "'%s', '%s', %d, %d, '%s'",
+		   get_base_file(), get_function(), fn_static(), param, value);
+}
+
 void sql_insert_data_info(struct expression *data, int type, const char *value)
 {
 	char *data_name;
@@ -1589,6 +1595,7 @@ static void init_memdb(void)
 		"db/type_value.schema",
 		"db/function_type.schema",
 		"db/data_info.schema",
+		"db/parameter_name.schema",
 	};
 	static char buf[4096];
 	int fd;
