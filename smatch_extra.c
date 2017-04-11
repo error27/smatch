@@ -88,6 +88,25 @@ struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, stru
 	return set_state(SMATCH_EXTRA, name, sym, state);
 }
 
+static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	struct expression *assigned;
+
+	if (name[0] != '*')
+		return NULL;
+	if (strcmp(name + 1, sym->ident->name) != 0)
+		return NULL;
+
+	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
+	if (!assigned)
+		return NULL;
+	assigned = strip_parens(assigned);
+	if (assigned->type != EXPR_PREOP || assigned->op != '&')
+		return NULL;
+
+	return expr_to_var_sym(assigned->unop, new_sym);
+}
+
 char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
@@ -100,6 +119,10 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 
 	if (!sym || !sym->ident)
 		return NULL;
+
+	ret = get_pointed_at(name, sym, new_sym);
+	if (ret)
+		return ret;
 
 	skip = strlen(sym->ident->name);
 	if (name[skip] != '-' || name[skip + 1] != '>')
