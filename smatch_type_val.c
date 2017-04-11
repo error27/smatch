@@ -261,12 +261,15 @@ static void match_assign_value(struct expression *expr)
 		goto free;
 	}
 
-	/*
-	 * This is a bit cheating.  We order it so this will already be set
-	 * by smatch_extra.c and we just look up the value.
-	 */
-
-	get_absolute_rl(expr->left, &rl);
+	if (expr->op == '=') {
+		get_absolute_rl(expr->right, &rl);
+	} else {
+		/*
+		 * This is a bit cheating.  We order it so this will already be set
+		 * by smatch_extra.c and we just look up the value.
+		 */
+		get_absolute_rl(expr->left, &rl);
+	}
 	add_type_val(member, rl);
 free:
 	free_string(right_member);
