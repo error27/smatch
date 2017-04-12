@@ -1305,7 +1305,7 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 
 static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
 {
-	struct expression *deref, *assign, *tmp;
+	struct expression *deref, *assign, *tmp, *right;
 	struct symbol *struct_type, *type;
 	struct ident *member;
 	int member_idx;
@@ -1318,25 +1318,46 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 
 	member_set = alloc_member_set(struct_type);
 
+	/*
+	 * We're parsing an initializer that could look something like this:
+	 * struct foo foo = {
+	 *	42,
+	 *	.whatever.xxx = 11,
+	 *	.zzz = 12,
+	 * };
+	 *
+	 * So what we have here is a list with 42, .whatever, and .zzz.  We need
+	 * to break it up into left and right sides of the assignments.
+	 *
+	 */
 	member_idx = 0;
 	FOR_EACH_PTR(members, tmp) {
-		member = number_to_member(symbol, member_idx);
-		while (tmp->type == EXPR_IDENTIFIER) {
-			member = tmp->expr_ident;
-			member_idx = member_to_number(symbol, member);
-			tmp = tmp->ident_expression;
+		deref = NULL;
+		if (tmp->type == EXPR_IDENTIFIER) {
+			member_idx = member_to_number(symbol, tmp->expr_ident);
+			while (tmp->type == EXPR_IDENTIFIER) {
+				member = tmp->expr_ident;
+				tmp = tmp->ident_expression;
+				if (deref)
+					deref = member_expression(deref, '.', member);
+				else
+					deref = member_expression(symbol, '.', member);
+			}
+		} else {
+			member = number_to_member(symbol, member_idx);
+			deref = member_expression(symbol, '.', member);
 		}
+		right = tmp;
 		mark_member_as_set(struct_type, member_set, member);
 		member_idx++;
-		deref = member_expression(symbol, '.', member);
-		if (tmp->type == EXPR_INITIALIZER) {
+		if (right->type == EXPR_INITIALIZER) {
 			type = get_type(deref);
 			if (type && type->type == SYM_ARRAY)
-				fake_element_assigns_helper(deref, tmp->expr_list, fake_cb);
+				fake_element_assigns_helper(deref, right->expr_list, fake_cb);
 			else
-				fake_member_assigns_helper(deref, tmp->expr_list, fake_cb);
+				fake_member_assigns_helper(deref, right->expr_list, fake_cb);
 		} else {
-			assign = assign_expression(deref, tmp);
+			assign = assign_expression(deref, right);
 			fake_cb(assign);
 		}
 	} END_FOR_EACH_PTR(tmp);
