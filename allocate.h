@@ -29,6 +29,7 @@ extern void *allocate(struct allocator_struct *desc, unsigned int size);
 extern void free_one_entry(struct allocator_struct *desc, void *entry);
 extern void show_allocations(struct allocator_struct *);
 extern void get_allocator_stats(struct allocator_struct *, struct allocator_stats *);
+extern void show_allocation_stats(void);
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\
