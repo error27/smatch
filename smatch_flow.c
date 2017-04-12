@@ -1192,45 +1192,6 @@ static struct ident *number_to_member(struct expression *expr, int num)
 
 static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
 
-struct member_set {
-	struct ident *ident;
-	int set;
-};
-
-static struct member_set *alloc_member_set(struct symbol *type)
-{
-	struct member_set *member_set;
-	struct symbol *member;
-	int member_count;
-	int member_idx;
-
-	member_count = ptr_list_size((struct ptr_list *)type->symbol_list);
-	member_set = malloc(member_count * sizeof(*member_set));
-	member_idx = 0;
-	FOR_EACH_PTR(type->symbol_list, member) {
-		member_set[member_idx].ident = member->ident;
-		member_set[member_idx].set = 0;
-		member_idx++;
-	} END_FOR_EACH_PTR(member);
-
-	return member_set;
-}
-
-static void mark_member_as_set(struct symbol *type, struct member_set *member_set, struct ident *ident)
-{
-	int member_count = ptr_list_size((struct ptr_list *)type->symbol_list);
-	int i;
-
-	for (i = 0; i < member_count; i++) {
-		if (member_set[i].ident == ident) {
-			member_set[i].set = 1;
-			return;
-		}
-	}
-//	crap.  this is buggy.
-//	sm_msg("internal smatch error in initializer %s.%s", type->ident->name, ident->name);
-}
-
 static void set_inner_struct_members(struct expression *expr, struct symbol *member)
 {
 	struct expression *edge_member, *assign;
@@ -1309,14 +1270,11 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 	struct symbol *struct_type, *type;
 	struct ident *member;
 	int member_idx;
-	struct member_set *member_set;
 
 	struct_type = get_type(symbol);
 	if (!struct_type ||
 	    (struct_type->type != SYM_STRUCT && struct_type->type != SYM_UNION))
 		return;
-
-	member_set = alloc_member_set(struct_type);
 
 	/*
 	 * We're parsing an initializer that could look something like this:
@@ -1348,7 +1306,6 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 			deref = member_expression(symbol, '.', member);
 		}
 		right = tmp;
-		mark_member_as_set(struct_type, member_set, member);
 		member_idx++;
 		if (right->type == EXPR_INITIALIZER) {
 			type = get_type(deref);
