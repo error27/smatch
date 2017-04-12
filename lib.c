@@ -251,6 +251,8 @@ int Wvla = 1;
 int dbg_entry = 0;
 int dbg_dead = 0;
 
+int fmem_report = 0;
+
 int preprocess_only;
 
 static enum { STANDARD_C89,
@@ -674,11 +676,9 @@ static char **handle_switch_f(char *arg, char **next)
 		return handle_switch_ftabstop(arg+8, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
+	if (handle_simple_switch(arg, "mem-report", &fmem_report))
+		return next;
 
-	if (!strncmp(arg, "no-", 3)) {
-		arg += 3;
-	}
-	/* handle switch here.. */
 	return next;
 }
 

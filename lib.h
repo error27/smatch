@@ -137,6 +137,8 @@ extern int Wvla;
 extern int dbg_entry;
 extern int dbg_dead;
 
+extern int fmem_report;
+
 extern int arch_m64;
 
 extern void declare_builtin_functions(void);
