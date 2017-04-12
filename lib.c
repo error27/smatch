@@ -453,6 +453,25 @@ static void handle_arch_finalize(void)
 }
 
 
+static int handle_simple_switch(const char *arg, const char *name, int *flag)
+{
+	int val = 1;
+
+	// Prefixe "no-" mean to turn flag off.
+	if (strncmp(arg, "no-", 3) == 0) {
+		arg += 3;
+		val = 0;
+	}
+
+	if (strcmp(arg, name) == 0) {
+		*flag = val;
+		return 1;
+	}
+
+	// not handled
+	return 0;
+}
+
 static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o")) {       // "-o foo"
