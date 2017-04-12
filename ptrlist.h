@@ -22,7 +22,7 @@
  */
 #define MKTYPE(head,expr)		({ (TYPEOF(head))(expr); })
 
-#define LIST_NODE_NR (29)
+#define LIST_NODE_NR (13)
 
 struct ptr_list {
 	int nr;
