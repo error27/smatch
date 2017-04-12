@@ -1166,5 +1166,6 @@ int main(int argc, char **argv)
 
 	LLVMDisposeModule(module);
 
+	report_stats();
 	return 0;
 }

@@ -54,3 +54,9 @@ void show_allocation_stats(void)
 
 	show_stats(NULL, &tot);
 }
+
+void report_stats(void)
+{
+	if (fmem_report)
+		show_allocation_stats();
+}

@@ -61,5 +61,7 @@ int main(int argc, char **argv)
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		clean_up_symbols(sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
+
+	report_stats();
 	return 0;
 }

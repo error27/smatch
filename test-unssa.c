@@ -82,5 +82,6 @@ int main(int argc, char **argv)
 		compile(sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
 
+	report_stats();
 	return 0;
 }
