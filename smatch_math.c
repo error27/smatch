@@ -241,9 +241,9 @@ static struct range_list *handle_mod_rl(struct expression *expr, int implied, in
 	sval_t left, right, sval;
 
 	if (implied == RL_EXACT) {
-		if (!get_value(expr->right, &right))
+		if (!get_implied_value(expr->right, &right))
 			return NULL;
-		if (!get_value(expr->left, &left))
+		if (!get_implied_value(expr->left, &left))
 			return NULL;
 		sval = sval_binop(left, '%', right);
 		return alloc_rl(sval, sval);
