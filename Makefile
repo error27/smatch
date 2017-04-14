@@ -54,6 +54,7 @@ LIB_OBJS += optimize.o
 LIB_OBJS += parse.o
 LIB_OBJS += pre-process.o
 LIB_OBJS += ptrlist.o
+LIB_OBJS += ptrmap.o
 LIB_OBJS += scope.o
 LIB_OBJS += show-parse.o
 LIB_OBJS += simplify.o
