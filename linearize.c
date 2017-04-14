@@ -949,15 +949,16 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t value)
 {
 	struct basic_block *bb = ep->active;
+	struct instruction *store;
 
-	if (bb_reachable(bb)) {
-		struct symbol *btype = bitfield_base_type(ad->type);
-		struct instruction *store = alloc_typed_instruction(OP_STORE, btype);
-		store->offset = ad->offset;
-		use_pseudo(store, value, &store->target);
-		use_pseudo(store, ad->address, &store->src);
-		add_one_insn(ep, store);
-	}
+	if (!bb)
+		return;
+
+	store = alloc_typed_instruction(OP_STORE, bitfield_base_type(ad->type));
+	store->offset = ad->offset;
+	use_pseudo(store, value, &store->target);
+	use_pseudo(store, ad->address, &store->src);
+	add_one_insn(ep, store);
 }
 
 static pseudo_t linearize_store_gen(struct entrypoint *ep,
