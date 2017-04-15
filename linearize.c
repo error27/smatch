@@ -835,26 +835,32 @@ static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 	return pseudo;
 }
 
-pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type)
+struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type)
 {
-	struct instruction *insn;
-	pseudo_t phi;
+	struct instruction *insn = alloc_typed_instruction(OP_PHISOURCE, type);
+	pseudo_t phi = __alloc_pseudo(0);
 	static int nr = 0;
 
-	if (!source)
-		return VOID;
-
-	insn = alloc_typed_instruction(OP_PHISOURCE, type);
-	phi = __alloc_pseudo(0);
 	phi->type = PSEUDO_PHI;
 	phi->nr = ++nr;
 	phi->def = insn;
 
 	use_pseudo(insn, pseudo, &insn->phi_src);
-	insn->bb = source;
 	insn->target = phi;
+	return insn;
+}
+
+pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type)
+{
+	struct instruction *insn;
+
+	if (!source)
+		return VOID;
+
+	insn = alloc_phisrc(pseudo, type);
+	insn->bb = source;
 	add_instruction(&source->insns, insn);
-	return phi;
+	return insn->target;
 }
 
 /*
