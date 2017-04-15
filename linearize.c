@@ -172,6 +172,8 @@ const char *show_pseudo(pseudo_t pseudo)
 		if (pseudo->ident)
 			sprintf(buf+i, "(%s)", show_ident(pseudo->ident));
 		break;
+	case PSEUDO_UNDEF:
+		return "UNDEF";
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
 	}
@@ -827,6 +829,13 @@ pseudo_t value_pseudo(long long val)
 	add_pseudo(list, pseudo);
 
 	/* Value pseudos have neither nr, usage nor def */
+	return pseudo;
+}
+
+pseudo_t undef_pseudo(void)
+{
+	pseudo_t pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_UNDEF;
 	return pseudo;
 }
 

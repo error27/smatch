@@ -21,6 +21,7 @@ DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
 
 enum pseudo_type {
 	PSEUDO_VOID,
+	PSEUDO_UNDEF,
 	PSEUDO_REG,
 	PSEUDO_SYM,
 	PSEUDO_VAL,
@@ -331,7 +332,7 @@ static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_u
 
 static inline int has_use_list(pseudo_t p)
 {
-	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
+	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_UNDEF && p->type != PSEUDO_VAL);
 }
 
 static inline int pseudo_user_list_size(struct pseudo_user_list *list)
@@ -388,6 +389,7 @@ struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type);
 pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);
+pseudo_t undef_pseudo(void);
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
 int unssa(struct entrypoint *ep);

@@ -270,6 +270,9 @@ static const char *pseudo_name(pseudo_t pseudo, char *buf)
 	case PSEUDO_VOID:
 		buf[0] = '\0';
 		break;
+	case PSEUDO_UNDEF:
+		assert(0);
+		break;
 	default:
 		assert(0);
 	}
@@ -386,6 +389,9 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct symbol *ctype, p
 		break;
 	case PSEUDO_VOID:
 		result = NULL;
+		break;
+	case PSEUDO_UNDEF:
+		result = LLVMGetUndef(symbol_type(ctype));
 		break;
 	default:
 		assert(0);
