@@ -385,6 +385,9 @@ extern void insert_select(struct basic_block *bb, struct instruction *br, struct
 extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
 struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
+struct instruction *alloc_phi_node(struct basic_block *bb, struct symbol *type, struct ident *ident);
+struct instruction *insert_phi_node(struct basic_block *bb, struct symbol *var);
+void add_phi_node(struct basic_block *bb, struct instruction *phi_node);
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type);
 pseudo_t alloc_pseudo(struct instruction *def);
