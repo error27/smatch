@@ -46,25 +46,6 @@ static int rewrite_branch(struct basic_block *bb,
 	return 1;
 }
 
-///
-// returns the phi-node corresponding to a phi-source
-static struct instruction *get_phinode(struct instruction *phisrc)
-{
-	struct pseudo_user *pu;
-
-	FOR_EACH_PTR(phisrc->target->users, pu) {
-		struct instruction *user;
-
-		if (!pu)
-			continue;
-		user = pu->insn;
-		assert(user->opcode == OP_PHI);
-		return user;
-	} END_FOR_EACH_PTR(pu);
-	assert(0);
-}
-
-
 /*
  * Return the known truth value of a pseudo, or -1 if
  * it's not known.
@@ -843,7 +824,7 @@ static int retarget_parents(struct basic_block *bb, struct basic_block *target)
 
 static void remove_merging_phisrc(struct basic_block *top, struct instruction *insn)
 {
-	struct instruction *user = get_phinode(insn);
+	struct instruction *user = insn->phi_node;
 	pseudo_t phi;
 
 	FOR_EACH_PTR(user->phi_list, phi) {

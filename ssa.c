@@ -350,7 +350,7 @@ static void ssa_rename_phi(struct instruction *insn)
 		pseudo_t phi = alloc_phi(par, val, var);
 		phi->ident = var->ident;
 		add_instruction(&par->insns, term);
-		use_pseudo(insn, phi, add_pseudo(&insn->phi_list, phi));
+		link_phi(insn, phi);
 		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
 }

@@ -1342,8 +1342,6 @@ int main(int argc, char **argv)
 
 	compile(module, symlist);
 
-	/* need ->phi_users */
-	dbg_dead = 1;
 	FOR_EACH_PTR(filelist, file) {
 		symlist = sparse(file);
 		if (die_if_error)

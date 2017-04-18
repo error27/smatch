@@ -407,11 +407,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_PHISOURCE: {
-		struct instruction *phi;
 		buf += sprintf(buf, "%s <- %s    ", show_pseudo(insn->target), show_pseudo(insn->phi_src));
-		FOR_EACH_PTR(insn->phi_users, phi) {
-			buf += sprintf(buf, " (%s)", show_pseudo(phi->target));
-		} END_FOR_EACH_PTR(phi);
 		break;
 	}
 
@@ -1683,8 +1679,8 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 		return (phi1 == VOID) ? phi1 : phi1->def->src;
 
 	phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-	use_pseudo(phi_node, phi1, add_pseudo(&phi_node->phi_list, phi1));
-	use_pseudo(phi_node, phi2, add_pseudo(&phi_node->phi_list, phi2));
+	link_phi(phi_node, phi1);
+	link_phi(phi_node, phi2);
 	phi_node->target = target = alloc_pseudo(phi_node);
 	add_one_insn(ep, phi_node);
 	return target;
@@ -1756,7 +1752,7 @@ static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *cty
 		struct instruction *br = delete_last_instruction(&parent->insns);
 		pseudo_t phi = alloc_phi(parent, src, ctype);
 		add_instruction(&parent->insns, br);
-		use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+		link_phi(node, phi);
 	} END_FOR_EACH_PTR(parent);
 }
 
@@ -1789,7 +1785,7 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	src2 = linearize_expression_to_bool(ep, expr->right);
 	src2 = cast_pseudo(ep, src2, &bool_ctype, ctype);
 	phi2 = alloc_phi(ep->active, src2, ctype);
-	use_pseudo(node, phi2, add_pseudo(&node->phi_list, phi2));
+	link_phi(node, phi2);
 
 	// join
 	set_activeblock(ep, merge);
@@ -2049,7 +2045,7 @@ static void add_return(struct entrypoint *ep, struct basic_block *bb, struct sym
 	}
 	phi = alloc_phi(ep->active, src, ctype);
 	phi->ident = &return_ident;
-	use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+	link_phi(phi_node, phi);
 }
 
 static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)

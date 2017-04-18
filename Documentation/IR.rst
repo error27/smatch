@@ -381,7 +381,7 @@ Others
 	* .phi_src: operand (type must be compatible with .target, alias .src)
 	* .target: the "result" PSEUDO_PHI
 	* .type: type of .target
-	* .phi_users: list of phi instructions using the target pseudo
+	* .phi_node: the unique phi instruction using the target pseudo
 
 .. op:: OP_CALL
 	Function call.
