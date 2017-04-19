@@ -153,15 +153,12 @@ static void set_parent_stmt(struct statement *stmt, struct statement *parent)
 
 int is_assigned_call(struct expression *expr)
 {
-	struct expression *tmp;
+	if (expr->parent &&
+	    expr->parent->type == EXPR_ASSIGNMENT &&
+	    expr->parent->op == '=' &&
+	    strip_expr(expr->parent->right) == expr)
+		return 1;
 
-	FOR_EACH_PTR_REVERSE(big_expression_stack, tmp) {
-		if (tmp->type == EXPR_ASSIGNMENT && tmp->op == '=' &&
-		    strip_expr(tmp->right) == expr)
-			return 1;
-		if (tmp->pos.line < expr->pos.line)
-			return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
 	return 0;
 }
 
