@@ -42,68 +42,98 @@
 static int my_id;
 static int link_id;
 
-static struct smatch_state *alloc_link_state(struct string_list *links)
+static struct smatch_state *alloc_link_state(struct expression_list *expr_list)
 {
+	struct expression *tmp;
 	struct smatch_state *state;
 	static char buf[256];
-	char *tmp;
+	char *name;
 	int i;
 
 	state = __alloc_smatch_state(0);
 
 	i = 0;
-	FOR_EACH_PTR(links, tmp) {
+	FOR_EACH_PTR(expr_list, tmp) {
+		name = expr_to_str(tmp);
 		if (!i++) {
-			snprintf(buf, sizeof(buf), "%s", tmp);
+			snprintf(buf, sizeof(buf), "%s", name);
 		} else {
 			append(buf, ", ", sizeof(buf));
-			append(buf, tmp, sizeof(buf));
+			append(buf, name, sizeof(buf));
 		}
+		free_string(name);
 	} END_FOR_EACH_PTR(tmp);
 
 	state->name = alloc_sname(buf);
-	state->data = links;
+	state->data = expr_list;
 	return state;
+}
+
+static struct expression_list *clone_expression_list(struct expression_list *list)
+{
+	struct expression_list *ret = NULL;
+	struct expression *expr;
+
+	FOR_EACH_PTR(list, expr) {
+		add_ptr_list(&ret, expr);
+	} END_FOR_EACH_PTR(expr);
+
+	return ret;
+}
+
+static void insert_expression(struct expression_list **list, struct expression *expr)
+{
+	struct expression *tmp;
+
+	FOR_EACH_PTR(*list, tmp) {
+		if (tmp == expr)
+			return;
+	} END_FOR_EACH_PTR(tmp);
+
+	add_ptr_list(list, expr);
 }
 
 static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_state *s2)
 {
-	struct smatch_state *ret;
-	struct string_list *links;
+	struct expression_list *list, *expr_list;
+	struct expression *expr;
 
-	links = combine_string_lists(s1->data, s2->data);
-	ret = alloc_link_state(links);
-	return ret;
+	expr_list = clone_expression_list(s1->data);
+
+	list = s2->data;
+	FOR_EACH_PTR(list, expr) {
+		insert_expression(&expr_list, expr);
+	} END_FOR_EACH_PTR(expr);
+
+	return alloc_link_state(expr_list);
 }
 
-static void save_link_var_sym(const char *var, struct symbol *sym, const char *link)
+static void save_link_var_sym(const char *var, struct symbol *sym, struct expression *condition)
 {
 	struct smatch_state *old_state, *new_state;
-	struct string_list *links;
-	char *new;
+	struct expression_list *expr_list;
 
 	old_state = get_state(link_id, var, sym);
-	if (old_state)
-		links = clone_str_list(old_state->data);
-	else
-		links = NULL;
+	expr_list = clone_expression_list(old_state ? old_state->data : NULL);
 
-	new = alloc_sname(link);
-	insert_string(&links, new);
+	insert_expression(&expr_list, condition);
 
-	new_state = alloc_link_state(links);
+	new_state = alloc_link_state(expr_list);
 	set_state(link_id, var, sym, new_state);
 }
 
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 {
-	struct string_list *links;
-	char *tmp;
+	struct expression_list *expr_list;
+	struct expression *tmp;
+	char *name;
 
-	links = sm->state->data;
+	expr_list = sm->state->data;
 
-	FOR_EACH_PTR(links, tmp) {
-		set_state(my_id, tmp, NULL, &undefined);
+	FOR_EACH_PTR(expr_list, tmp) {
+		name = expr_to_str(tmp);
+		set_state(my_id, name, NULL, &undefined);
+		free_string(name);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
@@ -121,7 +151,7 @@ static struct smatch_state *alloc_state(struct expression *expr, int is_true)
 	return state;
 }
 
-static void store_all_links(struct expression *expr, const char *condition)
+static void store_all_links(struct expression *expr, struct expression *condition)
 {
 	char *var;
 	struct symbol *sym;
@@ -177,7 +207,7 @@ void __stored_condition(struct expression *expr)
 	true_state = alloc_state(expr, TRUE);
 	false_state = alloc_state(expr, FALSE);
 	set_true_false_states(my_id, name, NULL, true_state, false_state);
-	store_all_links(expr, alloc_sname(name));
+	store_all_links(expr, expr);
 	free_string(name);
 }
 
