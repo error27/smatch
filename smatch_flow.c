@@ -1697,7 +1697,7 @@ void init_fake_env(void)
 
 void end_fake_env(void)
 {
-	__push_fake_cur_stree();
+	__pop_fake_cur_stree();
 	in_fake_env--;
 	if (!in_fake_env)
 		final_pass = final_before_fake;
