@@ -26,6 +26,7 @@
 #include "smatch_slist.h"
 
 int __in_fake_assign;
+static int in_fake_env;
 int final_pass;
 int __inline_call;
 struct expression  *__inline_fn;
@@ -114,6 +115,9 @@ static void set_position(struct position pos)
 {
 	int len;
 	static int prev_stream = -1;
+
+	if (in_fake_env)
+		return;
 
 	if (pos.stream == 0 && pos.line == 0)
 		return;
@@ -1679,6 +1683,24 @@ static void split_functions(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 	split_inlines(sym_list);
 	__pass_to_client(sym_list, END_FILE_HOOK);
+}
+
+static int final_before_fake;
+void init_fake_env(void)
+{
+	if (!in_fake_env)
+		final_before_fake = final_pass;
+	in_fake_env++;
+	__push_fake_cur_stree();
+	final_pass = 0;
+}
+
+void end_fake_env(void)
+{
+	__push_fake_cur_stree();
+	in_fake_env--;
+	if (!in_fake_env)
+		final_pass = final_before_fake;
 }
 
 void smatch(int argc, char **argv)

@@ -439,6 +439,8 @@ extern int __bail_on_rest_of_function;
 extern struct statement *__prev_stmt;
 extern struct statement *__cur_stmt;
 extern struct statement *__next_stmt;
+void init_fake_env(void);
+void end_fake_env(void);
 
 /* smatch_struct_assignment.c */
 struct expression *get_faked_expression(void);
