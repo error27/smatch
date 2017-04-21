@@ -386,7 +386,7 @@ def print_unmerged_caller_values(filename, func, ptrs, param_names):
                 prev = int(call_id)
 
             parameter = int(parameter)
-            if param_names[parameter]:
+            if len(param_names) and param_names[parameter]:
                 name = name.replace("$", param_names[parameter])
             else:
                 name = name.replace("$", "$%d" %(parameter))
