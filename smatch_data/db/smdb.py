@@ -351,6 +351,14 @@ def get_param_names(filename, func):
         parameter = int(txt[0])
         name = txt[1]
         param_names[parameter] = name
+    if len(param_names):
+        return param_names
+
+    cur.execute("select parameter, value from parameter_name where function = '%s';" %(func))
+    for txt in cur:
+        parameter = int(txt[0])
+        name = txt[1]
+        param_names[parameter] = name
     return param_names
 
 def get_caller_count(ptrs):
