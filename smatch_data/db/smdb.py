@@ -303,29 +303,36 @@ def type_to_int(type_string):
             return k
     return -1
 
-def display_caller_info(printed, cur):
+def display_caller_info(printed, cur, param_names):
     for txt in cur:
         if not printed:
             print "file | caller | function | type | parameter | key | value |"
         printed = 1
+
+        parameter = int(txt[6])
+        key = txt[7]
+        if len(param_names) and parameter in param_names:
+            key = key.replace("$", param_names[parameter])
+
         print "%20s | %20s | %20s |" %(txt[0], txt[1], txt[2]),
         print " %10s |" %(type_to_str(txt[5])),
-        print " %d | %s | %s" %(txt[6], txt[7], txt[8])
+        print " %d | %s | %s" %(parameter, key, txt[8])
     return printed
 
-def get_caller_info(ptrs, my_type):
+def get_caller_info(filename, ptrs, my_type):
     cur = con.cursor()
+    param_names = get_param_names(filename, func)
     printed = 0
     type_filter = ""
     if my_type != "":
         type_filter = "and type = %d" %(type_to_int(my_type))
     for ptr in ptrs:
         cur.execute("select * from caller_info where function = '%s' %s;" %(ptr, type_filter))
-        printed = display_caller_info(printed, cur)
+        printed = display_caller_info(printed, cur, param_names)
 
-def print_caller_info(func, my_type = ""):
+def print_caller_info(filename, func, my_type = ""):
     ptrs = get_function_pointers(func)
-    get_caller_info(ptrs, my_type)
+    get_caller_info(filename, ptrs, my_type)
 
 def merge_values(param_names, vals, cur):
     for txt in cur:
@@ -568,20 +575,20 @@ if len(sys.argv) < 2:
 
 if len(sys.argv) == 2:
     func = sys.argv[1]
-    print_caller_info(func)
+    print_caller_info("", func)
 elif sys.argv[1] == "call_info":
     if len(sys.argv) != 4:
         usage()
     filename = sys.argv[2]
     func = sys.argv[3]
     caller_info_values(filename, func)
-    print_caller_info(func)
+    print_caller_info(filename, func)
 elif sys.argv[1] == "user_data":
     func = sys.argv[2]
-    print_caller_info(func, "USER_DATA")
+    print_caller_info(filename, func, "USER_DATA")
 elif sys.argv[1] == "param_value":
     func = sys.argv[2]
-    print_caller_info(func, "PARAM_VALUE")
+    print_caller_info(filename, func, "PARAM_VALUE")
 elif sys.argv[1] == "function_ptr" or sys.argv[1] == "fn_ptr":
     func = sys.argv[2]
     print_fn_ptrs(func)
