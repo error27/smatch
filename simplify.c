@@ -184,15 +184,20 @@ out:
 	return count;
 }
 
-static inline void remove_usage(pseudo_t p, pseudo_t *usep)
+static inline void rem_usage(pseudo_t p, pseudo_t *usep, int kill)
 {
 	if (has_use_list(p)) {
 		if (p->type == PSEUDO_SYM)
 			repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		delete_pseudo_user_list_entry(&p->users, usep, 1);
-		if (!p->users)
+		if (kill && !p->users)
 			kill_instruction(p->def);
 	}
+}
+
+static inline void remove_usage(pseudo_t p, pseudo_t *usep)
+{
+	rem_usage(p, usep, 1);
 }
 
 void kill_use(pseudo_t *usep)
@@ -200,7 +205,7 @@ void kill_use(pseudo_t *usep)
 	if (usep) {
 		pseudo_t p = *usep;
 		*usep = VOID;
-		remove_usage(p, usep);
+		rem_usage(p, usep, 1);
 	}
 }
 
