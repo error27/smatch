@@ -209,6 +209,14 @@ void kill_use(pseudo_t *usep)
 	}
 }
 
+// Like kill_use() but do not (recursively) kill dead instructions
+void remove_use(pseudo_t *usep)
+{
+	pseudo_t p = *usep;
+	*usep = VOID;
+	rem_usage(p, usep, 0);
+}
+
 static void kill_use_list(struct pseudo_list *list)
 {
 	pseudo_t p;

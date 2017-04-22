@@ -23,6 +23,7 @@ extern int simplify_instruction(struct instruction *);
 
 extern void kill_bb(struct basic_block *);
 extern void kill_use(pseudo_t *);
+extern void remove_use(pseudo_t *);
 extern void kill_unreachable_bbs(struct entrypoint *ep);
 
 extern int kill_insn(struct instruction *, int force);
