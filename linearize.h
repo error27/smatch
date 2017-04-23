@@ -378,6 +378,7 @@ void show_entry(struct entrypoint *ep);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
 const char *show_instruction(struct instruction *insn);
+const char *show_label(struct basic_block *bb);
 
 #endif /* LINEARIZE_H */
 

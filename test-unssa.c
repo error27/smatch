@@ -12,7 +12,7 @@ static void output_bb(struct basic_block *bb, unsigned long generation)
 	struct instruction *insn;
 
 	bb->generation = generation;
-	printf(".L%u\n", bb->nr);
+	printf("%s\n", show_label(bb));
 
 	FOR_EACH_PTR(bb->insns, insn) {
 		if (!insn->bb)
