@@ -26,23 +26,52 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 	return first_basic_block(source->parents);
 }
 
+/*
+ * Copy the phi-node's phisrcs into to given array.
+ * Returns 0 if the the list contained the expected
+ * number of element, a positive number if there was
+ * more than expected and a negative one if less.
+ *
+ * Note: we can't reuse a function like linearize_ptr_list()
+ * because any VOIDs in the phi-list must be ignored here
+ * as in this context they mean 'entry has been removed'.
+ */
+static int get_phisources(struct instruction *sources[], int nbr, struct instruction *insn)
+{
+	pseudo_t phi;
+	int i = 0;
+
+	assert(insn->opcode == OP_PHI);
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		struct instruction *def;
+		if (phi == VOID)
+			continue;
+		if (i >= nbr)
+			return 1;
+		def = phi->def;
+		assert(def->opcode == OP_PHISOURCE);
+		sources[i++] = def;
+	} END_FOR_EACH_PTR(phi);
+	return i - nbr;
+}
+
 static int if_convert_phi(struct instruction *insn)
 {
-	pseudo_t array[3];
+	struct instruction *array[2];
 	struct basic_block *parents[3];
 	struct basic_block *bb, *bb1, *bb2, *source;
 	struct instruction *br;
 	pseudo_t p1, p2;
 
 	bb = insn->bb;
-	if (linearize_ptr_list((struct ptr_list *)insn->phi_list, (void **)array, 3) != 2)
+	if (get_phisources(array, 2, insn))
 		return 0;
 	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
 		return 0;
-	p1 = array[0]->def->src1;
-	bb1 = array[0]->def->bb;
-	p2 = array[1]->def->src1;
-	bb2 = array[1]->def->bb;
+	p1 = array[0]->src1;
+	bb1 = array[0]->bb;
+	p2 = array[1]->src1;
+	bb2 = array[1]->bb;
 
 	/* Only try the simple "direct parents" case */
 	if ((bb1 != parents[0] || bb2 != parents[1]) &&
