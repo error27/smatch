@@ -1195,7 +1195,11 @@ int simplify_instruction(struct instruction *insn)
 
 	case OP_NOT: case OP_NEG:
 		return simplify_unop(insn);
-	case OP_LOAD: case OP_STORE:
+	case OP_LOAD:
+		if (!has_users(insn->target))
+			return kill_instruction(insn);
+		/* fall-through */
+	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
 		if (dead_insn(insn, NULL, NULL, NULL))
