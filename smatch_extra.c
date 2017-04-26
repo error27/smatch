@@ -132,6 +132,8 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
 	if (!assigned)
 		return NULL;
+	if (assigned->type == EXPR_CALL)
+		return map_call_to_other_name_sym(name, sym, new_sym);
 	if (assigned->type == EXPR_PREOP || assigned->op == '&') {
 
 		orig_name = expr_to_var_sym(assigned, new_sym);
@@ -2156,8 +2158,8 @@ static void db_param_filter(struct expression *expr, int param, char *key, char 
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
-	char *name;
-	struct symbol *sym;
+	char *name, *tmp_name;
+	struct symbol *sym, *tmp_sym;
 	struct symbol *type;
 	struct smatch_state *state;
 	struct range_list *new = NULL;
@@ -2187,6 +2189,12 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	else
 		new = rl_union(new, added);
 
+	tmp_name = map_long_to_short_name_sym(name, sym, &tmp_sym);
+	if (tmp_name && tmp_sym) {
+		free_string(name);
+		name = tmp_name;
+		sym = tmp_sym;
+	}
 	set_extra_mod(name, sym, alloc_estate_rl(new));
 free:
 	free_string(name);
