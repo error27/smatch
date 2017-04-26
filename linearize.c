@@ -643,7 +643,7 @@ static void remove_parent(struct basic_block *child, struct basic_block *parent)
 {
 	remove_bb_from_list(&child->parents, parent, 1);
 	if (!child->parents)
-		kill_bb(child);
+		repeat_phase |= REPEAT_CFG_CLEANUP;
 }
 
 /* Change a "switch" into a branch */
@@ -670,6 +670,9 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 		remove_parent(child, bb);
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
+
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(bb->ep);
 }
 	
 
