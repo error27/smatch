@@ -18,7 +18,6 @@ static int bar(void)
 
 /*
  * check-name: empty expression
- * check-known-to-fail
  *
  * check-error-start
 empty-expr.c:3:17: error: an expression is expected before ')'

@@ -1945,6 +1945,8 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 	pseudo_t pseudo;
 
 	pseudo = linearize_expression(ep, expr);
+	if (pseudo == VOID)
+		return pseudo;
 
 	active = ep->active;
 	if (!bb_reachable(active))
