@@ -221,10 +221,10 @@ static void kill_use_list(struct pseudo_list *list)
  * the function does that unconditionally (must only be used
  * for unreachable instructions.
  */
-void kill_insn(struct instruction *insn, int force)
+int kill_insn(struct instruction *insn, int force)
 {
 	if (!insn || !insn->bb)
-		return;
+		return 0;
 
 	switch (insn->opcode) {
 	case OP_SEL:
@@ -266,9 +266,9 @@ void kill_insn(struct instruction *insn, int force)
 		if (!force) {
 			/* a "pure" function can be killed too */
 			if (!(insn->func->type == PSEUDO_SYM))
-				return;
+				return 0;
 			if (!(insn->func->sym->ctype.modifiers & MOD_PURE))
-				return;
+				return 0;
 		}
 		kill_use_list(insn->arguments);
 		if (insn->func->type == PSEUDO_REG)
@@ -277,20 +277,20 @@ void kill_insn(struct instruction *insn, int force)
 
 	case OP_LOAD:
 		if (!force && insn->type->ctype.modifiers & MOD_VOLATILE)
-			return;
+			return 0;
 		kill_use(&insn->src);
 		break;
 
 	case OP_STORE:
 		if (!force)
-			return;
+			return 0;
 		kill_use(&insn->src);
 		kill_use(&insn->target);
 		break;
 
 	case OP_ENTRY:
 		/* ignore */
-		return;
+		return 0;
 
 	case OP_BR:
 	case OP_SETFVAL:
@@ -299,8 +299,7 @@ void kill_insn(struct instruction *insn, int force)
 	}
 
 	insn->bb = NULL;
-	repeat_phase |= REPEAT_CSE;
-	return;
+	return repeat_phase |= REPEAT_CSE;
 }
 
 /*
