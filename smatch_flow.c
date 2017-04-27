@@ -757,6 +757,9 @@ static void split_case(struct statement *stmt)
 {
 	struct range_list *rl = NULL;
 
+	expr_set_parent_stmt(stmt->case_expression, stmt);
+	expr_set_parent_stmt(stmt->case_to, stmt);
+
 	rl = get_case_rl(top_expression(switch_expr_stack),
 			 stmt->case_expression, stmt->case_to);
 	while (stmt->case_statement->type == STMT_CASE) {
@@ -984,12 +987,17 @@ void __split_stmt(struct statement *stmt)
 		split_declaration(stmt->declaration);
 		break;
 	case STMT_RETURN:
+		expr_set_parent_stmt(stmt->ret_value, stmt);
+
 		__split_expr(stmt->ret_value);
 		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		__process_post_op_stack();
 		nullify_path();
 		break;
 	case STMT_EXPRESSION:
+		expr_set_parent_stmt(stmt->expression, stmt);
+		expr_set_parent_stmt(stmt->context, stmt);
+
 		__split_expr(stmt->expression);
 		break;
 	case STMT_COMPOUND:
@@ -998,6 +1006,7 @@ void __split_stmt(struct statement *stmt)
 	case STMT_IF:
 		stmt_set_parent_stmt(stmt->if_true, stmt);
 		stmt_set_parent_stmt(stmt->if_false, stmt);
+		expr_set_parent_stmt(stmt->if_conditional, stmt);
 
 		if (known_condition_true(stmt->if_conditional)) {
 			__split_stmt(stmt->if_true);
@@ -1022,6 +1031,8 @@ void __split_stmt(struct statement *stmt)
 		stmt_set_parent_stmt(stmt->iterator_pre_statement, stmt);
 		stmt_set_parent_stmt(stmt->iterator_statement, stmt);
 		stmt_set_parent_stmt(stmt->iterator_post_statement, stmt);
+		expr_set_parent_stmt(stmt->iterator_pre_condition, stmt);
+		expr_set_parent_stmt(stmt->iterator_post_condition, stmt);
 
 		if (stmt->iterator_pre_condition)
 			handle_pre_loop(stmt);
@@ -1034,6 +1045,7 @@ void __split_stmt(struct statement *stmt)
 		break;
 	case STMT_SWITCH:
 		stmt_set_parent_stmt(stmt->switch_statement, stmt);
+		expr_set_parent_stmt(stmt->switch_expression, stmt);
 
 		if (get_value(stmt->switch_expression, &sval)) {
 			split_known_switch(stmt, sval);
@@ -1060,6 +1072,8 @@ void __split_stmt(struct statement *stmt)
 		__split_stmt(stmt->label_statement);
 		break;
 	case STMT_GOTO:
+		expr_set_parent_stmt(stmt->goto_expression, stmt);
+
 		__split_expr(stmt->goto_expression);
 		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE) {
 			if (!strcmp(stmt->goto_label->ident->name, "break")) {
@@ -1080,6 +1094,8 @@ void __split_stmt(struct statement *stmt)
 	case STMT_NONE:
 		break;
 	case STMT_ASM:
+		expr_set_parent_stmt(stmt->asm_string, stmt);
+
 		find_asm_gotos(stmt);
 		__pass_to_client(stmt, ASM_HOOK);
 		__split_expr(stmt->asm_string);
