@@ -80,13 +80,13 @@ enum {
 }; /* for expr->taint */
 
 struct expression {
-	struct expression *parent;
 	enum expression_type type:8;
 	unsigned flags:8;
 	unsigned smatch_flags:16;
 	int op;
 	struct position pos;
 	struct symbol *ctype;
+	struct expression *parent;
 	union {
 		// EXPR_VALUE
 		struct {
@@ -243,5 +243,12 @@ struct token *compound_statement(struct token *, struct statement *);
 /* Cast folding of constant values.. */
 void cast_value(struct expression *expr, struct symbol *newtype,
 	struct expression *old, struct symbol *oldtype);
+
+static inline void expr_set_parent_expr(struct expression *expr, struct expression *parent)
+{
+	if (!expr)
+		return;
+	expr->parent = parent;
+}
 
 #endif

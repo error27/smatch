@@ -417,7 +417,6 @@ int definitely_inside_loop(void);
 struct expression *get_switch_expr(void);
 int in_expression_statement(void);
 void __process_post_op_stack(void);
-void set_parent_expr(struct expression *expr, struct expression *parent);
 void __split_expr(struct expression *expr);
 void __split_label_stmt(struct statement *stmt);
 void __split_stmt(struct statement *stmt);
