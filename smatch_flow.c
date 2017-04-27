@@ -141,13 +141,6 @@ static void set_position(struct position pos)
 	free(pathname);
 }
 
-static void set_parent_stmt(struct statement *stmt, struct statement *parent)
-{
-	if (!stmt)
-		return;
-	stmt->parent = parent;
-}
-
 int is_assigned_call(struct expression *expr)
 {
 	if (expr->parent &&
@@ -323,7 +316,7 @@ void __split_expr(struct expression *expr)
 	case EXPR_STATEMENT:
 		__expr_stmt_count++;
 		if (expr->statement && !expr->statement->parent) {
-			set_parent_stmt(expr->statement,
+			stmt_set_parent_stmt(expr->statement,
 					last_ptr_list((struct ptr_list *)big_statement_stack));
 		}
 		__split_stmt(expr->statement);
@@ -895,7 +888,7 @@ static void split_compound(struct statement *stmt)
 
 	FOR_EACH_PTR(stmt->stmts, next) {
 		/* just set them all ahead of time */
-		set_parent_stmt(next, stmt);
+		stmt_set_parent_stmt(next, stmt);
 
 		if (cur) {
 			__prev_stmt = prev;
@@ -1001,8 +994,8 @@ void __split_stmt(struct statement *stmt)
 		split_compound(stmt);
 		break;
 	case STMT_IF:
-		set_parent_stmt(stmt->if_true, stmt);
-		set_parent_stmt(stmt->if_false, stmt);
+		stmt_set_parent_stmt(stmt->if_true, stmt);
+		stmt_set_parent_stmt(stmt->if_false, stmt);
 
 		if (known_condition_true(stmt->if_conditional)) {
 			__split_stmt(stmt->if_true);
@@ -1024,9 +1017,9 @@ void __split_stmt(struct statement *stmt)
 		__merge_true_states();
 		break;
 	case STMT_ITERATOR:
-		set_parent_stmt(stmt->iterator_pre_statement, stmt);
-		set_parent_stmt(stmt->iterator_statement, stmt);
-		set_parent_stmt(stmt->iterator_post_statement, stmt);
+		stmt_set_parent_stmt(stmt->iterator_pre_statement, stmt);
+		stmt_set_parent_stmt(stmt->iterator_statement, stmt);
+		stmt_set_parent_stmt(stmt->iterator_post_statement, stmt);
 
 		if (stmt->iterator_pre_condition)
 			handle_pre_loop(stmt);
@@ -1038,7 +1031,7 @@ void __split_stmt(struct statement *stmt)
 		}
 		break;
 	case STMT_SWITCH:
-		set_parent_stmt(stmt->switch_statement, stmt);
+		stmt_set_parent_stmt(stmt->switch_statement, stmt);
 
 		if (get_value(stmt->switch_expression, &sval)) {
 			split_known_switch(stmt, sval);

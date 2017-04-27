@@ -148,4 +148,11 @@ extern int inline_function(struct expression *expr, struct symbol *sym);
 extern void uninline(struct symbol *sym);
 extern void init_parser(int);
 
+static inline void stmt_set_parent_stmt(struct statement *stmt, struct statement *parent)
+{
+	if (!stmt)
+		return;
+	stmt->parent = parent;
+}
+
 #endif /* PARSE_H */
