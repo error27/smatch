@@ -317,7 +317,7 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_STATEMENT:
 		__expr_stmt_count++;
-		if (expr->statement && !expr_get_parent_expr(expr->statement)) {
+		if (expr->statement && !expr->statement) {
 			stmt_set_parent_stmt(expr->statement,
 					last_ptr_list((struct ptr_list *)big_statement_stack));
 		}
