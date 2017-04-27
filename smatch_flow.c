@@ -143,10 +143,12 @@ static void set_position(struct position pos)
 
 int is_assigned_call(struct expression *expr)
 {
-	if (expr->parent &&
-	    expr->parent->type == EXPR_ASSIGNMENT &&
-	    expr->parent->op == '=' &&
-	    strip_expr(expr->parent->right) == expr)
+	struct expression *parent = expr_get_parent_expr(expr);
+
+	if (parent &&
+	    parent->type == EXPR_ASSIGNMENT &&
+	    parent->op == '=' &&
+	    strip_expr(parent->right) == expr)
 		return 1;
 
 	return 0;
@@ -264,7 +266,7 @@ static int prev_expression_is_getting_address(struct expression *expr)
 	struct expression *parent;
 
 	do {
-		parent = expr->parent;
+		parent = expr_get_parent_expr(expr);
 
 		if (!parent)
 			return 0;
@@ -315,7 +317,7 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_STATEMENT:
 		__expr_stmt_count++;
-		if (expr->statement && !expr->statement->parent) {
+		if (expr->statement && !expr_get_parent_expr(expr->statement)) {
 			stmt_set_parent_stmt(expr->statement,
 					last_ptr_list((struct ptr_list *)big_statement_stack));
 		}

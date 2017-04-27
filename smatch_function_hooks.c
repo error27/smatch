@@ -1039,7 +1039,7 @@ static int is_condition_call(struct expression *expr)
 	struct expression *tmp;
 
 	FOR_EACH_PTR_REVERSE(big_condition_stack, tmp) {
-		if (expr == tmp || expr->parent == tmp)
+		if (expr == tmp || expr_get_parent_expr(expr) == tmp)
 			return 1;
 		if (tmp->pos.line < expr->pos.line)
 			return 0;

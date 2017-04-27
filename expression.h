@@ -86,7 +86,7 @@ struct expression {
 	int op;
 	struct position pos;
 	struct symbol *ctype;
-	struct expression *parent;
+	struct expression *parent_expr;
 	union {
 		// EXPR_VALUE
 		struct {
@@ -248,7 +248,12 @@ static inline void expr_set_parent_expr(struct expression *expr, struct expressi
 {
 	if (!expr)
 		return;
-	expr->parent = parent;
+	expr->parent_expr = parent;
+}
+
+static inline struct expression *expr_get_parent_expr(struct expression *expr)
+{
+	return expr->parent_expr;
 }
 
 #endif
