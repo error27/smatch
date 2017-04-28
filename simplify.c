@@ -180,10 +180,16 @@ static int if_convert_phi(struct instruction *insn)
 //
 // A phi-node is trivial if it has a single possible result:
 //	# all operands are the same
+//	# the operands are themselves defined by a chain or cycle of phi-nodes
+//		and the set of all operands involved contains a single value
+//		not defined by these phi-nodes
 // Since the result is unique, these phi-nodes can be removed.
-static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn)
+static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn, struct pseudo_list **list)
 {
+	pseudo_t target = insn->target;
 	pseudo_t phi;
+
+	add_pseudo(list, target);
 
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		struct instruction *def;
@@ -203,6 +209,14 @@ static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn)
 		}
 		if (src == pseudo)
 			continue;
+		if (src == target)
+			continue;
+		if (DEF_OPCODE(def, src) == OP_PHI) {
+			if (pseudo_in_list(*list, src))
+				continue;
+			if ((pseudo = trivial_phi(pseudo, def, list)))
+				continue;
+		}
 		return NULL;
 	} END_FOR_EACH_PTR(phi);
 
@@ -211,9 +225,10 @@ static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn)
 
 static int clean_up_phi(struct instruction *insn)
 {
+	struct pseudo_list *list = NULL;
 	pseudo_t pseudo;
 
-	if ((pseudo = trivial_phi(NULL, insn))) {
+	if ((pseudo = trivial_phi(NULL, insn, &list))) {
 		convert_instruction_target(insn, pseudo);
 		kill_instruction(insn);
 		return REPEAT_CSE;

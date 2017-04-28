@@ -7,7 +7,6 @@ void foo(int a)
 /*
  * check-name: trivial phis
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: phi\\.
