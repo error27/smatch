@@ -215,6 +215,7 @@ void die(const char *fmt, ...)
 static struct token *pre_buffer_begin = NULL;
 static struct token *pre_buffer_end = NULL;
 
+int Waddress = 0;
 int Waddress_space = 1;
 int Wbitwise = 1;
 int Wcast_to_as = 0;
@@ -467,6 +468,7 @@ static const struct warning {
 	const char *name;
 	int *flag;
 } warnings[] = {
+	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
 	{ "cast-to-as", &Wcast_to_as },

@@ -80,6 +80,34 @@ static int bb_depends_on(struct basic_block *target, struct basic_block *src)
 }
 
 /*
+ * Return 1 if 'pseudo' is needed in some parent of 'bb'.
+ * Need liveness info.
+ */
+static int needed_phisrc(struct instruction *phi, struct basic_block *curr, unsigned long generation)
+{
+	pseudo_t target = phi->target;
+	struct basic_block *bb;
+
+	curr->generation = generation;
+	FOR_EACH_PTR(curr->children, bb) {
+		if (bb->generation == generation)
+			continue;
+		if (bb == phi->bb)
+			continue;
+		if (pseudo_in_list(bb->defines, target)) {
+			continue;
+		}
+		if (pseudo_in_list(bb->needs, target))
+			return 1;
+		if (needed_phisrc(phi, bb, generation))
+			return 1;
+
+	} END_FOR_EACH_PTR(bb);
+
+	return 0;
+}
+
+/*
  * When we reach here, we have:
  *  - a basic block that ends in a conditional branch and
  *    that has no side effects apart from the pseudos it
@@ -121,7 +149,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
-		if (changed)
+		if (changed && !needed_phisrc(first, source, ++bb_generation))
 			kill_use(THIS_ADDRESS(phi));
 	} END_FOR_EACH_PTR(phi);
 	return changed;
@@ -254,7 +282,8 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 			*pu->userp = src;
 		}
 	} END_FOR_EACH_PTR(pu);
-	concat_user_list(target->users, &src->users);
+	if (has_use_list(src))
+		concat_user_list(target->users, &src->users);
 	target->users = NULL;
 }
 

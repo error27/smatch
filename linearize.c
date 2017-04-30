@@ -318,6 +318,8 @@ const char *show_instruction(struct instruction *insn)
 		struct symbol *sym = insn->symbol->sym;
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
 
+		if (!insn->bb && !sym)
+			break;
 		if (sym->bb_target) {
 			buf += sprintf(buf, ".L%u", sym->bb_target->nr);
 			break;
