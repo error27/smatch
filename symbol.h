@@ -438,7 +438,6 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
 #define is_fouled_type(type) (get_sym_type(type) == SYM_FOULED)
 #define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
-extern int is_ptr_type(struct symbol *);
 
 void create_fouled(struct symbol *type);
 struct symbol *befoul(struct symbol *type);
