@@ -15,7 +15,7 @@ static int bar(int *p)
 	return g == 1;
 }
 
-static test(void)
+static void test(void)
 {
 	foo(&g);
 	bar(&g);

@@ -2920,6 +2920,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			}
 		}
 	} else if (base_type && base_type->type == SYM_FN) {
+		if (base_type->ctype.base_type == &incomplete_ctype) {
+			warning(decl->pos, "'%s()' has implicit return type",
+				show_ident(decl->ident));
+			base_type->ctype.base_type = &int_ctype;
+		}
 		/* K&R argument declaration? */
 		if (lookup_type(token))
 			return parse_k_r_arguments(token, decl, list);
@@ -2930,6 +2935,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			decl->ctype.modifiers |= MOD_EXTERN;
 	} else if (base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
 		sparse_error(token->pos, "void declaration");
+	}
+	if (base_type == &incomplete_ctype) {
+		warning(decl->pos, "'%s' has implicit type", show_ident(decl->ident));
+		decl->ctype.base_type = &int_ctype;;
 	}
 
 	for (;;) {
