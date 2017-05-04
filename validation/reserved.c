@@ -16,7 +16,17 @@ static int (__typeof__);
 static int (inline);
 static int (__inline);
 static int (__inline__);
+static int (_Alignas);
+static int (_Alignof);
+static int (_Atomic);
+static int (_Bool);
+static int (_Complex);
+static int (_Generic);
+static int (_Imaginary);
+static int (_Noreturn);
 static int (_Static_assert);
+static int (_Thread_local);
+
 /*
  * check-name: const et.al. are reserved identifiers
  * check-error-start:
@@ -38,6 +48,15 @@ reserved.c:15:12: error: Trying to use reserved word '__typeof__' as identifier
 reserved.c:16:12: error: Trying to use reserved word 'inline' as identifier
 reserved.c:17:12: error: Trying to use reserved word '__inline' as identifier
 reserved.c:18:12: error: Trying to use reserved word '__inline__' as identifier
-reserved.c:19:12: error: Trying to use reserved word '_Static_assert' as identifier
+reserved.c:19:12: error: Trying to use reserved word '_Alignas' as identifier
+reserved.c:20:12: error: Trying to use reserved word '_Alignof' as identifier
+reserved.c:21:12: error: Trying to use reserved word '_Atomic' as identifier
+reserved.c:22:12: error: Trying to use reserved word '_Bool' as identifier
+reserved.c:23:12: error: Trying to use reserved word '_Complex' as identifier
+reserved.c:24:12: error: Trying to use reserved word '_Generic' as identifier
+reserved.c:25:12: error: Trying to use reserved word '_Imaginary' as identifier
+reserved.c:26:12: error: Trying to use reserved word '_Noreturn' as identifier
+reserved.c:27:12: error: Trying to use reserved word '_Static_assert' as identifier
+reserved.c:28:12: error: Trying to use reserved word '_Thread_local' as identifier
  * check-error-end:
  */

@@ -30,10 +30,18 @@ IDENT(static);
 
 /* C99 keywords */
 IDENT(restrict); IDENT(__restrict); IDENT(__restrict__);
+IDENT(_Bool);
+IDENT_RESERVED(_Complex);
+IDENT_RESERVED(_Imaginary);
 
 /* C11 keywords */
+IDENT(_Alignas);
 IDENT_RESERVED(_Alignof);
+IDENT_RESERVED(_Atomic);
+IDENT_RESERVED(_Generic);
+IDENT(_Noreturn);
 IDENT_RESERVED(_Static_assert);
+IDENT(_Thread_local);
 
 /* Special case for L'\t' */
 IDENT(L);
