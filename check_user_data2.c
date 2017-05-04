@@ -533,7 +533,6 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 	if (db_info.rl) {
 		if (!we_pass_user_data(call))
 			return 0;
-		func_gets_user_data = true;
 		*rl = db_info.rl;
 		return 1;
 	}
@@ -826,9 +825,20 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	}
 }
 
+static struct int_stack *gets_data_stack;
 static void match_function_def(struct symbol *sym)
 {
 	func_gets_user_data = false;
+}
+
+static void match_inline_start(struct expression *expr)
+{
+	push_int(&gets_data_stack, func_gets_user_data);
+}
+
+static void match_inline_end(struct expression *expr)
+{
+	func_gets_user_data = pop_int(&gets_data_stack);
 }
 
 void check_user_data2(int id)
@@ -841,6 +851,8 @@ void check_user_data2(int id)
 		return;
 
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_inline_start, INLINE_FN_START);
+	add_hook(&match_inline_end, INLINE_FN_END);
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_hook(&free_start_states, AFTER_FUNC_HOOK);
