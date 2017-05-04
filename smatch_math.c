@@ -1208,7 +1208,7 @@ int get_absolute_min(struct expression *expr, sval_t *sval)
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
-	rl = _get_rl(expr, RL_ABSOLUTE, &recurse_cnt);
+	rl = _get_rl(expr, RL_REAL_ABSOLUTE, &recurse_cnt);
 	if (rl)
 		*sval = rl_min(rl);
 	else
@@ -1228,7 +1228,7 @@ int get_absolute_max(struct expression *expr, sval_t *sval)
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;
-	rl = _get_rl(expr, RL_ABSOLUTE, &recurse_cnt);
+	rl = _get_rl(expr, RL_REAL_ABSOLUTE, &recurse_cnt);
 	if (rl)
 		*sval = rl_max(rl);
 	else
