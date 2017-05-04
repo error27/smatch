@@ -145,8 +145,8 @@ free:
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
-	char *name;
-	struct symbol *sym;
+	char *name, *other_name;
+	struct symbol *sym, *other_sym;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -162,6 +162,13 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		goto free;
 
 	call_modification_hooks_name_sym(name, sym, expr, BOTH);
+
+	other_name = map_long_to_short_name_sym(name, sym, &other_sym);
+	if (other_name) {
+		call_modification_hooks_name_sym(other_name, other_sym, expr, BOTH);
+		free_string(other_name);
+	}
+
 free:
 	free_string(name);
 }
