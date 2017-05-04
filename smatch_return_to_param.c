@@ -98,6 +98,23 @@ char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct sy
 	return NULL;
 }
 
+char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym)
+{
+	char *name;
+	struct smatch_state *state;
+
+	*sym = NULL;
+
+	name = expr_to_str(expr);
+	if (!name)
+		return NULL;
+	state = get_state(my_id, name, (struct symbol *)expr);
+	if (!state || !state->data)
+		return NULL;
+	*sym = state->data;
+	return alloc_string(state->name);
+}
+
 static void store_mapping_helper(char *left_name, struct symbol *left_sym, struct expression *call, const char *return_string)
 {
 	const char *p = return_string;
@@ -162,6 +179,25 @@ void __add_return_to_param_mapping(struct expression *expr, const char *return_s
 
 		store_mapping_helper(left_name, left_sym, call, return_string);
 		goto free;
+	}
+
+	if (expr->type == EXPR_CALL &&
+	    expr_get_parent_stmt(expr) &&
+	    expr_get_parent_stmt(expr)->type == STMT_RETURN) {
+		call = strip_expr(expr);
+		left_name = expr_to_str(call);
+		if (!left_name)
+			goto free;
+
+		/*
+		 * HACK ALERT: The symbol pointer is basically used as a cookie
+		 * and not used as a pointer so we can pass expr here without
+		 * causing an issue.
+		 *
+		 */
+		store_mapping_helper(left_name, (struct symbol *)expr, call, return_string);
+		goto free;
+
 	}
 
 free:

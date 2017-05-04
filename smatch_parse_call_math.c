@@ -283,22 +283,19 @@ static int get_arg_number(struct expression *expr)
 	return -1;
 }
 
-static int format_variable_helper(char *buf, int remaining, struct expression *expr)
+static int format_name_sym_helper(char *buf, int remaining, char *name, struct symbol *sym)
 {
 	int ret = 0;
-	char *name;
-	struct symbol *sym;
 	int arg;
 	char *param_name;
 	int name_len;
 
-	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym || !sym->ident)
 		goto free;
 	arg = get_param_num_from_sym(sym);
 	if (arg < 0)
 		goto free;
-	if (param_was_set(expr))
+	if (param_was_set_var_sym(name, sym))
 		goto free;
 
 	param_name = sym->ident->name;
@@ -306,19 +303,38 @@ static int format_variable_helper(char *buf, int remaining, struct expression *e
 
 	if (name[name_len] == '\0')
 		ret = snprintf(buf, remaining, "$%d", arg);
-	else if (name[name_len] == '-') {
+	else if (name[name_len] == '-')
 		ret = snprintf(buf, remaining, "$%d%s", arg, name + name_len);
-	}
 	else
 		goto free;
 
 	remaining -= ret;
 	if (remaining <= 0)
 		ret = 0;
+
 free:
 	free_string(name);
 
 	return ret;
+
+}
+
+static int format_variable_helper(char *buf, int remaining, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = expr_to_var_sym(expr, &sym);
+	return format_name_sym_helper(buf, remaining, name, sym);
+}
+
+static int format_call_to_param_mapping(char *buf, int remaining, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = map_call_to_param_name_sym(expr, &sym);
+	return format_name_sym_helper(buf, remaining, name, sym);
 }
 
 static int format_expr_helper(char *buf, int remaining, struct expression *expr)
@@ -364,6 +380,9 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 			return 0;
 		return ret;
 	}
+
+	if (expr->type == EXPR_CALL)
+		return format_call_to_param_mapping(cur, remaining, expr);
 
 	return format_variable_helper(cur, remaining, expr);
 }
