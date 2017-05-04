@@ -16,6 +16,7 @@ static int (__typeof__);
 static int (inline);
 static int (__inline);
 static int (__inline__);
+static int (_Static_assert);
 /*
  * check-name: const et.al. are reserved identifiers
  * check-error-start:
@@ -37,5 +38,6 @@ reserved.c:15:12: error: Trying to use reserved word '__typeof__' as identifier
 reserved.c:16:12: error: Trying to use reserved word 'inline' as identifier
 reserved.c:17:12: error: Trying to use reserved word '__inline' as identifier
 reserved.c:18:12: error: Trying to use reserved word '__inline__' as identifier
+reserved.c:19:12: error: Trying to use reserved word '_Static_assert' as identifier
  * check-error-end:
  */
