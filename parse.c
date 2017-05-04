@@ -407,6 +407,7 @@ static struct symbol_op mode_word_op = {
 	.to_mode = to_word_mode
 };
 
+/* Using NS_TYPEDEF will also make the keyword a reserved one */
 static struct init_keyword {
 	const char *name;
 	enum namespace ns;
