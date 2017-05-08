@@ -53,6 +53,7 @@ static int is_freed(struct expression *expr)
 
 static void match_symbol(struct expression *expr)
 {
+	struct expression *parent;
 	char *name;
 
 	if (is_impossible_path())
