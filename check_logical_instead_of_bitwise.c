@@ -25,7 +25,7 @@ static int is_bitshift(struct expression *expr)
 
 	if (expr->type != EXPR_BINOP)
 		return 0;
-	if (expr->op == SPECIAL_LEFTSHIFT || expr->op == SPECIAL_RIGHTSHIFT)
+	if (expr->op == SPECIAL_LEFTSHIFT)
 		return 1;
 	return 0;
 }
