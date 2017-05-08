@@ -1673,7 +1673,6 @@ static void match_call_info(struct expression *expr)
 				comparison = data->comparison;
 				right_name = data->var2;
 				right_vsl = data->vsl2;
-
 			} else if (strcmp(data->var2, arg_name) == 0) {
 				comparison = flip_comparison(data->comparison);
 				right_name = data->var1;
@@ -1681,12 +1680,13 @@ static void match_call_info(struct expression *expr)
 			}
 			if (!right_vsl || ptr_list_size((struct ptr_list *)right_vsl) != 1)
 				goto free;
+
 			right_vs = first_ptr_list((struct ptr_list *)right_vsl);
 			if (strcmp(right_vs->var, right_name) != 0)
-				continue;
+				goto free;
 			right_name = get_printed_param_name(expr, right_vs->var, right_vs->sym);
 			if (!right_name)
-				continue;
+				goto free;
 			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(comparison), right_name);
 			sql_insert_caller_info(expr, PARAM_COMPARE, i, "$", info_buf);
 
