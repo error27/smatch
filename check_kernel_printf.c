@@ -750,7 +750,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'g':
 		block_device(fmt, type, basetype, vaidx);
 		break;
-	case 'j':
+	case 'G':
 		flag_string(fmt, type, basetype, vaidx);
 		break;
 	default:
