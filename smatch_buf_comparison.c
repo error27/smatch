@@ -62,14 +62,24 @@ static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_s
 	return &merged;
 }
 
-static void match_modify(struct sm_state *sm, struct expression *mod_expr)
+static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct expression *expr;
+	struct sm_state *tmp;
 
 	expr = sm->state->data;
-	if (!expr)
+	if (expr) {
+		set_state_expr(size_id, expr, &undefined);
+		set_state(link_id, sm->name, sm->sym, &undefined);
 		return;
-	set_state_expr(size_id, expr, &undefined);
+	}
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		expr = tmp->state->data;
+		if (expr)
+			set_state_expr(size_id, expr, &undefined);
+	} END_FOR_EACH_PTR(tmp);
+	set_state(link_id, sm->name, sm->sym, &undefined);
 }
 
 static struct smatch_state *alloc_expr_state(struct expression *expr)
@@ -556,5 +566,5 @@ void register_buf_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook(link_id, &match_modify);
+	add_modification_hook(link_id, &match_link_modify);
 }
