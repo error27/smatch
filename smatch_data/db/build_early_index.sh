@@ -27,7 +27,8 @@ CREATE INDEX function_type_value_idx ON function_type_value (type);
 CREATE INDEX local_value_idx on local_values (file, variable);
 CREATE INDEX return_states_fn_idx on return_states (function);
 CREATE INDEX return_states_ff_idx on return_states (file, function);
-CREATE INDEX parameter_name_idx on parameter_name (file, function);
+CREATE INDEX parameter_name_file_idx on parameter_name (file, function);
+CREATE INDEX parameter_name_idx on parameter_name (function);
 
 EOF
 
