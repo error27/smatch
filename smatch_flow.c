@@ -351,10 +351,9 @@ void __split_expr(struct expression *expr)
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
 
-		if (!expr->right)
-			break;
-
 		right = strip_expr(expr->right);
+		if (!right)
+			break;
 
 		__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
 

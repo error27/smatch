@@ -139,6 +139,14 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated, int no_parens)
 {
+
+
+	if (!expr) {
+		/* can't happen on valid code */
+		*complicated = 1;
+		return;
+	}
+
 	switch (expr->type) {
 	case EXPR_DEREF: {
 		struct expression *deref;
@@ -391,6 +399,9 @@ int get_complication_score(struct expression *expr)
 	 *
 	 */
 
+	if (!expr)
+		return 999;
+
 	switch (expr->type) {
 	case EXPR_CALL:
 		return 999;
@@ -494,6 +505,8 @@ int is_array(struct expression *expr)
 
 	if (expr->type == EXPR_PREOP && expr->op == '*') {
 		expr = strip_expr(expr->unop);
+		if (!expr)
+			return 0;
 		if (expr->type == EXPR_BINOP && expr->op == '+')
 			return 1;
 	}
@@ -587,7 +600,7 @@ struct expression *strip_expr(struct expression *expr)
 
 		unop = strip_expr(expr->unop);
 
-		if (expr->op == '*' &&
+		if (expr->op == '*' && unop &&
 		    unop->type == EXPR_PREOP && unop->op == '&') {
 			struct symbol *type = get_type(unop->unop);
 

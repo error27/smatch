@@ -452,7 +452,7 @@ int is_local_variable(struct expression *expr)
 
 	name = expr_to_var_sym(expr, &sym);
 	free_string(name);
-	if (!sym || !sym->scope || !sym->scope->token)
+	if (!sym || !sym->scope || !sym->scope->token || !cur_func_sym)
 		return 0;
 	if (cmp_pos(sym->scope->token->pos, cur_func_sym->pos) < 0)
 		return 0;

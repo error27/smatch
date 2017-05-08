@@ -305,6 +305,8 @@ static int comes_from_skb_data(struct expression *expr)
 		return 0;
 
 	expr = strip_expr(expr->unop);
+	if (!expr)
+		return 0;
 	if (expr->type == EXPR_BINOP && expr->op == '+')
 		expr = strip_expr(expr->left);
 

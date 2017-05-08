@@ -1098,6 +1098,9 @@ check_printf_call(const char *name, struct expression *callexpr, void *_info)
 	struct expression *fmtexpr;
 	const char *caller = get_function();
 
+	if (!caller)
+		return;
+
 	/*
 	 * Calling a v*printf function with a literal format arg is
 	 * extremely rare, so we don't bother doing the only checking
