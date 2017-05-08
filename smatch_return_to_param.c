@@ -28,6 +28,7 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+extern int check_assigned_expr_id;
 static int my_id;
 static int link_id;
 
@@ -64,6 +65,50 @@ char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct sy
 	return alloc_string(buf);
 }
 
+static char *map_my_state_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	int len;
+	char buf[256];
+
+	if (sm->state->data != sym)
+		return NULL;
+	len = strlen(sm->state->name);
+	if (strncmp(name, sm->state->name, len) != 0)
+		return NULL;
+
+	if (name[len] == '.')
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + len);
+	*new_sym = sm->sym;
+	return alloc_string(buf);
+}
+
+static char *map_assignment_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	struct symbol *orig_sym;
+	int len;
+	char buf[256];
+
+	if (!sm->state->data)
+		return NULL;
+
+	orig_sym = expr_to_sym(sm->state->data);
+	if (!orig_sym)
+		return NULL;
+	if (sym != orig_sym)
+		return NULL;
+
+	len = strlen(sm->state->name);
+	if (strncmp(name, sm->state->name, len) != 0)
+		return NULL;
+
+	if (name[len] == '.')
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + len);
+	*new_sym = sm->sym;
+	return alloc_string(buf);
+}
+
 /*
  * Normally, we expect people to consistently refer to variables by the shortest
  * name.  So they use "b->a" instead of "foo->bar.a" when both point to the
@@ -75,24 +120,25 @@ char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct sy
  */
 char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
 {
+	char *ret;
 	struct sm_state *sm;
-	int len;
-	char buf[256];
 
 	*new_sym = NULL;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state->data != sym)
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->owner == my_id) {
+			ret = map_my_state_long_to_short(sm, name, sym, new_sym);
+			if (ret)
+				return ret;
 			continue;
-		len = strlen(sm->state->name);
-		if (strncmp(name, sm->state->name, len) == 0) {
-			if (name[len] == '.')
-				continue;
-
-			snprintf(buf, sizeof(buf), "%s%s", sm->name, name + len);
-			*new_sym = sm->sym;
-			return alloc_string(buf);
 		}
+		if (sm->owner == check_assigned_expr_id) {
+			ret = map_assignment_long_to_short(sm, name, sym, new_sym);
+			if (ret)
+				return ret;
+			continue;
+		}
+
 	} END_FOR_EACH_SM(sm);
 
 	return NULL;
