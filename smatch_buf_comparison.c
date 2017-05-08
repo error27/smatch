@@ -50,6 +50,18 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return sm->state;
 }
 
+static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct expression *expr1, *expr2;
+
+	expr1 = s1->data;
+	expr2 = s2->data;
+
+	if (expr1 && expr2 && expr_equiv(expr1, expr2))
+		return s1;
+	return &merged;
+}
+
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct expression *expr;
@@ -453,8 +465,27 @@ static void set_param_compare(const char *array_name, struct symbol *array_sym, 
 	if (!tmp)
 		return;
 	set_state_expr(link_id, size_expr, alloc_expr_state(array_expr));
+}
 
+static void set_arraysize_arg(const char *array_name, struct symbol *array_sym, char *key, char *value)
+{
+	struct expression *array_expr;
+	struct expression *size_expr;
+	struct symbol *size_sym;
+	char *size_name;
+	long param;
+	struct sm_state *tmp;
 
+	param = strtol(key, NULL, 10);
+	if (!get_param(param, &size_name, &size_sym))
+		return;
+	array_expr = symbol_expression(array_sym);
+	size_expr = symbol_expression(size_sym);
+
+	tmp = set_state_expr(size_id, array_expr, alloc_expr_state(size_expr));
+	if (!tmp)
+		return;
+	set_state_expr(link_id, size_expr, alloc_expr_state(array_expr));
 }
 
 static void munge_start_states(struct statement *stmt)
@@ -517,11 +548,13 @@ void register_buf_comparison(int id)
 
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	select_caller_info_hook(set_param_compare, ARRAY_LEN);
+	select_caller_info_hook(set_arraysize_arg, ARRAYSIZE_ARG);
 	add_hook(&munge_start_states, AFTER_DEF_HOOK);
 }
 
 void register_buf_comparison_links(int id)
 {
 	link_id = id;
+	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_modify);
 }
