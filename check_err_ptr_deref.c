@@ -24,12 +24,12 @@ static int my_id;
 STATE(err_ptr);
 STATE(checked);
 
-sval_t err_ptr_min = {
+static sval_t err_ptr_min = {
 	.type = &int_ctype,
 	{.value = -4095},
 };
 
-sval_t err_ptr_max = {
+static sval_t err_ptr_max = {
 	.type = &int_ctype,
 	{.value = -1},
 };
