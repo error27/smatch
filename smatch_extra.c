@@ -2135,6 +2135,16 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (sm && rl_equiv(estate_rl(sm->state), new))
 		__set_sm(sm);
 	else {
+		char *tmp_name;
+		struct symbol *tmp_sym;
+
+		tmp_name = map_long_to_short_name_sym(name, sym, &tmp_sym);
+		if (tmp_name && tmp_sym) {
+			free_string(name);
+			name = tmp_name;
+			sym = tmp_sym;
+		}
+
 		if (op == PARAM_LIMIT)
 			set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(new));
 		else
