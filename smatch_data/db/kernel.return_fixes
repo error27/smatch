@@ -14,3 +14,4 @@ nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-s32max (-4095)-(-18),(-16)-
 nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-(-3),(-1),1-s32max (-4095)-(-18),(-16)-(-3),(-1)
 nilfs_mdt_insert_new_block s32min-(-23),(-21)-(-1),1-s32max (-4095)-(-23),(-21)-(-1)
 simple_write_to_buffer s64min-s64max 0-s32max[<=$1]
+atomic_read s32min-s32max s32min-s32max[==$0->counter]
