@@ -181,7 +181,7 @@ static void tag_as_user_data(struct expression *expr)
 	}
 	if (type->type == SYM_BASETYPE)
 		tag_base_type(expr);
-	if (type->type == SYM_STRUCT) {
+	if (type->type == SYM_STRUCT || type->type == SYM_UNION) {
 		if (expr->type != EXPR_PREOP || expr->op != '&')
 			expr = deref_expression(expr);
 		else
@@ -320,7 +320,10 @@ static int handle_struct_assignment(struct expression *expr)
 	if (!left_type || left_type->type != SYM_PTR)
 		return 0;
 	left_type = get_real_base_type(left_type);
-	if (!left_type || left_type->type != SYM_STRUCT)
+	if (!left_type)
+		return 0;
+	if (left_type->type != SYM_STRUCT &&
+	    left_type->type != SYM_UNION)
 		return 0;
 
 	/*
