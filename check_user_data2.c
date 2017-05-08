@@ -79,6 +79,7 @@ static void pre_merge_hook(struct sm_state *sm)
 	struct smatch_state *user;
 	struct smatch_state *extra;
 	struct range_list *rl;
+	sval_t dummy;
 
 	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!extra || !estate_rl(extra))
@@ -87,6 +88,8 @@ static void pre_merge_hook(struct sm_state *sm)
 	if (!user || !estate_rl(user))
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
+	if (rl_to_sval(rl, &dummy))
+		rl = NULL;
 	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
 }
 
