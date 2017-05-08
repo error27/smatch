@@ -394,7 +394,10 @@ static void match_condition(struct expression *expr)
 	struct smatch_state *left_orig = NULL;
 	struct smatch_state *right_orig = NULL;
 
-	if (expr->type != EXPR_COMPARE || expr->op != SPECIAL_EQUAL)
+	if (expr->type != EXPR_COMPARE)
+		return;
+	if (expr->op != SPECIAL_EQUAL &&
+	    expr->op != SPECIAL_NOTEQUAL)
 		return;
 
 	left_orig = get_state_expr(my_id, expr->left);
@@ -405,10 +408,15 @@ static void match_condition(struct expression *expr)
 	if (left_orig && right_orig)
 		return;
 
-	if (left_orig)
-		set_true_false_states_expr(my_id, expr->left, alloc_estate_empty(), NULL);
-	else
-		set_true_false_states_expr(my_id, expr->right, alloc_estate_empty(), NULL);
+	if (left_orig) {
+		set_true_false_states_expr(my_id, expr->left,
+				expr->op == SPECIAL_EQUAL ? alloc_estate_empty() : NULL,
+				expr->op == SPECIAL_EQUAL ? NULL : alloc_estate_empty());
+	} else {
+		set_true_false_states_expr(my_id, expr->right,
+				expr->op == SPECIAL_EQUAL ? alloc_estate_empty() : NULL,
+				expr->op == SPECIAL_EQUAL ? NULL : alloc_estate_empty());
+	}
 }
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
