@@ -13,6 +13,7 @@ static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
 static inline void __smatch_implied_max(long long val){}
 static inline void __smatch_user_rl(long long val){}
+static inline void __smatch_capped(long long val){}
 
 static inline void __smatch_hard_max(long long val){}
 static inline void __smatch_fuzzy_max(long long val){}
@@ -54,5 +55,13 @@ static inline void __smatch_type(long long one){}
 
 static inline void __smatch_type_rl_helper(long long type, const char *str, ...){}
 #define __smatch_type_rl(type, rl, other...) __smatch_type_rl_helper((type)0, rl, other)
+
+static inline void __smatch_bit_info(long long expr){}
+
+static inline void __smatch_oops(unsigned long null_val){}
+
+static inline void __smatch_merge_tree(long long var){}
+
+static inline void __smatch_stree_id(void){}
 
 #endif

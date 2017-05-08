@@ -210,6 +210,17 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_capped(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+	sm_msg("'%s' = '%s'", name, is_capped(arg) ? "capped" : "not capped");
+	free_string(name);
+}
+
 static void match_print_hard_max(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -576,10 +587,64 @@ static void match_type_rl(const char *fn, struct expression *expr, void *info)
 	sm_msg("'%s' => '%s'", two->string->data, show_rl(rl));
 }
 
+static void print_left_right(struct sm_state *sm)
+{
+	if (!sm)
+		return;
+	if (!sm->left && !sm->right)
+		return;
+
+	sm_printf("[ ");
+	if (sm->left)
+		sm_printf("(%d: %s->'%s')", get_stree_id(sm->left->pool),  sm->left->name, sm->left->state->name);
+	else
+		sm_printf(" - ");
+
+
+	print_left_right(sm->left);
+
+	if (sm->right)
+		sm_printf("(%d: %s->'%s')", get_stree_id(sm->right->pool),  sm->right->name, sm->right->state->name);
+	else
+		sm_printf(" - ");
+
+	print_left_right(sm->right);
+}
+
+static void match_print_merge_tree(const char *fn, struct expression *expr, void *info)
+{
+	struct sm_state *sm;
+	struct expression *arg;
+	char *name;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
+	if (!sm) {
+		sm_msg("no sm state for '%s'", name);
+		goto free;
+	}
+
+	sm_prefix();
+	sm_printf("merge tree: %s -> %s", name, sm->state->name);
+	print_left_right(sm);
+	sm_printf("\n");
+
+free:
+	free_string(name);
+}
+
+static void match_print_stree_id(const char *fn, struct expression *expr, void *info)
+{
+	sm_msg("stree_id %d", __stree_id);
+}
+
 static struct stree *old_stree;
 static void trace_var(struct statement *stmt)
 {
 	struct sm_state *sm, *old;
+	int printed = 0;
 
 	if (!trace_variable)
 		return;
@@ -595,10 +660,13 @@ static void trace_var(struct statement *stmt)
 		sm_msg("[%d] %s '%s': '%s' => '%s'", stmt->type,
 		       check_name(sm->owner),
 		       sm->name, old ? old->state->name : "<none>", sm->state->name);
+		printed = 1;
 	} END_FOR_EACH_SM(sm);
 
-	free_stree(&old_stree);
-	old_stree = clone_stree(__get_cur_stree());
+	if (printed) {
+		free_stree(&old_stree);
+		old_stree = clone_stree(__get_cur_stree());
+	}
 }
 
 static void free_old_stree(struct symbol *sym)
@@ -619,6 +687,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_user_rl", &match_user_rl, NULL);
+	add_function_hook("__smatch_capped", &match_capped, NULL);
 	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
 	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
 	add_function_hook("__smatch_absolute", &match_print_absolute, NULL);
@@ -645,7 +714,9 @@ void check_debug(int id)
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
 	add_function_hook("__smatch_type_rl_helper", match_type_rl, NULL);
+	add_function_hook("__smatch_merge_tree", &match_print_merge_tree, NULL);
+	add_function_hook("__smatch_stree_id", &match_print_stree_id, NULL);
 
-	add_hook(free_old_stree, END_FUNC_HOOK);
+	add_hook(free_old_stree, AFTER_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);
 }
