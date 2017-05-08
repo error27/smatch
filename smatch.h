@@ -708,6 +708,8 @@ enum info_type {
 	ATOMIC_INC	= 8023,
 	ATOMIC_DEC	= 8024,
 	NO_SIDE_EFFECT  = 8025,
+	ARRAYSIZE_ARG	= 8033,
+	SIZEOF_ARG	= 8034,
 };
 
 void debug_sql(const char *sql);
