@@ -16,6 +16,7 @@ IDENT_RESERVED(for);
 IDENT_RESERVED(while);
 IDENT_RESERVED(do);
 IDENT_RESERVED(goto);
+IDENT_RESERVED(_Static_assert);
 
 /* C typenames. They get marked as reserved when initialized */
 IDENT(struct);
