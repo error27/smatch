@@ -563,7 +563,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	gettimeofday(&time_after, NULL);
 	if (time_after.tv_sec - time_before.tv_sec > 20) {
 		sm->nr_children = 4000;
-		sm_msg("Function too hairy.  Giving up.");
+		sm_msg("Function too hairy.  Giving up after 20 seconds.");
 	}
 }
 

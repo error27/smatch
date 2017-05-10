@@ -238,7 +238,7 @@ int out_of_memory(void)
 	 * It works out OK for the kernel and so it should work
 	 * for most other projects as well.
 	 */
-	if (sm_state_counter * sizeof(struct sm_state) >= 50000000)
+	if (sm_state_counter * sizeof(struct sm_state) >= 100000000)
 		return 1;
 	return 0;
 }
@@ -370,9 +370,17 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 {
 	struct smatch_state *s;
 	struct sm_state *result;
+	static int warned;
 
 	if (one == two)
 		return one;
+	if (out_of_memory()) {
+		if (!warned)
+			sm_msg("Function too hairy.  No more merges.");
+		warned = 1;
+		return one;
+	}
+	warned = 0;
 	s = merge_states(one->owner, one->name, one->sym, one->state, two->state);
 	result = alloc_state_no_name(one->owner, one->name, one->sym, s);
 	result->merged = 1;

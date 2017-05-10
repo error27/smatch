@@ -967,10 +967,14 @@ void __split_stmt(struct statement *stmt)
 		return;
 
 	if (out_of_memory() || taking_too_long()) {
+		struct timeval stop;
+
+		gettimeofday(&stop, NULL);
 
 		__bail_on_rest_of_function = 1;
 		final_pass = 1;
-		sm_msg("Function too hairy.  Giving up.");
+		sm_msg("Function too hairy.  Giving up. %lu seconds",
+		       stop.tv_sec - fn_start_time.tv_sec);
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
 		return;
