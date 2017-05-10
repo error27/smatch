@@ -3,9 +3,11 @@
 # This is a generic script to parse --info output.  For the kernel, don't use
 # this script, use build_kernel_data.sh instead.
 
+NR_CPU=$(cat /proc/cpuinfo | grep ^processor | wc -l)
 SCRIPT_DIR=$(dirname $0)
 DATA_DIR=smatch_data
 PROJECT=smatch_generic
+TARGET=""
 
 function usage {
     echo
@@ -15,9 +17,17 @@ function usage {
     exit 1
 }
 
-if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
-	usage;
-fi
+while true ; do
+    if [[ "$1" == "--target" ]] ; then
+        shift
+        TARGET="$1"
+        shift
+    elif [ "$1" == "--help" ] || [ "$1" = "-h" ] ; then
+        usage
+    else
+        break
+    fi
+done
 
 if [ -e $SCRIPT_DIR/../smatch ] ; then
     BIN_DIR=$SCRIPT_DIR/../
@@ -37,7 +47,7 @@ if [ ! -e smatch_db.sqlite ] ; then
     fi
 fi
 
-make CHECK="$BIN_DIR/smatch --call-tree --info --param-mapper --spammy --file-output" $*
+make -j${NR_CPU} CHECK="$BIN_DIR/smatch --call-tree --info --param-mapper --spammy --file-output" $TARGET
 
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > smatch_warns.txt
 
