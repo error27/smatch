@@ -55,7 +55,7 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(sym_list, sym) {
-		if (sym->initializer)
+		if (sym->initializer && !(sym->ctype.modifiers & MOD_STATIC))
 			sm_msg("info: '%s' is not actually initialized (unreached code).",
 				(sym->ident ? sym->ident->name : "this variable"));
 	} END_FOR_EACH_PTR(sym);
