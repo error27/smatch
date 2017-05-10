@@ -56,10 +56,7 @@ static void register_no_return_funcs(void)
 	const char *func;
 	char name[256];
 
-	if (option_project == PROJ_NONE)
-		strcpy(name, "no_return_funcs");
-	else
-		snprintf(name, 256, "%s.no_return_funcs", option_project_str);
+	snprintf(name, 256, "%s.no_return_funcs", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)

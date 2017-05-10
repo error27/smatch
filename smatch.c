@@ -22,7 +22,7 @@
 #include "check_list.h"
 
 char *option_debug_check = (char *)"";
-char *option_project_str = (char *)"";
+char *option_project_str = (char *)"smatch_generic";
 enum project_type option_project = PROJ_NONE;
 char *data_dir;
 int option_no_data = 0;
@@ -249,6 +249,11 @@ static char *get_data_dir(char *arg0)
 		else
 			return alloc_string(option_datadir_str);
 	}
+
+	strncpy(buf, "smatch_data/", sizeof(buf));
+	dir = alloc_string(buf);
+	if (!access(dir, R_OK))
+		return dir;
 
 	orig = alloc_string(arg0);
 	bin_dir = dirname(orig);

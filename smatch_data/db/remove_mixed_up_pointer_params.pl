@@ -33,6 +33,9 @@ while (($file, $caller, $function, $param, $value) = $select->fetchrow_array()) 
 
     $select_type->execute($file, $caller, $src_param);
     $type = $select_type->fetchrow_array();
+    if (!$type) {
+        next;
+    }
     #FIXME: Why is this extra fetch() needed???
     $select_type->fetch();
 
