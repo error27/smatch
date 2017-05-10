@@ -88,16 +88,21 @@ static int common_false_positives(struct expression *array, char *name, sval_t m
 	/* Ugh... People are saying that Smatch still barfs on glibc strcmp()
 	 * functions.
 	 */
-	if (array && array->type == EXPR_STRING) {
+	if (array) {
 		char *macro;
 
-		if (max.value == array->string->length)
+		/* why is this again??? */
+		if (array->type == EXPR_STRING &&
+		    max.value == array->string->length)
 			return 1;
 
 		macro = get_macro_name(array->pos);
-		if (macro &&
-		    (strcmp(macro, "strcmp") == 0 ||
-		     strcmp(macro, "strncmp") == 0))
+		if (macro && max.uvalue < 4 &&
+		    (strcmp(macro, "strcmp")  == 0 ||
+		     strcmp(macro, "strncmp") == 0 ||
+		     strcmp(macro, "streq")   == 0 ||
+		     strcmp(macro, "strneq")  == 0 ||
+		     strcmp(macro, "strsep")  == 0))
 		    return 1;
 	}
 
