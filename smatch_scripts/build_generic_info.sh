@@ -37,7 +37,7 @@ if [ ! -e smatch_db.sqlite ] ; then
     fi
 fi
 
-make CHECK="$BIN_DIR/smatch --call-tree --info --param-mapper --spammy --file-output"
+make CHECK="$BIN_DIR/smatch --call-tree --info --param-mapper --spammy --file-output" $*
 
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > smatch_warns.txt
 
