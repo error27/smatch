@@ -65,7 +65,7 @@ char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct sy
 	return alloc_string(buf);
 }
 
-static char *map_my_state_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym)
+static char *map_my_state_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym, bool stack)
 {
 	int len;
 	char buf[256];
@@ -78,12 +78,14 @@ static char *map_my_state_long_to_short(struct sm_state *sm, const char *name, s
 
 	if (name[len] == '.')
 		return NULL;
+	if (!stack && name[len] != '-')
+		return NULL;
 	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + len);
 	*new_sym = sm->sym;
 	return alloc_string(buf);
 }
 
-static char *map_assignment_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym)
+static char *map_assignment_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym, bool stack)
 {
 	struct symbol *orig_sym;
 	int len;
@@ -104,6 +106,8 @@ static char *map_assignment_long_to_short(struct sm_state *sm, const char *name,
 
 	if (name[len] == '.')
 		return NULL;
+	if (!stack && name[len] != '-')
+		return NULL;
 	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + len);
 	*new_sym = sm->sym;
 	return alloc_string(buf);
@@ -118,7 +122,7 @@ static char *map_assignment_long_to_short(struct sm_state *sm, const char *name,
  * which in turn updates the longer name.
  *
  */
-char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+static char *map_long_to_short_name_sym_helper(const char *name, struct symbol *sym, struct symbol **new_sym, bool stack)
 {
 	char *ret;
 	struct sm_state *sm;
@@ -127,21 +131,30 @@ char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct sy
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner == my_id) {
-			ret = map_my_state_long_to_short(sm, name, sym, new_sym);
+			ret = map_my_state_long_to_short(sm, name, sym, new_sym, stack);
 			if (ret)
 				return ret;
 			continue;
 		}
 		if (sm->owner == check_assigned_expr_id) {
-			ret = map_assignment_long_to_short(sm, name, sym, new_sym);
+			ret = map_assignment_long_to_short(sm, name, sym, new_sym, stack);
 			if (ret)
 				return ret;
 			continue;
 		}
-
 	} END_FOR_EACH_SM(sm);
 
 	return NULL;
+}
+
+char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	return map_long_to_short_name_sym_helper(name, sym, new_sym, 1);
+}
+
+char *map_long_to_short_name_sym_nostack(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	return map_long_to_short_name_sym_helper(name, sym, new_sym, 0);
 }
 
 char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym)
