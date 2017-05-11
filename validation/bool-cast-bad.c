@@ -15,9 +15,6 @@ static _Bool fstse(struct s a) { return (_Bool)a; }
  * check-command: sparse $file
  *
  * check-error-start
-bool-cast-bad.c:8:41: warning: incorrect type in return expression (different base types)
-bool-cast-bad.c:8:41:    expected bool
-bool-cast-bad.c:8:41:    got restricted le16 [usertype] a
 bool-cast-bad.c:9:42: warning: cast from restricted le16
 bool-cast-bad.c:10:41: warning: incorrect type in return expression (different base types)
 bool-cast-bad.c:10:41:    expected bool

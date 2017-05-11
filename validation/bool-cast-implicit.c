@@ -21,8 +21,5 @@ static _Bool fres(le16 a) { return a; }
  * check-output-excludes: cast\\.
  *
  * check-error-start
-bool-cast-implicit.c:15:36: warning: incorrect type in return expression (different base types)
-bool-cast-implicit.c:15:36:    expected bool
-bool-cast-implicit.c:15:36:    got restricted le16 [usertype] a
  * check-error-end
  */

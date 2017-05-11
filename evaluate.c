@@ -1345,6 +1345,12 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 				return 1;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto Cast;
+                if (t == &bool_ctype) {
+                        if (is_fouled_type(s))
+                                warning((*rp)->pos, "%s degrades to integer",
+                                        show_typename(s->ctype.base_type));
+                        goto Cast;
+                }
 		*typediff = "different base types";
 		return 0;
 	}
