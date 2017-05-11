@@ -938,7 +938,7 @@ static void match_assign(struct expression *expr)
 	case SPECIAL_ADD_ASSIGN:
 		get_absolute_max(left, &left_max);
 		get_absolute_max(right, &right_max);
-		if (sval_binop_overflows(left_max, '+', right_max))
+		if (sval_binop_overflows(left_max, '+', sval_cast(left_type, right_max)))
 			break;
 		if (get_implied_min(left, &left_min) &&
 		    !sval_is_negative_min(left_min) &&
