@@ -825,6 +825,8 @@ void kill_unreachable_bbs(struct entrypoint *ep)
 		DELETE_CURRENT_PTR(bb);
 	} END_FOR_EACH_PTR(bb);
 	PACK_PTR_LIST(&ep->bbs);
+
+	repeat_phase &= ~REPEAT_CFG_CLEANUP;
 }
 
 static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)
