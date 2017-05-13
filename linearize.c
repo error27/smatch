@@ -646,7 +646,7 @@ static void remove_parent(struct basic_block *child, struct basic_block *parent)
 		kill_bb(child);
 }
 
-/* Change a "switch" into a branch */
+/* Change a "switch" or a conditional branch into a branch */
 void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
 {
 	struct instruction *br, *old;
@@ -655,6 +655,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 	/* Remove the switch */
 	old = delete_last_instruction(&bb->insns);
 	assert(old == jmp);
+	kill_instruction(old);
 
 	br = alloc_instruction(OP_BR, 0);
 	br->bb = bb;
