@@ -390,6 +390,7 @@ int in_var_sym_list(struct var_sym_list *list, const char *var, struct symbol *s
 struct var_sym_list *clone_var_sym_list(struct var_sym_list *from_vsl);
 void merge_var_sym_list(struct var_sym_list **dest, struct var_sym_list *src);
 struct var_sym_list *combine_var_sym_lists(struct var_sym_list *one, struct var_sym_list *two);
+int var_sym_lists_equiv(struct var_sym_list *one, struct var_sym_list *two);
 void free_var_sym_list(struct var_sym_list **list);
 void free_var_syms_and_list(struct var_sym_list **list);
 

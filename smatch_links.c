@@ -51,6 +51,14 @@ struct smatch_state *merge_link_states(struct smatch_state *s1, struct smatch_st
 {
 	struct var_sym_list *new_links;
 
+	if (s1 == &undefined)
+		return s2;
+	if (s2 == &undefined)
+		return s1;
+
+	if (var_sym_lists_equiv(s1->data, s2->data))
+		return s1;
+
 	new_links = clone_var_sym_list(s1->data);
 	merge_var_sym_list(&new_links, s2->data);
 

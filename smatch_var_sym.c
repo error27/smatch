@@ -63,14 +63,54 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 	return ret;
 }
 
+int cmp_var_sym(const struct var_sym *a, const struct var_sym *b)
+{
+	int ret;
+
+	if (a == b)
+		return 0;
+	if (!b)
+		return -1;
+	if (!a)
+		return 1;
+
+	ret = strcmp(a->var, b->var);
+	if (ret < 0)
+		return -1;
+	if (ret > 0)
+		return 1;
+
+	if (!b->sym && a->sym)
+		return -1;
+	if (!a->sym && b->sym)
+		return 1;
+	if (a->sym < b->sym)
+		return -1;
+	if (a->sym > b->sym)
+		return 1;
+
+	return 0;
+}
+
 void add_var_sym(struct var_sym_list **list, const char *var, struct symbol *sym)
 {
-	struct var_sym *tmp;
+	struct var_sym *tmp, *new;
 
 	if (in_var_sym_list(*list, var, sym))
 		return;
-	tmp = alloc_var_sym(var, sym);
-	add_ptr_list(list, tmp);
+	new = alloc_var_sym(var, sym);
+
+	FOR_EACH_PTR(*list, tmp) {
+		if (cmp_var_sym(tmp, new) < 0)
+			continue;
+		else if (cmp_var_sym(tmp, new) == 0) {
+			return;
+		} else {
+			INSERT_CURRENT(new, tmp);
+			return;
+		}
+	} END_FOR_EACH_PTR(tmp);
+	add_ptr_list(list, new);
 }
 
 void add_var_sym_expr(struct var_sym_list **list, struct expression *expr)
@@ -144,6 +184,34 @@ struct var_sym_list *combine_var_sym_lists(struct var_sym_list *one, struct var_
 	to_vsl = clone_var_sym_list(one);
 	merge_var_sym_list(&to_vsl, two);
 	return to_vsl;
+}
+
+int var_sym_lists_equiv(struct var_sym_list *one, struct var_sym_list *two)
+{
+	struct var_sym *one_tmp, *two_tmp;
+
+	if (one == two)
+		return 1;
+
+	if (ptr_list_size((struct ptr_list *)one) != ptr_list_size((struct ptr_list *)two))
+		return 0;
+
+	PREPARE_PTR_LIST(one, one_tmp);
+	PREPARE_PTR_LIST(two, two_tmp);
+	for (;;) {
+		if (!one_tmp && !two_tmp)
+			return 1;
+		if (one_tmp->sym != two_tmp->sym)
+			return 0;
+		if (strcmp(one_tmp->var, two_tmp->var) != 0)
+			return 0;
+		NEXT_PTR_LIST(one_tmp);
+		NEXT_PTR_LIST(two_tmp);
+	}
+	FINISH_PTR_LIST(two_tmp);
+	FINISH_PTR_LIST(one_tmp);
+
+	return 1;
 }
 
 void free_var_sym_list(struct var_sym_list **list)
