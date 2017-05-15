@@ -108,7 +108,9 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 	int match;
 
 	prev = get_state(my_id, name, sym);
-	set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
+
+	if (!__in_fake_assign)
+		set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner > num_checks)
