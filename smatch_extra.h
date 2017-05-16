@@ -152,7 +152,7 @@ struct smatch_state *clone_estate_perm(struct smatch_state *state);
 /* smatch_extra.c */
 struct smatch_state *get_extra_state(struct expression *expr);
 void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state);
-struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
+void set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state);
 void set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
 void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state);
 void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct smatch_state *state);

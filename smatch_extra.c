@@ -163,7 +163,7 @@ free:
 	return NULL;
 }
 
-struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
+void set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	char *new_name;
 	struct symbol *new_sym;
@@ -174,7 +174,6 @@ struct sm_state *set_extra_mod(const char *name, struct symbol *sym, struct smat
 	if (new_name && new_sym)
 		set_extra_mod_helper(new_name, new_sym, state);
 	free_string(new_name);
-	return sm;
 }
 
 static void clear_array_states(struct expression *array)
