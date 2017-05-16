@@ -79,13 +79,13 @@ void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_st
 	} END_FOR_EACH_PTR(fn);
 }
 
-struct sm_state *set_extra_mod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
+static void set_extra_mod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, state);
 	if (__in_fake_assign && estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
-		return NULL;
-	return set_state(SMATCH_EXTRA, name, sym, state);
+		return;
+	set_state(SMATCH_EXTRA, name, sym, state);
 }
 
 static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol **new_sym)
@@ -167,9 +167,8 @@ void set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *st
 {
 	char *new_name;
 	struct symbol *new_sym;
-	struct sm_state *sm;
 
-	sm = set_extra_mod_helper(name, sym, state);
+	set_extra_mod_helper(name, sym, state);
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
 		set_extra_mod_helper(new_name, new_sym, state);
