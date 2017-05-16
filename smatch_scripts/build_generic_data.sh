@@ -13,6 +13,7 @@ function usage {
     echo
     echo "Usage:  $0"
     echo "Updates the smatch_data/ directory and builds the smatch database"
+    echo " -p <project> (default = $PROJECT)"
     echo
     exit 1
 }
@@ -21,6 +22,10 @@ while true ; do
     if [[ "$1" == "--target" ]] ; then
         shift
         TARGET="$1"
+        shift
+    elif [ "$1" == "-p" ] || [ "$1" == "--project" ] ; then
+        shift
+        PROJECT="$1"
         shift
     elif [ "$1" == "--help" ] || [ "$1" = "-h" ] ; then
         usage
@@ -40,7 +45,7 @@ fi
 # required packages are installed
 if [ ! -e smatch_db.sqlite ] ; then
     [ -e smatch_warns.txt ] || touch smatch_warns.txt
-    if ! $SCRIPT_DIR/../smatch_data/db/create_db.sh -p=kernel smatch_warns.txt ; then
+    if ! $SCRIPT_DIR/../smatch_data/db/create_db.sh -p=$PROJECT smatch_warns.txt ; then
         echo "Hm... Not working.  Make sure you have all the sqlite3 packages"
         echo "And the sqlite3 libraries for Perl and Python"
         exit 1
@@ -58,5 +63,5 @@ done
 mkdir -p $DATA_DIR
 mv $PROJECT.* $DATA_DIR
 
-$SCRIPT_DIR/../smatch_data/db/create_db.sh smatch_warns.txt
+$SCRIPT_DIR/../smatch_data/db/create_db.sh -p=$PROJECT smatch_warns.txt
 
