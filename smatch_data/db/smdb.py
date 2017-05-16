@@ -92,7 +92,7 @@ def add_range(rl, min_val, max_val):
     ret = []
     idx = 0
 
-    if not ret:
+    if len(rl) == 0:
         return [[min_val, max_val]]
 
     for idx in range(len(rl)):
@@ -160,7 +160,7 @@ def add_range(rl, min_val, max_val):
         ret.append([cur_min, cur_max])
 
     if idx + 1 < len(rl):          # we hit a break statement
-        ret.append(rl[idx + 1:])
+        ret = ret + rl[idx + 1:]
     elif done:                     # we hit a break on the last iteration
         pass
     elif not check_next:           # it's past the end of the rl
@@ -345,6 +345,8 @@ def merge_values(param_names, vals, cur):
         if not parameter in vals:
             vals[parameter] = {}
 
+        # the first item on the list is the number of rows.  it's incremented
+        # every time we call merge_values().
         if name in vals[parameter]:
             vals[parameter][name] = [vals[parameter][name][0] + 1, rl_union(vals[parameter][name][1], rl)]
         else:
