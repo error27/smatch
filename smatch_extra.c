@@ -186,14 +186,13 @@ static void clear_array_states(struct expression *array)
 		match_link_modify(sm, NULL);
 }
 
-static struct sm_state *set_extra_array_mod(struct expression *expr, struct smatch_state *state)
+static void set_extra_array_mod(struct expression *expr, struct smatch_state *state)
 {
 	struct expression *array;
 	struct var_sym_list *vsl;
 	struct var_sym *vs;
 	char *name;
 	struct symbol *sym;
-	struct sm_state *ret = NULL;
 
 	array = get_array_base(expr);
 
@@ -208,29 +207,28 @@ static struct sm_state *set_extra_array_mod(struct expression *expr, struct smat
 	} END_FOR_EACH_PTR(vs);
 
 	call_extra_mod_hooks(name, sym, state);
-	ret = set_state(SMATCH_EXTRA, name, sym, state);
+	set_state(SMATCH_EXTRA, name, sym, state);
 free:
 	free_string(name);
-	return ret;
 }
 
-struct sm_state *set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
+void set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 {
 	struct symbol *sym;
 	char *name;
-	struct sm_state *ret = NULL;
 
-	if (is_array(expr))
-		return set_extra_array_mod(expr, state);
+	if (is_array(expr)) {
+		set_extra_array_mod(expr, state);
+		return;
+	}
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	ret = set_extra_mod(name, sym, state);
+	set_extra_mod(name, sym, state);
 free:
 	free_string(name);
-	return ret;
 }
 
 void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state)
