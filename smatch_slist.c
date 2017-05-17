@@ -108,9 +108,9 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 		return -1;
 	if (!a->sym && b->sym)
 		return 1;
-	if (a->sym > b->sym)
-		return -1;
 	if (a->sym < b->sym)
+		return -1;
+	if (a->sym > b->sym)
 		return 1;
 
 	return 0;
