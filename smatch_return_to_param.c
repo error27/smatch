@@ -87,14 +87,26 @@ static char *map_my_state_long_to_short(struct sm_state *sm, const char *name, s
 
 static char *map_assignment_long_to_short(struct sm_state *sm, const char *name, struct symbol *sym, struct symbol **new_sym, bool stack)
 {
+	struct expression *orig_expr;
 	struct symbol *orig_sym;
 	int len;
 	char buf[256];
 
-	if (!sm->state->data)
+	orig_expr = sm->state->data;
+	if (!orig_expr)
 		return NULL;
 
-	orig_sym = expr_to_sym(sm->state->data);
+	/*
+	 * Say we have an assignment like:
+	 *     foo->bar->my_ptr = my_ptr;
+	 * We still expect the function to carry on using "my_ptr" as the
+	 * shorter name.  That's not a long to short mapping.
+	 *
+	 */
+	if (orig_expr->type == EXPR_SYMBOL)
+		return NULL;
+
+	orig_sym = expr_to_sym(orig_expr);
 	if (!orig_sym)
 		return NULL;
 	if (sym != orig_sym)
