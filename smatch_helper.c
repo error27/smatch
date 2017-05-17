@@ -729,14 +729,10 @@ char *get_member_name(struct expression *expr)
 	if (!sym)
 		return NULL;
 	if (sym->type == SYM_UNION) {
-		sym = expr_to_sym(expr->deref);
-		sym = get_real_base_type(sym);
-		if (sym && sym->type == SYM_PTR)
-			sym = get_real_base_type(sym);
-		if (!sym || !sym->ident) {
-			snprintf(buf, sizeof(buf), "(union hack)->%s", expr->member->name);
-			return alloc_string(buf);
-		}
+		snprintf(buf, sizeof(buf), "(union %s)->%s",
+			 sym->ident ? sym->ident->name : "anonymous",
+			 expr->member->name);
+		return alloc_string(buf);
 	}
 	if (!sym->ident)
 		return NULL;
