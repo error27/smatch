@@ -20,6 +20,8 @@ extern int bits_in_long;
 extern int bits_in_longlong;
 extern int bits_in_longlonglong;
 
+extern int bits_in_wchar;
+
 extern int max_int_alignment;
 
 /*
