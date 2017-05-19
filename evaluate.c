@@ -2821,9 +2821,16 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		if ((class1 & TYPE_RESTRICT) && restricted_value(target, t1))
 			warning(expr->pos, "cast to %s",
 				show_typename(t1));
-		if (class2 & TYPE_RESTRICT)
-			warning(expr->pos, "cast from %s",
-				show_typename(t2));
+		if (class2 & TYPE_RESTRICT) {
+			if (t1 == &bool_ctype) {
+				if (class2 & TYPE_FOULED)
+					warning(expr->pos, "%s degrades to integer",
+						show_typename(t2));
+			} else {
+				warning(expr->pos, "cast from %s",
+					show_typename(t2));
+			}
+		}
 	}
 
 	if (t1 == &ulong_ctype)

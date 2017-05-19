@@ -19,8 +19,4 @@ static _Bool fres(le16 a) { return (_Bool)a; }
  * check-command: test-linearize -m64 $file
  * check-output-ignore
  * check-output-excludes: cast\\.
- *
- * check-error-start
-bool-cast-explicit.c:15:37: warning: cast from restricted le16
- * check-error-end
  */
