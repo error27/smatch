@@ -832,11 +832,16 @@ static void predefined_sizeof(const char *name, unsigned bits)
 	add_pre_buffer("#weak_define __SIZEOF_%s__ %d\n", name, bits/8);
 }
 
-static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
 	unsigned long long max = (1ULL << (bits - 1 )) - 1;
 
 	add_pre_buffer("#weak_define __%s_MAX__ %#llx%s\n", name, max, suffix);
+}
+
+static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+{
+	predefined_max(name, suffix, bits);
 	predefined_sizeof(name, bits);
 }
 
@@ -845,6 +850,10 @@ static void predefined_macros(void)
 	add_pre_buffer("#define __CHECKER__ 1\n");
 
 	predefined_sizeof("SHORT", bits_in_short);
+	predefined_max("SHRT", "", bits_in_short);
+	predefined_max("SCHAR", "", bits_in_char);
+	predefined_max("WCHAR", "", bits_in_wchar);
+	add_pre_buffer("#weak_define __CHAR_BIT__ %d\n", bits_in_char);
 
 	predefined_type_size("INT", "", bits_in_int);
 	predefined_type_size("LONG", "L", bits_in_long);
@@ -1068,12 +1077,6 @@ void create_builtin_stream(void)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
 		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
-
-	/* GCC defines these for limits.h */
-	add_pre_buffer("#weak_define __SHRT_MAX__ " STRINGIFY(__SHRT_MAX__) "\n");
-	add_pre_buffer("#weak_define __SCHAR_MAX__ " STRINGIFY(__SCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __WCHAR_MAX__ " STRINGIFY(__WCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __CHAR_BIT__ " STRINGIFY(__CHAR_BIT__) "\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
