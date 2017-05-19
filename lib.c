@@ -248,8 +248,13 @@ int Wuninitialized = 1;
 int Wunknown_attribute = 1;
 int Wvla = 1;
 
+int dump_macro_defs = 0;
+
 int dbg_entry = 0;
 int dbg_dead = 0;
+
+int fmem_report = 0;
+int fdump_linearize;
 
 int preprocess_only;
 
@@ -453,6 +458,25 @@ static void handle_arch_finalize(void)
 }
 
 
+static int handle_simple_switch(const char *arg, const char *name, int *flag)
+{
+	int val = 1;
+
+	// Prefixe "no-" mean to turn flag off.
+	if (strncmp(arg, "no-", 3) == 0) {
+		arg += 3;
+		val = 0;
+	}
+
+	if (strcmp(arg, name) == 0) {
+		*flag = val;
+		return 1;
+	}
+
+	// not handled
+	return 0;
+}
+
 static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o")) {       // "-o foo"
@@ -569,6 +593,19 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
+static struct warning dumps[] = {
+	{ "D", &dump_macro_defs},
+};
+
+static char **handle_switch_d(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, dumps, ARRAY_SIZE(dumps));
+	if (ret)
+		return ret;
+
+	return next;
+}
+
 
 static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
 {
@@ -647,19 +684,38 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_fdump(char *arg, char **next)
+{
+	if (!strncmp(arg, "linearize", 9)) {
+		arg += 9;
+		if (*arg == '\0')
+			fdump_linearize = 1;
+		else if (!strcmp(arg, "=only"))
+			fdump_linearize = 2;
+		else
+			goto err;
+	}
+
+	/* ignore others flags */
+	return next;
+
+err:
+	die("error: unknown flag \"-fdump-%s\"", arg);
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	arg++;
 
 	if (!strncmp(arg, "tabstop=", 8))
 		return handle_switch_ftabstop(arg+8, next);
+	if (!strncmp(arg, "dump-", 5))
+		return handle_switch_fdump(arg+5, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
+	if (handle_simple_switch(arg, "mem-report", &fmem_report))
+		return next;
 
-	if (!strncmp(arg, "no-", 3)) {
-		arg += 3;
-	}
-	/* handle switch here.. */
 	return next;
 }
 
@@ -802,6 +858,7 @@ static char **handle_switch(char *arg, char **next)
 	switch (*arg) {
 	case 'a': return handle_switch_a(arg, next);
 	case 'D': return handle_switch_D(arg, next);
+	case 'd': return handle_switch_d(arg, next);
 	case 'E': return handle_switch_E(arg, next);
 	case 'f': return handle_switch_f(arg, next);
 	case 'g': return handle_switch_g(arg, next);
@@ -834,11 +891,16 @@ static void predefined_sizeof(const char *name, unsigned bits)
 	add_pre_buffer("#weak_define __SIZEOF_%s__ %d\n", name, bits/8);
 }
 
-static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
 	unsigned long long max = (1ULL << (bits - 1 )) - 1;
 
 	add_pre_buffer("#weak_define __%s_MAX__ %#llx%s\n", name, max, suffix);
+}
+
+static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+{
+	predefined_max(name, suffix, bits);
 	predefined_sizeof(name, bits);
 }
 
@@ -847,6 +909,10 @@ static void predefined_macros(void)
 	add_pre_buffer("#define __CHECKER__ 1\n");
 
 	predefined_sizeof("SHORT", bits_in_short);
+	predefined_max("SHRT", "", bits_in_short);
+	predefined_max("SCHAR", "", bits_in_char);
+	predefined_max("WCHAR", "", bits_in_wchar);
+	add_pre_buffer("#weak_define __CHAR_BIT__ %d\n", bits_in_char);
 
 	predefined_type_size("INT", "", bits_in_int);
 	predefined_type_size("LONG", "L", bits_in_long);
@@ -1070,22 +1136,17 @@ void create_builtin_stream(void)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
 		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
-
-	/* GCC defines these for limits.h */
-	add_pre_buffer("#weak_define __SHRT_MAX__ " STRINGIFY(__SHRT_MAX__) "\n");
-	add_pre_buffer("#weak_define __SCHAR_MAX__ " STRINGIFY(__SCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __INT_MAX__ " STRINGIFY(__INT_MAX__) "\n");
-	add_pre_buffer("#weak_define __LONG_MAX__ " STRINGIFY(__LONG_MAX__) "\n");
-	add_pre_buffer("#weak_define __LONG_LONG_MAX__ " STRINGIFY(__LONG_LONG_MAX__) "\n");
-	add_pre_buffer("#weak_define __WCHAR_MAX__ " STRINGIFY(__WCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __SIZEOF_POINTER__ " STRINGIFY(__SIZEOF_POINTER__) "\n");
-	add_pre_buffer("#weak_define __CHAR_BIT__ " STRINGIFY(__CHAR_BIT__) "\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
 {
+	int builtin = token && !token->pos.stream;
+
 	// Preprocess the stream
 	token = preprocess(token);
+
+	if (dump_macro_defs && !builtin)
+		dump_macro_definitions();
 
 	if (preprocess_only) {
 		while (!eof_token(token)) {

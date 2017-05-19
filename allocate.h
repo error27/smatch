@@ -17,16 +17,25 @@ struct allocator_struct {
 	unsigned int allocations, total_bytes, useful_bytes;
 };
 
+struct allocator_stats {
+	const char *name;
+	unsigned int allocations;
+	unsigned long total_bytes, useful_bytes;
+};
+
 extern void protect_allocations(struct allocator_struct *desc);
 extern void drop_all_allocations(struct allocator_struct *desc);
 extern void *allocate(struct allocator_struct *desc, unsigned int size);
 extern void free_one_entry(struct allocator_struct *desc, void *entry);
 extern void show_allocations(struct allocator_struct *);
+extern void get_allocator_stats(struct allocator_struct *, struct allocator_stats *);
+extern void show_allocation_stats(void);
 
 #define __DECLARE_ALLOCATOR(type, x)		\
 	extern type *__alloc_##x(int);		\
 	extern void __free_##x(type *);		\
 	extern void show_##x##_alloc(void);	\
+	extern void get_##x##_stats(struct allocator_stats *);		\
 	extern void clear_##x##_alloc(void);	\
 	extern void protect_##x##_alloc(void);
 #define DECLARE_ALLOCATOR(x) __DECLARE_ALLOCATOR(struct x, x)
@@ -47,6 +56,10 @@ extern void show_allocations(struct allocator_struct *);
 	void show_##x##_alloc(void)				\
 	{							\
 		show_allocations(&x##_allocator);		\
+	}							\
+	void get_##x##_stats(struct allocator_stats *s)		\
+	{							\
+		get_allocator_stats(&x##_allocator, s);		\
 	}							\
 	void clear_##x##_alloc(void)				\
 	{							\

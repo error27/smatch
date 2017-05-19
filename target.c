@@ -22,6 +22,8 @@ int bits_in_long = 32;
 int bits_in_longlong = 64;
 int bits_in_longlonglong = 128;
 
+int bits_in_wchar = 32;
+
 int max_int_alignment = 4;
 
 /*

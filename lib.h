@@ -75,6 +75,7 @@ DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);
 DECLARE_PTR_LIST(multijmp_list, struct multijmp);
 DECLARE_PTR_LIST(pseudo_list, struct pseudo);
+DECLARE_PTR_LIST(ident_list, struct ident);
 DECLARE_PTR_LIST(string_list, char);
 
 typedef struct pseudo *pseudo_t;
@@ -134,17 +135,24 @@ extern int Wuninitialized;
 extern int Wunknown_attribute;
 extern int Wvla;
 
+extern int dump_macro_defs;
+
 extern int dbg_entry;
 extern int dbg_dead;
+
+extern int fmem_report;
+extern int fdump_linearize;
 
 extern int arch_m64;
 
 extern void declare_builtin_functions(void);
 extern void create_builtin_stream(void);
+extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
 extern struct symbol_list *__sparse(char *filename);
 extern struct symbol_list *sparse_keep_tokens(char *filename);
 extern struct symbol_list *sparse(char *filename);
+extern void report_stats(void);
 
 static inline int symbol_list_size(struct symbol_list *list)
 {
@@ -243,6 +251,11 @@ static inline void add_statement(struct statement_list **list, struct statement 
 static inline void add_expression(struct expression_list **list, struct expression *expr)
 {
 	add_ptr_list(list, expr);
+}
+
+static inline void add_ident(struct ident_list **list, struct ident *ident)
+{
+	add_ptr_list(list, ident);
 }
 
 #define hashval(x) ((unsigned long)(x))
