@@ -1072,6 +1072,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		return alloc_sname("");
 
 	if (get_implied_value(expr, &sval)) {
+		sval = sval_cast(cur_func_return_type(), sval);
 		*rl_p = alloc_rl(sval, sval);
 		return sval_to_str(sval);
 	}
