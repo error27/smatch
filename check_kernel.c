@@ -33,6 +33,44 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 	return 1;
 }
 
+static void hack_ERR_PTR(struct symbol *sym)
+{
+	struct symbol *arg;
+	struct smatch_state *estate;
+	struct range_list *after;
+	sval_t low_error = {
+		.type = &long_ctype,
+		.value = -4095,
+	};
+	sval_t minus_one = {
+		.type = &long_ctype,
+		.value = -1,
+	};
+	sval_t zero = {
+		.type = &long_ctype,
+		.value = 0,
+	};
+
+	if (!sym || !sym->ident)
+		return;
+	if (strcmp(sym->ident->name, "ERR_PTR") != 0)
+		return;
+
+	arg = first_ptr_list((struct ptr_list *)sym->ctype.base_type->arguments);
+	if (!arg || !arg->ident || strcmp(arg->ident->name, "error") != 0)
+		return;
+
+	estate = get_state(SMATCH_EXTRA, "error", arg);
+	if (!estate) {
+		after = alloc_rl(low_error, minus_one);
+	} else {
+		after = rl_intersection(estate_rl(estate), alloc_rl(low_error, zero));
+		if (rl_equiv(estate_rl(estate), after))
+			return;
+	}
+	set_state(SMATCH_EXTRA, arg->ident->name, arg, alloc_estate_rl(after));
+}
+
 static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 			struct expression *assign_expr, void *_param)
 {
@@ -277,6 +315,7 @@ void check_kernel(int id)
 	add_implied_return_hook("ERR_PTR", &implied_err_cast_return, NULL);
 	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
 	add_implied_return_hook("PTR_ERR", &implied_err_cast_return, NULL);
+	add_hook(hack_ERR_PTR, AFTER_DEF_HOOK);
 	return_implies_state("IS_ERR_OR_NULL", 0, 0, &match_param_valid_ptr, (void *)0);
 	return_implies_state("IS_ERR_OR_NULL", 1, 1, &match_param_err_or_null, (void *)0);
 	return_implies_state("IS_ERR", 0, 0, &match_not_err, NULL);
@@ -296,5 +335,4 @@ void check_kernel(int id)
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
-
 }
