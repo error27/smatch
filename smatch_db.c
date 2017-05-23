@@ -316,7 +316,7 @@ static void sql_select_return_states_pointer(const char *cols,
 	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
 	char *ptr;
-	int return_count;
+	int return_count = 0;
 
 	ptr = get_fnptr_name(call->fn);
 	if (!ptr)
@@ -350,7 +350,7 @@ static int is_local_symbol(struct expression *expr)
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
-	int row_count;
+	int row_count = 0;
 
 	if (is_fake_call(call))
 		return;
