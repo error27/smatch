@@ -2080,6 +2080,24 @@ static int rl_fits_in_type(struct range_list *rl, struct symbol *type)
 	return 1;
 }
 
+static int basically_the_same(struct range_list *orig, struct range_list *new)
+{
+	if (rl_equiv(orig, new))
+		return 1;
+
+	/*
+	 * The whole range is essentially the same as 0,4096-27777777777 so
+	 * don't overwrite the implications just to store that.
+	 *
+	 */
+	if (rl_type(orig)->type == SYM_PTR &&
+	    is_whole_rl(orig) &&
+	    rl_min(new).value == 0 &&
+	    rl_max(new).value == valid_ptr_max)
+		return 1;
+	return 0;
+}
+
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
@@ -2128,8 +2146,8 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	new = cast_rl(var_type, new);
 
 	/* We want to preserve the implications here */
-	if (sm && rl_equiv(estate_rl(sm->state), new))
-		__set_sm(sm);
+	if (sm && basically_the_same(estate_rl(sm->state), new))
+		__set_sm(sm);  /* FIXME:  Is this really necessary? */
 	else {
 		char *tmp_name;
 		struct symbol *tmp_sym;
