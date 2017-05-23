@@ -824,6 +824,26 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 							estate_rl(abs_state)));
 		} else if (estate_rl(state)) {
 			return clone_rl(estate_rl(state));
+		} else if (state && estate_is_empty(state)) {
+			/*
+			 * FIXME: we don't handle empty extra states correctly.
+			 *
+			 * The real abs rl is supposed to be filtered by the
+			 * extra state if there is one.  We don't bother keeping
+			 * the abs state in sync all the time because we know it
+			 * will be filtered later.
+			 *
+			 * It's not totally obvious to me how they should be
+			 * handled.  Perhaps we should take the whole rl and
+			 * filter by the imaginary states.  Perhaps we should
+			 * just go with the empty state.
+			 *
+			 * Anyway what we currently do is return NULL here and
+			 * that gets translated into the whole range in
+			 * get_real_absolute_rl().
+			 *
+			 */
+			return NULL;
 		} else if (estate_rl(abs_state)) {
 			return clone_rl(estate_rl(abs_state));
 		}
