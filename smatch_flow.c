@@ -45,6 +45,8 @@ int __in_function_def;
 static struct expression_list *switch_expr_stack = NULL;
 static struct expression_list *post_op_stack = NULL;
 
+static struct ptr_list *backup;
+
 struct expression_list *big_expression_stack;
 struct statement_list *big_statement_stack;
 struct statement *__prev_stmt;
@@ -56,7 +58,7 @@ static struct timeval fn_start_time;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int inside_loop(void) { return !!loop_count; }
-int definitely_inside_loop(void) { return !!(loop_count & ~0x80000000); }
+int definitely_inside_loop(void) { return !!(loop_count & ~0x08000000); }
 struct expression *get_switch_expr(void) { return top_expression(switch_expr_stack); }
 int in_expression_statement(void) { return !!__expr_stmt_count; }
 
@@ -942,7 +944,7 @@ void __split_label_stmt(struct statement *stmt)
 	if (stmt->label_identifier &&
 	    stmt->label_identifier->type == SYM_LABEL &&
 	    stmt->label_identifier->ident) {
-		loop_count |= 0x80000000;
+		loop_count |= 0x0800000;
 		__merge_gotos(stmt->label_identifier->ident->name, stmt->label_identifier);
 	}
 }
@@ -1510,18 +1512,47 @@ static void split_function(struct symbol *sym)
 	__bail_on_rest_of_function = 0;
 }
 
+static void save_flow_state(void)
+{
+	__add_ptr_list(&backup, INT_PTR(loop_num << 2), 0);
+	__add_ptr_list(&backup, INT_PTR(loop_count << 2), 0);
+	__add_ptr_list(&backup, INT_PTR(final_pass << 2), 0);
+
+	__add_ptr_list(&backup, big_statement_stack, 0);
+	__add_ptr_list(&backup, big_expression_stack, 0);
+	__add_ptr_list(&backup, big_condition_stack, 0);
+	__add_ptr_list(&backup, switch_expr_stack, 0);
+
+	__add_ptr_list(&backup, cur_func_sym, 0);
+}
+
+static void *pop_backup(void)
+{
+	void *ret;
+
+	ret = last_ptr_list(backup);
+	delete_ptr_list_last(&backup);
+	return ret;
+}
+
+static void restore_flow_state(void)
+{
+	cur_func_sym = pop_backup();
+	switch_expr_stack = pop_backup();
+	big_condition_stack = pop_backup();
+	big_expression_stack = pop_backup();
+	big_statement_stack = pop_backup();
+	final_pass = PTR_INT(pop_backup()) >> 2;
+	loop_count = PTR_INT(pop_backup()) >> 2;
+	loop_num = PTR_INT(pop_backup()) >> 2;
+}
+
 static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
-	int loop_num_bak = loop_num;
-	int loop_count_bak = loop_count;
-	int final_pass_bak = final_pass;
-	char *cur_func_bak = cur_func;
-	struct statement_list *big_statement_stack_bak = big_statement_stack;
-	struct expression_list *big_expression_stack_bak = big_expression_stack;
-	struct expression_list *big_condition_stack_bak = big_condition_stack;
-	struct expression_list *switch_expr_stack_bak = switch_expr_stack;
-	struct symbol *cur_func_sym_bak = cur_func_sym;
+	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
+
+	save_flow_state();
 
 	__pass_to_client(call, INLINE_FN_START);
 	final_pass = 0;  /* don't print anything */
@@ -1555,15 +1586,8 @@ static void parse_inline(struct expression *call)
 	nullify_path();
 	free_goto_stack();
 
-	loop_num = loop_num_bak;
-	loop_count = loop_count_bak;
-	final_pass = final_pass_bak;
-	cur_func_sym = cur_func_sym_bak;
+	restore_flow_state();
 	cur_func = cur_func_bak;
-	big_statement_stack = big_statement_stack_bak;
-	big_expression_stack = big_expression_stack_bak;
-	big_condition_stack = big_condition_stack_bak;
-	switch_expr_stack = switch_expr_stack_bak;
 
 	restore_all_states();
 	set_position(call->pos);
