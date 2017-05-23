@@ -1524,6 +1524,11 @@ static void save_flow_state(void)
 	__add_ptr_list(&backup, switch_expr_stack, 0);
 
 	__add_ptr_list(&backup, cur_func_sym, 0);
+
+	__add_ptr_list(&backup, __prev_stmt, 0);
+	__add_ptr_list(&backup, __cur_stmt, 0);
+	__add_ptr_list(&backup, __next_stmt, 0);
+
 }
 
 static void *pop_backup(void)
@@ -1537,6 +1542,10 @@ static void *pop_backup(void)
 
 static void restore_flow_state(void)
 {
+	__next_stmt = pop_backup();
+	__cur_stmt = pop_backup();
+	__prev_stmt = pop_backup();
+
 	cur_func_sym = pop_backup();
 	switch_expr_stack = pop_backup();
 	big_condition_stack = pop_backup();
