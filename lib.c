@@ -257,6 +257,7 @@ int dbg_dead = 0;
 
 int fmem_report = 0;
 int fdump_linearize;
+unsigned long long fmemcpy_max_count = 100000;
 
 int preprocess_only;
 
@@ -671,6 +672,21 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_fmemcpy_max_count(char *arg, char **next)
+{
+	unsigned long long val;
+	char *end;
+
+	val = strtoull(arg, &end, 0);
+	if (*end != '\0' || end == arg)
+		die("error: missing argument to \"-fmemcpy-max-count=\"");
+
+	if (val == 0)
+		val = ~0ULL;
+	fmemcpy_max_count = val;
+	return next;
+}
+
 static char **handle_switch_ftabstop(char *arg, char **next)
 {
 	char *end;
@@ -714,6 +730,8 @@ static char **handle_switch_f(char *arg, char **next)
 		return handle_switch_ftabstop(arg+8, next);
 	if (!strncmp(arg, "dump-", 5))
 		return handle_switch_fdump(arg+5, next);
+	if (!strncmp(arg, "memcpy-max-count=", 17))
+		return handle_switch_fmemcpy_max_count(arg+17, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
 	if (handle_simple_switch(arg, "mem-report", &fmem_report))

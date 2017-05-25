@@ -216,6 +216,9 @@ Warn about call of \fBmemcpy()\fR, \fBmemset()\fR, \fBcopy_from_user()\fR, or
 
 Sparse issues these warnings by default. To turn them off, use
 \fB\-Wno\-memcpy\-max\-count\fR.
+
+The limit can be changed with \fB\-fmemcpy\-max\-count=COUNT\fR,
+the default being \fB100000\fR.
 .
 .TP
 .B \-Wnon\-pointer\-null
@@ -363,6 +366,12 @@ also given no further processing is done on the function.
 Report some statistics about memory allocation used by the tool.
 .
 .SH OTHER OPTIONS
+.TP
+.B \-fmemcpy-max-count=COUNT
+Set the limit for the warnings given by \fB-Wmemcpy-max-count\fR.
+A COUNT of 0, useless in itself, will effectively disable the warning.
+The default limit is 100000.
+.
 .TP
 .B \-ftabstop=WIDTH
 Set the distance between tab stops.  This helps sparse report correct
