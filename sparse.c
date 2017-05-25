@@ -152,9 +152,9 @@ static void check_byte_count(struct instruction *insn, pseudo_t count)
 	if (!count)
 		return;
 	if (count->type == PSEUDO_VAL) {
-		long long val = count->value;
-		if (val <= 0 || val > 100000)
-			warning(insn->pos, "%s with byte count of %lld",
+		unsigned long long val = count->value;
+		if (val > 100000ULL)
+			warning(insn->pos, "%s with byte count of %llu",
 				show_ident(insn->func->sym->ident), val);
 		return;
 	}
