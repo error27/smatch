@@ -46,5 +46,5 @@ DEFINE_CASTS(double)
 
 /*
  * check-name: Cast code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

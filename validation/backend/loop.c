@@ -17,5 +17,5 @@ int foo (int x)
 
 /*
  * check-name: Loops
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

@@ -8,5 +8,5 @@ static void test(void) {
 
 /*
  * check-name: Type of loaded objects
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

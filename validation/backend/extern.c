@@ -7,5 +7,5 @@ static unsigned long bar(void)
 
 /*
  * check-name: Extern symbol code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

@@ -24,5 +24,5 @@ static void store_d(struct st *st, int *d)
 
 /*
  * check-name: struct access code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */
