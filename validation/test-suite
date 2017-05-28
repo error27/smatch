@@ -206,12 +206,6 @@ do_test()
 
 	verbose "Using command       : $cmd"
 
-	# grab the expected output
-	sed -n '/check-output-start/,/check-output-end/p' $file \
-		| grep -v check-output > "$file".output.expected
-	sed -n '/check-error-start/,/check-error-end/p' $file \
-		| grep -v check-error > "$file".error.expected
-
 	# grab the expected exit value
 	expected_exit_value=$check_exit_value
 	verbose "Expecting exit value: $expected_exit_value"
@@ -229,6 +223,10 @@ do_test()
 	for stream in output error; do
 		eval ignore=\$check_${stream}_ignore
 		[ $ignore -eq 1 ] && continue
+
+		# grab the expected output
+		sed -n "/check-$stream-start/,/check-$stream-end/p" $file \
+		| grep -v check-$stream > "$file".$stream.expected
 
 		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
 		if [ "$?" -ne "0" ]; then
