@@ -244,22 +244,27 @@ do_test()
 	fi
 
 	# verify the 'check-output-contains/excludes' tags
-	has_each_patterns "$file" 'check-output-contains' $file.output.got
-	if [ "$?" -ne "0" ]; then
-		error "Actual output doesn't contain some of the expected patterns."
-		test_failed=1
+	if [ $check_output_contains -eq 1 ]; then
+		has_each_patterns "$file" 'check-output-contains' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output doesn't contain some of the expected patterns."
+			test_failed=1
+		fi
 	fi
-	has_none_patterns "$file" 'check-output-excludes' $file.output.got
-	if [ "$?" -ne "0" ]; then
-		error "Actual output contains some patterns which are not expected."
-		test_failed=1
+	if [ $check_output_excludes -eq 1 ]; then
+		has_none_patterns "$file" 'check-output-excludes' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output contains some patterns which are not expected."
+			test_failed=1
+		fi
 	fi
-
-	# verify the 'check-output-pattern-X-times' tags
-	nbr_patterns "$file" 'check-output-pattern' $file.output.got
-	if [ "$?" -ne "0" ]; then
-		error "Actual output doesn't contain the pattern the expected number."
-		test_failed=1
+	if [ $check_output_pattern -eq 1 ]; then
+		# verify the 'check-output-pattern-X-times' tags
+		nbr_patterns "$file" 'check-output-pattern' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output doesn't contain the pattern the expected number."
+			test_failed=1
+		fi
 	fi
 
 	[ "$test_failed" -eq "$must_fail" ] || failed=1
