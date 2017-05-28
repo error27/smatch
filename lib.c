@@ -513,7 +513,7 @@ static char **handle_switch_o(char *arg, char **next)
 	return next;
 }
 
-static const struct warning {
+static const struct flag {
 	const char *name;
 	int *flag;
 } warnings[] = {
@@ -558,7 +558,7 @@ enum {
 };
 
 
-static char **handle_onoff_switch(char *arg, char **next, const struct warning warnings[], int n)
+static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
 {
 	int flag = WARNING_ON;
 	char *p = arg + 1;
@@ -600,7 +600,7 @@ static char **handle_switch_W(char *arg, char **next)
 	return next;
 }
 
-static struct warning debugs[] = {
+static struct flag debugs[] = {
 	{ "entry", &dbg_entry},
 	{ "dead", &dbg_dead},
 };
@@ -619,7 +619,7 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
-static struct warning dumps[] = {
+static struct flag dumps[] = {
 	{ "D", &dump_macro_defs},
 };
 
@@ -633,7 +633,7 @@ static char **handle_switch_d(char *arg, char **next)
 }
 
 
-static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
+static void handle_onoff_switch_finalize(const struct flag warnings[], int n)
 {
 	unsigned i;
 
