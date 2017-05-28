@@ -578,6 +578,8 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 
 		// boolean flag
 		if (opt[0] == '\0' && flags->flag) {
+			if (flags->mask & OPT_INVERSE)
+				val = !val;
 			*flags->flag = val;
 			return 1;
 		}
