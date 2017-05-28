@@ -263,6 +263,7 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
+int funsigned_char = 0;
 
 int preprocess_only;
 
@@ -878,6 +879,8 @@ static struct flag fflags[] = {
 	{ "tabstop=",		NULL,	handle_ftabstop },
 	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
 	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
+	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
+	{ "unsigned-char",	&funsigned_char, NULL, },
 	{ },
 };
 
