@@ -483,7 +483,12 @@ char *match_option(char *arg, const char *prefix)
 	return NULL;
 }
 
-static int handle_simple_switch(const char *arg, const char *name, int *flag)
+struct flag {
+	const char *name;
+	int *flag;
+};
+
+static int handle_simple_switch(const char *arg, const struct flag *flags)
 {
 	int val = 1;
 
@@ -493,9 +498,11 @@ static int handle_simple_switch(const char *arg, const char *name, int *flag)
 		val = 0;
 	}
 
-	if (strcmp(arg, name) == 0) {
-		*flag = val;
-		return 1;
+	for (; flags->name; flags++) {
+		if (strcmp(arg, flags->name) == 0) {
+			*flags->flag = val;
+			return 1;
+		}
 	}
 
 	// not handled
@@ -513,10 +520,7 @@ static char **handle_switch_o(char *arg, char **next)
 	return next;
 }
 
-static const struct flag {
-	const char *name;
-	int *flag;
-} warnings[] = {
+static const struct flag warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
@@ -745,6 +749,11 @@ err:
 	die("error: unknown flag \"-fdump-%s\"", arg);
 }
 
+static struct flag fflags[] = {
+	{ "mem-report",			&fmem_report },
+	{ },
+};
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	char *opt;
@@ -758,7 +767,7 @@ static char **handle_switch_f(char *arg, char **next)
 		return handle_switch_fmemcpy_max_count(opt, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
-	if (handle_simple_switch(arg, "mem-report", &fmem_report))
+	if (handle_simple_switch(arg, fflags))
 		return next;
 
 	return next;
