@@ -180,7 +180,7 @@ do_test()
 	# (it has to have a check-name key in it)
 	if [ "$check_name" = "" ]; then
 		echo "warning: test '$file' unhandled"
-		unhandled_tests=`expr $unhandled_tests + 1`
+		unhandled_tests=$(($unhandled_tests + 1))
 		return 2
 	fi
 	test_name="$check_name"
@@ -196,7 +196,7 @@ do_test()
 	base_cmd=`basename $1`
 	for i in $disabled_cmds; do
 		if [ "$i" = "$base_cmd" ] ; then
-			disabled_tests=`expr $disabled_tests + 1`
+			disabled_tests=$(($disabled_tests + 1))
 			echo "     DISABLE $test_name ($file)"
 			return 3
 		fi
@@ -218,7 +218,7 @@ do_test()
 	must_fail=$check_known_to_fail
 	quiet=0
 	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
-	known_ko_tests=`expr $known_ko_tests + $must_fail`
+	known_ko_tests=$(($known_ko_tests + $must_fail))
 
 	for stream in output error; do
 		eval ignore=\$check_${stream}_ignore
@@ -279,9 +279,9 @@ do_test()
 	fi
 
 	if [ "$test_failed" -eq "1" ]; then
-		ko_tests=`expr $ko_tests + 1`
+		ko_tests=$(($ko_tests + 1))
 	else
-		ok_tests=`expr $ok_tests + 1`
+		ok_tests=$(($ok_tests + 1))
 		rm -f $file.{error,output}.{expected,got,diff}
 	fi
 	return $test_failed
@@ -294,7 +294,7 @@ do_test_suite()
 	done
 
 	# prints some numbers
-	tests_nr=`expr $ok_tests + $ko_tests`
+	tests_nr=$(($ok_tests + $ko_tests))
 	echo -n "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed"
 	echo " ($known_ko_tests of them are known to fail)"
 	if [ "$unhandled_tests" -ne "0" ]; then
