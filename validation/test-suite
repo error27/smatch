@@ -189,11 +189,10 @@ do_test()
 	if [ "$check_command" = "" ]; then
 		check_command="$defaut_command"
 	fi
-	cmd=`eval echo $default_path/$check_command`
 
 	# check for disabled commands
-	set -- $cmd
-	base_cmd=`basename $1`
+	set -- $check_command
+	base_cmd=$1
 	for i in $disabled_cmds; do
 		if [ "$i" = "$base_cmd" ] ; then
 			disabled_tests=$(($disabled_tests + 1))
@@ -201,6 +200,8 @@ do_test()
 			return 3
 		fi
 	done
+
+	cmd=`eval echo $default_path/$check_command`
 
 	echo "     TEST    $test_name ($file)"
 
