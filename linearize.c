@@ -2429,11 +2429,15 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		return NULL;
 
 	ep = alloc_entrypoint();
-	bb = alloc_basic_block(ep, sym->pos);
-	
 	ep->name = sym;
 	sym->ep = ep;
+	bb = alloc_basic_block(ep, sym->pos);
 	set_activeblock(ep, bb);
+
+	if (stmt->type == STMT_ASM) {	// top-level asm
+		linearize_asm_statement(ep, stmt);
+		return ep;
+	}
 
 	entry = alloc_instruction(OP_ENTRY, 0);
 	add_one_insn(ep, entry);

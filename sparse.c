@@ -315,7 +315,7 @@ static void check_symbols(struct symbol_list *list)
 
 		expand_symbol(sym);
 		ep = linearize_symbol(sym);
-		if (ep) {
+		if (ep && ep->entry) {
 			if (dbg_entry)
 				show_entry(ep);
 
