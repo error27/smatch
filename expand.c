@@ -158,11 +158,9 @@ Float:
 	expr->type = EXPR_FVALUE;
 }
 
-static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
+static void check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
 {
 	warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
-	count &= ctype->bit_size-1;
-	return count;
 }
 
 /*
@@ -186,8 +184,7 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 		if (r >= ctype->bit_size) {
 			if (conservative)
 				return 0;
-			r = check_shift_count(expr, ctype, r);
-			right->value = r;
+			check_shift_count(expr, ctype, r);
 		}
 	}
 	if (left->type != EXPR_VALUE)
