@@ -472,12 +472,18 @@ static pseudo_t eval_insn(struct instruction *insn)
 		res = left % right;
 		break;
 	case OP_SHL:
+		if (ur >= size)
+			goto undef;
 		res = left << right;
 		break;
 	case OP_LSR:
+		if (ur >= size)
+			goto undef;
 		res = ul >> ur;
 		break;
 	case OP_ASR:
+		if (ur >= size)
+			goto undef;
 		res = left >> right;
 		break;
        /* Logical */
