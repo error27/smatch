@@ -45,6 +45,17 @@ extern struct pseudo void_pseudo;
 
 #define VOID (&void_pseudo)
 
+static inline bool is_zero(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL && pseudo->value == 0;
+}
+
+static inline bool is_nonzero(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL && pseudo->value != 0;
+}
+
+
 struct multijmp {
 	struct basic_block *target;
 	long long begin, end;
