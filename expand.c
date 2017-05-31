@@ -162,6 +162,8 @@ static void check_shift_count(struct expression *expr, struct symbol *ctype, uns
 {
 	if (count < ctype->bit_size)
 		return;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
 	warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
 }
 
