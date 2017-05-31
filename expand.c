@@ -558,11 +558,30 @@ static int expand_conditional(struct expression *expr)
 
 	return cost + cond_cost + BRANCH_COST;
 }
-		
+
+static void check_assignment(struct expression *expr)
+{
+	struct expression *right;
+
+	switch (expr->op) {
+	case SPECIAL_SHL_ASSIGN:
+	case SPECIAL_SHR_ASSIGN:
+		right = expr->right;
+		if (right->type != EXPR_VALUE)
+			break;
+		check_shift_count(expr, expr->ctype, right->value);
+		break;
+	}
+	return;
+}
+
 static int expand_assignment(struct expression *expr)
 {
 	expand_expression(expr->left);
 	expand_expression(expr->right);
+
+	if (!conservative)
+		check_assignment(expr);
 	return SIDE_EFFECTS;
 }
 

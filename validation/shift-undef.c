@@ -27,6 +27,35 @@ int simple(int s, unsigned int u, int p)
 	return s + u;
 }
 
+int compound(int s, unsigned int u, int p)
+{
+	s >>= 100;
+	u >>= 101;
+	u <<= 102;
+	s >>=  -1;
+	u >>=  -2;
+	u <<=  -3;
+	if (0) return s >>= 103;
+	if (0) return u >>= 104;
+	if (0) return u <<= 105;
+	if (0) return s >>=  -4;
+	if (0) return u >>=  -5;
+	if (0) return u <<=  -6;
+	if (p && 0) return s >>= 106;
+	if (p && 0) return u >>= 107;
+	if (p && 0) return u <<= 108;
+	if (p && 0) return s >>=  -7;
+	if (p && 0) return u >>=  -8;
+	if (p && 0) return u <<=  -9;
+	s >>= ((p & 0) + 109);
+	u >>= ((p & 0) + 110);
+	u <<= ((p & 0) + 111);
+	s >>= ((p & 0) + -10);
+	u >>= ((p & 0) + -11);
+	u <<= ((p & 0) + -12);
+	return s + u;
+}
+
 int ok(int s, unsigned int u, int p)
 {
 	// GCC doesn't warn on these
@@ -69,5 +98,24 @@ shift-undef.c:18:30: warning: shift too big (4294967289) for type int
 shift-undef.c:19:30: warning: shift too big (4294967288) for type unsigned int
 shift-undef.c:20:30: warning: shift too big (4294967287) for type unsigned int
 shift-undef.c:21:29: warning: right shift by bigger than source value
+shift-undef.c:32:11: warning: shift too big (100) for type int
+shift-undef.c:33:11: warning: shift too big (101) for type unsigned int
+shift-undef.c:34:11: warning: shift too big (102) for type unsigned int
+shift-undef.c:35:11: warning: shift too big (4294967295) for type int
+shift-undef.c:36:11: warning: shift too big (4294967294) for type unsigned int
+shift-undef.c:37:11: warning: shift too big (4294967293) for type unsigned int
+shift-undef.c:38:25: warning: shift too big (103) for type int
+shift-undef.c:39:25: warning: shift too big (104) for type unsigned int
+shift-undef.c:40:25: warning: shift too big (105) for type unsigned int
+shift-undef.c:41:25: warning: shift too big (4294967292) for type int
+shift-undef.c:42:25: warning: shift too big (4294967291) for type unsigned int
+shift-undef.c:43:25: warning: shift too big (4294967290) for type unsigned int
+shift-undef.c:44:30: warning: shift too big (106) for type int
+shift-undef.c:45:30: warning: shift too big (107) for type unsigned int
+shift-undef.c:46:30: warning: shift too big (108) for type unsigned int
+shift-undef.c:47:30: warning: shift too big (4294967289) for type int
+shift-undef.c:48:30: warning: shift too big (4294967288) for type unsigned int
+shift-undef.c:49:30: warning: shift too big (4294967287) for type unsigned int
+shift-undef.c:50:26: warning: right shift by bigger than source value
  * check-error-end
  */
