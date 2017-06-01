@@ -540,7 +540,7 @@ undef:
 }
 
 
-static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long value)
+static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
 	unsigned int size;
 
@@ -660,14 +660,14 @@ static int simplify_constant_rightside(struct instruction *insn)
 		}
 	/* Fall through */
 	case OP_ADD:
-	case OP_SHL:
-	case OP_LSR:
 	case_neutral_zero:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
 	case OP_ASR:
-		return simplify_asr(insn, insn->src1, value);
+	case OP_SHL:
+	case OP_LSR:
+		return simplify_shift(insn, insn->src1, value);
 
 	case OP_MODU: case OP_MODS:
 		if (value == 1)

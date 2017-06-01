@@ -98,7 +98,11 @@ shift-undef.c:18:30: warning: shift too big (4294967289) for type int
 shift-undef.c:19:30: warning: shift too big (4294967288) for type unsigned int
 shift-undef.c:20:30: warning: shift too big (4294967287) for type unsigned int
 shift-undef.c:21:29: warning: right shift by bigger than source value
+shift-undef.c:22:29: warning: right shift by bigger than source value
+shift-undef.c:23:29: warning: right shift by bigger than source value
 shift-undef.c:24:29: warning: right shift by bigger than source value
+shift-undef.c:25:29: warning: right shift by bigger than source value
+shift-undef.c:26:29: warning: right shift by bigger than source value
 shift-undef.c:32:11: warning: shift too big (100) for type int
 shift-undef.c:33:11: warning: shift too big (101) for type unsigned int
 shift-undef.c:34:11: warning: shift too big (102) for type unsigned int
@@ -118,6 +122,10 @@ shift-undef.c:47:30: warning: shift too big (4294967289) for type int
 shift-undef.c:48:30: warning: shift too big (4294967288) for type unsigned int
 shift-undef.c:49:30: warning: shift too big (4294967287) for type unsigned int
 shift-undef.c:50:26: warning: right shift by bigger than source value
+shift-undef.c:51:26: warning: right shift by bigger than source value
+shift-undef.c:52:26: warning: right shift by bigger than source value
 shift-undef.c:53:26: warning: right shift by bigger than source value
+shift-undef.c:54:26: warning: right shift by bigger than source value
+shift-undef.c:55:26: warning: right shift by bigger than source value
  * check-error-end
  */
