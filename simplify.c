@@ -542,14 +542,16 @@ undef:
 
 static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long value)
 {
-	unsigned int size = operand_size(insn, pseudo);
+	unsigned int size;
 
+	if (!value)
+		return replace_with_pseudo(insn, pseudo);
+
+	size = operand_size(insn, pseudo);
 	if (value >= size && !insn->tainted) {
 		warning(insn->pos, "right shift by bigger than source value");
 		insn->tainted = 1;
 	}
-	if (!value)
-		return replace_with_pseudo(insn, pseudo);
 	return 0;
 }
 
