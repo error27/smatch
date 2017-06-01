@@ -547,7 +547,6 @@ static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long val
 	if (value >= size && !insn->tainted) {
 		warning(insn->pos, "right shift by bigger than source value");
 		insn->tainted = 1;
-		return replace_with_pseudo(insn, value_pseudo(0));
 	}
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
