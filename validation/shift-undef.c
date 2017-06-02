@@ -74,6 +74,39 @@ int ok(int s, unsigned int u, int p)
 	return 1;
 }
 
+struct bf {
+	unsigned int u:8;
+	         int s:8;
+};
+
+int bf(struct bf *p)
+{
+	unsigned int r = 0;
+	r += p->s << 8;
+	r += p->s >> 8;
+	r += p->u >> 8;
+	return r;
+}
+
+/*
+ * The following is used in the kernel at several places
+ * It shouldn't emit any warnings.
+ */
+typedef unsigned long long u64;
+typedef unsigned       int u32;
+
+extern void hw_w32x2(u32 hi, u32 lo);
+
+inline void hw_w64(u64 val)
+{
+	hw_w32x2(val >> 32, (u32) val);
+}
+
+void hw_write(u32 val)
+{
+	hw_w64(val);
+}
+
 /*
  * check-name: shift too big or negative
  * check-command: sparse -Wno-decl $file
@@ -97,12 +130,12 @@ shift-undef.c:17:30: warning: shift too big (108) for type unsigned int
 shift-undef.c:18:30: warning: shift too big (4294967289) for type int
 shift-undef.c:19:30: warning: shift too big (4294967288) for type unsigned int
 shift-undef.c:20:30: warning: shift too big (4294967287) for type unsigned int
-shift-undef.c:21:29: warning: right shift by bigger than source value
-shift-undef.c:22:29: warning: right shift by bigger than source value
-shift-undef.c:23:29: warning: right shift by bigger than source value
-shift-undef.c:24:29: warning: right shift by bigger than source value
-shift-undef.c:25:29: warning: right shift by bigger than source value
-shift-undef.c:26:29: warning: right shift by bigger than source value
+shift-undef.c:21:29: warning: shift by bigger than operand's width
+shift-undef.c:22:29: warning: shift by bigger than operand's width
+shift-undef.c:23:29: warning: shift by bigger than operand's width
+shift-undef.c:24:29: warning: shift by bigger than operand's width
+shift-undef.c:25:29: warning: shift by bigger than operand's width
+shift-undef.c:26:29: warning: shift by bigger than operand's width
 shift-undef.c:32:11: warning: shift too big (100) for type int
 shift-undef.c:33:11: warning: shift too big (101) for type unsigned int
 shift-undef.c:34:11: warning: shift too big (102) for type unsigned int
@@ -121,11 +154,11 @@ shift-undef.c:46:30: warning: shift too big (108) for type unsigned int
 shift-undef.c:47:30: warning: shift too big (4294967289) for type int
 shift-undef.c:48:30: warning: shift too big (4294967288) for type unsigned int
 shift-undef.c:49:30: warning: shift too big (4294967287) for type unsigned int
-shift-undef.c:50:26: warning: right shift by bigger than source value
-shift-undef.c:51:26: warning: right shift by bigger than source value
-shift-undef.c:52:26: warning: right shift by bigger than source value
-shift-undef.c:53:26: warning: right shift by bigger than source value
-shift-undef.c:54:26: warning: right shift by bigger than source value
-shift-undef.c:55:26: warning: right shift by bigger than source value
+shift-undef.c:50:26: warning: shift by bigger than operand's width
+shift-undef.c:51:26: warning: shift by bigger than operand's width
+shift-undef.c:52:26: warning: shift by bigger than operand's width
+shift-undef.c:53:26: warning: shift by bigger than operand's width
+shift-undef.c:54:26: warning: shift by bigger than operand's width
+shift-undef.c:55:26: warning: shift by bigger than operand's width
  * check-error-end
  */
