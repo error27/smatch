@@ -3,6 +3,7 @@ typedef          int s32;
 
 static u32 lsr32(u32 a) { return a >> 32; }
 static s32 asr32(s32 a) { return a >> 32; }
+static u32 shl32(u32 a) { return a << 32; }
 
 /*
  * check-name: optim/shift-big.c
@@ -21,6 +22,12 @@ asr32:
 	<entry-point>
 	asr.32      %r5 <- %arg1, $32
 	ret.32      %r5
+
+
+shl32:
+.L4:
+	<entry-point>
+	ret.32      $0
 
 
  * check-output-end

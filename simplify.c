@@ -557,6 +557,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		break;
 	case OP_LSR:
 		size = operand_size(insn, pseudo);
+		/* fall through */
+	case OP_SHL:
 		if (value >= size)
 			return replace_with_pseudo(insn, value_pseudo(0));
 	}
