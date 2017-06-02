@@ -552,6 +552,14 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		warning(insn->pos, "right shift by bigger than source value");
 		insn->tainted = 1;
 	}
+	switch (insn->opcode) {
+	case OP_ASR:
+		break;
+	case OP_LSR:
+		size = operand_size(insn, pseudo);
+		if (value >= size)
+			return replace_with_pseudo(insn, value_pseudo(0));
+	}
 	return 0;
 }
 

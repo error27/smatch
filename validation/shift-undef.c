@@ -18,12 +18,12 @@ int simple(int s, unsigned int u, int p)
 	if (p && 0) return s >>  -7;
 	if (p && 0) return u >>  -8;
 	if (p && 0) return u <<  -9;
-	s = s >> ((p & 0) + 109);
-	u = u >> ((p & 0) + 110);
-	u = u << ((p & 0) + 111);
+	s = s >> ((p & 0) + 109); u ^= p; // reloaded because now == 0
+	u = u >> ((p & 0) + 110); u ^= p; // reloaded because now == 0
+	u = u << ((p & 0) + 111); u ^= p; // reloaded because now == 0
 	s = s >> ((p & 0) + -10);
-	u = u >> ((p & 0) + -11);
-	u = u << ((p & 0) + -12);
+	u = u >> ((p & 0) + -11); u ^= p; // reloaded because now == 0
+	u = u << ((p & 0) + -12); u ^= p; // reloaded because now == 0
 	return s + u;
 }
 
@@ -47,12 +47,12 @@ int compound(int s, unsigned int u, int p)
 	if (p && 0) return s >>=  -7;
 	if (p && 0) return u >>=  -8;
 	if (p && 0) return u <<=  -9;
-	s >>= ((p & 0) + 109);
-	u >>= ((p & 0) + 110);
-	u <<= ((p & 0) + 111);
+	s >>= ((p & 0) + 109); u ^= p; // reloaded because now == 0
+	u >>= ((p & 0) + 110); u ^= p; // reloaded because now == 0
+	u <<= ((p & 0) + 111); u ^= p; // reloaded because now == 0
 	s >>= ((p & 0) + -10);
-	u >>= ((p & 0) + -11);
-	u <<= ((p & 0) + -12);
+	u >>= ((p & 0) + -11); u ^= p; // reloaded because now == 0
+	u <<= ((p & 0) + -12); u ^= p; // reloaded because now == 0
 	return s + u;
 }
 
