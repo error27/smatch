@@ -158,8 +158,12 @@ Float:
 	expr->type = EXPR_FVALUE;
 }
 
-static void check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
+static void check_shift_count(struct expression *expr, struct symbol *ctype, int count)
 {
+	if (count < 0) {
+		warning(expr->pos, "shift count is negative (%d)", count);
+		return;
+	}
 	if (count < ctype->bit_size)
 		return;
 	if (ctype->type == SYM_NODE)

@@ -115,21 +115,21 @@ void hw_write(u32 val)
 shift-undef.c:3:15: warning: shift too big (100) for type int
 shift-undef.c:4:15: warning: shift too big (101) for type unsigned int
 shift-undef.c:5:15: warning: shift too big (102) for type unsigned int
-shift-undef.c:6:15: warning: shift too big (4294967295) for type int
-shift-undef.c:7:15: warning: shift too big (4294967294) for type unsigned int
-shift-undef.c:8:15: warning: shift too big (4294967293) for type unsigned int
+shift-undef.c:6:15: warning: shift count is negative (-1)
+shift-undef.c:7:15: warning: shift count is negative (-2)
+shift-undef.c:8:15: warning: shift count is negative (-3)
 shift-undef.c:9:25: warning: shift too big (103) for type int
 shift-undef.c:10:25: warning: shift too big (104) for type unsigned int
 shift-undef.c:11:25: warning: shift too big (105) for type unsigned int
-shift-undef.c:12:25: warning: shift too big (4294967292) for type int
-shift-undef.c:13:25: warning: shift too big (4294967291) for type unsigned int
-shift-undef.c:14:25: warning: shift too big (4294967290) for type unsigned int
+shift-undef.c:12:25: warning: shift count is negative (-4)
+shift-undef.c:13:25: warning: shift count is negative (-5)
+shift-undef.c:14:25: warning: shift count is negative (-6)
 shift-undef.c:15:30: warning: shift too big (106) for type int
 shift-undef.c:16:30: warning: shift too big (107) for type unsigned int
 shift-undef.c:17:30: warning: shift too big (108) for type unsigned int
-shift-undef.c:18:30: warning: shift too big (4294967289) for type int
-shift-undef.c:19:30: warning: shift too big (4294967288) for type unsigned int
-shift-undef.c:20:30: warning: shift too big (4294967287) for type unsigned int
+shift-undef.c:18:30: warning: shift count is negative (-7)
+shift-undef.c:19:30: warning: shift count is negative (-8)
+shift-undef.c:20:30: warning: shift count is negative (-9)
 shift-undef.c:21:29: warning: shift by bigger than operand's width
 shift-undef.c:22:29: warning: shift by bigger than operand's width
 shift-undef.c:23:29: warning: shift by bigger than operand's width
@@ -139,21 +139,21 @@ shift-undef.c:26:29: warning: shift by bigger than operand's width
 shift-undef.c:32:11: warning: shift too big (100) for type int
 shift-undef.c:33:11: warning: shift too big (101) for type unsigned int
 shift-undef.c:34:11: warning: shift too big (102) for type unsigned int
-shift-undef.c:35:11: warning: shift too big (4294967295) for type int
-shift-undef.c:36:11: warning: shift too big (4294967294) for type unsigned int
-shift-undef.c:37:11: warning: shift too big (4294967293) for type unsigned int
+shift-undef.c:35:11: warning: shift count is negative (-1)
+shift-undef.c:36:11: warning: shift count is negative (-2)
+shift-undef.c:37:11: warning: shift count is negative (-3)
 shift-undef.c:38:25: warning: shift too big (103) for type int
 shift-undef.c:39:25: warning: shift too big (104) for type unsigned int
 shift-undef.c:40:25: warning: shift too big (105) for type unsigned int
-shift-undef.c:41:25: warning: shift too big (4294967292) for type int
-shift-undef.c:42:25: warning: shift too big (4294967291) for type unsigned int
-shift-undef.c:43:25: warning: shift too big (4294967290) for type unsigned int
+shift-undef.c:41:25: warning: shift count is negative (-4)
+shift-undef.c:42:25: warning: shift count is negative (-5)
+shift-undef.c:43:25: warning: shift count is negative (-6)
 shift-undef.c:44:30: warning: shift too big (106) for type int
 shift-undef.c:45:30: warning: shift too big (107) for type unsigned int
 shift-undef.c:46:30: warning: shift too big (108) for type unsigned int
-shift-undef.c:47:30: warning: shift too big (4294967289) for type int
-shift-undef.c:48:30: warning: shift too big (4294967288) for type unsigned int
-shift-undef.c:49:30: warning: shift too big (4294967287) for type unsigned int
+shift-undef.c:47:30: warning: shift count is negative (-7)
+shift-undef.c:48:30: warning: shift count is negative (-8)
+shift-undef.c:49:30: warning: shift count is negative (-9)
 shift-undef.c:50:26: warning: shift by bigger than operand's width
 shift-undef.c:51:26: warning: shift by bigger than operand's width
 shift-undef.c:52:26: warning: shift by bigger than operand's width
