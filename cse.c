@@ -361,6 +361,8 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 		i1 = cse_one_instruction(i2, i1);
 		remove_instruction(&b1->insns, i1, 1);
 		add_instruction_to_end(i1, common);
+	} else {
+		i1 = i2;
 	}
 
 	return i1;

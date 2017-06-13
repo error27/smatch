@@ -9,7 +9,6 @@ void foo(int p, int i, int f, int *ref, int *dst, int *src)
 /*
  * check-name: cse-cmp-next
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1,2): mul\\.
