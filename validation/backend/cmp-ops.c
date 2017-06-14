@@ -80,5 +80,5 @@ static int setfge(float x, float y)
 
 /*
  * check-name: Comparison operator code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

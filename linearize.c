@@ -643,10 +643,10 @@ static void remove_parent(struct basic_block *child, struct basic_block *parent)
 {
 	remove_bb_from_list(&child->parents, parent, 1);
 	if (!child->parents)
-		kill_bb(child);
+		repeat_phase |= REPEAT_CFG_CLEANUP;
 }
 
-/* Change a "switch" into a branch */
+/* Change a "switch" or a conditional branch into a branch */
 void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
 {
 	struct instruction *br, *old;
@@ -655,6 +655,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 	/* Remove the switch */
 	old = delete_last_instruction(&bb->insns);
 	assert(old == jmp);
+	kill_instruction(old);
 
 	br = alloc_instruction(OP_BR, 0);
 	br->bb = bb;
@@ -670,6 +671,9 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 		remove_parent(child, bb);
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
+
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(bb->ep);
 }
 	
 
@@ -843,9 +847,7 @@ struct access_data {
 	struct symbol *result_type;	// result ctype
 	struct symbol *source_type;	// source ctype
 	pseudo_t address;		// pseudo containing address ..
-	pseudo_t origval;		// pseudo for original value ..
-	unsigned int offset, alignment;	// byte offset
-	unsigned int bit_size, bit_offset; // which bits
+	unsigned int offset;		// byte offset
 	struct position pos;
 };
 
@@ -898,9 +900,6 @@ static int linearize_address_gen(struct entrypoint *ep,
 	ad->pos = expr->pos;
 	ad->result_type = ctype;
 	ad->source_type = base_type(ctype);
-	ad->bit_size = ctype->bit_size;
-	ad->alignment = ctype->ctype.alignment;
-	ad->bit_offset = ctype->bit_offset;
 	if (expr->type == EXPR_PREOP && expr->op == '*')
 		return linearize_simple_address(ep, expr->unop, ad);
 
@@ -913,13 +912,8 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	struct instruction *insn;
 	pseudo_t new;
 
-	new = ad->origval;
-	if (0 && new)
-		return new;
-
 	insn = alloc_typed_instruction(OP_LOAD, ad->source_type);
 	new = alloc_pseudo(insn);
-	ad->origval = new;
 
 	insn->target = new;
 	insn->offset = ad->offset;
@@ -948,9 +942,11 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 	pseudo_t store = value;
 
 	if (type_size(ad->source_type) != type_size(ad->result_type)) {
+		struct symbol *ctype = ad->result_type;
+		unsigned int shift = ctype->bit_offset;
+		unsigned int size = ctype->bit_size;
 		pseudo_t orig = add_load(ep, ad);
-		int shift = ad->bit_offset;
-		unsigned long long mask = (1ULL << ad->bit_size)-1;
+		unsigned long long mask = (1ULL << size) - 1;
 
 		if (shift) {
 			store = add_binary_op(ep, ad->source_type, OP_SHL, value, value_pseudo(shift));
@@ -997,14 +993,15 @@ static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
 
 static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad)
 {
+	struct symbol *ctype = ad->result_type;
 	pseudo_t new = add_load(ep, ad);
 
-	if (ad->bit_offset) {
-		pseudo_t shift = value_pseudo(ad->bit_offset);
+	if (ctype->bit_offset) {
+		pseudo_t shift = value_pseudo(ctype->bit_offset);
 		pseudo_t newval = add_binary_op(ep, ad->source_type, OP_LSR, new, shift);
 		new = newval;
 	}
-	if (ad->bit_size != type_size(ad->source_type))
+	if (ctype->bit_size != type_size(ad->source_type))
 		new = cast_pseudo(ep, new, ad->source_type, ad->result_type);
 	return new;
 }
@@ -1156,6 +1153,26 @@ static int opcode_sign(int opcode, struct symbol *ctype)
 	return opcode;
 }
 
+static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, struct symbol *type)
+{
+	pseudo_t zero;
+	int op;
+
+	if (is_bool_type(type))
+		return src;
+	zero = value_pseudo(0);
+	op = OP_SET_NE;
+	return add_binary_op(ep, &bool_ctype, op, src, zero);
+}
+
+static pseudo_t linearize_expression_to_bool(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t dst;
+	dst = linearize_expression(ep, expr);
+	dst = add_convert_to_bool(ep, dst, expr->ctype);
+	return dst;
+}
+
 static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *expr)
 {
 	struct access_data ad = { NULL, };
@@ -1276,6 +1293,19 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	return retval;
 }
 
+static pseudo_t linearize_binop_bool(struct entrypoint *ep, struct expression *expr)
+{
+	pseudo_t src1, src2, dst;
+	int op = (expr->op == SPECIAL_LOGICAL_OR) ? OP_OR_BOOL : OP_AND_BOOL;
+
+	src1 = linearize_expression_to_bool(ep, expr->left);
+	src2 = linearize_expression_to_bool(ep, expr->right);
+	dst = add_binary_op(ep, &bool_ctype, op, src1, src2);
+	if (expr->ctype != &bool_ctype)
+		dst = cast_pseudo(ep, dst, &bool_ctype, expr->ctype);
+	return dst;
+}
+
 static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t src1, src2, dst;
@@ -1286,8 +1316,6 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 		['|'] = OP_OR,  ['^'] = OP_XOR,
 		[SPECIAL_LEFTSHIFT] = OP_SHL,
 		[SPECIAL_RIGHTSHIFT] = OP_LSR,
-		[SPECIAL_LOGICAL_AND] = OP_AND_BOOL,
-		[SPECIAL_LOGICAL_OR] = OP_OR_BOOL,
 	};
 	int op;
 
@@ -1570,6 +1598,8 @@ pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 		return linearize_call_expression(ep, expr);
 
 	case EXPR_BINOP:
+		if (expr->op == SPECIAL_LOGICAL_AND || expr->op == SPECIAL_LOGICAL_OR)
+			return linearize_binop_bool(ep, expr);
 		return linearize_binop(ep, expr);
 
 	case EXPR_LOGICAL:
@@ -1634,6 +1664,21 @@ static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 
 	sym->initialized = 1;
 	ad.address = symbol_pseudo(ep, sym);
+
+	if (sym->initializer && !is_scalar_type(sym)) {
+		// default zero initialization [6.7.9.21]
+		// FIXME: this init the whole aggregate while
+		// only the existing fields need to be initialized.
+		// FIXME: this init the whole aggregate even if
+		// all fields arelater  explicitely initialized.
+		struct expression *expr = sym->initializer;
+		ad.pos = expr->pos;
+		ad.result_type = sym;
+		ad.source_type = base_type(sym);
+		ad.address = symbol_pseudo(ep, sym);
+		linearize_store_gen(ep, value_pseudo(0), &ad);
+	}
+
 	value = linearize_initializer(ep, sym->initializer, &ad);
 	finish_address_gen(ep, &ad);
 	return value;
@@ -2168,6 +2213,12 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		if (type_size(ret_type) > 0)
 			use_pseudo(insn, result, &insn->src);
 		add_one_insn(ep, insn);
+	}
+
+	if (fdump_linearize) {
+		if (fdump_linearize == 2)
+			return ep;
+		show_entry(ep);
 	}
 
 	/*

@@ -90,5 +90,5 @@ static unsigned int umod(unsigned int x, unsigned int y)
 
 /*
  * check-name: Arithmetic operator code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

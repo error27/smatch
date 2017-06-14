@@ -20,5 +20,5 @@ static unsigned int uor_bool(unsigned int x, unsigned int y)
 
 /*
  * check-name: Logical operator code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

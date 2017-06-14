@@ -5,5 +5,5 @@ static char *ptrcast(unsigned long *x)
 
 /*
  * check-name: Pointer cast code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

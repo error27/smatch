@@ -12,6 +12,7 @@ static undef foo(char *c)
 /*
  * check-name: missing type
  * check-error-start
+badtype2.c:2:8: warning: 'undef' has implicit type
 badtype2.c:2:14: error: Expected ; at end of declaration
 badtype2.c:2:14: error: got bar
 badtype2.c:3:14: error: Expected ; at end of declaration

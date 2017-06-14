@@ -10,5 +10,5 @@ static void test(void)
 
 /*
  * check-name: Loops with unused counter
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

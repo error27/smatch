@@ -73,6 +73,7 @@ static struct token *parse_context_statement(struct token *token, struct stateme
 static struct token *parse_range_statement(struct token *token, struct statement *stmt);
 static struct token *parse_asm_statement(struct token *token, struct statement *stmt);
 static struct token *toplevel_asm_declaration(struct token *token, struct symbol_list **list);
+static struct token *parse_static_assert(struct token *token, struct symbol_list **unused);
 
 typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
@@ -328,6 +329,10 @@ static struct symbol_op asm_op = {
 	.toplevel = toplevel_asm_declaration,
 };
 
+static struct symbol_op static_assert_op = {
+	.toplevel = parse_static_assert,
+};
+
 static struct symbol_op packed_op = {
 	.attribute = attribute_packed,
 };
@@ -402,6 +407,7 @@ static struct symbol_op mode_word_op = {
 	.to_mode = to_word_mode
 };
 
+/* Using NS_TYPEDEF will also make the keyword a reserved one */
 static struct init_keyword {
 	const char *name;
 	enum namespace ns;
@@ -465,6 +471,9 @@ static struct init_keyword {
 	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
 	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
 	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
+
+	/* Static assertion */
+	{ "_Static_assert", NS_KEYWORD, .op = &static_assert_op },
 
 	/* Storage class */
 	{ "auto",	NS_TYPEDEF, .op = &auto_op },
@@ -1945,6 +1954,10 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list)
 {
 	while (!match_op(token, '}')) {
+		if (match_ident(token, &_Static_assert_ident)) {
+			token = parse_static_assert(token, NULL);
+			continue;
+		}
 		if (!match_op(token, ';'))
 			token = declaration_list(token, list);
 		if (!match_op(token, ';')) {
@@ -2090,6 +2103,33 @@ static struct token *parse_asm_declarator(struct token *token, struct decl_state
 	token = expect(token, '(', "after asm");
 	token = parse_expression(token->next, &expr);
 	token = expect(token, ')', "after asm");
+	return token;
+}
+
+static struct token *parse_static_assert(struct token *token, struct symbol_list **unused)
+{
+	struct expression *cond = NULL, *message = NULL;
+
+	token = expect(token->next, '(', "after _Static_assert");
+	token = constant_expression(token, &cond);
+	if (!cond)
+		sparse_error(token->pos, "Expected constant expression");
+	token = expect(token, ',', "after conditional expression in _Static_assert");
+	token = parse_expression(token, &message);
+	if (!message || message->type != EXPR_STRING) {
+		struct position pos;
+
+		pos = message ? message->pos : token->pos;
+		sparse_error(pos, "bad or missing string literal");
+		cond = NULL;
+	}
+	token = expect(token, ')', "after diagnostic message in _Static_assert");
+
+	token = expect(token, ';', "after _Static_assert()");
+
+	if (cond && !const_expression_value(cond) && cond->type == EXPR_VALUE)
+		sparse_error(cond->pos, "static assertion failed: %s",
+			     show_string(message->string));
 	return token;
 }
 
@@ -2474,6 +2514,10 @@ static struct token * statement_list(struct token *token, struct statement_list 
 			break;
 		if (match_op(token, '}'))
 			break;
+		if (match_ident(token, &_Static_assert_ident)) {
+			token = parse_static_assert(token, NULL);
+			continue;
+		}
 		if (lookup_type(token)) {
 			if (seen_statement) {
 				warning(token->pos, "mixing declarations and code");
@@ -2819,7 +2863,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	unsigned long mod;
 	int is_typedef;
 
-	/* Top-level inline asm? */
+	/* Top-level inline asm or static assertion? */
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *s = lookup_keyword(token->ident, NS_KEYWORD);
 		if (s && s->op->toplevel)
@@ -2876,6 +2920,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			}
 		}
 	} else if (base_type && base_type->type == SYM_FN) {
+		if (base_type->ctype.base_type == &incomplete_ctype) {
+			warning(decl->pos, "'%s()' has implicit return type",
+				show_ident(decl->ident));
+			base_type->ctype.base_type = &int_ctype;
+		}
 		/* K&R argument declaration? */
 		if (lookup_type(token))
 			return parse_k_r_arguments(token, decl, list);
@@ -2886,6 +2935,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			decl->ctype.modifiers |= MOD_EXTERN;
 	} else if (base_type == &void_ctype && !(decl->ctype.modifiers & MOD_EXTERN)) {
 		sparse_error(token->pos, "void declaration");
+	}
+	if (base_type == &incomplete_ctype) {
+		warning(decl->pos, "'%s' has implicit type", show_ident(decl->ident));
+		decl->ctype.base_type = &int_ctype;;
 	}
 
 	for (;;) {

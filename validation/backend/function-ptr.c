@@ -7,5 +7,5 @@ static int run(fn_t fn, int x, int y)
 
 /*
  * check-name: Function pointer code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

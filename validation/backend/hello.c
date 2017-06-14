@@ -9,5 +9,5 @@ int main(int argc, char *argv[])
 
 /*
  * check-name: 'hello, world' code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

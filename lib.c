@@ -47,6 +47,7 @@
 
 int verbose, optimize, optimize_size, preprocessing;
 int die_if_error = 0;
+int has_error = 0;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
@@ -133,7 +134,7 @@ static void do_error(struct position pos, const char * fmt, va_list args)
         die_if_error = 1;
 	show_info = 1;
 	/* Shut up warnings after an error */
-	max_warnings = 0;
+	has_error |= ERROR_CURR_PHASE;
 	if (errors > 100) {
 		static int once = 0;
 		show_info = 0;
@@ -158,7 +159,7 @@ void warning(struct position pos, const char * fmt, ...)
 		return;
 	}
 
-	if (!max_warnings) {
+	if (!max_warnings || has_error) {
 		show_info = 0;
 		return;
 	}
@@ -248,8 +249,13 @@ int Wuninitialized = 1;
 int Wunknown_attribute = 1;
 int Wvla = 1;
 
+int dump_macro_defs = 0;
+
 int dbg_entry = 0;
 int dbg_dead = 0;
+
+int fmem_report = 0;
+int fdump_linearize;
 
 int preprocess_only;
 
@@ -453,6 +459,25 @@ static void handle_arch_finalize(void)
 }
 
 
+static int handle_simple_switch(const char *arg, const char *name, int *flag)
+{
+	int val = 1;
+
+	// Prefixe "no-" mean to turn flag off.
+	if (strncmp(arg, "no-", 3) == 0) {
+		arg += 3;
+		val = 0;
+	}
+
+	if (strcmp(arg, name) == 0) {
+		*flag = val;
+		return 1;
+	}
+
+	// not handled
+	return 0;
+}
+
 static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o")) {       // "-o foo"
@@ -569,6 +594,19 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
+static struct warning dumps[] = {
+	{ "D", &dump_macro_defs},
+};
+
+static char **handle_switch_d(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, dumps, ARRAY_SIZE(dumps));
+	if (ret)
+		return ret;
+
+	return next;
+}
+
 
 static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
 {
@@ -647,19 +685,38 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_fdump(char *arg, char **next)
+{
+	if (!strncmp(arg, "linearize", 9)) {
+		arg += 9;
+		if (*arg == '\0')
+			fdump_linearize = 1;
+		else if (!strcmp(arg, "=only"))
+			fdump_linearize = 2;
+		else
+			goto err;
+	}
+
+	/* ignore others flags */
+	return next;
+
+err:
+	die("error: unknown flag \"-fdump-%s\"", arg);
+}
+
 static char **handle_switch_f(char *arg, char **next)
 {
 	arg++;
 
 	if (!strncmp(arg, "tabstop=", 8))
 		return handle_switch_ftabstop(arg+8, next);
+	if (!strncmp(arg, "dump-", 5))
+		return handle_switch_fdump(arg+5, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
+	if (handle_simple_switch(arg, "mem-report", &fmem_report))
+		return next;
 
-	if (!strncmp(arg, "no-", 3)) {
-		arg += 3;
-	}
-	/* handle switch here.. */
 	return next;
 }
 
@@ -802,6 +859,7 @@ static char **handle_switch(char *arg, char **next)
 	switch (*arg) {
 	case 'a': return handle_switch_a(arg, next);
 	case 'D': return handle_switch_D(arg, next);
+	case 'd': return handle_switch_d(arg, next);
 	case 'E': return handle_switch_E(arg, next);
 	case 'f': return handle_switch_f(arg, next);
 	case 'g': return handle_switch_g(arg, next);
@@ -834,11 +892,16 @@ static void predefined_sizeof(const char *name, unsigned bits)
 	add_pre_buffer("#weak_define __SIZEOF_%s__ %d\n", name, bits/8);
 }
 
-static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
 	unsigned long long max = (1ULL << (bits - 1 )) - 1;
 
 	add_pre_buffer("#weak_define __%s_MAX__ %#llx%s\n", name, max, suffix);
+}
+
+static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+{
+	predefined_max(name, suffix, bits);
 	predefined_sizeof(name, bits);
 }
 
@@ -847,6 +910,10 @@ static void predefined_macros(void)
 	add_pre_buffer("#define __CHECKER__ 1\n");
 
 	predefined_sizeof("SHORT", bits_in_short);
+	predefined_max("SHRT", "", bits_in_short);
+	predefined_max("SCHAR", "", bits_in_char);
+	predefined_max("WCHAR", "", bits_in_wchar);
+	add_pre_buffer("#weak_define __CHAR_BIT__ %d\n", bits_in_char);
 
 	predefined_type_size("INT", "", bits_in_int);
 	predefined_type_size("LONG", "L", bits_in_long);
@@ -866,23 +933,45 @@ static void predefined_macros(void)
 void declare_builtin_functions(void)
 {
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
+	add_pre_buffer("extern void *__builtin_memchr(const void *, int, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_mempcpy(void *, const void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void *__builtin_memmove(void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern char *__builtin_strcat(char *, const char *);\n");
 	add_pre_buffer("extern char *__builtin_strncat(char *, const char *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
+	add_pre_buffer("extern int __builtin_strncmp(const char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern int __builtin_strcasecmp(const char *, const char *);\n");
+	add_pre_buffer("extern int __builtin_strncasecmp(const char *, const char *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern char *__builtin_strchr(const char *, int);\n");
+	add_pre_buffer("extern char *__builtin_strrchr(const char *, int);\n");
 	add_pre_buffer("extern char *__builtin_strcpy(char *, const char *);\n");
 	add_pre_buffer("extern char *__builtin_strncpy(char *, const char *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern char *__builtin_strdup(const char *);\n");
+	add_pre_buffer("extern char *__builtin_strndup(const char *, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strspn(const char *, const char *);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strcspn(const char *, const char *);\n");
 	add_pre_buffer("extern char * __builtin_strpbrk(const char *, const char *);\n");
 	add_pre_buffer("extern char* __builtin_stpcpy(const char *, const char*);\n");
+	add_pre_buffer("extern char* __builtin_stpncpy(const char *, const char*, __SIZE_TYPE__);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strlen(const char *);\n");
+	add_pre_buffer("extern char *__builtin_strstr(const char *, const char *);\n");
+	add_pre_buffer("extern char *__builtin_strcasestr(const char *, const char *);\n");
+	add_pre_buffer("extern char *__builtin_strnstr(const char *, const char *, __SIZE_TYPE__);\n");
+
+	/* And even some from <strings.h> */
+	add_pre_buffer("extern int  __builtin_bcmp(const void *, const void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void __builtin_bcopy(const void *, void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void __builtin_bzero(void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern char*__builtin_index(const char *, int);\n");
+	add_pre_buffer("extern char*__builtin_rindex(const char *, int);\n");
 
 	/* And bitwise operations.. */
+	add_pre_buffer("extern int __builtin_clrsb(int);\n");
+	add_pre_buffer("extern int __builtin_clrsbl(long);\n");
+	add_pre_buffer("extern int __builtin_clrsbll(long long);\n");
 	add_pre_buffer("extern int __builtin_clz(int);\n");
 	add_pre_buffer("extern int __builtin_clzl(long);\n");
 	add_pre_buffer("extern int __builtin_clzll(long long);\n");
@@ -892,6 +981,9 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern int __builtin_ffs(int);\n");
 	add_pre_buffer("extern int __builtin_ffsl(long);\n");
 	add_pre_buffer("extern int __builtin_ffsll(long long);\n");
+	add_pre_buffer("extern int __builtin_parity(unsigned int);\n");
+	add_pre_buffer("extern int __builtin_parityl(unsigned long);\n");
+	add_pre_buffer("extern int __builtin_parityll(unsigned long long);\n");
 	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
 	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
 	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
@@ -934,7 +1026,9 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern long __builtin_alpha_insql(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
 	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
+	add_pre_buffer("extern int  __builtin_abs(int);\n");
 	add_pre_buffer("extern long __builtin_labs(long);\n");
+	add_pre_buffer("extern long long __builtin_llabs(long long);\n");
 	add_pre_buffer("extern double __builtin_fabs(double);\n");
 	add_pre_buffer("extern __SIZE_TYPE__ __builtin_va_arg_pack_len(void);\n");
 
@@ -982,6 +1076,23 @@ void declare_builtin_functions(void)
 	add_pre_buffer ("extern int __builtin___vsprintf_chk(char *, int, __SIZE_TYPE__, const char *, __builtin_va_list);\n");
 	add_pre_buffer ("extern int __builtin___vsnprintf_chk(char *, __SIZE_TYPE__, int, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
 	add_pre_buffer ("extern void __builtin_unreachable(void);\n");
+
+	/* And some from <stdlib.h> */
+	add_pre_buffer("extern void __builtin_abort(void);\n");
+	add_pre_buffer("extern void *__builtin_calloc(__SIZE_TYPE__, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void __builtin_exit(int);\n");
+	add_pre_buffer("extern void *__builtin_malloc(__SIZE_TYPE__);\n");
+	add_pre_buffer("extern void *__builtin_realloc(void *, __SIZE_TYPE__);\n");
+	add_pre_buffer("extern void __builtin_free(void *);\n");
+
+	/* And some from <stdio.h> */
+	add_pre_buffer("extern int __builtin_printf(const char *, ...);\n");
+	add_pre_buffer("extern int __builtin_sprintf(char *, const char *, ...);\n");
+	add_pre_buffer("extern int __builtin_snprintf(char *, __SIZE_TYPE__, const char *, ...);\n");
+	add_pre_buffer("extern int __builtin_puts(const char *);\n");
+	add_pre_buffer("extern int __builtin_vprintf(const char *, __builtin_va_list);\n");
+	add_pre_buffer("extern int __builtin_vsprintf(char *, const char *, __builtin_va_list);\n");
+	add_pre_buffer("extern int __builtin_vsnprintf(char *, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
 }
 
 void create_builtin_stream(void)
@@ -1070,22 +1181,17 @@ void create_builtin_stream(void)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
 		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
-
-	/* GCC defines these for limits.h */
-	add_pre_buffer("#weak_define __SHRT_MAX__ " STRINGIFY(__SHRT_MAX__) "\n");
-	add_pre_buffer("#weak_define __SCHAR_MAX__ " STRINGIFY(__SCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __INT_MAX__ " STRINGIFY(__INT_MAX__) "\n");
-	add_pre_buffer("#weak_define __LONG_MAX__ " STRINGIFY(__LONG_MAX__) "\n");
-	add_pre_buffer("#weak_define __LONG_LONG_MAX__ " STRINGIFY(__LONG_LONG_MAX__) "\n");
-	add_pre_buffer("#weak_define __WCHAR_MAX__ " STRINGIFY(__WCHAR_MAX__) "\n");
-	add_pre_buffer("#weak_define __SIZEOF_POINTER__ " STRINGIFY(__SIZEOF_POINTER__) "\n");
-	add_pre_buffer("#weak_define __CHAR_BIT__ " STRINGIFY(__CHAR_BIT__) "\n");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
 {
+	int builtin = token && !token->pos.stream;
+
 	// Preprocess the stream
 	token = preprocess(token);
+
+	if (dump_macro_defs && !builtin)
+		dump_macro_definitions();
 
 	if (preprocess_only) {
 		while (!eof_token(token)) {
@@ -1233,6 +1339,8 @@ struct symbol_list * sparse(char *filename)
 {
 	struct symbol_list *res = __sparse(filename);
 
+	if (has_error & ERROR_CURR_PHASE)
+		has_error = ERROR_PREV_PHASE;
 	/* Evaluate the complete symbol list */
 	evaluate_symbol_list(res);
 

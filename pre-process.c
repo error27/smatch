@@ -44,6 +44,7 @@
 #include "expression.h"
 #include "scope.h"
 
+static struct ident_list *macros;	// only needed for -dD
 static int false_nesting = 0;
 static int counter_macro = 0;		// __COUNTER__ expansion
 
@@ -1351,6 +1352,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (!sym || sym->scope != file_scope) {
 		sym = alloc_symbol(left->pos, SYM_NODE);
 		bind_symbol(sym, name, NS_MACRO);
+		add_ident(&macros, name);
 		ret = 0;
 	}
 
@@ -2009,4 +2011,57 @@ struct token * preprocess(struct token *token)
 	preprocessing = 0;
 
 	return token;
+}
+
+static void dump_macro(struct symbol *sym)
+{
+	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
+	struct token *args[nargs];
+	struct token *token;
+
+	printf("#define %s", show_ident(sym->ident));
+	token = sym->arglist;
+	if (token) {
+		const char *sep = "";
+		int narg = 0;
+		putchar('(');
+		for (; !eof_token(token); token = token->next) {
+			if (token_type(token) == TOKEN_ARG_COUNT)
+				continue;
+			printf("%s%s", sep, show_token(token));
+			args[narg++] = token;
+			sep = ", ";
+		}
+		putchar(')');
+	}
+	putchar(' ');
+
+	token = sym->expansion;
+	while (!eof_token(token)) {
+		struct token *next = token->next;
+		switch (token_type(token)) {
+		case TOKEN_UNTAINT:
+			break;
+		case TOKEN_MACRO_ARGUMENT:
+			token = args[token->argnum];
+			/* fall-through */
+		default:
+			printf("%s", show_token(token));
+			if (next->pos.whitespace)
+				putchar(' ');
+		}
+		token = next;
+	}
+	putchar('\n');
+}
+
+void dump_macro_definitions(void)
+{
+	struct ident *name;
+
+	FOR_EACH_PTR(macros, name) {
+		struct symbol *sym = lookup_macro(name);
+		if (sym)
+			dump_macro(sym);
+	} END_FOR_EACH_PTR(name);
 }

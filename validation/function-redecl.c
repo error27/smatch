@@ -1,5 +1,5 @@
 #define __user	__attribute__((address_space(1)))
-
+#define NULL	((void*)0)
 
 int ret_type(void);
 void ret_type(void) { }				/* check-should-fail */
@@ -10,11 +10,11 @@ int const ret_const(void) { return 0; }		/* check-should-fail */
 
 
 void *ret_as(void);
-void __user *ret_as(void) { return 0; }		/* check-should-fail */
+void __user *ret_as(void) { return NULL; }	/* check-should-fail */
 
 
 void *ret_mod(void);
-void const *ret_mod(void) { return 0; }		/* check-should-fail */
+void const *ret_mod(void) { return NULL; }	/* check-should-fail */
 
 
 void arg_type(int a);

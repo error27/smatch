@@ -226,7 +226,6 @@ try_to_rewrite_target:
 	if (bb_list_size(target->parents) != 1)
 		return retval;
 	insert_branch(target, insn, final);
-	kill_instruction(insn);
 	return 1;
 }
 
@@ -314,6 +313,15 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
 	return	a->offset == b->offset && a->size == b->size;
 }
 
+static inline int distinct_symbols(pseudo_t a, pseudo_t b)
+{
+	if (a->type != PSEUDO_SYM)
+		return 0;
+	if (b->type != PSEUDO_SYM)
+		return 0;
+	return a->sym != b->sym;
+}
+
 /*
  * Return 1 if "dom" dominates the access to "pseudo"
  * in "insn".
@@ -332,7 +340,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 		if (local)
 			return 0;
 		/* We don't think two explicitly different symbols ever alias */
-		if (dom->src->type == PSEUDO_SYM)
+		if (distinct_symbols(insn->src, dom->src))
 			return 0;
 		/* We could try to do some alias analysis here */
 		return -1;
@@ -825,6 +833,8 @@ void kill_unreachable_bbs(struct entrypoint *ep)
 		DELETE_CURRENT_PTR(bb);
 	} END_FOR_EACH_PTR(bb);
 	PACK_PTR_LIST(&ep->bbs);
+
+	repeat_phase &= ~REPEAT_CFG_CLEANUP;
 }
 
 static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old, struct basic_block *new)
