@@ -97,7 +97,7 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 void set_up_link_functions(int id, int link_id)
 {
 	if (id + 1 != link_id) {
-		printf("FATAL ERROR: links need to be registered direclty after the check");
+		printf("FATAL ERROR: links need to be registered directly after the check");
 		exit(1);
 	}
 
