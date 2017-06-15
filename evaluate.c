@@ -1738,6 +1738,8 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		return expr->ctype;
 	}
 
+	examine_symbol_type(ctype);
+
 	/* Dereferencing a node drops all the node information. */
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
