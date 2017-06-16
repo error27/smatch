@@ -80,6 +80,31 @@ static int bb_depends_on(struct basic_block *target, struct basic_block *src)
 }
 
 /*
+ * This is only to be used by try_to_simplify_bb().
+ * It really should be handled by bb_depends_on(), only
+ * that there is no liveness done on OP_PHI/OP_PHISRC.
+ * So we consider for now that if there is an OP_PHI
+ * then some block in fact depends on this one.
+ * The OP_PHI controling the conditional branch of this bb
+ * is excluded since the branch will be removed.
+ */
+static int bb_defines_phi(struct basic_block *bb, struct instruction *def)
+{
+	struct instruction *insn;
+	FOR_EACH_PTR(bb->insns, insn) {
+		switch (insn->opcode) {
+		case OP_PHI:
+			if (def && insn != def)
+				return 1;
+			continue;
+		default:
+			continue;
+		}
+	} END_FOR_EACH_PTR(insn);
+	return 0;
+}
+
+/*
  * When we reach here, we have:
  *  - a basic block that ends in a conditional branch and
  *    that has no side effects apart from the pseudos it
@@ -126,6 +151,8 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 			continue;
 		target = true ? second->bb_true : second->bb_false;
 		if (bb_depends_on(target, bb))
+			continue;
+		if (bb_defines_phi(bb, first))
 			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
