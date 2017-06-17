@@ -241,6 +241,12 @@ sub add_specs {
     } elsif ($spec eq 'openbsd') {
 	return &add_specs ('unix') .
 	    ' -D__OpenBSD__=1';
+    } elsif ($spec eq 'freebsd') {
+	return &add_specs ('unix') .
+	    ' -D__FreeBSD__=1';
+    } elsif ($spec eq 'netbsd') {
+	return &add_specs ('unix') .
+	    ' -D__NetBSD__=1';
     } elsif ($spec eq 'darwin') {
 	return
 	    ' -D__APPLE__=1 -D__MACH__=1';
