@@ -47,7 +47,7 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 	print_usage(pos, sym, mode);
 
 	if (!sym->ident)
-		sym->ident = MK_IDENT("__asm__");
+		sym->ident = built_in_ident("__asm__");
 
 	printf("%-32.*s %s\n",
 		sym->ident->len, sym->ident->name,
@@ -60,10 +60,10 @@ static void r_member(unsigned mode, struct position *pos, struct symbol *sym, st
 
 	print_usage(pos, sym, mode);
 
-	ni = MK_IDENT("?");
+	ni = built_in_ident("?");
 	si = sym->ident ?: ni;
 	/* mem == NULL means entire struct accessed */
-	mi = mem ? (mem->ident ?: ni) : MK_IDENT("*");
+	mi = mem ? (mem->ident ?: ni) : built_in_ident("*");
 
 	printf("%.*s.%-*.*s %s\n",
 		si->len, si->name,
