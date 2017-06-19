@@ -26,6 +26,7 @@
 #include "expression.h"
 #include "expand.h"
 #include "symbol.h"
+#include "compat/bswap.h"
 
 static int evaluate_to_integer(struct expression *expr)
 {
@@ -187,9 +188,9 @@ static int expand_bswap(struct expression *expr, int cost)
 	/* the arguments number & type have already been checked */
 	val = const_expression_value(first_expression(expr->args));
 	switch (expr->ctype->bit_size) {
-	case 16: expr->value = __builtin_bswap16(val); break;
-	case 32: expr->value = __builtin_bswap32(val); break;
-	case 64: expr->value = __builtin_bswap64(val); break;
+	case 16: expr->value = bswap16(val); break;
+	case 32: expr->value = bswap32(val); break;
+	case 64: expr->value = bswap64(val); break;
 	default: /* impossible error */
 		return SIDE_EFFECTS;
 	}
