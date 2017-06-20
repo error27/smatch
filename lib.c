@@ -964,6 +964,12 @@ static void predefined_macros(void)
 
 	add_pre_buffer("#weak_define __%s_ENDIAN__ 1\n",
 		arch_big_endian ? "BIG" : "LITTLE");
+
+	add_pre_buffer("#weak_define __ORDER_LITTLE_ENDIAN__ 1234\n");
+	add_pre_buffer("#weak_define __ORDER_BIG_ENDIAN__ 4321\n");
+	add_pre_buffer("#weak_define __ORDER_PDP_ENDIAN__ 3412\n");
+	add_pre_buffer("#weak_define __BYTE_ORDER__ __ORDER_%s_ENDIAN__\n",
+		arch_big_endian ? "BIG" : "LITTLE");
 }
 
 void declare_builtin_functions(void)
