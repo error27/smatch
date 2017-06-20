@@ -282,6 +282,14 @@ static enum { STANDARD_C89,
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_msize_long = 0;
 
+#ifdef __BIG_ENDIAN__
+#define ARCH_BIG_ENDIAN 1
+#else
+#define ARCH_BIG_ENDIAN 0
+#endif
+int arch_big_endian = ARCH_BIG_ENDIAN;
+
+
 #define CMDLINE_INCLUDE 20
 static int cmdline_include_nr = 0;
 static char *cmdline_include[CMDLINE_INCLUDE];
@@ -410,8 +418,13 @@ static char **handle_switch_m(char *arg, char **next)
 		arch_m64 = ARCH_LLP64;
 	} else if (!strcmp(arg, "msize-long")) {
 		arch_msize_long = 1;
-	} else if (!strcmp(arg, "multiarch-dir"))
+	} else if (!strcmp(arg, "multiarch-dir")) {
 		return handle_multiarch_dir(arg, next);
+	} else if (!strcmp(arg, "mbig-endian")) {
+		arch_big_endian = 1;
+	} else if (!strcmp(arg, "mlittle-endian")) {
+		arch_big_endian = 0;
+	}
 	return next;
 }
 
