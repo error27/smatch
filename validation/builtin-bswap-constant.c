@@ -16,6 +16,12 @@ unsigned long long bswap64(void)
 	return __builtin_bswap64(0x123456789abcdef0ULL);
 }
 
+unsigned int half_constant(void);
+unsigned int half_constant(void)
+{
+	int v = 0x12345678;
+	return __builtin_bswap32(v);
+}
 /*
  * check-name: builtin-bswap-constant
  * check-command: test-linearize $file

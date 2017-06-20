@@ -180,13 +180,15 @@ static struct symbol_op choose_op = {
 /* The argument is constant and valid if the cost is zero */
 static int expand_bswap(struct expression *expr, int cost)
 {
+	struct expression *arg;
 	long long val;
 
 	if (cost)
 		return cost;
 
 	/* the arguments number & type have already been checked */
-	val = const_expression_value(first_expression(expr->args));
+	arg = first_expression(expr->args);
+	val = get_expression_value_silent(arg);
 	switch (expr->ctype->bit_size) {
 	case 16: expr->value = bswap16(val); break;
 	case 32: expr->value = bswap32(val); break;
