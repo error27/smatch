@@ -961,6 +961,9 @@ static void predefined_macros(void)
 	predefined_sizeof("FLOAT", bits_in_float);
 	predefined_sizeof("DOUBLE", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", bits_in_longdouble);
+
+	add_pre_buffer("#weak_define __%s_ENDIAN__ 1\n",
+		arch_big_endian ? "BIG" : "LITTLE");
 }
 
 void declare_builtin_functions(void)
