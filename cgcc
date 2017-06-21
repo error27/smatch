@@ -295,6 +295,9 @@ sub add_specs {
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]) .
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+    } elsif ($spec eq 'arm') {
+	return (' -D__arm__=1 -m32' .
+		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
     } elsif ($spec eq 'aarch64') {
 	return (' -D__aarch64__=1 -m64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
@@ -321,6 +324,8 @@ sub add_specs {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
 	    return &add_specs ('sparc64');
+	} elsif ($arch =~ /^(arm)$/i) {
+	    return &add_specs ('arm');
 	} elsif ($arch =~ /^(aarch64)$/i) {
 	    return &add_specs ('aarch64');
 	}
