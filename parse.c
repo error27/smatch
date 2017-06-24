@@ -607,6 +607,8 @@ static const char *ignored_attributes[] = {
 	"__naked__",
 	"no_instrument_function",
 	"__no_instrument_function__",
+	"no_sanitize_address",
+	"__no_sanitize_address__",
 	"noclone",
 	"__noclone",
 	"__noclone__",
@@ -618,6 +620,8 @@ static const char *ignored_attributes[] = {
 	"nothrow",
 	"__nothrow",
 	"__nothrow__",
+	"optimize",
+	"__optimize__",
 	"regparm",
 	"__regparm__",
 	"section",
@@ -646,8 +650,6 @@ static const char *ignored_attributes[] = {
 	"__warning__",
 	"weak",
 	"__weak__",
-	"no_sanitize_address",
-	"__no_sanitize_address__",
 };
 
 
