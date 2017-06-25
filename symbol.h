@@ -164,7 +164,6 @@ struct symbol {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
-					arg_count:10,
 					variadic:1,
 					initialized:1,
 					examined:1,
