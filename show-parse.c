@@ -927,7 +927,7 @@ static int show_symbol_expr(struct symbol *sym)
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, 0LL);
 		return new;
 	}
 	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new, show_ident(sym->ident), sym);

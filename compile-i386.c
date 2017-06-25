@@ -2238,7 +2238,7 @@ static struct storage *x86_symbol_expr(struct symbol *sym)
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new->pseudo, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new->pseudo, 0LL);
 		return new;
 	}
 	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new->pseudo, show_ident(sym->ident), sym);
