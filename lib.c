@@ -509,6 +509,25 @@ static int handle_simple_switch(const char *arg, const struct flag *flags)
 	return 0;
 }
 
+#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
+static int opt_##NAME(char *arg, const char *name, TYPE *ptr)	\
+{									\
+	char *opt;							\
+	char *end;							\
+	TYPE val;							\
+									\
+	if (!(opt = match_option(arg, name+2)))				\
+		return 0;						\
+	opt++; /* opt's last char is '=' */				\
+	val = FUNCTION(opt, &end, 0);					\
+	if (*end != '\0' || end == opt) {				\
+			die("error: missing argument to \"%s\"", name);	\
+	}								\
+	*ptr = val;							\
+	return 1;							\
+}
+
+
 static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o")) {       // "-o foo"
