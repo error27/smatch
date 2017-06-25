@@ -475,6 +475,13 @@ static void handle_arch_finalize(void)
 	handle_arch_msize_long_finalize();
 }
 
+char *match_option(char *arg, const char *prefix)
+{
+	unsigned int n = strlen(prefix);
+	if (strncmp(arg, prefix, n) == 0)
+		return arg + n;
+	return NULL;
+}
 
 static int handle_simple_switch(const char *arg, const char *name, int *flag)
 {
@@ -720,11 +727,12 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 
 static char **handle_switch_fdump(char *arg, char **next)
 {
-	if (!strncmp(arg, "linearize", 9)) {
-		arg += 9;
-		if (*arg == '\0')
+	const char *opt;
+
+	if ((opt = match_option(arg, "linearize"))) {
+		if (*opt == '\0')
 			fdump_linearize = 1;
-		else if (!strcmp(arg, "=only"))
+		else if (!strcmp(opt, "=only"))
 			fdump_linearize = 2;
 		else
 			goto err;
@@ -739,14 +747,15 @@ err:
 
 static char **handle_switch_f(char *arg, char **next)
 {
+	char *opt;
 	arg++;
 
-	if (!strncmp(arg, "tabstop=", 8))
-		return handle_switch_ftabstop(arg+8, next);
-	if (!strncmp(arg, "dump-", 5))
-		return handle_switch_fdump(arg+5, next);
-	if (!strncmp(arg, "memcpy-max-count=", 17))
-		return handle_switch_fmemcpy_max_count(arg+17, next);
+	if ((opt = match_option(arg, "tabstop=")))
+		return handle_switch_ftabstop(opt, next);
+	if ((opt = match_option(arg, "dump-")))
+		return handle_switch_fdump(opt, next);
+	if ((opt = match_option(arg, "memcpy-max-count=")))
+		return handle_switch_fmemcpy_max_count(opt, next);
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
 	if (handle_simple_switch(arg, "mem-report", &fmem_report))
@@ -773,10 +782,7 @@ static char **handle_switch_a(char *arg, char **next)
 
 static char **handle_switch_s(char *arg, char **next)
 {
-	if (!strncmp (arg, "std=", 4))
-	{
-		arg += 4;
-
+	if ((arg = match_option(arg, "std="))) {
 		if (!strcmp (arg, "c89") ||
 		    !strcmp (arg, "iso9899:1990"))
 			standard = STANDARD_C89;
