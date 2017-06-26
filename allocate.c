@@ -120,7 +120,7 @@ void *allocate(struct allocator_struct *desc, unsigned int size)
 
 void show_allocations(struct allocator_struct *x)
 {
-	fprintf(stderr, "%s: %d allocations, %d bytes (%d total bytes, "
+	fprintf(stderr, "%s: %d allocations, %lu bytes (%lu total bytes, "
 			"%6.2f%% usage, %6.2f average size)\n",
 		x->name, x->allocations, x->useful_bytes, x->total_bytes,
 		100 * (double) x->useful_bytes / x->total_bytes,
