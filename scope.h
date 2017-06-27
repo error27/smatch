@@ -28,7 +28,6 @@
 struct symbol;
 
 struct scope {
-	struct token *token;		/* Scope start information */
 	struct symbol_list *symbols;	/* List of symbols in this scope */
 	struct scope *next;
 };
