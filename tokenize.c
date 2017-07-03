@@ -904,14 +904,14 @@ struct ident *built_in_ident(const char *name)
 	return create_hashed_ident(name, len, hash_name(name, len));
 }
 
-struct token *built_in_token(int stream, const char *name)
+struct token *built_in_token(int stream, struct ident *ident)
 {
 	struct token *token;
 
 	token = __alloc_token(0);
 	token->pos.stream = stream;
 	token_type(token) = TOKEN_IDENT;
-	token->ident = built_in_ident(name);
+	token->ident = ident;
 	return token;
 }
 

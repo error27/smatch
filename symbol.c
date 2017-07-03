@@ -639,10 +639,19 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
 {
-	struct token *token = built_in_token(stream, name);
-	struct symbol *sym = alloc_symbol(token->pos, type);
+	struct ident *ident = built_in_ident(name);
+	struct symbol *sym = lookup_symbol(ident, namespace);
 
-	bind_symbol(sym, token->ident, namespace);
+	if (sym && sym->type != type)
+		die("symbol %s created with different types: %d old %d", name,
+				type, sym->type);
+
+	if (!sym) {
+		struct token *token = built_in_token(stream, ident);
+
+		sym = alloc_symbol(token->pos, type);
+		bind_symbol(sym, token->ident, namespace);
+	}
 	return sym;
 }
 

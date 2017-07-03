@@ -671,8 +671,10 @@ void init_parser(int stream)
 		const char * name = ignored_attributes[i];
 		struct symbol *sym = create_symbol(stream, name, SYM_KEYWORD,
 						   NS_KEYWORD);
-		sym->ident->keyword = 1;
-		sym->op = &ignore_attr_op;
+		if (!sym->op) {
+			sym->ident->keyword = 1;
+			sym->op = &ignore_attr_op;
+		}
 	}
 }
 

@@ -218,7 +218,7 @@ extern int init_stream(const char *, int fd, const char **next_path);
 extern const char *stream_name(int stream);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
-extern struct token *built_in_token(int, const char *);
+extern struct token *built_in_token(int, struct ident *);
 extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
