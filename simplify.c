@@ -879,6 +879,15 @@ offset:
 	if (new == orig) {
 		if (new == VOID)
 			return 0;
+		/*
+		 * If some BB have been removed it is possible that this
+		 * memop is in fact part of a dead BB. In this case
+		 * we must not warn since nothing is wrong.
+		 * If not part of a dead BB this will be redone after
+		 * the BBs have been cleaned up.
+		 */
+		if (repeat_phase & REPEAT_CFG_CLEANUP)
+			return 0;
 		new = VOID;
 		warning(insn->pos, "crazy programmer");
 	}

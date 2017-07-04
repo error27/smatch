@@ -364,6 +364,8 @@ void cleanup_and_cse(struct entrypoint *ep)
 repeat:
 	repeat_phase = 0;
 	clean_up_insns(ep);
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
 		if (*list) {
