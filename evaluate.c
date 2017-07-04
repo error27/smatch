@@ -47,6 +47,17 @@ struct symbol *current_fn;
 static struct symbol *degenerate(struct expression *expr);
 static struct symbol *evaluate_symbol(struct symbol *sym);
 
+static inline int valid_expr_type(struct expression *expr)
+{
+	return expr && valid_type(expr->ctype);
+}
+
+static inline int valid_subexpr_type(struct expression *expr)
+{
+	return valid_expr_type(expr->left)
+	    && valid_expr_type(expr->right);
+}
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct expression *addr;
