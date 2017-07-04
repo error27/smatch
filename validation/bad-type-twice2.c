@@ -7,7 +7,6 @@ int foo(int x, int y)
 
 /*
  * check-name: bad-type-twice2
- * check-known-to-fail
  *
  * check-error-start
 bad-type-twice2.c:1:8: warning: 'type_t' has implicit type

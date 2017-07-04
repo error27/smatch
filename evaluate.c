@@ -404,15 +404,20 @@ static inline int is_string_type(struct symbol *type)
 
 static struct symbol *bad_expr_type(struct expression *expr)
 {
-	sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 	switch (expr->type) {
 	case EXPR_BINOP:
 	case EXPR_COMPARE:
+		if (!valid_subexpr_type(expr))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
 		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
+		if (!valid_expr_type(expr->unop))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
 		break;
 	default:
