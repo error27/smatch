@@ -879,7 +879,7 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		warning(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
-	if (!ctype)
+	if (!valid_type(ctype))
 		return NULL;
 	if (is_safe_type(ctype))
 		warning(expr->pos, "testing a 'safe expression'");

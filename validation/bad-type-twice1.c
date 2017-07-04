@@ -7,7 +7,6 @@ static unsigned long foo(unsigned long val, void *ref)
 
 /*
  * check-name: bad-type-twice1
- * check-known-to-fail
  *
  * check-error-start
 bad-type-twice1.c:3:17: error: incompatible types for operation (>=)
