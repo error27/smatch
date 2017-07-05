@@ -820,10 +820,15 @@ static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size)
 {
-	struct instruction *insn = alloc_instruction(OP_PHISOURCE, size);
-	pseudo_t phi = __alloc_pseudo(0);
+	struct instruction *insn;
+	pseudo_t phi;
 	static int nr = 0;
 
+	if (!source)
+		return VOID;
+
+	insn = alloc_instruction(OP_PHISOURCE, size);
+	phi = __alloc_pseudo(0);
 	phi->type = PSEUDO_PHI;
 	phi->nr = ++nr;
 	phi->def = insn;
