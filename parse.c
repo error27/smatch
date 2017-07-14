@@ -1929,24 +1929,20 @@ static struct token *expression_statement(struct token *token, struct expression
 static struct token *parse_asm_operands(struct token *token, struct statement *stmt,
 	struct expression_list **inout)
 {
-	struct expression *expr;
-
 	/* Allow empty operands */
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
-		struct ident *ident = NULL;
+		struct expression *op = alloc_expression(token->pos, EXPR_ASM_OPERAND);
 		if (match_op(token->next, '[') &&
 		    token_type(token->next->next) == TOKEN_IDENT &&
 		    match_op(token->next->next->next, ']')) {
-			ident = token->next->next->ident;
+			op->name = token->next->next->ident;
 			token = token->next->next->next;
 		}
-		add_expression(inout, (struct expression *)ident); /* UGGLEE!!! */
-		token = primary_expression(token->next, &expr);
-		add_expression(inout, expr);
-		token = parens_expression(token, &expr, "in asm parameter");
-		add_expression(inout, expr);
+		token = primary_expression(token->next, &op->constraint);
+		token = parens_expression(token, &op->expr, "in asm parameter");
+		add_expression(inout, op);
 	} while (match_op(token, ','));
 	return token;
 }

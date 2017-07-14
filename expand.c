@@ -1048,6 +1048,9 @@ static int expand_expression(struct expression *expr)
 	case EXPR_OFFSETOF:
 		expression_error(expr, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
+	case EXPR_ASM_OPERAND:
+		expression_error(expr, "internal front-end error: ASM_OPERAND in expansion?");
+		return UNSAFE;
 	}
 	return SIDE_EFFECTS;
 }

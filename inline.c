@@ -271,6 +271,12 @@ static struct expression * copy_expression(struct expression *expr)
 		}
 		break;
 	}
+	case EXPR_ASM_OPERAND: {
+		expr = dup_expression(expr);
+		expr->constraint = copy_expression(expr->constraint);
+		expr->expr = copy_expression(expr->expr);
+		break;
+	}
 	default:
 		warning(expr->pos, "trying to copy expression type %d", expr->type);
 	}
@@ -281,20 +287,9 @@ static struct expression_list *copy_asm_constraints(struct expression_list *in)
 {
 	struct expression_list *out = NULL;
 	struct expression *expr;
-	int state = 0;
 
 	FOR_EACH_PTR(in, expr) {
-		switch (state) {
-		case 0: /* identifier */
-		case 1: /* constraint */
-			state++;
-			add_expression(&out, expr);
-			continue;
-		case 2: /* expression */
-			state = 0;
-			add_expression(&out, copy_expression(expr));
-			continue;
-		}
+		add_expression(&out, copy_expression(expr));
 	} END_FOR_EACH_PTR(expr);
 	return out;
 }

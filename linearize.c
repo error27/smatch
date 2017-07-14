@@ -1805,12 +1805,10 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
-	int state;
 	struct expression *expr;
 	struct instruction *insn;
 	struct asm_rules *rules;
 	const char *constraint;
-	struct ident *ident;
 
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
@@ -1824,49 +1822,17 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	insn->asm_rules = rules;
 
 	/* Gather the inputs.. */
-	state = 0;
-	ident = NULL;
-	constraint = NULL;
 	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		switch (state) {
-		case 0:	/* Identifier */
-			state = 1;
-			ident = (struct ident *)expr;
-			continue;
-
-		case 1:	/* Constraint */
-			state = 2;
-			constraint = expr ? expr->string->data : "";
-			continue;
-
-		case 2:	/* Expression */
-			state = 0;
-			add_asm_input(ep, insn, expr, constraint, ident);
-		}
+		constraint = expr->constraint ? expr->constraint->string->data : "";
+		add_asm_input(ep, insn, expr->expr, constraint, expr->name);
 	} END_FOR_EACH_PTR(expr);
 
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
-	state = 0;
-	ident = NULL;
-	constraint = NULL;
 	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		switch (state) {
-		case 0:	/* Identifier */
-			state = 1;
-			ident = (struct ident *)expr;
-			continue;
-
-		case 1:	/* Constraint */
-			state = 2;
-			constraint = expr ? expr->string->data : "";
-			continue;
-
-		case 2:
-			state = 0;
-			add_asm_output(ep, insn, expr, constraint, ident);
-		}
+		constraint = expr->constraint ? expr->constraint->string->data : "";
+		add_asm_output(ep, insn, expr->expr, constraint, expr->name);
 	} END_FOR_EACH_PTR(expr);
 
 	return VOID;

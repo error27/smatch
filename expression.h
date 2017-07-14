@@ -64,6 +64,7 @@ enum expression_type {
 	EXPR_FVALUE,
 	EXPR_SLICE,
 	EXPR_OFFSETOF,
+	EXPR_ASM_OPERAND,
 };
 
 enum {
@@ -172,6 +173,12 @@ struct expression {
 				struct ident *ident;
 				struct expression *index;
 			};
+		};
+		// EXPR_ASM_OPERAND
+		struct {
+			struct ident *name;
+			struct expression *constraint;
+			struct expression *expr;
 		};
 	};
 };

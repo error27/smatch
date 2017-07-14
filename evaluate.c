@@ -3160,6 +3160,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SLICE:
 		expression_error(expr, "internal front-end error: SLICE re-evaluated");
 		return NULL;
+	case EXPR_ASM_OPERAND:
+		expression_error(expr, "internal front-end error: ASM_OPERAND evaluated");
+		return NULL;
 	}
 	return NULL;
 }
@@ -3322,8 +3325,8 @@ static void verify_input_constraint(struct expression *expr, const char *constra
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
+	struct expression *op;
 	struct symbol *sym;
-	int state;
 
 	expr = stmt->asm_string;
 	if (!expr || expr->type != EXPR_STRING) {
@@ -3331,58 +3334,41 @@ static void evaluate_asm_statement(struct statement *stmt)
 		return;
 	}
 
-	state = 0;
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		switch (state) {
-		case 0: /* Identifier */
-			state = 1;
-			continue;
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		/* Identifier */
 
-		case 1: /* Constraint */
-			state = 2;
-			if (!expr || expr->type != EXPR_STRING) {
-				sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
-				*THIS_ADDRESS(expr) = NULL;
-				continue;
-			}
+		/* Constraint */
+		expr = op->constraint;
+		if (!expr || expr->type != EXPR_STRING) {
+			sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
+			op->constraint = NULL;
+		} else
 			verify_output_constraint(expr, expr->string->data);
-			continue;
 
-		case 2: /* Expression */
-			state = 0;
-			if (!evaluate_expression(expr))
-				return;
-			if (!lvalue_expression(expr))
-				warning(expr->pos, "asm output is not an lvalue");
-			evaluate_assign_to(expr, expr->ctype);
-			continue;
-		}
-	} END_FOR_EACH_PTR(expr);
+		/* Expression */
+		expr = op->expr;
+		if (!evaluate_expression(expr))
+			return;
+		if (!lvalue_expression(expr))
+			warning(expr->pos, "asm output is not an lvalue");
+		evaluate_assign_to(expr, expr->ctype);
+	} END_FOR_EACH_PTR(op);
 
-	state = 0;
-	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		switch (state) {
-		case 0: /* Identifier */
-			state = 1;
-			continue;
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		/* Identifier */
 
-		case 1:	/* Constraint */
-			state = 2;
-			if (!expr || expr->type != EXPR_STRING) {
-				sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
-				*THIS_ADDRESS(expr) = NULL;
-				continue;
-			}
+		/* Constraint */
+		expr = op->constraint;
+		if (!expr || expr->type != EXPR_STRING) {
+			sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
+			op->constraint = NULL;
+		} else
 			verify_input_constraint(expr, expr->string->data);
-			continue;
 
-		case 2: /* Expression */
-			state = 0;
-			if (!evaluate_expression(expr))
-				return;
-			continue;
-		}
-	} END_FOR_EACH_PTR(expr);
+		/* Expression */
+		if (!evaluate_expression(op->expr))
+			return;
+	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
 		if (!expr) {
