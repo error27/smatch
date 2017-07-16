@@ -18,6 +18,7 @@ LDFLAGS += -g
 LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
+CHECKER = ./cgcc -no-compile
 
 ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
 #
@@ -73,7 +74,8 @@ GTK2_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-2.0)
 PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
 test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
-test-inspect.o $(test-inspect_EXTRA_DEPS): BASIC_CFLAGS += $(GTK2_CFLAGS)
+test-inspect_OBJS := test-inspect.o $(test-inspect_EXTRA_DEPS)
+$(test-inspect_OBJS) $(test-inspect_OBJS:.o=.sc): CFLAGS += $(GTK2_CFLAGS)
 test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
 else
 $(warning Your system does not have libgtk2, disabling test-inspect)
@@ -127,6 +129,7 @@ LIBS=$(LIB_FILE)
 V	      = @
 Q	      = $(V:1=)
 QUIET_CC      = $(Q:@=@echo    '     CC       '$@;)
+QUIET_CHECK   = $(Q:@=@echo    '     CHECK    '$<;)
 QUIET_AR      = $(Q:@=@echo    '     AR       '$@;)
 QUIET_GEN     = $(Q:@=@echo    '     GEN      '$@;)
 QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
@@ -193,10 +196,17 @@ ifneq ($(DEP_FILES),)
 include $(DEP_FILES)
 endif
 
-c2xml.o: CFLAGS += $(LIBXML_CFLAGS)
+c2xml.o c2xml.sc: CFLAGS += $(LIBXML_CFLAGS)
 
 %.o: %.c $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(ALL_CFLAGS) $<
+
+%.sc: %.c sparse
+	$(QUIET_CHECK) $(CHECKER) -c $(ALL_CFLAGS) $<
+
+ALL_OBJS :=  $(LIB_OBJS) $(foreach p,$(PROGRAMS),$(p).o $($(p)_EXTRA_DEPS))
+selfcheck: $(ALL_OBJS:.o=.sc)
+
 
 clean: clean-check
 	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
