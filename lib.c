@@ -1156,6 +1156,7 @@ void create_builtin_stream(void)
 
 	add_pre_buffer("#define __extension__\n");
 	add_pre_buffer("#define __pragma__\n");
+	add_pre_buffer("#define _Pragma(x)\n");
 
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
 	// solaris/sparc that is really "unsigned int" and for linux/x86_64
