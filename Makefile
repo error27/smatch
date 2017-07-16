@@ -34,10 +34,10 @@ HAVE_GTK2:=$(shell $(PKG_CONFIG) --exists gtk+-2.0 2>/dev/null && echo 'yes')
 LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 
-GCC_BASE = $(shell $(CC) --print-file-name=)
+GCC_BASE := $(shell $(CC) --print-file-name=)
 BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
 
-MULTIARCH_TRIPLET = $(shell $(CC) -print-multiarch 2>/dev/null)
+MULTIARCH_TRIPLET := $(shell $(CC) -print-multiarch 2>/dev/null)
 BASIC_CFLAGS += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
 
 ifeq ($(HAVE_GCC_DEP),yes)
@@ -62,6 +62,7 @@ ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
 c2xml_EXTRA_OBJS = `$(PKG_CONFIG) --libs libxml-2.0`
+LIBXML_CFLAGS := $(shell $(PKG_CONFIG) --cflags libxml-2.0)
 else
 $(warning Your system does not have libxml, disabling c2xml)
 endif
@@ -187,17 +188,14 @@ $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
 DEP_FILES := $(wildcard .*.o.d)
-$(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
-c2xml.o: c2xml.c $(LIB_H)
-	$(QUIET_CC)$(CC) `$(PKG_CONFIG) --cflags libxml-2.0` -o $@ -c $(ALL_CFLAGS) $<
+ifneq ($(DEP_FILES),)
+include $(DEP_FILES)
+endif
 
-compat-linux.o: compat/strtold.c compat/mmap-blob.c $(LIB_H)
-compat-solaris.o: compat/mmap-blob.c $(LIB_H)
-compat-mingw.o: $(LIB_H)
-compat-cygwin.o: $(LIB_H)
+c2xml.o: CFLAGS += $(LIBXML_CFLAGS)
 
-%.o: %.c
+%.o: %.c $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(ALL_CFLAGS) $<
 
 clean: clean-check
