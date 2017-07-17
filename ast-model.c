@@ -59,7 +59,7 @@ AstNode* ast_nth_child(AstNode *node, int n)
 	inspect_child_node(node);
 
 	if (n >= node->childnodes->len)
-		return FALSE;
+		return NULL;
 	return g_array_index(node->childnodes, AstNode *, n);
 }
 

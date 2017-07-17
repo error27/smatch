@@ -150,6 +150,7 @@ extern int fdump_linearize;
 extern unsigned long long fmemcpy_max_count;
 
 extern int arch_m64;
+extern int arch_msize_long;
 extern int arch_big_endian;
 
 extern void declare_builtin_functions(void);

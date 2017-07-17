@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include "ast-model.h"
 #include "ast-inspect.h"
+#include "ast-view.h"
 
-GtkWidget *
+static GtkWidget *
 create_view_and_model (void *ptr)
 {
 	GtkTreeViewColumn   *text;
