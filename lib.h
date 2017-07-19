@@ -91,11 +91,16 @@ struct token *expect(struct token *, int, const char *);
 #define NORETURN_ATTR
 #define SENTINEL_ATTR
 #endif
-extern void die(const char *, ...) FORMAT_ATTR(1) NORETURN_ATTR;
+
+FORMAT_ATTR(1) NORETURN_ATTR
+extern void die(const char *, ...);
+
+FORMAT_ATTR(2) NORETURN_ATTR
+extern void error_die(struct position, const char *, ...);
+
 extern void info(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void warning(struct position, const char *, ...) FORMAT_ATTR(2);
 extern void sparse_error(struct position, const char *, ...) FORMAT_ATTR(2);
-extern void error_die(struct position, const char *, ...) FORMAT_ATTR(2) NORETURN_ATTR;
 extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR(2);
 
 #define	ERROR_CURR_PHASE	(1 << 0)

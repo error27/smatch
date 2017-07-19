@@ -191,6 +191,7 @@ void expression_error(struct expression *expr, const char *fmt, ...)
 	expr->ctype = &bad_ctype;
 }
 
+NORETURN_ATTR
 void error_die(struct position pos, const char * fmt, ...)
 {
 	va_list args;
@@ -200,6 +201,7 @@ void error_die(struct position pos, const char * fmt, ...)
 	exit(1);
 }
 
+NORETURN_ATTR
 void die(const char *fmt, ...)
 {
 	va_list args;
