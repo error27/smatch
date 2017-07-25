@@ -1181,6 +1181,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 	sval_t null_sval;
 	struct range_list *null_rl = NULL;
 	char *return_ranges;
+	struct sm_state *sm;
 	struct smatch_state *state;
 	int nr_states;
 	int final_pass_orig = final_pass;
@@ -1192,8 +1193,13 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 	if (!is_pointer(expr))
 		return 0;
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
-	if (!state || !estate_rl(state))
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
+		return 0;
+	state = sm->state;
+	if (!estate_rl(state))
 		return 0;
 	if (estate_min(state).value == 0 && estate_max(state).value == 0)
 		return 0;
