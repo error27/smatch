@@ -637,6 +637,13 @@ static void flag_string(const char *fmt, struct symbol *type, struct symbol *bas
 	}
 }
 
+static void device_node_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+{
+	static struct typedef_lookup gfp = { .name = "gfp_t" };
+
+	if (fmt[1] != 'F')
+		sm_msg("error: %%pO can only be followed by 'F'");
+}
 
 static void
 pointer(const char *fmt, struct expression *arg, int vaidx)
@@ -753,6 +760,8 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'G':
 		flag_string(fmt, type, basetype, vaidx);
 		break;
+	case 'O':
+		device_node_string(fmt, type, basetype, vaidx);
 	default:
 		sm_msg("error: unrecognized %%p extension '%c', treated as normal %%p", *fmt);
 	}
