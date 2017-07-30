@@ -19,6 +19,7 @@ LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
 CHECKER = ./cgcc -no-compile
+CHECKER_FLAGS =
 
 ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
 #
@@ -198,11 +199,13 @@ endif
 
 c2xml.o c2xml.sc: CFLAGS += $(LIBXML_CFLAGS)
 
+pre-process.sc: CHECKER_FLAGS += -Wno-vla
+
 %.o: %.c $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(ALL_CFLAGS) $<
 
 %.sc: %.c sparse
-	$(QUIET_CHECK) $(CHECKER) -c $(ALL_CFLAGS) $<
+	$(QUIET_CHECK) $(CHECKER) $(CHECKER_FLAGS) -c $(ALL_CFLAGS) $<
 
 ALL_OBJS :=  $(LIB_OBJS) $(foreach p,$(PROGRAMS),$(p).o $($(p)_EXTRA_DEPS))
 selfcheck: $(ALL_OBJS:.o=.sc)
