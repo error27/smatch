@@ -81,26 +81,23 @@ static int bb_depends_on(struct basic_block *target, struct basic_block *src)
 }
 
 /*
- * This is only to be used by try_to_simplify_bb().
- * It really should be handled by bb_depends_on(), only
- * that there is no liveness done on OP_PHI/OP_PHISRC.
- * So we consider for now that if there is an OP_PHI
- * then some block in fact depends on this one.
- * The OP_PHI controling the conditional branch of this bb
- * is excluded since the branch will be removed.
+ * This really should be handled by bb_depends_on()
+ * which efficiently check the dependence using the
+ * defines - needs liveness info. Problem is that
+ * there is no liveness done on OP_PHI & OP_PHISRC.
+ *
+ * This function add the missing dependency checks.
  */
-static int bb_defines_phi(struct basic_block *bb, struct instruction *def)
+static int bb_depends_on_phi(struct basic_block *target, struct basic_block *src)
 {
 	struct instruction *insn;
-	FOR_EACH_PTR(bb->insns, insn) {
-		switch (insn->opcode) {
-		case OP_PHI:
-			if (def && insn != def)
-				return 1;
+	FOR_EACH_PTR(src->insns, insn) {
+		if (!insn->bb)
 			continue;
-		default:
+		if (insn->opcode != OP_PHI)
 			continue;
-		}
+		if (pseudo_in_list(target->needs, insn->target))
+			return 1;
 	} END_FOR_EACH_PTR(insn);
 	return 0;
 }
@@ -153,7 +150,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 		target = true ? second->bb_true : second->bb_false;
 		if (bb_depends_on(target, bb))
 			continue;
-		if (bb_defines_phi(bb, first))
+		if (bb_depends_on_phi(target, bb))
 			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
@@ -224,6 +221,8 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 		goto try_to_rewrite_target;
 	if (bb_depends_on(final, target))
 		goto try_to_rewrite_target;
+	if (bb_depends_on_phi(final, target))
+		return 0;
 	return rewrite_branch(bb, target_p, target, final);
 
 try_to_rewrite_target:
