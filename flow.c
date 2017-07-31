@@ -34,7 +34,8 @@ static int rewrite_branch(struct basic_block *bb,
 		return 0;
 
 	/* We might find new if-conversions or non-dominating CSEs */
-	repeat_phase |= REPEAT_CSE;
+	/* we may also create new dead cycles */
+	repeat_phase |= REPEAT_CSE | REPEAT_CFG_CLEANUP;
 	*ptr = new;
 	replace_bb_in_list(&bb->children, old, new, 1);
 	remove_bb_from_list(&old->parents, bb, 1);
