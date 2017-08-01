@@ -164,6 +164,8 @@ static int bb_has_side_effects(struct basic_block *bb)
 {
 	struct instruction *insn;
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
 		switch (insn->opcode) {
 		case OP_CALL:
 			/* FIXME! This should take "const" etc into account */
@@ -396,6 +398,8 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
+			if (!one->bb)
+				continue;
 			if (one == insn)
 				goto no_dominance;
 			dominance = dominates(pseudo, insn, one, local);
@@ -484,6 +488,8 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 	partial = 0;
 	FOR_EACH_PTR(bb->insns, one) {
 		int dominance;
+		if (!one->bb)
+			continue;
 		if (one == insn)
 			goto found;
 		dominance = dominates(pseudo, insn, one, local);
@@ -559,6 +565,8 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
 		int opcode = insn->opcode;
 
+		if (!insn->bb)
+			continue;
 		if (opcode != OP_LOAD && opcode != OP_STORE) {
 			if (local)
 				continue;
@@ -608,6 +616,8 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 	bb->generation = generation;
 	FOR_EACH_PTR_REVERSE(bb->insns, one) {
 		int dominance;
+		if (!one->bb)
+			continue;
 		if (!found) {
 			if (one != insn)
 				continue;
@@ -777,6 +787,8 @@ void kill_bb(struct basic_block *bb)
 	struct basic_block *child, *parent;
 
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
 		kill_instruction_force(insn);
 		kill_defs(insn);
 		/*
@@ -1022,10 +1034,10 @@ out:
 
 		kill_instruction(delete_last_instruction(&parent->insns));
 		FOR_EACH_PTR(bb->insns, insn) {
-			if (insn->bb) {
-				assert(insn->bb == bb);
-				insn->bb = parent;
-			}
+			if (!insn->bb)
+				continue;
+			assert(insn->bb == bb);
+			insn->bb = parent;
 			add_instruction(&parent->insns, insn);
 		} END_FOR_EACH_PTR(insn);
 		bb->insns = NULL;
