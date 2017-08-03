@@ -590,13 +590,22 @@ static void match_inc(struct sm_state *sm)
 	struct string_list *links;
 	struct smatch_state *state;
 	char *tmp;
+	int flip;
+	int op;
 
 	links = sm->state->data;
 
 	FOR_EACH_PTR(links, tmp) {
 		state = get_state(compare_id, tmp, NULL);
 
-		switch (state_to_comparison(state)) {
+		flip = 0;
+		if (strncmp(sm->name, tmp, strlen(sm->name)) != 0 ||
+		    tmp[strlen(sm->name)] != ' ')
+			flip = 1;
+
+		op = state_to_comparison(state);
+
+		switch (flip ? flip_comparison(op) : op) {
 		case SPECIAL_EQUAL:
 		case SPECIAL_GTE:
 		case SPECIAL_UNSIGNED_GTE:
@@ -605,7 +614,9 @@ static void match_inc(struct sm_state *sm)
 			struct compare_data *data = state->data;
 			struct smatch_state *new;
 
-			new = alloc_compare_state(data->var1, data->vsl1, '>', data->var2, data->vsl2);
+			new = alloc_compare_state(data->var1, data->vsl1,
+						  flip ? '<' : '>',
+						  data->var2, data->vsl2);
 			set_state(compare_id, tmp, NULL, new);
 			break;
 		}
