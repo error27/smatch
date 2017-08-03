@@ -225,6 +225,16 @@ struct smatch_state *get_stored_condition(struct expression *expr)
 	return state;
 }
 
+struct expression_list *get_conditions(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_state_expr(link_id, expr);
+	if (!state)
+		return NULL;
+	return state->data;
+}
+
 void register_stored_conditions(int id)
 {
 	my_id = id;

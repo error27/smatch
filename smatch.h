@@ -926,6 +926,7 @@ int has_inc_dec(struct expression *expr);
 
 /* smatch_stored_conditions.c */
 struct smatch_state *get_stored_condition(struct expression *expr);
+struct expression_list *get_conditions(struct expression *expr);
 struct sm_state *stored_condition_implication_hook(struct expression *expr,
 			struct state_list **true_stack,
 			struct state_list **false_stack);
