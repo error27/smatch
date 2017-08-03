@@ -79,11 +79,13 @@ void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_st
 	} END_FOR_EACH_PTR(fn);
 }
 
+static bool in_param_set;
 static void set_extra_mod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, state);
-	if (__in_fake_assign && estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
+	if ((__in_fake_assign || in_param_set) &&
+	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
@@ -2226,12 +2228,16 @@ free:
 
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
 {
+	in_param_set = true;
 	db_param_add_set(expr, param, key, value, PARAM_ADD);
+	in_param_set = false;
 }
 
 static void db_param_set(struct expression *expr, int param, char *key, char *value)
 {
+	in_param_set = true;
 	db_param_add_set(expr, param, key, value, PARAM_SET);
+	in_param_set = false;
 }
 
 static void db_param_value(struct expression *expr, int param, char *key, char *value)
