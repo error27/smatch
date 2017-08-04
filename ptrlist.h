@@ -162,6 +162,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			for (__nr = 0; __nr < __list->nr; __nr++) {			\
 				do {							\
 					ptr = PTR_ENTRY(__list,__nr);			\
+					if (__list->rm && !ptr)				\
+						continue;				\
 					do {
 
 #define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
@@ -183,6 +185,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			while (--__nr >= 0) {						\
 				do {							\
 					ptr = PTR_ENTRY(__list,__nr);			\
+					if (__list->rm && !ptr)				\
+						continue;				\
 					do {
 
 
