@@ -25,7 +25,8 @@
 #define LIST_NODE_NR (29)
 
 struct ptr_list {
-	int nr;
+	int nr:8;
+	int rm:8;
 	struct ptr_list *prev;
 	struct ptr_list *next;
 	void *list[LIST_NODE_NR];
