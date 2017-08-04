@@ -287,6 +287,14 @@ extern void split_ptr_list_head(struct ptr_list *);
 #define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
 	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
 
+#define DO_MARK_CURRENT_DELETED(ptr, __list) do {	\
+		REPLACE_CURRENT_PTR(ptr, NULL);		\
+		__list->rm++;				\
+	} while (0)
+
+#define MARK_CURRENT_DELETED(ptr) \
+	DO_MARK_CURRENT_DELETED(ptr, __list##ptr)
+
 extern void pack_ptr_list(struct ptr_list **);
 
 #define PACK_PTR_LIST(x) pack_ptr_list((struct ptr_list **)(x))
