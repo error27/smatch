@@ -178,6 +178,7 @@ struct expression {
 
 /* Constant expression values */
 int is_zero_constant(struct expression *);
+int expr_truth_value(struct expression *expr);
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
 long long get_expression_value_silent(struct expression *expr);

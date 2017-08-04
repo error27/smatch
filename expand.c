@@ -1281,6 +1281,36 @@ long long get_expression_value_silent(struct expression *expr)
 	return __get_expression_value(expr, 2);
 }
 
+int expr_truth_value(struct expression *expr)
+{
+	const int saved = conservative;
+	struct symbol *ctype;
+
+	if (!expr)
+		return 0;
+
+	ctype = evaluate_expression(expr);
+	if (!ctype)
+		return -1;
+
+	conservative = 1;
+	expand_expression(expr);
+	conservative = saved;
+
+redo:
+	switch (expr->type) {
+	case EXPR_COMMA:
+		expr = expr->right;
+		goto redo;
+	case EXPR_VALUE:
+		return expr->value != 0;
+	case EXPR_FVALUE:
+		return expr->fvalue != 0;
+	default:
+		return -1;
+	}
+}
+
 int is_zero_constant(struct expression *expr)
 {
 	const int saved = conservative;
