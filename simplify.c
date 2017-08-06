@@ -378,6 +378,13 @@ static inline int def_opcode(pseudo_t p)
 	return p->def->opcode;
 }
 
+//
+// return the opcode of the instruction defining ``SRC`` if existing
+// and OP_BADOP if not. It also assigns the defining instruction
+// to ``DEF``.
+#define DEF_OPCODE(DEF, SRC)	\
+	(((SRC)->type == PSEUDO_REG && (DEF = (SRC)->def)) ? DEF->opcode : OP_BADOP)
+
 static unsigned int value_size(long long value)
 {
 	value >>= 8;
@@ -644,6 +651,32 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
+{
+	pseudo_t old = insn->src1;
+	unsigned long long omask;
+	unsigned long long nmask;
+	struct instruction *def;
+	int osize;
+
+	switch (DEF_OPCODE(def, old)) {
+	case OP_ZEXT:
+		osize = def->orig_type->bit_size;
+		omask = (1ULL << osize) - 1;
+		nmask = mask & omask;
+		if (nmask == omask)
+			// the AND mask is redundant
+			return replace_with_pseudo(insn, old);
+		if (nmask != mask) {
+			// can use a smaller mask
+			insn->src2 = value_pseudo(nmask);
+			return REPEAT_CSE;
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
@@ -694,7 +727,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 			return replace_with_pseudo(insn, insn->src2);
 		if ((value & bits) == bits)
 			return replace_with_pseudo(insn, insn->src1);
-		return 0;
+		return simplify_constant_mask(insn, value);
 
 	case OP_SET_NE:
 	case OP_SET_EQ:

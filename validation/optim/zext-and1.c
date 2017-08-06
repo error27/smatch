@@ -6,7 +6,6 @@ unsigned int bar(unsigned char x)
 /*
  * check-name: zext-and1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: and\\..*\\$1
