@@ -775,18 +775,41 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int simplify_and_or_mask(struct instruction *insn, pseudo_t and, pseudo_t other, unsigned long long mask)
+{
+	struct instruction *def = and->def;
+
+	if (!constant(def->src2))
+		return 0;
+	if (def->src2->value & mask)
+		return 0;
+	return replace_pseudo(insn, &insn->src1, other);
+}
+
 static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
 {
 	pseudo_t old = insn->src1;
 	unsigned long long omask;
 	unsigned long long nmask;
 	struct instruction *def;
+	pseudo_t src1, src2;
 	int osize;
 
 	switch (DEF_OPCODE(def, old)) {
 	case OP_FPCMP ... OP_BINCMP_END:
 		osize = 1;
 		goto oldsize;
+	case OP_OR:
+		// Let's handle ((A & M') | B ) & M
+		// or           (B | (A & M')) & M
+		// when M' & M == 0
+		src1 = def->src1;
+		src2 = def->src2;
+		if (def_opcode(src1) == OP_AND)
+			return simplify_and_or_mask(insn, src1, src2, mask);
+		if (def_opcode(src2) == OP_AND)
+			return simplify_and_or_mask(insn, src2, src1, mask);
+		break;
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
 		/* fall through */
