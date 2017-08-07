@@ -6,7 +6,6 @@ unsigned mask(unsigned x)
 /*
  * check-name: shl-lsr0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: and\\..*0xffff8000

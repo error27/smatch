@@ -683,6 +683,13 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		if (value >= size)
 			goto zero;
 		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_LSR:
+			// replace ((x >> S) << S)
+			// by      (x & (-1 << S))
+			if (def->src2 != insn->src2)
+				break;
+			mask = bits_mask(insn->size - value) << value;
+			goto replace_mask;
 		case OP_SHL:
 		case_shift_shift:		// also for LSR - LSR
 			if (def == insn)	// cyclic DAG!
