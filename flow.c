@@ -650,11 +650,10 @@ void check_access(struct instruction *insn)
 
 static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
-	pseudo_t pseudo, src;
+	pseudo_t pseudo;
 	struct pseudo_user *pu;
-	struct instruction *def;
 	unsigned long mod;
-	int all, stores, complex;
+	int all;
 
 	/* Never used as a symbol? */
 	pseudo = sym->pseudo;
@@ -670,17 +669,12 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (mod)
 		goto external_visibility;
 
-	def = NULL;
-	stores = 0;
-	complex = 0;
 	FOR_EACH_PTR(pseudo->users, pu) {
 		/* We know that the symbol-pseudo use is the "src" in the instruction */
 		struct instruction *insn = pu->insn;
 
 		switch (insn->opcode) {
 		case OP_STORE:
-			stores++;
-			def = insn;
 			break;
 		case OP_LOAD:
 			break;
@@ -697,37 +691,8 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 		default:
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		}
-		complex |= insn->offset;
 	} END_FOR_EACH_PTR(pu);
 
-	if (complex)
-		goto complex_def;
-	if (stores > 1)
-		goto multi_def;
-
-	/*
-	 * Goodie, we have a single store (if even that) in the whole
-	 * thing. Replace all loads with moves from the pseudo,
-	 * replace the store with a def.
-	 */
-	src = VOID;
-	if (def)
-		src = def->target;
-
-	FOR_EACH_PTR(pseudo->users, pu) {
-		struct instruction *insn = pu->insn;
-		if (insn->opcode == OP_LOAD) {
-			check_access(insn);
-			convert_load_instruction(insn, src);
-		}
-	} END_FOR_EACH_PTR(pu);
-
-	/* Turn the store into a no-op */
-	kill_store(def);
-	return;
-
-multi_def:
-complex_def:
 external_visibility:
 	all = 1;
 	FOR_EACH_PTR_REVERSE(pseudo->users, pu) {
