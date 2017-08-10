@@ -32,7 +32,14 @@ HAVE_LIBXML:=$(shell $(PKG_CONFIG) --exists libxml-2.0 2>/dev/null && echo 'yes'
 HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
-HAVE_GTK2:=$(shell $(PKG_CONFIG) --exists gtk+-2.0 2>/dev/null && echo 'yes')
+
+GTK_VERSION:=3.0
+HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
+ifneq ($(HAVE_GTK),yes)
+	GTK_VERSION:=2.0
+	HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
+endif
+
 LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 
@@ -69,17 +76,17 @@ else
 $(warning Your system does not have libxml, disabling c2xml)
 endif
 
-ifeq ($(HAVE_GTK2),yes)
-GTK2_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-2.0)
-GTK2_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-2.0)
+ifeq ($(HAVE_GTK),yes)
+GTK_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-$(GTK_VERSION))
+GTK_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-$(GTK_VERSION))
 PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
 test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
 test-inspect_OBJS := test-inspect.o $(test-inspect_EXTRA_DEPS)
-$(test-inspect_OBJS) $(test-inspect_OBJS:.o=.sc): CFLAGS += $(GTK2_CFLAGS)
-test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
+$(test-inspect_OBJS) $(test-inspect_OBJS:.o=.sc): CFLAGS += $(GTK_CFLAGS)
+test-inspect_EXTRA_OBJS := $(GTK_LIBS)
 else
-$(warning Your system does not have libgtk2, disabling test-inspect)
+$(warning Your system does not have gtk3/gtk2, disabling test-inspect)
 endif
 
 ifeq ($(HAVE_LLVM),yes)
