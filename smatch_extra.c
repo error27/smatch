@@ -240,6 +240,10 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
+	/* don't save unknown states if leaving it blank is the same */
+	if (!orig_state && estate_is_unknown(state))
+		return;
+
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
 		set_state(SMATCH_EXTRA, new_name, new_sym, state);
