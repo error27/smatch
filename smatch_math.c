@@ -343,6 +343,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 	sval_t known;
+	int new_recurse;
 
 	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE && implied != RL_REAL_ABSOLUTE)
 		return NULL;
@@ -368,8 +369,12 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		}
 	}
 
-	if (get_implied_value_internal(expr->right, &known, recurse_cnt)) {
+	if (*recurse_cnt >= 200)
+		new_recurse = 100;  /* Let's try super hard to get the mask */
+	if (get_implied_value_internal(expr->right, &known, &new_recurse)) {
 		sval_t min, left_max, mod;
+
+		*recurse_cnt = new_recurse;
 
 		min = sval_lowest_set_bit(known);
 		right_rl = alloc_rl(min, known);
