@@ -6,7 +6,7 @@ cd $(dirname "$0")
 
 default_path=".."
 default_cmd="sparse \$file"
-tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
+tests_list=""
 prog_name=`basename $0`
 
 if [ ! -x "$default_path/sparse-llvm" ]; then
@@ -156,6 +156,7 @@ echo "Usage: $prog_name [command] [command arguments]"
 echo
 echo "commands:"
 echo "    none                       runs the whole test suite"
+echo "    file ...                   runs the test suite on the given file(s)"
 echo "    single file                runs the test in 'file'"
 echo "    format file [name [cmd]]   helps writing a new test case using cmd"
 echo
@@ -370,8 +371,14 @@ arg_file()
 
 case "$1" in
 	'')
+		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 		do_test_suite
 		;;
+	*.c)
+		tests_list="$@"
+		do_test_suite
+		;;
+
 	single)
 		arg_file "$2"
 		do_test "$2"
