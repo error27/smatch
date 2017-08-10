@@ -260,6 +260,18 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 		min = sval_type_val(type, 0);
 		max = rl_max(left_rl);
 		break;
+	case SPECIAL_EQUAL:
+		min = sval_type_val(type, 0);
+		max = sval_type_val(type, 0);
+		break;
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		max = sval_type_val(type, -1);
+		break;
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
+		max = sval_type_val(type, 0);
+		break;
 	default:
 		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl)))
 			return NULL;
