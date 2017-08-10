@@ -562,6 +562,12 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 	if (implied == RL_EXACT)
 		return NULL;
 
+	if (custom_handle_variable) {
+		rl = custom_handle_variable(expr);
+		if (rl)
+			return rl;
+	}
+
 	state = get_extra_state(expr);
 	if (state && !is_whole_rl(estate_rl(state)))
 		return clone_rl(estate_rl(state));
