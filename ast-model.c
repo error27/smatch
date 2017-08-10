@@ -401,7 +401,8 @@ static gint
 ast_iter_n_children (GtkTreeModel *tree_model,
                           GtkTreeIter  *iter)
 {
-	AstNode  *node = iter->user_data;
+	AstNode  *node = iter ? iter->user_data
+				: AST_NODE(tree_model);
 
 	inspect_child_node(node);
 	return node->childnodes->len;
