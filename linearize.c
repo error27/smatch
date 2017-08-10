@@ -334,6 +334,7 @@ const char *show_instruction(struct instruction *insn)
 		
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
+		struct symbol *sym;
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
 
 		if (!expr) {
@@ -355,7 +356,9 @@ const char *show_instruction(struct instruction *insn)
 			buf += sprintf(buf, "%s", show_ident(expr->symbol->ident));
 			break;
 		case EXPR_LABEL:
-			buf += sprintf(buf, ".L%u", expr->symbol->bb_target->nr);
+			sym = expr->symbol;
+			if (sym->bb_target)
+				buf += sprintf(buf, ".L%u", sym->bb_target->nr);
 			break;
 		default:
 			buf += sprintf(buf, "SETVAL EXPR TYPE %d", expr->type);
@@ -671,9 +674,6 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 		remove_parent(child, bb);
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
-
-	if (repeat_phase & REPEAT_CFG_CLEANUP)
-		kill_unreachable_bbs(bb->ep);
 }
 	
 
@@ -823,10 +823,15 @@ static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size)
 {
-	struct instruction *insn = alloc_instruction(OP_PHISOURCE, size);
-	pseudo_t phi = __alloc_pseudo(0);
+	struct instruction *insn;
+	pseudo_t phi;
 	static int nr = 0;
 
+	if (!source)
+		return VOID;
+
+	insn = alloc_instruction(OP_PHISOURCE, size);
+	phi = __alloc_pseudo(0);
 	phi->type = PSEUDO_PHI;
 	phi->nr = ++nr;
 	phi->def = insn;
