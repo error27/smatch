@@ -171,14 +171,63 @@ static struct range_list *handle_divide_rl(struct expression *expr, int implied,
 	return rl_binop(left_rl, '/', right_rl);
 }
 
+static int handle_offset_subtraction(struct expression *expr)
+{
+	struct expression *left, *right;
+	struct symbol *left_sym, *right_sym;
+	struct symbol *type;
+	int left_offset, right_offset;
+
+	type = get_type(expr);
+
+
+	if (!type || type->type != SYM_PTR)
+		return -1;
+	type = get_real_base_type(type);
+	if (!type || (type_bits(type) != 8 && (type != &void_ctype)))
+		return -1;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (left->type != EXPR_PREOP || left->op != '&')
+		return -1;
+	left = strip_expr(left->unop);
+
+	left_sym = expr_to_sym(left);
+	right_sym = expr_to_sym(right);
+	if (!left_sym || left_sym != right_sym)
+		return -1;
+
+	left_offset = get_member_offset_from_deref(left);
+	if (right->type == EXPR_SYMBOL)
+		right_offset = 0;
+	else
+		right_offset = get_member_offset_from_deref(right);
+	if (left_offset < 0 || right_offset < 0)
+		return -1;
+
+	return left_offset - right_offset;
+}
+
 static struct range_list *handle_subtract_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 	sval_t max, min, tmp;
 	int comparison;
+	int offset;
 
 	type = get_type(expr);
+
+	offset = handle_offset_subtraction(expr);
+	if (offset >= 0) {
+		tmp.type = type;
+		tmp.value = offset;
+
+		return alloc_rl(tmp, tmp);
+	}
+
 	comparison = get_comparison(expr->left, expr->right);
 
 	left_rl = _get_rl(expr->left, implied, recurse_cnt);
