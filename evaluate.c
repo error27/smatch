@@ -1220,6 +1220,18 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 
 Err:
 	expression_error(expr, "incompatible types in conditional expression (%s)", typediff);
+	/*
+	 * if the condition is constant, the type is in fact known
+	 * so use it, as gcc & clang do.
+	 */
+	switch (expr_truth_value(expr->conditional)) {
+	case 1:	expr->ctype = ltype;
+		break;
+	case 0: expr->ctype = rtype;
+		break;
+	default:
+		break;
+	}
 	return NULL;
 
 out:
