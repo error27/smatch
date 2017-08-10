@@ -25,7 +25,8 @@
 #define LIST_NODE_NR (29)
 
 struct ptr_list {
-	int nr;
+	int nr:8;
+	int rm:8;
 	struct ptr_list *prev;
 	struct ptr_list *next;
 	void *list[LIST_NODE_NR];
@@ -161,6 +162,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			for (__nr = 0; __nr < __list->nr; __nr++) {			\
 				do {							\
 					ptr = PTR_ENTRY(__list,__nr);			\
+					if (__list->rm && !ptr)				\
+						continue;				\
 					do {
 
 #define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
@@ -182,6 +185,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			while (--__nr >= 0) {						\
 				do {							\
 					ptr = PTR_ENTRY(__list,__nr);			\
+					if (__list->rm && !ptr)				\
+						continue;				\
 					do {
 
 
@@ -285,6 +290,14 @@ extern void split_ptr_list_head(struct ptr_list *);
 
 #define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
 	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
+
+#define DO_MARK_CURRENT_DELETED(ptr, __list) do {	\
+		REPLACE_CURRENT_PTR(ptr, NULL);		\
+		__list->rm++;				\
+	} while (0)
+
+#define MARK_CURRENT_DELETED(ptr) \
+	DO_MARK_CURRENT_DELETED(ptr, __list##ptr)
 
 extern void pack_ptr_list(struct ptr_list **);
 
