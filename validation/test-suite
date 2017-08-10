@@ -303,8 +303,8 @@ do_test_suite()
 
 	# prints some numbers
 	tests_nr=$(($ok_tests + $ko_tests))
-	echo -n "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed"
-	echo " ($known_ko_tests of them are known to fail)"
+	echo "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed" \
+		" ($known_ko_tests of them are known to fail)"
 	if [ "$unhandled_tests" -ne "0" ]; then
 		echo "$unhandled_tests tests could not be handled by $prog_name"
 	fi
