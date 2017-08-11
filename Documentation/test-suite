@@ -25,6 +25,10 @@ check-command: (optional)
 check-exit-value: (optional)
 	The expected exit value of check-command. It defaults to 0.
 
+check-timeout: (optional)
+	The maximum expected duration of check-command, in seconds.
+	It defaults to 1.
+
 check-output-start / check-output-end (optional)
 	The expected output (stdout and stderr) of check-command lies between
 	those two tags. It defaults to no output.

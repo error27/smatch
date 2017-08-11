@@ -39,6 +39,7 @@ get_tag_value()
 	check_name=""
 	check_command="$default_cmd"
 	check_exit_value=0
+	check_timeout=0
 	check_known_to_fail=0
 	check_error_ignore=0
 	check_output_ignore=0
@@ -56,6 +57,8 @@ get_tag_value()
 		check-name:)		check_name="$val" ;;
 		check-command:)		check_command="$val" ;;
 		check-exit-value:)	check_exit_value="$val" ;;
+		check-timeout:)		[ -z "$val" ] && val=1
+					check_timeout="$val" ;;
 		check-known-to-fail)	check_known_to_fail=1 ;;
 		check-error-ignore)	check_error_ignore=1 ;;
 		check-output-ignore)	check_output_ignore=1 ;;
@@ -211,6 +214,10 @@ do_test()
 	expected_exit_value=$check_exit_value
 	verbose "Expecting exit value: $expected_exit_value"
 
+	# do we want a timeout?
+	if [ $check_timeout -ne 0 ]; then
+		cmd="timeout -k 1s $check_timeout $cmd"
+	fi
 
 	# grab the actual output & exit value
 	$cmd 1> $file.output.got 2> $file.error.got
