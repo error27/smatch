@@ -918,7 +918,7 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	if (is_ptr_type(otype)) {
 		op = LLVMPtrToInt;
 	} else if (is_float_type(otype)) {
-		op = (op == LLVMZExt) ? LLVMFPToUI : LLVMFPToSI;
+		assert(op == LLVMFPToUI || op == LLVMFPToSI);
 	} else if (is_int_type(otype)) {
 		unsigned int width = otype->bit_size;
 		if (insn->size < width)
@@ -1034,6 +1034,12 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_SCAST:
 		output_op_cast(fn, insn, LLVMSExt);
+		break;
+	case OP_FCVTU:
+		output_op_cast(fn, insn, LLVMFPToUI);
+		break;
+	case OP_FCVTS:
+		output_op_cast(fn, insn, LLVMFPToSI);
 		break;
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:

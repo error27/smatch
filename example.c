@@ -76,6 +76,8 @@ static const char *opcodes[] = {
 	[OP_COPY] = "copy",
 	[OP_CAST] = "cast",
 	[OP_SCAST] = "scast",
+	[OP_FCVTU] = "fcvtu",
+	[OP_FCVTS] = "fcvts",
 	[OP_UCVTF] = "ucvtf",
 	[OP_SCVTF] = "scvtf",
 	[OP_FCVTF] = "fcvtf",
@@ -1412,6 +1414,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		break;
 
 	case OP_CAST: case OP_SCAST: case OP_PTRCAST:
+	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
 		generate_cast(state, insn);

@@ -273,6 +273,12 @@ They all have the following signature:
 .. op:: OP_PTRCAST
 	Cast to pointer.
 
+.. op:: OP_FCVTU
+	Conversion from float type to unsigned integer.
+
+.. op:: OP_FCVTS
+	Conversion from float type to signed integer.
+
 .. op:: OP_UCVTF
 	Conversion from unsigned integer to float type.
 

@@ -19,4 +19,5 @@ void foo(struct s *x)
  *
  * check-output-ignore
  * check-output-excludes: cast\\.
+ * check-output-excludes: fcvt[us]\\.
  */

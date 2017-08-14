@@ -1220,6 +1220,7 @@ int simplify_instruction(struct instruction *insn)
 		return replace_with_pseudo(insn, insn->symbol);
 	case OP_CAST:
 	case OP_SCAST:
+	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
 	case OP_PTRCAST:

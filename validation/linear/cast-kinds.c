@@ -95,14 +95,14 @@ iptr_2_int:
 float_2_int:
 .L10:
 	<entry-point>
-	cast.32     %r17 <- (32) %arg1
+	fcvts.32    %r17 <- (32) %arg1
 	ret.32      %r17
 
 
 double_2_int:
 .L12:
 	<entry-point>
-	cast.32     %r20 <- (64) %arg1
+	fcvts.32    %r20 <- (64) %arg1
 	ret.32      %r20
 
 
@@ -143,14 +143,14 @@ iptr_2_uint:
 float_2_uint:
 .L24:
 	<entry-point>
-	cast.32     %r38 <- (32) %arg1
+	fcvtu.32    %r38 <- (32) %arg1
 	ret.32      %r38
 
 
 double_2_uint:
 .L26:
 	<entry-point>
-	cast.32     %r41 <- (64) %arg1
+	fcvtu.32    %r41 <- (64) %arg1
 	ret.32      %r41
 
 
@@ -191,14 +191,14 @@ iptr_2_long:
 float_2_long:
 .L38:
 	<entry-point>
-	cast.64     %r59 <- (32) %arg1
+	fcvts.64    %r59 <- (32) %arg1
 	ret.64      %r59
 
 
 double_2_long:
 .L40:
 	<entry-point>
-	cast.64     %r62 <- (64) %arg1
+	fcvts.64    %r62 <- (64) %arg1
 	ret.64      %r62
 
 
@@ -239,14 +239,14 @@ iptr_2_ulong:
 float_2_ulong:
 .L52:
 	<entry-point>
-	cast.64     %r80 <- (32) %arg1
+	fcvtu.64    %r80 <- (32) %arg1
 	ret.64      %r80
 
 
 double_2_ulong:
 .L54:
 	<entry-point>
-	cast.64     %r83 <- (64) %arg1
+	fcvtu.64    %r83 <- (64) %arg1
 	ret.64      %r83
 
 
