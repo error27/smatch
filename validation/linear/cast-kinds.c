@@ -288,106 +288,108 @@ iptr_2_vptr:
 int_2_iptr:
 .L66:
 	<entry-point>
-	utptr.64    %r101 <- (32) %arg1
-	ret.64      %r101
+	scast.64    %r101 <- (32) %arg1
+	utptr.64    %r102 <- (64) %r101
+	ret.64      %r102
 
 
 uint_2_iptr:
 .L68:
 	<entry-point>
-	utptr.64    %r104 <- (32) %arg1
-	ret.64      %r104
+	cast.64     %r105 <- (32) %arg1
+	utptr.64    %r106 <- (64) %r105
+	ret.64      %r106
 
 
 long_2_iptr:
 .L70:
 	<entry-point>
-	utptr.64    %r107 <- (64) %arg1
-	ret.64      %r107
+	utptr.64    %r109 <- (64) %arg1
+	ret.64      %r109
 
 
 ulong_2_iptr:
 .L72:
 	<entry-point>
-	utptr.64    %r110 <- (64) %arg1
-	ret.64      %r110
+	utptr.64    %r112 <- (64) %arg1
+	ret.64      %r112
 
 
 vptr_2_iptr:
 .L74:
 	<entry-point>
-	ptrcast.64  %r113 <- (64) %arg1
-	ret.64      %r113
+	ptrcast.64  %r115 <- (64) %arg1
+	ret.64      %r115
 
 
 int_2_float:
 .L76:
 	<entry-point>
-	scvtf.32    %r116 <- (32) %arg1
-	ret.32      %r116
+	scvtf.32    %r118 <- (32) %arg1
+	ret.32      %r118
 
 
 uint_2_float:
 .L78:
 	<entry-point>
-	ucvtf.32    %r119 <- (32) %arg1
-	ret.32      %r119
+	ucvtf.32    %r121 <- (32) %arg1
+	ret.32      %r121
 
 
 long_2_float:
 .L80:
 	<entry-point>
-	scvtf.32    %r122 <- (64) %arg1
-	ret.32      %r122
+	scvtf.32    %r124 <- (64) %arg1
+	ret.32      %r124
 
 
 ulong_2_float:
 .L82:
 	<entry-point>
-	ucvtf.32    %r125 <- (64) %arg1
-	ret.32      %r125
+	ucvtf.32    %r127 <- (64) %arg1
+	ret.32      %r127
 
 
 double_2_float:
 .L84:
 	<entry-point>
-	fcvtf.32    %r128 <- (64) %arg1
-	ret.32      %r128
+	fcvtf.32    %r130 <- (64) %arg1
+	ret.32      %r130
 
 
 int_2_double:
 .L86:
 	<entry-point>
-	scvtf.64    %r131 <- (32) %arg1
-	ret.64      %r131
+	scvtf.64    %r133 <- (32) %arg1
+	ret.64      %r133
 
 
 uint_2_double:
 .L88:
 	<entry-point>
-	ucvtf.64    %r134 <- (32) %arg1
-	ret.64      %r134
+	ucvtf.64    %r136 <- (32) %arg1
+	ret.64      %r136
 
 
 long_2_double:
 .L90:
 	<entry-point>
-	scvtf.64    %r137 <- (64) %arg1
-	ret.64      %r137
+	scvtf.64    %r139 <- (64) %arg1
+	ret.64      %r139
 
 
 ulong_2_double:
 .L92:
 	<entry-point>
-	ucvtf.64    %r140 <- (64) %arg1
-	ret.64      %r140
+	ucvtf.64    %r142 <- (64) %arg1
+	ret.64      %r142
 
 
 float_2_double:
 .L94:
 	<entry-point>
-	fcvtf.64    %r143 <- (32) %arg1
-	ret.64      %r143
+	fcvtf.64    %r145 <- (32) %arg1
+	ret.64      %r145
 
 
 float_2_float:

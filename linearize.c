@@ -1273,6 +1273,8 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 			break;
 		if (Wint_to_pointer_cast)
 			warning(to->pos, "non size-preserving integer to pointer cast");
+		src = cast_pseudo(ep, src, from, size_t_ctype);
+		from = size_t_ctype;
 		break;
 	default:
 		break;

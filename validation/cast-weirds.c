@@ -20,29 +20,31 @@ cast-weirds.c:5:44: warning: non size-preserving integer to pointer cast
 int_2_iptr:
 .L0:
 	<entry-point>
-	utptr.64    %r2 <- (32) %arg1
-	ret.64      %r2
+	scast.64    %r2 <- (32) %arg1
+	utptr.64    %r3 <- (64) %r2
+	ret.64      %r3
 
 
 uint_2_iptr:
 .L2:
 	<entry-point>
-	utptr.64    %r5 <- (32) %arg1
-	ret.64      %r5
+	cast.64     %r6 <- (32) %arg1
+	utptr.64    %r7 <- (64) %r6
+	ret.64      %r7
 
 
 int_2_vptr:
 .L4:
 	<entry-point>
-	scast.64    %r8 <- (32) %arg1
-	ret.64      %r8
+	scast.64    %r10 <- (32) %arg1
+	ret.64      %r10
 
 
 uint_2_vptr:
 .L6:
 	<entry-point>
-	cast.64     %r11 <- (32) %arg1
-	ret.64      %r11
+	cast.64     %r13 <- (32) %arg1
+	ret.64      %r13
 
 
  * check-output-end

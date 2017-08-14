@@ -271,7 +271,7 @@ They all have the following signature:
 	Cast to signed integer.
 
 .. op:: OP_UTPTR
-	Cast from unsigned integer to pointer type.
+	Cast from pointer-sized unsigned integer to pointer type.
 
 .. op:: OP_PTRCAST
 	Cast to pointer.
