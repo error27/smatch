@@ -16,10 +16,10 @@ int foo(const char *fmt, int a, long l, int *p)
 ; ModuleID = '<stdin>'
 source_filename = "sparse"
 
-define i32 @foo(i8* %ARG1, i32 %ARG2, i64 %ARG3, i32* %ARG4) {
+define i32 @foo(i8* %ARG1., i32 %ARG2., i64 %ARG3., i32* %ARG4.) {
 L0:
-  %R5 = call i32 (i8*, ...) @print(i8* %ARG1, i32 120, i32 %ARG2, i32 8, i64 %ARG3, i64 0, i32* %ARG4, i8* null)
-  ret i32 %R5
+  %R5. = call i32 (i8*, ...) @print(i8* %ARG1., i32 120, i32 %ARG2., i32 8, i64 %ARG3., i64 0, i32* %ARG4., i8* null)
+  ret i32 %R5.
 }
 
 declare i32 @print(i8*, ...)

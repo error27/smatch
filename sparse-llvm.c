@@ -277,10 +277,10 @@ static const char *pseudo_name(pseudo_t pseudo, char *buf)
 {
 	switch (pseudo->type) {
 	case PSEUDO_REG:
-		snprintf(buf, MAX_PSEUDO_NAME, "R%d", pseudo->nr);
+		snprintf(buf, MAX_PSEUDO_NAME, "R%d.", pseudo->nr);
 		break;
 	case PSEUDO_PHI:
-		snprintf(buf, MAX_PSEUDO_NAME, "PHI%d", pseudo->nr);
+		snprintf(buf, MAX_PSEUDO_NAME, "PHI%d.", pseudo->nr);
 		break;
 	case PSEUDO_SYM:
 	case PSEUDO_VAL:
@@ -1144,7 +1144,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 		LLVMValueRef arg;
 
 		arg = LLVMGetParam(function.fn, i);
-		snprintf(name, sizeof(name), "ARG%d", i+1);
+		snprintf(name, sizeof(name), "ARG%d.", i+1);
 		LLVMSetValueName(arg, name);
 	}
 
