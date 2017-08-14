@@ -50,6 +50,9 @@ static double long_2_double(long a) { return (double)a; }
 static double ulong_2_double(ulong a) { return (double)a; }
 static double float_2_double(float a) { return (double)a; }
 
+static float float_2_float(float a) { return a; }
+static double double_2_double(double a) { return a; }
+
 /*
  * check-name: cast-kinds
  * check-command: test-linearize -m64 $file
@@ -385,6 +388,18 @@ float_2_double:
 	<entry-point>
 	fcvtf.64    %r143 <- (32) %arg1
 	ret.64      %r143
+
+
+float_2_float:
+.L96:
+	<entry-point>
+	ret.32      %arg1
+
+
+double_2_double:
+.L98:
+	<entry-point>
+	ret.64      %arg1
 
 
  * check-output-end

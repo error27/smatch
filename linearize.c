@@ -1207,6 +1207,8 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 	case MTYPE_FLOAT:
 		switch (stype) {
 		case MTYPE_FLOAT:
+			if (dst->bit_size == src->bit_size)
+				return OP_NOP;
 			return OP_FCVTF;
 		case MTYPE_UINT:
 			return OP_UCVTF;
@@ -1244,6 +1246,12 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 	if (from->bit_size < 0 || to->bit_size < 0)
 		return VOID;
 	opcode = get_cast_opcode(to, from);
+	switch (opcode) {
+	case OP_NOP:
+		return src;
+	default:
+		break;
+	}
 	insn = alloc_typed_instruction(opcode, to);
 	result = alloc_pseudo(insn);
 	insn->target = result;
