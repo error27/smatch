@@ -278,6 +278,9 @@ extern struct symbol	float128_ctype;
 extern struct symbol	const_void_ctype, const_char_ctype;
 extern struct symbol	const_ptr_ctype, const_string_ctype;
 
+#define	uintptr_ctype	 size_t_ctype
+#define	 intptr_ctype	ssize_t_ctype
+
 /* Special internal symbols */
 extern struct symbol	zero_int;
 
