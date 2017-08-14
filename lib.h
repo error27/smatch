@@ -149,6 +149,7 @@ extern int Wdo_while;
 extern int Wenum_mismatch;
 extern int Wsparse_error;
 extern int Winit_cstring;
+extern int Wint_to_pointer_cast;
 extern int Wmemcpy_max_count;
 extern int Wnon_pointer_null;
 extern int Wold_initializer;

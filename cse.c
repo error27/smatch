@@ -94,6 +94,7 @@ void cse_collect(struct instruction *insn)
 	case OP_CAST:
 	case OP_SCAST:
 	case OP_PTRCAST:
+	case OP_UTPTR:
 		/*
 		 * This is crap! Many "orig_types" are the
 		 * same as far as casts go, we should generate
@@ -241,6 +242,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_CAST:
 	case OP_SCAST:
 	case OP_PTRCAST:
+	case OP_UTPTR:
 		/*
 		 * This is crap! See the comments on hashing.
 		 */

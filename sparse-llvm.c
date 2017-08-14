@@ -1045,6 +1045,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_FCVTF:
 		output_op_fpcast(fn, insn);
 		break;
+	case OP_UTPTR:
 	case OP_PTRCAST:
 		output_op_ptrcast(fn, insn);
 		break;

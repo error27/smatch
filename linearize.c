@@ -268,6 +268,7 @@ static const char *opcodes[] = {
 	[OP_UCVTF] = "ucvtf",
 	[OP_SCVTF] = "scvtf",
 	[OP_FCVTF] = "fcvtf",
+	[OP_UTPTR] = "utptr",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_INLINED_CALL] = "# call",
 	[OP_CALL] = "call",
@@ -452,6 +453,7 @@ const char *show_instruction(struct instruction *insn)
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
+	case OP_UTPTR:
 	case OP_PTRCAST:
 		buf += sprintf(buf, "%s <- (%d) %s",
 			show_pseudo(insn->target),
@@ -1221,7 +1223,17 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 			return OP_BADOP;
 		}
 	case MTYPE_PTR:
-		return OP_PTRCAST;
+		switch (stype) {
+		case MTYPE_UINT:
+		case MTYPE_SINT:
+			if (is_ptr_type(src))	// must be a void pointer
+				return OP_PTRCAST;// FIXME: to be removed?
+			return OP_UTPTR;
+		case MTYPE_PTR:
+			return OP_PTRCAST;
+		default:
+			return OP_BADOP;
+		}
 	case MTYPE_UINT:
 	case MTYPE_SINT:
 		switch (stype) {
@@ -1254,6 +1266,14 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 	switch (opcode) {
 	case OP_NOP:
 		return src;
+	case OP_UTPTR:
+		if (from->bit_size == to->bit_size)
+			break;
+		if (src == value_pseudo(0))
+			break;
+		if (Wint_to_pointer_cast)
+			warning(to->pos, "non size-preserving integer to pointer cast");
+		break;
 	default:
 		break;
 	}

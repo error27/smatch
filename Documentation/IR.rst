@@ -270,6 +270,9 @@ They all have the following signature:
 .. op:: OP_SCAST
 	Cast to signed integer.
 
+.. op:: OP_UTPTR
+	Cast from unsigned integer to pointer type.
+
 .. op:: OP_PTRCAST
 	Cast to pointer.
 

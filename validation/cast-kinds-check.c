@@ -20,5 +20,7 @@ linear/cast-kinds.c:29:51: warning: cast wasn't removed
 linear/cast-kinds.c:34:52: warning: cast wasn't removed
 linear/cast-kinds.c:35:54: warning: cast wasn't removed
 linear/cast-kinds.c:36:52: warning: cast wasn't removed
+linear/cast-kinds.c:37:42: warning: non size-preserving integer to pointer cast
+linear/cast-kinds.c:38:44: warning: non size-preserving integer to pointer cast
  * check-error-end
  */

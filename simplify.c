@@ -1223,6 +1223,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
+	case OP_UTPTR:
 	case OP_PTRCAST:
 		return simplify_cast(insn);
 	case OP_PHI:

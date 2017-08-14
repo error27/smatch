@@ -55,7 +55,7 @@ static double double_2_double(double a) { return a; }
 
 /*
  * check-name: cast-kinds
- * check-command: test-linearize -m64 $file
+ * check-command: test-linearize -Wno-int-to-pointer-cast -m64 $file
  *
  * check-output-start
 uint_2_int:
@@ -288,28 +288,28 @@ iptr_2_vptr:
 int_2_iptr:
 .L66:
 	<entry-point>
-	ptrcast.64  %r101 <- (32) %arg1
+	utptr.64    %r101 <- (32) %arg1
 	ret.64      %r101
 
 
 uint_2_iptr:
 .L68:
 	<entry-point>
-	ptrcast.64  %r104 <- (32) %arg1
+	utptr.64    %r104 <- (32) %arg1
 	ret.64      %r104
 
 
 long_2_iptr:
 .L70:
 	<entry-point>
-	ptrcast.64  %r107 <- (64) %arg1
+	utptr.64    %r107 <- (64) %arg1
 	ret.64      %r107
 
 
 ulong_2_iptr:
 .L72:
 	<entry-point>
-	ptrcast.64  %r110 <- (64) %arg1
+	utptr.64    %r110 <- (64) %arg1
 	ret.64      %r110
 
 
