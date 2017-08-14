@@ -1207,6 +1207,9 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 		case EXPR_VALUE:
 			initial_value = LLVMConstInt(symbol_type(sym), initializer->value, 1);
 			break;
+		case EXPR_FVALUE:
+			initial_value = LLVMConstReal(symbol_type(sym), initializer->fvalue);
+			break;
 		case EXPR_SYMBOL: {
 			struct symbol *sym = initializer->symbol;
 
