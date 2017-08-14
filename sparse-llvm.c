@@ -661,6 +661,10 @@ static void output_op_compare(struct function *fn, struct instruction *insn)
 
 	switch  (LLVMGetTypeKind(LLVMTypeOf(lhs))) {
 	case LLVMPointerTypeKind:
+		lhs = value_to_pvalue(fn, &ptr_ctype, lhs);
+		rhs = value_to_pvalue(fn, &ptr_ctype, rhs);
+		/* fall through */
+
 	case LLVMIntegerTypeKind: {
 		LLVMIntPredicate op = translate_op(insn->opcode);
 
