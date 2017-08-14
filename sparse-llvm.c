@@ -1222,13 +1222,18 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 			break;
 		}
 		default:
-			assert(0);
+			warning(initializer->pos, "can't initialize type: %s", show_typename(sym));
+			initial_value = NULL;
+			break;
 		}
 	} else {
 		LLVMTypeRef type = symbol_type(sym);
 
 		initial_value = LLVMConstNull(type);
 	}
+
+	if (!initial_value)
+		return NULL;
 
 	name = sym->ident ? show_ident(sym->ident) : "" ;
 
