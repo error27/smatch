@@ -297,17 +297,27 @@ static void register_funcs_from_file(void)
 	token = token->next;
 	while (token_type(token) != TOKEN_STREAMEND) {
 		if (token_type(token) != TOKEN_IDENT)
-			return;
+			break;
 		func = show_ident(token->ident);
 
 		token = token->next;
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		size = atoi(token->number);
 
 		token = token->next;
+		if (token_type(token) == TOKEN_SPECIAL) {
+			if (token->special != '-')
+				break;
+			token = token->next;
+			if (token_type(token) != TOKEN_NUMBER)
+				break;
+			token = token->next;
+			continue;
+
+		}
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		buf = atoi(token->number);
 
 		limiter = malloc(sizeof(*limiter));
@@ -318,6 +328,8 @@ static void register_funcs_from_file(void)
 
 		token = token->next;
 	}
+	if (token_type(token) != TOKEN_STREAMEND)
+		printf("internal: error parsing '%s'\n", name);
 	clear_token_alloc();
 }
 

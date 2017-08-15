@@ -56,17 +56,22 @@ static void register_funcs_from_file(void)
 	token = token->next;
 	while (token_type(token) != TOKEN_STREAMEND) {
 		if (token_type(token) != TOKEN_IDENT)
-			return;
+			break;
 		func = show_ident(token->ident);
 
 		token = token->next;
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		size = atoi(token->number);
 
 		token = token->next;
+		if (token_type(token) == TOKEN_SPECIAL) {
+			if (token->special != '-')
+				break;
+			token = token->next;
+		}
 		if (token_type(token) != TOKEN_NUMBER)
-			return;
+			break;
 		/* we don't care which argument hold the buf pointer */
 		token = token->next;
 
@@ -77,6 +82,8 @@ static void register_funcs_from_file(void)
 		add_function_hook(func, &match_parameter, INT_PTR(size));
 
 	}
+	if (token_type(token) != TOKEN_STREAMEND)
+		sm_msg("internal: problem parsing '%s'\n", name);
 	clear_token_alloc();
 }
 
