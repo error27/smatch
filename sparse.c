@@ -217,7 +217,6 @@ static void check_one_instruction(struct instruction *insn)
 {
 	switch (insn->opcode) {
 	case OP_CAST: case OP_SCAST:
-	case OP_PTRTU:
 		if (verbose)
 			check_cast_instruction(insn);
 		break;

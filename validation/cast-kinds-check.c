@@ -14,9 +14,7 @@ linear/cast-kinds.c:13:50: warning: cast drops bits
 linear/cast-kinds.c:14:49: warning: cast drops bits
 linear/cast-kinds.c:15:48: warning: cast drops bits
 linear/cast-kinds.c:21:49: warning: cast wasn't removed
-linear/cast-kinds.c:22:48: warning: cast wasn't removed
 linear/cast-kinds.c:28:52: warning: cast wasn't removed
-linear/cast-kinds.c:29:51: warning: cast wasn't removed
 linear/cast-kinds.c:34:52: warning: cast wasn't removed
 linear/cast-kinds.c:35:54: warning: cast wasn't removed
 linear/cast-kinds.c:36:52: warning: cast wasn't removed

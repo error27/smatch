@@ -277,7 +277,7 @@ an unsigned integer of the same size.
 	Cast from pointer-sized unsigned integer to pointer type.
 
 .. op:: OP_PTRTU
-	Cast from pointer type to unsigned integer.
+	Cast from pointer type to pointer-sized unsigned integer.
 
 .. op:: OP_PTRCAST
 	Cast between pointers.
