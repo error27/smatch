@@ -1506,6 +1506,45 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 	}
 }
 
+/*
+ * The reason for do_simple_algebra() is to solve things like:
+ * if (foo > 66 || foo + bar > 64) {
+ * "foo" is not really a known variable so it won't be handled by
+ * move_known_variables() but it's a super common idiom.
+ *
+ */
+static int do_simple_algebra(struct expression **left_p, struct expression **right_p)
+{
+	struct expression *left = *left_p;
+	struct expression *right = *right_p;
+	struct range_list *rl;
+	sval_t tmp;
+
+	if (left->type != EXPR_BINOP || left->op != '+')
+		return 0;
+	if (can_integer_overflow(get_type(left), left))
+		return 0;
+	if (!get_implied_value(right, &tmp))
+		return 0;
+
+	if (!get_implied_value(left->left, &tmp) &&
+	    get_implied_rl(left->left, &rl) &&
+	    !is_whole_rl(rl)) {
+		*right_p = binop_expression(right, '-', left->left);
+		*left_p = left->right;
+		return 1;
+	}
+	if (!get_implied_value(left->right, &tmp) &&
+	    get_implied_rl(left->right, &rl) &&
+	    !is_whole_rl(rl)) {
+		*right_p = binop_expression(right, '-', left->right);
+		*left_p = left->left;
+		return 1;
+	}
+
+	return 0;
+}
+
 static int match_func_comparison(struct expression *expr)
 {
 	struct expression *left = strip_expr(expr->left);
@@ -1602,6 +1641,11 @@ static void match_comparison(struct expression *expr)
 	right = right_orig;
 	move_known_values(&left, &right);
 	handle_comparison(type, left, expr->op, right);
+
+	left = left_orig;
+	right = right_orig;
+	if (do_simple_algebra(&left, &right))
+		handle_comparison(type, left, expr->op, right);
 
 	prev = get_assigned_expr(left_orig);
 	if (is_simple_math(prev) && has_variable(prev, left_orig) == 0) {
