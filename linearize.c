@@ -1294,6 +1294,11 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		from = size_t_ctype;
 		break;
+	case OP_PTRTU:
+		if (from->bit_size == to->bit_size)
+			break;
+		if (Wpointer_to_int_cast)
+			warning(to->pos, "non size-preserving pointer to integer cast");
 	default:
 		break;
 	}

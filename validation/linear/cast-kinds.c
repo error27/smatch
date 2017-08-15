@@ -55,7 +55,7 @@ static double double_2_double(double a) { return a; }
 
 /*
  * check-name: cast-kinds
- * check-command: test-linearize -Wno-int-to-pointer-cast -m64 $file
+ * check-command: test-linearize -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -m64 $file
  *
  * check-output-start
 uint_2_int:

@@ -159,6 +159,7 @@ extern int Woverride_init_all;
 extern int Woverride_init_whole_range;
 extern int Wparen_string;
 extern int Wpointer_arith;
+extern int Wpointer_to_int_cast;
 extern int Wptr_subtraction_blows;
 extern int Wreturn_void;
 extern int Wshadow;

@@ -2,7 +2,7 @@
 
 /*
  * check-name: cast-kinds check
- * check-command: sparse -m64 -v $file
+ * check-command: sparse -m64 -v -Wno-pointer-to-int-cast $file
  *
  * check-error-start
 linear/cast-kinds.c:5:45: warning: cast drops bits
