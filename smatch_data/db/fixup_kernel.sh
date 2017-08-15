@@ -5,6 +5,8 @@ cat << EOF | sqlite3 $db_file
 /* we only care about the main ->read/write() functions. */
 delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
 delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
+delete from caller_info where function = '(struct file_operations)->read' and caller != '__vfs_read';
+delete from caller_info where function = '(struct file_operations)->write' and caller != '__vfs_write';
 delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
 delete from caller_info where function = '__vfs_write' and caller != 'vfs_write';
