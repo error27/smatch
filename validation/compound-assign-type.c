@@ -11,5 +11,6 @@ static unsigned int foo(unsigned int x, long a)
  *
  * check-output-excludes: divu\\.32
  * check-output-contains: divs\\.64
- * check-output-contains: scast\\.32
+ * check-output-contains: zext.64 .* (32) %arg1
+ * check-output-contains: trunc.32 .* (64)
  */

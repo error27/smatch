@@ -267,11 +267,14 @@ They all have the following signature:
 Currently, a cast to a void pointer is treated like a cast to
 an unsigned integer of the same size.
 
-.. op:: OP_CAST
-	Cast to unsigned integer.
+.. op:: OP_TRUNC
+	Cast from integer to an integer of a smaller size.
 
-.. op:: OP_SCAST
-	Cast to signed integer.
+.. op:: OP_SEXT
+	Cast from integer to an integer of a bigger size with sign extension.
+
+.. op:: OP_ZEXT
+	Cast from integer to an integer of a bigger size with zero extension.
 
 .. op:: OP_UTPTR
 	Cast from pointer-sized unsigned integer to pointer type.

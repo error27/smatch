@@ -91,8 +91,8 @@ void cse_collect(struct instruction *insn)
 		hash += hashval(insn->symbol);
 		break;
 
-	case OP_CAST:
-	case OP_SCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
 	case OP_PTRCAST:
 	case OP_UTPTR: case OP_PTRTU:
 		/*
@@ -239,8 +239,8 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_PHI:
 		return phi_list_compare(i1->phi_list, i2->phi_list);
 
-	case OP_CAST:
-	case OP_SCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
 	case OP_PTRCAST:
 	case OP_UTPTR: case OP_PTRTU:
 		/*

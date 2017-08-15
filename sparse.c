@@ -122,7 +122,7 @@ static void check_cast_instruction(struct instruction *insn)
 		int old = orig_type->bit_size;
 		int new = insn->size;
 		int oldsigned = (orig_type->ctype.modifiers & MOD_SIGNED) != 0;
-		int newsigned = insn->opcode == OP_SCAST;
+		int newsigned = insn->opcode == OP_SEXT;
 
 		if (new > old) {
 			if (oldsigned == newsigned)
@@ -216,7 +216,8 @@ static void check_call_instruction(struct instruction *insn)
 static void check_one_instruction(struct instruction *insn)
 {
 	switch (insn->opcode) {
-	case OP_CAST: case OP_SCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
 		if (verbose)
 			check_cast_instruction(insn);
 		break;

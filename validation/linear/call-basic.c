@@ -49,7 +49,7 @@ pointer1:
 builtin:
 .L6:
 	<entry-point>
-	call.32     %r11 <- __builtin_popcount, %arg1
+	call.32     %r10 <- __builtin_popcount, %arg1
 	ret
 
 

@@ -887,7 +887,7 @@ static void output_op_ptrcast(struct function *fn, struct instruction *insn)
 	dtype = symbol_type(insn->type);
 	switch (insn->opcode) {
 	case OP_UTPTR:
-	case OP_SCAST:			// FIXME
+	case OP_SEXT:			// FIXME
 		assert(is_int_type(otype));
 		assert(is_ptr_type(insn->type));
 		op = LLVMIntToPtr;
@@ -898,7 +898,7 @@ static void output_op_ptrcast(struct function *fn, struct instruction *insn)
 		op = LLVMPtrToInt;
 		break;
 	case OP_PTRCAST:
-	case OP_CAST:			// FIXME
+	case OP_ZEXT:			// FIXME
 		assert(is_ptr_type(otype));
 		assert(is_ptr_type(insn->type));
 		op = LLVMBitCast;
@@ -1041,11 +1041,14 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_CALL:
 		output_op_call(fn, insn);
 		break;
-	case OP_CAST:
+	case OP_ZEXT:
 		output_op_cast(fn, insn, LLVMZExt);
 		break;
-	case OP_SCAST:
+	case OP_SEXT:
 		output_op_cast(fn, insn, LLVMSExt);
+		break;
+	case OP_TRUNC:
+		output_op_cast(fn, insn, LLVMTrunc);
 		break;
 	case OP_FCVTU:
 		output_op_cast(fn, insn, LLVMFPToUI);

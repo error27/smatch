@@ -29,6 +29,8 @@ static _Bool fdbl_e(dbl a) { return (_Bool)a; }
  * check-output-excludes: cast\\.
  * check-output-excludes: fcvt[us]\\.
  * check-output-excludes: ptrtu\\.
+ * check-output-excludes: [sz]ext\\.
+ * check-output-excludes: trunc\\.
  * check-output-pattern(12): setne\\.
  * check-output-pattern(2): fcmpune\\.
  */

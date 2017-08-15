@@ -8,7 +8,8 @@ static int foo(volatile int *a, int v)
  * check-name: cast-volatile
  * check-command: test-linearize -fdump-ir=linearize $file
  *
- * check-known-to-fail
  * check-output-ignore
- * check-output-excludes: scast\\.
+ * check-output-excludes: sext\\.
+ * check-output-excludes: zext\\.
+ * check-output-excludes: trunc\\.
  */

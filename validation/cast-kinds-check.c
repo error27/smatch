@@ -13,11 +13,6 @@ linear/cast-kinds.c:12:48: warning: cast drops bits
 linear/cast-kinds.c:13:50: warning: cast drops bits
 linear/cast-kinds.c:14:49: warning: cast drops bits
 linear/cast-kinds.c:15:48: warning: cast drops bits
-linear/cast-kinds.c:21:49: warning: cast wasn't removed
-linear/cast-kinds.c:28:52: warning: cast wasn't removed
-linear/cast-kinds.c:34:52: warning: cast wasn't removed
-linear/cast-kinds.c:35:54: warning: cast wasn't removed
-linear/cast-kinds.c:36:52: warning: cast wasn't removed
 linear/cast-kinds.c:37:42: warning: non size-preserving integer to pointer cast
 linear/cast-kinds.c:38:44: warning: non size-preserving integer to pointer cast
  * check-error-end

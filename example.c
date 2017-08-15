@@ -74,8 +74,9 @@ static const char *opcodes[] = {
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
 	[OP_COPY] = "copy",
-	[OP_CAST] = "cast",
-	[OP_SCAST] = "scast",
+	[OP_SEXT] = "sext",
+	[OP_ZEXT] = "zext",
+	[OP_TRUNC] = "trunc",
 	[OP_FCVTU] = "fcvtu",
 	[OP_FCVTS] = "fcvts",
 	[OP_UCVTF] = "ucvtf",
@@ -1415,7 +1416,9 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		generate_compare(state, insn);
 		break;
 
-	case OP_CAST: case OP_SCAST: case OP_PTRCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
+	case OP_PTRCAST:
 	case OP_UTPTR:
 	case OP_PTRTU:
 	case OP_FCVTU: case OP_FCVTS:

@@ -41,7 +41,7 @@ void *fptr(void *a)
 flia:
 .L0:
 	<entry-point>
-	scast.32    %r2 <- (64) %arg1
+	trunc.32    %r2 <- (64) %arg1
 	ret.32      %r2
 
 
@@ -54,7 +54,7 @@ flic:
 fila:
 .L4:
 	<entry-point>
-	scast.64    %r6 <- (32) %arg1
+	sext.64     %r6 <- (32) %arg1
 	ret.64      %r6
 
 
@@ -79,9 +79,7 @@ fils:
 fptr:
 .L12:
 	<entry-point>
-	cast.64     %r12 <- (64) %arg1
-	scast.64    %r13 <- (64) %r12
-	ret.64      %r13
+	ret.64      %arg1
 
 
  * check-output-end

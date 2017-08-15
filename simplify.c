@@ -396,7 +396,7 @@ static unsigned int operand_size(struct instruction *insn, pseudo_t pseudo)
 
 	if (pseudo->type == PSEUDO_REG) {
 		struct instruction *src = pseudo->def;
-		if (src && src->opcode == OP_CAST && src->orig_type) {
+		if (src && src->opcode == OP_ZEXT && src->orig_type) {
 			unsigned int orig_size = src->orig_type->bit_size;
 			if (orig_size < size)
 				size = orig_size;
@@ -988,11 +988,14 @@ static int simplify_cast(struct instruction *insn)
 	}
 
 	if (size == orig_size) {
-		int op = (orig_type->ctype.modifiers & MOD_SIGNED) ? OP_SCAST : OP_CAST;
-		if (insn->opcode == op)
+		switch (insn->opcode) {
+		//case OP_NOPCAST:	// FIXME: what to do?
+		//case OP_PTRCAST:	// FIXME: what to do?
+		case OP_FCVTF:
 			goto simplify;
-		if (insn->opcode == OP_FCVTF)
-			goto simplify;
+		default:
+			break;
+		}
 	}
 
 	return 0;
@@ -1142,11 +1145,8 @@ static int simplify_branch(struct instruction *insn)
 				return replace_pseudo(insn, &insn->cond, def->src1);
 			}
 		}
-		if (def->opcode == OP_CAST || def->opcode == OP_SCAST) {
-			int orig_size = def->orig_type ? def->orig_type->bit_size : 0;
-			if (def->size > orig_size)
-				return replace_pseudo(insn, &insn->cond, def->src);
-		}
+		if (def->opcode == OP_SEXT || def->opcode == OP_ZEXT)
+			return replace_pseudo(insn, &insn->cond, def->src);
 	}
 	return 0;
 }
@@ -1218,8 +1218,8 @@ int simplify_instruction(struct instruction *insn)
 		if (dead_insn(insn, &insn->symbol, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->symbol);
-	case OP_CAST:
-	case OP_SCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:

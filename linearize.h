@@ -221,8 +221,8 @@ enum opcode {
 	OP_FNEG,
 
 	/* Casts */
-	OP_CAST,
-	OP_SCAST,
+	OP_TRUNC,
+	OP_ZEXT,  OP_SEXT,
 	OP_FCVTU, OP_FCVTS,
 	OP_UCVTF, OP_SCVTF,
 	OP_FCVTF,

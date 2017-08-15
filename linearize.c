@@ -261,8 +261,9 @@ static const char *opcodes[] = {
 	/* Other */
 	[OP_PHI] = "phi",
 	[OP_PHISOURCE] = "phisrc",
-	[OP_CAST] = "cast",
-	[OP_SCAST] = "scast",
+	[OP_SEXT] = "sext",
+	[OP_ZEXT] = "zext",
+	[OP_TRUNC] = "trunc",
 	[OP_FCVTU] = "fcvtu",
 	[OP_FCVTS] = "fcvts",
 	[OP_UCVTF] = "ucvtf",
@@ -449,8 +450,8 @@ const char *show_instruction(struct instruction *insn)
 		} END_FOR_EACH_PTR(arg);
 		break;
 	}
-	case OP_CAST:
-	case OP_SCAST:
+	case OP_SEXT: case OP_ZEXT:
+	case OP_TRUNC:
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
@@ -1240,13 +1241,14 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 		case MTYPE_PTR:
 		case MTYPE_VPTR:
 		case MTYPE_UINT:
-			return OP_CAST;
+			stype = MTYPE_UINT;
+			/* fall through */
 		case MTYPE_SINT:
-			return OP_SCAST;
+			break;
 		default:
 			return OP_BADOP;
-			break;
 		}
+		/* fall through */
 	case MTYPE_UINT:
 	case MTYPE_SINT:
 		switch (stype) {
@@ -1256,15 +1258,18 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 			return OP_PTRTU;
 		case MTYPE_VPTR:
 		case MTYPE_UINT:
-			return OP_CAST;
 		case MTYPE_SINT:
-			return OP_SCAST;
+			if (dst->bit_size ==src->bit_size)
+				return OP_NOP;
+			if (dst->bit_size  < src->bit_size)
+				return OP_TRUNC;
+			return stype == MTYPE_SINT ? OP_SEXT : OP_ZEXT;
 		default:
-			break;
+			return OP_BADOP;
 		}
 		/* fall through */
 	default:
-		return OP_CAST;
+		return OP_BADOP;
 	}
 }
 
