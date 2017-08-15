@@ -152,6 +152,9 @@ delete from return_states where function = "__write_once_size";
 
 update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_set' and parameter = 0 and type = 1025;
 
+update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
+update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
+
 EOF
 
 # fixme: this is totally broken
