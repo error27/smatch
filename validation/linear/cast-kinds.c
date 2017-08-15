@@ -88,7 +88,7 @@ vptr_2_int:
 iptr_2_int:
 .L8:
 	<entry-point>
-	cast.32     %r14 <- (64) %arg1
+	ptrtu.32    %r14 <- (64) %arg1
 	ret.32      %r14
 
 
@@ -136,7 +136,7 @@ vptr_2_uint:
 iptr_2_uint:
 .L22:
 	<entry-point>
-	cast.32     %r35 <- (64) %arg1
+	ptrtu.32    %r35 <- (64) %arg1
 	ret.32      %r35
 
 
@@ -184,7 +184,7 @@ vptr_2_long:
 iptr_2_long:
 .L36:
 	<entry-point>
-	cast.64     %r56 <- (64) %arg1
+	ptrtu.64    %r56 <- (64) %arg1
 	ret.64      %r56
 
 
@@ -232,7 +232,7 @@ vptr_2_ulong:
 iptr_2_ulong:
 .L50:
 	<entry-point>
-	cast.64     %r77 <- (64) %arg1
+	ptrtu.64    %r77 <- (64) %arg1
 	ret.64      %r77
 
 

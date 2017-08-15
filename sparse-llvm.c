@@ -881,17 +881,29 @@ static void output_op_ptrcast(struct function *fn, struct instruction *insn)
 	LLVMOpcode op;
 	char target_name[64];
 
-	assert(is_ptr_type(insn->type));
-
 	src = get_operand(fn, otype, insn->src);
 	pseudo_name(insn->target, target_name);
 
 	dtype = symbol_type(insn->type);
-	if (is_ptr_type(otype)) {
-		op = LLVMBitCast;
-	} else if (is_int_type(otype)) {
+	switch (insn->opcode) {
+	case OP_UTPTR:
+	case OP_SCAST:			// FIXME
+		assert(is_int_type(otype));
+		assert(is_ptr_type(insn->type));
 		op = LLVMIntToPtr;
-	} else {
+		break;
+	case OP_PTRTU:
+		assert(is_ptr_type(otype));
+		assert(is_int_type(insn->type));
+		op = LLVMPtrToInt;
+		break;
+	case OP_PTRCAST:
+	case OP_CAST:			// FIXME
+		assert(is_ptr_type(otype));
+		assert(is_ptr_type(insn->type));
+		op = LLVMBitCast;
+		break;
+	default:
 		assert(0);
 	}
 
@@ -1046,6 +1058,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_fpcast(fn, insn);
 		break;
 	case OP_UTPTR:
+	case OP_PTRTU:
 	case OP_PTRCAST:
 		output_op_ptrcast(fn, insn);
 		break;

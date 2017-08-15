@@ -21,4 +21,5 @@ void foo(struct s *x)
  * check-output-excludes: cast\\.
  * check-output-excludes: fcvt[us]\\.
  * check-output-excludes: utptr\\.
+ * check-output-excludes: ptrtu\\.
  */

@@ -264,8 +264,11 @@ They all have the following signature:
 	* .target: result value
 	* .type: type of .target
 
+Currently, a cast to a void pointer is treated like a cast to
+an unsigned integer of the same size.
+
 .. op:: OP_CAST
-	Cast to unsigned integer (and to void pointer).
+	Cast to unsigned integer.
 
 .. op:: OP_SCAST
 	Cast to signed integer.
@@ -273,8 +276,11 @@ They all have the following signature:
 .. op:: OP_UTPTR
 	Cast from pointer-sized unsigned integer to pointer type.
 
+.. op:: OP_PTRTU
+	Cast from pointer type to unsigned integer.
+
 .. op:: OP_PTRCAST
-	Cast to pointer.
+	Cast between pointers.
 
 .. op:: OP_FCVTU
 	Conversion from float type to unsigned integer.

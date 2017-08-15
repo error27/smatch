@@ -82,6 +82,7 @@ static const char *opcodes[] = {
 	[OP_SCVTF] = "scvtf",
 	[OP_FCVTF] = "fcvtf",
 	[OP_UTPTR] = "utptr",
+	[OP_PTRTU] = "utptr",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_CALL] = "call",
 	[OP_SLICE] = "slice",
@@ -1416,6 +1417,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 
 	case OP_CAST: case OP_SCAST: case OP_PTRCAST:
 	case OP_UTPTR:
+	case OP_PTRTU:
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
