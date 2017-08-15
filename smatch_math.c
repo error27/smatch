@@ -202,8 +202,12 @@ static int handle_offset_subtraction(struct expression *expr)
 	left_offset = get_member_offset_from_deref(left);
 	if (right->type == EXPR_SYMBOL)
 		right_offset = 0;
-	else
+	else {
+		if (right->type != EXPR_PREOP || right->op != '&')
+			return -1;
+		right = strip_expr(right->unop);
 		right_offset = get_member_offset_from_deref(right);
+	}
 	if (left_offset < 0 || right_offset < 0)
 		return -1;
 
