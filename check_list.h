@@ -131,6 +131,7 @@ CK(check_indenting)
 CK(check_unreachable)
 CK(check_no_if_block)
 CK(check_buffer_too_small_for_struct)
+CK(check_signed_integer_overflow_check)
 CK(check_continue_vs_break)
 CK(check_impossible_mask)
 
