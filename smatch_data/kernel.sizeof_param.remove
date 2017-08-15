@@ -10,3 +10,4 @@ snprintf
 copy_from_user 2 1
 copy_to_user 2 0
 read_rom 2 3
+skb_pull 1 -1
