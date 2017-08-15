@@ -1167,6 +1167,7 @@ enum mtype {
 	MTYPE_UINT,
 	MTYPE_SINT,
 	MTYPE_PTR,
+	MTYPE_VPTR,	// TODO: must be removed ?
 	MTYPE_FLOAT,
 	MTYPE_BAD,
 };
@@ -1181,8 +1182,7 @@ retry:	switch (s->type) {
 		goto retry;
 	case SYM_PTR:
 		if (s->ctype.base_type == &void_ctype)
-			// handle void pointer like an uint
-			goto case_int;
+			return MTYPE_VPTR;
 		return MTYPE_PTR;
 	case SYM_BITFIELD:
 	case SYM_RESTRICT:
@@ -1226,13 +1226,24 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 		switch (stype) {
 		case MTYPE_UINT:
 		case MTYPE_SINT:
-			if (is_ptr_type(src))	// must be a void pointer
-				return OP_PTRCAST;// FIXME: to be removed?
 			return OP_UTPTR;
 		case MTYPE_PTR:
+		case MTYPE_VPTR:
 			return OP_PTRCAST;
 		default:
 			return OP_BADOP;
+		}
+	case MTYPE_VPTR:
+		switch (stype) {
+		case MTYPE_PTR:
+		case MTYPE_VPTR:
+		case MTYPE_UINT:
+			return OP_CAST;
+		case MTYPE_SINT:
+			return OP_SCAST;
+		default:
+			return OP_BADOP;
+			break;
 		}
 	case MTYPE_UINT:
 	case MTYPE_SINT:
