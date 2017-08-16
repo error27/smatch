@@ -223,7 +223,8 @@ enum opcode {
 	/* Casts */
 	OP_CAST,
 	OP_SCAST,
-	OP_FPCAST,
+	OP_UCVTF, OP_SCVTF,
+	OP_FCVTF,
 	OP_PTRCAST,
 	OP_UNOP_END = OP_PTRCAST,
 

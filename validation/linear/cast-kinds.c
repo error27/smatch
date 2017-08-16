@@ -320,70 +320,70 @@ vptr_2_iptr:
 int_2_float:
 .L76:
 	<entry-point>
-	fpcast.32   %r116 <- (32) %arg1
+	scvtf.32    %r116 <- (32) %arg1
 	ret.32      %r116
 
 
 uint_2_float:
 .L78:
 	<entry-point>
-	fpcast.32   %r119 <- (32) %arg1
+	ucvtf.32    %r119 <- (32) %arg1
 	ret.32      %r119
 
 
 long_2_float:
 .L80:
 	<entry-point>
-	fpcast.32   %r122 <- (64) %arg1
+	scvtf.32    %r122 <- (64) %arg1
 	ret.32      %r122
 
 
 ulong_2_float:
 .L82:
 	<entry-point>
-	fpcast.32   %r125 <- (64) %arg1
+	ucvtf.32    %r125 <- (64) %arg1
 	ret.32      %r125
 
 
 double_2_float:
 .L84:
 	<entry-point>
-	fpcast.32   %r128 <- (64) %arg1
+	fcvtf.32    %r128 <- (64) %arg1
 	ret.32      %r128
 
 
 int_2_double:
 .L86:
 	<entry-point>
-	fpcast.64   %r131 <- (32) %arg1
+	scvtf.64    %r131 <- (32) %arg1
 	ret.64      %r131
 
 
 uint_2_double:
 .L88:
 	<entry-point>
-	fpcast.64   %r134 <- (32) %arg1
+	ucvtf.64    %r134 <- (32) %arg1
 	ret.64      %r134
 
 
 long_2_double:
 .L90:
 	<entry-point>
-	fpcast.64   %r137 <- (64) %arg1
+	scvtf.64    %r137 <- (64) %arg1
 	ret.64      %r137
 
 
 ulong_2_double:
 .L92:
 	<entry-point>
-	fpcast.64   %r140 <- (64) %arg1
+	ucvtf.64    %r140 <- (64) %arg1
 	ret.64      %r140
 
 
 float_2_double:
 .L94:
 	<entry-point>
-	fpcast.64   %r143 <- (32) %arg1
+	fcvtf.64    %r143 <- (32) %arg1
 	ret.64      %r143
 
 

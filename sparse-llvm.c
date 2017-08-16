@@ -944,12 +944,19 @@ static void output_op_fpcast(struct function *fn, struct instruction *insn)
 
 	pseudo_name(insn->target, name);
 	src = get_operand(fn, otype, insn->src);
-	if (is_float_type(otype))
+	switch (insn->opcode) {
+	case OP_FCVTF:
 		target = LLVMBuildFPCast(fn->builder, src, dtype, name);
-	else if (is_signed_type(otype))
+		break;
+	case OP_SCVTF:
 		target = LLVMBuildSIToFP(fn->builder, src, dtype, name);
-	else
+		break;
+	case OP_UCVTF:
 		target = LLVMBuildUIToFP(fn->builder, src, dtype, name);
+		break;
+	default:
+		assert(0);
+	}
 	insn->target->priv = target;
 }
 
@@ -1028,7 +1035,8 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_SCAST:
 		output_op_cast(fn, insn, LLVMSExt);
 		break;
-	case OP_FPCAST:
+	case OP_UCVTF: case OP_SCVTF:
+	case OP_FCVTF:
 		output_op_fpcast(fn, insn);
 		break;
 	case OP_PTRCAST:

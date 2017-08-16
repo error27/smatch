@@ -8,6 +8,6 @@ static double foo(double a, int p)
  * check-command: test-linearize $file
  *
  * check-output-ignore
- * check-output-contains: fpcast\\.
+ * check-output-contains: scvtf\\.
  * check-output-excludes: fmul\\..*\\$2
  */

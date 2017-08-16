@@ -991,7 +991,7 @@ static int simplify_cast(struct instruction *insn)
 		int op = (orig_type->ctype.modifiers & MOD_SIGNED) ? OP_SCAST : OP_CAST;
 		if (insn->opcode == op)
 			goto simplify;
-		if (insn->opcode == OP_FPCAST && is_float_type(orig_type))
+		if (insn->opcode == OP_FCVTF)
 			goto simplify;
 	}
 
@@ -1220,7 +1220,8 @@ int simplify_instruction(struct instruction *insn)
 		return replace_with_pseudo(insn, insn->symbol);
 	case OP_CAST:
 	case OP_SCAST:
-	case OP_FPCAST:
+	case OP_UCVTF: case OP_SCVTF:
+	case OP_FCVTF:
 	case OP_PTRCAST:
 		return simplify_cast(insn);
 	case OP_PHI:

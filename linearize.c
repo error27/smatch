@@ -263,7 +263,9 @@ static const char *opcodes[] = {
 	[OP_PHISOURCE] = "phisrc",
 	[OP_CAST] = "cast",
 	[OP_SCAST] = "scast",
-	[OP_FPCAST] = "fpcast",
+	[OP_UCVTF] = "ucvtf",
+	[OP_SCVTF] = "scvtf",
+	[OP_FCVTF] = "fcvtf",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_INLINED_CALL] = "# call",
 	[OP_CALL] = "call",
@@ -445,7 +447,8 @@ const char *show_instruction(struct instruction *insn)
 	}
 	case OP_CAST:
 	case OP_SCAST:
-	case OP_FPCAST:
+	case OP_UCVTF: case OP_SCVTF:
+	case OP_FCVTF:
 	case OP_PTRCAST:
 		buf += sprintf(buf, "%s <- (%d) %s",
 			show_pseudo(insn->target),
@@ -1202,7 +1205,16 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 
 	switch (dtype) {
 	case MTYPE_FLOAT:
-		return  OP_FPCAST;
+		switch (stype) {
+		case MTYPE_FLOAT:
+			return OP_FCVTF;
+		case MTYPE_UINT:
+			return OP_UCVTF;
+		case MTYPE_SINT:
+			return OP_SCVTF;
+		default:
+			return OP_BADOP;
+		}
 	case MTYPE_PTR:
 		return OP_PTRCAST;
 	case MTYPE_UINT:

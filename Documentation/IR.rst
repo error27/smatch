@@ -270,11 +270,17 @@ They all have the following signature:
 .. op:: OP_SCAST
 	Cast to signed integer.
 
-.. op:: OP_FPCAST
-	Cast to floating-point.
-
 .. op:: OP_PTRCAST
 	Cast to pointer.
+
+.. op:: OP_UCVTF
+	Conversion from unsigned integer to float type.
+
+.. op:: OP_SCVTF
+	Conversion from signed integer to float type.
+
+.. op:: OP_FCVTF
+	Conversion between float types.
 
 Ternary ops
 -----------
