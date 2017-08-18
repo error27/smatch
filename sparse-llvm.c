@@ -353,18 +353,23 @@ static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
 		result = LLVMConstInt(dtype, val, 1);
 		break;
 	default:
-		assert(0);
+		return NULL;
 	}
 	return result;
 }
 
 static LLVMValueRef val_to_value(unsigned long long val, struct symbol *ctype)
 {
+	LLVMValueRef result;
 	LLVMTypeRef dtype;
 
 	assert(ctype);
 	dtype = symbol_type(ctype);
-	return constant_value(val, dtype);
+	result = constant_value(val, dtype);
+	if (result)
+		return result;
+	sparse_error(ctype->pos, "no value possible for %s", show_typename(ctype));
+	return LLVMGetUndef(symbol_type(ctype));
 }
 
 static LLVMValueRef pseudo_to_value(struct function *fn, struct symbol *ctype, pseudo_t pseudo)
@@ -647,6 +652,8 @@ static void output_op_compare(struct function *fn, struct instruction *insn)
 		rhs = constant_value(insn->src2->value, LLVMTypeOf(lhs));
 	else
 		rhs = pseudo_to_value(fn, NULL, insn->src2);
+	if (!rhs)
+		rhs = LLVMGetUndef(symbol_type(insn->type));
 
 	pseudo_name(insn->target, target_name);
 
