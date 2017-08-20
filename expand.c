@@ -644,6 +644,8 @@ static int expand_dereference(struct expression *expr)
 		if (value) {
 			/* FIXME! We should check that the size is right! */
 			if (value->type == EXPR_VALUE) {
+				if (is_bitfield_type(value->ctype))
+					return UNSAFE;
 				expr->type = EXPR_VALUE;
 				expr->value = value->value;
 				expr->taint = 0;

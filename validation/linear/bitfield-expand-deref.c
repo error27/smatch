@@ -20,7 +20,6 @@ int bar(int a)
 /*
  * check-name: bitfield expand deref
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: ret\..*\$12
