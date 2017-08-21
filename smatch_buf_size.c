@@ -314,7 +314,7 @@ static int get_bytes_from_address(struct expression *expr)
 	if (type->type == SYM_PTR)
 		type = get_base_type(type);
 
-	ret = array_bytes(type);
+	ret = type_bytes(type);
 	if (ret == 1)
 		return 0;  /* ignore char pointers */
 
