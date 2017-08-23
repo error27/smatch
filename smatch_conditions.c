@@ -624,7 +624,7 @@ int __handle_select_assigns(struct expression *expr)
 	__split_whole_condition(right->conditional);
 
 	if (!is_false) {
-		struct expression fake_expr;
+		struct expression fake_expr = {};
 
 		if (right->cond_true)
 			set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_true);
@@ -636,7 +636,7 @@ int __handle_select_assigns(struct expression *expr)
 
 	__use_false_states();
 	if (!is_true) {
-		struct expression fake_expr;
+		struct expression fake_expr = {};
 
 		set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_false);
 		__split_expr(&fake_expr);
@@ -694,8 +694,8 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	stmt = right->statement;
 	if (stmt->type == STMT_COMPOUND) {
 		struct statement *last_stmt;
-		struct expression fake_assign;
-		struct expression fake_expr_stmt;
+		struct expression fake_assign = {};
+		struct expression fake_expr_stmt = {};
 
 		last_stmt = split_then_return_last(stmt);
 		if (!last_stmt) {
@@ -718,7 +718,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 
 		__call_scope_hooks();
 	} else if (stmt->type == STMT_EXPRESSION) {
-		struct expression fake_assign;
+		struct expression fake_assign = {};
 
 		fake_assign.pos = stmt->pos;
 		fake_assign.op = expr->op;
