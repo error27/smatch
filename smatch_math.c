@@ -373,6 +373,7 @@ static struct range_list *handle_bitwise_AND(struct expression *expr, int implie
 		}
 	}
 
+	new_recurse = *recurse_cnt;
 	if (*recurse_cnt >= 200)
 		new_recurse = 100;  /* Let's try super hard to get the mask */
 	if (get_implied_value_internal(expr->right, &known, &new_recurse)) {
