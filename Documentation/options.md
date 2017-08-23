@@ -16,3 +16,14 @@ tools.
   The passes currently understood are:
   * 'mem2reg'
   * 'optim'
+
+### Internal Representation
+
+* '-fdump-ir[=\<pass\>[,\<pass\>...]]'
+
+  Dump the IR at each of the given passes.
+
+  The passes currently understood are:
+  * 'linearize'
+  * 'mem2reg'
+  * 'final'

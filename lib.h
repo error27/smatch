@@ -167,7 +167,7 @@ extern int dbg_entry;
 extern int dbg_dead;
 
 extern int fmem_report;
-extern int fdump_ir;
+extern unsigned long fdump_ir;
 extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
 

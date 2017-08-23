@@ -257,7 +257,7 @@ int dump_macro_defs = 0;
 int dbg_entry = 0;
 int dbg_dead = 0;
 
-int fdump_ir;
+unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
@@ -482,6 +482,57 @@ const char *match_option(const char *arg, const char *prefix)
 	if (strncmp(arg, prefix, n) == 0)
 		return arg + n;
 	return NULL;
+}
+
+
+struct mask_map {
+	const char *name;
+	unsigned long mask;
+};
+
+static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
+{
+	const char *name;
+
+	for (;(name = map->name); map++) {
+		if (!strncmp(name, str, len) && !name[len]) {
+			if (neg == 0)
+				*val |= map->mask;
+			else
+				*val &= ~map->mask;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
+{
+	if (*opt == '\0') {
+		apply_mask(flag, "", 0, map, 0);
+		return 1;
+	}
+	if (*opt++ != '=')
+		return 0;
+	while (1) {
+		unsigned int len = strcspn(opt, ",+");
+		int neg = 0;
+		if (len == 0)
+			goto end;
+		if (!strncmp(opt, "no-", 3)) {
+			opt += 3;
+			len -= 3;
+			neg = 1;
+		}
+		if (apply_mask(flag, opt, len, map, neg))
+			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
+
+end:
+		opt += len;
+		if (*opt++ == '\0')
+			break;
+	}
+	return 1;
 }
 
 
@@ -794,14 +845,15 @@ static int handle_fpasses(const char *arg, const char *opt, const struct flag *f
 
 static int handle_fdump_ir(const char *arg, const char *opt, const struct flag *flag, int options)
 {
-	if (*opt == '\0')
-		fdump_ir = 1;
-	else if (!strcmp(opt, "=only"))
-		fdump_ir = 2;
-	else
-		die("error: wrong option \"%s\"", arg);
+	static const struct mask_map dump_ir_options[] = {
+		{ "",			PASS_LINEARIZE },
+		{ "linearize",		PASS_LINEARIZE },
+		{ "mem2reg",		PASS_MEM2REG },
+		{ "final",		PASS_FINAL },
+		{ },
+	};
 
-	return 1;
+	return handle_suboption_mask(arg, opt, dump_ir_options, &fdump_ir);
 }
 
 static int handle_fmemcpy_max_count(const char *arg, const char *opt, const struct flag *flag, int options)
@@ -1400,6 +1452,8 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	handle_switch_v_finalize();
 
 	handle_arch_finalize();
+	if (fdump_ir == 0)
+		fdump_ir = PASS_FINAL;
 
 	list = NULL;
 	if (!ptr_list_empty(filelist)) {
