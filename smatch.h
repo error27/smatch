@@ -537,6 +537,14 @@ static const sval_t vmalloc_seg_max = {
 	.type = &ptr_ctype,
 	{.value = 677777777},
 };
+static const sval_t fn_ptr_min = {
+	.type = &ptr_ctype,
+	{.value = 700000000},
+};
+static const sval_t fn_ptr_max = {
+	.type = &ptr_ctype,
+	{.value = 777777777},
+};
 
 char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
 char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);

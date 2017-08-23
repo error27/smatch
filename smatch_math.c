@@ -871,9 +871,14 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 		return rl;
 	}
 
-	switch (implied) {
-	case RL_EXACT:
+	if (implied == RL_EXACT)
 		return NULL;
+
+	type = get_type(expr);
+	if (type && type->type == SYM_FN)
+		return alloc_rl(fn_ptr_min, fn_ptr_max);
+
+	switch (implied) {
 	case RL_HARD:
 	case RL_IMPLIED:
 	case RL_ABSOLUTE:
