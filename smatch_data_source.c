@@ -74,31 +74,31 @@ static char *get_source_assignment(struct expression *expr)
 	return ret;
 }
 
-static char *get_source_str(struct expression *expr)
+static char *get_source_str(struct expression *arg)
 {
 	char *source;
 
-	source = get_source_parameter(expr);
+	source = get_source_parameter(arg);
 	if (source)
 		return source;
-	return get_source_assignment(expr);
+	return get_source_assignment(arg);
 }
 
 static void match_caller_info(struct expression *expr)
 {
-	struct expression *tmp;
+	struct expression *arg;
 	char *source;
 	int i;
 
 	i = -1;
-	FOR_EACH_PTR(expr->args, tmp) {
+	FOR_EACH_PTR(expr->args, arg) {
 		i++;
-		source = get_source_str(tmp);
+		source = get_source_str(arg);
 		if (!source)
 			continue;
 		sql_insert_caller_info(expr, DATA_SOURCE, i, "$", source);
 		free_string(source);
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_PTR(arg);
 }
 
 void register_data_source(int id)
