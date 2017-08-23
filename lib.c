@@ -257,8 +257,8 @@ int dump_macro_defs = 0;
 int dbg_entry = 0;
 int dbg_dead = 0;
 
+int fdump_ir;
 int fmem_report = 0;
-int fdump_linearize;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
 
@@ -795,9 +795,9 @@ static int handle_fpasses(const char *arg, const char *opt, const struct flag *f
 static int handle_fdump_ir(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	if (*opt == '\0')
-		fdump_linearize = 1;
+		fdump_ir = 1;
 	else if (!strcmp(opt, "=only"))
-		fdump_linearize = 2;
+		fdump_ir = 2;
 	else
 		die("error: wrong option \"%s\"", arg);
 
@@ -811,7 +811,7 @@ static int handle_fmemcpy_max_count(const char *arg, const char *opt, const stru
 }
 
 static struct flag fflags[] = {
-	{ "dump-linearize",	NULL,	handle_fdump_ir },
+	{ "dump-ir",		NULL,	handle_fdump_ir },
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
 	{ "tabstop=",		NULL,	handle_ftabstop },

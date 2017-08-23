@@ -2220,7 +2220,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		add_one_insn(ep, insn);
 	}
 
-	if (fdump_linearize)
+	if (fdump_ir)
 		show_entry(ep);
 
 	/*
