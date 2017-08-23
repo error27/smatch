@@ -406,6 +406,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		min = parse_val(0, call, type, c, &c);
+		if (!sval_fits(type, min))
+			min = sval_type_min(type);
 		max = min;
 		if (*c == ')')
 			c++;
@@ -426,6 +428,8 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		if (*c == '(')
 			c++;
 		max = parse_val(1, call, type, c, &c);
+		if (!sval_fits(type, max))
+			max = sval_type_max(type);
 		add_range_t(type, &rl_tmp, min, max);
 		if (*c == ')')
 			c++;
