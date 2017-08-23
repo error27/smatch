@@ -53,20 +53,6 @@ struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *s
 	return (struct expression *)state->data;
 }
 
-static struct smatch_state *alloc_my_state(struct expression *expr)
-{
-	struct smatch_state *state;
-	char *name;
-
-	state = __alloc_smatch_state(0);
-	expr = strip_expr(expr);
-	name = expr_to_str(expr);
-	state->name = alloc_sname(name);
-	free_string(name);
-	state->data = expr;
-	return state;
-}
-
 static void match_assignment(struct expression *expr)
 {
 	struct symbol *left_sym, *right_sym;
@@ -81,7 +67,7 @@ static void match_assignment(struct expression *expr)
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
 		goto free;
-	set_state(my_id, left_name, left_sym, alloc_my_state(expr->right));
+	set_state(my_id, left_name, left_sym, alloc_state_expr(strip_expr(expr->right)));
 
 	right_name = expr_to_var_sym(expr->right, &right_sym);
 	if (!right_name || !right_sym)
