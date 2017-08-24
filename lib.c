@@ -110,6 +110,7 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 	vsprintf(buffer, fmt, args);	
 	name = stream_name(pos.stream);
 		
+	fflush(stdout);
 	fprintf(stderr, "%s:%d:%d: %s%s\n",
 		name, pos.line, pos.pos, type, buffer);
 }
