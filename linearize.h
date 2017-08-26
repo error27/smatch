@@ -265,7 +265,10 @@ struct instruction_list;
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	int context;
+	union {
+		int context;
+		int postorder_nr;	/* postorder number */
+	};
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */

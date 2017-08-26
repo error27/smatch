@@ -41,6 +41,7 @@ LIB_OBJS += evaluate.o
 LIB_OBJS += expand.o
 LIB_OBJS += expression.o
 LIB_OBJS += flow.o
+LIB_OBJS += flowgraph.o
 LIB_OBJS += inline.o
 LIB_OBJS += ir.o
 LIB_OBJS += lib.o
