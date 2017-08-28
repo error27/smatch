@@ -860,6 +860,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 	struct smatch_state *state;
 	struct range_list *rl;
 	sval_t sval, min, max;
+	struct symbol *type;
 
 	if (get_const_value(expr, &sval))
 		return alloc_rl(sval, sval);
