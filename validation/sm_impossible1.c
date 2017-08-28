@@ -20,6 +20,6 @@ int main(unsigned int x, unsigned int y)
  *
  * check-output-start
 sm_impossible1.c:12 main() [register_impossible_return] 'impossible' = 'impossible'
-sm_impossible1.c:14 main() [register_impossible_return] 'impossible' = 'undefined'
+sm_impossible1.c:14 main() register_impossible_return: no states
  * check-output-end
  */
