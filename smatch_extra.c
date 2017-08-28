@@ -1109,13 +1109,23 @@ static void asm_expr(struct statement *stmt)
 
 static void check_dereference(struct expression *expr)
 {
+	struct smatch_state *state;
+
 	if (__in_fake_assign)
 		return;
 	if (outside_of_function())
 		return;
-	if (implied_not_equal(expr, 0))
-		return;
-	set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+	state = get_extra_state(expr);
+	if (state) {
+		struct range_list *rl;
+
+		rl = rl_intersection(estate_rl(state), alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval));
+		if (rl_equiv(rl, estate_rl(state)))
+			return;
+		set_extra_expr_nomod(expr, alloc_estate_rl(rl));
+	} else {
+		set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+	}
 }
 
 static void match_dereferences(struct expression *expr)
