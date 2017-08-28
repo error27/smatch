@@ -706,12 +706,34 @@ static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
 	     expr->op == SPECIAL_DECREMENT))
 		expr = strip_expr(expr->unop);
 
+	if (expr->type == EXPR_CALL) {
+		char buf[64];
+
+		snprintf(buf, sizeof(buf), "return %p", expr);
+		return alloc_string(buf);
+	}
+
 	return expr_to_chunk_sym_vsl(expr, sym, NULL);
 }
 
 static char *chunk_to_var(struct expression *expr)
 {
 	return chunk_to_var_sym(expr, NULL);
+}
+
+static struct smatch_state *get_state_chunk(int owner, struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct smatch_state *ret;
+
+	name = chunk_to_var_sym(expr, &sym);
+	if (!name)
+		return NULL;
+
+	ret = get_state(owner, name, sym);
+	free_string(name);
+	return ret;
 }
 
 static void save_link(struct expression *expr, char *link)
@@ -733,12 +755,11 @@ static void save_link(struct expression *expr, char *link)
 		return;
 	}
 
-	var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym)
-		goto done;
+	var = chunk_to_var_sym(expr, &sym);
+	if (!var)
+		return;
 
 	save_link_var_sym(var, sym, link);
-done:
 	free_string(var);
 }
 
@@ -945,7 +966,7 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 	if (__prev_stmt != __cur_stmt->iterator_post_statement)
 		return;
 
-	if (get_state_expr(inc_dec_id, expr->left) != &incremented)
+	if (get_state_chunk(inc_dec_id, expr->left) != &incremented)
 		return;
 
 	data = false_state->data;
@@ -1397,7 +1418,7 @@ struct state_list *get_all_comparisons(struct expression *expr)
 	struct sm_state *sm;
 	char *tmp;
 
-	state = get_state_expr(link_id, expr);
+	state = get_state_chunk(link_id, expr);
 	if (!state)
 		return NULL;
 	links = state->data;
@@ -1421,7 +1442,7 @@ struct state_list *get_all_possible_equal_comparisons(struct expression *expr)
 	struct sm_state *sm;
 	char *tmp;
 
-	state = get_state_expr(link_id, expr);
+	state = get_state_chunk(link_id, expr);
 	if (!state)
 		return NULL;
 	links = state->data;
@@ -1492,16 +1513,24 @@ done:
 	free_string(right_var);
 }
 
-void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
+void __add_return_comparison(struct expression *call, const char *range)
 {
 	struct expression *arg;
 	int comparison;
-	const char *c = range;
+	char buf[4];
 
-	if (!str_to_comparison_arg(c, call, &comparison, &arg))
+	if (!str_to_comparison_arg(range, call, &comparison, &arg))
 		return;
-	update_links_from_call(expr, comparison, arg);
-	add_comparison(expr, comparison, arg);
+	snprintf(buf, sizeof(buf), "%s", show_special(comparison));
+	if (local_debug)
+		sm_msg("setting %s to %s", expr_to_str(call), buf);
+	update_links_from_call(call, comparison, arg);
+	add_comparison(call, comparison, arg);
+}
+
+void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
+{
+	copy_comparisons(expr, call);
 }
 
 static char *range_comparison_to_param_helper(struct expression *expr, char starts_with, int ignore)
@@ -1660,7 +1689,7 @@ static void match_call_info(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
 
-		state = get_state_expr(link_id, arg);
+		state = get_state_chunk(link_id, arg);
 		if (!state)
 			continue;
 
@@ -2077,7 +2106,7 @@ void register_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook(link_id, &match_modify);
+	add_modification_hook_late(link_id, &match_modify);
 
 	add_member_info_callback(link_id, struct_member_callback);
 }
