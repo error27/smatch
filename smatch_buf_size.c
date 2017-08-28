@@ -251,19 +251,10 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
 }
 
-int get_real_array_size(struct expression *expr)
+static int get_real_array_size_from_type(struct symbol *type)
 {
-	struct symbol *type;
 	sval_t sval;
 
-	if (!expr)
-		return 0;
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		expr = expr->unop;
-	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
-		return 0;
-
-	type = get_type(expr);
 	if (!type)
 		return 0;
 	if (!type || type->type != SYM_ARRAY)
@@ -277,6 +268,17 @@ int get_real_array_size(struct expression *expr)
 		return 0;
 
 	return sval.value;
+}
+
+int get_real_array_size(struct expression *expr)
+{
+	if (!expr)
+		return 0;
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = expr->unop;
+	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
+		return 0;
+	return get_real_array_size_from_type(get_type(expr));
 }
 
 static int get_size_from_initializer(struct expression *expr)
