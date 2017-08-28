@@ -62,10 +62,10 @@ sm_impossible3.c:15 ad_agg_selection_logic() implied: a = '0,2'
 sm_impossible3.c:16 ad_agg_selection_logic() register_impossible: no states
 sm_impossible3.c:26 ad_agg_selection_logic() implied: a = ''
 sm_impossible3.c:27 ad_agg_selection_logic() [register_impossible] 'impossible' = 'impossible'
-sm_impossible3.c:35 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, merged, undefined)
+sm_impossible3.c:35 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, undefined, merged)
 sm_impossible3.c:40 ad_agg_selection_logic() [register_impossible] 'impossible' = 'impossible'
-sm_impossible3.c:43 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, merged, undefined)
-sm_impossible3.c:47 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, merged, undefined)
+sm_impossible3.c:43 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, undefined, merged)
+sm_impossible3.c:47 ad_agg_selection_logic() [register_impossible] 'impossible' = 'merged' (impossible, undefined, merged)
 sm_impossible3.c:50 ad_agg_selection_logic() [register_impossible] 'impossible' = 'impossible'
  * check-output-end
  */
