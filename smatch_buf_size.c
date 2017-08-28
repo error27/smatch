@@ -206,7 +206,7 @@ static int db_size_callback(void *unused, int argc, char **argv, char **azColNam
 	return 0;
 }
 
-static struct range_list *size_from_db(struct expression *expr)
+static struct range_list *size_from_db_type(struct expression *expr)
 {
 	int this_file_only = 0;
 	char *name;
@@ -234,6 +234,35 @@ static struct range_list *size_from_db(struct expression *expr)
 		"select size from type_size where type = '%s';",
 		name);
 	return db_size_rl;
+}
+
+static struct range_list *size_from_db_symbol(struct expression *expr)
+{
+	struct symbol *sym;
+
+	if (expr->type != EXPR_SYMBOL)
+		return NULL;
+	sym = expr->symbol;
+	if (!sym->ident ||
+	    !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
+	    sym->ctype.modifiers & MOD_STATIC)
+		return NULL;
+
+	db_size_rl = NULL;
+	run_sql(db_size_callback, NULL,
+		"select value from data_info where file = 'extern' and data = '%s' and type = %d;",
+		sym->ident->name, BUF_SIZE);
+	return db_size_rl;
+}
+
+static struct range_list *size_from_db(struct expression *expr)
+{
+	struct range_list *rl;
+
+	rl = size_from_db_symbol(expr);
+	if (rl)
+		return rl;
+	return size_from_db_type(expr);
 }
 
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
@@ -795,6 +824,30 @@ static void print_returned_allocations(int return_id, char *return_ranges, struc
 	sql_insert_return_states(return_id, return_ranges, BUF_SIZE, -1, "", buf);
 }
 
+static void record_global_size(struct symbol *sym)
+{
+	struct symbol *type;
+	int elements, bpe, bytes;
+	char buf[16];
+
+	if (!sym->ident)
+		return;
+
+	if (!(sym->ctype.modifiers & MOD_TOPLEVEL) ||
+	    sym->ctype.modifiers & MOD_STATIC)
+		return;
+
+	type = get_real_base_type(sym);
+	elements = get_real_array_size_from_type(type);
+	if (elements <= 0)
+		return;
+	type = get_real_base_type(type);
+	bpe = type_bytes(type);
+	bytes = elements * bpe;
+	snprintf(buf, sizeof(buf), "%d", bytes);
+	sql_insert_data_info_var_sym(sym->ident->name, sym, BUF_SIZE, buf);
+}
+
 void register_buf_size(int id)
 {
 	my_size_id = id;
@@ -846,6 +899,9 @@ void register_buf_size(int id)
 	add_modification_hook(my_size_id, &set_size_undefined);
 
 	add_merge_hook(my_size_id, &merge_size_func);
+
+	if (option_info)
+		add_hook(record_global_size, BASE_HOOK);
 }
 
 void register_buf_size_late(int id)
