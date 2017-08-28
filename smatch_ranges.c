@@ -296,8 +296,9 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 
 static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
 {
+	struct symbol *type;
 	struct expression *arg;
-	struct range_list *right_orig;
+	struct range_list *casted_start, *right_orig;
 	int comparison;
 
 	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
@@ -306,13 +307,17 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 	if (!get_implied_rl(arg, &right_orig))
 		return start_rl;
 
-	if (rl_type(start_rl) == &int_ctype &&
-	    sval_is_negative(rl_min(start_rl)) &&
-	    type_unsigned(rl_type(right_orig)))
-		right_orig = cast_rl(&int_ctype, right_orig);
+	type = &int_ctype;
+	if (type_positive_bits(rl_type(start_rl)) > type_positive_bits(type))
+		type = rl_type(start_rl);
+	if (type_positive_bits(rl_type(right_orig)) > type_positive_bits(type))
+		type = rl_type(right_orig);
 
-	filter_by_comparison(&start_rl, comparison, right_orig);
-	return start_rl;
+	casted_start = cast_rl(type, start_rl);
+	right_orig = cast_rl(type, right_orig);
+
+	filter_by_comparison(&casted_start, comparison, right_orig);
+	return cast_rl(rl_type(start_rl), casted_start);
 }
 
 static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
