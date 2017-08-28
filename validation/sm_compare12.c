@@ -19,6 +19,10 @@ static int options_write(void)
 	__smatch_compare(a, b + c);
 	b++;
 	__smatch_compare(a, b + c);
+	a++;  /* argh...  really one increment should mean a <= b + c */
+	a++;
+	__smatch_compare(a, b + c);
+
 }
 
 /*
@@ -28,6 +32,7 @@ static int options_write(void)
  * check-output-start
 sm_compare12.c:18 options_write() a <= d
 sm_compare12.c:19 options_write() a <= b + c
-sm_compare12.c:21 options_write() a <none> b + c
+sm_compare12.c:21 options_write() a < b + c
+sm_compare12.c:24 options_write() a <none> b + c
  * check-output-end
  */
