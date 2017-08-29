@@ -159,11 +159,31 @@ void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const
 	}
 }
 
+static int replace_count;
+static char **replace_table;
+static const char *replace_return_ranges(const char *return_ranges)
+{
+	int i;
+
+	if (!get_function()) {
+		/* I have no idea why EXPORT_SYMBOL() is here */
+		return return_ranges;
+	}
+	for (i = 0; i < replace_count; i += 3) {
+		if (strcmp(replace_table[i + 0], get_function()) == 0) {
+			if (strcmp(replace_table[i + 1], return_ranges) == 0)
+				return replace_table[i + 2];
+		}
+	}
+	return return_ranges;
+}
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
 	if (key && strlen(key) >= 80)
 		return;
+	return_ranges = replace_return_ranges(return_ranges);
 	sql_insert(return_states, "'%s', '%s', %lu, %d, '%s', %d, %d, %d, '%s', '%s'",
 		   get_base_file(), get_function(), (unsigned long)__inline_fn,
 		   return_id, return_ranges, fn_static(), type, param, key, value);
@@ -1680,6 +1700,82 @@ static void register_common_funcs(void)
 	clear_token_alloc();
 }
 
+static char *get_next_string(char **str)
+{
+	static char string[256];
+	char *start;
+	char *p = *str;
+	int len;
+
+	if (*p == '\0')
+		return NULL;
+	start = p;
+
+	while (*p != '\0' && *p != ' ' && *p != '\n')
+		p++;
+
+	len = p - start;
+	if (len > 256) {
+		memcpy(string, start, 255);
+		string[255] = '\0';
+		printf("return_fix: '%s' too long", string);
+		**str = '\0';
+		return NULL;
+	}
+	memcpy(string, start, len);
+	string[len] = '\0';
+	if (*p != '\0')
+		p++;
+	*str = p;
+	return string;
+}
+
+static void register_return_replacements(void)
+{
+	char *func, *orig, *new;
+	char filename[256];
+	char buf[4096];
+	int fd, ret, i;
+	char *p;
+
+	snprintf(filename, 256, "db/%s.return_fixes", option_project_str);
+	fd = open_data_file(filename);
+	if (fd < 0)
+		return;
+	ret = read(fd, buf, sizeof(buf));
+	close(fd);
+	if (ret < 0)
+		return;
+	if (ret == sizeof(buf)) {
+		printf("file too large:  %s (limit %zd bytes)",
+		       filename, sizeof(buf));
+		return;
+	}
+	buf[ret] = '\0';
+
+	p = buf;
+	while (*p) {
+		get_next_string(&p);
+		replace_count++;
+	}
+	if (replace_count == 0 || replace_count % 3 != 0) {
+		replace_count = 0;
+		return;
+	}
+	replace_table = malloc(replace_count * sizeof(char *));
+
+	p = buf;
+	i = 0;
+	while (*p) {
+		func = alloc_string(get_next_string(&p));
+		orig = alloc_string(get_next_string(&p));
+		new  = alloc_string(get_next_string(&p));
+
+		replace_table[i++] = func;
+		replace_table[i++] = orig;
+		replace_table[i++] = new;
+	}
+}
 
 void register_definition_db_callbacks(int id)
 {
@@ -1696,6 +1792,7 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_call_implies, CALL_HOOK_AFTER_INLINE);
 
 	register_common_funcs();
+	register_return_replacements();
 }
 
 void register_db_call_marker(int id)
