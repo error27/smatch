@@ -1009,6 +1009,35 @@ static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
 	return 0;
 }
 
+static char *get_return_compare_str(struct expression *expr)
+{
+	char *compare_str;
+	char *var;
+	char buf[256];
+	int comparison;
+	int param;
+
+	compare_str = expr_lte_to_param(expr, -1);
+	if (compare_str)
+		return compare_str;
+	param = get_param_num(expr);
+	if (param < 0)
+		return NULL;
+
+	var = expr_to_var(expr);
+	if (!var)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s orig", var);
+	comparison = get_comparison_strings(var, buf);
+	free_string(var);
+
+	if (!comparison)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "[%s$%d]", show_special(comparison), param);
+	return alloc_sname(buf);
+}
+
 static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1048,7 +1077,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(clone_rl(rl)));
-		compare_str = expr_lte_to_param(expr, -1);
+		compare_str = get_return_compare_str(expr);
 		if (compare_str) {
 			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 			return_ranges = alloc_sname(buf);
@@ -1123,7 +1152,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		return alloc_sname(buf);
 	}
 
-	compare_str = expr_lte_to_param(expr, -1);
+	compare_str = get_return_compare_str(expr);
 	if (compare_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 		return alloc_sname(buf);
@@ -1435,7 +1464,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		compare_str = expr_lte_to_param(expr, -1);
+		compare_str = get_return_compare_str(expr);
 		if (compare_str) {
 			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 			return_ranges = alloc_sname(buf);
