@@ -46,9 +46,16 @@ static int next_line_is_if(struct expression *expr)
 	return 0;
 }
 
-static int next_line_checks_IS_ERR(struct expression *arg)
+static int next_line_checks_IS_ERR(struct expression *call, struct expression *arg)
 {
 	struct expression *next;
+	struct expression *tmp;
+
+	tmp = expr_get_parent_expr(call);
+	if (tmp && tmp->type == EXPR_ASSIGNMENT) {
+		if (next_line_checks_IS_ERR(NULL, tmp->left))
+			return 1;
+	}
 
 	if (!__next_stmt || __next_stmt->type != STMT_IF)
 		return 0;
@@ -92,7 +99,7 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 	if (is_comparison_call(expr))
 		return;
 
-	if (next_line_checks_IS_ERR(arg_expr))
+	if (next_line_checks_IS_ERR(expr, arg_expr))
 		return;
 	if (strcmp(fn, "ERR_PTR") == 0 &&
 	    next_line_is_if(arg_expr))
