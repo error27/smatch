@@ -31,12 +31,13 @@ static int return_id;
 
 #define sql_insert(table, values...)						\
 do {										\
-	if (!mem_db)								\
-		break;								\
 	if (__inline_fn) {							\
 		char buf[1024];							\
 		char *err, *p = buf;						\
 		int rc;								\
+										\
+		if (!mem_db)							\
+			break;							\
 										\
 		p += snprintf(p, buf + sizeof(buf) - p,				\
 			      "insert into %s values (", #table);		\
