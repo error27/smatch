@@ -252,6 +252,7 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 	if (sval_is_negative(rl_min(right_rl)))
 		return NULL;
 	max = rl_max(left_rl);
+	min = sval_type_min(type);
 
 	switch (comparison) {
 	case '>':
@@ -279,7 +280,6 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 	default:
 		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl)))
 			return NULL;
-		min = sval_type_min(type);
 	}
 
 	if (!sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {
