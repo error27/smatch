@@ -260,6 +260,8 @@ static inline void expr_set_parent_stmt(struct expression *expr, struct statemen
 
 static inline struct expression *expr_get_parent_expr(struct expression *expr)
 {
+	if (!expr)
+		return NULL;
 	if (!(expr->parent & 0x1UL))
 		return NULL;
 	return (struct expression *)(expr->parent & ~0x1UL);
@@ -267,6 +269,8 @@ static inline struct expression *expr_get_parent_expr(struct expression *expr)
 
 static inline struct statement *expr_get_parent_stmt(struct expression *expr)
 {
+	if (!expr)
+		return NULL;
 	if (expr->parent & 0x1UL)
 		return NULL;
 	return (struct statement *)expr->parent;
