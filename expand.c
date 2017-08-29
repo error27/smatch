@@ -1223,7 +1223,7 @@ static int expand_statement(struct statement *stmt)
 
 static inline int bad_integer_constant_expression(struct expression *expr)
 {
-	if (!(expr->flags & Int_const_expr))
+	if (!(expr->flags & CEF_ICE))
 		return 1;
 	if (expr->taint & Taint_comma)
 		return 1;

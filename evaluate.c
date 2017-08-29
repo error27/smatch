@@ -70,9 +70,11 @@ static struct symbol *evaluate_symbol_expression(struct expression *expr)
 	addr->symbol = sym;
 	addr->symbol_name = expr->symbol_name;
 	addr->ctype = &lazy_ptr_ctype;	/* Lazy evaluation: we need to do a proper job if somebody does &sym */
+	addr->flags = expr->flags;
 	expr->type = EXPR_PREOP;
 	expr->op = '*';
 	expr->unop = addr;
+	expr->flags = CEF_NONE;
 
 	/* The type of a symbol is the symbol itself! */
 	expr->ctype = sym;
@@ -106,6 +108,7 @@ static struct symbol *evaluate_string(struct expression *expr)
 	
 	addr->symbol = sym;
 	addr->ctype = &lazy_ptr_ctype;
+	addr->flags = CEF_ADDR;
 
 	expr->type = EXPR_PREOP;
 	expr->op = '*';
@@ -271,6 +274,7 @@ warn_for_different_enum_types (struct position pos,
 	}
 }
 
+static int cast_flags(struct expression *expr, struct expression *target);
 static struct symbol *cast_to_bool(struct expression *expr);
 
 /*
@@ -323,10 +327,10 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
-	expr->flags = old->flags;
 	expr->ctype = type;
 	expr->cast_type = type;
 	expr->cast_expression = old;
+	expr->flags = cast_flags(expr, old);
 
 	if (is_bool_type(type))
 		cast_to_bool(expr);
@@ -404,7 +408,7 @@ static struct symbol *bad_expr_type(struct expression *expr)
 		break;
 	}
 
-	expr->flags = 0;
+	expr->flags = CEF_NONE;
 	return expr->ctype = &bad_ctype;
 }
 
@@ -567,6 +571,13 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 
 	classify_type(degenerate(expr->left), &ctype);
 	base = examine_pointer_target(ctype);
+
+	/*
+	 * An address constant +/- an integer constant expression
+	 * yields an address constant again [6.6(7)].
+	 */
+	if ((expr->left->flags & CEF_ADDR) && (expr->right->flags & CEF_ICE))
+		expr->flags = CEF_ADDR;
 
 	if (!base) {
 		expression_error(expr, "missing type information");
@@ -895,10 +906,8 @@ static struct symbol *evaluate_logical(struct expression *expr)
 
 	/* the result is int [6.5.13(3), 6.5.14(3)] */
 	expr->ctype = &int_ctype;
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
-	}
+	expr->flags = expr->left->flags & expr->right->flags;
+	expr->flags &= ~(CEF_CONST_MASK | CEF_ADDR);
 	return &int_ctype;
 }
 
@@ -909,13 +918,11 @@ static struct symbol *evaluate_binop(struct expression *expr)
 	int rclass = classify_type(expr->right->ctype, &rtype);
 	int op = expr->op;
 
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
-	}
-
 	/* number op number */
 	if (lclass & rclass & TYPE_NUM) {
+		expr->flags = expr->left->flags & expr->right->flags;
+		expr->flags &= ~CEF_CONST_MASK;
+
 		if ((lclass | rclass) & TYPE_FLOAT) {
 			switch (op) {
 			case '+': case '-': case '*': case '/':
@@ -1002,7 +1009,7 @@ static inline int is_null_pointer_constant(struct expression *e)
 {
 	if (e->ctype == &null_ctype)
 		return 1;
-	if (!(e->flags & Int_const_expr))
+	if (!(e->flags & CEF_ICE))
 		return 0;
 	return is_zero_constant(e) ? 2 : 0;
 }
@@ -1016,17 +1023,20 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	struct symbol *ctype;
 	const char *typediff;
 
-	if (expr->flags) {
-		if (!(expr->left->flags & expr->right->flags & Int_const_expr))
-			expr->flags = 0;
-	}
-
 	/* Type types? */
-	if (is_type_type(ltype) && is_type_type(rtype))
+	if (is_type_type(ltype) && is_type_type(rtype)) {
+		/*
+		 * __builtin_types_compatible_p() yields an integer
+		 * constant expression
+		 */
+		expr->flags = CEF_SET_ICE;
 		goto OK;
+	}
 
 	if (is_safe_type(left->ctype) || is_safe_type(right->ctype))
 		warning(expr->pos, "testing a 'safe expression'");
+
+	expr->flags = left->flags & right->flags & ~CEF_CONST_MASK & ~CEF_ADDR;
 
 	/* number on number */
 	if (lclass & rclass & TYPE_NUM) {
@@ -1135,12 +1145,23 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 		true = &expr->cond_true;
 	}
 
-	if (expr->flags) {
-		int flags = expr->conditional->flags & Int_const_expr;
-		flags &= (*true)->flags & expr->cond_false->flags;
-		if (!flags)
-			expr->flags = 0;
-	}
+	expr->flags = (expr->conditional->flags & (*true)->flags &
+			expr->cond_false->flags & ~CEF_CONST_MASK);
+	/*
+	 * A conditional operator yields a particular constant
+	 * expression type only if all of its three subexpressions are
+	 * of that type [6.6(6), 6.6(8)].
+	 * As an extension, relax this restriction by allowing any
+	 * constant expression type for the condition expression.
+	 *
+	 * A conditional operator never yields an address constant
+	 * [6.6(9)].
+	 * However, as an extension, if the condition is any constant
+	 * expression, and the true and false expressions are both
+	 * address constants, mark the result as an address constant.
+	 */
+	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
+		expr->flags = (*true)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
@@ -1718,7 +1739,6 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	}
 	ctype = op->ctype;
 	*expr = *op->unop;
-	expr->flags = 0;
 
 	if (expr->type == EXPR_SYMBOL) {
 		struct symbol *sym = expr->symbol;
@@ -1746,7 +1766,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	/* Simplify: *&(expr) => (expr) */
 	if (op->type == EXPR_PREOP && op->op == '&') {
 		*expr = *op->unop;
-		expr->flags = 0;
+		expr->flags = CEF_NONE;
 		return expr->ctype;
 	}
 
@@ -1838,8 +1858,8 @@ static struct symbol *evaluate_sign(struct expression *expr)
 {
 	struct symbol *ctype = expr->unop->ctype;
 	int class = classify_type(ctype, &ctype);
-	if (expr->flags && !(expr->unop->flags & Int_const_expr))
-		expr->flags = 0;
+	unsigned char flags = expr->unop->flags & ~CEF_CONST_MASK;
+
 	/* should be an arithmetic type */
 	if (!(class & TYPE_NUM))
 		return bad_expr_type(expr);
@@ -1856,6 +1876,7 @@ Normal:
 	}
 	if (expr->op == '+')
 		*expr = *expr->unop;
+	expr->flags = flags;
 	expr->ctype = ctype;
 	return ctype;
 Restr:
@@ -1893,8 +1914,13 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_postop(expr);
 
 	case '!':
-		if (expr->flags && !(expr->unop->flags & Int_const_expr))
-			expr->flags = 0;
+		expr->flags = expr->unop->flags & ~CEF_CONST_MASK;
+		/*
+		 * A logical negation never yields an address constant
+		 * [6.6(9)].
+		 */
+		expr->flags &= ~CEF_ADDR;
+
 		if (is_safe_type(ctype))
 			warning(expr->pos, "testing a 'safe expression'");
 		if (is_float_type(ctype)) {
@@ -1979,6 +2005,12 @@ static struct expression *evaluate_offset(struct expression *expr, unsigned long
 	 * we ever take the address of this member dereference..
 	 */
 	add->ctype = &lazy_ptr_ctype;
+	/*
+	 * The resulting address of a member access through an address
+	 * constant is an address constant again [6.6(9)].
+	 */
+	add->flags = expr->flags;
+
 	return add;
 }
 
@@ -2475,14 +2507,14 @@ static struct expression *next_designators(struct expression *old,
 	return new;
 }
 
-static int handle_simple_initializer(struct expression **ep, int nested,
-				     int class, struct symbol *ctype);
+static int handle_initializer(struct expression **ep, int nested,
+		int class, struct symbol *ctype, unsigned long mods);
 
 /*
  * deal with traversing subobjects [6.7.8(17,18,20)]
  */
 static void handle_list_initializer(struct expression *expr,
-				    int class, struct symbol *ctype)
+		int class, struct symbol *ctype, unsigned long mods)
 {
 	struct expression *e, *last = NULL, *top = NULL, *next;
 	int jumped = 0;
@@ -2540,7 +2572,8 @@ found:
 		else
 			v = &top->ident_expression;
 
-		if (handle_simple_initializer(v, 1, lclass, top->ctype))
+		mods |= ctype->ctype.modifiers & MOD_STORAGE;
+		if (handle_initializer(v, 1, lclass, top->ctype, mods))
 			continue;
 
 		if (!(lclass & TYPE_COMPOUND)) {
@@ -2632,8 +2665,8 @@ static struct expression *handle_scalar(struct expression *e, int nested)
  * { "string", ...} - we need to preserve that string literal recognizable
  * until we dig into the inner struct.
  */
-static int handle_simple_initializer(struct expression **ep, int nested,
-				     int class, struct symbol *ctype)
+static int handle_initializer(struct expression **ep, int nested,
+		int class, struct symbol *ctype, unsigned long mods)
 {
 	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
@@ -2651,6 +2684,16 @@ static int handle_simple_initializer(struct expression **ep, int nested,
 		if (!evaluate_expression(e))
 			return 1;
 		compatible_assignment_types(e, ctype, ep, "initializer");
+		/*
+		 * Initializers for static storage duration objects
+		 * shall be constant expressions or a string literal [6.7.8(4)].
+		 */
+		mods |= ctype->ctype.modifiers;
+		mods &= (MOD_TOPLEVEL | MOD_STATIC);
+		if (mods && !(e->flags & (CEF_ACE | CEF_ADDR)))
+			if (Wconstexpr_not_const)
+				warning(e->pos, "non-constant initializer for static object");
+
 		return 1;
 	}
 
@@ -2673,7 +2716,7 @@ static int handle_simple_initializer(struct expression **ep, int nested,
 				goto String;
 			}
 		}
-		handle_list_initializer(e, class, ctype);
+		handle_list_initializer(e, class, ctype, mods);
 		return 1;
 	}
 
@@ -2721,7 +2764,7 @@ static void evaluate_initializer(struct symbol *ctype, struct expression **ep)
 {
 	struct symbol *type;
 	int class = classify_type(ctype, &type);
-	if (!handle_simple_initializer(ep, 0, class, ctype))
+	if (!handle_initializer(ep, 0, class, ctype, 0))
 		expression_error(*ep, "invalid initializer");
 }
 
@@ -2745,6 +2788,59 @@ static struct symbol *cast_to_bool(struct expression *expr)
 	expr->right = cast_to(zero, ctype);
 
 	return expr->ctype;
+}
+
+static int cast_flags(struct expression *expr, struct expression *old)
+{
+	struct symbol *t;
+	int class;
+	int flags = CEF_NONE;
+
+	class = classify_type(expr->ctype, &t);
+	if (class & TYPE_NUM) {
+		flags = old->flags & ~CEF_CONST_MASK;
+		/*
+		 * Casts to numeric types never result in address
+		 * constants [6.6(9)].
+		 */
+		flags &= ~CEF_ADDR;
+
+		/*
+		 * As an extension, treat address constants cast to
+		 * integer type as an arithmetic constant.
+		 */
+		if (old->flags & CEF_ADDR)
+			flags = CEF_ACE;
+
+		/*
+		 * Cast to float type -> not an integer constant
+		 * expression [6.6(6)].
+		 */
+		if (class & TYPE_FLOAT)
+			flags &= ~CEF_CLR_ICE;
+		/*
+		 * Casts of float literals to integer type results in
+		 * a constant integer expression [6.6(6)].
+		 */
+		else if (old->flags & CEF_FLOAT)
+			flags = CEF_SET_ICE;
+	} else if (class & TYPE_PTR) {
+		/*
+		 * Casts of integer literals to pointer type yield
+		 * address constants [6.6(9)].
+		 *
+		 * As an extension, treat address constants cast to a
+		 * different pointer type as address constants again.
+		 *
+		 * As another extension, treat integer constant
+		 * expressions (in contrast to literals) cast to
+		 * pointer type as address constants.
+		 */
+		if (old->flags & (CEF_ICE | CEF_ADDR))
+			flags = CEF_ADDR;
+	}
+
+	return flags;
 }
 
 static struct symbol *evaluate_cast(struct expression *expr)
@@ -2777,6 +2873,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
 		addr->symbol = sym;
+		if (sym->ctype.modifiers & MOD_TOPLEVEL)
+			addr->flags |= CEF_ADDR;
 
 		expr->type = EXPR_PREOP;
 		expr->op = '*';
@@ -2795,14 +2893,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 
 	class1 = classify_type(ctype, &t1);
 
-	/* cast to non-integer type -> not an integer constant expression */
-	if (!is_int(class1))
-		expr->flags = 0;
-	/* if argument turns out to be not an integer constant expression *and*
-	   it was not a floating literal to start with -> too bad */
-	else if (expr->flags == Int_const_expr &&
-		!(target->flags & Int_const_expr))
-		expr->flags = 0;
+	expr->flags = cast_flags(expr, target);
+
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
@@ -2871,7 +2963,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 			"cast adds address space to expression (<asn:%d>)", as1);
 
 	if (!(t1->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
-	    !as1 && (target->flags & Int_const_expr)) {
+	    !as1 && (target->flags & CEF_ICE)) {
 		if (t1->ctype.base_type == &void_ctype) {
 			if (is_zero_constant(target)) {
 				/* NULL */
@@ -2961,20 +3053,22 @@ static struct symbol *evaluate_call(struct expression *expr)
 			return NULL;
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
-		if (args < fnargs)
+		if (args < fnargs) {
 			expression_error(expr,
 				     "not enough arguments for function %s",
 				     show_ident(sym->ident));
+			return NULL;
+		}
 		if (args > fnargs && !ctype->variadic)
 			expression_error(expr,
 				     "too many arguments for function %s",
 				     show_ident(sym->ident));
 	}
+	expr->ctype = ctype->ctype.base_type;
 	if (sym->type == SYM_NODE) {
 		if (evaluate_symbol_call(expr))
 			return expr->ctype;
 	}
-	expr->ctype = ctype->ctype.base_type;
 	return expr->ctype;
 }
 
@@ -3005,7 +3099,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		}
 		ctype = field;
 		expr->type = EXPR_VALUE;
-		expr->flags = Int_const_expr;
+		expr->flags = CEF_SET_ICE;
 		expr->value = offset;
 		expr->taint = 0;
 		expr->ctype = size_t_ctype;
@@ -3023,30 +3117,34 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 		if (!expr->index) {
 			expr->type = EXPR_VALUE;
-			expr->flags = Int_const_expr;
+			expr->flags = CEF_SET_ICE;
 			expr->value = 0;
 			expr->taint = 0;
 			expr->ctype = size_t_ctype;
 		} else {
 			struct expression *idx = expr->index, *m;
 			struct symbol *i_type = evaluate_expression(idx);
+			unsigned old_idx_flags;
 			int i_class = classify_type(i_type, &i_type);
+
 			if (!is_int(i_class)) {
 				expression_error(expr, "non-integer index");
 				return NULL;
 			}
 			unrestrict(idx, i_class, &i_type);
+			old_idx_flags = idx->flags;
 			idx = cast_to(idx, size_t_ctype);
+			idx->flags = old_idx_flags;
 			m = alloc_const_expression(expr->pos,
 						   bits_to_bytes(ctype->bit_size));
 			m->ctype = size_t_ctype;
-			m->flags = Int_const_expr;
+			m->flags = CEF_SET_INT;
 			expr->type = EXPR_BINOP;
 			expr->left = idx;
 			expr->right = m;
 			expr->op = '*';
 			expr->ctype = size_t_ctype;
-			expr->flags = m->flags & idx->flags & Int_const_expr;
+			expr->flags = m->flags & idx->flags & ~CEF_CONST_MASK;
 		}
 	}
 	if (e) {
@@ -3057,7 +3155,7 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 		if (!evaluate_expression(e))
 			return NULL;
 		expr->type = EXPR_BINOP;
-		expr->flags = e->flags & copy->flags & Int_const_expr;
+		expr->flags = e->flags & copy->flags & ~CEF_CONST_MASK;
 		expr->op = '+';
 		expr->ctype = size_t_ctype;
 		expr->left = copy;

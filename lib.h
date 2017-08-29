@@ -116,6 +116,7 @@ extern int Waddress_space;
 extern int Wbitwise;
 extern int Wcast_to_as;
 extern int Wcast_truncate;
+extern int Wconstexpr_not_const;
 extern int Wcontext;
 extern int Wdecl;
 extern int Wdeclarationafterstatement;

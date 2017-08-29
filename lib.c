@@ -223,6 +223,7 @@ int Waddress_space = 1;
 int Wbitwise = 1;
 int Wcast_to_as = 0;
 int Wcast_truncate = 1;
+int Wconstexpr_not_const = 0;
 int Wcontext = 1;
 int Wdecl = 1;
 int Wdeclarationafterstatement = -1;
@@ -515,6 +516,7 @@ static const struct warning {
 	{ "bitwise", &Wbitwise },
 	{ "cast-to-as", &Wcast_to_as },
 	{ "cast-truncate", &Wcast_truncate },
+	{ "constexpr-not-const", &Wconstexpr_not_const},
 	{ "context", &Wcontext },
 	{ "decl", &Wdecl },
 	{ "declaration-after-statement", &Wdeclarationafterstatement },
