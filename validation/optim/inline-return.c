@@ -16,9 +16,9 @@ int bar(void)
 
 /*
  * check-name: inline-return.c
- * check-command: test-linearize -fdump-ir=linearize -Wno-decl $file
+ * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-contains: ret\\..*\\$1
+ * check-output-pattern(2): ret\\..*\\$1
  * check-output-excludes: ret\\..*\\$0
  */

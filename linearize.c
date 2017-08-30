@@ -1731,12 +1731,6 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 
 		if (!phi_node)
 			return pseudo;
-
-		if (pseudo_list_size(phi_node->phi_list)==1) {
-			pseudo = first_pseudo(phi_node->phi_list);
-			assert(pseudo->type == PSEUDO_PHI);
-			return pseudo->def->src1;
-		}
 		return phi_node->target;
 	}
 

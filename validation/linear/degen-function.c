@@ -20,7 +20,7 @@ fa:
 
 .L1:
 	phi.64      %r2 <- %phi1(return)
-	ret.64      %r1
+	ret.64      %r2
 
 
 f0:
@@ -32,7 +32,7 @@ f0:
 
 .L3:
 	phi.64      %r4 <- %phi2(return)
-	ret.64      %r3
+	ret.64      %r4
 
 
 f1:
@@ -44,7 +44,7 @@ f1:
 
 .L5:
 	phi.64      %r6 <- %phi3(return)
-	ret.64      %r5
+	ret.64      %r6
 
 
  * check-output-end
