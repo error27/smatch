@@ -296,9 +296,11 @@ static int collect_arguments(struct token *start, struct token *arglist, struct 
 		for (count = 0; count < wanted; count++) {
 			struct argcount *p = &arglist->next->count;
 			next = collect_arg(start, p->vararg, &what->pos, p->normal);
-			arglist = arglist->next->next;
 			if (eof_token(next))
 				goto Eclosing;
+			if (p->vararg && wanted == 1 && eof_token(start->next))
+				break;
+			arglist = arglist->next->next;
 			args[count].arg = start->next;
 			args[count].n_normal = p->normal;
 			args[count].n_quoted = p->quoted;

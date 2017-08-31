@@ -12,6 +12,9 @@ I(,)
 I(x,)
 I(,x)
 I(x,x)
+#define J(...) ,##__VA_ARGS__
+J()
+J(x)
 /*
  * check-name: Preprocessor #23
  * check-command: sparse -E $file
@@ -29,6 +32,7 @@ I(x,x)
 ,x
 ,x
 ,xx
+,x
  * check-output-end
  *
  * check-error-start
