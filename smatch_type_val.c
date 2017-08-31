@@ -222,11 +222,24 @@ static int is_ignored_function(void)
 static int is_uncasted_function(void)
 {
 	struct expression *expr;
+	struct symbol *left_type, *right_type;
 
 	expr = get_faked_expression();
 	if (!expr || expr->type != EXPR_ASSIGNMENT)
 		return 0;
-	if (expr->right->type == EXPR_CALL)
+	if (expr->right->type != EXPR_CALL)
+		return 0;
+	left_type = get_type(expr->left);
+	right_type = get_type(expr->right);
+
+	if (!left_type || !right_type)
+		return 0;
+	if (left_type->type != SYM_PTR || right_type->type != SYM_PTR)
+		return 0;
+	left_type = get_real_base_type(left_type);
+	right_type = get_real_base_type(right_type);
+
+	if (left_type == right_type)
 		return 1;
 	return 0;
 }
