@@ -8,6 +8,7 @@
 #include "flowgraph.h"
 #include "linearize.h"
 #include "flow.h"			// for bb_generation
+#include <stdio.h>
 
 
 struct cfg_info {
@@ -41,6 +42,16 @@ static void reverse_bbs(struct basic_block_list **dst, struct basic_block_list *
 	} END_FOR_EACH_PTR_REVERSE(bb);
 }
 
+static void debug_postorder(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	printf("%s's reverse postorder:\n", show_ident(ep->name->ident));
+	FOR_EACH_PTR(ep->bbs, bb) {
+		printf("\t.L%u: %u\n", bb->nr, bb->postorder_nr);
+	} END_FOR_EACH_PTR(bb);
+}
+
 //
 // cfg_postorder - Set the BB's reverse postorder links
 //
@@ -61,5 +72,7 @@ int cfg_postorder(struct entrypoint *ep)
 	ep->bbs = NULL;
 	reverse_bbs(&ep->bbs, info.list);
 	free_ptr_list(&info.list);
+	if (dbg_postorder)
+		debug_postorder(ep);
 	return info.nr;
 }

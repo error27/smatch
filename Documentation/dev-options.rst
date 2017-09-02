@@ -47,3 +47,7 @@ OPTIONS
 .. option:: -ventry
 
   Dump the IR after all optimization passes.
+
+.. option:: -vpostorder
+
+  Dump the reverse postorder traversal of the CFG.

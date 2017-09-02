@@ -289,6 +289,7 @@ int dbg_compound = 0;
 int dbg_dead = 0;
 int dbg_entry = 0;
 int dbg_ir = 0;
+int dbg_postorder = 0;
 
 unsigned long fdump_ir;
 int fmem_report = 0;
@@ -768,6 +769,7 @@ static struct flag debugs[] = {
 	{ "dead", &dbg_dead},
 	{ "entry", &dbg_entry},
 	{ "ir", &dbg_ir},
+	{ "postorder", &dbg_postorder},
 };
 
 
