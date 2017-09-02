@@ -107,6 +107,22 @@ extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR
 #define	ERROR_PREV_PHASE	(1 << 1)
 extern int has_error;
 
+
+enum phase {
+	PASS__PARSE,
+	PASS__LINEARIZE,
+	PASS__MEM2REG,
+	PASS__OPTIM,
+	PASS__FINAL,
+};
+
+#define	PASS_PARSE		(1UL << PASS__PARSE)
+#define	PASS_LINEARIZE		(1UL << PASS__LINEARIZE)
+#define	PASS_MEM2REG		(1UL << PASS__MEM2REG)
+#define	PASS_OPTIM		(1UL << PASS__OPTIM)
+#define	PASS_FINAL		(1UL << PASS__FINAL)
+
+
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;
