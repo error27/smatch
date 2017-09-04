@@ -96,11 +96,14 @@ has_patterns()
 	patt="$2"
 	ofile="$3"
 	cmp="$4"
+	msg="$5"
 	grep "$patt:" "$ifile" | \
 	sed -e "s/^.*$patt: *\(.*\)$/\1/" | \
 	while read val; do
 		grep -s -q "$val" "$ofile"
 		if [ "$?" $cmp 0 ]; then
+			error "test '$ifile' failed"
+			error "	Pattern '$val' unexpectedly $msg"
 			return 1
 		fi
 	done
@@ -115,7 +118,7 @@ has_patterns()
 # returns 0 if all present, 1 otherwise
 has_each_patterns()
 {
-	has_patterns "$1" "$2" "$3" -ne
+	has_patterns "$1" "$2" "$4" -ne "$3"
 }
 
 ##
@@ -125,7 +128,7 @@ has_each_patterns()
 # returns 1 if any present, 0 otherwise
 has_none_patterns()
 {
-	has_patterns "$1" "$2" "$3" -eq
+	has_patterns "$1" "$2" "$4" -eq "$3"
 }
 
 ##
@@ -256,16 +259,14 @@ do_test()
 
 	# verify the 'check-output-contains/excludes' tags
 	if [ $check_output_contains -eq 1 ]; then
-		has_each_patterns "$file" 'check-output-contains' $file.output.got
+		has_each_patterns "$file" 'check-output-contains' absent $file.output.got
 		if [ "$?" -ne "0" ]; then
-			error "Actual output doesn't contain some of the expected patterns."
 			test_failed=1
 		fi
 	fi
 	if [ $check_output_excludes -eq 1 ]; then
-		has_none_patterns "$file" 'check-output-excludes' $file.output.got
+		has_none_patterns "$file" 'check-output-excludes' present $file.output.got
 		if [ "$?" -ne "0" ]; then
-			error "Actual output contains some patterns which are not expected."
 			test_failed=1
 		fi
 	fi
