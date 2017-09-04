@@ -142,6 +142,8 @@ nbr_patterns()
 	while read nbr pat; do
 		n=$(grep -s "$pat" "$ofile" | wc -l)
 		if [ "$n" -ne "$nbr" ]; then
+			error "test '$ifile' failed"
+			error "	Pattern '$pat' expected $nbr times but got $n times"
 			return 1
 		fi
 	done
@@ -271,7 +273,6 @@ do_test()
 		# verify the 'check-output-pattern-X-times' tags
 		nbr_patterns "$file" 'check-output-pattern' $file.output.got
 		if [ "$?" -ne "0" ]; then
-			error "Actual output doesn't contain the pattern the expected number."
 			test_failed=1
 		fi
 	fi
