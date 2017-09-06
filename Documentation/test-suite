@@ -57,6 +57,12 @@ check-output-pattern-<nbr>-times: <pattern> (optional)
 	Similar than the contains/excludes her above, but with full control
 	of the number of times the pattern should occurs in the output.
 
+check-output-pattern(<nbr>): <pattern> (optional)
+check-output-pattern(<min>,<max>): <pattern> (optional)
+	Similar to the '-contains/excludes' here above, but with full control
+	of the number of times the pattern should occurs in the output.
+	If <min> or <max> is '-' the corresponding check is ignored.
+
 	Using test-suite
 	~~~~~~~~~~~~~~~~
 

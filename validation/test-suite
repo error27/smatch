@@ -46,6 +46,7 @@ get_tag_value()
 	check_output_contains=0
 	check_output_excludes=0
 	check_output_pattern=0
+	check_output_pattern_minmax=0
 
 	lines=$(grep 'check-[a-z-]*' $1 | \
 		sed -e 's/^.*\(check-[a-z-]*:*\) *\(.*\)$/\1 \2/')
@@ -65,6 +66,7 @@ get_tag_value()
 		check-output-contains:)	check_output_contains=1 ;;
 		check-output-excludes:)	check_output_excludes=1 ;;
 		check-output-pattern-)	check_output_pattern=1 ;;
+		check-output-pattern)	check_output_pattern_minmax=1 ;;
 		esac
 	done << EOT
 	$lines
@@ -148,6 +150,47 @@ nbr_patterns()
 			error "test '$ifile' failed"
 			error "	Pattern '$pat' expected $nbr times but got $n times"
 			return 1
+		fi
+	done
+
+	return $?
+}
+
+##
+# minmax_patterns(ifile tag ofile) - does ofile contains the
+#                        the patterns given by ifile's tags
+#                        the right number of time?
+minmax_patterns()
+{
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	grep "$patt([0-9-]*\(, *\)*[0-9-]*):" "$ifile" | \
+	sed -e "s/^.*$patt(\([0-9]*\)): *\(.*\)/\1 eq \2/" \
+	    -e "s/^.*$patt(\([0-9-]*\), *\([0-9-]*\)): *\(.*\)/\1 \2 \3/" | \
+	while read min max pat; do
+		n=$(grep -s "$pat" "$ofile" | wc -l)
+		if [ "$max" = "eq" ]; then
+		    if [ "$n" -ne "$min" ]; then
+			error "test '$ifile' failed"
+			error "	Pattern '$pat' expected $min times but got $n times"
+			return 1
+		    fi
+		    continue
+		fi
+		if [ "$min" != '-' ]; then
+		    if [ "$n" -lt "$min" ]; then
+			error "test '$ifile' failed"
+			error "	Pattern '$pat' expected min $min times but got $n times"
+			return 1
+		    fi
+		fi
+		if [ "$max" != '-' ]; then
+		    if [ "$n" -gt "$max" ]; then
+			error "test '$ifile' failed"
+			error "	Pattern '$pat' expected max $max times but got $n times"
+			return 1
+		    fi
 		fi
 	done
 
@@ -273,6 +316,13 @@ do_test()
 	if [ $check_output_pattern -eq 1 ]; then
 		# verify the 'check-output-pattern-X-times' tags
 		nbr_patterns "$file" 'check-output-pattern' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			test_failed=1
+		fi
+	fi
+	if [ $check_output_pattern_minmax -eq 1 ]; then
+		# verify the 'check-output-pattern(...)' tags
+		minmax_patterns "$file" 'check-output-pattern' $file.output.got
 		if [ "$?" -ne "0" ]; then
 			test_failed=1
 		fi
