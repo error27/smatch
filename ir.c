@@ -3,7 +3,58 @@
 #include "ir.h"
 #include "linearize.h"
 #include <stdlib.h>
+#include <assert.h>
 
+
+static int nbr_phi_operands(struct instruction *insn)
+{
+	pseudo_t p;
+	int nbr = 0;
+
+	if (!insn->phi_list)
+		return 0;
+
+	FOR_EACH_PTR(insn->phi_list, p) {
+		if (p == VOID)
+			continue;
+		nbr++;
+	} END_FOR_EACH_PTR(p);
+
+	return nbr;
+}
+
+static int check_phi_node(struct instruction *insn)
+{
+	struct basic_block *par;
+	pseudo_t phi;
+	int err = 0;
+
+	if (bb_list_size(insn->bb->parents) != nbr_phi_operands(insn)) {
+		sparse_error(insn->pos, "bad number of phi operands in:\n\t%s",
+			show_instruction(insn));
+		info(insn->pos, "parents: %d", bb_list_size(insn->bb->parents));
+		info(insn->pos, "phisrcs: %d", nbr_phi_operands(insn));
+		return 1;
+	}
+
+	PREPARE_PTR_LIST(insn->bb->parents, par);
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		struct instruction *src;
+		if (phi == VOID)
+			continue;
+		assert(phi->type == PSEUDO_PHI);
+		src = phi->def;
+		if (src->bb != par) {
+			sparse_error(src->pos, "wrong BB for %s:", show_instruction(src));
+			info(src->pos, "expected: %s", show_label(par));
+			info(src->pos, "     got: %s", show_label(src->bb));
+			err++;
+		}
+		NEXT_PTR_LIST(par);
+	} END_FOR_EACH_PTR(phi);
+	FINISH_PTR_LIST(par);
+	return err;
+}
 
 static int check_user(struct instruction *insn, pseudo_t pseudo)
 {
@@ -62,6 +113,7 @@ static int validate_insn(struct instruction *insn)
 		break;
 
 	case OP_PHI:
+		err += check_phi_node(insn);
 		break;
 
 	case OP_CALL:
