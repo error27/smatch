@@ -11,6 +11,7 @@
 #include "liveness.h"
 #include "flow.h"
 #include "cse.h"
+#include "ir.h"
 
 int repeat_phase;
 
@@ -50,12 +51,14 @@ void optimize(struct entrypoint *ep)
 	 * branches, kill dead basicblocks etc
 	 */
 	kill_unreachable_bbs(ep);
+	ir_validate(ep);
 
 	/*
 	 * Turn symbols into pseudos
 	 */
 	if (fpasses & PASS_MEM2REG)
 		simplify_symbol_usage(ep);
+	ir_validate(ep);
 	if (fdump_ir & PASS_MEM2REG)
 		show_entry(ep);
 

@@ -286,6 +286,7 @@ int dump_macro_defs = 0;
 int dbg_compound = 0;
 int dbg_dead = 0;
 int dbg_entry = 0;
+int dbg_ir = 0;
 
 unsigned long fdump_ir;
 int fmem_report = 0;
@@ -762,6 +763,7 @@ static struct flag debugs[] = {
 	{ "compound", &dbg_compound},
 	{ "dead", &dbg_dead},
 	{ "entry", &dbg_entry},
+	{ "ir", &dbg_ir},
 };
 
 
