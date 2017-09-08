@@ -668,6 +668,8 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_AND:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src2);
+		if ((value & bits) == bits)
+			return replace_with_pseudo(insn, insn->src1);
 		return 0;
 
 	case OP_SET_NE:
