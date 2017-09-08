@@ -563,6 +563,16 @@ static struct range_list *var_user_rl(struct expression *expr)
 	struct range_list *rl;
 	struct range_list *absolute_rl;
 
+	if (expr->type == EXPR_BINOP && expr->op == '%') {
+		struct range_list *left, *right;
+
+		if (!get_user_rl(expr->right, &right))
+			return NULL;
+		get_absolute_rl(expr->left, &left);
+		rl = rl_binop(left, '%', right);
+		goto found;
+	}
+
 	if (get_user_macro_rl(expr, &rl))
 		goto found;
 
