@@ -397,16 +397,9 @@ clear_old_state:
 		set_state_expr(my_id, expr->left, alloc_estate_empty());
 }
 
-static void match_condition(struct expression *expr)
+static void handle_eq_noteq(struct expression *expr)
 {
-	struct smatch_state *left_orig = NULL;
-	struct smatch_state *right_orig = NULL;
-
-	if (expr->type != EXPR_COMPARE)
-		return;
-	if (expr->op != SPECIAL_EQUAL &&
-	    expr->op != SPECIAL_NOTEQUAL)
-		return;
+	struct smatch_state *left_orig, *right_orig;
 
 	left_orig = get_state_expr(my_id, expr->left);
 	right_orig = get_state_expr(my_id, expr->right);
@@ -425,6 +418,77 @@ static void match_condition(struct expression *expr)
 				expr->op == SPECIAL_EQUAL ? alloc_estate_empty() : NULL,
 				expr->op == SPECIAL_EQUAL ? NULL : alloc_estate_empty());
 	}
+}
+
+static void handle_unsigned_lt_gt(struct expression *expr)
+{
+	struct symbol *type;
+	struct range_list *left;
+	struct range_list *right;
+	struct range_list *non_negative;
+	sval_t min, minus_one;
+
+	/*
+	 * conditions are mostly handled by smatch_extra.c.  The special case
+	 * here is that say you have if (user_int < unknown_u32) {
+	 * In Smatch extra we say that, We have no idea what value
+	 * unknown_u32 is so the only thin we can say for sure is that
+	 * user_int is not -1 (UINT_MAX).  But in check_user_data2.c we should
+	 * assume that unless unknown_u32 is user data, it's probably less than
+	 * INT_MAX.
+	 *
+	 */
+
+	type = get_type(expr);
+	if (!type_unsigned(type))
+		return;
+
+	/*
+	 * Assume if (user < trusted) { ... because I am lazy and because this
+	 * is the correct way to write code.
+	 */
+	if (!get_user_rl(expr->left, &left))
+		return;
+	if (get_user_rl(expr->right, &right))
+		return;
+
+	if (!sval_is_negative(rl_min(left)))
+		return;
+	min = rl_min(left);
+	minus_one.type = rl_type(left);
+	minus_one.value = -1;
+	non_negative = remove_range(left, min, minus_one);
+
+	switch (expr->op) {
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+	case SPECIAL_LTE:
+	case SPECIAL_UNSIGNED_LTE:
+		set_true_false_states_expr(my_id, expr->left,
+					   alloc_estate_rl(non_negative), NULL);
+		break;
+	case '>':
+	case SPECIAL_UNSIGNED_GT:
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		set_true_false_states_expr(my_id, expr->left,
+					   NULL, alloc_estate_rl(non_negative));
+		break;
+	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	if (expr->op == SPECIAL_EQUAL ||
+	    expr->op == SPECIAL_NOTEQUAL) {
+		handle_eq_noteq(expr);
+		return;
+	}
+
+	handle_unsigned_lt_gt(expr);
 }
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
