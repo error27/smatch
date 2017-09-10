@@ -4,7 +4,7 @@ extern int print(const char *msg, ...);
 
 int foo(const char *fmt, int a, long l, int *p)
 {
-	print("msg %c: %d %d/%ld %ld/%p %p\n", 'x', a, __LINE__, l, 0L, p, NULL);
+	return print("msg %c: %d %d/%ld %ld/%p %p\n", 'x', a, __LINE__, l, 0L, p, NULL);
 }
 
 /*
