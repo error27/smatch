@@ -90,6 +90,7 @@ $(warning Your system does not have gtk3/gtk2, disabling test-inspect)
 endif
 
 ifeq ($(HAVE_LLVM),yes)
+ifeq ($(shell uname -m | grep -q '\(i386\|x86\)' && echo ok),ok)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
 LLVM_PROGS := sparse-llvm
@@ -104,6 +105,9 @@ sparse-llvm.o: BASIC_CFLAGS += $(LLVM_CFLAGS)
 sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS) $(LLVM_LDFLAGS)
 else
 $(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
+endif
+else
+$(warning sparse-llvm disabled on $(shell uname -m))
 endif
 else
 $(warning Your system does not have llvm, disabling sparse-llvm)
