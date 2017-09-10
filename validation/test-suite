@@ -32,6 +32,7 @@ known_ko_tests=0
 # defaults to not verbose
 [ -z "$V" ] && V=0
 vquiet=""
+abort=0
 
 ##
 # get_tag_value(file) - get the 'check-<...>' tags & values
@@ -204,6 +205,7 @@ echo "$prog_name - a tiny automatic testing script"
 echo "Usage: $prog_name [option(s)] [command] [arguments]"
 echo
 echo "options:"
+echo "    -a|--abort                 abort the tests as soon as one fails"
 echo "    -q|--quiet                 be extra quiet while running the tests"
 echo
 echo "commands:"
@@ -344,6 +346,7 @@ do_test()
 	fi
 
 	if [ "$test_failed" -ne "$must_fail" ]; then
+		[ $abort -eq 1 ] && exit 1
 		test_failed=1
 		failed=1
 	fi
@@ -437,6 +440,11 @@ arg_file()
 
 while true; do
 	case "$1" in
+	-a|--abort)
+		abort=1
+		shift
+		continue
+		;;
 	-q|--quiet)
 		vquiet=1
 		shift
