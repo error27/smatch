@@ -277,7 +277,7 @@ do_test()
 	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
 	known_ko_tests=$(($known_ko_tests + $must_fail))
 
-	for stream in output error; do
+	for stream in error output; do
 		eval ignore=\$check_${stream}_ignore
 		[ $ignore -eq 1 ] && continue
 
