@@ -1048,6 +1048,7 @@ static void sort_array(struct expression *expr)
 			*THIS_ADDRESS(entry) = list[i++];
 	} END_FOR_EACH_PTR(entry);
 
+	free(list);
 }
 
 static void emit_array(struct symbol *sym)
