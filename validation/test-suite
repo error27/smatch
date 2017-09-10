@@ -428,7 +428,8 @@ arg_file()
 	return 0
 }
 
-case "$1" in
+while true; do
+	case "$1" in
 	'')
 		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 		do_test_suite
@@ -455,7 +456,9 @@ case "$1" in
 		do_usage
 		exit 1
 		;;
-esac
+	esac
+	break
+done
 
 exit $failed
 
