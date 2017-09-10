@@ -31,6 +31,7 @@ known_ko_tests=0
 
 # defaults to not verbose
 [ -z "$V" ] && V=0
+vquiet=""
 
 ##
 # get_tag_value(file) - get the 'check-<...>' tags & values
@@ -200,7 +201,10 @@ minmax_patterns()
 do_usage()
 {
 echo "$prog_name - a tiny automatic testing script"
-echo "Usage: $prog_name [command] [command arguments]"
+echo "Usage: $prog_name [option(s)] [command] [arguments]"
+echo
+echo "options:"
+echo "    -q|--quiet                 be extra quiet while running the tests"
 echo
 echo "commands:"
 echo "    none                       runs the whole test suite"
@@ -255,7 +259,9 @@ do_test()
 
 	cmd=`eval echo $default_path/$check_command`
 
-	echo "     TEST    $test_name ($file)"
+	if [ -z "$vquiet" ]; then
+		echo "     TEST    $test_name ($file)"
+	fi
 
 	verbose "Using command       : $cmd"
 
@@ -330,6 +336,7 @@ do_test()
 
 	if [ "$must_fail" -eq "1" ]; then
 		if [ "$test_failed" -eq "1" ]; then
+			[ -z "$vquiet" ] && \
 			echo "info: test '$file' is known to fail"
 		else
 			echo "error: test '$file' is known to fail but succeed!"
@@ -430,6 +437,12 @@ arg_file()
 
 while true; do
 	case "$1" in
+	-q|--quiet)
+		vquiet=1
+		shift
+		continue
+		;;
+
 	'')
 		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 		do_test_suite
