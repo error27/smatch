@@ -467,7 +467,7 @@ while true; do
 		do_test_suite
 		;;
 
-	single)
+	single|--single)
 		arg_file "$2"
 		do_test "$2"
 		case "$?" in
@@ -476,7 +476,7 @@ while true; do
 			2) echo "$2 can't be handled by $prog_name";;
 		esac
 		;;
-	format)
+	format|--format)
 		arg_file "$2"
 		do_format "$2" "$3" "$4"
 		;;
