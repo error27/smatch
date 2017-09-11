@@ -224,6 +224,14 @@ echo
 echo "    help                       prints usage"
 }
 
+disable()
+{
+	disabled_tests=$(($disabled_tests + 1))
+	if [ -z "$vquiet" ]; then
+		echo "     DISABLE $1 ($2)"
+	fi
+}
+
 ##
 # do_test(file) - tries to validate a test case
 #
@@ -260,8 +268,7 @@ do_test()
 	base_cmd=$1
 	for i in $disabled_cmds; do
 		if [ "$i" = "$base_cmd" ] ; then
-			disabled_tests=$(($disabled_tests + 1))
-			echo "     DISABLE $test_name ($file)"
+			disable "$test_name" "$file"
 			return 3
 		fi
 	done
