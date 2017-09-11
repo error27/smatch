@@ -435,7 +435,10 @@ do_test_suite()
 
 ##
 do_format_help() {
-echo "Usage: $prog_name [--]format file [name [cmd]]"
+echo "Usage: $prog_name [option(s)] [--]format file [name [cmd]]"
+echo
+echo "options:"
+echo "    -f                         write a test known to fail"
 echo
 echo "argument(s):"
 echo "    file                       file containing the test case(s)"
@@ -444,11 +447,15 @@ echo "    cmd                        command to be used (defaults to 'sparse \$f
 }
 
 ##
-# do_format(file[, name[, cmd]]) - helps a test writer to format test-suite tags
+# do_format([options,] file[, name[, cmd]]) - helps a test writer to format test-suite tags
 do_format()
 {
+	fail=0
+
 	while [ $# -gt 1 ] ; do
 		case "$1" in
+		-f)
+			fail=1 ;;
 		help|-*)
 			do_format_help
 			return 0
@@ -480,6 +487,9 @@ _EOF
 	fi
 	if [ "$fexit_value" -ne "0" ]; then
 		echo " * check-exit-value: $fexit_value"
+	fi
+	if [ $fail != 0 ]; then
+		echo " * check-known-to-fail"
 	fi
 	for stream in output error; do
 		if [ -s "$file.$stream.got" ]; then
