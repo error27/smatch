@@ -328,15 +328,17 @@ do_test()
 		fi
 	fi
 
-	[ "$test_failed" -eq "$must_fail" ] || failed=1
-
 	if [ "$must_fail" -eq "1" ]; then
 		if [ "$test_failed" -eq "1" ]; then
 			echo "info: test '$file' is known to fail"
 		else
 			echo "error: test '$file' is known to fail but succeed!"
-			test_failed=1
 		fi
+	fi
+
+	if [ "$test_failed" -ne "$must_fail" ]; then
+		test_failed=1
+		failed=1
 	fi
 
 	if [ "$test_failed" -eq "1" ]; then
