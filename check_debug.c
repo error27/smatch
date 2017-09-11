@@ -640,6 +640,11 @@ static void match_print_stree_id(const char *fn, struct expression *expr, void *
 	sm_msg("stree_id %d", __stree_id);
 }
 
+static void match_exit(const char *fn, struct expression *expr, void *info)
+{
+	exit(0);
+}
+
 static struct stree *old_stree;
 static void trace_var(struct statement *stmt)
 {
@@ -716,6 +721,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_type_rl_helper", match_type_rl, NULL);
 	add_function_hook("__smatch_merge_tree", &match_print_merge_tree, NULL);
 	add_function_hook("__smatch_stree_id", &match_print_stree_id, NULL);
+	add_function_hook("__smatch_exit", &match_exit, NULL);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);

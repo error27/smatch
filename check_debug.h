@@ -64,4 +64,6 @@ static inline void __smatch_merge_tree(long long var){}
 
 static inline void __smatch_stree_id(void){}
 
+static inline void __smatch_exit(void){}
+
 #endif
