@@ -354,15 +354,20 @@ do_test_suite()
 		do_test "$i"
 	done
 
+	OK=OK
+	[ $failed -eq 0 ] || OK=KO
+
 	# prints some numbers
 	tests_nr=$(($ok_tests + $ko_tests))
-	echo "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed" \
-		" ($known_ko_tests of them are known to fail)"
+	echo "$OK: out of $tests_nr tests, $ok_tests passed, $ko_tests failed"
+	if [ "$known_ko_tests" -ne 0 ]; then
+		echo "	$known_ko_tests of them are known to fail"
+	fi
 	if [ "$unhandled_tests" -ne "0" ]; then
-		echo "$unhandled_tests tests could not be handled by $prog_name"
+		echo "	$unhandled_tests tests could not be handled by $prog_name"
 	fi
 	if [ "$disabled_tests" -ne "0" ]; then
-		echo "$disabled_tests tests were disabled"
+		echo "	$disabled_tests tests were disabled"
 	fi
 }
 
