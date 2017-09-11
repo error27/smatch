@@ -63,6 +63,8 @@ static int in_warn_on_macro(void)
 typedef void (mod_hook)(const char *name, struct symbol *sym, struct smatch_state *state);
 DECLARE_PTR_LIST(void_fn_list, mod_hook *);
 static struct void_fn_list *extra_mod_hooks;
+static struct void_fn_list *extra_nomod_hooks;
+
 void add_extra_mod_hook(mod_hook *fn)
 {
 	mod_hook **p = malloc(sizeof(mod_hook *));
@@ -70,13 +72,30 @@ void add_extra_mod_hook(mod_hook *fn)
 	add_ptr_list(&extra_mod_hooks, p);
 }
 
-void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+void add_extra_nomod_hook(mod_hook *fn)
+{
+	mod_hook **p = malloc(sizeof(mod_hook *));
+	*p = fn;
+	add_ptr_list(&extra_nomod_hooks, p);
+}
+
+void call_extra_hooks(struct void_fn_list *hooks, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	mod_hook **fn;
 
-	FOR_EACH_PTR(extra_mod_hooks, fn) {
+	FOR_EACH_PTR(hooks, fn) {
 		(*fn)(name, sym, state);
 	} END_FOR_EACH_PTR(fn);
+}
+
+void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	call_extra_hooks(extra_mod_hooks, name, sym, state);
+}
+
+void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	call_extra_hooks(extra_nomod_hooks, name, sym, state);
 }
 
 static bool in_param_set;
@@ -87,6 +106,12 @@ static void set_extra_mod_helper(const char *name, struct symbol *sym, struct sm
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
+	set_state(SMATCH_EXTRA, name, sym, state);
+}
+
+static void set_extra_nomod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	call_extra_nomod_hooks(name, sym, state);
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
 
@@ -246,11 +271,11 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
-		set_state(SMATCH_EXTRA, new_name, new_sym, state);
+		set_extra_nomod_helper(new_name, new_sym, state);
 	free_string(new_name);
 
 	if (!estate_related(orig_state)) {
-		set_state(SMATCH_EXTRA, name, sym, state);
+		set_extra_nomod_helper(name, sym, state);
 		return;
 	}
 
@@ -263,7 +288,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
 		if (!estate)
 			continue;
-		set_state(SMATCH_EXTRA, rel->name, rel->sym, clone_estate_cast(estate_type(estate), state));
+		set_extra_nomod_helper(rel->name, rel->sym, clone_estate_cast(estate_type(estate), state));
 	} END_FOR_EACH_PTR(rel);
 }
 
