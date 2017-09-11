@@ -234,6 +234,42 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static int is_skb_data(struct expression *expr)
+{
+	struct symbol *sym;
+
+	if (!expr)
+		return 0;
+
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		return is_skb_data(expr->left);
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+	if (expr->type != EXPR_DEREF || expr->op != '.')
+		return 0;
+
+	if (!expr->member)
+		return 0;
+	if (strcmp(expr->member->name, "data") != 0)
+		return 0;
+
+	sym = expr_to_sym(expr->deref);
+	if (!sym)
+		return 0;
+	sym = get_real_base_type(sym);
+	if (!sym || sym->type != SYM_PTR)
+		return 0;
+	sym = get_real_base_type(sym);
+	if (!sym || sym->type != SYM_STRUCT || !sym->ident)
+		return 0;
+	if (strcmp(sym->ident->name, "sk_buff") != 0)
+		return 0;
+
+	return 1;
+}
+
 static int points_to_user_data(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -243,6 +279,10 @@ static int points_to_user_data(struct expression *expr)
 	int ret = 0;
 
 	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+	if (is_skb_data(expr))
+		return 1;
 
 	if (expr->type == EXPR_BINOP && expr->op == '+') {
 		if (points_to_user_data(expr->left))
@@ -277,39 +317,6 @@ static void set_points_to_user_data(struct expression *expr)
 	set_state(my_id, buf, sym, alloc_estate_whole(&llong_ctype));
 free:
 	free_string(name);
-}
-
-static int is_skb_data(struct expression *expr)
-{
-	struct symbol *sym;
-
-	if (expr->type == EXPR_BINOP && expr->op == '+')
-		return is_skb_data(expr->left);
-
-	expr = strip_expr(expr);
-	if (!expr)
-		return 0;
-	if (expr->type != EXPR_DEREF || expr->op != '.')
-		return 0;
-
-	if (!expr->member)
-		return 0;
-	if (strcmp(expr->member->name, "data") != 0)
-		return 0;
-
-	sym = expr_to_sym(expr->deref);
-	if (!sym)
-		return 0;
-	sym = get_real_base_type(sym);
-	if (!sym || sym->type != SYM_PTR)
-		return 0;
-	sym = get_real_base_type(sym);
-	if (!sym || sym->type != SYM_STRUCT || !sym->ident)
-		return 0;
-	if (strcmp(sym->ident->name, "sk_buff") != 0)
-		return 0;
-
-	return 1;
 }
 
 static int comes_from_skb_data(struct expression *expr)
@@ -359,7 +366,7 @@ static int handle_struct_assignment(struct expression *expr)
 	if (right_type == left_type)
 		return 0;
 
-	if (!points_to_user_data(right) && !is_skb_data(right))
+	if (!points_to_user_data(right))
 		return 0;
 
 	tag_as_user_data(expr->left);
