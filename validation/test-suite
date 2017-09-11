@@ -434,6 +434,7 @@ do_format()
 	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
 	cat <<_EOF
+
 /*
  * check-name: $fname
 _EOF
