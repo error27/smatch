@@ -439,6 +439,7 @@ echo "Usage: $prog_name [option(s)] [--]format file [name [cmd]]"
 echo
 echo "options:"
 echo "    -f                         write a test known to fail"
+echo "    -l                         write a test for linearized code"
 echo
 echo "argument(s):"
 echo "    file                       file containing the test case(s)"
@@ -450,12 +451,17 @@ echo "    cmd                        command to be used (defaults to 'sparse \$f
 # do_format([options,] file[, name[, cmd]]) - helps a test writer to format test-suite tags
 do_format()
 {
+	def_cmd="$default_cmd"
+	linear=0
 	fail=0
 
 	while [ $# -gt 1 ] ; do
 		case "$1" in
 		-f)
 			fail=1 ;;
+		-l)
+			def_cmd='test-linearize -Wno-decl $file'
+			linear=1 ;;
 		help|-*)
 			do_format_help
 			return 0
@@ -472,7 +478,7 @@ do_format()
 	fname="$2"
 	[ -z "$fname" ] && fname="$(basename "$1" .c)"
 	fcmd="$3"
-	[ -z "$fcmd" ] && fcmd=$default_cmd
+	[ -z "$fcmd" ] && fcmd="$def_cmd"
 
 	cmd=`eval echo $default_path/$fcmd`
 	$cmd 1> $file.output.got 2> $file.error.got
@@ -490,6 +496,12 @@ _EOF
 	fi
 	if [ $fail != 0 ]; then
 		echo " * check-known-to-fail"
+	fi
+	if [ $linear != 0 ]; then
+		echo " *"
+		echo " * check-output-ignore"
+		echo " * check-output-contains: xyz\\\\."
+		echo " * check-output-excludes: \\\\."
 	fi
 	for stream in output error; do
 		if [ -s "$file.$stream.got" ]; then
