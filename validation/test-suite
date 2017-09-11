@@ -463,7 +463,7 @@ do_format()
 
 	file="$1"
 	fname="$2"
-	[ -z "$fname" ] && fname="$1"
+	[ -z "$fname" ] && fname="$(basename "$1" .c)"
 	fcmd="$3"
 	[ -z "$fcmd" ] && fcmd=$default_cmd
 
