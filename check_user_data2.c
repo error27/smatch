@@ -93,6 +93,20 @@ static void pre_merge_hook(struct sm_state *sm)
 	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
 }
 
+static void extra_nomod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct smatch_state *user;
+	struct range_list *rl;
+
+	user = get_state(my_id, name, sym);
+	if (!user)
+		return;
+	rl = rl_intersection(estate_rl(user), estate_rl(state));
+	if (rl_equiv(rl, estate_rl(user)))
+		return;
+	set_state(my_id, name, sym, alloc_estate_rl(rl));
+}
+
 static void tag_inner_struct_members(struct expression *expr, struct symbol *member)
 {
 	struct expression *edge_member;
@@ -950,6 +964,7 @@ void check_user_data2(int id)
 	add_hook(&match_restore_states, INLINE_FN_END);
 
 	add_unmatched_state_hook(my_id, &empty_state);
+	add_extra_nomod_hook(&extra_nomod_hook);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_merge_hook(my_id, &merge_estates);
 
