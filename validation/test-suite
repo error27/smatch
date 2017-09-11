@@ -234,7 +234,7 @@ disable()
 {
 	disabled_tests=$(($disabled_tests + 1))
 	if [ -z "$vquiet" ]; then
-		echo "     DISABLE $1 ($2)"
+		echo "  SKIP    $1 ($2)"
 	fi
 }
 
@@ -294,7 +294,7 @@ do_test()
 	cmd=`eval echo $default_path/$check_command`
 
 	if [ -z "$vquiet" ]; then
-		echo "     TEST    $test_name ($file)"
+		echo "  TEST    $test_name ($file)"
 	fi
 
 	verbose "Using command       : $cmd"
