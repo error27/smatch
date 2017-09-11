@@ -56,6 +56,8 @@ get_tag_value()
 	check_output_excludes=0
 	check_output_pattern_obsolete=0
 	check_output_pattern=0
+	check_arch_ignore=""
+	check_arch_only=""
 
 	lines=$(grep 'check-[a-z-]*' $1 | \
 		sed -e 's/^.*\(check-[a-z-]*:*\) *\(.*\)$/\1 \2/')
@@ -76,6 +78,10 @@ get_tag_value()
 		check-output-excludes:)	check_output_excludes=1 ;;
 		check-output-pattern-)	check_output_pattern_obsolete=1 ;;
 		check-output-pattern)	check_output_pattern=1 ;;
+		check-arch-ignore:)	arch=$(uname -m)
+					check_arch_ignore="$val" ;;
+		check-arch-only:)	arch=$(uname -m)
+					check_arch_only="$val" ;;
 		esac
 	done << EOT
 	$lines
@@ -272,6 +278,18 @@ do_test()
 			return 3
 		fi
 	done
+	if [ "$check_arch_ignore" != "" ]; then
+		if echo $arch | egrep -q -w "$check_arch_ignore"; then
+			disable "$test_name" "$file"
+			return 3
+		fi
+	fi
+	if [ "$check_arch_only" != "" ]; then
+		if ! (echo $arch | egrep -q -w "$check_arch_only"); then
+			disable "$test_name" "$file"
+			return 3
+		fi
+	fi
 
 	cmd=`eval echo $default_path/$check_command`
 

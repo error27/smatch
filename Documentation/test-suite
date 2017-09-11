@@ -22,6 +22,11 @@ check-command: <command arg ...>
 	run time.
 	It defaults to "sparse $file".
 
+check-arch-ignore: <arch[|...]>
+check-arch-only: <arch[|...]>
+	Ignore the test if the current architecture (as returned by 'uname -m')
+	match or not one of the archs given in the pattern.
+
 check-exit-value: <value>
 	The expected exit value of check-command. It defaults to 0.
 
