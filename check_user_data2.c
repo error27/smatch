@@ -860,7 +860,14 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	if (param == -1) {
 		if (expr->type != EXPR_ASSIGNMENT)
 			return;
-		set_to_user_data(expr->left, key, value);
+		if (strcmp(key, "*$") == 0) {
+			if (local_debug)
+				sm_msg("SETTING %s", expr_to_str(expr->left));
+			set_points_to_user_data(expr->left);
+			tag_as_user_data(expr->left);
+		} else {
+			set_to_user_data(expr->left, key, value);
+		}
 		return;
 	}
 
@@ -929,7 +936,12 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 					 param, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
 
-	if (get_user_rl(expr, &rl)) {
+	if (points_to_user_data(expr)) {
+		sql_insert_return_states(return_id, return_ranges,
+					 (is_skb_data(expr) || !func_gets_user_data) ?
+					 USER_DATA3_SET : USER_DATA3,
+					 -1, "*$", "");
+	} else if (get_user_rl(expr, &rl)) {
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
 					 -1, "$", show_rl(rl));
