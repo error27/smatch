@@ -245,7 +245,7 @@ echo "    file ...                   runs the test suite on the given file(s)"
 echo "    single file                runs the test in 'file'"
 echo "    format file [name [cmd]]   helps writing a new test case using cmd"
 echo
-echo "    help                       prints usage"
+echo "    [command] help             prints usage"
 }
 
 disable()
@@ -434,9 +434,33 @@ do_test_suite()
 }
 
 ##
+do_format_help() {
+echo "Usage: $prog_name [--]format file [name [cmd]]"
+echo
+echo "argument(s):"
+echo "    file                       file containing the test case(s)"
+echo "    name                       name for the test case (defaults to file)"
+echo "    cmd                        command to be used (defaults to 'sparse \$file')"
+}
+
+##
 # do_format(file[, name[, cmd]]) - helps a test writer to format test-suite tags
 do_format()
 {
+	while [ $# -gt 1 ] ; do
+		case "$1" in
+		help|-*)
+			do_format_help
+			return 0
+			;;
+		*)	break ;;
+		esac
+		shift
+		continue
+	done
+
+	arg_file "$1" || return 1
+
 	if [ -z "$2" ]; then
 		fname="$1"
 		fcmd=$default_cmd
@@ -506,8 +530,8 @@ while true; do
 		esac
 		;;
 	format|--format)
-		arg_file "$2"
-		do_format "$2" "$3" "$4"
+		shift
+		do_format "$@"
 		;;
 	help | *)
 		do_usage
