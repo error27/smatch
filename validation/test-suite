@@ -461,17 +461,12 @@ do_format()
 
 	arg_file "$1" || return 1
 
-	if [ -z "$2" ]; then
-		fname="$1"
-		fcmd=$default_cmd
-	elif [ -z "$3" ]; then
-		fname="$2"
-		fcmd=$default_cmd
-	else
-		fname="$2"
-		fcmd="$3"
-	fi
 	file="$1"
+	fname="$2"
+	[ -z "$fname" ] && fname="$1"
+	fcmd="$3"
+	[ -z "$fcmd" ] && fcmd=$default_cmd
+
 	cmd=`eval echo $default_path/$fcmd`
 	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
