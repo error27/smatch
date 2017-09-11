@@ -39,6 +39,7 @@ known_ko_tests=0
 # defaults to not verbose
 [ -z "$V" ] && V=0
 vquiet=""
+quiet=0
 abort=0
 
 ##
