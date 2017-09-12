@@ -129,6 +129,8 @@ static void add_offset_to_min(struct range_list **rl, int offset)
 
 	offset_rl = alloc_rl(sval, sval);
 	tmp = rl_binop(orig, '+', offset_rl);
+	if (!tmp)
+		tmp = alloc_whole_rl(sval.type);
 
 	max = rl_max(orig);
 	/* if we actually "know" the max then preserve it. */

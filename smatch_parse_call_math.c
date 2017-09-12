@@ -99,6 +99,8 @@ static void rl_pop_until(char c)
 		right = pop_rl(&rl_stack);
 		left = pop_rl(&rl_stack);
 		res = rl_binop(left, op, right);
+		if (!res)
+			res = alloc_whole_rl(&llong_ctype);
 		push_rl(&rl_stack, res);
 	}
 }

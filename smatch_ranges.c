@@ -1579,8 +1579,8 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	left = cast_rl(cast_type, left);
 	right = cast_rl(cast_type, right);
 
-	if (!left || !right)
-		return alloc_whole_rl(cast_type);
+	if (!left && !right)
+		return NULL;
 
 	if (rl_to_sval(left, &left_sval) && rl_to_sval(right, &right_sval)) {
 		sval_t val = sval_binop(left_sval, op, right_sval);
@@ -1615,8 +1615,6 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 		break;
 	}
 
-	if (!ret)
-		ret = alloc_whole_rl(cast_type);
 	return ret;
 }
 
