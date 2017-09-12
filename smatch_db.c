@@ -1921,28 +1921,31 @@ char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym,
 	return get_variable_from_key(arg, key, sym);
 }
 
-const char *get_param_name_var_sym(const char *name, struct symbol *sym)
+const char *state_name_to_param_name(const char *state_name, const char *param_name)
 {
-	char *param_name;
 	int name_len;
 	static char buf[256];
 
-	if (!sym || !sym->ident)
-		return NULL;
-
-	param_name = sym->ident->name;
 	name_len = strlen(param_name);
 
-	if (strcmp(name, param_name) == 0) {
+	if (strcmp(state_name, param_name) == 0) {
 		return "$";
-	} else if (name[name_len] == '-' && /* check for '-' from "->" */
-	    strncmp(name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "$%s", name + name_len);
+	} else if (state_name[name_len] == '-' && /* check for '-' from "->" */
+	    strncmp(state_name, param_name, name_len) == 0) {
+		snprintf(buf, sizeof(buf), "$%s", state_name + name_len);
 		return buf;
-	} else if (name[0] == '*' && strcmp(name + 1, param_name) == 0) {
+	} else if (state_name[0] == '*' && strcmp(state_name + 1, param_name) == 0) {
 		return "*$";
 	}
 	return NULL;
+}
+
+const char *get_param_name_var_sym(const char *name, struct symbol *sym)
+{
+	if (!sym || !sym->ident)
+		return NULL;
+
+	return state_name_to_param_name(name, sym->ident->name);
 }
 
 const char *get_param_name(struct sm_state *sm)

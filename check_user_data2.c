@@ -898,7 +898,11 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	struct smatch_state *start_state;
 	struct range_list *rl;
 	int param;
+	char *return_str;
 	const char *param_name;
+
+	expr = strip_expr(expr);
+	return_str = expr_to_str(expr);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (has_empty_state(sm))
@@ -923,10 +927,13 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (start_state && rl_equiv(estate_rl(sm->state), estate_rl(start_state)))
 			continue;
 
-		param_name = get_param_name(sm);
+		if (param == -1)
+			param_name = state_name_to_param_name(sm->name, return_str);
+		else
+			param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
-		if (strcmp(param_name, "$") == 0)
+		if (strcmp(param_name, "$") == 0)  /* The -1 param is handled after the loop */
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges,
@@ -944,6 +951,8 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
 					 -1, "$", show_rl(rl));
 	}
+
+	free_string(return_str);
 }
 
 static struct int_stack *gets_data_stack;
