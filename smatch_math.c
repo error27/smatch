@@ -217,6 +217,7 @@ static int handle_offset_subtraction(struct expression *expr)
 static struct range_list *handle_subtract_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct symbol *type;
+	struct range_list *left_orig, *right_orig;
 	struct range_list *left_rl, *right_rl;
 	sval_t max, min, tmp;
 	int comparison;
@@ -234,10 +235,10 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 
 	comparison = get_comparison(expr->left, expr->right);
 
-	left_rl = _get_rl(expr->left, implied, recurse_cnt);
-	left_rl = cast_rl(type, left_rl);
-	right_rl = _get_rl(expr->right, implied, recurse_cnt);
-	right_rl = cast_rl(type, right_rl);
+	left_orig = _get_rl(expr->left, implied, recurse_cnt);
+	left_rl = cast_rl(type, left_orig);
+	right_orig = _get_rl(expr->right, implied, recurse_cnt);
+	right_rl = cast_rl(type, right_orig);
 
 	if ((!left_rl || !right_rl) &&
 	    (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY))
@@ -278,8 +279,9 @@ static struct range_list *handle_subtract_rl(struct expression *expr, int implie
 		max = sval_type_val(type, 0);
 		break;
 	default:
-		if (sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl)))
+		if (!left_orig || !right_orig)
 			return NULL;
+		return rl_binop(left_rl, '-', right_rl);
 	}
 
 	if (!sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {

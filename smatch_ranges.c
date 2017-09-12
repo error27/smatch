@@ -1492,6 +1492,65 @@ static struct range_list *handle_add_mult_rl(struct range_list *left, int op, st
 	return alloc_rl(min, max);
 }
 
+static struct range_list *handle_sub_rl(struct range_list *left_orig, struct range_list *right_orig)
+{
+	struct range_list *left_rl, *right_rl;
+	struct symbol *type;
+	sval_t min, max;
+	sval_t min_ll, max_ll, res_ll;
+	sval_t tmp;
+
+	/* TODO:  These things should totally be using dranges where possible */
+
+	if (!left_orig || !right_orig)
+		return NULL;
+
+	type = &int_ctype;
+	if (type_positive_bits(rl_type(left_orig)) > type_positive_bits(type))
+		type = rl_type(left_orig);
+	if (type_positive_bits(rl_type(right_orig)) > type_positive_bits(type))
+		type = rl_type(right_orig);
+
+	left_rl = cast_rl(type, left_orig);
+	right_rl = cast_rl(type, right_orig);
+
+	max = rl_max(left_rl);
+	min = sval_type_min(type);
+
+	min_ll = rl_min(left_rl);
+	min_ll.type = &llong_ctype;
+	max_ll = rl_max(right_rl);
+	max_ll.type = &llong_ctype;
+	res_ll = min_ll;
+	res_ll.value = min_ll.value - max_ll.value;
+
+	if (!sval_binop_overflows(rl_min(left_rl), '-', rl_max(right_rl))) {
+		tmp = sval_binop(rl_min(left_rl), '-', rl_max(right_rl));
+		if (sval_cmp(tmp, min) > 0)
+			min = tmp;
+	} else if (type_positive_bits(type) < 63 &&
+		   !sval_binop_overflows(min_ll, '-', max_ll) &&
+		   (min.value != 0 && sval_cmp(res_ll, min) >= 0)) {
+		struct range_list *left_casted, *right_casted, *result;
+
+		left_casted = cast_rl(&llong_ctype, left_orig);
+		right_casted = cast_rl(&llong_ctype, right_orig);
+		result = handle_sub_rl(left_casted, right_casted);
+		return cast_rl(type, result);
+	}
+
+	if (!sval_is_max(rl_max(left_rl))) {
+		tmp = sval_binop(rl_max(left_rl), '-', rl_min(right_rl));
+		if (sval_cmp(tmp, max) < 0)
+			max = tmp;
+	}
+
+	if (sval_is_min(min) && sval_is_max(max))
+		return NULL;
+
+	return alloc_rl(min, max);
+}
+
 static unsigned long long rl_bits_always_set(struct range_list *rl)
 {
 	return sval_fls_mask(rl_min(rl));
@@ -1607,9 +1666,10 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	case '&':
 		ret = handle_AND_rl(left, right);
 		break;
-
-	/* FIXME:  Do the rest as well */
 	case '-':
+		ret = handle_sub_rl(left, right);
+		break;
+	/* FIXME:  Do the rest as well */
 	case SPECIAL_RIGHTSHIFT:
 	case SPECIAL_LEFTSHIFT:
 		break;
