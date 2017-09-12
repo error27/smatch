@@ -861,8 +861,6 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 		if (expr->type != EXPR_ASSIGNMENT)
 			return;
 		if (strcmp(key, "*$") == 0) {
-			if (local_debug)
-				sm_msg("SETTING %s", expr_to_str(expr->left));
 			set_points_to_user_data(expr->left);
 			tag_as_user_data(expr->left);
 		} else {
