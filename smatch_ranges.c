@@ -55,6 +55,11 @@ static int sval_too_big(struct symbol *type, sval_t sval)
 	if (sval.uvalue <= ((1ULL << type_bits(type)) - 1))
 		return 0;
 	if (type_signed(sval.type)) {
+		if (type_unsigned(type)) {
+			unsigned long long neg = ~sval.uvalue;
+			if (neg <= sval_type_max(type).uvalue)
+				return 0;
+		}
 		if (sval.value < sval_type_min(type).value)
 			return 1;
 		if (sval.value > sval_type_max(type).value)
