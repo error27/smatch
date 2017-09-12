@@ -569,22 +569,21 @@ static void match_type(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
-static void match_type_rl(const char *fn, struct expression *expr, void *info)
+static int match_type_rl_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *one, *two;
 	struct symbol *type;
-	struct range_list *rl;
 
-	one = get_argument_from_call_expr(expr->args, 0);
+	one = get_argument_from_call_expr(call->args, 0);
 	type = get_type(one);
 
-	two = get_argument_from_call_expr(expr->args, 1);
+	two = get_argument_from_call_expr(call->args, 1);
 	if (!two || two->type != EXPR_STRING) {
 		sm_msg("expected: __smatch_type_rl(type, \"string\")");
-		return;
+		return 0;
 	}
-	call_results_to_rl(expr, type, two->string->data, &rl);
-	sm_msg("'%s' => '%s'", two->string->data, show_rl(rl));
+	call_results_to_rl(call, type, two->string->data, rl);
+	return 1;
 }
 
 static void print_left_right(struct sm_state *sm)
@@ -718,7 +717,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
-	add_function_hook("__smatch_type_rl_helper", match_type_rl, NULL);
+	add_implied_return_hook("__smatch_type_rl_helper", &match_type_rl_return, NULL);
 	add_function_hook("__smatch_merge_tree", &match_print_merge_tree, NULL);
 	add_function_hook("__smatch_stree_id", &match_print_stree_id, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);

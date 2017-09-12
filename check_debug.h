@@ -53,8 +53,13 @@ static inline void __smatch_debug_implied_off(void){}
 static inline void __smatch_intersection(long long one, long long two){}
 static inline void __smatch_type(long long one){}
 
-static inline void __smatch_type_rl_helper(long long type, const char *str, ...){}
-#define __smatch_type_rl(type, rl, other...) __smatch_type_rl_helper((type)0, rl, other)
+static long long __smatch_val;
+static inline long long __smatch_type_rl_helper(long long type, const char *str, ...)
+{
+	return __smatch_val;
+}
+#define __smatch_type_rl(type, fmt...) __smatch_type_rl_helper((type)0, fmt)
+#define __smatch_rl(fmt...) __smatch_type_rl(long long, fmt)
 
 static inline void __smatch_bit_info(long long expr){}
 
