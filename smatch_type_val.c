@@ -42,10 +42,11 @@ struct stree_stack *fn_type_val_stack;
 struct stree *fn_type_val;
 struct stree *global_type_val;
 
-static char *db_vals;
-static int get_vals(void *unused, int argc, char **argv, char **azColName)
+static int get_vals(void *_db_vals, int argc, char **argv, char **azColName)
 {
-	db_vals = alloc_string(argv[0]);
+	char **db_vals = _db_vals;
+
+	*db_vals = alloc_string(argv[0]);
 	return 0;
 }
 
@@ -63,6 +64,7 @@ static void match_inline_end(struct expression *expr)
 
 int get_db_type_rl(struct expression *expr, struct range_list **rl)
 {
+	char *db_vals = NULL;
 	char *member;
 	struct range_list *tmp;
 	struct symbol *type;
@@ -71,8 +73,7 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 	if (!member)
 		return 0;
 
-	db_vals = NULL;
-	run_sql(get_vals, NULL,
+	run_sql(get_vals, &db_vals,
 		"select value from type_value where type = '%s';", member);
 	free_string(member);
 	if (!db_vals)
