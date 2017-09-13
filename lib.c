@@ -536,6 +536,8 @@ static int opt_##NAME(char *arg, const char *name, TYPE *ptr, int flag)	\
 	return 1;							\
 }
 
+OPT_NUMERIC(ullong, unsigned long long, strtoull)
+
 
 static char **handle_switch_o(char *arg, char **next)
 {
@@ -726,21 +728,6 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_fmemcpy_max_count(char *arg, char **next)
-{
-	unsigned long long val;
-	char *end;
-
-	val = strtoull(arg, &end, 0);
-	if (*end != '\0' || end == arg)
-		die("error: missing argument to \"-fmemcpy-max-count=\"");
-
-	if (val == 0)
-		val = ~0ULL;
-	fmemcpy_max_count = val;
-	return next;
-}
-
 static char **handle_switch_ftabstop(char *arg, char **next)
 {
 	char *end;
@@ -791,8 +778,9 @@ static char **handle_switch_f(char *arg, char **next)
 		return handle_switch_ftabstop(opt, next);
 	if ((opt = match_option(arg, "dump-")))
 		return handle_switch_fdump(opt, next);
-	if ((opt = match_option(arg, "memcpy-max-count=")))
-		return handle_switch_fmemcpy_max_count(opt, next);
+	if (opt_ullong(arg, "-fmemcpy-max-count=", &fmemcpy_max_count,
+				OPTNUM_ZERO_IS_INF|OPTNUM_UNLIMITED))
+		return next;
 
 	/* handle switches w/ arguments above, boolean and only boolean below */
 	if (handle_simple_switch(arg, fflags))
