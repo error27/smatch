@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -49,6 +50,7 @@
 int verbose, optimize_level, optimize_size, preprocessing;
 int die_if_error = 0;
 int has_error = 0;
+int do_output = 1;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
@@ -65,6 +67,7 @@ const char *base_filename;
 static const char *diag_prefix = "";
 static const char *gcc_base_dir = GCC_BASE;
 static const char *multiarch_dir = MULTIARCH_TRIPLET;
+static const char *outfile = NULL;
 
 struct token *skip_to(struct token *token, int op)
 {
@@ -674,6 +677,7 @@ static char **handle_switch_o(char *arg, char **next)
 	if (!strcmp (arg, "o")) {       // "-o foo"
 		if (!*++next)
 			die("argument to '-o' is missing");
+		outfile = *next;
 	}
 	// else "-ofoo"
 
@@ -1409,6 +1413,15 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	handle_switch_v_finalize();
 
 	handle_arch_finalize();
+
+	// Redirect stdout if needed
+	if (dump_macro_defs || preprocess_only)
+		do_output = 1;
+	if (do_output && outfile && strcmp(outfile, "-")) {
+		if (!freopen(outfile, "w", stdout))
+			die("error: cannot open %s: %s", outfile, strerror(errno));
+	}
+
 	if (fdump_ir == 0)
 		fdump_ir = PASS_FINAL;
 

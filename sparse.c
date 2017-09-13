@@ -334,6 +334,9 @@ int main(int argc, char **argv)
 	struct string_list *filelist = NULL;
 	char *file;
 
+	// by default ignore -o <file>
+	do_output = 0;
+
 	// Expand, linearize and show it.
 	check_symbols(sparse_initialize(argc, argv, &filelist));
 	FOR_EACH_PTR(filelist, file) {
