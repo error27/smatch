@@ -511,6 +511,7 @@ static int handle_simple_switch(const char *arg, const struct flag *flags)
 
 
 #define	OPTNUM_ZERO_IS_INF		1
+#define	OPTNUM_UNLIMITED		2
 
 #define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
 static int opt_##NAME(char *arg, const char *name, TYPE *ptr, int flag)	\
@@ -524,6 +525,9 @@ static int opt_##NAME(char *arg, const char *name, TYPE *ptr, int flag)	\
 	opt++; /* opt's last char is '=' */				\
 	val = FUNCTION(opt, &end, 0);					\
 	if (*end != '\0' || end == opt) {				\
+		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
+			val = ~val;					\
+		else							\
 			die("error: missing argument to \"%s\"", name);	\
 	}								\
 	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
