@@ -201,6 +201,16 @@ static void match_assign(struct expression *expr)
 	set_state_expr(my_id, expr->left, &null);
 }
 
+static void match_assigns_address(struct expression *expr)
+{
+	struct expression *right;
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_PREOP || right->op != '&')
+		return;
+	set_state_expr(my_id, right, &ok);
+}
+
 static void match_condition(struct expression *expr)
 {
 	if (expr->type == EXPR_ASSIGNMENT) {
@@ -280,6 +290,7 @@ void check_deref(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_assigns_address, ASSIGNMENT_HOOK);
 	if (option_project == PROJ_KERNEL)
 		register_allocation_funcs();
 }
