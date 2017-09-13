@@ -3,7 +3,8 @@
 #define __undo_CK_def
 #endif
 
-CK(register_smatch_extra) /* smatch_extra always has to be first */
+CK(register_db_call_marker) /* always has to be first  */
+CK(register_smatch_extra) /* smatch_extra always has to be second */
 CK(register_smatch_extra_links)
 CK(register_modification_hooks)
 CK(register_definition_db_callbacks)
@@ -179,7 +180,6 @@ CK(register_function_hooks)
 CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(check_wine)
 CK(register_returns)
-CK(register_db_call_marker) /* always second last */
 /*
  * Implications always has to be last.  If you need to be after implications
  * then you need to hack smatch_implications.c and add function calls there.
