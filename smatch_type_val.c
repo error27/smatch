@@ -329,6 +329,7 @@ static void match_global_assign(struct expression *expr)
 	if (!member)
 		return;
 	get_absolute_rl(expr->right, &rl);
+	rl = cast_rl(type, rl);
 	add_global_type_val(member, rl);
 	free_string(member);
 }
