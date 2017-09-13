@@ -509,8 +509,11 @@ static int handle_simple_switch(const char *arg, const struct flag *flags)
 	return 0;
 }
 
+
+#define	OPTNUM_ZERO_IS_INF		1
+
 #define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
-static int opt_##NAME(char *arg, const char *name, TYPE *ptr)	\
+static int opt_##NAME(char *arg, const char *name, TYPE *ptr, int flag)	\
 {									\
 	char *opt;							\
 	char *end;							\
@@ -523,6 +526,8 @@ static int opt_##NAME(char *arg, const char *name, TYPE *ptr)	\
 	if (*end != '\0' || end == opt) {				\
 			die("error: missing argument to \"%s\"", name);	\
 	}								\
+	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
+		val = ~val;						\
 	*ptr = val;							\
 	return 1;							\
 }
