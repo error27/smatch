@@ -2235,7 +2235,8 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	/*
 	 * Turn symbols into pseudos
 	 */
-	simplify_symbol_usage(ep);
+	if (fpasses & PASS_MEM2REG)
+		simplify_symbol_usage(ep);
 
 repeat:
 	/*
