@@ -475,7 +475,7 @@ static void handle_arch_finalize(void)
 	handle_arch_msize_long_finalize();
 }
 
-char *match_option(char *arg, const char *prefix)
+const char *match_option(const char *arg, const char *prefix)
 {
 	unsigned int n = strlen(prefix);
 	if (strncmp(arg, prefix, n) == 0)
@@ -514,9 +514,9 @@ static int handle_simple_switch(const char *arg, const struct flag *flags)
 #define	OPTNUM_UNLIMITED		2
 
 #define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
-static int opt_##NAME(char *arg, const char *name, TYPE *ptr, int flag)	\
+static int opt_##NAME(const char *arg, const char *name, TYPE *ptr, int flag)\
 {									\
-	char *opt;							\
+	const char *opt;						\
 	char *end;							\
 	TYPE val;							\
 									\
@@ -728,7 +728,7 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_ftabstop(char *arg, char **next)
+static char **handle_switch_ftabstop(const char *arg, char **next)
 {
 	char *end;
 	unsigned long val;
@@ -744,7 +744,7 @@ static char **handle_switch_ftabstop(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_fdump(char *arg, char **next)
+static char **handle_switch_fdump(const char *arg, char **next)
 {
 	const char *opt;
 
@@ -771,7 +771,7 @@ static struct flag fflags[] = {
 
 static char **handle_switch_f(char *arg, char **next)
 {
-	char *opt;
+	const char *opt;
 	arg++;
 
 	if ((opt = match_option(arg, "tabstop=")))
@@ -805,7 +805,7 @@ static char **handle_switch_a(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_s(char *arg, char **next)
+static char **handle_switch_s(const char *arg, char **next)
 {
 	if ((arg = match_option(arg, "std="))) {
 		if (!strcmp (arg, "c89") ||
