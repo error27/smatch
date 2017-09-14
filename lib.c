@@ -260,6 +260,7 @@ int dbg_dead = 0;
 int fmem_report = 0;
 int fdump_linearize;
 unsigned long long fmemcpy_max_count = 100000;
+unsigned long fpasses = ~0UL;
 
 int preprocess_only;
 
@@ -760,6 +761,37 @@ static int handle_ftabstop(const char *arg, const char *opt, const struct flag *
 	return 1;
 }
 
+static int handle_fpasses(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	unsigned long mask;
+
+	mask = flag->mask;
+	if (*opt == '\0') {
+		if (options & OPT_INVERSE)
+			fpasses &= ~mask;
+		else
+			fpasses |=  mask;
+		return 1;
+	}
+	if (options & OPT_INVERSE)
+		return 0;
+	if (!strcmp(opt, "-enable")) {
+		fpasses |= mask;
+		return 1;
+	}
+	if (!strcmp(opt, "-disable")) {
+		fpasses &= ~mask;
+		return 1;
+	}
+	if (!strcmp(opt, "=last")) {
+		// clear everything above
+		mask |= mask - 1;
+		fpasses &= mask;
+		return 1;
+	}
+	return 0;
+}
+
 static int handle_fdump_ir(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	if (*opt == '\0')
@@ -783,6 +815,8 @@ static struct flag fflags[] = {
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
 	{ "tabstop=",		NULL,	handle_ftabstop },
+	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
+	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
 	{ },
 };
 

@@ -169,6 +169,7 @@ extern int dbg_dead;
 extern int fmem_report;
 extern int fdump_linearize;
 extern unsigned long long fmemcpy_max_count;
+extern unsigned long fpasses;
 
 extern int arch_m64;
 extern int arch_msize_long;
