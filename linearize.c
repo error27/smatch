@@ -2238,6 +2238,8 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	if (fpasses & PASS_MEM2REG)
 		simplify_symbol_usage(ep);
 
+	if (!(fpasses & PASS_OPTIM))
+		return ep;
 repeat:
 	/*
 	 * Remove trivial instructions, and try to CSE
