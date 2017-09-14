@@ -47,6 +47,8 @@ static void clean_up_symbols(struct symbol_list *list)
 
 		expand_symbol(sym);
 		ep = linearize_symbol(sym);
+		if (fdump_linearize == 2)
+			continue;
 		if (ep)
 			show_entry(ep);
 	} END_FOR_EACH_PTR(sym);

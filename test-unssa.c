@@ -62,6 +62,8 @@ static int compile(struct symbol_list *list)
 		struct entrypoint *ep;
 		expand_symbol(sym);
 		ep = linearize_symbol(sym);
+		if (fdump_linearize == 2)
+			continue;
 		if (ep)
 			output_fn(ep);
 		else
