@@ -997,11 +997,7 @@ static void sort_array(struct expression *expr)
 	struct expression *entry, **list;
 	unsigned int elem, sorted, i;
 
-	elem = 0;
-	FOR_EACH_PTR(expr->expr_list, entry) {
-		elem++;
-	} END_FOR_EACH_PTR(entry);
-
+	elem = expression_list_size(expr->expr_list);
 	if (!elem)
 		return;
 
