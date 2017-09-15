@@ -2234,6 +2234,8 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	 */
 	if (fpasses & PASS_MEM2REG)
 		simplify_symbol_usage(ep);
+	if (fdump_ir & PASS_MEM2REG)
+		show_entry(ep);
 
 	if (!(fpasses & PASS_OPTIM))
 		return ep;
