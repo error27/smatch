@@ -35,7 +35,7 @@ unsigned int get_pbfi_b(struct bfi *bf) { return bf->b; }
  * check-command: test-linearize -Wno-decl $file
  * check-output-ignore
  *
- * check-output-pattern-24-times: cast\\.
- * check-output-pattern-12-times: cast\\.4
- * check-output-pattern-6-times: lsr\\..*\\$6
+ * check-output-pattern(24): cast\\.
+ * check-output-pattern(12): cast\\.4
+ * check-output-pattern(6): lsr\\..*\\$6
  */
