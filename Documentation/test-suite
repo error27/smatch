@@ -53,10 +53,6 @@ check-output-excludes: <pattern> (optional)
 	Several such tags can be given, in which case the output
 	must contains none of the patterns.
 
-check-output-pattern-<nbr>-times: <pattern> (optional)
-	Similar than the contains/excludes her above, but with full control
-	of the number of times the pattern should occurs in the output.
-
 check-output-pattern(<nbr>): <pattern> (optional)
 check-output-pattern(<min>,<max>): <pattern> (optional)
 	Similar to the '-contains/excludes' here above, but with full control
