@@ -1354,6 +1354,20 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		 */
 		protect_token_alloc();
 	}
+	/*
+	 * Evaluate the complete symbol list
+	 * Note: This is not needed for normal cases.
+	 *	 These symbols should only be predefined defines and
+	 *	 declaratons which will be evaluated later, when needed.
+	 *	 This is also the case when a file is directly included via
+	 *	 '-include <file>' on the command line *AND* the file only
+	 *	 contains defines, declarations and inline definitions.
+	 *	 However, in the rare cases where the given file should
+	 *	 contain some definitions, these will never be evaluated
+	 *	 and thus won't be able to be linearized correctly.
+	 *	 Hence the evaluate_symbol_list() here under.
+	 */
+	evaluate_symbol_list(list);
 	return list;
 }
 
