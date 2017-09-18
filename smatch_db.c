@@ -65,7 +65,7 @@ struct def_callback {
 };
 ALLOCATOR(def_callback, "definition db hook callbacks");
 DECLARE_PTR_LIST(callback_list, struct def_callback);
-static struct callback_list *callbacks;
+static struct callback_list *select_caller_info_callbacks;
 
 struct member_info_callback {
 	int owner;
@@ -435,7 +435,7 @@ void select_caller_info_hook(void (*callback)(const char *name, struct symbol *s
 
 	def_callback->hook_type = type;
 	def_callback->callback = callback;
-	add_ptr_list(&callbacks, def_callback);
+	add_ptr_list(&select_caller_info_callbacks, def_callback);
 }
 
 /*
@@ -697,7 +697,7 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 	if (param >= 0 && !get_param(param, &name, &sym))
 		return 0;
 
-	FOR_EACH_PTR(callbacks, def_callback) {
+	FOR_EACH_PTR(select_caller_info_callbacks, def_callback) {
 		if (def_callback->hook_type == type)
 			def_callback->callback(name, sym, key, value);
 	} END_FOR_EACH_PTR(def_callback);
