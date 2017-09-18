@@ -779,8 +779,6 @@ void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type,
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
-void sql_select_caller_info(const char *cols, struct symbol *sym,
-	int (*callback)(void*, int, char**, char**));
 void sql_select_call_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
 

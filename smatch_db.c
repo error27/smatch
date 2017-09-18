@@ -414,17 +414,23 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
-void sql_select_caller_info(const char *cols, struct symbol *sym,
+struct select_caller_info_data {
+	struct stree *final_states;
+	int prev_func_id;
+};
+
+static void sql_select_caller_info(struct select_caller_info_data *data,
+	const char *cols, struct symbol *sym,
 	int (*callback)(void*, int, char**, char**))
 {
 	if (__inline_fn) {
-		mem_sql(callback, NULL,
+		mem_sql(callback, data,
 			"select %s from caller_info where call_id = %lu;",
 			cols, (unsigned long)__inline_fn);
 		return;
 	}
 
-	run_sql(callback, NULL,
+	run_sql(callback, data,
 		"select %s from caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 }
@@ -656,10 +662,9 @@ static int get_param(int param, char **name, struct symbol **sym)
 	return FALSE;
 }
 
-static struct stree *final_states;
-static int prev_func_id = -1;
-static int caller_info_callback(void *unused, int argc, char **argv, char **azColName)
+static int caller_info_callback(void *_data, int argc, char **argv, char **azColName)
 {
+	struct select_caller_info_data *data = _data;
 	int func_id;
 	long type;
 	long param;
@@ -682,16 +687,15 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 	key = argv[3];
 	value = argv[4];
 
-
-	if (prev_func_id == -1)
-		prev_func_id = func_id;
-	if (func_id != prev_func_id) {
+	if (data->prev_func_id == -1)
+		data->prev_func_id = func_id;
+	if (func_id != data->prev_func_id) {
 		stree = __pop_fake_cur_stree();
-		merge_stree(&final_states, stree);
+		merge_stree(&data->final_states, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 		__unnullify_path();
-		prev_func_id = func_id;
+		data->prev_func_id = func_id;
 	}
 
 	if (param >= 0 && !get_param(param, &name, &sym))
@@ -705,10 +709,11 @@ static int caller_info_callback(void *unused, int argc, char **argv, char **azCo
 	return 0;
 }
 
-static void get_direct_callers(struct symbol *sym)
+static void get_direct_callers(struct select_caller_info_data *data, struct symbol *sym)
 {
-	sql_select_caller_info("call_id, type, parameter, key, value", sym,
-			caller_info_callback);
+	sql_select_caller_info(data,
+			       "call_id, type, parameter, key, value", sym,
+			       caller_info_callback);
 }
 
 static struct string_list *ptr_names_done;
@@ -761,6 +766,7 @@ static void get_ptr_names(const char *file, const char *name)
 
 static void match_data_from_db(struct symbol *sym)
 {
+	struct select_caller_info_data data = { .prev_func_id = -1 };
 	struct sm_state *sm;
 	struct stree *stree;
 
@@ -769,7 +775,6 @@ static void match_data_from_db(struct symbol *sym)
 
 	__push_fake_cur_stree();
 	__unnullify_path();
-	prev_func_id = -1;
 
 	if (!__inline_fn) {
 		char *ptr;
@@ -787,10 +792,10 @@ static void match_data_from_db(struct symbol *sym)
 			return;
 		}
 
-		get_direct_callers(sym);
+		get_direct_callers(&data, sym);
 
 		FOR_EACH_PTR(ptr_names, ptr) {
-			run_sql(caller_info_callback, NULL,
+			run_sql(caller_info_callback, &data,
 				"select call_id, type, parameter, key, value"
 				" from caller_info where function = '%s' order by call_id",
 				ptr);
@@ -800,18 +805,18 @@ static void match_data_from_db(struct symbol *sym)
 		__free_ptr_list((struct ptr_list **)&ptr_names);
 		__free_ptr_list((struct ptr_list **)&ptr_names_done);
 	} else {
-		get_direct_callers(sym);
+		get_direct_callers(&data, sym);
 	}
 
 	stree = __pop_fake_cur_stree();
-	merge_stree(&final_states, stree);
+	merge_stree(&data.final_states, stree);
 	free_stree(&stree);
 
-	FOR_EACH_SM(final_states, sm) {
+	FOR_EACH_SM(data.final_states, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
 
-	free_stree(&final_states);
+	free_stree(&data.final_states);
 }
 
 static int call_implies_callbacks(void *_call, int argc, char **argv, char **azColName)
