@@ -1879,6 +1879,8 @@ void __extra_match_condition(struct expression *expr)
 		zero.value = 0;
 
 		pre_state = get_extra_state(expr);
+		if (estate_is_empty(pre_state))
+			return;
 		true_state = estate_filter_sval(pre_state, zero);
 		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
 			false_state = alloc_estate_sval(zero);
