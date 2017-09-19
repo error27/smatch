@@ -86,11 +86,11 @@ while (<WARNS>) {
 
     ($dummy, $dummy, $sql) = split(/:/, $_, 3);
 
-    $sql =~ s/%CALL_ID%/$call_id/;
     if ($sql =~ /%call_marker%/) {
         $sql =~ s/%call_marker%//; # don't need this taking space in the db.
         $call_id++;
     }
+    $sql =~ s/%CALL_ID%/$call_id/;
 
     $db->do($sql);
 }
