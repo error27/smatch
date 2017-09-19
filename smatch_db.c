@@ -205,6 +205,11 @@ static int is_common_function(const char *fn)
 	return 0;
 }
 
+static char *function_signature(void)
+{
+	return type_to_str(get_real_base_type(cur_func_sym));
+}
+
 void sql_insert_caller_info(struct expression *call, int type,
 		int param, const char *key, const char *value)
 {
@@ -417,6 +422,7 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 struct select_caller_info_data {
 	struct stree *final_states;
 	int prev_func_id;
+	int ignore;
 };
 
 static void sql_select_caller_info(struct select_caller_info_data *data,
@@ -553,13 +559,17 @@ struct range_list *db_return_vals_from_str(const char *fn_name)
 
 static void match_call_marker(struct expression *expr)
 {
+	struct symbol *type;
+
+	type = get_type(expr->fn);
+
 	/*
 	 * we just want to record something in the database so that if we have
 	 * two calls like:  frob(4); frob(some_unkown); then on the receiving
 	 * side we know that sometimes frob is called with unknown parameters.
 	 */
 
-	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", "");
+	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", type_to_str(type));
 }
 
 static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
@@ -662,6 +672,18 @@ static int get_param(int param, char **name, struct symbol **sym)
 	return FALSE;
 }
 
+static int function_signature_matches(const char *sig)
+{
+	char *my_sig;
+
+	my_sig = function_signature();
+	if (!sig || !my_sig)
+		return 1;  /* default to matching */
+	if (strcmp(my_sig, sig) == 0)
+		  return 1;
+	return 0;
+}
+
 static int caller_info_callback(void *_data, int argc, char **argv, char **azColName)
 {
 	struct select_caller_info_data *data = _data;
@@ -689,15 +711,22 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 
 	if (data->prev_func_id == -1)
 		data->prev_func_id = func_id;
+	if (type == INTERNAL &&
+	    !function_signature_matches(value))
+		data->ignore = 1;
 	if (func_id != data->prev_func_id) {
 		stree = __pop_fake_cur_stree();
-		merge_stree(&data->final_states, stree);
+		if (!data->ignore)
+			merge_stree(&data->final_states, stree);
 		free_stree(&stree);
 		__push_fake_cur_stree();
 		__unnullify_path();
 		data->prev_func_id = func_id;
+		data->ignore = 0;
 	}
 
+	if (data->ignore)
+		return 0;
 	if (param >= 0 && !get_param(param, &name, &sym))
 		return 0;
 
@@ -900,11 +929,6 @@ static void global_variable(struct symbol *sym)
 	if (struct_type->type != SYM_STRUCT || !struct_type->ident)
 		return;
 	print_initializer_list(sym->initializer->expr_list, struct_type);
-}
-
-static char *function_signature(void)
-{
-	return type_to_str(get_real_base_type(cur_func_sym));
 }
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
