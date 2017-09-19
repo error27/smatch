@@ -8,7 +8,9 @@
 #include "flowgraph.h"
 #include "linearize.h"
 #include "flow.h"			// for bb_generation
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 
 struct cfg_info {
@@ -75,4 +77,105 @@ int cfg_postorder(struct entrypoint *ep)
 	if (dbg_postorder)
 		debug_postorder(ep);
 	return info.nr;
+}
+
+//
+// Calculate the dominance tree following:
+//	"A simple, fast dominance algorithm"
+//	by K. D. Cooper, T. J. Harvey, and K. Kennedy.
+//	cfr. http://www.cs.rice.edu/∼keith/EMBED/dom.pdf
+//
+static struct basic_block *intersect_dom(struct basic_block *doms[],
+		struct basic_block *b1, struct basic_block *b2)
+{
+	int f1 = b1->postorder_nr, f2 = b2->postorder_nr;
+	while (f1 != f2) {
+		while (f1 < f2) {
+			b1 = doms[f1];
+			f1 = b1->postorder_nr;
+		}
+		while (f2 < f1) {
+			b2 = doms[f2];
+			f2 = b2->postorder_nr;
+		}
+	}
+	return b1;
+}
+
+void domtree_build(struct entrypoint *ep)
+{
+	struct basic_block *entry = ep->entry->bb;
+	struct basic_block **doms;
+	struct basic_block *bb;
+	unsigned int size;
+	int max_level = 0;
+	int changed;
+
+	// First calculate the (reverse) postorder.
+	// This will give use us:
+	//	- the links to do a reverse postorder traversal
+	//	- the order number for each block
+	size = cfg_postorder(ep);
+
+	// initialize the dominators array
+	doms = calloc(size, sizeof(*doms));
+	assert(entry->postorder_nr == size-1);
+	doms[size-1] = entry;
+
+	do {
+		struct basic_block *b;
+
+		changed = 0;
+		FOR_EACH_PTR(ep->bbs, b) {
+			struct basic_block *p;
+			int bnr = b->postorder_nr;
+			struct basic_block *new_idom = NULL;
+
+			if (b == entry)
+				continue;	// ignore entry node
+
+			FOR_EACH_PTR(b->parents, p) {
+				unsigned int pnr = p->postorder_nr;
+				if (!doms[pnr])
+					continue;
+				if (!new_idom) {
+					new_idom = p;
+					continue;
+				}
+
+				new_idom = intersect_dom(doms, p, new_idom);
+			} END_FOR_EACH_PTR(p);
+
+			assert(new_idom);
+			if (doms[bnr] != new_idom) {
+				doms[bnr] = new_idom;
+				changed = 1;
+			}
+		} END_FOR_EACH_PTR(b);
+	} while (changed);
+
+	// set the idom links
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct basic_block *idom = doms[bb->postorder_nr];
+
+		if (bb == entry)
+			continue;	// ignore entry node
+
+		bb->idom = idom;
+		add_bb(&idom->doms, bb);
+	} END_FOR_EACH_PTR(bb);
+	entry->idom = NULL;
+
+	// set the dominance levels
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct basic_block *idom = bb->idom;
+		int level = idom ? idom->dom_level + 1 : 0;
+
+		bb->dom_level = level;
+		if (max_level < level)
+			max_level = level;
+	} END_FOR_EACH_PTR(bb);
+	ep->dom_levels = max_level + 1;
+
+	free(doms);
 }

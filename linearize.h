@@ -268,11 +268,14 @@ struct basic_block {
 	union {
 		int context;
 		int postorder_nr;	/* postorder number */
+		int dom_level;		/* level in the dominance tree */
 	};
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
+	struct basic_block *idom;	/* link to the immediate dominator */
+	struct basic_block_list *doms;	/* list of BB idominated by this one */
 	struct pseudo_list *needs, *defines;
 	union {
 		unsigned int nr;	/* unique id for label's names */
@@ -374,6 +377,7 @@ struct entrypoint {
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct instruction *entry;
+	unsigned int dom_levels;	/* max levels in the dom tree */
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);

@@ -4,5 +4,6 @@
 struct entrypoint;
 
 int cfg_postorder(struct entrypoint *ep);
+void domtree_build(struct entrypoint *ep);
 
 #endif
