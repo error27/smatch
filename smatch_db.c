@@ -562,6 +562,8 @@ static void match_call_marker(struct expression *expr)
 	struct symbol *type;
 
 	type = get_type(expr->fn);
+	if (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
 
 	/*
 	 * we just want to record something in the database so that if we have
