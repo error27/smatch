@@ -909,7 +909,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 							estate_rl(abs_state)));
 		} else if (estate_rl(state)) {
 			return clone_rl(estate_rl(state));
-		} else if (state && estate_is_empty(state)) {
+		} else if (estate_is_empty(state)) {
 			/*
 			 * FIXME: we don't handle empty extra states correctly.
 			 *

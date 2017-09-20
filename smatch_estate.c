@@ -194,7 +194,7 @@ int estate_is_whole(struct smatch_state *state)
 
 int estate_is_empty(struct smatch_state *state)
 {
-	return !estate_rl(state);
+	return state && !estate_rl(state);
 }
 
 int estate_is_unknown(struct smatch_state *state)
