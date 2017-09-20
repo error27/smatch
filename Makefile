@@ -37,6 +37,7 @@ LIB_OBJS += char.o
 LIB_OBJS += compat-$(OS).o
 LIB_OBJS += cse.o
 LIB_OBJS += dissect.o
+LIB_OBJS += dominate.o
 LIB_OBJS += evaluate.o
 LIB_OBJS += expand.o
 LIB_OBJS += expression.o
