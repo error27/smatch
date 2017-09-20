@@ -235,6 +235,9 @@ sub add_specs {
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
 	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
+    } elsif ($spec eq 'gnu/kfreebsd') {
+	return &add_specs ('unix') .
+	    ' -D__FreeBSD_kernel__=1';
     } elsif ($spec eq 'openbsd') {
 	return &add_specs ('unix') .
 	    ' -D__OpenBSD__=1';
