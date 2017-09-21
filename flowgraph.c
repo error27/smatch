@@ -193,3 +193,27 @@ void domtree_build(struct entrypoint *ep)
 	if (dbg_domtree)
 		debug_domtree(ep);
 }
+
+// dt_dominates - does BB a dominates BB b?
+bool domtree_dominates(struct basic_block *a, struct basic_block *b)
+{
+	if (a == b)			// dominance is reflexive
+		return true;
+	if (a == b->idom)
+		return true;
+	if (b == a->idom)
+		return false;
+
+	// can't dominate if deeper in the DT
+	if (a->dom_level >= b->dom_level)
+		return false;
+
+	// FIXME: can be faster if we have the DFS in-out numbers
+
+	// walk up the dominator tree
+	for (b = b->idom; b; b = b->idom) {
+		if (b == a)
+			return true;
+	}
+	return false;
+}
