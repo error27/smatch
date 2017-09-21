@@ -15,6 +15,7 @@
 #include "flow.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 struct piggy {
@@ -123,4 +124,30 @@ void idf_compute(struct entrypoint *ep, struct basic_block_list **idf, struct ba
 	}
 
 	bank_free(bank, levels);
+}
+
+void idf_dump(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	domtree_build(ep);
+
+	printf("%s's IDF:\n", show_ident(ep->name->ident));
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct basic_block_list *alpha = NULL;
+		struct basic_block_list *idf = NULL;
+		struct basic_block *df;
+
+		add_bb(&alpha, bb);
+		idf_compute(ep, &idf, alpha);
+
+		printf("\t%s\t<-", show_label(bb));
+		FOR_EACH_PTR(idf, df) {
+			printf(" %s", show_label(df));
+		} END_FOR_EACH_PTR(df);
+		printf("\n");
+
+		free_ptr_list(&idf);
+		free_ptr_list(&alpha);
+	} END_FOR_EACH_PTR(bb);
 }
