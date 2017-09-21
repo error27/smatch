@@ -1864,6 +1864,7 @@ void __extra_match_condition(struct expression *expr)
 	struct smatch_state *pre_state;
 	struct smatch_state *true_state;
 	struct smatch_state *false_state;
+	struct range_list *pre_rl;
 
 	expr = strip_expr(expr);
 	switch (expr->type) {
@@ -1881,11 +1882,15 @@ void __extra_match_condition(struct expression *expr)
 		pre_state = get_extra_state(expr);
 		if (estate_is_empty(pre_state))
 			return;
-		true_state = estate_filter_sval(pre_state, zero);
-		if (possibly_true(expr, SPECIAL_EQUAL, zero_expr()))
+		if (pre_state)
+			pre_rl = estate_rl(pre_state);
+		else
+			get_absolute_rl(expr, &pre_rl);
+		if (possibly_true_rl(pre_rl, SPECIAL_EQUAL, rl_zero()))
 			false_state = alloc_estate_sval(zero);
 		else
 			false_state = alloc_estate_empty();
+		true_state = alloc_estate_rl(remove_range(pre_rl, zero, zero));
 		set_extra_expr_true_false(expr, true_state, false_state);
 		return;
 	}
