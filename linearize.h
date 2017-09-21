@@ -7,6 +7,7 @@
 #include "opcode.h"
 #include "parse.h"
 #include "symbol.h"
+#include "ptrmap.h"
 
 struct instruction;
 
@@ -17,6 +18,7 @@ struct pseudo_user {
 
 DECLARE_ALLOCATOR(pseudo_user);
 DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
+DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
 
 
 enum pseudo_type {
@@ -100,6 +102,7 @@ struct instruction {
 			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
+			pseudo_t phi_var;		// used for SSA conversion
 			struct pseudo_list *phi_list;
 		};
 		struct /* phi source */ {
@@ -277,6 +280,7 @@ struct basic_block {
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct basic_block *idom;	/* link to the immediate dominator */
 	struct basic_block_list *doms;	/* list of BB idominated by this one */
+	struct phi_map *phi_map;
 	struct pseudo_list *needs, *defines;
 	union {
 		unsigned int nr;	/* unique id for label's names */

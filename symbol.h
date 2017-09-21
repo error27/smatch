@@ -175,6 +175,7 @@ struct symbol {
 					forced_arg:1,
 					accessed:1,
 					builtin:1,
+					torename:1,
 					transparent_union:1;
 			struct expression *array_size;
 			struct ctype ctype;
