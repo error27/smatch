@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include "optimize.h"
+#include "flowgraph.h"
 #include "linearize.h"
 #include "liveness.h"
 #include "flow.h"
@@ -52,6 +53,8 @@ void optimize(struct entrypoint *ep)
 	 */
 	kill_unreachable_bbs(ep);
 	ir_validate(ep);
+
+	domtree_build(ep);
 
 	/*
 	 * Turn symbols into pseudos
