@@ -57,6 +57,7 @@
 #include "target.h"
 #include "compile.h"
 #include "bitmap.h"
+#include "version.h"
 
 struct textbuf {
 	unsigned int	len;	/* does NOT include terminating null */
@@ -691,7 +692,7 @@ void emit_unit_begin(const char *basename)
 void emit_unit_end(void)
 {
 	textbuf_emit(&unit_post_text);
-	printf("\t.ident\t\"sparse silly x86 backend (built %s)\"\n", __DATE__);
+	printf("\t.ident\t\"sparse silly x86 backend (version %s)\"\n", SPARSE_VERSION);
 }
 
 /* conditionally switch sections */
