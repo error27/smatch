@@ -427,6 +427,32 @@ int get_complication_score(struct expression *expr)
 	}
 }
 
+struct expression *reorder_expr_alphabetically(struct expression *expr)
+{
+	struct expression *ret;
+	char *left, *right;
+
+	if (expr->type != EXPR_BINOP)
+		return expr;
+	if (expr->op != '+' && expr->op != '*')
+		return expr;
+
+	left = expr_to_var(expr->left);
+	right = expr_to_var(expr->right);
+	ret = expr;
+	if (!left || !right)
+		goto free;
+	if (strcmp(left, right) <= 0)
+		goto free;
+
+	ret = binop_expression(expr->right, expr->op, expr->left);
+free:
+	free_string(left);
+	free_string(right);
+
+	return ret;
+}
+
 char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl)
 {
 	char *name;
@@ -461,6 +487,8 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 		if (!*vsl)
 			return NULL;
 	}
+
+	expr = reorder_expr_alphabetically(expr);
 
 	return expr_to_str(expr);
 }
