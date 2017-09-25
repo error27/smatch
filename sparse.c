@@ -243,6 +243,7 @@ static void check_instructions(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 	FOR_EACH_PTR(ep->bbs, bb) {
+		bb->context = -1;
 		check_bb_instructions(bb);
 	} END_FOR_EACH_PTR(bb);
 }
