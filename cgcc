@@ -299,7 +299,14 @@ sub add_specs {
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'arm') {
-	return (' -D__arm__=1 -m32' .
+	chomp (my $gccmachine = `$cc -dumpmachine`);
+	my $cppsymbols = ' -D__arm__=1 -m32';
+
+	if ($gccmachine eq 'arm-linux-gnueabihf') {
+	    $cppsymbols .= ' -D__ARM_PCS_VFP=1';
+	}
+
+	return ($cppsymbols .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
     } elsif ($spec eq 'aarch64') {
 	return (' -D__aarch64__=1 -m64' .
@@ -327,7 +334,7 @@ sub add_specs {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
 	    return &add_specs ('sparc64');
-	} elsif ($arch =~ /^(arm)$/i) {
+	} elsif ($arch =~ /^arm(?:v[78]l)?$/i) {
 	    return &add_specs ('arm');
 	} elsif ($arch =~ /^(aarch64)$/i) {
 	    return &add_specs ('aarch64');
