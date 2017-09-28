@@ -1522,8 +1522,6 @@ void __add_return_comparison(struct expression *call, const char *range)
 	if (!str_to_comparison_arg(range, call, &comparison, &arg))
 		return;
 	snprintf(buf, sizeof(buf), "%s", show_special(comparison));
-	if (local_debug)
-		sm_msg("setting %s to %s", expr_to_str(call), buf);
 	update_links_from_call(call, comparison, arg);
 	add_comparison(call, comparison, arg);
 }
