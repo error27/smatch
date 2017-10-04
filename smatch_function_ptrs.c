@@ -91,10 +91,9 @@ static char *get_array_ptr(struct expression *expr)
 
 static int is_local_symbol(struct symbol *sym)
 {
-	if (!sym || !sym->scope || !sym->scope->token)
+	if (!sym ||
+	    !(sym->ctype.modifiers & MOD_TOPLEVEL))
 		return 0;
-	if (positions_eq(sym->scope->token->pos, cur_func_sym->pos))
-		return 1;
 	return 0;
 }
 
