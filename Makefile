@@ -54,7 +54,7 @@ BASIC_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
 endif
 
 DESTDIR=
-PREFIX=$(HOME)
+PREFIX ?= $(HOME)
 BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
 MANDIR=$(PREFIX)/share/man
