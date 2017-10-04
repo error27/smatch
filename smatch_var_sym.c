@@ -31,6 +31,7 @@ struct var_sym *alloc_var_sym(const char *var, struct symbol *sym)
 
 struct var_sym_list *expr_to_vsl(struct expression *expr)
 {
+	struct expression *unop;
 	struct var_sym_list *ret = NULL;
 	char *var;
 	struct symbol *sym;
@@ -39,10 +40,19 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 	if (!expr)
 		return NULL;
 
-	if (expr->type == EXPR_PREOP && expr->op == '*')
-		return expr_to_vsl(expr->unop);
-	if (expr->type == EXPR_DEREF)
-		return expr_to_vsl(expr->unop);
+	if ((expr->type == EXPR_PREOP && expr->op == '*') ||
+	    expr->type == EXPR_DEREF) {
+		unop = strip_expr(expr->unop);
+
+		if (unop->type == EXPR_SYMBOL)
+			goto one_var;
+		ret = expr_to_vsl(unop);
+		if (ptr_list_size((struct ptr_list *)ret) == 1) {
+			ret = NULL;
+			goto one_var;
+		}
+		return ret;
+	}
 
 	if (expr->type == EXPR_BINOP ||
 	    expr->type == EXPR_LOGICAL ||
@@ -56,6 +66,8 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 		free_var_syms_and_list(&right);
 		return ret;
 	}
+
+one_var:
 	var = expr_to_var_sym(expr, &sym);
 	if (!var || !sym) {
 		free_string(var);
