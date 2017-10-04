@@ -245,6 +245,84 @@ static int is_uncasted_function(void)
 	return 0;
 }
 
+static int set_param_type(void *_type_str, int argc, char **argv, char **azColName)
+{
+	char **type_str = _type_str;
+	static char type_buf[128];
+
+	if (*type_str) {
+		if (strcmp(*type_str, argv[0]) == 0)
+			return 0;
+		strncpy(type_buf, "unknown", sizeof(type_buf));
+		return 0;
+	}
+	strncpy(type_buf, argv[0], sizeof(type_buf));
+	*type_str = type_buf;
+
+	return 0;
+}
+
+static char *db_get_parameter_type(int param)
+{
+	char *ret = NULL;
+
+	if (!cur_func_sym)
+		return NULL;
+
+	run_sql(set_param_type, &ret,
+		"select value from fn_data_link where "
+		"file = '%s' and function = '%s' and static = %d and type = %d and parameter = %d and key = '$';",
+		(cur_func_sym->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+		cur_func_sym->ident->name,
+		!!(cur_func_sym->ctype.modifiers & MOD_STATIC),
+		PASSES_TYPE, param);
+
+	return ret;
+}
+
+static int is_uncasted_fn_param_from_db(void)
+{
+	struct expression *expr, *right;
+	struct symbol *left_type;
+	char left_type_name[128];
+	int param;
+	char *right_type_name;
+	static struct expression *prev_expr;
+	static int prev_ans;
+
+	expr = get_faked_expression();
+
+	if (expr == prev_expr)
+		return prev_ans;
+	prev_expr = expr;
+	prev_ans = 0;
+
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	left_type = get_type(expr->left);
+	if (!left_type || left_type->type != SYM_PTR)
+		return 0;
+	left_type = get_real_base_type(left_type);
+	if (!left_type || left_type->type != SYM_STRUCT)
+		return 0;
+	snprintf(left_type_name, sizeof(left_type_name), "%s", type_to_str(left_type));
+
+	right = strip_expr(expr->right);
+	param = get_param_num(right);
+	if (param < 0)
+		return 0;
+	right_type_name = db_get_parameter_type(param);
+	if (!right_type_name)
+		return 0;
+
+	if (strcmp(right_type_name, left_type_name) == 0) {
+		prev_ans = 1;
+		return 1;
+	}
+
+	return 0;
+}
+
 static void match_assign_value(struct expression *expr)
 {
 	char *member, *right_member;
@@ -270,6 +348,8 @@ static void match_assign_value(struct expression *expr)
 		if (is_ignored_function())
 			goto free;
 		if (is_uncasted_function())
+			goto free;
+		if (is_uncasted_fn_param_from_db())
 			goto free;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
