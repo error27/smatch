@@ -124,15 +124,27 @@ struct expression *get_argument_from_call_expr(struct expression_list *args,
 
 static struct expression *get_array_expr(struct expression *expr)
 {
+	struct expression *parent;
 	struct symbol *type;
 
 	if (expr->type != EXPR_BINOP || expr->op != '+')
 		return NULL;
 
 	type = get_type(expr->left);
-	if (!type || type->type != SYM_ARRAY)
+	if (!type)
 		return NULL;
-	return expr->left;
+	if (type->type == SYM_ARRAY)
+		return expr->left;
+	if (type->type != SYM_PTR)
+		return NULL;
+
+	parent = expr_get_parent_expr(expr);
+	if (!parent)
+		return NULL;
+	if (parent->type == EXPR_PREOP && parent->op == '*')
+		return expr->left;
+
+	return NULL;
 }
 
 static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
