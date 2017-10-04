@@ -1027,7 +1027,7 @@ static inline int type_positive_bits(struct symbol *type)
 	if (!type)
 		return 0;
 	if (type->type == SYM_ARRAY)
-		return bits_in_pointer;
+		return bits_in_pointer - 1;
 	if (type_unsigned(type))
 		return type_bits(type);
 	return type_bits(type) - 1;
