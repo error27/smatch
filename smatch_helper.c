@@ -926,7 +926,8 @@ int invert_op(int op)
 
 int expr_equiv(struct expression *one, struct expression *two)
 {
-	struct symbol *one_sym, *two_sym;
+	struct symbol *one_sym = NULL;
+	struct symbol *two_sym = NULL;
 	char *one_name = NULL;
 	char *two_name = NULL;
 	int ret = 0;
@@ -937,12 +938,19 @@ int expr_equiv(struct expression *one, struct expression *two)
 		return 0;
 
 	one_name = expr_to_str_sym(one, &one_sym);
-	if (!one_name || !one_sym)
+	if (!one_name)
 		goto free;
 	two_name = expr_to_str_sym(two, &two_sym);
-	if (!two_name || !two_sym)
+	if (!two_name)
 		goto free;
 	if (one_sym != two_sym)
+		goto free;
+	/*
+	 * This is a terrible hack because expr_to_str() sometimes gives up in
+	 * the middle and just returns what it has.  If you see a () you know
+	 * the string is bogus.
+	 */
+	if (strstr(one_name, "()"))
 		goto free;
 	if (strcmp(one_name, two_name) == 0)
 		ret = 1;
