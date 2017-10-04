@@ -28,11 +28,11 @@ __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct 
 char *show_rl(struct range_list *list)
 {
 	struct data_range *tmp;
-	char full[256];
+	char full[512];
 	int i = 0;
 
 	full[0] = '\0';
-	full[255] = '\0';
+	full[sizeof(full) - 1] = '\0';
 	FOR_EACH_PTR(list, tmp) {
 		if (i++)
 			strncat(full, ",", 254 - strlen(full));
@@ -44,6 +44,8 @@ char *show_rl(struct range_list *list)
 		strncat(full, "-", 254 - strlen(full));
 		strncat(full, sval_to_str(tmp->max), 254 - strlen(full));
 	} END_FOR_EACH_PTR(tmp);
+	if (strlen(full) == sizeof(full) - 1)
+		full[sizeof(full) - 2] = '+';
 	return alloc_sname(full);
 }
 
@@ -413,6 +415,13 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	max = sval_type_max(type);
 	c = str;
 	while (*c != '\0' && *c != '[') {
+		if (*c == '+') {
+			if (sval_cmp(min, sval_type_min(type)) != 0)
+				min = max;
+			max = sval_type_max(type);
+			add_range_t(type, &rl_tmp, min, max);
+			break;
+		}
 		if (*c == '(')
 			c++;
 		min = parse_val(0, call, type, c, &c);
@@ -430,6 +439,10 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 			c++;
 			continue;
 		}
+		if (*c == '+') {
+			min = sval_type_max(type);
+			c++;
+		}
 		if (*c != '-') {
 			sm_msg("debug XXX: trouble parsing %s c = %s", str, c);
 			break;
@@ -440,6 +453,10 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 		max = parse_val(1, call, type, c, &c);
 		if (!sval_fits(type, max))
 			max = sval_type_max(type);
+		if (*c == '+') {
+			max = sval_type_max(type);
+			c++;
+		}
 		add_range_t(type, &rl_tmp, min, max);
 		if (*c == ')')
 			c++;
