@@ -29,6 +29,8 @@ CREATE INDEX return_states_fn_idx on return_states (function);
 CREATE INDEX return_states_ff_idx on return_states (file, function);
 CREATE INDEX parameter_name_file_idx on parameter_name (file, function);
 CREATE INDEX parameter_name_idx on parameter_name (function);
+CREATE INDEX str_idx on constraints (str);
+CREATE INDEX required_idx on constraints_required (data);
 
 EOF
 

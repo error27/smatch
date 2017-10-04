@@ -21,12 +21,15 @@ for i in ${bin_dir}/*.schema ; do
     cat $i | sqlite3 $db_file
 done
 
+${bin_dir}/init_constraints.pl "$PROJ" $info_file $db_file
+${bin_dir}/init_constraints_required.pl "$PROJ" $info_file $db_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $info_file $db_file
 ${bin_dir}/fill_db_caller_info.pl "$PROJ" $info_file $db_file
 ${bin_dir}/build_early_index.sh $db_file
 
 ${bin_dir}/fill_db_type_value.pl "$PROJ" $info_file $db_file
 ${bin_dir}/fill_db_type_size.pl "$PROJ" $info_file $db_file
+${bin_dir}/copy_required_constraints.pl "$PROJ" $info_file $db_file
 ${bin_dir}/build_late_index.sh $db_file
 
 ${bin_dir}/fixup_all.sh $db_file

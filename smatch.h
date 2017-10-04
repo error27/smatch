@@ -90,6 +90,12 @@ struct var_sym {
 DECLARE_ALLOCATOR(var_sym);
 DECLARE_PTR_LIST(var_sym_list, struct var_sym);
 
+struct constraint {
+	int op;
+	int id;
+};
+DECLARE_PTR_LIST(constraint_list, struct constraint);
+
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
@@ -706,6 +712,8 @@ enum info_type {
 	BYTE_UNITS      = 1027,
 	COMPARE_LIMIT	= 1028,
 	PARAM_COMPARE	= 1029,
+	CONSTRAINT	= 1031,
+	CONSTRAINT_REQUIRED = 1033,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
@@ -776,6 +784,8 @@ void sql_insert_function_type(int param, const char *value);
 void sql_insert_parameter_name(int param, const char *value);
 void sql_insert_data_info(struct expression *data, int type, const char *value);
 void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type, const char *value);
+void sql_save_constraint(const char *con);
+void sql_save_constraint_required(const char *data, int op, const char *limit);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
@@ -982,6 +992,13 @@ int db_var_is_array_limit(struct expression *array, const char *name, struct var
 
 struct stree *get_all_return_states(void);
 struct stree_stack *get_all_return_strees(void);
+int was_inced(const char *name, struct symbol *sym);
+
+/* smatch_constraints.c */
+char *get_constraint_str(struct expression *expr);
+struct constraint_list *get_constraints(struct expression *expr);
+char *unmet_constraint(struct expression *data, struct expression *offset);
+char *get_required_constraint(const char *data_str);
 
 static inline int type_bits(struct symbol *type)
 {

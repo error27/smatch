@@ -29,7 +29,7 @@ static sqlite3 *mem_db;
 
 static int return_id;
 
-#define sql_insert(table, values...)						\
+#define sql_insert_helper(table, ignore, values...)				\
 do {										\
 	if (__inline_fn) {							\
 		char buf[1024];							\
@@ -40,7 +40,8 @@ do {										\
 			break;							\
 										\
 		p += snprintf(p, buf + sizeof(buf) - p,				\
-			      "insert into %s values (", #table);		\
+			      "insert %sinto %s values (",			\
+			      ignore ? "or ignore " : "", #table);		\
 		p += snprintf(p, buf + sizeof(buf) - p, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
 		sm_debug("in-mem: %s\n", buf);					\
@@ -54,10 +55,15 @@ do {										\
 	}									\
 	if (option_info) {							\
 		sm_prefix();							\
-	        sm_printf("SQL: insert into " #table " values (" values);	\
+	        sm_printf("SQL: insert %sinto " #table " values(",		\
+			  ignore ? "or ignore " : "");				\
+	        sm_printf(values);						\
 	        sm_printf(");\n");						\
 	}									\
 } while (0)
+
+#define sql_insert(table, values...) sql_insert_helper(table, 0, values);
+#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 1, values);
 
 struct def_callback {
 	int hook_type;
@@ -303,6 +309,19 @@ void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type,
 	sql_insert(data_info, "'%s', '%s', %d, '%s'",
 		   (sym->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
 		   var, type, value);
+}
+
+void sql_save_constraint(const char *con)
+{
+	if (!option_info)
+		return;
+
+        sm_msg("SQL: insert or ignore into constraints (str) values('%s');", con);
+}
+
+void sql_save_constraint_required(const char *data, int op, const char *limit)
+{
+	sql_insert_or_ignore(constraints_required, "'%s', '%s', '%s'", data, show_special(op), limit);
 }
 
 char *get_static_filter(struct symbol *sym)
@@ -1684,6 +1703,8 @@ static void init_memdb(void)
 		"db/function_type.schema",
 		"db/data_info.schema",
 		"db/parameter_name.schema",
+		"db/constraints.schema",
+		"db/constraints_required.schema",
 	};
 	static char buf[4096];
 	int fd;
