@@ -374,6 +374,16 @@ static int get_row_count(void *_row_count, int argc, char **argv, char **azColNa
 	return 0;
 }
 
+static void mark_params_untracked(struct expression *call)
+{
+	struct expression *arg;
+	int i = 0;
+
+	FOR_EACH_PTR(call->args, arg) {
+		mark_untracked(call, i++, "$", NULL);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void sql_select_return_states_pointer(const char *cols,
 	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
@@ -389,8 +399,10 @@ static void sql_select_return_states_pointer(const char *cols,
 		"where return_states.function == function_ptr.function and "
 		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
 	/* The magic number 100 is just from testing on the kernel. */
-	if (return_count > 100)
+	if (return_count > 100) {
+		mark_params_untracked(call);
 		return;
+	}
 
 	run_sql(callback, info,
 		"select %s from return_states join function_ptr where "

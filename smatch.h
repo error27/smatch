@@ -976,6 +976,7 @@ void set_auto_copy(int owner);
 struct expression *get_size_variable(struct expression *buf);
 
 /* smatch_untracked_param.c */
+void mark_untracked(struct expression *expr, int param, const char *key, const char *value);
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
 
 /* smatch_strings.c */

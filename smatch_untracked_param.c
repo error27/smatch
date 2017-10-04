@@ -67,7 +67,7 @@ static void assume_tracked(struct expression *call_expr, int param, char *key, c
 	tracked = 1;
 }
 
-static void mark_untracked(struct expression *expr, int param, char *key, char *value)
+void mark_untracked(struct expression *expr, int param, const char *key, const char *value)
 {
 	char *name;
 	struct symbol *sym;
