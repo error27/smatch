@@ -288,12 +288,16 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 					 complicated, no_parens);
 		return;
 	case EXPR_SIZEOF: {
+		sval_t sval;
 		int size;
 		char tmp[25];
 
 		if (expr->cast_type && get_base_type(expr->cast_type)) {
 			size = type_bytes(get_base_type(expr->cast_type));
 			snprintf(tmp, 25, "%d", size);
+			append(buf, tmp, len);
+		} else if (get_value(expr, &sval)) {
+			snprintf(tmp, 25, "%s", sval_to_str(sval));
 			append(buf, tmp, len);
 		}
 		return;
