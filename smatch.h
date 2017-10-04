@@ -713,6 +713,7 @@ enum info_type {
 	COMPARE_LIMIT	= 1028,
 	PARAM_COMPARE	= 1029,
 	CONSTRAINT	= 1031,
+	PASSES_TYPE	= 1032,
 	CONSTRAINT_REQUIRED = 1033,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
@@ -726,6 +727,8 @@ enum info_type {
 	ATOMIC_INC	= 8023,
 	ATOMIC_DEC	= 8024,
 	NO_SIDE_EFFECT  = 8025,
+	FN_ARG_LINK	= 8028,
+	DATA_VALUE	= 8029,
 	ARRAYSIZE_ARG	= 8033,
 	SIZEOF_ARG	= 8034,
 };
@@ -786,6 +789,8 @@ void sql_insert_data_info(struct expression *data, int type, const char *value);
 void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type, const char *value);
 void sql_save_constraint(const char *con);
 void sql_save_constraint_required(const char *data, int op, const char *limit);
+void sql_insert_fn_ptr_data_link(const char *ptr, const char *data);
+void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);

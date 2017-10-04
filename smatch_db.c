@@ -324,6 +324,23 @@ void sql_save_constraint_required(const char *data, int op, const char *limit)
 	sql_insert_or_ignore(constraints_required, "'%s', '%s', '%s'", data, show_special(op), limit);
 }
 
+void sql_insert_fn_ptr_data_link(const char *ptr, const char *data)
+{
+	sql_insert(fn_ptr_data_link, "'%s', '%s'", ptr, data);
+}
+
+void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value)
+{
+	if (fn->type != EXPR_SYMBOL || !fn->symbol->ident)
+		return;
+
+	sql_insert(fn_data_link, "'%s', '%s', %d, %d, %d, '%s', '%s'",
+		   (fn->symbol->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+		   fn->symbol->ident->name,
+		   !!(fn->symbol->ctype.modifiers & MOD_STATIC),
+		   type, param, key, value);
+}
+
 char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -1705,6 +1722,8 @@ static void init_memdb(void)
 		"db/parameter_name.schema",
 		"db/constraints.schema",
 		"db/constraints_required.schema",
+		"db/fn_ptr_data_link.schema",
+		"db/fn_data_link.schema",
 	};
 	static char buf[4096];
 	int fd;
