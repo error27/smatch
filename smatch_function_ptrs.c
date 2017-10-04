@@ -229,10 +229,42 @@ free:
 
 }
 
+static int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
+{
+	int *row_count = _row_count;
+
+	*row_count = 0;
+	if (argc != 1)
+		return 0;
+	*row_count = atoi(argv[0]);
+	return 0;
+}
+
+static int can_hold_function_ptr(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR || type->type == SYM_ARRAY) {
+		type = get_real_base_type(type);
+		if (!type)
+			return 0;
+	}
+	if (type->type == SYM_FN)
+		return 1;
+	if (type == &ulong_ctype && expr->type == EXPR_DEREF)
+		return 1;
+	if (type == &void_ctype)
+		return 1;
+	return 0;
+}
+
 static void match_function_assign(struct expression *expr)
 {
 	struct expression *right;
-	struct symbol *sym;
+	struct symbol *type;
 	char *fn_name;
 	char *ptr_name;
 
@@ -242,22 +274,14 @@ static void match_function_assign(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
 		right = strip_expr(right->unop);
-	if (right->type != EXPR_SYMBOL && right->type != EXPR_DEREF && right->type != EXPR_CALL)
+
+	if (right->type != EXPR_SYMBOL &&
+	    right->type != EXPR_DEREF)
 		return;
-	sym = get_type(right);
-	if (!sym)
+
+	if (!can_hold_function_ptr(right) ||
+	    !can_hold_function_ptr(expr->left))
 		return;
-	if (sym->type == SYM_NODE)
-		sym = get_real_base_type(sym);
-	if (sym->type != SYM_FN && sym->type != SYM_PTR && sym->type != SYM_ARRAY)
-		return;
-	if (sym->type == SYM_PTR) {
-		sym = get_real_base_type(sym);
-		if (!sym)
-			return;
-		if (sym->type != SYM_FN && sym != &void_ctype)
-			return;
-	}
 
 	fn_name = get_fnptr_name(right);
 	ptr_name = get_fnptr_name(expr->left);
@@ -266,8 +290,27 @@ static void match_function_assign(struct expression *expr)
 	if (strcmp(fn_name, ptr_name) == 0)
 		goto free;
 
-	sql_insert_function_ptr(fn_name, ptr_name);
 
+	type = get_type(right);
+	if (!type)
+		return;
+	if (type->type == SYM_PTR || type->type == SYM_ARRAY) {
+		type = get_real_base_type(type);
+		if (!type)
+			return;
+	}
+	if (type->type != SYM_FN) {
+		int count = 0;
+
+		/* look it up in function_ptr */
+		run_sql(get_row_count, &count,
+			"select count(*) from function_ptr where ptr = '%s'",
+			fn_name);
+		if (count == 0)
+			goto free;
+	}
+
+	sql_insert_function_ptr(fn_name, ptr_name);
 free:
 	free_string(fn_name);
 	free_string(ptr_name);
