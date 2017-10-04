@@ -50,6 +50,8 @@ CK(register_imaginary_absolute)
 CK(register_parameter_names)
 CK(register_return_to_param)
 CK(register_return_to_param_links)
+CK(register_constraints)
+CK(register_constraints_required)
 
 CK(check_debug)
 CK(check_user_data)
