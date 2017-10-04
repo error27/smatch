@@ -14,7 +14,6 @@ OS = linux
 CC = gcc
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings
-LDFLAGS += -g
 LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
