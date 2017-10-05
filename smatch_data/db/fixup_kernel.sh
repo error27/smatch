@@ -97,9 +97,6 @@ update return_states set return = '0-u32max[<=\$2]' where function = 'copy_from_
 update return_states set return = '0-u32max[<=\$2]' where function = '_copy_from_user';
 update return_states set return = '0-u32max[<=\$2]' where function = '__copy_from_user';
 
-/* 64 CPUs aught to be enough for anyone */
-update return_states set return = '1-64' where function = 'cpumask_weight';
-
 update return_states set return = '0-8' where function = '__arch_hweight8';
 update return_states set return = '0-16' where function = '__arch_hweight16';
 update return_states set return = '0-32' where function = '__arch_hweight32';

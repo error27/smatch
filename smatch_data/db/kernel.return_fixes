@@ -21,3 +21,7 @@ dma_fence_wait_timeout s64min-s64max (-4095)-s64max
 dma_fence_wait_timeout s32min-s32max (-4095)-s32max
 fls s32min-s32max 0-32
 fls64 s64min-s64max 0-64
+__bitmap_weight s32min-s32max 0-s32max[<=$1]
+__bitmap_weight 0-s32max 0-s32max[<=$1]
+__ffs 0-u64max 0-63
+__ffs 0-u32max 0-31
