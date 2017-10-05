@@ -226,9 +226,11 @@ void parse_args(int *argcp, char ***argvp)
 		(*argvp)++;
 	}
 
-	if (!strcmp(option_project_str, "kernel"))
+	if (strcmp(option_project_str, "smatch_generic") != 0)
+		option_project = PROJ_UNKNOWN;
+	if (strcmp(option_project_str, "kernel") == 0)
 		option_project = PROJ_KERNEL;
-	if (!strcmp(option_project_str, "wine"))
+	if (strcmp(option_project_str, "wine") == 0)
 		option_project = PROJ_WINE;
 }
 

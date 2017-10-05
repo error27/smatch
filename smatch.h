@@ -820,6 +820,7 @@ enum project_type {
 	PROJ_NONE,
 	PROJ_KERNEL,
 	PROJ_WINE,
+	PROJ_UNKNOWN,
 };
 extern enum project_type option_project;
 const char *check_name(unsigned short id);
