@@ -180,6 +180,7 @@ CK(check_test_bit)
 CK(check_dma_mapping_error)
 CK(check_nospec)
 CK(check_spectre)
+CK(check_implicit_dependencies)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
