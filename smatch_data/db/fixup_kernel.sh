@@ -153,6 +153,9 @@ update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_s
 update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
 update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
 
+/* delete some function pointers which are sometimes byte units */
+delete from caller_info where function = '(struct i2c_algorithm)->master_xfer and and type = 1027;
+
 EOF
 
 # fixme: this is totally broken
