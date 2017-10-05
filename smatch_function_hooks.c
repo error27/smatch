@@ -449,8 +449,11 @@ static int is_impossible_data(int type, struct expression *expr, int param, char
 {
 	if (type == PARAM_LIMIT && impossible_limit(expr, param, key, value))
 		return 1;
-	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(expr, param, key, value))
+	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(expr, param, key, value)) {
+		if (local_debug)
+			sm_msg("param_compare_limit_is_impossible: %d %s %s", param, key, value);
 		return 1;
+	}
 	return 0;
 }
 
