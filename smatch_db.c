@@ -1027,7 +1027,7 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
+		cb->callback(return_id, return_ranges, expr->cond_true);
 	} END_FOR_EACH_PTR(cb);
 
 	__push_true_states();
@@ -1042,7 +1042,7 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
+		cb->callback(return_id, return_ranges, expr->cond_false);
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
