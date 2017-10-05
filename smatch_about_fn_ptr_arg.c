@@ -110,7 +110,7 @@ static char *get_data_member(char *fn_member, struct expression *expr, struct sy
 {
 	struct symbol *tmp_sym;
 	char *fn_str;
-	char *arg_ptr;
+	char *arg_ptr = NULL;
 	char *end_type;
 	int len_ptr, len_str;
 	char buf[128];
