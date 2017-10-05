@@ -7,6 +7,8 @@ scnprintf s32min-s32max 0-s32max[<$1]
 scnprintf s32min-(-2),0-2147483646[<$1] 0-s32max[<$1]
 scnprintf s32min-(-2),0-2147483646 0-s32max[<$1]
 scnprintf s32min-s32max[<=$1] 0-s32max[<$1]
+scnprintf 0-s32max 0-s32max[<$1]
+vscnprintf s32min-(-2),0-s32max[<$1] 0-s32max[<$1]
 down_interruptible s32min-s32max (-62),(-4)
 __sock_create s32min-(-1),1-s32max (-4095)-(-1)
 sock_create_kern s32min-(-1),1-s32max (-4095)-(-1)
