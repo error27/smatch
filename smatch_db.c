@@ -200,6 +200,9 @@ static int is_common_function(const char *fn)
 {
 	char *tmp;
 
+	if (!fn)
+		return 0;
+
 	if (strncmp(fn, "__builtin_", 10) == 0)
 		return 1;
 
@@ -241,7 +244,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (!option_info)
 		return;
 
-	if (is_common_function(fn))
+	if (strncmp(fn, "__builtin_", 10) == 0)
 		return;
 
 	sm_msg("SQL_caller_info: insert into caller_info values ("
@@ -483,6 +486,9 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 			cols, (unsigned long)__inline_fn);
 		return;
 	}
+
+	if (sym->ident->name && is_common_function(sym->ident->name))
+		return;
 
 	run_sql(callback, data,
 		"select %s from caller_info where %s order by call_id;",
