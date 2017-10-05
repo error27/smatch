@@ -98,7 +98,7 @@ static struct returned_member_cb_list *returned_member_callbacks;
 
 struct call_implies_callback {
 	int type;
-	void (*callback)(struct expression *arg, char *key, char *value);
+	void (*callback)(struct expression *call, struct expression *arg, char *key, char *value);
 };
 ALLOCATOR(call_implies_callback, "call_implies callbacks");
 DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
@@ -535,7 +535,7 @@ void add_returned_member_callback(int owner, void (*callback)(int return_id, cha
 	add_ptr_list(&returned_member_callbacks, member_callback);
 }
 
-void select_call_implies_hook(int type, void (*callback)(struct expression *arg, char *key, char *value))
+void select_call_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value))
 {
 	struct call_implies_callback *cb = __alloc_call_implies_callback(0);
 
@@ -939,7 +939,7 @@ static int call_implies_callbacks(void *_call, int argc, char **argv, char **azC
 			if (!arg)
 				continue;
 		}
-		cb->callback(arg, argv[3], argv[4]);
+		cb->callback(call_expr, arg, argv[3], argv[4]);
 	} END_FOR_EACH_PTR(cb);
 
 	return 0;

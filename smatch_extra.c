@@ -1174,7 +1174,7 @@ static void find_dereferences(struct expression *expr)
 	}
 }
 
-static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;

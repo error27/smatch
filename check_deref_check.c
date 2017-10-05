@@ -43,7 +43,7 @@ static void match_dereference(struct expression *expr)
 	set_state_expr(my_id, expr, &derefed);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;

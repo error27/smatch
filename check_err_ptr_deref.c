@@ -68,7 +68,7 @@ static void match_returns_err_ptr(const char *fn, struct expression *expr,
 	set_state_expr(my_id, expr->left, &err_ptr);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct sm_state *sm;
 	struct smatch_state *estate;

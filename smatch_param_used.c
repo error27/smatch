@@ -43,7 +43,7 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym)
 	set_state_stree(&used_stree, my_id, name, sym, &used);
 }
 
-static void set_param_used(struct expression *arg, char *key, char *unused)
+static void set_param_used(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;

@@ -152,7 +152,7 @@ static void match_pointer_as_array(struct expression *expr)
 	check_dereference(get_array_base(expr));
 }
 
-static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;

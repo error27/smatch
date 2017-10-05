@@ -215,7 +215,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	set_state_expr(my_id, arg, &freed);
 }
 
-static void set_param_freed(struct expression *arg, char *key, char *unused)
+static void set_param_freed(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct symbol *sym;
 	char *name;

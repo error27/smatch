@@ -83,7 +83,7 @@ static void match_dereference(struct expression *expr)
 	check_deref(expr->unop);
 }
 
-static void set_param_dereferenced(struct expression *arg, char *key, char *unused)
+static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	/* XXX FIXME: param_implies has more information now */
 	if (strcmp(key, "$") != 0)
