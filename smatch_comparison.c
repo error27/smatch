@@ -2033,7 +2033,7 @@ int param_compare_limit_is_impossible(struct expression *expr, int left_param, c
 	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
 	struct expression *left_arg, *right_arg;
-	int op;
+	int op, state_op;
 	int right_param;
 	char *right_key;
 	int ret = 0;
@@ -2064,10 +2064,11 @@ int param_compare_limit_is_impossible(struct expression *expr, int left_param, c
 	state = get_state(compare_id, buf, NULL);
 	if (!state)
 		goto free;
-	if (!state_to_comparison(state))
+	state_op = state_to_comparison(state);
+	if (!state_op)
 		goto free;
 
-	if (!filter_comparison(state_to_comparison(state), op))
+	if (!filter_comparison(remove_unsigned_from_comparison(state_op), op))
 		ret = 1;
 free:
 	free_string(left_name);
