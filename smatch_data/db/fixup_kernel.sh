@@ -11,7 +11,8 @@ delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
 delete from caller_info where function = '__vfs_write' and caller != 'vfs_write';
 delete from caller_info where function = '__vfs_read' and caller != 'vfs_read';
-delete from caller_info where function = '(struct file_operations)->write' and caller == 'do_loop_readv_writev';
+delete from caller_info where function = '(struct file_operations)->write' and caller = 'do_loop_readv_writev';
+delete from caller_info where function = 'do_splice_from' and caller = 'direct_splice_actor';
 
 /* delete these function pointers which cause false positives */
 delete from caller_info where function = '(struct file_operations)->open' and type != 0;
