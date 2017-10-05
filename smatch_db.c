@@ -761,9 +761,6 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 
 	if (data->prev_func_id == -1)
 		data->prev_func_id = func_id;
-	if (type == INTERNAL &&
-	    !function_signature_matches(value))
-		data->ignore = 1;
 	if (func_id != data->prev_func_id) {
 		stree = __pop_fake_cur_stree();
 		if (!data->ignore)
@@ -777,6 +774,12 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 
 	if (data->ignore)
 		return 0;
+	if (type == INTERNAL &&
+	    !function_signature_matches(value)) {
+		data->ignore = 1;
+		return 0;
+	}
+
 	if (param >= 0 && !get_param(param, &name, &sym))
 		return 0;
 
@@ -873,6 +876,15 @@ static void match_data_from_db(struct symbol *sym)
 
 		get_direct_callers(&data, sym);
 
+		stree = __pop_fake_cur_stree();
+		if (!data.ignore)
+			merge_stree(&data.final_states, stree);
+		free_stree(&stree);
+		__push_fake_cur_stree();
+		__unnullify_path();
+		data.prev_func_id = -1;
+		data.ignore = 0;
+
 		FOR_EACH_PTR(ptr_names, ptr) {
 			run_sql(caller_info_callback, &data,
 				"select call_id, type, parameter, key, value"
@@ -888,7 +900,8 @@ static void match_data_from_db(struct symbol *sym)
 	}
 
 	stree = __pop_fake_cur_stree();
-	merge_stree(&data.final_states, stree);
+	if (!data.ignore)
+		merge_stree(&data.final_states, stree);
 	free_stree(&stree);
 
 	FOR_EACH_SM(data.final_states, sm) {
