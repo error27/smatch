@@ -789,16 +789,6 @@ static void do_array_assign(struct expression *left, int op, struct expression *
 	set_extra_array_mod(left, alloc_estate_rl(rl));
 }
 
-static void match_untracked_array(struct expression *call, int param)
-{
-	struct expression *arg;
-
-	arg = get_argument_from_call_expr(call->args, param);
-	arg = strip_expr(arg);
-
-	clear_array_states(arg);
-}
-
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
 	struct range_list *orig_rl = NULL;
@@ -2529,7 +2519,6 @@ void register_smatch_extra_late(int id)
 	add_hook(&match_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
-	add_untracked_param_hook(&match_untracked_array);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
