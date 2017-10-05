@@ -1190,8 +1190,22 @@ static void set_param_dereferenced(struct expression *arg, char *key, char *unus
 	char *name;
 
 	name = get_variable_from_key(arg, key, &sym);
-	if (name && sym)
-		set_extra_nomod(name, sym, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+	if (name && sym) {
+		struct smatch_state *orig, *new;
+		struct range_list *rl;
+
+		orig = get_state(SMATCH_EXTRA, name, sym);
+		if (orig) {
+			rl = rl_intersection(estate_rl(orig),
+					     alloc_rl(valid_ptr_min_sval,
+						      valid_ptr_max_sval));
+			new = alloc_estate_rl(rl);
+		} else {
+			new = alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval);
+		}
+
+		set_extra_nomod(name, sym, new);
+	}
 	free_string(name);
 
 	find_dereferences(arg);
