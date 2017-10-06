@@ -53,17 +53,29 @@ static void match_syscall_definition(struct symbol *sym)
 static void print_read_list()
 {
     struct tracker *tracker;
-    sm_printf("%s read_list: [", syscall_name);
+    int i = 0;
     FOR_EACH_PTR(read_list, tracker) {
+	if (i == 0)
+	    sm_printf("%s read_list: [", syscall_name);
 	sm_printf("%s, ", tracker->name);
+	i++;
     } END_FOR_EACH_PTR(tracker);
-    sm_printf("]\n");
-    return;
+    if (i > 0)
+	sm_printf("]\n");
 }
 
 static void print_write_list()
 {
-    return;
+    struct tracker *tracker;
+    int i = 0;
+    FOR_EACH_PTR(write_list, tracker) {
+	if (i == 0)
+	    sm_printf("%s write_list: [", syscall_name);
+	sm_printf("%s, ", tracker->name);
+	i++;
+    } END_FOR_EACH_PTR(tracker);
+    if (i > 0)
+	sm_printf("]\n");
 }
 
 static void match_after_syscall(struct symbol *sym) {
@@ -94,6 +106,20 @@ static void print_read_member_type(struct expression *expr)
 	// sm_msg("info: uses %s", member);
 	// prefix();
 	// printf("info: uses %s\n", member);
+	free_string(member);
+}
+
+static void print_write_member_type(struct expression *expr)
+{
+	char *member;
+	struct symbol *sym;
+
+	member = get_member_name(expr);
+	if (!member)
+		return;
+
+	sym = get_type(expr->deref);
+	add_tracker(&write_list, my_id, member, sym);
 	free_string(member);
 }
 
@@ -150,6 +176,27 @@ static void match_call_info(struct expression *expr)
     } END_FOR_EACH_PTR(arg);
 }
 
+static void match_assign_value(struct expression *expr)
+{
+    if (!cur_syscall)
+	return;
+    print_write_member_type(expr->left);
+}
+
+static void unop_expr(struct expression *expr)
+{
+    if (!cur_syscall)
+	return;
+
+    if (expr->op == SPECIAL_ADD_ASSIGN || expr->op == SPECIAL_INCREMENT ||
+	expr->op == SPECIAL_SUB_ASSIGN || expr->op == SPECIAL_DECREMENT ||
+	expr->op == SPECIAL_MUL_ASSIGN || expr->op == SPECIAL_DIV_ASSIGN ||
+	expr->op == SPECIAL_MOD_ASSIGN || expr->op == SPECIAL_AND_ASSIGN ||
+	expr->op == SPECIAL_OR_ASSIGN || expr->op == SPECIAL_XOR_ASSIGN ||
+	expr->op == SPECIAL_SHL_ASSIGN || expr->op == SPECIAL_SHR_ASSIGN)
+	print_write_member_type(strip_expr(expr->unop));
+}
+
 void check_implicit_dependencies(int id)
 {
     my_id = id;
@@ -161,5 +208,9 @@ void check_implicit_dependencies(int id)
     add_hook(&match_after_syscall, AFTER_FUNC_HOOK);
     add_hook(&match_condition, CONDITION_HOOK);
     add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+
+    /* hooks to track written fields */
+    add_hook(&match_assign_value, ASSIGNMENT_HOOK_AFTER);
+    add_hook(&unop_expr, OP_HOOK);
 }
 
