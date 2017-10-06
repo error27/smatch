@@ -80,7 +80,7 @@ static void match_after_syscall(struct symbol *sym) {
     syscall_name = NULL;
 }
 
-static void print_member_type(struct expression *expr)
+static void print_read_member_type(struct expression *expr)
 {
 	char *member;
 	struct symbol *sym;
@@ -98,6 +98,8 @@ static void print_member_type(struct expression *expr)
 }
 
 static void match_condition(struct expression *expr) {
+    struct expression *arg;
+
     if (!cur_syscall)
 	return;
     
@@ -110,9 +112,42 @@ static void match_condition(struct expression *expr) {
 	    match_condition(expr->left);
 	    match_condition(expr->right);
 	    return;
+    } else if (expr->type == EXPR_CALL) {
+	FOR_EACH_PTR(expr->args, arg) {
+	    // if we find deref in conditional call,
+	    // mark it as a read dependency
+	    print_read_member_type(arg);
+	} END_FOR_EACH_PTR(arg);
+	return;
     }
-    print_member_type(expr);
+	
+    print_read_member_type(expr);
+}
 
+
+/* when we are parsing an inline function and can no longer nest,
+ * assume that all struct fields passed to nested inline functions
+ * are implicit dependencies
+ */
+static void match_call_info(struct expression *expr)
+{
+    struct expression *arg;
+    int i;
+
+    if (!__inline_fn || !cur_syscall)
+	return;
+
+    // prefix(); printf("fn: %s\n", expr->fn->symbol->ident->name);
+
+    i = 0;
+    FOR_EACH_PTR(expr->args, arg) {
+	/*
+	if (arg->type == EXPR_DEREF)
+	    printf("arg %d is deref\n", i);
+	*/
+	print_read_member_type(arg);
+	i++;
+    } END_FOR_EACH_PTR(arg);
 }
 
 void check_implicit_dependencies(int id)
@@ -125,5 +160,6 @@ void check_implicit_dependencies(int id)
     add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
     add_hook(&match_after_syscall, AFTER_FUNC_HOOK);
     add_hook(&match_condition, CONDITION_HOOK);
+    add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 }
 

@@ -163,6 +163,6 @@ void check_implicit_dependencies_tester(int id)
     add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
     add_hook(&match_after_syscall, AFTER_FUNC_HOOK);
     add_hook(&match_condition, CONDITION_HOOK);
-    // add_hook(&match_function_call, FUNCTION_CALL_HOOK);
+    add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 }
 
