@@ -57,3 +57,5 @@ check_list_local.h
 cscope.out
 *.pro*
 
+#python
+*.pyc
