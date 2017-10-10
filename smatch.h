@@ -204,6 +204,8 @@ int is_impossible_path(void);
 void set_path_impossible(void);
 
 extern FILE *sm_outfd;
+extern FILE *sql_outfd;
+extern FILE *caller_info_fd;
 #define sm_printf(msg...) do { if (final_pass || option_debug || local_debug) fprintf(sm_outfd, msg); } while (0)
 
 static inline void sm_prefix(void)

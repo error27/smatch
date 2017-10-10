@@ -54,11 +54,14 @@ do {										\
 		break;								\
 	}									\
 	if (option_info) {							\
+		FILE *tmp_fd = sm_outfd;					\
+		sm_outfd = sql_outfd;						\
 		sm_prefix();							\
 	        sm_printf("SQL: insert %sinto " #table " values(",		\
 			  ignore ? "or ignore " : "");				\
 	        sm_printf(values);						\
 	        sm_printf(");\n");						\
+		sm_outfd = tmp_fd;						\
 	}									\
 } while (0)
 
@@ -222,6 +225,7 @@ static char *function_signature(void)
 void sql_insert_caller_info(struct expression *call, int type,
 		int param, const char *key, const char *value)
 {
+	FILE *tmp_fd = sm_outfd;
 	char *fn;
 
 	if (!option_info && !__inline_call)
@@ -247,10 +251,12 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (strncmp(fn, "__builtin_", 10) == 0)
 		return;
 
+	sm_outfd = caller_info_fd;
 	sm_msg("SQL_caller_info: insert into caller_info values ("
 	       "'%s', '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
 	       get_base_file(), get_function(), fn, is_static(call->fn),
 	       type, param, key, value);
+	sm_outfd = tmp_fd;
 
 	free_string(fn);
 }

@@ -57,5 +57,7 @@ find -name \*.c.smatch -exec rm \{\} \;
 make -j${NR_CPU} $ENDIAN -k CHECK="$CMD -p=kernel --file-output $*" \
 	C=1 $TARGET 2>&1 | tee $LOG
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > $WLOG
+find -name \*.c.smatch.sql -exec cat \{\} \; -exec rm \{\} \; > $WLOG.sql
+find -name \*.c.smatch.caller_info -exec cat \{\} \; -exec rm \{\} \; > $WLOG.caller_info
 
 echo "Done.  The warnings are saved to $WLOG"

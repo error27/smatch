@@ -24,7 +24,13 @@ done
 ${bin_dir}/init_constraints.pl "$PROJ" $info_file $db_file
 ${bin_dir}/init_constraints_required.pl "$PROJ" $info_file $db_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $info_file $db_file
+if [ -e ${info_file}.sql ] ; then
+    ${bin_dir}/fill_db_sql.pl "$PROJ" ${info_file}.sql $db_file
+fi
 ${bin_dir}/fill_db_caller_info.pl "$PROJ" $info_file $db_file
+if [ -e ${info_file}.caller_info ] ; then
+    ${bin_dir}/fill_db_caller_info.pl "$PROJ" ${info_file}.caller_info $db_file
+fi
 ${bin_dir}/build_early_index.sh $db_file
 
 ${bin_dir}/fill_db_type_value.pl "$PROJ" $info_file $db_file

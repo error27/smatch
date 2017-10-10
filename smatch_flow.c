@@ -1743,6 +1743,35 @@ void end_fake_env(void)
 		final_pass = final_before_fake;
 }
 
+static void open_output_files(char *base_file)
+{
+	char buf[256];
+
+	snprintf(buf, sizeof(buf), "%s.smatch", base_file);
+	sm_outfd = fopen(buf, "w");
+	if (!sm_outfd) {
+		printf("Error:  Cannot open %s\n", buf);
+		exit(1);
+	}
+
+	if (!option_info)
+		return;
+
+	snprintf(buf, sizeof(buf), "%s.smatch.sql", base_file);
+	sql_outfd = fopen(buf, "w");
+	if (!sql_outfd) {
+		printf("Error:  Cannot open %s\n", buf);
+		exit(1);
+	}
+
+	snprintf(buf, sizeof(buf), "%s.smatch.caller_info", base_file);
+	caller_info_fd = fopen(buf, "w");
+	if (!caller_info_fd) {
+		printf("Error:  Cannot open %s\n", buf);
+		exit(1);
+	}
+}
+
 void smatch(int argc, char **argv)
 {
 	struct string_list *filelist = NULL;
@@ -1758,16 +1787,8 @@ void smatch(int argc, char **argv)
 	sparse_initialize(argc, argv, &filelist);
 	set_valid_ptr_max();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
-		if (option_file_output) {
-			char buf[256];
-
-			snprintf(buf, sizeof(buf), "%s.smatch", base_file);
-			sm_outfd = fopen(buf, "w");
-			if (!sm_outfd) {
-				printf("Error:  Cannot open %s\n", base_file);
-				exit(1);
-			}
-		}
+		if (option_file_output)
+			open_output_files(base_file);
 		sym_list = sparse_keep_tokens(base_file);
 		split_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(base_file);

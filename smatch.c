@@ -38,6 +38,8 @@ int option_file_output;
 int option_time;
 char *option_datadir_str;
 FILE *sm_outfd;
+FILE *sql_outfd;
+FILE *caller_info_fd;
 
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x, .enabled = 0},
@@ -284,6 +286,8 @@ int main(int argc, char **argv)
 	reg_func func;
 
 	sm_outfd = stdout;
+	sql_outfd = stdout;
+	caller_info_fd = stdout;
 	parse_args(&argc, &argv);
 
 	/* this gets set back to zero when we parse the first function */
