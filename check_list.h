@@ -4,7 +4,8 @@
 #endif
 
 CK(register_db_call_marker) /* always has to be first  */
-CK(register_smatch_extra) /* smatch_extra always has to be second */
+CK(register_param_used)     /* has to be before smatch_extra */
+CK(register_smatch_extra)   /* smatch_extra always has to be SMATCH_EXTRA */
 CK(register_smatch_extra_links)
 CK(register_modification_hooks)
 CK(register_definition_db_callbacks)
@@ -43,7 +44,6 @@ CK(register_auto_copy)
 CK(register_type_links)
 CK(register_impossible)
 CK(register_impossible_return)
-CK(register_param_used)
 CK(register_strings)
 CK(register_real_absolute)
 CK(register_imaginary_absolute)

@@ -21,6 +21,8 @@
 static int my_id;
 
 struct stree *used_stree;
+static struct stree_stack *saved_stack;
+
 STATE(used);
 
 static int get_container_arg(struct symbol *sym)
@@ -193,12 +195,34 @@ insert:
 	free_stree(&used_stree);
 }
 
+static void match_function_def(struct symbol *sym)
+{
+	free_stree(&used_stree);
+}
+
+static void match_save_states(struct expression *expr)
+{
+	push_stree(&saved_stack, used_stree);
+	used_stree = NULL;
+}
+
+static void match_restore_states(struct expression *expr)
+{
+	free_stree(&used_stree);
+	used_stree = pop_stree(&saved_stack);
+}
+
 void register_param_used(int id)
 {
 	my_id = id;
 
 	if (!option_info)
 		return;
+
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
+
+	add_hook(&match_save_states, INLINE_FN_START);
+	add_hook(&match_restore_states, INLINE_FN_END);
 
 	select_call_implies_hook(PARAM_USED, &set_param_used);
 	all_return_states_hook(&process_states);
