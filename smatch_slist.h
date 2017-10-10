@@ -90,5 +90,5 @@ void overwrite_stree(struct stree *from, struct stree **to);
 
 /* add stuff smatch_returns.c here */
 
-void all_return_states_hook(void (*callback)(struct stree *slist));
+void all_return_states_hook(void (*callback)(void));
 

@@ -120,16 +120,16 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_s
 	set_state(my_id, name, sym, new);
 }
 
-static void process_states(struct stree *stree)
+static void process_states(void)
 {
 	struct sm_state *sm;
 	struct smatch_state *extra;
 	struct range_list *rl;
 
-	FOR_EACH_SM(stree, sm) {
+	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner != my_id)
 			continue;
-		extra = get_state_stree(stree, SMATCH_EXTRA, sm->name, sm->sym);
+		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 		if (extra && estate_rl(extra))
 			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 		else

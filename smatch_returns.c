@@ -22,7 +22,7 @@
 int RETURN_ID;
 
 struct return_states_callback {
-	void (*callback)(struct stree *stree);
+	void (*callback)(void);
 };
 ALLOCATOR(return_states_callback, "return states callbacks");
 DECLARE_PTR_LIST(callback_list, struct return_states_callback);
@@ -48,7 +48,7 @@ static struct stree_stack_stack *saved_stack_stack;
 static struct stree *all_return_states;
 static struct stree_stack *saved_stack;
 
-void all_return_states_hook(void (*callback)(struct stree *stree))
+void all_return_states_hook(void (*callback)(void))
 {
 	struct return_states_callback *rs_cb = __alloc_return_states_callback(0);
 
@@ -60,9 +60,11 @@ static void call_hooks(void)
 {
 	struct return_states_callback *rs_cb;
 
+	__set_fake_cur_stree_fast(all_return_states);
 	FOR_EACH_PTR(callback_list, rs_cb) {
-		rs_cb->callback(all_return_states);
+		rs_cb->callback();
 	} END_FOR_EACH_PTR(rs_cb);
+	__pop_fake_cur_stree_fast();
 }
 
 static void match_return(int return_id, char *return_ranges, struct expression *expr)

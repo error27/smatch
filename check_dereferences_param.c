@@ -91,13 +91,13 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	check_deref(arg);
 }
 
-static void process_states(struct stree *stree)
+static void process_states(void)
 {
 	struct sm_state *tmp;
 	int arg;
 	const char *name;
 
-	FOR_EACH_MY_SM(my_id, stree, tmp) {
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), tmp) {
 		if (tmp->state != &derefed)
 			continue;
 		arg = get_param_num_from_sym(tmp->sym);

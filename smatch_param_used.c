@@ -62,7 +62,7 @@ free:
 	free_string(name);
 }
 
-static void process_states(struct stree *stree)
+static void process_states(void)
 {
 	struct sm_state *tmp;
 	int arg;
