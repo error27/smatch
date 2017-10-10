@@ -628,7 +628,17 @@ static void match_call_marker(struct expression *expr)
 	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", type_to_str(type));
 }
 
-static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
+static char *show_offset(int offset)
+{
+	static char buf[64];
+
+	buf[0] = '\0';
+	if (offset != -1)
+		snprintf(buf, sizeof(buf), "(-%d)", offset);
+	return buf;
+}
+
+static void print_struct_members(struct expression *call, struct expression *expr, int param, int offset, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
 	struct sm_state *sm;
@@ -654,18 +664,18 @@ static void print_struct_members(struct expression *call, struct expression *exp
 			continue;
 		if (strcmp(name, sm->name) == 0) {
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "*$");
+				snprintf(printed_name, sizeof(printed_name), "*$%s", show_offset(offset));
 			else /* these are already handled. fixme: handle them here */
 				continue;
 		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
-			snprintf(printed_name, sizeof(printed_name), "*$");
+			snprintf(printed_name, sizeof(printed_name), "*$%s", show_offset(offset));
 		} else if (strncmp(name, sm->name, len) == 0) {
 			if (isalnum(sm->name[len]))
 				continue;
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "$->%s", sm->name + len + 1);
+				snprintf(printed_name, sizeof(printed_name), "$%s->%s", show_offset(offset), sm->name + len + 1);
 			else
-				snprintf(printed_name, sizeof(printed_name), "$%s", sm->name + len);
+				snprintf(printed_name, sizeof(printed_name), "$%s%s", show_offset(offset), sm->name + len);
 		} else {
 			continue;
 		}
@@ -673,6 +683,60 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	} END_FOR_EACH_SM(sm);
 free:
 	free_string(name);
+}
+
+static int param_used_callback(void *_container, int argc, char **argv, char **azColName)
+{
+	char **container = _container;
+	static char buf[256];
+
+	snprintf(buf, sizeof(buf), "%s", argv[0]);
+	*container = buf;
+	return 0;
+}
+
+static void print_container_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
+	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
+{
+	struct expression *tmp;
+	char *container = NULL;
+	int offset;
+	int holder_offset;
+	char *p;
+
+	run_sql(&param_used_callback, &container,
+		"select key from call_implies where %s and key like '%%$(%%' and parameter = %d limit 1;",
+		get_static_filter(call->fn->symbol), param);
+	if (!container)
+		return;
+
+	p = strchr(container, '-');
+	if (!p)
+		return;
+	offset = atoi(p);
+	p = strchr(p, ')');
+	if (!p)
+		return;
+	p++;
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
+
+	if (expr->type != EXPR_PREOP || expr->op != '&') {
+		sm_msg("info: unable to get container for '%s'", expr_to_str(expr));
+		return;
+	}
+	expr = strip_expr(expr->unop);
+	holder_offset = get_member_offset_from_deref(expr);
+	if (-holder_offset != offset)
+		return;
+
+	expr = strip_expr(expr->deref);
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		expr = strip_expr(expr->unop);
+
+	print_struct_members(call, expr, param, holder_offset, stree, callback);
 }
 
 static void match_call_info(struct expression *call)
@@ -691,7 +755,8 @@ static void match_call_info(struct expression *call)
 		stree = get_all_states_stree(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, stree, cb->callback);
+			print_struct_members(call, arg, i, -1, stree, cb->callback);
+			print_container_struct_members(call, arg, i, stree, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_stree(&stree);
