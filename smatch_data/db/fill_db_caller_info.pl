@@ -35,15 +35,6 @@ sub get_too_common_functions($$$)
         $too_common_funcs{$_} = 1;
     }
     close(FILE);
-
-    open(FILE, ">", "$path/../$project.common_functions");
-    foreach my $func (keys %too_common_funcs) {
-        if ($func =~ / /) {
-            next;
-        }
-        print FILE "$func\n";
-    }
-    close(FILE);
 }
 
 my $exec_name = $0;
@@ -67,9 +58,7 @@ $db->do("PRAGMA temp_store = MEMORY");
 $db->do("PRAGMA locking = EXCLUSIVE");
 
 foreach my $func (keys %too_common_funcs) {
-    if ($func =~ / /) {
-        $db->do("insert into caller_info values ('unknown', 'too common', '$func', 0, 0, 0, -1, '', '');");
-    }
+    $db->do("insert into common_caller_info values ('unknown', 'too common', '$func', 0, 0, 0, -1, '', '');");
 }
 
 my $call_id = 0;
@@ -91,7 +80,7 @@ while (<WARNS>) {
         next;
     }
 
-    if (defined($too_common_funcs{$fn}) && $too_common_funcs{$fn} =~ / /) {
+    if (defined($too_common_funcs{$fn})) {
         next;
     }
 

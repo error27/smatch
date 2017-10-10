@@ -474,6 +474,7 @@ struct select_caller_info_data {
 	struct stree *final_states;
 	int prev_func_id;
 	int ignore;
+	int results;
 };
 
 static void sql_select_caller_info(struct select_caller_info_data *data,
@@ -488,6 +489,11 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 	}
 
 	if (sym->ident->name && is_common_function(sym->ident->name))
+		return;
+	run_sql(callback, data,
+		"select %s from common_caller_info where %s order by call_id;",
+		cols, get_static_filter(sym));
+	if (data->results)
 		return;
 
 	run_sql(callback, data,
@@ -818,6 +824,8 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 	struct def_callback *def_callback;
 	struct stree *stree;
 
+	data->results = 1;
+
 	if (argc != 5)
 		return 0;
 
@@ -959,11 +967,26 @@ static void match_data_from_db(struct symbol *sym)
 		FOR_EACH_PTR(ptr_names, ptr) {
 			run_sql(caller_info_callback, &data,
 				"select call_id, type, parameter, key, value"
+				" from common_caller_info where function = '%s' order by call_id",
+				ptr);
+		} END_FOR_EACH_PTR(ptr);
+
+		if (data.results) {
+			FOR_EACH_PTR(ptr_names, ptr) {
+				free_string(ptr);
+			} END_FOR_EACH_PTR(ptr);
+			goto free_ptr_names;
+		}
+
+		FOR_EACH_PTR(ptr_names, ptr) {
+			run_sql(caller_info_callback, &data,
+				"select call_id, type, parameter, key, value"
 				" from caller_info where function = '%s' order by call_id",
 				ptr);
 			free_string(ptr);
 		} END_FOR_EACH_PTR(ptr);
 
+free_ptr_names:
 		__free_ptr_list((struct ptr_list **)&ptr_names);
 		__free_ptr_list((struct ptr_list **)&ptr_names_done);
 	} else {
