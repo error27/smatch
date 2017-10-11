@@ -97,14 +97,9 @@ static int get_container_arg(struct symbol *sym)
 	if (!sym || !sym->ident)
 		return -1;
 
-	if (recursion)
-		return -1;
-	recursion = 1;
-
 	__mptr = get_assigned_expr_name_sym(sym->ident->name, sym);
 	param = get_param_from_container_of(__mptr);
 
-	recursion = 0;
 	return param;
 }
 
@@ -116,14 +111,9 @@ static int get_container_offset(struct symbol *sym)
 	if (!sym || !sym->ident)
 		return -1;
 
-	if (recursion)
-		return -1;
-	recursion = 1;
-
 	__mptr = get_assigned_expr_name_sym(sym->ident->name, sym);
 	offset = get_offset_from_container_of(__mptr);
 
-	recursion = 0;
 	return offset;
 }
 
@@ -158,6 +148,9 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym)
 		return;
 	if (__in_fake_assign)
 		return;
+	if (recursion)
+		return;
+	recursion = 1;
 
 	arg = get_container_arg(sym);
 	if (arg >= 0)
@@ -165,10 +158,12 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym)
 
 	arg = get_param_num_from_sym(sym);
 	if (arg < 0)
-		return;
+		goto end_recursion;
 
 save:
 	set_state_stree(&used_stree, my_id, name, sym, &used);
+end_recursion:
+	recursion = 0;
 }
 
 static void set_param_used(struct expression *call, struct expression *arg, char *key, char *unused)
@@ -176,6 +171,10 @@ static void set_param_used(struct expression *call, struct expression *arg, char
 	struct symbol *sym;
 	char *name;
 	int arg_nr;
+
+	if (recursion)
+		return;
+	recursion = 1;
 
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
@@ -193,6 +192,7 @@ save:
 	set_state(my_id, name, sym, &used);
 free:
 	free_string(name);
+	recursion = 0;
 }
 
 static void process_states(void)
@@ -200,6 +200,8 @@ static void process_states(void)
 	struct sm_state *tmp;
 	int arg, offset;
 	const char *name;
+
+	recursion++;
 
 	FOR_EACH_SM(used_stree, tmp) {
 		arg = get_param_num_from_sym(tmp->sym);
@@ -222,6 +224,8 @@ insert:
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&used_stree);
+
+	recursion--;
 }
 
 static void match_function_def(struct symbol *sym)
