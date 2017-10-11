@@ -245,12 +245,58 @@ static void match_restore_states(struct expression *expr)
 	used_stree = pop_stree(&saved_stack);
 }
 
+static void print_returns_container_of(int return_id, char *return_ranges, struct expression *expr)
+{
+	int offset;
+	int param;
+	char key[64];
+	char value[64];
+
+	param = get_param_from_container_of(expr);
+	if (param < 0)
+		return;
+	offset = get_offset_from_container_of(expr);
+	if (offset < 0)
+		return;
+
+	snprintf(key, sizeof(key), "%d", param);
+	snprintf(value, sizeof(value), "-%d", offset);
+
+	sql_insert_return_states(return_id, return_ranges, CONTAINER, -1,
+			key, value);
+}
+
+static void returns_container_of(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *call, *arg;
+	int offset;
+	char buf[64];
+
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return;
+	call = strip_expr(expr->right);
+	if (call->type != EXPR_CALL)
+		return;
+	if (param != -1)
+		return;
+	param = atoi(key);
+	offset = atoi(value);
+
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+	if (arg->type != EXPR_SYMBOL)
+		return;
+	param = get_param_num(arg);
+	if (param < 0)
+		return;
+	snprintf(buf, sizeof(buf), "$(%d)", offset);
+	sql_insert_call_implies(PARAM_USED, param, buf, "");
+}
+
 void register_param_used(int id)
 {
 	my_id = id;
-
-	if (!option_info)
-		return;
 
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
@@ -259,4 +305,7 @@ void register_param_used(int id)
 
 	select_call_implies_hook(PARAM_USED, &set_param_used);
 	all_return_states_hook(&process_states);
+
+	add_split_return_callback(&print_returns_container_of);
+	select_return_states_hook(CONTAINER, &returns_container_of);
 }
