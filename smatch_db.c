@@ -1712,6 +1712,29 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	return split_on_bool_sm(sm, expr);
 }
 
+struct expression *strip_expr_statement(struct expression *expr)
+{
+	struct expression *orig = expr;
+	struct statement *stmt, *last_stmt;
+
+	if (!expr)
+		return NULL;
+	if (expr->type == EXPR_PREOP && expr->op == '(')
+		expr = expr->unop;
+	if (expr->type != EXPR_STATEMENT)
+		return orig;
+	stmt = expr->statement;
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return orig;
+
+	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!last_stmt || last_stmt->type == STMT_LABEL)
+		last_stmt = last_stmt->label_statement;
+	if (!last_stmt || last_stmt->type != STMT_EXPRESSION)
+		return orig;
+	return strip_expr(last_stmt->expression);
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1724,6 +1747,7 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 
 	expr = strip_expr(expr);
+	expr = strip_expr_statement(expr);
 
 	if (is_impossible_path())
 		goto vanilla;
