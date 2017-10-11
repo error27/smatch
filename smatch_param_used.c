@@ -25,77 +25,106 @@ static struct stree_stack *saved_stack;
 
 STATE(used);
 
+int recursion;
+
+static int get_param_from_container_of(struct expression *expr)
+{
+	struct expression *param_expr;
+	struct symbol *type;
+	sval_t sval;
+	int param;
+
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return -1;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_BINOP || expr->op != '-')
+		return -1;
+
+	if (!get_value(expr->right, &sval))
+		return -1;
+	if (sval.value < 0 || sval.value > 4096)
+		return -1;
+
+	param_expr = get_assigned_expr(expr->left);
+	if (!param_expr)
+		return -1;
+	param = get_param_num(param_expr);
+	if (param < 0)
+		return -1;
+
+	return param;
+}
+
+static int get_offset_from_container_of(struct expression *expr)
+{
+	struct expression *param_expr;
+	struct symbol *type;
+	sval_t sval;
+	int param;
+
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return -1;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_BINOP || expr->op != '-')
+		return -1;
+
+	if (!get_value(expr->right, &sval))
+		return -1;
+	if (sval.value < 0 || sval.value > 4096)
+		return -1;
+
+	param_expr = get_assigned_expr(expr->left);
+	if (!param_expr)
+		return -1;
+	param = get_param_num(param_expr);
+	if (param < 0)
+		return -1;
+
+	return sval.value;
+}
+
 static int get_container_arg(struct symbol *sym)
 {
-	struct expression *__mptr, *param_expr;
-	sval_t sval;
-	static int recursion;
-	int ret = -1;
-
-	if (recursion)
-		return false;
-	recursion = 1;
+	struct expression *__mptr;
+	int param;
 
 	if (!sym || !sym->ident)
-		goto out;
+		return -1;
+
+	if (recursion)
+		return -1;
+	recursion = 1;
+
 	__mptr = get_assigned_expr_name_sym(sym->ident->name, sym);
-	if (!__mptr)
-		goto out;
-	__mptr = strip_expr(__mptr);
-	if (__mptr->type != EXPR_BINOP || __mptr->op != '-')
-		goto out;
+	param = get_param_from_container_of(__mptr);
 
-	if (!get_value(__mptr->right, &sval))
-		goto out;
-
-	param_expr = get_assigned_expr(__mptr->left);
-	if (!param_expr)
-		goto out;
-
-	ret = get_param_num(param_expr);
-out:
 	recursion = 0;
-	return ret;
+	return param;
 }
 
 static int get_container_offset(struct symbol *sym)
 {
-	struct expression *__mptr, *param_expr;
-	sval_t sval;
-	static int recursion;
-	int ret = -1;
-	int param;
-
-	if (recursion)
-		return false;
-	recursion = 1;
+	struct expression *__mptr;
+	int offset;
 
 	if (!sym || !sym->ident)
-		goto out;
+		return -1;
+
+	if (recursion)
+		return -1;
+	recursion = 1;
+
 	__mptr = get_assigned_expr_name_sym(sym->ident->name, sym);
-	if (!__mptr)
-		goto out;
-	__mptr = strip_expr(__mptr);
-	if (__mptr->type != EXPR_BINOP || __mptr->op != '-')
-		goto out;
+	offset = get_offset_from_container_of(__mptr);
 
-	if (!get_value(__mptr->right, &sval))
-		goto out;
-	if (sval.value < 0 || sval.value > 4096)
-		goto out;
-
-	param_expr = get_assigned_expr(__mptr->left);
-	if (!param_expr)
-		goto out;
-
-	param = get_param_num(param_expr);
-	if (param < 0)
-		goto out;
-
-	ret = sval.value;
-out:
 	recursion = 0;
-	return ret;
+	return offset;
 }
 
 static char *get_container_name(struct sm_state *sm, int offset)
