@@ -735,10 +735,8 @@ static void print_container_struct_members(struct expression *call, struct expre
 	if (tmp)
 		expr = tmp;
 
-	if (expr->type != EXPR_PREOP || expr->op != '&') {
-		sm_msg("info: unable to get container for '%s'", expr_to_str(expr));
+	if (expr->type != EXPR_PREOP || expr->op != '&')
 		return;
-	}
 	expr = strip_expr(expr->unop);
 	holder_offset = get_member_offset_from_deref(expr);
 	if (-holder_offset != offset)
