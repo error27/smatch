@@ -5,7 +5,9 @@ IMPL_DEP_FILE_STR = "../../smatch_data/kernel.implicit_dependencies"
 OUTPUT_FILE_STR = "implicit_dependencies"
 
 # struct fields to ignore, because they are too common
-BLACKLIST = []
+GLOBAL_BLACKLIST = [
+    ('fd', 'file'),
+]
 
 # here we can manually add struct fields that smatch missed
 hardcode_syscall_write_fields = {}

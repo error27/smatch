@@ -23,9 +23,13 @@ def main():
         "-v", "--verbose", action="store_true",
         help="if verbose, we list what fields are responsible for the dependency"
     )
+    arg_parser.add_argument(
+        "-p", "--pretty", action="store_true",
+        help="print implicit dependencies in pretty format"
+    )
     args = arg_parser.parse_args()
 
-    p = Parser(args.file, output_file_str=args.output, verbose=args.verbose)
+    p = Parser(args.file, output_file_str=args.output, verbose=args.verbose, pretty=args.pretty)
     p.parse()
     p.write()
     p.close()
