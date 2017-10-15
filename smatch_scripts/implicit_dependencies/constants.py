@@ -14,7 +14,7 @@ hardcode_syscall_write_fields = {}
 
 # here we can manually add struct fields that smatch missed
 hardcode_syscall_read_fields = {
-    # "msync": [("fd", "count")]
+    "msync": [("vm_area_struct", "vm_flags"), ("vm_area_struct", "vm_file")]
 }
 
 SYSCALL_PREFIXES = [
