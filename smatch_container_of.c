@@ -20,7 +20,7 @@
 
 static int my_id;
 
-struct stree *used_stree;
+static struct stree *used_stree;
 static struct stree_stack *saved_stack;
 
 STATE(used);
