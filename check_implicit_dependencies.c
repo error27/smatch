@@ -8,6 +8,7 @@ static char *syscall_name;
 
 static struct tracker_list *read_list; // what fields does syscall branch on?
 static struct tracker_list *write_list; // what fields does syscall modify?
+static struct tracker_list *parsed_syscalls; // syscalls we have already checked
 
 static inline void prefix() {
 	printf("%s:%d %s() ", get_filename(), get_lineno(), get_function());
@@ -16,6 +17,7 @@ static inline void prefix() {
 static void match_syscall_definition(struct symbol *sym)
 {
 	// struct symbol *arg;
+	struct tracker *tracker;
 	char *macro;
 	char *name;
 	int is_syscall = 0;
@@ -36,6 +38,13 @@ static void match_syscall_definition(struct symbol *sym)
 
 	if (!is_syscall)
 		return;
+
+	FOR_EACH_PTR(parsed_syscalls, tracker) {
+	    if (tracker->sym == sym) {  // don't re-parse
+		is_syscall = 0;
+		return;
+	    }
+	} END_FOR_EACH_PTR(tracker);
 
 	syscall_name = name;
 	// printf("-------------------------\n");	
@@ -88,6 +97,7 @@ static void match_after_syscall(struct symbol *sym) {
     print_write_list();
     free_trackers_and_list(&read_list);
     free_trackers_and_list(&write_list);
+    add_tracker(&parsed_syscalls, my_id, syscall_name, sym);
     cur_syscall = NULL;
     syscall_name = NULL;
 }
@@ -153,7 +163,7 @@ static void match_condition(struct expression *expr) {
 
 /* when we are parsing an inline function and can no longer nest,
  * assume that all struct fields passed to nested inline functions
- * are implicit dependencies
+ * are read dependencies
  */
 static void match_call_info(struct expression *expr)
 {

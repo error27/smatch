@@ -2642,6 +2642,30 @@ static void declare_argument(struct symbol *sym, struct symbol *fn)
 	bind_symbol(sym, sym->ident, NS_SYMBOL);
 }
 
+static int is_syscall(struct symbol *sym)
+{
+	char *macro;
+	char *name;
+	int is_syscall = 0;
+
+	macro = get_macro_name(sym->pos);
+	if (macro &&
+	    (strncmp("SYSCALL_DEFINE", macro, strlen("SYSCALL_DEFINE")) == 0 ||
+	     strncmp("COMPAT_SYSCALL_DEFINE", macro, strlen("COMPAT_SYSCALL_DEFINE")) == 0))
+		is_syscall = 1;
+
+	name = sym->ident->name;
+
+	if (name && strncmp(name, "sys_", 4) ==0)
+		is_syscall = 1;
+	
+	if (name && strncmp(name, "compat_sys_", 11) == 0)
+		is_syscall = 1;
+
+	return is_syscall;
+}
+    
+
 static struct token *parse_function_body(struct token *token, struct symbol *decl,
 	struct symbol_list **list)
 {
@@ -2678,9 +2702,17 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 
 	token = compound_statement(token->next, stmt);
 
-	end_function(decl);
+	end_function(decl); 
 	if (!(decl->ctype.modifiers & MOD_INLINE))
 		add_symbol(list, decl);
+	else if (is_syscall(decl)) {
+	    add_symbol(list, decl);
+	    /*
+	    printf("parse.c decl: %s\n", decl->ident->name);
+	    char *macro = get_macro_name(decl->pos);
+	    printf("decl macro: %s\n", macro);
+	    */
+	}
 	check_declaration(decl);
 	decl->definition = decl;
 	prev = decl->same_symbol;
