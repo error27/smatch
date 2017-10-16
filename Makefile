@@ -72,7 +72,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_unknown_value.o smatch_stored_conditions.o avl.o \
 	smatch_function_info.o smatch_links.o smatch_auto_copy.o \
 	smatch_type_links.o smatch_untracked_param.o smatch_impossible.o \
-	smatch_strings.o smatch_param_used.o smatch_address.o \
+	smatch_strings.o smatch_param_used.o smatch_container_of.o smatch_address.o \
 	smatch_buf_comparison.o smatch_real_absolute.o smatch_scope.o \
 	smatch_imaginary_absolute.o smatch_parameter_names.o \
 	smatch_return_to_param.o smatch_passes_array_size.o \

@@ -282,6 +282,7 @@ struct stree *get_all_states_from_stree(int owner, struct stree *source);
 struct stree *get_all_states_stree(int id);
 struct stree *__get_cur_stree(void);
 int is_reachable(void);
+void add_get_state_hook(void (*fn)(int owner, const char *name, struct symbol *sym));
 
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);

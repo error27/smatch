@@ -259,9 +259,37 @@ void __set_sm_fake_stree(struct sm_state *sm)
 	overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
 }
 
+
+typedef void (get_state_hook)(int owner, const char *name, struct symbol *sym);
+DECLARE_PTR_LIST(fn_list, get_state_hook *);
+static struct fn_list *get_state_hooks;
+
+void add_get_state_hook(get_state_hook *fn)
+{
+	get_state_hook **p = malloc(sizeof(get_state_hook *));
+	*p = fn;
+	add_ptr_list(&get_state_hooks, p);
+}
+
+static void call_get_state_hooks(int owner, const char *name, struct symbol *sym)
+{
+	static int recursion;
+	get_state_hook **fn;
+
+	if (recursion)
+		return;
+	recursion = 1;
+
+	FOR_EACH_PTR(get_state_hooks, fn) {
+		(*fn)(owner, name, sym);
+	} END_FOR_EACH_PTR(fn);
+
+	recursion = 0;
+}
+
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
-	__get_state_hook(owner, name, sym);
+	call_get_state_hooks(owner, name, sym);
 
 	return get_state_stree(cur_stree, owner, name, sym);
 }

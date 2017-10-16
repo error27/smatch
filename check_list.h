@@ -4,7 +4,8 @@
 #endif
 
 CK(register_db_call_marker) /* always has to be first  */
-CK(register_param_used)     /* has to be before smatch_extra */
+CK(register_param_used)     /* get_state_hooks have to be registered before smatch_extra */
+CK(register_container_of)
 CK(register_smatch_extra)   /* smatch_extra always has to be SMATCH_EXTRA */
 CK(register_smatch_extra_links)
 CK(register_modification_hooks)
