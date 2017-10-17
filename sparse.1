@@ -67,8 +67,8 @@ kind of like "NULL" for pointers). So "gfp_t" or the "safe endianness"
 types would be __bitwise: you can only operate on them by doing
 specific operations that know about *that* particular type.
 
-Generally, you want bitwise if you are looking for type safety. Sparse
-does not issue these warnings by default.
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-bitwise\fR.
 .
 .TP
 .B \-Wcast\-to\-as
