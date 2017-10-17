@@ -245,7 +245,7 @@ int parent_is_free_var_sym(const char *name, struct symbol *sym)
 
 	while ((end = strrchr(start, '-'))) {
 		*end = '\0';
-		state = get_state(my_id, start, sym);
+		state = __get_state(my_id, start, sym);
 		if (state == &freed)
 			return 1;
 	}

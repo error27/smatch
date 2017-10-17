@@ -259,6 +259,7 @@ static inline void print_implied_debug_msg(void)
 
 #define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 
+struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
 struct state_list *get_possible_states(int owner, const char *name,

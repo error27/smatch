@@ -1998,7 +1998,7 @@ int parent_is_null_var_sym(const char *name, struct symbol *sym)
 
 	while ((end = strrchr(start, '-'))) {
 		*end = '\0';
-		state = get_state(SMATCH_EXTRA, start, sym);
+		state = __get_state(SMATCH_EXTRA, start, sym);
 		if (!state)
 			continue;
 		if (estate_min(state).value == 0 &&

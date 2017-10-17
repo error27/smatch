@@ -116,7 +116,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (!param_name)
 			continue;
 
-		state = get_state(my_id, tmp->name, tmp->sym);
+		state = __get_state(my_id, tmp->name, tmp->sym);
 		if (!state)
 			state = tmp->state;
 

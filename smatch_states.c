@@ -287,11 +287,16 @@ static void call_get_state_hooks(int owner, const char *name, struct symbol *sym
 	recursion = 0;
 }
 
+struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym)
+{
+	return get_state_stree(cur_stree, owner, name, sym);
+}
+
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 {
 	call_get_state_hooks(owner, name, sym);
 
-	return get_state_stree(cur_stree, owner, name, sym);
+	return __get_state(owner, name, sym);
 }
 
 struct smatch_state *get_state_expr(int owner, struct expression *expr)
