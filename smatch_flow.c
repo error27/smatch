@@ -1697,8 +1697,32 @@ static struct stree *clone_estates_perm(struct stree *orig)
 	return ret;
 }
 
+static bool interesting_function(struct symbol *sym)
+{
+	static int prev_stream = -1;
+	static bool prev_answer;
+	const char *filename;
+	int len;
+
+
+	if (!(sym->ctype.modifiers & MOD_INLINE))
+		return true;
+
+	if (sym->pos.stream == prev_stream)
+		return prev_answer;
+
+	prev_stream = sym->pos.stream;
+	prev_answer = false;
+
+	filename = stream_name(sym->pos.stream);
+	len = strlen(filename);
+	if (len > 0 && filename[len - 1] == 'c')
+		prev_answer = true;
+	return prev_answer;
+}
+
 struct position last_pos;
-static void split_functions(struct symbol_list *sym_list)
+static void split_c_file_functions(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
 
@@ -1715,6 +1739,9 @@ static void split_functions(struct symbol_list *sym_list)
 
 	FOR_EACH_PTR(sym_list, sym) {
 		set_position(sym->pos);
+		last_pos = sym->pos;
+		if (!interesting_function(sym))
+			continue;
 		if (sym->type == SYM_NODE && get_base_type(sym)->type == SYM_FN) {
 			split_function(sym);
 			process_inlines();
@@ -1790,7 +1817,7 @@ void smatch(int argc, char **argv)
 		if (option_file_output)
 			open_output_files(base_file);
 		sym_list = sparse_keep_tokens(base_file);
-		split_functions(sym_list);
+		split_c_file_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(base_file);
 
 	gettimeofday(&stop, NULL);

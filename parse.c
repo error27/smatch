@@ -2622,8 +2622,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 	token = compound_statement(token->next, stmt);
 
 	end_function(decl);
-	if (!(decl->ctype.modifiers & MOD_INLINE))
-		add_symbol(list, decl);
+	add_symbol(list, decl);
 	check_declaration(decl);
 	decl->definition = decl;
 	prev = decl->same_symbol;
