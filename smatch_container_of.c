@@ -25,7 +25,7 @@ static struct stree_stack *saved_stack;
 
 STATE(used);
 
-static int get_param_from_container_of(struct expression *expr)
+int get_param_from_container_of(struct expression *expr)
 {
 	struct expression *param_expr;
 	struct symbol *type;
@@ -56,7 +56,7 @@ static int get_param_from_container_of(struct expression *expr)
 	return param;
 }
 
-static int get_offset_from_container_of(struct expression *expr)
+int get_offset_from_container_of(struct expression *expr)
 {
 	struct expression *param_expr;
 	struct symbol *type;

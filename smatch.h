@@ -1011,6 +1011,10 @@ struct constraint_list *get_constraints(struct expression *expr);
 char *unmet_constraint(struct expression *data, struct expression *offset);
 char *get_required_constraint(const char *data_str);
 
+/* smatch_container_of.c */
+int get_param_from_container_of(struct expression *expr);
+int get_offset_from_container_of(struct expression *expr);
+
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)
