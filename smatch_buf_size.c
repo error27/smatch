@@ -773,6 +773,28 @@ static void match_alloc_pages(const char *fn, struct expression *expr, void *_or
 	store_alloc(expr->left, alloc_rl(sval, sval));
 }
 
+static int is_type_bytes(struct range_list *rl, struct expression *arg)
+{
+	struct symbol *type;
+	sval_t sval;
+
+	if (!rl_to_sval(rl, &sval))
+		return 0;
+
+	type = get_type(arg);
+	if (!type)
+		return 0;
+	if (type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (type->type != SYM_STRUCT &&
+	    type->type != SYM_UNION)
+		return 0;
+	if (sval.value != type_bytes(type))
+		return 0;
+	return 1;
+}
+
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
@@ -790,6 +812,8 @@ static void match_call(struct expression *expr)
 		if (!rl)
 			continue;
 		if (is_whole_rl(rl))
+			continue;
+		if (is_type_bytes(rl, arg))
 			continue;
 		sql_insert_caller_info(expr, BUF_SIZE, i, "$", show_rl(rl));
 	} END_FOR_EACH_PTR(arg);
