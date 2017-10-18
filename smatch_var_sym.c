@@ -46,12 +46,7 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 
 		if (unop->type == EXPR_SYMBOL)
 			goto one_var;
-		ret = expr_to_vsl(unop);
-		if (ptr_list_size((struct ptr_list *)ret) == 1) {
-			ret = NULL;
-			goto one_var;
-		}
-		return ret;
+		return expr_to_vsl(unop);
 	}
 
 	if (expr->type == EXPR_BINOP ||
