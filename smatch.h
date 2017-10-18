@@ -481,7 +481,7 @@ int assume(struct expression *expr);
 void end_assume(void);
 
 /* smatch_extras.c */
-#define SMATCH_EXTRA 3 /* this is my_id from smatch extra set in smatch.c */
+#define SMATCH_EXTRA 4 /* this is my_id from smatch extra set in smatch.c */
 extern int RETURN_ID;
 
 struct data_range {
