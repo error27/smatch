@@ -721,6 +721,12 @@ static void print_container_struct_members(struct expression *call, struct expre
 	if (!call->fn || call->fn->type != EXPR_SYMBOL)
 		return;
 
+	/*
+	 * We can't use the in-mem DB because we have to parse the function
+	 * first, then we know if it takes a container, then we know to pass it
+	 * the container data.
+	 *
+	 */
 	run_sql(&param_used_callback, &container,
 		"select key from call_implies where %s and key like '%%$(%%' and parameter = %d limit 1;",
 		get_static_filter(call->fn->symbol), param);
@@ -1341,17 +1347,16 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 		return alloc_sname(buf);
 	}
-
 	if (math_str) {
 		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
 		return alloc_sname(buf);
 	}
-
 	compare_str = get_return_compare_str(expr);
 	if (compare_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 		return alloc_sname(buf);
 	}
+
 	return return_ranges;
 }
 
