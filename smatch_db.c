@@ -718,6 +718,9 @@ static void print_container_struct_members(struct expression *call, struct expre
 	int holder_offset;
 	char *p;
 
+	if (!call->fn || call->fn->type != EXPR_SYMBOL)
+		return;
+
 	run_sql(&param_used_callback, &container,
 		"select key from call_implies where %s and key like '%%$(%%' and parameter = %d limit 1;",
 		get_static_filter(call->fn->symbol), param);
