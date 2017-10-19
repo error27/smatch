@@ -1896,13 +1896,19 @@ static void init_memdb(void)
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
 		fd = open_data_file(schema_files[i]);
 		if (fd < 0) {
-			mem_db = NULL;
-			return;
+			printf("failed to open: %s\n", schema_files[i]);
+			continue;
 		}
 		ret = read(fd, buf, sizeof(buf));
+		if (ret < 0) {
+			printf("failed to read: %s\n", schema_files[i]);
+			continue;
+		}
+		close(fd);
 		if (ret == sizeof(buf)) {
 			printf("Schema file too large:  %s (limit %zd bytes)",
 			       schema_files[i], sizeof(buf));
+			continue;
 		}
 		buf[ret] = '\0';
 		rc = sqlite3_exec(mem_db, buf, NULL, NULL, &err);
