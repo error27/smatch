@@ -35,6 +35,15 @@ sub get_too_common_functions($$$)
         $too_common_funcs{$_} = 1;
     }
     close(FILE);
+
+    open(FILE, ">", "$path/../$project.common_functions");
+    foreach my $func (keys %too_common_funcs) {
+        if ($func =~ / /) {
+            next;
+        }
+        print FILE "$func\n";
+    }
+    close(FILE);
 }
 
 my $exec_name = $0;
@@ -77,10 +86,6 @@ while (<WARNS>) {
         next;
     }
     if ($fn =~ /^(printk|memset|memcpy|kfree|printf|dev_err|writel)$/) {
-        next;
-    }
-
-    if (defined($too_common_funcs{$fn})) {
         next;
     }
 

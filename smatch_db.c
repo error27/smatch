@@ -250,6 +250,8 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	if (strncmp(fn, "__builtin_", 10) == 0)
 		return;
+	if (type != INTERNAL && is_common_function(fn))
+		return;
 
 	sm_outfd = caller_info_fd;
 	sm_msg("SQL_caller_info: insert into caller_info values ("
