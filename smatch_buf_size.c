@@ -243,7 +243,7 @@ static struct range_list *size_from_db_symbol(struct expression *expr)
 	if (expr->type != EXPR_SYMBOL)
 		return NULL;
 	sym = expr->symbol;
-	if (!sym->ident ||
+	if (!sym || !sym->ident ||
 	    !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
 	    sym->ctype.modifiers & MOD_STATIC)
 		return NULL;

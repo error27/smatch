@@ -964,7 +964,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		 * below and we'll spam+return.
 		 */
 		struct symbol *sym = fmtexpr->symbol;
-		if (sym->initializer &&
+		if (sym && sym->initializer &&
 		    (is_array_of_const_char(sym) ||
 		     is_const_pointer_to_const_char(sym))) {
 			fmtexpr = strip_parens(sym->initializer);
