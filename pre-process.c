@@ -935,13 +935,14 @@ const char *search_dir(const char *stop, const char *look_for)
 	char cwd[PATH_MAX];
 	int len;
 	const char *ret;
+	int cnt = 0;
 
 	if (!getcwd(cwd, sizeof(cwd)))
 		return NULL;
 
 	len = strlen(cwd);
 	while (len >= 0) {
-		ret = find_include(cwd + len + 1, look_for);
+		ret = find_include(cnt++ ? cwd + len + 1 : "", look_for);
 		if (ret)
 			return ret;
 
