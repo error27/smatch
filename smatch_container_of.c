@@ -61,8 +61,6 @@ int get_offset_from_container_of(struct expression *expr)
 	struct expression *param_expr;
 	struct symbol *type;
 	sval_t sval;
-	int param;
-
 
 	type = get_type(expr);
 	if (!type || type->type != SYM_PTR)
@@ -79,9 +77,6 @@ int get_offset_from_container_of(struct expression *expr)
 
 	param_expr = get_assigned_expr(expr->left);
 	if (!param_expr)
-		return -1;
-	param = get_param_num(param_expr);
-	if (param < 0)
 		return -1;
 
 	return sval.value;
