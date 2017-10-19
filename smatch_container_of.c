@@ -214,6 +214,7 @@ static void print_returns_container_of(int return_id, char *return_ranges, struc
 	snprintf(key, sizeof(key), "%d", param);
 	snprintf(value, sizeof(value), "-%d", offset);
 
+	/* no need to add it to call_implies because it's not really param_used */
 	sql_insert_return_states(return_id, return_ranges, CONTAINER, -1,
 			key, value);
 }
