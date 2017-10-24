@@ -174,7 +174,7 @@ static void process_states(void)
 		name = get_container_name(tmp, offset);
 		if (!name)
 			continue;
-		sql_insert_call_implies(PARAM_USED, arg, name, "");
+		sql_insert_call_implies(CONTAINER, arg, name, "");
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&used_stree);
@@ -244,7 +244,7 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 	if (param < 0)
 		return;
 	snprintf(buf, sizeof(buf), "$(%d)", offset);
-	sql_insert_call_implies(PARAM_USED, param, buf, "");
+	sql_insert_call_implies(CONTAINER, param, buf, "");
 }
 
 void register_container_of(int id)
@@ -258,7 +258,7 @@ void register_container_of(int id)
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
 
-	select_call_implies_hook(PARAM_USED, &set_param_used);
+	select_call_implies_hook(CONTAINER, &set_param_used);
 	all_return_states_hook(&process_states);
 
 	add_split_return_callback(&print_returns_container_of);
