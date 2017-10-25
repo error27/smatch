@@ -336,7 +336,7 @@ static struct symbol *_typedef_lookup(const char *name)
 	node = lookup_symbol(id, NS_TYPEDEF);
 	if (!node || node->type != SYM_NODE)
 		return NULL;
-	return node->ctype.base_type;
+	return get_real_base_type(node);
 }
 
 static void typedef_lookup(struct typedef_lookup *tl)
