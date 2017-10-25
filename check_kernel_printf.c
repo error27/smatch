@@ -1008,9 +1008,11 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 
 		if (spec.flags & SPECIAL && has_hex_prefix(orig_fmt, old_fmt))
 			sm_msg("warn: '%.2s' prefix is redundant when # flag is used", old_fmt-2);
-		if (is_integer_specifier(spec.type) && spec.base != 16 && has_hex_prefix(orig_fmt, old_fmt))
-			sm_msg("warn: '%.2s' prefix is confusing together with '%.*s' specifier",
-			       old_fmt-2, (int)(fmt-old_fmt), old_fmt);
+		if (is_integer_specifier(spec.type)) {
+			if (spec.base != 16 && has_hex_prefix(orig_fmt, old_fmt))
+				sm_msg("warn: '%.2s' prefix is confusing together with '%.*s' specifier",
+				       old_fmt-2, (int)(fmt-old_fmt), old_fmt);
+		}
 
 		switch (spec.type) {
 		/* case FORMAT_TYPE_NONE: */
