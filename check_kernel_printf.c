@@ -639,8 +639,6 @@ static void flag_string(const char *fmt, struct symbol *type, struct symbol *bas
 
 static void device_node_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
-	static struct typedef_lookup gfp = { .name = "gfp_t" };
-
 	if (fmt[1] != 'F')
 		sm_msg("error: %%pO can only be followed by 'F'");
 }
