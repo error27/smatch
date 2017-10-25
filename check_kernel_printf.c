@@ -639,8 +639,13 @@ static void flag_string(const char *fmt, struct symbol *type, struct symbol *bas
 
 static void device_node_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
-	if (fmt[1] != 'F')
+	if (fmt[1] != 'F') {
 		sm_msg("error: %%pO can only be followed by 'F'");
+		return;
+	}
+	if (!is_struct_tag(basetype, "device_node"))
+		sm_msg("error: '%%pOF' expects argument of type 'struct device_node*', argument %d has type '%s'",
+		       vaidx, type_to_str(type));
 }
 
 static void
