@@ -42,6 +42,9 @@ static void match_condition(struct expression *expr)
 	struct smatch_state *right_min_true = NULL;
 	struct smatch_state *right_min_false = NULL;
 
+	if (expr->type != EXPR_COMPARE)
+		return;
+
 	switch (expr->op) {
 	case '<':
 	case SPECIAL_LTE:
