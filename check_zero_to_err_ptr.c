@@ -65,7 +65,8 @@ static int next_line_checks_IS_ERR(struct expression *call, struct expression *a
 		next = strip_expr(next->unop);
 	if (!next || next->type != EXPR_CALL)
 		return 0;
-	if (next->fn->type != EXPR_SYMBOL || !next->fn->symbol->ident ||
+	if (next->fn->type != EXPR_SYMBOL || !next->fn->symbol ||
+	    !next->fn->symbol->ident ||
 	    (strcmp(next->fn->symbol->ident->name, "IS_ERR") != 0 &&
 	     strcmp(next->fn->symbol->ident->name, "IS_ERR_OR_NULL") != 0))
 		return 0;

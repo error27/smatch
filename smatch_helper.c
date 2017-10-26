@@ -604,6 +604,8 @@ struct statement *get_expression_statement(struct expression *expr)
 		return NULL;
 	if (expr->op != '(')
 		return NULL;
+	if (!expr->unop)
+		return NULL;
 	if (expr->unop->type != EXPR_STATEMENT)
 		return NULL;
 	if (expr->unop->statement->type != STMT_COMPOUND)
@@ -617,6 +619,9 @@ struct expression *strip_parens(struct expression *expr)
 		return NULL;
 
 	if (expr->type == EXPR_PREOP) {
+		if (!expr->unop)
+			return expr;  /* parsing invalid code */
+
 		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
 			expr->unop->statement->type == STMT_COMPOUND)
 			return expr;
@@ -637,6 +642,9 @@ struct expression *strip_expr(struct expression *expr)
 		return strip_expr(expr->cast_expression);
 	case EXPR_PREOP: {
 		struct expression *unop;
+
+		if (!expr->unop)  /* parsing invalid code */
+			return expr;
 
 		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
 			expr->unop->statement->type == STMT_COMPOUND)
@@ -764,7 +772,7 @@ char *get_member_name(struct expression *expr)
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-	if (expr->type != EXPR_DEREF)
+	if (!expr || expr->type != EXPR_DEREF)
 		return NULL;
 	if (!expr->member)
 		return NULL;
