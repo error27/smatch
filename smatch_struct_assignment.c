@@ -110,6 +110,8 @@ static struct expression *remove_addr(struct expression *expr)
 	struct symbol *type;
 
 	expr = strip_expr(expr);
+	if (!expr)
+		return NULL;
 
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		return strip_expr(expr->unop);
