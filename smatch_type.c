@@ -71,13 +71,17 @@ static struct symbol *get_binop_type(struct expression *expr)
 			return &int_ctype;
 		return left;
 	}
-	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
-		return left;
-
 	right = get_type(expr->right);
 	if (!right)
 		return NULL;
 
+	if (expr->op == '-' &&
+	    (left->type == SYM_PTR || left->type == SYM_ARRAY) &&
+	    (right->type == SYM_PTR || right->type == SYM_ARRAY))
+		return ssize_t_ctype;
+
+	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
+		return left;
 	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
 		return right;
 
