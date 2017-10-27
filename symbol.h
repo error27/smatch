@@ -348,6 +348,8 @@ static inline int is_type_type(struct symbol *type)
 
 static inline int is_ptr_type(struct symbol *type)
 {
+	if (!type)
+		return 0;
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
