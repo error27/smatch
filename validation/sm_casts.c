@@ -1,10 +1,10 @@
 void frob(void);
 
+char c;
 static int options_write(void)
 {
 	char a;
 	unsigned char b;
-	char c;
 
 	a = (char)0xff;
 	a = 0xff;
