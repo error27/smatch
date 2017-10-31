@@ -1279,7 +1279,7 @@ static const char *storage_class[] =
 
 static unsigned long storage_modifiers(struct decl_state *ctx)
 {
-	static unsigned long mod[] = 
+	static unsigned long mod[ARRAY_SIZE(storage_class)] =
 	{
 		[SAuto] = MOD_AUTO,
 		[SExtern] = MOD_EXTERN,
