@@ -6,6 +6,9 @@
 *~
 .*.swp
 .gdb_history
+*.c.smatch
+*.c.smatch.caller_info
+*.c.smatch.sql
 
 # generated
 pre-process.h
