@@ -139,8 +139,8 @@ static struct expression *get_array_expr(struct expression *expr)
 		return NULL;
 
 	parent = expr_get_parent_expr(expr);
-	if (!parent)
-		return NULL;
+	if (!parent)  /* Sometimes we haven't set up the ->parent yet. FIXME!! */
+		return expr->left;
 	if (parent->type == EXPR_PREOP && parent->op == '*')
 		return expr->left;
 
