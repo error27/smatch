@@ -20,6 +20,40 @@
 
 static int my_id;
 
+struct allocator {
+	const char *func;
+	int param;
+	int param2;
+};
+
+static struct allocator generic_allocator_table[] = {
+	{"malloc", 0},
+	{"memdup", 1},
+	{"realloc", 1},
+};
+
+static struct allocator kernel_allocator_table[] = {
+	{"kmalloc", 0},
+	{"kzalloc", 0},
+	{"vmalloc", 0},
+	{"__vmalloc", 0},
+	{"vzalloc", 0},
+	{"sock_kmalloc", 1},
+	{"kmemdup", 1},
+	{"kmemdup_user", 1},
+	{"dma_alloc_attrs", 1},
+	{"pci_alloc_consistent", 1},
+	{"pci_alloc_coherent", 1},
+	{"devm_kmalloc", 1},
+	{"devm_kzalloc", 1},
+	{"krealloc", 1},
+};
+
+static struct allocator calloc_table[] = {
+	{"calloc", 0, 1},
+	{"kcalloc", 0, 1},
+};
+
 static int bytes_per_element(struct expression *expr)
 {
 	struct symbol *type;
@@ -58,39 +92,56 @@ free_data:
 	free_string(data);
 }
 
-static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
+static void match_alloc_helper(struct expression *pointer, struct expression *size)
 {
-	int size_arg = PTR_INT(_size_arg);
-	struct expression *pointer, *call, *arg;
+	struct expression *tmp;
 	sval_t sval;
+	int cnt = 0;
 
-	pointer = strip_expr(expr->left);
-	call = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(call->args, size_arg);
-	arg = strip_expr(arg);
+	pointer = strip_expr(pointer);
+	size = strip_expr(size);
+	if (!size || !pointer)
+		return;
 
-	if (arg->type == EXPR_BINOP && arg->op == '*') {
-		struct expression *left, *right;
+	while ((tmp = get_assigned_expr(size))) {
+		size = strip_expr(tmp);
+		if (cnt++ > 5)
+			break;
+	}
 
-		left = strip_expr(arg->left);
-		right = strip_expr(arg->right);
+	if (size->type == EXPR_BINOP && size->op == '*') {
+		struct expression *mult_left, *mult_right;
 
-		if (get_implied_value(left, &sval) &&
+		mult_left = strip_expr(size->left);
+		mult_right = strip_expr(size->right);
+
+		if (get_implied_value(mult_left, &sval) &&
 		    sval.value == bytes_per_element(pointer))
-			arg = right;
-		else if (get_implied_value(right, &sval) &&
+			size = mult_right;
+		else if (get_implied_value(mult_right, &sval) &&
 		    sval.value == bytes_per_element(pointer))
-			arg = left;
+			size = mult_left;
 		else
 			return;
 	}
 
-	if (arg->type == EXPR_BINOP && arg->op == '+' &&
-	    get_implied_value(expr->right, &sval) &&
+	if (size->type == EXPR_BINOP && size->op == '+' &&
+	    get_implied_value(size->right, &sval) &&
 	    sval.value == 1)
-		save_constraint_required(pointer, SPECIAL_LTE, arg->left);
+		save_constraint_required(pointer, SPECIAL_LTE, size->left);
 	else
-		save_constraint_required(pointer, '<', arg);
+		save_constraint_required(pointer, '<', size);
+}
+
+static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
+{
+	int size_arg = PTR_INT(_size_arg);
+	struct expression *call, *arg;
+
+	call = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(call->args, size_arg);
+
+	match_alloc_helper(expr->left, arg);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
@@ -125,7 +176,7 @@ static void add_allocation_function(const char *func, void *call_back, int param
 	add_function_assign_hook(func, call_back, INT_PTR(param));
 }
 
-static void match_assign_state(struct expression *expr)
+static void match_assign_size(struct expression *expr)
 {
 	struct smatch_state *state;
 	char *data, *limit;
@@ -147,6 +198,69 @@ static void match_assign_state(struct expression *expr)
 	free_string(limit);
 free_data:
 	free_string(data);
+}
+
+static void match_assign_data(struct expression *expr)
+{
+	struct expression *right, *arg, *tmp;
+	int i;
+	int size_arg;
+	int size_arg2 = -1;
+
+	if (expr->op != '=')
+		return;
+
+	/* Direct calls are handled else where (for now at least) */
+	tmp = get_assigned_expr(expr->right);
+	if (!tmp)
+		return;
+
+	right = strip_expr(tmp);
+	if (right->type != EXPR_CALL)
+		return;
+
+	if (right->fn->type != EXPR_SYMBOL ||
+	    !right->fn->symbol ||
+	    !right->fn->symbol->ident)
+		return;
+
+	for (i = 0; i < ARRAY_SIZE(generic_allocator_table); i++) {
+		if (strcmp(right->fn->symbol->ident->name,
+			   generic_allocator_table[i].func) == 0) {
+			size_arg = generic_allocator_table[i].param;
+			goto found;
+		}
+	}
+
+	if (option_project != PROJ_KERNEL)
+		return;
+
+	for (i = 0; i < ARRAY_SIZE(kernel_allocator_table); i++) {
+		if (strcmp(right->fn->symbol->ident->name,
+			   kernel_allocator_table[i].func) == 0) {
+			size_arg = kernel_allocator_table[i].param;
+			goto found;
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(calloc_table); i++) {
+		if (strcmp(right->fn->symbol->ident->name,
+			   calloc_table[i].func) == 0) {
+			size_arg = calloc_table[i].param;
+			size_arg2 = calloc_table[i].param2;
+			goto found;
+		}
+	}
+
+	return;
+
+found:
+	arg = get_argument_from_call_expr(right->args, size_arg);
+	match_alloc_helper(expr->left, arg);
+	if (size_arg2 == -1)
+		return;
+	arg = get_argument_from_call_expr(right->args, size_arg2);
+	match_alloc_helper(expr->left, arg);
 }
 
 static void match_assign_ARRAY_SIZE(struct expression *expr)
@@ -188,7 +302,8 @@ void register_constraints_required(int id)
 {
 	my_id = id;
 
-	add_hook(&match_assign_state, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_size, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_data, ASSIGNMENT_HOOK);
 
 	add_hook(&match_assign_ARRAY_SIZE, ASSIGNMENT_HOOK);
 	add_hook(&match_assign_ARRAY_SIZE, GLOBAL_ASSIGNMENT_HOOK);
@@ -202,6 +317,7 @@ void register_constraints_required(int id)
 		add_allocation_function("kzalloc", &match_alloc, 0);
 		add_allocation_function("vmalloc", &match_alloc, 0);
 		add_allocation_function("__vmalloc", &match_alloc, 0);
+		add_allocation_function("vzalloc", &match_alloc, 0);
 		add_allocation_function("sock_kmalloc", &match_alloc, 1);
 		add_allocation_function("kmemdup", &match_alloc, 1);
 		add_allocation_function("kmemdup_user", &match_alloc, 1);
