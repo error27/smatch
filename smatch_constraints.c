@@ -236,15 +236,15 @@ static int save_op_callback(void *_p, int argc, char **argv, char **azColName)
 
 static int save_str_callback(void *_p, int argc, char **argv, char **azColName)
 {
-	char *p = _p;
+	char **p = _p;
 
-	if (!p) {
-		p = alloc_string(argv[0]);
+	if (!*p) {
+		*p = alloc_string(argv[0]);
 	} else {
 		char buf[256];
 
-		snprintf(buf, sizeof(buf), "%s, %s", p, argv[0]);
-		p = alloc_string(buf);
+		snprintf(buf, sizeof(buf), "%s, %s", *p, argv[0]);
+		*p = alloc_string(buf);
 	}
 	return 0;
 }
