@@ -292,6 +292,7 @@ char *unmet_constraint(struct expression *data, struct expression *offset)
 	if (!required)
 		return NULL;
 
+	/* check the list of bounds on our index against the list that work */
 	FOR_EACH_PTR(list, con) {
 		char *con_str;
 
@@ -323,8 +324,6 @@ free_data:
 struct string_list *saved_constraints;
 static void save_new_constraint(const char *con)
 {
-	if (local_debug)
-		sm_msg("saving '%s'", con);
 	if (list_has_string(saved_constraints, con))
 		return;
 	insert_string(&saved_constraints, con);
