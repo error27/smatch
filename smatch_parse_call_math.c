@@ -26,6 +26,7 @@ struct {
 	int param;
 } alloc_functions[] = {
 	{"kmalloc", 0},
+	{"kzalloc", 0},
 	{"__kmalloc", 0},
 	{"vmalloc", 0},
 	{"__vmalloc", 0},
