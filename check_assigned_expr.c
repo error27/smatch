@@ -80,11 +80,49 @@ free:
 	free_string(right_name);
 }
 
+static void record_param_assignment(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg, *right;
+	struct symbol *sym;
+	char *name;
+	char *p;
+	int right_param;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (!expr || expr->type != EXPR_CALL)
+		return;
+
+	p = strstr(value, "[$");
+	if (!p)
+		return;
+
+	p += 2;
+	right_param = strtol(p, &p, 10);
+	if (*p != ']')
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	right = get_argument_from_call_expr(expr->args, right_param);
+	if (!right || !arg)
+		return;
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	if (local_debug)
+		sm_msg("FAKE ASSIGN: %s = %s.  sym = %p", name, expr_to_str(right), sym);
+	set_state(my_id, name, sym, alloc_state_expr(right));
+free:
+	free_string(name);
+}
+
 void check_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook(my_id, &undef);
+	select_return_states_hook(PARAM_SET, &record_param_assignment);
 }
 
 void check_assigned_expr_links(int id)
