@@ -268,6 +268,9 @@ void register_modification_hooks(int id)
 	add_hook(&match_assign_early, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr_early, OP_HOOK);
 	add_hook(&asm_expr_early, ASM_HOOK);
+
+	select_return_states_hook(PARAM_ADD, &db_param_add);
+	select_return_states_hook(PARAM_SET, &db_param_add);
 }
 
 void register_modification_hooks_late(int id)
@@ -277,8 +280,5 @@ void register_modification_hooks_late(int id)
 	add_hook(&match_assign_late, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&unop_expr_late, OP_HOOK);
 	add_hook(&asm_expr_late, ASM_HOOK);
-
-	select_return_states_hook(PARAM_ADD, &db_param_add);
-	select_return_states_hook(PARAM_SET, &db_param_add);
 }
 
