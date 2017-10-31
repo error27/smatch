@@ -590,11 +590,18 @@ static void match_returns_call(int return_id, char *return_ranges, struct expres
 
 static void print_returned_allocations(int return_id, char *return_ranges, struct expression *expr)
 {
+	struct expression *tmp;
 	struct smatch_state *state;
 	struct symbol *sym;
 	char *name;
+	int cnt = 0;
 
 	expr = strip_expr(expr);
+	while ((tmp = get_assigned_expr(expr))) {
+		if (cnt++ > 5)  /* assignments to self cause infinite loops */
+			break;
+		expr = strip_expr(tmp);
+	}
 	if (!expr)
 		return;
 
