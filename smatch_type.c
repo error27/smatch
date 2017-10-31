@@ -255,8 +255,6 @@ struct symbol *get_type(struct expression *expr)
 		ret = get_real_base_type(expr->cast_type);
 		break;
 	case EXPR_COMPARE:
-		ret = &int_ctype;
-		break;
 	case EXPR_BINOP:
 		ret = get_binop_type(expr);
 		break;
