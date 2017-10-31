@@ -33,6 +33,7 @@ static const char *allocation_funcs[] = {
 	"kmalloc",
 	"kzalloc",
 	"kcalloc",
+	"__alloc_skb",
 	NULL,
 };
 
