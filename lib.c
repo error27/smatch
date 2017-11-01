@@ -1119,105 +1119,10 @@ static void predefined_macros(void)
 
 static void declare_builtin_functions(void)
 {
-	/* Gaah. gcc knows tons of builtin <string.h> functions */
-	add_pre_buffer("extern void *__builtin_memchr(const void *, int, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_memcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_mempcpy(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_memmove(void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_memset(void *, int, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern int __builtin_memcmp(const void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern char *__builtin_strcat(char *, const char *);\n");
-	add_pre_buffer("extern char *__builtin_strncat(char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern int __builtin_strcmp(const char *, const char *);\n");
-	add_pre_buffer("extern int __builtin_strncmp(const char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern int __builtin_strcasecmp(const char *, const char *);\n");
-	add_pre_buffer("extern int __builtin_strncasecmp(const char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern char *__builtin_strchr(const char *, int);\n");
-	add_pre_buffer("extern char *__builtin_strrchr(const char *, int);\n");
-	add_pre_buffer("extern char *__builtin_strcpy(char *, const char *);\n");
-	add_pre_buffer("extern char *__builtin_strncpy(char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern char *__builtin_strdup(const char *);\n");
-	add_pre_buffer("extern char *__builtin_strndup(const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strspn(const char *, const char *);\n");
-	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strcspn(const char *, const char *);\n");
-	add_pre_buffer("extern char * __builtin_strpbrk(const char *, const char *);\n");
-	add_pre_buffer("extern char* __builtin_stpcpy(const char *, const char*);\n");
-	add_pre_buffer("extern char* __builtin_stpncpy(const char *, const char*, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern __SIZE_TYPE__ __builtin_strlen(const char *);\n");
-	add_pre_buffer("extern char *__builtin_strstr(const char *, const char *);\n");
-	add_pre_buffer("extern char *__builtin_strcasestr(const char *, const char *);\n");
-	add_pre_buffer("extern char *__builtin_strnstr(const char *, const char *, __SIZE_TYPE__);\n");
-
-	/* And even some from <strings.h> */
-	add_pre_buffer("extern int  __builtin_bcmp(const void *, const void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void __builtin_bcopy(const void *, void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void __builtin_bzero(void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern char*__builtin_index(const char *, int);\n");
-	add_pre_buffer("extern char*__builtin_rindex(const char *, int);\n");
-
-	/* And bitwise operations.. */
-	add_pre_buffer("extern int __builtin_clrsb(int);\n");
-	add_pre_buffer("extern int __builtin_clrsbl(long);\n");
-	add_pre_buffer("extern int __builtin_clrsbll(long long);\n");
-	add_pre_buffer("extern int __builtin_clz(int);\n");
-	add_pre_buffer("extern int __builtin_clzl(long);\n");
-	add_pre_buffer("extern int __builtin_clzll(long long);\n");
-	add_pre_buffer("extern int __builtin_ctz(int);\n");
-	add_pre_buffer("extern int __builtin_ctzl(long);\n");
-	add_pre_buffer("extern int __builtin_ctzll(long long);\n");
-	add_pre_buffer("extern int __builtin_ffs(int);\n");
-	add_pre_buffer("extern int __builtin_ffsl(long);\n");
-	add_pre_buffer("extern int __builtin_ffsll(long long);\n");
-	add_pre_buffer("extern int __builtin_parity(unsigned int);\n");
-	add_pre_buffer("extern int __builtin_parityl(unsigned long);\n");
-	add_pre_buffer("extern int __builtin_parityll(unsigned long long);\n");
-	add_pre_buffer("extern int __builtin_popcount(unsigned int);\n");
-	add_pre_buffer("extern int __builtin_popcountl(unsigned long);\n");
-	add_pre_buffer("extern int __builtin_popcountll(unsigned long long);\n");
-
-	/* And byte swaps.. */
-	add_pre_buffer("extern unsigned short __builtin_bswap16(unsigned short);\n");
-	add_pre_buffer("extern unsigned int __builtin_bswap32(unsigned int);\n");
-	add_pre_buffer("extern unsigned long long __builtin_bswap64(unsigned long long);\n");
-
-	/* And atomic memory access functions.. */
-	add_pre_buffer("extern int __sync_fetch_and_add(void *, ...);\n");
-	add_pre_buffer("extern int __sync_fetch_and_sub(void *, ...);\n");
-	add_pre_buffer("extern int __sync_fetch_and_or(void *, ...);\n");
-	add_pre_buffer("extern int __sync_fetch_and_and(void *, ...);\n");
-	add_pre_buffer("extern int __sync_fetch_and_xor(void *, ...);\n");
-	add_pre_buffer("extern int __sync_fetch_and_nand(void *, ...);\n");
-	add_pre_buffer("extern int __sync_add_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_sub_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_or_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_and_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_xor_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_nand_and_fetch(void *, ...);\n");
-	add_pre_buffer("extern int __sync_bool_compare_and_swap(void *, ...);\n");
-	add_pre_buffer("extern int __sync_val_compare_and_swap(void *, ...);\n");
-	add_pre_buffer("extern void __sync_synchronize();\n");
-	add_pre_buffer("extern int __sync_lock_test_and_set(void *, ...);\n");
-	add_pre_buffer("extern void __sync_lock_release(void *, ...);\n");
-
-	/* And some random ones.. */
-	add_pre_buffer("extern void *__builtin_return_address(unsigned int);\n");
-	add_pre_buffer("extern void *__builtin_extract_return_addr(void *);\n");
-	add_pre_buffer("extern void *__builtin_frame_address(unsigned int);\n");
-	add_pre_buffer("extern void __builtin_trap(void);\n");
-	add_pre_buffer("extern void *__builtin_alloca(__SIZE_TYPE__);\n");
-	add_pre_buffer("extern void __builtin_prefetch (const void *, ...);\n");
-	add_pre_buffer("extern long __builtin_alpha_extbl(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_extwl(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_insbl(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_inswl(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_insql(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_inslh(long, long);\n");
-	add_pre_buffer("extern long __builtin_alpha_cmpbge(long, long);\n");
-	add_pre_buffer("extern int  __builtin_abs(int);\n");
-	add_pre_buffer("extern long __builtin_labs(long);\n");
-	add_pre_buffer("extern long long __builtin_llabs(long long);\n");
-	add_pre_buffer("extern double __builtin_fabs(double);\n");
-	add_pre_buffer("extern __SIZE_TYPE__ __builtin_va_arg_pack_len(void);\n");
+	/* Note:
+	 * Most builtin functions are declared in builtin.c:declare_builtins().
+	 * Some are also defined in builtin:init_builtins().
+	 */
 
 	/* Add Blackfin-specific stuff */
 	add_pre_buffer(
@@ -1227,62 +1132,6 @@ static void declare_builtin_functions(void)
 		"extern int __builtin_bfin_norm_fr1x32(int);\n"
 		"#endif\n"
 	);
-
-	/* And some floating point stuff.. */
-	add_pre_buffer("extern int __builtin_isgreater(float, float);\n");
-	add_pre_buffer("extern int __builtin_isgreaterequal(float, float);\n");
-	add_pre_buffer("extern int __builtin_isless(float, float);\n");
-	add_pre_buffer("extern int __builtin_islessequal(float, float);\n");
-	add_pre_buffer("extern int __builtin_islessgreater(float, float);\n");
-	add_pre_buffer("extern int __builtin_isunordered(float, float);\n");
-
-	/* And some INFINITY / NAN stuff.. */
-	add_pre_buffer("extern double __builtin_huge_val(void);\n");
-	add_pre_buffer("extern float __builtin_huge_valf(void);\n");
-	add_pre_buffer("extern long double __builtin_huge_vall(void);\n");
-	add_pre_buffer("extern double __builtin_inf(void);\n");
-	add_pre_buffer("extern float __builtin_inff(void);\n");
-	add_pre_buffer("extern long double __builtin_infl(void);\n");
-	add_pre_buffer("extern double __builtin_nan(const char *);\n");
-	add_pre_buffer("extern float __builtin_nanf(const char *);\n");
-	add_pre_buffer("extern long double __builtin_nanl(const char *);\n");
-	add_pre_buffer("extern int __builtin_isinf_sign(float);\n");
-	add_pre_buffer("extern int __builtin_isfinite(float);\n");
-	add_pre_buffer("extern int __builtin_isnan(float);\n");
-
-	/* And some __FORTIFY_SOURCE ones.. */
-	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(const void *, int);\n");
-	add_pre_buffer ("extern void * __builtin___memcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern void * __builtin___memmove_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern void * __builtin___mempcpy_chk(void *, const void *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern void * __builtin___memset_chk(void *, int, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern int __builtin___sprintf_chk(char *, int, __SIZE_TYPE__, const char *, ...);\n");
-	add_pre_buffer ("extern int __builtin___snprintf_chk(char *, __SIZE_TYPE__, int , __SIZE_TYPE__, const char *, ...);\n");
-	add_pre_buffer ("extern char * __builtin___stpcpy_chk(char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern char * __builtin___strcat_chk(char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern char * __builtin___strcpy_chk(char *, const char *, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern char * __builtin___strncat_chk(char *, const char *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern char * __builtin___strncpy_chk(char *, const char *, __SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer ("extern int __builtin___vsprintf_chk(char *, int, __SIZE_TYPE__, const char *, __builtin_va_list);\n");
-	add_pre_buffer ("extern int __builtin___vsnprintf_chk(char *, __SIZE_TYPE__, int, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
-	add_pre_buffer ("extern void __builtin_unreachable(void);\n");
-
-	/* And some from <stdlib.h> */
-	add_pre_buffer("extern void __builtin_abort(void);\n");
-	add_pre_buffer("extern void *__builtin_calloc(__SIZE_TYPE__, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void __builtin_exit(int);\n");
-	add_pre_buffer("extern void *__builtin_malloc(__SIZE_TYPE__);\n");
-	add_pre_buffer("extern void *__builtin_realloc(void *, __SIZE_TYPE__);\n");
-	add_pre_buffer("extern void __builtin_free(void *);\n");
-
-	/* And some from <stdio.h> */
-	add_pre_buffer("extern int __builtin_printf(const char *, ...);\n");
-	add_pre_buffer("extern int __builtin_sprintf(char *, const char *, ...);\n");
-	add_pre_buffer("extern int __builtin_snprintf(char *, __SIZE_TYPE__, const char *, ...);\n");
-	add_pre_buffer("extern int __builtin_puts(const char *);\n");
-	add_pre_buffer("extern int __builtin_vprintf(const char *, __builtin_va_list);\n");
-	add_pre_buffer("extern int __builtin_vsprintf(char *, const char *, __builtin_va_list);\n");
-	add_pre_buffer("extern int __builtin_vsnprintf(char *, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
 }
 
 static void create_builtin_stream(void)
@@ -1484,6 +1333,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		// Initialize type system
 		init_ctype();
 
+		declare_builtins();
 		create_builtin_stream();
 		predefined_macros();
 		if (!preprocess_only)
