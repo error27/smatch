@@ -41,9 +41,6 @@ static void match_end_of_block(struct statement *stmt)
 	struct statement *tmp;
 	struct symbol *sym;
 
-	if (stmt->type != STMT_COMPOUND)
-		return;
-
 	if (end_of_function(stmt))
 		return;
 
@@ -84,7 +81,8 @@ static void match_stmt(struct statement *stmt)
 	if (__inline_fn)
 		return;
 
-	add_ptr_list(&stmt_list, stmt);
+	if (stmt->type == STMT_COMPOUND)
+		add_ptr_list(&stmt_list, stmt);
 
 	if (!is_outer_stmt(stmt))
 		return;
