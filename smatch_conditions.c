@@ -716,6 +716,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 
 		__split_expr(&fake_assign);
 
+		__pass_to_client(stmt, STMT_HOOK_AFTER);
 		__call_scope_hooks();
 	} else if (stmt->type == STMT_EXPRESSION) {
 		struct expression fake_assign = {};
