@@ -784,12 +784,14 @@ static void split_case(struct statement *stmt)
 	__split_stmt(stmt->case_statement);
 }
 
+int time_parsing_function(void)
+{
+	return ms_since(&fn_start_time) / 1000;
+}
+
 static int taking_too_long(void)
 {
-	int ms;
-
-	ms = ms_since(&fn_start_time);
-	if (ms > 1000 * 60 * 5)  /* five minutes */
+	if (time_parsing_function() > 60 * 5)  /* five minutes */
 		return 1;
 	return 0;
 }

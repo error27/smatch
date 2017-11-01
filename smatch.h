@@ -451,6 +451,7 @@ extern struct statement *__cur_stmt;
 extern struct statement *__next_stmt;
 void init_fake_env(void);
 void end_fake_env(void);
+int time_parsing_function(void);
 
 /* smatch_struct_assignment.c */
 struct expression *get_faked_expression(void);

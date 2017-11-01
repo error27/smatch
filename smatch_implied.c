@@ -815,6 +815,8 @@ found:
 
 static void save_implications_hook(struct expression *expr)
 {
+	if (time_parsing_function() > 60)
+		return;
 	get_tf_states(expr, &saved_implied_true, &saved_implied_false);
 }
 
