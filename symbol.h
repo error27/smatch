@@ -267,6 +267,8 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
+extern struct symbol	const_void_ctype, const_char_ctype;
+extern struct symbol	const_ptr_ctype, const_string_ctype;
 
 /* Special internal symbols */
 extern struct symbol	zero_int;

@@ -696,6 +696,8 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
+struct symbol	const_void_ctype, const_char_ctype;
+struct symbol	const_ptr_ctype, const_string_ctype;
 
 struct symbol	zero_int;
 
@@ -762,6 +764,11 @@ static const struct ctype_declare {
 	{ &null_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &label_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
+
+	{ &const_void_ctype, SYM_NODE,	  MOD_CONST,		    NULL, NULL, &void_ctype },
+	{ &const_char_ctype, SYM_NODE,	  MOD_CONST,		    &bits_in_char, &max_int_alignment, &char_ctype },
+	{ &const_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &const_void_ctype },
+	{ &const_string_ctype,SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &const_char_ctype },
 	{ NULL, }
 };
 #undef MOD_LLL
