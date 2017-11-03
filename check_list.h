@@ -57,7 +57,6 @@ CK(register_constraints_required)
 CK(register_about_fn_ptr_arg)
 
 CK(check_debug)
-CK(check_user_data)
 
 CK(check_user_data2)
 CK(check_user_data3)
