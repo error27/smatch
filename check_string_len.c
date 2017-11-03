@@ -200,6 +200,7 @@ int get_formatted_string_size(struct expression *call, int arg)
 static void match_not_limited(const char *fn, struct expression *call, void *info)
 {
 	struct param_info *params = info;
+	struct range_list *rl;
 	struct expression *dest;
 	struct expression *arg;
 	int buf_size, size;
@@ -234,7 +235,7 @@ static void match_not_limited(const char *fn, struct expression *call, void *inf
 	FOR_EACH_PTR(call->args, arg) {
 		if (i++ <= params->string)
 			continue;
-		if (is_user_data(arg))
+		if (get_user_rl(arg, &rl))
 			user = 1;
 	} END_FOR_EACH_PTR(arg);
 

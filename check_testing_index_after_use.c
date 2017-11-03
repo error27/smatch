@@ -37,14 +37,18 @@ static void delete(struct sm_state *sm, struct expression *mod_expr)
 
 static int get_the_max(struct expression *expr, sval_t *sval)
 {
+	struct range_list *rl;
+
 	if (get_hard_max(expr, sval))
 		return 1;
 	if (!option_spammy)
 		return 0;
 	if (get_fuzzy_max(expr, sval))
 		return 1;
-	if (is_user_data(expr))
-		return get_absolute_max(expr, sval);
+	if (get_user_rl(expr, &rl)) {
+		*sval = rl_max(rl);
+		return 1;
+	}
 	return 0;
 }
 
