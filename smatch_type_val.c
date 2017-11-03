@@ -175,6 +175,22 @@ static int is_ignored_fake_assignment(void)
 	return has_link;
 }
 
+static int is_container_of(void)
+{
+	/* We already check the macro name in is_ignored_macro() */
+	struct expression *expr;
+	int offset;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+
+	offset = get_offset_from_container_of(expr->right);
+	if (offset < 0)
+		return 0;
+	return 1;
+}
+
 static int is_ignored_macro(void)
 {
 	struct expression *expr;
@@ -350,6 +366,8 @@ static void match_assign_value(struct expression *expr)
 		if (is_uncasted_function())
 			goto free;
 		if (is_uncasted_fn_param_from_db())
+			goto free;
+		if (is_container_of())
 			goto free;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
