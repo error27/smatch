@@ -206,9 +206,6 @@ version.h: FORCE
 	fi
 
 
-clean: clean-check
-	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
-
 dist:
 	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
 		echo 'Update VERSION in the Makefile before running "make dist".' ; \
@@ -219,6 +216,9 @@ dist:
 check: all
 	$(Q)cd validation && ./test-suite
 
+
+clean: clean-check
+	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
 clean-check:
 	find validation/ \( -name "*.c.output.expected" \
 	                 -o -name "*.c.output.got" \
