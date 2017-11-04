@@ -72,7 +72,7 @@ PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
 test-inspect-objs := test-inspect.o
 test-inspect-objs += ast-model.o ast-view.o ast-inspect.o
-$(test-inspect-objs) $(test-inspect-objs:.o=.sc): CFLAGS += $(GTK_CFLAGS)
+$(foreach p,$(test-inspect-objs:.o=),$(eval $(p)-cflags := $(GTK_CFLAGS)))
 test-inspect-ldlibs := $(GTK_LIBS)
 else
 $(warning Your system does not have gtk3/gtk2, disabling test-inspect)
