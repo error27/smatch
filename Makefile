@@ -194,13 +194,6 @@ version.h: FORCE
 	fi
 
 
-dist:
-	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
-		echo 'Update VERSION in the Makefile before running "make dist".' ; \
-		exit 1 ; \
-	fi
-	git archive --format=tar --prefix=sparse-$(VERSION)/ HEAD^{tree} | gzip -9 > sparse-$(VERSION).tar.gz
-
 check: all
 	$(Q)cd validation && ./test-suite
 
