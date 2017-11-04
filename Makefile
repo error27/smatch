@@ -59,7 +59,7 @@ INST_MAN1=sparse.1 cgcc.1
 ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
-c2xml_EXTRA_OBJS = `$(PKG_CONFIG) --libs libxml-2.0`
+c2xml-ldlibs = `$(PKG_CONFIG) --libs libxml-2.0`
 LIBXML_CFLAGS := $(shell $(PKG_CONFIG) --cflags libxml-2.0)
 else
 $(warning Your system does not have libxml, disabling c2xml)
@@ -73,7 +73,7 @@ INST_PROGRAMS += test-inspect
 test-inspect-objs := test-inspect.o
 test-inspect-objs += ast-model.o ast-view.o ast-inspect.o
 $(test-inspect-objs) $(test-inspect-objs:.o=.sc): CFLAGS += $(GTK_CFLAGS)
-test-inspect_EXTRA_OBJS := $(GTK_LIBS)
+test-inspect-ldlibs := $(GTK_LIBS)
 else
 $(warning Your system does not have gtk3/gtk2, disabling test-inspect)
 endif
@@ -91,7 +91,7 @@ LLVM_LIBS += $(shell $(LLVM_CONFIG) --system-libs 2>/dev/null)
 PROGRAMS += $(LLVM_PROGS)
 INST_PROGRAMS += sparse-llvm sparsec
 sparse-llvm.o: CFLAGS += $(LLVM_CFLAGS)
-sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS) $(LLVM_LDFLAGS)
+sparse-llvm-ldlibs := $(LLVM_LIBS) $(LLVM_LDFLAGS)
 else
 $(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
 endif
@@ -169,7 +169,7 @@ compile-objs:= compile-i386.o
 
 $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs) $(LIBS)))
 $(PROGRAMS): % : %.o 
-	$(QUIET_LINK)$(LD) $(LDFLAGS) -o $@ $^ $($@_EXTRA_OBJS)
+	$(QUIET_LINK)$(LD) $(LDFLAGS) -o $@ $^ $($@-ldlibs)
 
 $(LIB_FILE): $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
