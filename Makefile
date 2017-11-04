@@ -116,16 +116,7 @@ else
 $(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
-LIB_FILE= libsparse.a
-SLIB_FILE= libsparse.so
-
-# If you add $(SLIB_FILE) to this, you also need to add -fpic to CFLAGS above.
-# Doing so incurs a noticeable performance hit, and Sparse does not have a
-# stable shared library interface, so this does not occur by default.  If you
-# really want a shared library, you may want to build Sparse twice: once
-# without -fpic to get all the Sparse tools, and again with -fpic to get the
-# shared library.
-LIBS=$(LIB_FILE)
+LIBS := libsparse.a
 
 #
 # Pretty print
@@ -172,11 +163,8 @@ $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs)))
 $(PROGRAMS): % : %.o $(LIBS)
 	$(QUIET_LINK)$(LD) $(ldflags) -o $@ $^ $(ldlibs)
 
-$(LIB_FILE): $(LIB_OBJS)
+libsparse.a: $(LIB_OBJS)
 	$(QUIET_AR)$(AR) rcs $@ $(LIB_OBJS)
-
-$(SLIB_FILE): $(LIB_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
 OBJS := $(LIB_OBJS) $(PROGRAMS:%=%.o) $(foreach p,$(PROGRAMS),$($(p)-objs))
 DEPS := $(OBJS:%.o=.%.o.d)
@@ -218,7 +206,7 @@ check: all
 
 
 clean: clean-check
-	@rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
+	@rm -f *.[oa] .*.d $(PROGRAMS) version.h
 clean-check:
 	@echo '     CLEAN'
 	@find validation/ \( -name "*.c.output.expected" \
