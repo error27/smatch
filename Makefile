@@ -180,11 +180,10 @@ $(LIB_FILE): $(LIB_OBJS)
 $(SLIB_FILE): $(LIB_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) -Wl,-soname,$@ -shared -o $@ $(LIB_OBJS)
 
-DEP_FILES := $(wildcard .*.o.d)
+OBJS := $(LIB_OBJS) $(PROGRAMS:%=%.o) $(foreach p,$(PROGRAMS),$($(p)_OBJS))
+DEPS := $(OBJS:%.o=.%.o.d)
 
-ifneq ($(DEP_FILES),)
-include $(DEP_FILES)
-endif
+-include $(DEPS)
 
 
 pre-process.sc: CHECKER_FLAGS += -Wno-vla
