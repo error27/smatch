@@ -207,7 +207,7 @@ version.h: FORCE
 
 
 clean: clean-check
-	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h version.h
+	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
 
 dist:
 	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \

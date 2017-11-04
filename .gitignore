@@ -6,7 +6,6 @@
 .*.swp
 
 # generated
-pre-process.h
 version.h
 
 # programs
