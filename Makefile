@@ -48,11 +48,8 @@ endif
 DESTDIR=
 PREFIX ?= $(HOME)
 BINDIR=$(PREFIX)/bin
-LIBDIR=$(PREFIX)/lib
 MANDIR=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
-INCLUDEDIR=$(PREFIX)/include
-PKGCONFIGDIR=$(LIBDIR)/pkgconfig
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
 	 test-linearize example test-unssa test-dissect ctags
@@ -105,9 +102,6 @@ else
 $(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
-LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
-	  linearize.h bitmap.h ident-list.h compat.h flow.h allocate.h \
-	  storage.h ptrlist.h dissect.h
 
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
@@ -151,12 +145,6 @@ define INSTALL_FILE
 
 endef
 
-SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
-	      s|@prefix@|$(PREFIX)|g;		\
-	      s|@libdir@|$(LIBDIR)|g;		\
-	      s|@includedir@|$(INCLUDEDIR)|g'
-
-
 
 # Allow users to override build settings without dirtying their trees
 # For debugging, put this in local.mk:
@@ -166,24 +154,15 @@ SED_PC_CMD = 's|@version@|$(VERSION)|g;		\
 -include local.mk
 
 
-all: $(PROGRAMS) sparse.pc
+all: $(PROGRAMS)
 
-all-installable: $(INST_PROGRAMS) $(LIBS) $(LIB_H) sparse.pc
+all-installable: $(INST_PROGRAMS)
 
 install: all-installable
 	$(Q)install -d $(DESTDIR)$(BINDIR)
-	$(Q)install -d $(DESTDIR)$(LIBDIR)
 	$(Q)install -d $(DESTDIR)$(MAN1DIR)
-	$(Q)install -d $(DESTDIR)$(INCLUDEDIR)/sparse
-	$(Q)install -d $(DESTDIR)$(PKGCONFIGDIR)
 	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
 	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
-	$(foreach f,$(LIBS),$(call INSTALL_FILE,$f,$(LIBDIR)))
-	$(foreach f,$(LIB_H),$(call INSTALL_FILE,$f,$(INCLUDEDIR)/sparse))
-	$(call INSTALL_FILE,sparse.pc,$(PKGCONFIGDIR))
-
-sparse.pc: sparse.pc.in
-	$(QUIET_GEN)sed $(SED_PC_CMD) sparse.pc.in > sparse.pc
 
 
 compile_EXTRA_DEPS = compile-i386.o
@@ -219,7 +198,7 @@ selfcheck: $(ALL_OBJS:.o=.sc)
 
 
 clean: clean-check
-	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc version.h
+	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) pre-process.h version.h
 
 dist:
 	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \
