@@ -942,6 +942,9 @@ static bool is_integer_specifier(int type)
 static int
 is_cast_expr(struct expression *expr)
 {
+	if (!expr)
+		return 0;
+
 	switch (expr->type) {
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
