@@ -18,7 +18,7 @@ LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
 CHECKER = ./cgcc -no-compile
-CHECKER_FLAGS =
+CHECKER_FLAGS = -Wno-vla
 
 HAVE_LIBXML:=$(shell $(PKG_CONFIG) --exists libxml-2.0 2>/dev/null && echo 'yes')
 HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
@@ -185,8 +185,6 @@ DEPS := $(OBJS:%.o=.%.o.d)
 
 -include $(DEPS)
 
-
-pre-process.sc: CHECKER_FLAGS += -Wno-vla
 
 cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 %.o: %.c
