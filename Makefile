@@ -218,9 +218,10 @@ check: all
 
 
 clean: clean-check
-	rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
+	@rm -f *.[oa] .*.d *.so $(PROGRAMS) $(SLIB_FILE) version.h
 clean-check:
-	find validation/ \( -name "*.c.output.expected" \
+	@echo '     CLEAN'
+	@find validation/ \( -name "*.c.output.expected" \
 	                 -o -name "*.c.output.got" \
 	                 -o -name "*.c.output.diff" \
 	                 -o -name "*.c.error.expected" \
