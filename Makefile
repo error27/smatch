@@ -170,8 +170,8 @@ compile-objs:= compile-i386.o
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
-$(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs) $(LIBS)))
-$(PROGRAMS): % : %.o 
+$(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs)))
+$(PROGRAMS): % : %.o $(LIBS)
 	$(QUIET_LINK)$(LD) $(ldflags) -o $@ $^ $(ldlibs)
 
 $(LIB_FILE): $(LIB_OBJS)
