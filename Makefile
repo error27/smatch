@@ -159,13 +159,6 @@ LIBS := libsparse.a
 #
 V	      = @
 Q	      = $(V:1=)
-QUIET_CC      = $(Q:@=@echo    "  CC      $@";)
-QUIET_CHECK   = $(Q:@=@echo    "  CHECK   $<";)
-QUIET_AR      = $(Q:@=@echo    "  AR      $@";)
-QUIET_GEN     = $(Q:@=@echo    "  GEN     $@";)
-QUIET_LINK    = $(Q:@=@echo    "  LINK    $@";)
-# We rely on the -v switch of install to print 'file -> $install_dir/file'
-QUIET_INST    = $(Q:@=@echo -n "  INSTALL ";)
 
 
 compile_OBJS := compile-i386.o
@@ -176,10 +169,12 @@ ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
 $(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs)))
 $(PROGRAMS): % : %.o $(LIBS)
-	$(QUIET_LINK)$(LD) $(ldflags) $^ $(ldlibs) -o $@
+	@echo "  LD      $@"
+	$(Q)$(LD) $(ldflags) $^ $(ldlibs) -o $@
 
 libsparse.a: $(LIB_OBJS)
-	$(QUIET_AR)$(AR) rcs $@ $^
+	@echo "  AR      $@"
+	$(Q)$(AR) rcs $@ $^
 
 OBJS := $(LIB_OBJS) $(PROGRAMS:%=%.o) $(foreach p,$(PROGRAMS),$($(p)-objs))
 DEPS := $(OBJS:%.o=.%.o.d)
@@ -189,10 +184,12 @@ DEPS := $(OBJS:%.o=.%.o.d)
 
 cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 %.o: %.c
-	$(QUIET_CC)$(CC) $(cflags) -c -o $@ $<
+	@echo "  CC      $@"
+	$(Q)$(CC) $(cflags) -c -o $@ $<
 
 %.sc: %.c sparse
-	$(QUIET_CHECK) $(CHECKER) $(CHECKER_FLAGS) $(cflags) -c $<
+	@echo "  CHECK   $<"
+	$(Q) $(CHECKER) $(CHECKER_FLAGS) $(cflags) -c $<
 
 selfcheck: $(OBJS:.o=.sc)
 
@@ -234,8 +231,10 @@ install-bin: $(INST_PROGRAMS:%=$(DESTDIR)$(BINDIR)/%)
 install-man: $(INST_MAN1:%=$(DESTDIR)$(MAN1DIR)/%)
 
 $(DESTDIR)$(BINDIR)/%: %
-	$(QUIET_INST)install -v        $< $@ || exit 1;
+	@echo "  INSTALL $@"
+	$(Q)install        $< $@ || exit 1;
 $(DESTDIR)$(MAN1DIR)/%: %
-	$(QUIET_INST)install -v -m 644 $< $@ || exit 1;
+	@echo "  INSTALL $@"
+	$(Q)install -m 644 $< $@ || exit 1;
 
 .PHONY: FORCE
