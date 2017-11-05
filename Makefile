@@ -85,6 +85,9 @@ cflags += -DGCC_BASE=\"$(GCC_BASE)\"
 MULTIARCH_TRIPLET := $(shell $(CC) -print-multiarch 2>/dev/null)
 cflags += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
 
+########################################################################
+# target specificities
+
 compile: compile-i386.o
 EXTRA_OBJS += compile-i386.o
 
@@ -157,15 +160,15 @@ else
 $(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
+########################################################################
 LIBS := libsparse.a
+OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)
 
-#
 # Pretty print
-#
 V	      = @
 Q	      = $(V:1=)
 
-
+########################################################################
 all: $(PROGRAMS)
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
@@ -177,11 +180,6 @@ $(PROGRAMS): % : %.o $(LIBS)
 libsparse.a: $(LIB_OBJS)
 	@echo "  AR      $@"
 	$(Q)$(AR) rcs $@ $^
-
-OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)
-DEPS := $(OBJS:%.o=.%.o.d)
-
--include $(DEPS)
 
 
 cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
@@ -237,3 +235,6 @@ $(DESTDIR)$(MAN1DIR)/%: %
 	$(Q)install -m 644 $< $@ || exit 1;
 
 .PHONY: FORCE
+
+# GCC's dependencies
+-include $(OBJS:%.o=.%.o.d)
