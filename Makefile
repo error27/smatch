@@ -159,13 +159,13 @@ LIBS := libsparse.a
 #
 V	      = @
 Q	      = $(V:1=)
-QUIET_CC      = $(Q:@=@echo    '     CC       '$@;)
-QUIET_CHECK   = $(Q:@=@echo    '     CHECK    '$<;)
-QUIET_AR      = $(Q:@=@echo    '     AR       '$@;)
-QUIET_GEN     = $(Q:@=@echo    '     GEN      '$@;)
-QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
+QUIET_CC      = $(Q:@=@echo    "  CC      $@";)
+QUIET_CHECK   = $(Q:@=@echo    "  CHECK   $<";)
+QUIET_AR      = $(Q:@=@echo    "  AR      $@";)
+QUIET_GEN     = $(Q:@=@echo    "  GEN     $@";)
+QUIET_LINK    = $(Q:@=@echo    "  LINK    $@";)
 # We rely on the -v switch of install to print 'file -> $install_dir/file'
-QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
+QUIET_INST    = $(Q:@=@echo -n "  INSTALL ";)
 
 
 compile_OBJS := compile-i386.o
@@ -204,7 +204,7 @@ version.h: FORCE
 	@if cmp -s version.h version.h.tmp; then \
 		rm version.h.tmp; \
 	else \
-		echo    '     GEN      '$@; \
+		echo "  GEN     $@"; \
 		mv version.h.tmp version.h; \
 	fi
 
@@ -216,7 +216,7 @@ check: all
 clean: clean-check
 	@rm -f *.[oa] .*.d $(PROGRAMS) version.h
 clean-check:
-	@echo '     CLEAN'
+	@echo "  CLEAN"
 	@find validation/ \( -name "*.c.output.expected" \
 	                 -o -name "*.c.output.got" \
 	                 -o -name "*.c.output.diff" \
