@@ -168,30 +168,10 @@ QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
 QUIET_INST_SH = $(Q:@=echo -n  '     INSTALL  ';)
 QUIET_INST    = $(Q:@=@echo -n '     INSTALL  ';)
 
-define INSTALL_EXEC
-	$(QUIET_INST)install -v $1 $(DESTDIR)$2/$1 || exit 1;
 
-endef
-
-define INSTALL_FILE
-	$(QUIET_INST)install -v -m 644 $1 $(DESTDIR)$2/$1 || exit 1;
-
-endef
-
-
+compile_OBJS := compile-i386.o
 
 all: $(PROGRAMS)
-
-all-installable: $(INST_PROGRAMS)
-
-install: all-installable
-	$(Q)install -d $(DESTDIR)$(BINDIR)
-	$(Q)install -d $(DESTDIR)$(MAN1DIR)
-	$(foreach f,$(INST_PROGRAMS),$(call INSTALL_EXEC,$f,$(BINDIR)))
-	$(foreach f,$(INST_MAN1),$(call INSTALL_FILE,$f,$(MAN1DIR)))
-
-
-compile-objs:= compile-i386.o
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
@@ -245,5 +225,18 @@ clean-check:
 	                 -o -name "*.c.error.got" \
 	                 -o -name "*.c.error.diff" \
 	                 \) -exec rm {} \;
+
+
+install: $(INST_PROGRAMS) $(INST_MAN1) install-dirs install-bin install-man
+install-dirs:
+	$(Q)install -d $(DESTDIR)$(BINDIR)
+	$(Q)install -d $(DESTDIR)$(MAN1DIR)
+install-bin: $(INST_PROGRAMS:%=$(DESTDIR)$(BINDIR)/%)
+install-man: $(INST_MAN1:%=$(DESTDIR)$(MAN1DIR)/%)
+
+$(DESTDIR)$(BINDIR)/%: %
+	$(QUIET_INST)install -v        $< $@ || exit 1;
+$(DESTDIR)$(MAN1DIR)/%: %
+	$(QUIET_INST)install -v -m 644 $< $@ || exit 1;
 
 .PHONY: FORCE
