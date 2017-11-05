@@ -85,6 +85,9 @@ cflags += -DGCC_BASE=\"$(GCC_BASE)\"
 MULTIARCH_TRIPLET := $(shell $(CC) -print-multiarch 2>/dev/null)
 cflags += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
 
+compile: compile-i386.o
+EXTRA_OBJS += compile-i386.o
+
 # Can we use GCC's generated dependencies?
 HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
@@ -113,13 +116,15 @@ HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo
 endif
 ifeq ($(HAVE_GTK),yes)
 GTK_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-$(GTK_VERSION))
-GTK_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-$(GTK_VERSION))
+ast-view-cflags := $(GTK_CFLAGS)
+ast-model-cflags := $(GTK_CFLAGS)
+ast-inspect-cflags := $(GTK_CFLAGS)
+test-inspect-cflags := $(GTK_CFLAGS)
+test-inspect-ldlibs := $(shell $(PKG_CONFIG) --libs gtk+-$(GTK_VERSION))
+test-inspect: ast-model.o ast-view.o ast-inspect.o
+EXTRA_OBJS += ast-model.o ast-view.o ast-inspect.o
 PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
-test-inspect-objs := test-inspect.o
-test-inspect-objs += ast-model.o ast-view.o ast-inspect.o
-$(foreach p,$(test-inspect-objs:.o=),$(eval $(p)-cflags := $(GTK_CFLAGS)))
-test-inspect-ldlibs := $(GTK_LIBS)
 else
 $(warning Your system does not have gtk3/gtk2, disabling test-inspect)
 endif
@@ -161,13 +166,10 @@ V	      = @
 Q	      = $(V:1=)
 
 
-compile_OBJS := compile-i386.o
-
 all: $(PROGRAMS)
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
-$(foreach p,$(PROGRAMS),$(eval $(p): $($(p)-objs)))
 $(PROGRAMS): % : %.o $(LIBS)
 	@echo "  LD      $@"
 	$(Q)$(LD) $(ldflags) $^ $(ldlibs) -o $@
@@ -176,7 +178,7 @@ libsparse.a: $(LIB_OBJS)
 	@echo "  AR      $@"
 	$(Q)$(AR) rcs $@ $^
 
-OBJS := $(LIB_OBJS) $(PROGRAMS:%=%.o) $(foreach p,$(PROGRAMS),$($(p)-objs))
+OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)
 DEPS := $(OBJS:%.o=.%.o.d)
 
 -include $(DEPS)
