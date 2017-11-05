@@ -214,13 +214,9 @@ clean: clean-check
 	@rm -f *.[oa] .*.d $(PROGRAMS) version.h
 clean-check:
 	@echo "  CLEAN"
-	@find validation/ \( -name "*.c.output.expected" \
-	                 -o -name "*.c.output.got" \
-	                 -o -name "*.c.output.diff" \
-	                 -o -name "*.c.error.expected" \
-	                 -o -name "*.c.error.got" \
-	                 -o -name "*.c.error.diff" \
-	                 \) -exec rm {} \;
+	@find validation/ \( -name "*.c.output.*" \
+			  -o -name "*.c.error.*" \
+	                  \) -exec rm {} \;
 
 
 install: $(INST_PROGRAMS) $(INST_MAN1) install-dirs install-bin install-man
