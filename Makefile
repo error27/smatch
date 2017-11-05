@@ -25,7 +25,8 @@ MAN1DIR=$(MANDIR)/man1
 #
 #     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
 #
--include local.mk
+SPARSE_LOCAL_CONFIG ?= local.mk
+-include ${SPARSE_LOCAL_CONFIG}
 ########################################################################
 
 

@@ -37,6 +37,7 @@ series
 
 # local makefile
 local.mk
+.*.mk
 
 # cscope and Qt files
 cscope.out
