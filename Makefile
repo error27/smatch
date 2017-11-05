@@ -216,6 +216,7 @@ clean-check:
 	@echo "  CLEAN"
 	@find validation/ \( -name "*.c.output.*" \
 			  -o -name "*.c.error.*" \
+			  -o -name "*.o" \
 	                  \) -exec rm {} \;
 
 
