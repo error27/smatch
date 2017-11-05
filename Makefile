@@ -165,8 +165,8 @@ LIBS := libsparse.a
 OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)
 
 # Pretty print
-V	      = @
-Q	      = $(V:1=)
+V := @
+Q := $(V:1=)
 
 ########################################################################
 all: $(PROGRAMS)
