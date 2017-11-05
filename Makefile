@@ -29,17 +29,52 @@ MAN1DIR=$(MANDIR)/man1
 ########################################################################
 
 
-PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
-	 test-linearize example test-unssa test-dissect ctags
+LIB_OBJS :=
+LIB_OBJS += allocate.o
+LIB_OBJS += builtin.o
+LIB_OBJS += char.o
+LIB_OBJS += compat-$(OS).o
+LIB_OBJS += cse.o
+LIB_OBJS += dissect.o
+LIB_OBJS += evaluate.o
+LIB_OBJS += expand.o
+LIB_OBJS += expression.o
+LIB_OBJS += flow.o
+LIB_OBJS += inline.o
+LIB_OBJS += lib.o
+LIB_OBJS += linearize.o
+LIB_OBJS += liveness.o
+LIB_OBJS += memops.o
+LIB_OBJS += parse.o
+LIB_OBJS += pre-process.o
+LIB_OBJS += ptrlist.o
+LIB_OBJS += scope.o
+LIB_OBJS += show-parse.o
+LIB_OBJS += simplify.o
+LIB_OBJS += sort.o
+LIB_OBJS += stats.o
+LIB_OBJS += storage.o
+LIB_OBJS += symbol.o
+LIB_OBJS += target.o
+LIB_OBJS += tokenize.o
+LIB_OBJS += unssa.o
+
+PROGRAMS :=
+PROGRAMS += compile
+PROGRAMS += ctags
+PROGRAMS += example
+PROGRAMS += graph
+PROGRAMS += obfuscate
+PROGRAMS += sparse
+PROGRAMS += test-dissect
+PROGRAMS += test-lexing
+PROGRAMS += test-linearize
+PROGRAMS += test-parsing
+PROGRAMS += test-unssa
+
 INST_PROGRAMS=sparse cgcc
 INST_MAN1=sparse.1 cgcc.1
 
-LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
-	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
-	  char.o sort.o allocate.o compat-$(OS).o ptrlist.o \
-	  builtin.o \
-	  stats.o \
-	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o dissect.o
 
 all:
 
