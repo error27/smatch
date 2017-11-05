@@ -1,5 +1,7 @@
 VERSION=0.5.1
 
+########################################################################
+# The following variables can be overwritten from the command line
 OS = linux
 
 
@@ -24,6 +26,7 @@ MAN1DIR=$(MANDIR)/man1
 #     CFLAGS += -O0 -DDEBUG -g3 -gdwarf-2
 #
 -include local.mk
+########################################################################
 
 
 PROGRAMS=test-lexing test-parsing obfuscate compile graph sparse \
