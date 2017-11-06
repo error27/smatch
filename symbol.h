@@ -303,7 +303,6 @@ extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
-extern void examine_simple_symbol_type(struct symbol *);
 extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
@@ -438,7 +437,6 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
 #define is_fouled_type(type) (get_sym_type(type) == SYM_FOULED)
 #define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
-extern int is_ptr_type(struct symbol *);
 
 void create_fouled(struct symbol *type);
 struct symbol *befoul(struct symbol *type);
