@@ -18,7 +18,7 @@ LDFLAGS += -g
 LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
-CHECKER = ./cgcc -no-compile
+CHECKER = CHECK=./sparse ./cgcc -no-compile
 CHECKER_FLAGS =
 
 ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
