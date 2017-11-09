@@ -208,6 +208,8 @@ version.h: FORCE
 
 check: all
 	$(Q)cd validation && ./test-suite
+validation/%.t: FORCE
+	@validation/test-suite single $*.c
 
 
 clean: clean-check
