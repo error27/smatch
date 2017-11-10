@@ -6,7 +6,7 @@ OS = linux
 
 
 CC = gcc
-CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
+CFLAGS = -O2 -finline-functions -g
 CFLAGS += -Wall -Wwrite-strings
 LD = gcc
 AR = ar
@@ -78,6 +78,11 @@ INST_MAN1=sparse.1 cgcc.1
 
 
 all:
+
+########################################################################
+# common flags/options/...
+
+cflags = -fno-strict-aliasing
 
 GCC_BASE := $(shell $(CC) --print-file-name=)
 cflags += -DGCC_BASE=\"$(GCC_BASE)\"
