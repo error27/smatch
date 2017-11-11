@@ -125,6 +125,8 @@ const char *modifier_string(unsigned long mod)
 		{MOD_EXTERN,		"extern"},
 		{MOD_CONST,		"const"},
 		{MOD_VOLATILE,		"volatile"},
+		{MOD_RESTRICT,		"restrict"},
+		{MOD_ATOMIC,		"[atomic]"},
 		{MOD_SIGNED,		"[signed]"},
 		{MOD_UNSIGNED,		"[unsigned]"},
 		{MOD_CHAR,		"[char]"},
@@ -132,13 +134,11 @@ const char *modifier_string(unsigned long mod)
 		{MOD_LONG,		"[long]"},
 		{MOD_LONGLONG,		"[long long]"},
 		{MOD_LONGLONGLONG,	"[long long long]"},
-		{MOD_TYPEDEF,		"[typedef]"},
 		{MOD_TLS,		"[tls]"},
 		{MOD_INLINE,		"inline"},
 		{MOD_ADDRESSABLE,	"[addressable]"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
-		{MOD_ACCESSED,		"[accessed]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
 		{MOD_ASSIGNED,		"[assigned]"},
 		{MOD_TYPE,		"[type]"},
@@ -927,7 +927,7 @@ static int show_symbol_expr(struct symbol *sym)
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, 0LL);
 		return new;
 	}
 	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new, show_ident(sym->ident), sym);
@@ -1168,6 +1168,9 @@ int show_expression(struct expression *expr)
 		return 0;
 	case EXPR_TYPE:
 		warning(expr->pos, "unable to show type expression");
+		return 0;
+	case EXPR_ASM_OPERAND:
+		warning(expr->pos, "unable to show asm operand expression");
 		return 0;
 	}
 	return 0;

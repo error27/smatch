@@ -478,7 +478,7 @@ static int expand_comma(struct expression *expr)
 	return cost;
 }
 
-#define MOD_IGN (MOD_VOLATILE | MOD_CONST)
+#define MOD_IGN (MOD_QUALIFIER)
 
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {
@@ -582,7 +582,7 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
 	struct expression *value;
 
-	if (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))
+	if (sym->ctype.modifiers & MOD_ACCESS)
 		return NULL;
 	value = sym->initializer;
 	if (!value)
@@ -1047,6 +1047,9 @@ static int expand_expression(struct expression *expr)
 	case EXPR_ALIGNOF:
 	case EXPR_OFFSETOF:
 		expression_error(expr, "internal front-end error: sizeof in expansion?");
+		return UNSAFE;
+	case EXPR_ASM_OPERAND:
+		expression_error(expr, "internal front-end error: ASM_OPERAND in expansion?");
 		return UNSAFE;
 	}
 	return SIDE_EFFECTS;

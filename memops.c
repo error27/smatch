@@ -158,8 +158,12 @@ static void kill_dominated_stores(struct basic_block *bb)
 		if (insn->opcode == OP_STORE) {
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
-			int local = local_pseudo(pseudo);
+			int local;
 
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				continue;
+
+			local = local_pseudo(pseudo);
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
 				if (!dom->bb)

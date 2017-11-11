@@ -58,6 +58,8 @@ static declarator_t
 	typedef_specifier, inline_specifier, auto_specifier,
 	register_specifier, static_specifier, extern_specifier,
 	thread_specifier, const_qualifier, volatile_qualifier;
+static declarator_t restrict_qualifier;
+static declarator_t atomic_qualifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
 static struct token *parse_return_statement(struct token *token, struct statement *stmt);
@@ -174,6 +176,12 @@ static struct symbol_op volatile_op = {
 
 static struct symbol_op restrict_op = {
 	.type = KW_QUALIFIER,
+	.declarator = restrict_qualifier,
+};
+
+static struct symbol_op atomic_op = {
+	.type = KW_QUALIFIER,
+	.declarator = atomic_qualifier,
 };
 
 static struct symbol_op typeof_op = {
@@ -422,6 +430,10 @@ static struct init_keyword {
 	{ "volatile",	NS_TYPEDEF, .op = &volatile_op },
 	{ "__volatile",		NS_TYPEDEF, .op = &volatile_op },
 	{ "__volatile__", 	NS_TYPEDEF, .op = &volatile_op },
+	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
+	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
+	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
+	{ "_Atomic",	NS_TYPEDEF, .op = &atomic_op},
 
 	/* Typedef.. */
 	{ "typedef",	NS_TYPEDEF, .op = &typedef_op },
@@ -466,11 +478,6 @@ static struct init_keyword {
 	{ "_Noreturn",	NS_TYPEDEF, .op = &noreturn_op },
 
 	{ "_Alignas",	NS_TYPEDEF, .op = &alignas_op },
-
-	/* Ignored for now.. */
-	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
 
 	/* Static assertion */
 	{ "_Static_assert", NS_KEYWORD, .op = &static_assert_op },
@@ -1377,6 +1384,18 @@ static struct token *volatile_qualifier(struct token *next, struct decl_state *c
 	return next;
 }
 
+static struct token *restrict_qualifier(struct token *next, struct decl_state *ctx)
+{
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_RESTRICT);
+	return next;
+}
+
+static struct token *atomic_qualifier(struct token *next, struct decl_state *ctx)
+{
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_ATOMIC);
+	return next;
+}
+
 static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype)
 {
 	unsigned long mod = thistype->modifiers;
@@ -1929,24 +1948,20 @@ static struct token *expression_statement(struct token *token, struct expression
 static struct token *parse_asm_operands(struct token *token, struct statement *stmt,
 	struct expression_list **inout)
 {
-	struct expression *expr;
-
 	/* Allow empty operands */
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
-		struct ident *ident = NULL;
+		struct expression *op = alloc_expression(token->pos, EXPR_ASM_OPERAND);
 		if (match_op(token->next, '[') &&
 		    token_type(token->next->next) == TOKEN_IDENT &&
 		    match_op(token->next->next->next, ']')) {
-			ident = token->next->next->ident;
+			op->name = token->next->next->ident;
 			token = token->next->next->next;
 		}
-		add_expression(inout, (struct expression *)ident); /* UGGLEE!!! */
-		token = primary_expression(token->next, &expr);
-		add_expression(inout, expr);
-		token = parens_expression(token, &expr, "in asm parameter");
-		add_expression(inout, expr);
+		token = primary_expression(token->next, &op->constraint);
+		token = parens_expression(token, &op->expr, "in asm parameter");
+		add_expression(inout, op);
 	} while (match_op(token, ','));
 	return token;
 }
@@ -2094,7 +2109,7 @@ static struct statement *start_function(struct symbol *sym)
 	start_function_scope();
 	ret = alloc_symbol(sym->pos, SYM_NODE);
 	ret->ctype = sym->ctype.base_type->ctype;
-	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_CONST | MOD_VOLATILE | MOD_TLS | MOD_INLINE | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF | MOD_ACCESSED | MOD_TOPLEVEL);
+	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_QUALIFIER | MOD_TLS | MOD_ACCESS | MOD_NOCAST | MOD_NODEREF);
 	ret->ctype.modifiers |= (MOD_AUTO | MOD_REGISTER);
 	bind_symbol(ret, &return_ident, NS_ITERATOR);
 	stmt->ret = ret;

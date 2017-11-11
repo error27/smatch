@@ -169,6 +169,13 @@ static int bb_has_side_effects(struct basic_block *bb)
 			/* FIXME! This should take "const" etc into account */
 			return 1;
 
+		case OP_LOAD:
+			if (!insn->type)
+				return 1;
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				return 1;
+			continue;
+
 		case OP_STORE:
 		case OP_CONTEXT:
 			return 1;
