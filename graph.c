@@ -130,6 +130,8 @@ static void graph_calls(struct entrypoint *ep, int internal)
 			continue;
 
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			if (insn->opcode == OP_CALL &&
 			    internal == !(insn->func->sym->ctype.modifiers & MOD_EXTERN)) {
 

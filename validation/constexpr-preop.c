@@ -16,7 +16,7 @@ static int a[] = {
 };
 
 /*
- * check-name: Expression constness propagation in preops
+ * check-name: constexprness in preops
  *
  * check-error-start
 constexpr-preop.c:4:5: error: bad constant expression

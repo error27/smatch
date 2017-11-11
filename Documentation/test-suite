@@ -7,13 +7,13 @@ Sparse has a number of test cases in its validation directory. The test-suite
 script aims at making automated checking of these tests possible. It works by
 embedding tags in C comments in the test cases.
 
-check-name: (mandatory)
-	Name of the test.
+check-name: <name>
+	Name of the test. This is the only mandatory tag.
 
-check-description: (optional)
+check-description: <description ...>
 	A description of what the test checks.
 
-check-command: (optional)
+check-command: <command arg ...>
 	There are different kinds of tests. Some can validate the sparse
 	preprocessor, while others will use sparse, cgcc, or even other backends
 	of the library. check-command allows you to give a custom command to
@@ -22,40 +22,47 @@ check-command: (optional)
 	run time.
 	It defaults to "sparse $file".
 
-check-exit-value: (optional)
+check-arch-ignore: <arch[|...]>
+check-arch-only: <arch[|...]>
+	Ignore the test if the current architecture (as returned by 'uname -m')
+	match or not one of the archs given in the pattern.
+
+check-exit-value: <value>
 	The expected exit value of check-command. It defaults to 0.
 
-check-timeout: (optional)
+check-timeout: <timeout>
 	The maximum expected duration of check-command, in seconds.
 	It defaults to 1.
 
-check-output-start / check-output-end (optional)
+check-output-start / check-output-end
 	The expected output (stdout and stderr) of check-command lies between
 	those two tags. It defaults to no output.
 
-check-output-ignore / check-error-ignore (optional)
+check-output-ignore / check-error-ignore
 	Don't check the expected output (stdout or stderr) of check-command
 	(usefull when this output is not comparable or if you're only interested
 	in the exit value).
 	By default this check is done.
 
-check-known-to-fail (optional)
+check-known-to-fail
 	Mark the test as being known to fail.
 
-check-output-contains: <pattern> (optional)
+check-output-contains: <pattern>
 	Check that the output (stdout) contains the given pattern.
 	Several such tags can be given, in which case the output
 	must contains all the patterns.
 
-check-output-excludes: <pattern> (optional)
+check-output-excludes: <pattern>
 	Similar than the above one, but with opposite logic.
 	Check that the output (stdout) doesn't contain the given pattern.
 	Several such tags can be given, in which case the output
 	must contains none of the patterns.
 
-check-output-pattern-<nbr>-times: <pattern> (optional)
-	Similar than the contains/excludes her above, but with full control
+check-output-pattern(<nbr>): <pattern>
+check-output-pattern(<min>,<max>): <pattern>
+	Similar to the '-contains/excludes' here above, but with full control
 	of the number of times the pattern should occurs in the output.
+	If <min> or <max> is '-' the corresponding check is ignored.
 
 	Using test-suite
 	~~~~~~~~~~~~~~~~
