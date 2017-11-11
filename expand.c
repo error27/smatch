@@ -582,7 +582,7 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
 	struct expression *value;
 
-	if (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))
+	if (sym->ctype.modifiers & MOD_ACCESS)
 		return NULL;
 	value = sym->initializer;
 	if (!value)

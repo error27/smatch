@@ -2203,7 +2203,7 @@ static struct statement *start_function(struct symbol *sym)
 	start_function_scope();
 	ret = alloc_symbol(sym->pos, SYM_NODE);
 	ret->ctype = sym->ctype.base_type->ctype;
-	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_QUALIFIER | MOD_TLS | MOD_ADDRESSABLE | MOD_NOCAST | MOD_NODEREF);
+	ret->ctype.modifiers &= ~(MOD_STORAGE | MOD_QUALIFIER | MOD_TLS | MOD_ACCESS | MOD_NOCAST | MOD_NODEREF);
 	ret->ctype.modifiers |= (MOD_AUTO | MOD_REGISTER);
 	bind_symbol(ret, &return_ident, NS_ITERATOR);
 	stmt->ret = ret;
