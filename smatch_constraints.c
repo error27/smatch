@@ -156,6 +156,21 @@ static int negate_gt(int op)
 	return op;
 }
 
+static char *get_func_constraint(struct expression *expr)
+{
+	char buf[256];
+	char *name;
+
+	if (is_fake_call(expr))
+		return NULL;
+	name = expr_to_str(expr->fn);
+	if (!name)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s()", name);
+	free_string(name);
+	return alloc_string(buf);
+}
+
 static char *get_toplevel_name(struct expression *expr)
 {
 	struct symbol *sym;
@@ -181,6 +196,10 @@ char *get_constraint_str(struct expression *expr)
 {
 	char *name;
 
+	if (!expr)
+		return NULL;
+	if (expr->type == EXPR_CALL)
+		return get_func_constraint(expr);
 	name = get_toplevel_name(expr);
 	if (name)
 		return name;
