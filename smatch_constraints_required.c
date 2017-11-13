@@ -52,6 +52,8 @@ static struct allocator kernel_allocator_table[] = {
 static struct allocator calloc_table[] = {
 	{"calloc", 0, 1},
 	{"kcalloc", 0, 1},
+	{"kmalloc_array", 0, 1},
+	{"devm_kcalloc", 1, 2},
 };
 
 static int bytes_per_element(struct expression *expr)
@@ -92,6 +94,72 @@ free_data:
 	free_string(data);
 }
 
+static int handle_zero_size_arrays(struct expression *pointer, struct expression *size)
+{
+	struct expression *left, *right;
+	struct symbol *type, *array, *array_type;
+	sval_t struct_size;
+	char *limit;
+	char data[128];
+
+	if (size->type != EXPR_BINOP || size->op != '+')
+		return 0;
+
+	type = get_type(pointer);
+	if (!type || type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (!type || !type->ident || type->type != SYM_STRUCT)
+		return 0;
+	if (!last_member_is_resizable(type))
+		return 0;
+	array = last_ptr_list((struct ptr_list *)type->symbol_list);
+	if (!array || !array->ident)
+		return 0;
+	array_type = get_real_base_type(array);
+	if (!array_type || array_type->type != SYM_ARRAY)
+		return 0;
+	array_type = get_real_base_type(array_type);
+
+	left = strip_expr(size->left);
+	right = strip_expr(size->right);
+
+	if (!get_implied_value(left, &struct_size))
+		return 0;
+	if (struct_size.value != type_bytes(type))
+		return 0;
+
+	if (right->type == EXPR_BINOP && right->op == '*') {
+		struct expression *mult_left, *mult_right;
+		sval_t sval;
+
+		mult_left = strip_expr(right->left);
+		mult_right = strip_expr(right->right);
+
+		if (get_implied_value(mult_left, &sval) &&
+		    sval.value == type_bytes(array_type))
+			size = mult_right;
+		else if (get_implied_value(mult_right, &sval) &&
+		    sval.value == type_bytes(array_type))
+			size = mult_left;
+		else
+			return 0;
+	}
+
+	snprintf(data, sizeof(data), "(struct %s)->%s", type->ident->name, array->ident->name);
+	limit = get_constraint_str(size);
+	if (!limit) {
+		set_state_expr(my_id, size, alloc_state_expr(
+			       member_expression(deref_expression(pointer), '*', array->ident)));
+		return 1;
+	}
+
+	sql_save_constraint_required(data, '<', limit);
+
+	free_string(limit);
+	return 1;
+}
+
 static void match_alloc_helper(struct expression *pointer, struct expression *size)
 {
 	struct expression *tmp;
@@ -108,6 +176,9 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 		if (cnt++ > 5)
 			break;
 	}
+
+	if (handle_zero_size_arrays(pointer, size))
+		return;
 
 	if (size->type == EXPR_BINOP && size->op == '*') {
 		struct expression *mult_left, *mult_right;
@@ -198,6 +269,20 @@ static void match_assign_size(struct expression *expr)
 	free_string(limit);
 free_data:
 	free_string(data);
+}
+
+static void match_assign_has_buf_comparison(struct expression *expr)
+{
+	struct expression *size;
+
+	if (expr->op != '=')
+		return;
+	if (expr->right->type == EXPR_CALL)
+		return;
+	size = get_size_variable(expr->right);
+	if (!size)
+		return;
+	match_alloc_helper(expr->left, size);
 }
 
 static void match_assign_data(struct expression *expr)
@@ -298,15 +383,79 @@ free:
 	free_string(limit);
 }
 
+static void match_assign_buf_comparison(struct expression *expr)
+{
+	struct expression *pointer;
+
+	if (expr->op != '=')
+		return;
+	pointer = get_array_variable(expr->right);
+	if (!pointer)
+		return;
+
+	match_alloc_helper(pointer, expr->right);
+}
+
+static int constraint_found(void *_found, int argc, char **argv, char **azColName)
+{
+	int *found = _found;
+
+	*found = 1;
+	return 0;
+}
+
+static int has_constraint(struct expression *expr, const char *constraint)
+{
+	int found = 0;
+
+	if (get_state_expr(my_id, expr))
+		return 1;
+
+	run_sql(constraint_found, &found,
+		"select data from constraints_required where bound = '%s' limit 1",
+		constraint);
+
+	return found;
+}
+
+static void match_assign_constraint(struct expression *expr)
+{
+	struct symbol *type;
+	char *left, *right;
+
+	if (expr->op != '=')
+		return;
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_BASETYPE)
+		return;
+
+	left = get_constraint_str(expr->left);
+	if (!left)
+		return;
+	right = get_constraint_str(expr->right);
+	if (!right)
+		goto free;
+	if (!has_constraint(expr->right, right))
+		return;
+	sql_copy_constraint_required(left, right);
+free:
+	free_string(right);
+	free_string(left);
+}
+
 void register_constraints_required(int id)
 {
 	my_id = id;
 
 	add_hook(&match_assign_size, ASSIGNMENT_HOOK);
 	add_hook(&match_assign_data, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_has_buf_comparison, ASSIGNMENT_HOOK);
 
 	add_hook(&match_assign_ARRAY_SIZE, ASSIGNMENT_HOOK);
 	add_hook(&match_assign_ARRAY_SIZE, GLOBAL_ASSIGNMENT_HOOK);
+	add_hook(&match_assign_buf_comparison, ASSIGNMENT_HOOK);
+	add_hook(&match_assign_constraint, ASSIGNMENT_HOOK);
 
 	add_allocation_function("malloc", &match_alloc, 0);
 	add_allocation_function("memdup", &match_alloc, 1);
@@ -327,6 +476,7 @@ void register_constraints_required(int id)
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("kcalloc", &match_calloc, 0);
+		add_allocation_function("kmalloc_array", &match_calloc, 0);
 		add_allocation_function("devm_kcalloc", &match_calloc, 1);
 		add_allocation_function("krealloc", &match_alloc, 1);
 	}

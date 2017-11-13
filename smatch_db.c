@@ -335,6 +335,16 @@ void sql_save_constraint_required(const char *data, int op, const char *limit)
 	sql_insert_or_ignore(constraints_required, "'%s', '%s', '%s'", data, show_special(op), limit);
 }
 
+void sql_copy_constraint_required(const char *new_limit, const char *old_limit)
+{
+	if (!option_info)
+		return;
+
+	sm_msg("SQL_late: insert or ignore into constraints_required (data, op, bound) "
+		"select constraints_required.data, constraints_required.op, '%s' from "
+		"constraints_required where bound = '%s';", new_limit, old_limit);
+}
+
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data)
 {
 	sql_insert(fn_ptr_data_link, "'%s', '%s'", ptr, data);

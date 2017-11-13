@@ -31,6 +31,19 @@ while (<WARNS>) {
 
     $db->do($sql);
 }
+close(WARNS);
+
+open(WARNS, "<$warns");
+while (<WARNS>) {
+
+    if (!($_ =~ /^.*? [^ ]*\(\) SQL_late: /)) {
+        next;
+    }
+    ($dummy, $dummy, $sql) = split(/:/, $_, 3);
+
+    $db->do($sql);
+}
+close(WARNS);
 
 $db->commit();
 $db->disconnect();

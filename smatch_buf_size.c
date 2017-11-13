@@ -397,11 +397,14 @@ static int is_last_member_of_struct(struct symbol *sym, struct ident *member)
 	return 0;
 }
 
-static int last_member_is_resizable(struct symbol *sym)
+int last_member_is_resizable(struct symbol *sym)
 {
 	struct symbol *last_member;
 	struct symbol *type;
 	sval_t sval;
+
+	if (!sym || sym->type != SYM_STRUCT)
+		return 0;
 
 	last_member = last_ptr_list((struct ptr_list *)sym->symbol_list);
 	if (!last_member || !last_member->ident)

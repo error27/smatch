@@ -185,6 +185,16 @@ struct expression *get_size_variable(struct expression *buf)
 	return NULL;
 }
 
+struct expression *get_array_variable(struct expression *size)
+{
+	struct smatch_state *state;
+
+	state = get_state_expr(link_id, size);
+	if (state)
+		return state->data;
+	return NULL;
+}
+
 static void array_check(struct expression *expr)
 {
 	struct expression *array;

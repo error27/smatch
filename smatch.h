@@ -794,6 +794,7 @@ void sql_insert_data_info(struct expression *data, int type, const char *value);
 void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type, const char *value);
 void sql_save_constraint(const char *con);
 void sql_save_constraint_required(const char *data, int op, const char *limit);
+void sql_copy_constraint_required(const char *new_limit, const char *old_limit);
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data);
 void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value);
 
@@ -839,6 +840,7 @@ int get_array_size_bytes_min(struct expression *expr);
 int get_array_size_bytes_max(struct expression *expr);
 struct range_list *get_array_size_bytes_rl(struct expression *expr);
 int get_real_array_size(struct expression *expr);
+int last_member_is_resizable(struct symbol *type);
 /* smatch_strlen.c */
 int get_implied_strlen(struct expression *expr, struct range_list **rl);
 int get_size_from_strlen(struct expression *expr);
@@ -981,6 +983,7 @@ void set_auto_copy(int owner);
 
 /* check_buf_comparison */
 struct expression *get_size_variable(struct expression *buf);
+struct expression *get_array_variable(struct expression *size);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);
