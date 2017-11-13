@@ -217,7 +217,7 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 }
 
 /* remove_unsigned_from_comparison() is obviously a hack. */
-static int remove_unsigned_from_comparison(int op)
+int remove_unsigned_from_comparison(int op)
 {
 	switch (op) {
 	case SPECIAL_UNSIGNED_LT:

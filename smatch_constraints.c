@@ -362,7 +362,7 @@ static void match_condition(struct expression *expr)
 	constraints = get_constraints(left);
 	constraints = clone_constraint_list(constraints);
 	op = negate_gt(expr->op);
-	add_constraint(&constraints, op, constraint_id);
+	add_constraint(&constraints, remove_unsigned_from_comparison(op), constraint_id);
 	state = alloc_constraint_state(constraints);
 
 	if (op == expr->op)
