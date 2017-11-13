@@ -242,23 +242,28 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 	return ret;
 }
 
-static LLVMTypeRef insn_symbol_type(LLVMModuleRef module, struct instruction *insn)
+static LLVMTypeRef int_type_by_size(int size)
 {
-	if (insn->type)
-		return symbol_type(module, insn->type);
-
-	switch (insn->size) {
+	switch (size) {
+		case 1:		return LLVMInt1Type();
 		case 8:		return LLVMInt8Type();
 		case 16:	return LLVMInt16Type();
 		case 32:	return LLVMInt32Type();
 		case 64:	return LLVMInt64Type();
 
 		default:
-			die("invalid bit size %d", insn->size);
+			die("invalid bit size %d", size);
 			break;
 	}
-
 	return NULL;	/* not reached */
+}
+
+static LLVMTypeRef insn_symbol_type(LLVMModuleRef module, struct instruction *insn)
+{
+	if (insn->type)
+		return symbol_type(module, insn->type);
+
+	return int_type_by_size(insn->size);
 }
 
 static LLVMLinkage data_linkage(struct symbol *sym)
@@ -360,7 +365,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		break;
 	}
 	case PSEUDO_VAL:
-		result = LLVMConstInt(insn_symbol_type(fn->module, insn), pseudo->value, 1);
+		result = LLVMConstInt(int_type_by_size(pseudo->size), pseudo->value, 1);
 		break;
 	case PSEUDO_ARG: {
 		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
