@@ -2186,11 +2186,8 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		add_one_insn(ep, insn);
 	}
 
-	if (fdump_linearize) {
-		if (fdump_linearize == 2)
-			return ep;
+	if (fdump_ir & PASS_LINEARIZE)
 		show_entry(ep);
-	}
 
 	/*
 	 * Do trivial flow simplification - branches to
@@ -2201,8 +2198,13 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	/*
 	 * Turn symbols into pseudos
 	 */
-	simplify_symbol_usage(ep);
+	if (fpasses & PASS_MEM2REG)
+		simplify_symbol_usage(ep);
+	if (fdump_ir & PASS_MEM2REG)
+		show_entry(ep);
 
+	if (!(fpasses & PASS_OPTIM))
+		return ep;
 repeat:
 	/*
 	 * Remove trivial instructions, and try to CSE

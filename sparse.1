@@ -365,12 +365,6 @@ The \fIdir\fR name would normally take the form of the target's
 normalized GNU triplet. (e.g. i386-linux-gnu).
 .
 .SH DEBUG OPTIONS
-.TP
-.B \-fdump-linearize[=only]
-Dump the IR code of a function directly after its linearization,
-before any simplifications is made. If the argument \fB=only\fR is
-also given no further processing is done on the function.
-.
 .B \-fmem-report
 Report some statistics about memory allocation used by the tool.
 .
@@ -378,7 +372,7 @@ Report some statistics about memory allocation used by the tool.
 .TP
 .B \-fmemcpy-max-count=COUNT
 Set the limit for the warnings given by \fB-Wmemcpy-max-count\fR.
-A COUNT of 0, useless in itself, will effectively disable the warning.
+A COUNT of 'unlimited' or '0' will effectively disable the warning.
 The default limit is 100000.
 .
 .TP

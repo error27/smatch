@@ -259,9 +259,10 @@ int dump_macro_defs = 0;
 int dbg_entry = 0;
 int dbg_dead = 0;
 
+unsigned long fdump_ir;
 int fmem_report = 0;
-int fdump_linearize;
 unsigned long long fmemcpy_max_count = 100000;
+unsigned long fpasses = ~0UL;
 
 int preprocess_only;
 
@@ -477,9 +478,77 @@ static void handle_arch_finalize(void)
 	handle_arch_msize_long_finalize();
 }
 
-
-static int handle_simple_switch(const char *arg, const char *name, int *flag)
+const char *match_option(const char *arg, const char *prefix)
 {
+	unsigned int n = strlen(prefix);
+	if (strncmp(arg, prefix, n) == 0)
+		return arg + n;
+	return NULL;
+}
+
+
+struct mask_map {
+	const char *name;
+	unsigned long mask;
+};
+
+static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
+{
+	const char *name;
+
+	for (;(name = map->name); map++) {
+		if (!strncmp(name, str, len) && !name[len]) {
+			if (neg == 0)
+				*val |= map->mask;
+			else
+				*val &= ~map->mask;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
+{
+	if (*opt == '\0') {
+		apply_mask(flag, "", 0, map, 0);
+		return 1;
+	}
+	if (*opt++ != '=')
+		return 0;
+	while (1) {
+		unsigned int len = strcspn(opt, ",+");
+		int neg = 0;
+		if (len == 0)
+			goto end;
+		if (!strncmp(opt, "no-", 3)) {
+			opt += 3;
+			len -= 3;
+			neg = 1;
+		}
+		if (apply_mask(flag, opt, len, map, neg))
+			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
+
+end:
+		opt += len;
+		if (*opt++ == '\0')
+			break;
+	}
+	return 1;
+}
+
+
+#define OPT_INVERSE	1
+struct flag {
+	const char *name;
+	int *flag;
+	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
+	unsigned long mask;
+};
+
+static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
+{
+	const char *arg = opt;
 	int val = 1;
 
 	// Prefixe "no-" mean to turn flag off.
@@ -488,14 +557,57 @@ static int handle_simple_switch(const char *arg, const char *name, int *flag)
 		val = 0;
 	}
 
-	if (strcmp(arg, name) == 0) {
-		*flag = val;
-		return 1;
+	for (; flags->name; flags++) {
+		const char *opt = match_option(arg, flags->name);
+		int rc;
+
+		if (!opt)
+			continue;
+
+		if (flags->fun) {
+			int options = 0;
+			if (!val)
+				options |= OPT_INVERSE;
+			if ((rc = flags->fun(ori, opt, flags, options)))
+				return rc;
+		}
+
+		// boolean flag
+		if (opt[0] == '\0' && flags->flag) {
+			*flags->flag = val;
+			return 1;
+		}
 	}
 
 	// not handled
 	return 0;
 }
+
+
+#define	OPTNUM_ZERO_IS_INF		1
+#define	OPTNUM_UNLIMITED		2
+
+#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
+static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
+{									\
+	char *end;							\
+	TYPE val;							\
+									\
+	val = FUNCTION(opt, &end, 0);					\
+	if (*end != '\0' || end == opt) {				\
+		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
+			val = ~val;					\
+		else							\
+			die("error: wrong argument to \'%s\'", arg);	\
+	}								\
+	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
+		val = ~val;						\
+	*ptr = val;							\
+	return 1;							\
+}
+
+OPT_NUMERIC(ullong, unsigned long long, strtoull)
+
 
 static char **handle_switch_o(char *arg, char **next)
 {
@@ -508,10 +620,7 @@ static char **handle_switch_o(char *arg, char **next)
 	return next;
 }
 
-static const struct warning {
-	const char *name;
-	int *flag;
-} warnings[] = {
+static const struct flag warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
@@ -554,7 +663,7 @@ enum {
 };
 
 
-static char **handle_onoff_switch(char *arg, char **next, const struct warning warnings[], int n)
+static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
 {
 	int flag = WARNING_ON;
 	char *p = arg + 1;
@@ -596,7 +705,7 @@ static char **handle_switch_W(char *arg, char **next)
 	return next;
 }
 
-static struct warning debugs[] = {
+static struct flag debugs[] = {
 	{ "entry", &dbg_entry},
 	{ "dead", &dbg_dead},
 };
@@ -615,7 +724,7 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
-static struct warning dumps[] = {
+static struct flag dumps[] = {
 	{ "D", &dump_macro_defs},
 };
 
@@ -629,7 +738,7 @@ static char **handle_switch_d(char *arg, char **next)
 }
 
 
-static void handle_onoff_switch_finalize(const struct warning warnings[], int n)
+static void handle_onoff_switch_finalize(const struct flag warnings[], int n)
 {
 	unsigned i;
 
@@ -690,69 +799,85 @@ static char **handle_switch_O(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_fmemcpy_max_count(char *arg, char **next)
+static int handle_ftabstop(const char *arg, const char *opt, const struct flag *flag, int options)
 {
-	unsigned long long val;
-	char *end;
-
-	val = strtoull(arg, &end, 0);
-	if (*end != '\0' || end == arg)
-		die("error: missing argument to \"-fmemcpy-max-count=\"");
-
-	if (val == 0)
-		val = ~0ULL;
-	fmemcpy_max_count = val;
-	return next;
-}
-
-static char **handle_switch_ftabstop(char *arg, char **next)
-{
-	char *end;
 	unsigned long val;
+	char *end;
 
-	if (*arg == '\0')
-		die("error: missing argument to \"-ftabstop=\"");
+	if (*opt == '\0')
+		die("error: missing argument to \"%s\"", arg);
 
 	/* we silently ignore silly values */
-	val = strtoul(arg, &end, 10);
+	val = strtoul(opt, &end, 10);
 	if (*end == '\0' && 1 <= val && val <= 100)
 		tabstop = val;
 
-	return next;
+	return 1;
 }
 
-static char **handle_switch_fdump(char *arg, char **next)
+static int handle_fpasses(const char *arg, const char *opt, const struct flag *flag, int options)
 {
-	if (!strncmp(arg, "linearize", 9)) {
-		arg += 9;
-		if (*arg == '\0')
-			fdump_linearize = 1;
-		else if (!strcmp(arg, "=only"))
-			fdump_linearize = 2;
+	unsigned long mask;
+
+	mask = flag->mask;
+	if (*opt == '\0') {
+		if (options & OPT_INVERSE)
+			fpasses &= ~mask;
 		else
-			goto err;
+			fpasses |=  mask;
+		return 1;
 	}
-
-	/* ignore others flags */
-	return next;
-
-err:
-	die("error: unknown flag \"-fdump-%s\"", arg);
+	if (options & OPT_INVERSE)
+		return 0;
+	if (!strcmp(opt, "-enable")) {
+		fpasses |= mask;
+		return 1;
+	}
+	if (!strcmp(opt, "-disable")) {
+		fpasses &= ~mask;
+		return 1;
+	}
+	if (!strcmp(opt, "=last")) {
+		// clear everything above
+		mask |= mask - 1;
+		fpasses &= mask;
+		return 1;
+	}
+	return 0;
 }
+
+static int handle_fdump_ir(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	static const struct mask_map dump_ir_options[] = {
+		{ "",			PASS_LINEARIZE },
+		{ "linearize",		PASS_LINEARIZE },
+		{ "mem2reg",		PASS_MEM2REG },
+		{ "final",		PASS_FINAL },
+		{ },
+	};
+
+	return handle_suboption_mask(arg, opt, dump_ir_options, &fdump_ir);
+}
+
+static int handle_fmemcpy_max_count(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	opt_ullong(arg, opt, &fmemcpy_max_count, OPTNUM_ZERO_IS_INF|OPTNUM_UNLIMITED);
+	return 1;
+}
+
+static struct flag fflags[] = {
+	{ "dump-ir",		NULL,	handle_fdump_ir },
+	{ "mem-report",		&fmem_report },
+	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
+	{ "tabstop=",		NULL,	handle_ftabstop },
+	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
+	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
+	{ },
+};
 
 static char **handle_switch_f(char *arg, char **next)
 {
-	arg++;
-
-	if (!strncmp(arg, "tabstop=", 8))
-		return handle_switch_ftabstop(arg+8, next);
-	if (!strncmp(arg, "dump-", 5))
-		return handle_switch_fdump(arg+5, next);
-	if (!strncmp(arg, "memcpy-max-count=", 17))
-		return handle_switch_fmemcpy_max_count(arg+17, next);
-
-	/* handle switches w/ arguments above, boolean and only boolean below */
-	if (handle_simple_switch(arg, "mem-report", &fmem_report))
+	if (handle_switches(arg-1, arg+1, fflags))
 		return next;
 
 	return next;
@@ -774,12 +899,9 @@ static char **handle_switch_a(char *arg, char **next)
 	return next;
 }
 
-static char **handle_switch_s(char *arg, char **next)
+static char **handle_switch_s(const char *arg, char **next)
 {
-	if (!strncmp (arg, "std=", 4))
-	{
-		arg += 4;
-
+	if ((arg = match_option(arg, "std="))) {
 		if (!strcmp (arg, "c89") ||
 		    !strcmp (arg, "iso9899:1990"))
 			standard = STANDARD_C89;
@@ -1333,6 +1455,8 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	handle_switch_v_finalize();
 
 	handle_arch_finalize();
+	if (fdump_ir == 0)
+		fdump_ir = PASS_FINAL;
 
 	list = NULL;
 	if (!ptr_list_empty(filelist)) {
