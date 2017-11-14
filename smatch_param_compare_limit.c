@@ -108,7 +108,7 @@ static void add_comparison_var_sym(const char *left_name,
 		comparison = flip_comparison(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
-	state = alloc_compare_state(left_name, left_vsl, comparison, right_name, right_vsl);
+	state = alloc_compare_state(NULL, left_name, left_vsl, comparison, NULL, right_name, right_vsl);
 
 	set_state(compare_id, state_name, NULL, state);
 

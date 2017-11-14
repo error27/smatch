@@ -56,8 +56,10 @@ static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
 }
 
 struct smatch_state *alloc_compare_state(
+		struct expression *left,
 		const char *left_var, struct var_sym_list *left_vsl,
 		int comparison,
+		struct expression *right,
 		const char *right_var, struct var_sym_list *right_vsl)
 {
 	struct smatch_state *state;
@@ -66,9 +68,11 @@ struct smatch_state *alloc_compare_state(
 	state = __alloc_smatch_state(0);
 	state->name = alloc_sname(show_special(comparison));
 	data = __alloc_compare_data(0);
+	data->left = left;
 	data->left_var = alloc_sname(left_var);
 	data->left_vsl = clone_var_sym_list(left_vsl);
 	data->comparison = comparison;
+	data->right = right;
 	data->right_var = alloc_sname(right_var);
 	data->right_vsl = clone_var_sym_list(right_vsl);
 	state->data = data;
@@ -211,7 +215,10 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 
 	op = rl_comparison(left_rl, right_rl);
 	if (op)
-		return alloc_compare_state(data->left_var, data->left_vsl, op, data->right_var, data->right_vsl);
+		return alloc_compare_state(
+				data->left, data->left_var, data->left_vsl,
+				op,
+				data->right, data->right_var, data->right_vsl);
 
 	return &undefined;
 }
@@ -498,7 +505,10 @@ struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch
 
 	op = merge_comparisons(state_to_comparison(s1), state_to_comparison(s2));
 	if (op)
-		return alloc_compare_state(data->left_var, data->left_vsl, op, data->right_var, data->right_vsl);
+		return alloc_compare_state(
+				data->left, data->left_var, data->left_vsl,
+				op,
+				data->right, data->right_var, data->right_vsl);
 	return &undefined;
 }
 
@@ -545,7 +555,10 @@ static void save_start_states(struct statement *stmt)
 		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
 		add_var_sym(&left_vsl, param->ident->name, param);
 		add_var_sym(&right_vsl, orig, param);
-		state = alloc_compare_state(param->ident->name, left_vsl, SPECIAL_EQUAL, alloc_sname(orig), right_vsl);
+		state = alloc_compare_state(
+				NULL, param->ident->name, left_vsl,
+				SPECIAL_EQUAL,
+				NULL, alloc_sname(orig), right_vsl);
 		set_state(compare_id, state_name, NULL, state);
 
 		link = alloc_sname(state_name);
@@ -614,9 +627,10 @@ static void match_inc(struct sm_state *sm)
 			struct compare_data *data = state->data;
 			struct smatch_state *new;
 
-			new = alloc_compare_state(data->left_var, data->left_vsl,
-						  flip ? '<' : '>',
-						  data->right_var, data->right_vsl);
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					flip ? '<' : '>',
+					data->right, data->right_var, data->right_vsl);
 			set_state(compare_id, tmp, NULL, new);
 			break;
 		}
@@ -646,7 +660,10 @@ static void match_dec(struct sm_state *sm)
 			struct compare_data *data = state->data;
 			struct smatch_state *new;
 
-			new = alloc_compare_state(data->left_var, data->left_vsl, '<', data->right_var, data->right_vsl);
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					'<',
+					data->right, data->right_var, data->right_vsl);
 			set_state(compare_id, tmp, NULL, new);
 			break;
 			}
@@ -811,6 +828,7 @@ static int have_common_var_sym(struct var_sym_list *left_vsl, struct var_sym_lis
  *
  */
 static void update_tf_links(struct stree *pre_stree,
+			    struct expression *left_expr,
 			    const char *left_var, struct var_sym_list *left_vsl,
 			    int left_comparison, int left_false_comparison,
 			    const char *mid_var, struct var_sym_list *mid_vsl,
@@ -819,6 +837,7 @@ static void update_tf_links(struct stree *pre_stree,
 	struct smatch_state *state;
 	struct smatch_state *true_state, *false_state;
 	struct compare_data *data;
+	struct expression *right_expr;
 	const char *right_var;
 	struct var_sym_list *right_vsl;
 	int orig_comparison;
@@ -835,9 +854,11 @@ static void update_tf_links(struct stree *pre_stree,
 			continue;
 		data = state->data;
 		right_comparison = data->comparison;
+		right_expr = data->right;
 		right_var = data->right_var;
 		right_vsl = data->right_vsl;
 		if (strcmp(mid_var, right_var) == 0) {
+			right_expr = data->left;
 			right_var = data->left_var;
 			right_vsl = data->left_vsl;
 			right_comparison = flip_comparison(right_comparison);
@@ -854,11 +875,14 @@ static void update_tf_links(struct stree *pre_stree,
 		false_comparison = filter_comparison(orig_comparison, false_comparison);
 
 		if (strcmp(left_var, right_var) > 0) {
+		  	struct expression *tmp_expr = left_expr;
 			const char *tmp_var = left_var;
 			struct var_sym_list *tmp_vsl = left_vsl;
 
+			left_expr = right_expr;
 			left_var = right_var;
 			left_vsl = right_vsl;
+			right_expr = tmp_expr;
 			right_var = tmp_var;
 			right_vsl = tmp_vsl;
 			true_comparison = flip_comparison(true_comparison);
@@ -869,11 +893,17 @@ static void update_tf_links(struct stree *pre_stree,
 			continue;
 
 		if (true_comparison)
-			true_state = alloc_compare_state(left_var, left_vsl, true_comparison, right_var, right_vsl);
+			true_state = alloc_compare_state(
+					left_expr, left_var, left_vsl,
+					true_comparison,
+					right_expr, right_var, right_vsl);
 		else
 			true_state = NULL;
 		if (false_comparison)
-			false_state = alloc_compare_state(left_var, left_vsl, false_comparison, right_var, right_vsl);
+			false_state = alloc_compare_state(
+					left_expr, left_var, left_vsl,
+					false_comparison,
+					right_expr, right_var, right_vsl);
 		else
 			false_state = NULL;
 
@@ -893,7 +923,9 @@ static void update_tf_links(struct stree *pre_stree,
 }
 
 static void update_tf_data(struct stree *pre_stree,
+		struct expression *left_expr,
 		const char *left_name, struct var_sym_list *left_vsl,
+		struct expression *right_expr,
 		const char *right_name, struct var_sym_list *right_vsl,
 		int true_comparison, int false_comparison)
 {
@@ -901,11 +933,11 @@ static void update_tf_data(struct stree *pre_stree,
 
 	state = get_state_stree(pre_stree, link_id, right_name, vsl_to_sym(right_vsl));
 	if (state)
-		update_tf_links(pre_stree, left_name, left_vsl, true_comparison, false_comparison, right_name, right_vsl, state->data);
+		update_tf_links(pre_stree, left_expr, left_name, left_vsl, true_comparison, false_comparison, right_name, right_vsl, state->data);
 
 	state = get_state_stree(pre_stree, link_id, left_name, vsl_to_sym(left_vsl));
 	if (state)
-		update_tf_links(pre_stree, right_name, right_vsl, flip_comparison(true_comparison), flip_comparison(false_comparison), left_name, left_vsl, state->data);
+		update_tf_links(pre_stree, right_expr, right_name, right_vsl, flip_comparison(true_comparison), flip_comparison(false_comparison), left_name, left_vsl, state->data);
 }
 
 static void iter_modify(struct sm_state *sm, struct expression *mod_expr)
@@ -970,7 +1002,10 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 		return;
 
 	data = false_state->data;
-	false_state = alloc_compare_state(data->left_var, data->left_vsl, SPECIAL_EQUAL, data->right_var, data->right_vsl);
+	false_state = alloc_compare_state(
+			data->left, data->left_var, data->left_vsl,
+			SPECIAL_EQUAL,
+			data->right, data->right_var, data->right_vsl);
 
 	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
 }
@@ -1032,11 +1067,17 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	false_op = filter_comparison(orig_comparison, false_op);
 
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left, right);
-	true_state = alloc_compare_state(left, left_vsl, op, right, right_vsl);
-	false_state = alloc_compare_state(left, left_vsl, false_op, right, right_vsl);
+	true_state = alloc_compare_state(
+			left_expr, left, left_vsl,
+			op,
+			right_expr, right, right_vsl);
+	false_state = alloc_compare_state(
+			left_expr, left, left_vsl,
+			false_op,
+			right_expr, right, right_vsl);
 
 	pre_stree = clone_stree(__get_cur_stree());
-	update_tf_data(pre_stree, left, left_vsl, right, right_vsl, op, false_op);
+	update_tf_data(pre_stree, left_expr, left, left_vsl, right_expr, right, right_vsl, op, false_op);
 	free_stree(&pre_stree);
 
 	set_true_false_states(compare_id, state_name, NULL, true_state, false_state);
@@ -1082,9 +1123,11 @@ void __comparison_match_condition(struct expression *expr)
 	}
 }
 
-static void add_comparison_var_sym(const char *left_name,
-		struct var_sym_list *left_vsl,
+static void add_comparison_var_sym(
+		struct expression *left_expr,
+		const char *left_name, struct var_sym_list *left_vsl,
 		int comparison,
+		struct expression *right_expr,
 		const char *right_name, struct var_sym_list *right_vsl)
 {
 	struct smatch_state *state;
@@ -1092,17 +1135,23 @@ static void add_comparison_var_sym(const char *left_name,
 	char state_name[256];
 
 	if (strcmp(left_name, right_name) > 0) {
+		struct expression *tmp_expr = left_expr;
 		const char *tmp_name = left_name;
 		struct var_sym_list *tmp_vsl = left_vsl;
 
+		left_expr = right_expr;
 		left_name = right_name;
 		left_vsl = right_vsl;
+		right_expr = tmp_expr;
 		right_name = tmp_name;
 		right_vsl = tmp_vsl;
 		comparison = flip_comparison(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
-	state = alloc_compare_state(left_name, left_vsl, comparison, right_name, right_vsl);
+	state = alloc_compare_state(
+			left_expr, left_name, left_vsl,
+			comparison,
+			right_expr, right_name, right_vsl);
 
 	set_state(compare_id, state_name, NULL, state);
 
@@ -1133,20 +1182,26 @@ static void add_comparison(struct expression *left, int comparison, struct expre
 	right_vsl = expr_to_vsl(right);
 
 	if (strcmp(left_name, right_name) > 0) {
+		struct expression *tmp_expr = left;
 		struct symbol *tmp_sym = left_sym;
 		char *tmp_name = left_name;
 		struct var_sym_list *tmp_vsl = left_vsl;
 
+		left = right;
 		left_name = right_name;
 		left_sym = right_sym;
 		left_vsl = right_vsl;
+		right = tmp_expr;
 		right_name = tmp_name;
 		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
 		comparison = flip_comparison(comparison);
 	}
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left_name, right_name);
-	state = alloc_compare_state(left_name, left_vsl, comparison, right_name, right_vsl);
+	state = alloc_compare_state(
+			left, left_name, left_vsl,
+			comparison,
+			right, right_name, right_vsl);
 
 	set_state(compare_id, state_name, NULL, state);
 	save_link(left, state_name);
@@ -1245,6 +1300,7 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 	char *left_var = NULL;
 	char *right_var = NULL;
 	struct var_sym_list *left_vsl;
+	struct expression *expr;
 	const char *var;
 	struct var_sym_list *vsl;
 	int comparison;
@@ -1269,14 +1325,16 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 			continue;
 		data = state->data;
 		comparison = data->comparison;
+		expr = data->right;
 		var = data->right_var;
 		vsl = data->right_vsl;
 		if (strcmp(var, right_var) == 0) {
+			expr = data->left;
 			var = data->left_var;
 			vsl = data->left_vsl;
 			comparison = flip_comparison(comparison);
 		}
-		add_comparison_var_sym(left_var, left_vsl, comparison, var, vsl);
+		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
 	} END_FOR_EACH_PTR(tmp);
 
 done:
@@ -1461,6 +1519,7 @@ struct state_list *get_all_possible_equal_comparisons(struct expression *expr)
 	return ret;
 }
 
+
 static void update_links_from_call(struct expression *left,
 				   int left_compare,
 				   struct expression *right)
@@ -1472,6 +1531,7 @@ static void update_links_from_call(struct expression *left,
 	char *left_var = NULL;
 	char *right_var = NULL;
 	struct var_sym_list *left_vsl;
+	struct expression *expr;
 	const char *var;
 	struct var_sym_list *vsl;
 	int comparison;
@@ -1496,9 +1556,11 @@ static void update_links_from_call(struct expression *left,
 			continue;
 		data = state->data;
 		comparison = data->comparison;
+		expr = data->right;
 		var = data->right_var;
 		vsl = data->right_vsl;
 		if (strcmp(var, right_var) == 0) {
+			expr = data->left;
 			var = data->left_var;
 			vsl = data->left_vsl;
 			comparison = flip_comparison(comparison);
@@ -1506,7 +1568,7 @@ static void update_links_from_call(struct expression *left,
 		comparison = combine_comparisons(left_compare, comparison);
 		if (!comparison)
 			continue;
-		add_comparison_var_sym(left_var, left_vsl, comparison, var, vsl);
+		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
 	} END_FOR_EACH_PTR(tmp);
 
 done:
@@ -2019,7 +2081,7 @@ static void db_return_comparison(struct expression *expr, int left_param, char *
 	add_var_sym(&left_vsl, left_name, left_sym);
 	add_var_sym(&right_vsl, right_name, right_sym);
 
-	add_comparison_var_sym(left_name, left_vsl, op, right_name, right_vsl);
+	add_comparison_var_sym(NULL, left_name, left_vsl, op, NULL, right_name, right_vsl);
 
 free:
 	free_string(left_name);
