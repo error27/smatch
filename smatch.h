@@ -869,17 +869,17 @@ char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym);
 
 /* smatch_comparison.c */
 struct compare_data {
-	const char *var1;
-	struct var_sym_list *vsl1;
+	const char *left_var;
+	struct var_sym_list *left_vsl;
 	int comparison;
-	const char *var2;
-	struct var_sym_list *vsl2;
+	const char *right_var;
+	struct var_sym_list *right_vsl;
 };
 DECLARE_ALLOCATOR(compare_data);
 struct smatch_state *alloc_compare_state(
-		const char *var1, struct var_sym_list *vsl1,
+		const char *left_var, struct var_sym_list *left_vsl,
 		int comparison,
-		const char *var2, struct var_sym_list *vsl2);
+		const char *right_var, struct var_sym_list *right_vsl);
 int merge_comparisons(int one, int two);
 int combine_comparisons(int left_compare, int right_compare);
 int state_to_comparison(struct smatch_state *state);

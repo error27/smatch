@@ -122,14 +122,14 @@ static void array_check_data_info(struct expression *expr)
 
 	FOR_EACH_PTR(slist, sm) {
 		comp = sm->state->data;
-		if (strcmp(comp->var1, offset_name) == 0) {
-			if (db_var_is_array_limit(array, comp->var2, comp->vsl2)) {
-				equal_name = comp->var2;
+		if (strcmp(comp->left_var, offset_name) == 0) {
+			if (db_var_is_array_limit(array, comp->right_var, comp->right_vsl)) {
+				equal_name = comp->right_var;
 				break;
 			}
-		} else if (strcmp(comp->var2, offset_name) == 0) {
-			if (db_var_is_array_limit(array, comp->var1, comp->vsl1)) {
-				equal_name = comp->var1;
+		} else if (strcmp(comp->right_var, offset_name) == 0) {
+			if (db_var_is_array_limit(array, comp->left_var, comp->left_vsl)) {
+				equal_name = comp->left_var;
 				break;
 			}
 		}

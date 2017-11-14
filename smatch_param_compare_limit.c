@@ -194,11 +194,11 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			data = sm->state->data;
 			if (!data || !data->comparison)
 				continue;
-			if (ptr_list_size((struct ptr_list *)data->vsl1) != 1 ||
-			    ptr_list_size((struct ptr_list *)data->vsl2) != 1)
+			if (ptr_list_size((struct ptr_list *)data->left_vsl) != 1 ||
+			    ptr_list_size((struct ptr_list *)data->right_vsl) != 1)
 				continue;
-			left = first_ptr_list((struct ptr_list *)data->vsl1);
-			right = first_ptr_list((struct ptr_list *)data->vsl2);
+			left = first_ptr_list((struct ptr_list *)data->left_vsl);
+			right = first_ptr_list((struct ptr_list *)data->right_vsl);
 			if (left->sym == right->sym &&
 			    strcmp(left->var, right->var) == 0)
 				continue;
