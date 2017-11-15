@@ -530,6 +530,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	struct state_list *false_stack = NULL;
 	struct timeval time_before;
 	struct timeval time_after;
+	int sec;
 
 	gettimeofday(&time_before, NULL);
 
@@ -561,9 +562,10 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	}
 
 	gettimeofday(&time_after, NULL);
-	if (time_after.tv_sec - time_before.tv_sec > 20) {
+	sec = time_after.tv_sec - time_before.tv_sec;
+	if (sec > 20) {
 		sm->nr_children = 4000;
-		sm_msg("Function too hairy.  Giving up after 20 seconds.");
+		sm_msg("Function too hairy.  Ignoring implications after %d seconds.", sec);
 	}
 }
 
