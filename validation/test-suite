@@ -17,7 +17,7 @@ tests_list=""
 prog_name=`basename $0`
 
 if [ ! -x "$default_path/sparse-llvm" ]; then
-	disabled_cmds="sparsec sparsei sparse-llvm"
+	disabled_cmds="sparsec sparsei sparse-llvm sparse-llvm-dis"
 fi
 
 # flags:
