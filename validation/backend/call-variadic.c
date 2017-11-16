@@ -11,7 +11,6 @@ int foo(const char *fmt, int a, long l, int *p)
 /*
  * check-name: call-variadic
  * check-command: sparse-llvm-dis -m64 $file
- * check-known-to-fail
  *
  * check-output-start
 ; ModuleID = '<stdin>'

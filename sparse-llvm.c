@@ -787,6 +787,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 static void output_op_call(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, func;
+	struct symbol *ctype;
 	int n_arg = 0, i;
 	struct pseudo *arg;
 	LLVMValueRef *args;
@@ -795,10 +796,13 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	n_arg = pseudo_list_size(insn->arguments);
 	args = calloc(n_arg, sizeof(LLVMValueRef));
 
+	PREPARE_PTR_LIST(insn->fntypes, ctype);
 	i = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
-		args[i++] = pseudo_to_value(fn, NULL, arg);
+		NEXT_PTR_LIST(ctype);
+		args[i++] = pseudo_to_value(fn, ctype, arg);
 	} END_FOR_EACH_PTR(arg);
+	FINISH_PTR_LIST(ctype);
 
 	func = pseudo_to_value(fn, NULL, insn->func);
 	pseudo_name(insn->target, name);
