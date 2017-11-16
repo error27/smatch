@@ -7,6 +7,9 @@ static long double li = __builtin_infl();
 static double dn = __builtin_nan("");
 static float fn = __builtin_nanf("");
 static long double ln = __builtin_nanl("");
+static int inf = __builtin_isinf_sign(0.0);
+static int fin = __builtin_isfinite(0.0);
+static int nan = __builtin_isnan(0.0);
 
 /*
  * check-name: __builtin INFINITY / nan()

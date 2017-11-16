@@ -1105,6 +1105,9 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern double __builtin_nan(const char *);\n");
 	add_pre_buffer("extern float __builtin_nanf(const char *);\n");
 	add_pre_buffer("extern long double __builtin_nanl(const char *);\n");
+	add_pre_buffer("extern int __builtin_isinf_sign(float);\n");
+	add_pre_buffer("extern int __builtin_isfinite(float);\n");
+	add_pre_buffer("extern int __builtin_isnan(float);\n");
 
 	/* And some __FORTIFY_SOURCE ones.. */
 	add_pre_buffer ("extern __SIZE_TYPE__ __builtin_object_size(const void *, int);\n");
