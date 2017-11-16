@@ -1236,11 +1236,6 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		return VOID;
 	}
 
-	FOR_EACH_PTR(expr->args, arg) {
-		pseudo_t new = linearize_expression(ep, arg);
-		use_pseudo(insn, new, add_pseudo(&insn->arguments, new));
-	} END_FOR_EACH_PTR(arg);
-
 	fn = expr->fn;
 
 	if (fn->ctype)
@@ -1251,7 +1246,13 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		if (fntype->type == SYM_NODE)
 			fntype = fntype->ctype.base_type;
 	}
-	insn->fntype = fntype;
+
+	add_symbol(&insn->fntypes, fntype);
+	FOR_EACH_PTR(expr->args, arg) {
+		pseudo_t new = linearize_expression(ep, arg);
+		use_pseudo(insn, new, add_pseudo(&insn->arguments, new));
+		add_symbol(&insn->fntypes, arg->ctype);
+	} END_FOR_EACH_PTR(arg);
 
 	if (fn->type == EXPR_PREOP) {
 		if (fn->unop->type == EXPR_SYMBOL) {
