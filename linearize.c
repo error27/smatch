@@ -177,9 +177,7 @@ static const char *opcodes[] = {
 	[OP_BR] = "br",
 	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
-	[OP_INVOKE] = "invoke",
 	[OP_COMPUTEDGOTO] = "jmp *",
-	[OP_UNWIND] = "unwind",
 	
 	/* Binary */
 	[OP_ADD] = "add",
@@ -243,15 +241,11 @@ static const char *opcodes[] = {
 	[OP_SEL] = "select",
 	
 	/* Memory */
-	[OP_MALLOC] = "malloc",
-	[OP_FREE] = "free",
-	[OP_ALLOCA] = "alloca",
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
 	[OP_SETVAL] = "set",
 	[OP_SETFVAL] = "setfval",
 	[OP_SYMADDR] = "symaddr",
-	[OP_GET_ELEMENT_PTR] = "getelem",
 
 	/* Other */
 	[OP_PHI] = "phi",
@@ -262,8 +256,6 @@ static const char *opcodes[] = {
 	[OP_PTRCAST] = "ptrcast",
 	[OP_INLINED_CALL] = "# call",
 	[OP_CALL] = "call",
-	[OP_VANEXT] = "va_next",
-	[OP_VAARG] = "va_arg",
 	[OP_SLICE] = "slice",
 	[OP_NOP] = "nop",
 	[OP_DEATHNOTE] = "dead",

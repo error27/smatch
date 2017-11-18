@@ -354,13 +354,3 @@ No-op (should never be generated).
 #### OP_DEATHNOTE
 Annotation telling the pseudo will be death after the next
 instruction (other than some other annotation, that is).
-
-### Unused ops
-#### OP_VANEXT
-#### OP_VAARG
-#### OP_MALLOC
-#### OP_FREE
-#### OP_ALLOCA
-#### OP_GET_ELEMENT_PTR
-#### OP_INVOKE
-#### OP_UNWIND

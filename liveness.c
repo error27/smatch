@@ -143,14 +143,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	case OP_BADOP:
-	case OP_INVOKE:
-	case OP_UNWIND:
-	case OP_MALLOC:
-	case OP_FREE:
-	case OP_ALLOCA:
-	case OP_GET_ELEMENT_PTR:
-	case OP_VANEXT:
-	case OP_VAARG:
 	case OP_NOP:
 	case OP_CONTEXT:
 		break;
