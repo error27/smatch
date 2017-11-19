@@ -8,5 +8,5 @@ int cmpnptr(int  *x, long  y)	{ return x == (int*)y; }
 
 /*
  * check-name: pointer comparison
- * check-command: ./sparsec -Wno-decl -c $file -o tmp.o
+ * check-command: sparsec -Wno-decl -c $file -o tmp.o
  */

@@ -17,5 +17,5 @@ int loadpi(void) { return *p; }
 
 /*
  * check-name: use simple value from global vars
- * check-command: ./sparsec -Wno-decl -c $file -o tmp.o
+ * check-command: sparsec -Wno-decl -c $file -o tmp.o
  */

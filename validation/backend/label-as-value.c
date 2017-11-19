@@ -9,5 +9,5 @@ yes:		return &&yes;
 
 /*
  * check-name: label-as-value
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

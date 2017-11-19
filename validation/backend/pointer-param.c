@@ -38,5 +38,5 @@ void foo(int *p, int a[5], int (*pfun)(int))
 
 /*
  * check-name: pointer-param
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

@@ -19,5 +19,5 @@ long *linin(void) { long *r = (void*)0; return r; }
 
 /*
  * check-name: type-constant
- * check-command: ./sparsec -Wno-decl -c $file -o r.o
+ * check-command: sparsec -Wno-decl -c $file -o r.o
  */

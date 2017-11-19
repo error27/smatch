@@ -50,5 +50,5 @@ int  *iretincc(int  *p, int o) { return p += 3; }
 
 /*
  * check-name: pointer-add
- * check-command: ./sparsec -Wno-decl -c $file -o r.o
+ * check-command: sparsec -Wno-decl -c $file -o r.o
  */

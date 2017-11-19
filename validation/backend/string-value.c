@@ -17,5 +17,5 @@ void call(void)
 
 /*
  * check-name: string-value
- * check-command: ./sparsec -Wno-decl -c $file -o tmp.o
+ * check-command: sparsec -Wno-decl -c $file -o tmp.o
  */

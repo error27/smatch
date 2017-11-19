@@ -244,5 +244,5 @@ int switch_cmov(int a)
 
 /*
  * check-name: llvm-switch
- * check-command: ./sparsec -Wno-decl -c $file -o tmp.o
+ * check-command: sparsec -Wno-decl -c $file -o tmp.o
  */

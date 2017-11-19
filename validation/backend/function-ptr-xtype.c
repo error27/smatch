@@ -33,5 +33,5 @@ int bar(int (*fn)(int), int arg1, int arg2)
 
 /*
  * check-name: mutate function pointer's type
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

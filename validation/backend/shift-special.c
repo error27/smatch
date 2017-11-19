@@ -9,5 +9,5 @@ long shift(long a, short b)
 
 /*
  * check-name: shift-special
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */
