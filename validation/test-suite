@@ -238,6 +238,7 @@ echo "    -q|--quiet                 Be extra quiet while running the tests."
 echo
 echo "commands:"
 echo "    [file ...]                 Runs the test suite on the given file(s)."
+echo "                               If a directory is given, run only those files."
 echo "                               If no file is given, run the whole testsuite."
 echo "    single file                Run the test in 'file'."
 echo "    format file [name [cmd]]   Help writing a new test case using cmd."
@@ -517,10 +518,6 @@ while [ "$#" -gt "0" ]; do
 		shift
 		continue
 		;;
-	*.c)
-		tests_list="$@"
-		break
-		;;
 
 	single|--single)
 		arg_file "$2"
@@ -537,9 +534,24 @@ while [ "$#" -gt "0" ]; do
 		do_format "$@"
 		exit 0
 		;;
-	help | *)
+	help)
 		do_usage
 		exit 1
+		;;
+
+	*.c)
+		tests_list="$tests_list $1"
+		shift
+		continue
+		;;
+	*)
+		if [ ! -d "$1" ]; then
+			do_usage
+			exit 1
+		fi
+		tests_list="$tests_list $(find "$1" -name '*.c' | sort)"
+		shift
+		continue
 		;;
 	esac
 	break
