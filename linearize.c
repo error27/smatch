@@ -390,7 +390,7 @@ const char *show_instruction(struct instruction *insn)
 	}
 	case OP_COMPUTEDGOTO: {
 		struct multijmp *jmp;
-		buf += sprintf(buf, "%s", show_pseudo(insn->target));
+		buf += sprintf(buf, "%s", show_pseudo(insn->src));
 		FOR_EACH_PTR(insn->multijmp_list, jmp) {
 			buf += sprintf(buf, ", .L%u", jmp->target->nr);
 		} END_FOR_EACH_PTR(jmp);
@@ -2100,7 +2100,7 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 
 		pseudo = linearize_expression(ep, expr);
 		goto_ins = alloc_instruction(OP_COMPUTEDGOTO, 0);
-		use_pseudo(goto_ins, pseudo, &goto_ins->target);
+		use_pseudo(goto_ins, pseudo, &goto_ins->src);
 		add_one_insn(ep, goto_ins);
 
 		FOR_EACH_PTR(stmt->target_list, sym) {

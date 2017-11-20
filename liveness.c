@@ -54,6 +54,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 
 	switch (insn->opcode) {
 	case OP_RET:
+	case OP_COMPUTEDGOTO:
 		USES(src);
 		break;
 
@@ -62,10 +63,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		USES(cond);
 		break;
 
-	case OP_COMPUTEDGOTO:
-		USES(target);
-		break;
-	
 	/* Binary */
 	case OP_BINARY ... OP_BINARY_END:
 	case OP_FPCMP ... OP_FPCMP_END:

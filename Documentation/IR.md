@@ -39,7 +39,7 @@ Switch / multi-branch
 
 #### OP_COMPUTEDGOTO
 Computed goto / branch to register
-- .target: target address (type is irrelevant, void*)
+- .src: address to branch to (void*)
 - .multijmp_list: list of possible destination basic blocks
 
 ### Arithmetic binops
