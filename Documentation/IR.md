@@ -12,7 +12,7 @@ The common ones are:
 - .src: (pseudo_t) operand of unary ops (alias for .src1).
 - .target: (pseudo_t) result of unary, binary & ternary ops, is sometimes used
 	otherwise by some others instructions.
-- .cond: (pseudo_t) input operands for condition (alias .target!)
+- .cond: (pseudo_t) input operands for condition (alias .src/.src1)
 - .type: (symbol*) usually the type of .result, sometimes of the operands
 
 ### Terminators

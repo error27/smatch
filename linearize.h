@@ -73,18 +73,17 @@ struct instruction {
 	struct basic_block *bb;
 	struct position pos;
 	struct symbol *type;
-	union {
-		pseudo_t target;
-		pseudo_t cond;		/* for branch and switch */
-	};
+	pseudo_t target;
 	union {
 		struct /* entrypoint */ {
 			struct pseudo_list *arg_list;
 		};
 		struct /* branch */ {
+			pseudo_t cond;
 			struct basic_block *bb_true, *bb_false;
 		};
 		struct /* switch */ {
+			pseudo_t _cond;
 			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
