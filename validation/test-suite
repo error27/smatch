@@ -520,12 +520,10 @@ while true; do
 
 	'')
 		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
-		do_test_suite
 		break
 		;;
 	*.c)
 		tests_list="$@"
-		do_test_suite
 		break
 		;;
 
@@ -552,5 +550,6 @@ while true; do
 	break
 done
 
+do_test_suite
 exit $failed
 
