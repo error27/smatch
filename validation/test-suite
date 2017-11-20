@@ -521,10 +521,12 @@ while true; do
 	'')
 		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 		do_test_suite
+		break
 		;;
 	*.c)
 		tests_list="$@"
 		do_test_suite
+		break
 		;;
 
 	single|--single)
@@ -535,10 +537,12 @@ while true; do
 			1) echo "$2 failed !";;
 			2) echo "$2 can't be handled by $prog_name";;
 		esac
+		exit $failed
 		;;
 	format|--format)
 		shift
 		do_format "$@"
+		exit 0
 		;;
 	help | *)
 		do_usage
