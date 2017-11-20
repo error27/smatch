@@ -505,7 +505,7 @@ _EOF
 	return 0
 }
 
-while true; do
+while [ "$#" -gt "0" ]; do
 	case "$1" in
 	-a|--abort)
 		abort=1
@@ -516,11 +516,6 @@ while true; do
 		vquiet=1
 		shift
 		continue
-		;;
-
-	'')
-		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
-		break
 		;;
 	*.c)
 		tests_list="$@"
@@ -549,6 +544,10 @@ while true; do
 	esac
 	break
 done
+
+if [ -z "$tests_list" ]; then
+	tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
+fi
 
 do_test_suite
 exit $failed
