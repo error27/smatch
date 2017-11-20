@@ -510,13 +510,9 @@ while [ "$#" -gt "0" ]; do
 	case "$1" in
 	-a|--abort)
 		abort=1
-		shift
-		continue
 		;;
 	-q|--quiet)
 		vquiet=1
-		shift
-		continue
 		;;
 
 	single|--single)
@@ -541,8 +537,6 @@ while [ "$#" -gt "0" ]; do
 
 	*.c)
 		tests_list="$tests_list $1"
-		shift
-		continue
 		;;
 	*)
 		if [ ! -d "$1" ]; then
@@ -550,11 +544,9 @@ while [ "$#" -gt "0" ]; do
 			exit 1
 		fi
 		tests_list="$tests_list $(find "$1" -name '*.c' | sort)"
-		shift
-		continue
 		;;
 	esac
-	break
+	shift
 done
 
 if [ -z "$tests_list" ]; then
