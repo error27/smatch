@@ -8,7 +8,7 @@ used by which operation.
 Some of those fields are used by almost all instructions,
 some others are specific to only one or a few instructions.
 The common ones are:
-- .src1, .src2, .src2, .src3: (pseudo_t) operands of binops or ternary ops.
+- .src1, .src2, .src3: (pseudo_t) operands of binops or ternary ops.
 - .src: (pseudo_t) operand of unary ops (alias for .src1).
 - .target: (pseudo_t) result of unary, binary & ternary ops, is sometimes used
 	otherwise by some others instructions.
