@@ -233,16 +233,16 @@ echo "$prog_name - a tiny automatic testing script"
 echo "Usage: $prog_name [option(s)] [command] [arguments]"
 echo
 echo "options:"
-echo "    -a|--abort                 abort the tests as soon as one fails"
-echo "    -q|--quiet                 be extra quiet while running the tests"
+echo "    -a|--abort                 Abort the tests as soon as one fails."
+echo "    -q|--quiet                 Be extra quiet while running the tests."
 echo
 echo "commands:"
-echo "    none                       runs the whole test suite"
-echo "    file ...                   runs the test suite on the given file(s)"
-echo "    single file                runs the test in 'file'"
-echo "    format file [name [cmd]]   helps writing a new test case using cmd"
+echo "    [file ...]                 Runs the test suite on the given file(s)."
+echo "                               If no file is given, run the whole testsuite."
+echo "    single file                Run the test in 'file'."
+echo "    format file [name [cmd]]   Help writing a new test case using cmd."
 echo
-echo "    [command] help             prints usage"
+echo "    [command] help             Print usage."
 }
 
 disable()
