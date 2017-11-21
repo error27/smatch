@@ -108,6 +108,18 @@ get_tag_value()
 					check_arch_ignore="$val" ;;
 		check-arch-only:)	arch=$(uname -m)
 					check_arch_only="$val" ;;
+
+		check-description:)	;;	# ignore
+		check-note:)		;;	# ignore
+		check-warning:)		;;	# ignore
+		check-error-start)	;;	# ignore
+		check-error-end)	;;	# ignore
+		check-output-start)	;;	# ignore
+		check-output-end)	;;	# ignore
+		check-should-pass)	;;	# ignore, unused annotation
+		check-should-fail)	;;	# ignore, unused annotation
+		check-should-warn)	;;	# ignore, unused annotation
+		check-*)		error "$1: unknown tag '$tag'" 1 ;;
 		esac
 	done << EOT
 	$lines
