@@ -121,52 +121,71 @@ static void db_save_type_links(struct expression *array, struct expression *size
 	sql_insert_data_info(size, ARRAY_LEN, array_name);
 }
 
+static void match_alloc_helper(struct expression *pointer, struct expression *size)
+{
+	struct expression *tmp;
+	struct sm_state *sm;
+	sval_t sval;
+	int cnt = 0;
+
+	pointer = strip_expr(pointer);
+	size = strip_expr(size);
+	if (!size || !pointer)
+		return;
+
+	while ((tmp = get_assigned_expr(size))) {
+		size = strip_expr(tmp);
+		if (cnt++ > 5)
+			break;
+	}
+
+	if (size->type == EXPR_BINOP && size->op == '*') {
+		struct expression *mult_left, *mult_right;
+
+		mult_left = strip_expr(size->left);
+		mult_right = strip_expr(size->right);
+
+		if (get_implied_value(mult_left, &sval) &&
+		    sval.value == bytes_per_element(pointer))
+			size = mult_right;
+		else if (get_implied_value(mult_right, &sval) &&
+		    sval.value == bytes_per_element(pointer))
+			size = mult_left;
+		else
+			return;
+	}
+
+	db_save_type_links(pointer, size);
+	sm = set_state_expr(size_id, pointer, alloc_expr_state(size));
+	if (!sm)
+		return;
+	set_state_expr(link_id, size, alloc_expr_state(pointer));
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
 	struct expression *pointer, *call, *arg;
-	struct sm_state *tmp;
 
 	pointer = strip_expr(expr->left);
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, size_arg);
-	arg = strip_expr(arg);
-
-	if (arg->type == EXPR_BINOP && arg->op == '*') {
-		struct expression *left, *right;
-		sval_t sval;
-
-		left = strip_expr(arg->left);
-		right = strip_expr(arg->right);
-
-		if (get_implied_value(left, &sval) &&
-		    sval.value == bytes_per_element(pointer))
-			arg = right;
-
-		if (get_implied_value(right, &sval) &&
-		    sval.value == bytes_per_element(pointer))
-			arg = left;
-	}
-
-	db_save_type_links(pointer, arg);
-	tmp = set_state_expr(size_id, pointer, alloc_expr_state(arg));
-	if (!tmp)
-		return;
-	set_state_expr(link_id, arg, alloc_expr_state(pointer));
+	match_alloc_helper(pointer, arg);
 }
 
-static void match_calloc(const char *fn, struct expression *expr, void *unused)
+static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
 {
+	int start_arg = PTR_INT(_start_arg);
 	struct expression *pointer, *call, *arg;
 	struct sm_state *tmp;
 	sval_t sval;
 
 	pointer = strip_expr(expr->left);
 	call = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(call->args, 0);
+	arg = get_argument_from_call_expr(call->args, start_arg);
 	if (get_implied_value(arg, &sval) &&
 	    sval.value == bytes_per_element(pointer))
-		arg = get_argument_from_call_expr(call->args, 1);
+		arg = get_argument_from_call_expr(call->args, start_arg + 1);
 
 	db_save_type_links(pointer, arg);
 	tmp = set_state_expr(size_id, pointer, alloc_expr_state(arg));
@@ -560,6 +579,8 @@ void register_buf_comparison(int id)
 		add_allocation_function("devm_kmalloc", &match_alloc, 1);
 		add_allocation_function("devm_kzalloc", &match_alloc, 1);
 		add_allocation_function("kcalloc", &match_calloc, 0);
+		add_allocation_function("devm_kcalloc", &match_calloc, 1);
+		add_allocation_function("kmalloc_array", &match_calloc, 0);
 		add_allocation_function("krealloc", &match_alloc, 1);
 	}
 
