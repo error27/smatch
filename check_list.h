@@ -9,6 +9,12 @@ CK(register_container_of)
 CK(register_smatch_extra)   /* smatch_extra always has to be SMATCH_EXTRA */
 CK(register_smatch_extra_links)
 CK(register_modification_hooks)
+/*
+ * Implications should probably be after all the modification and smatch_extra
+ * hooks have run.
+ *
+ */
+CK(register_implications)
 CK(register_definition_db_callbacks)
 CK(register_project)
 CK(register_untracked_param)
@@ -185,12 +191,6 @@ CK(register_function_hooks)
 CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
 CK(check_wine)
 CK(register_returns)
-/*
- * Implications always has to be last.  If you need to be after implications
- * then you need to hack smatch_implications.c and add function calls there.
- *
- */
-CK(register_implications)
 
 #ifdef __undo_CK_def
 #undef CK

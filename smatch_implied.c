@@ -791,6 +791,29 @@ static struct stree *saved_implied_false;
 static struct stree *extra_saved_implied_true;
 static struct stree *extra_saved_implied_false;
 
+static void separate_extra_states(struct stree **implied_true,
+				  struct stree **implied_false)
+{
+	struct sm_state *sm;
+
+	/* We process extra states later to preserve the implications. */
+	FOR_EACH_SM(*implied_true, sm) {
+		if (sm->owner == SMATCH_EXTRA)
+			overwrite_sm_state_stree(&extra_saved_implied_true, sm);
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(extra_saved_implied_true, sm) {
+		delete_state_stree(implied_true, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_SM(*implied_false, sm) {
+		if (sm->owner == SMATCH_EXTRA)
+			overwrite_sm_state_stree(&extra_saved_implied_false, sm);
+	} END_FOR_EACH_SM(sm);
+	FOR_EACH_SM(extra_saved_implied_false, sm) {
+		delete_state_stree(implied_false, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_SM(sm);
+}
+
 static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
@@ -799,11 +822,7 @@ static void get_tf_states(struct expression *expr,
 		goto found;
 
 	if (handled_by_extra_states(expr, implied_true, implied_false)) {
-		/* We process these later. */
-		extra_saved_implied_true = *implied_true;
-		extra_saved_implied_false = *implied_false;
-		*implied_true = NULL;
-		*implied_false = NULL;
+		separate_extra_states(implied_true, implied_false);
 		goto found;
 	}
 
