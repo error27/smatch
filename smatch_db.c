@@ -362,6 +362,12 @@ void sql_insert_fn_data_link(struct expression *fn, int type, int param, const c
 		   type, param, key, value);
 }
 
+void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_name)
+{
+	sql_insert(mtag_about, "%lld, '%s', '%s', %d, '%s', '%s'",
+		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
+}
+
 char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -1891,6 +1897,7 @@ static void init_memdb(void)
 		"db/constraints_required.schema",
 		"db/fn_ptr_data_link.schema",
 		"db/fn_data_link.schema",
+		"db/mtag_about.schema",
 	};
 	static char buf[4096];
 	int fd;

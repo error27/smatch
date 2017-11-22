@@ -33,6 +33,7 @@ CREATE INDEX parameter_name_file_idx on parameter_name (file, function);
 CREATE INDEX parameter_name_idx on parameter_name (function);
 CREATE INDEX str_idx on constraints (str);
 CREATE INDEX required_idx on constraints_required (data);
+CREATE INDEX mtag_idx on mtag_about (tag);
 
 EOF
 

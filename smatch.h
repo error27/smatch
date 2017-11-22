@@ -37,6 +37,8 @@ typedef struct {
 	};
 } sval_t;
 
+typedef long long mtag_t;
+
 struct smatch_state {
 	const char *name;
 	void *data;
@@ -736,6 +738,7 @@ enum info_type {
 	DATA_VALUE	= 8029,
 	ARRAYSIZE_ARG	= 8033,
 	SIZEOF_ARG	= 8034,
+	MEMORY_TAG	= 8036,
 };
 
 void debug_sql(const char *sql);
@@ -797,6 +800,7 @@ void sql_save_constraint_required(const char *data, int op, const char *limit);
 void sql_copy_constraint_required(const char *new_limit, const char *old_limit);
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data);
 void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value);
+void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_name);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
@@ -1025,6 +1029,9 @@ char *get_required_constraint(const char *data_str);
 int get_param_from_container_of(struct expression *expr);
 int get_offset_from_container_of(struct expression *expr);
 
+/* smatch_mtag.c */
+int get_toplevel_mtag(struct symbol *sym, mtag_t *tag);
+int get_mtag(struct expression *expr, mtag_t *tag);
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)
