@@ -42,6 +42,25 @@ vquiet=""
 quiet=0
 abort=0
 
+
+##
+# verbose(string) - prints string if we are in verbose mode
+verbose()
+{
+	[ "$V" -eq "1" ] && echo "        $1"
+	return 0
+}
+
+##
+# error(string[, die]) - prints an error and exits with value die if given
+error()
+{
+	[ "$quiet" -ne 1 ] && echo "error: $1"
+	[ -n "$2" ] && exit $2
+	return 0
+}
+
+
 ##
 # get_tag_value(file) - get the 'check-<...>' tags & values
 get_tag_value()
@@ -85,23 +104,6 @@ get_tag_value()
 	done << EOT
 	$lines
 EOT
-}
-
-##
-# verbose(string) - prints string if we are in verbose mode
-verbose()
-{
-	[ "$V" -eq "1" ] && echo "        $1"
-	return 0
-}
-
-##
-# error(string[, die]) - prints an error and exits with value die if given
-error()
-{
-	[ "$quiet" -ne 1 ] && echo "error: $1"
-	[ -n "$2" ] && exit $2
-	return 0
 }
 
 ##
