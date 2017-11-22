@@ -225,11 +225,6 @@ static inline struct instruction * delete_last_instruction(struct instruction_li
 	return undo_ptr_list_last((struct ptr_list **)head);
 }
 
-static inline struct basic_block * delete_last_basic_block(struct basic_block_list **head)
-{
-	return delete_ptr_list_last((struct ptr_list **)head);
-}
-
 static inline struct basic_block *first_basic_block(struct basic_block_list *head)
 {
 	return first_ptr_list((struct ptr_list *)head);
