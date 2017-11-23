@@ -1312,6 +1312,8 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 			warning(to->pos, "non size-preserving pointer to integer cast");
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		return cast_pseudo(ep, src, size_t_ctype, to);
+	case OP_BADOP:
+		return VOID;
 	default:
 		break;
 	}
