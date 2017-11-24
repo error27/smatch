@@ -28,7 +28,6 @@ static void bar(struct s *d, struct s *s1, struct s *s2)
  *		                   ^^^		!! WRONG !!
  *		and.32      %r6 <- %r5, $1
  *		ret.32      %r6
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load[^.]

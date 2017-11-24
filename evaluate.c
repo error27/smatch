@@ -1778,6 +1778,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 
 	node = alloc_symbol(expr->pos, SYM_NODE);
 	target = ctype->ctype.base_type;
+	examine_symbol_type(target);
 
 	switch (ctype->type) {
 	default:

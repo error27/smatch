@@ -6,7 +6,6 @@ char *foo(char **pfmt)
 /*
  * check-name: deref-ptr-ptr
  * check-command: test-linearize -m64 -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-excludes: load[^.]
  * check-output-contains: load\.
