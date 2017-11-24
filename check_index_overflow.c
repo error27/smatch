@@ -117,7 +117,6 @@ static int common_false_positives(struct expression *array, char *name, sval_t m
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
-	const char *level = "error";
 	int array_size;
 	struct expression *offset;
 	sval_t max;
@@ -139,8 +138,6 @@ static void array_check(struct expression *expr)
 		return;
 	if (array_size > max.value)
 		return;
-	if (getting_address())
-		level = "warn";
 
 	if (definitely_just_used_as_limiter(array_expr, offset))
 		return;
@@ -150,8 +147,7 @@ static void array_check(struct expression *expr)
 	if (common_false_positives(array_expr, name, max))
 		goto free;
 
-	sm_msg("%s: buffer overflow '%s' %d <= %s",
-		level, name, array_size, sval_to_str(max));
+	sm_msg("error: buffer overflow '%s' %d <= %s", name, array_size, sval_to_str(max));
 
 free:
 	free_string(name);
