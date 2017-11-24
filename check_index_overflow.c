@@ -127,6 +127,8 @@ static void array_check(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
+	if (is_impossible_path())
+		return;
 	array_expr = get_array_base(expr);
 	array_size = get_array_size(array_expr);
 	if (!array_size || array_size == 1)
