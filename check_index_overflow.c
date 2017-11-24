@@ -101,7 +101,7 @@ static int common_false_positives(struct expression *array, char *name, sval_t m
 		     strcmp(macro, "streq")   == 0 ||
 		     strcmp(macro, "strneq")  == 0 ||
 		     strcmp(macro, "strsep")  == 0))
-		    return 1;
+			return 1;
 	}
 
 	/*
@@ -147,10 +147,13 @@ static void array_check(struct expression *expr)
 
 	array_expr = strip_expr(array_expr);
 	name = expr_to_str(array_expr);
-	if (!common_false_positives(array_expr, name, max)) {
-		sm_msg("%s: buffer overflow '%s' %d <= %s",
-			level, name, array_size, sval_to_str(max));
-	}
+	if (common_false_positives(array_expr, name, max))
+		goto free;
+
+	sm_msg("%s: buffer overflow '%s' %d <= %s",
+		level, name, array_size, sval_to_str(max));
+
+free:
 	free_string(name);
 }
 
