@@ -2904,13 +2904,13 @@ static int cast_flags(struct expression *expr, struct expression *old)
 
 static struct symbol *evaluate_cast(struct expression *expr)
 {
-	struct expression *target = expr->cast_expression;
+	struct expression *source = expr->cast_expression;
 	struct symbol *ctype;
-	struct symbol *t1, *t2;
-	int class1, class2;
-	int as1 = 0, as2 = 0;
+	struct symbol *ttype, *stype;
+	int tclass, sclass;
+	int tas = 0, sas = 0;
 
-	if (!target)
+	if (!source)
 		return NULL;
 
 	/*
@@ -2923,11 +2923,11 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * dereferenced as part of a post-fix expression.
 	 * We need to produce an expression that can be dereferenced.
 	 */
-	if (target->type == EXPR_INITIALIZER) {
+	if (source->type == EXPR_INITIALIZER) {
 		struct symbol *sym = expr->cast_type;
 		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 
-		sym->initializer = target;
+		sym->initializer = source;
 		evaluate_symbol(sym);
 
 		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
@@ -2947,84 +2947,84 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
 
-	evaluate_expression(target);
-	degenerate(target);
+	evaluate_expression(source);
+	degenerate(source);
 
-	class1 = classify_type(ctype, &t1);
+	tclass = classify_type(ctype, &ttype);
 
-	expr->flags = cast_flags(expr, target);
+	expr->flags = cast_flags(expr, source);
 
 	/*
 	 * You can always throw a value away by casting to
 	 * "void" - that's an implicit "force". Note that
 	 * the same is _not_ true of "void *".
 	 */
-	if (t1 == &void_ctype)
+	if (ttype == &void_ctype)
 		goto out;
 
-	if (class1 & (TYPE_COMPOUND | TYPE_FN))
+	if (tclass & (TYPE_COMPOUND | TYPE_FN))
 		warning(expr->pos, "cast to non-scalar");
 
-	t2 = target->ctype;
-	if (!t2) {
+	stype = source->ctype;
+	if (!stype) {
 		expression_error(expr, "cast from unknown type");
 		goto out;
 	}
-	class2 = classify_type(t2, &t2);
+	sclass = classify_type(stype, &stype);
 
-	if (class2 & TYPE_COMPOUND)
+	if (sclass & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");
 
 	if (expr->type == EXPR_FORCE_CAST)
 		goto out;
 
 	/* allowed cast unfouls */
-	if (class2 & TYPE_FOULED)
-		t2 = unfoul(t2);
+	if (sclass & TYPE_FOULED)
+		stype = unfoul(stype);
 
-	if (t1 != t2) {
-		if ((class1 & TYPE_RESTRICT) && restricted_value(target, t1))
+	if (ttype != stype) {
+		if ((tclass & TYPE_RESTRICT) && restricted_value(source, ttype))
 			warning(expr->pos, "cast to %s",
-				show_typename(t1));
-		if (class2 & TYPE_RESTRICT) {
-			if (t1 == &bool_ctype) {
-				if (class2 & TYPE_FOULED)
+				show_typename(ttype));
+		if (sclass & TYPE_RESTRICT) {
+			if (ttype == &bool_ctype) {
+				if (sclass & TYPE_FOULED)
 					warning(expr->pos, "%s degrades to integer",
-						show_typename(t2));
+						show_typename(stype));
 			} else {
 				warning(expr->pos, "cast from %s",
-					show_typename(t2));
+					show_typename(stype));
 			}
 		}
 	}
 
-	if (t1 == &ulong_ctype)
-		as1 = -1;
-	else if (class1 == TYPE_PTR) {
-		examine_pointer_target(t1);
-		as1 = t1->ctype.as;
+	if (ttype == &ulong_ctype)
+		tas = -1;
+	else if (tclass == TYPE_PTR) {
+		examine_pointer_target(ttype);
+		tas = ttype->ctype.as;
 	}
 
-	if (t2 == &ulong_ctype)
-		as2 = -1;
-	else if (class2 == TYPE_PTR) {
-		examine_pointer_target(t2);
-		as2 = t2->ctype.as;
+	if (stype == &ulong_ctype)
+		sas = -1;
+	else if (sclass == TYPE_PTR) {
+		examine_pointer_target(stype);
+		sas = stype->ctype.as;
 	}
 
-	if (!as1 && as2 > 0)
+	if (!tas && sas > 0)
 		warning(expr->pos, "cast removes address space of expression");
-	if (as1 > 0 && as2 > 0 && as1 != as2)
-		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", as2, as1);
-	if (as1 > 0 && !as2 &&
-	    !is_null_pointer_constant(target) && Wcast_to_as)
+	if (tas > 0 && sas > 0 && tas != sas)
+		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", sas, tas);
+	if (tas > 0 && !sas &&
+	    !is_null_pointer_constant(source) && Wcast_to_as)
 		warning(expr->pos,
-			"cast adds address space to expression (<asn:%d>)", as1);
+			"cast adds address space to expression (<asn:%d>)", tas);
 
-	if (!(t1->ctype.modifiers & MOD_PTRINHERIT) && class1 == TYPE_PTR &&
-	    !as1 && (target->flags & CEF_ICE)) {
-		if (t1->ctype.base_type == &void_ctype) {
-			if (is_zero_constant(target)) {
+	if (!(ttype->ctype.modifiers & MOD_PTRINHERIT) && tclass == TYPE_PTR &&
+	    !tas && (source->flags & CEF_ICE)) {
+		if (ttype->ctype.base_type == &void_ctype) {
+			if (is_zero_constant(source)) {
 				/* NULL */
 				expr->type = EXPR_VALUE;
 				expr->ctype = &null_ctype;
@@ -3034,7 +3034,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		}
 	}
 
-	if (t1 == &bool_ctype)
+	if (ttype == &bool_ctype)
 		cast_to_bool(expr);
 
 out:
