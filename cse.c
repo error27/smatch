@@ -71,7 +71,8 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
 
-	/* floating-point arithmetic */
+	/* floating-point arithmetic & comparison */
+	case OP_FPCMP ... OP_FPCMP_END:
 	case OP_FADD:
 	case OP_FSUB:
 	case OP_FMUL:
@@ -214,6 +215,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SET_BE: case OP_SET_AE:
 
 	/* floating-point arithmetic */
+	case OP_FPCMP ... OP_FPCMP_END:
 	case OP_FADD:
 	case OP_FSUB:
 	case OP_FMUL:

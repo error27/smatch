@@ -13,7 +13,6 @@ int foo(double a, double b)
 /*
  * check-name: cse-fcmp
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): fcmp
