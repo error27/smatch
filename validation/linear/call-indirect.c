@@ -8,7 +8,6 @@ int g3(int (*fun)(void)) { return (***fun)(); }	// C99,C11 6.5.3.2p4
 /*
  * check-name: indirect calls
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load

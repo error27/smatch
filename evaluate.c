@@ -1782,6 +1782,9 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	default:
 		expression_error(expr, "cannot dereference this type");
 		return NULL;
+	case SYM_FN:
+		*expr = *op;
+		return expr->ctype;
 	case SYM_PTR:
 		node = alloc_symbol(expr->pos, SYM_NODE);
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;

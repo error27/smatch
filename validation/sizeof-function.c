@@ -36,7 +36,6 @@ int test(void)
 /*
  * check-name: sizeof-function
  * check-command: sparse -Wno-decl $file
- * check-known-to-fail
  *
  * check-error-start
 sizeof-function.c:22:14: warning: expression using sizeof on a function

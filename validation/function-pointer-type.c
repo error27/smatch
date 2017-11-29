@@ -9,5 +9,4 @@ void f3(void) { int (*f)(void); f = ***fun; }	// C99,C11 6.5.3.2p4
 /*
  * check-name: type of function pointers
  * check-command: sparse -Wno-decl $file
- * check-known-to-fail
  */

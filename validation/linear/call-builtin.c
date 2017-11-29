@@ -10,7 +10,6 @@ u32 f3(u32 a) { return (***__builtin_popcount)(a); }	// C99,C11 6.5.3.2p4
 /*
  * check-name: builtin calls
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load
