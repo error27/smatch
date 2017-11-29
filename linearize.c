@@ -1291,13 +1291,9 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		add_symbol(&insn->fntypes, arg->ctype);
 	} END_FOR_EACH_PTR(arg);
 
-	if (fn->type == EXPR_PREOP) {
-		if (fn->unop->type == EXPR_SYMBOL) {
-			struct symbol *sym = fn->unop->symbol;
-			if (sym->ctype.base_type->type == SYM_FN)
-				fn = fn->unop;
-		}
-	}
+	if (fn->type == EXPR_PREOP && fn->op == '*' && is_func_type(fn->ctype))
+		fn = fn->unop;
+
 	if (fn->type == EXPR_SYMBOL) {
 		call = symbol_pseudo(ep, fn->symbol);
 	} else {

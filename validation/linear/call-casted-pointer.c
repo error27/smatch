@@ -23,7 +23,6 @@ int quz(void *a, void *fun)
 /*
  * check-name: call via casted function pointer
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load

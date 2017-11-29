@@ -23,7 +23,6 @@ int builtin(int a)
 /*
  * check-name: basic function calls
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 symbol:
