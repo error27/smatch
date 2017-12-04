@@ -1,0 +1,1 @@
+CREATE TABLE mtag_data (tag big int, data varchar(80), offset integer, type integer, value varchar(80));

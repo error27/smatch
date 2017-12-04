@@ -369,6 +369,56 @@ void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_
 		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
 }
 
+void sql_insert_mtag_data(mtag_t tag, const char *var, int offset, int type, const char *value)
+{
+	sql_insert(mtag_data, "%lld, '%s', %d, %d, '%s'", tag, var, offset, type, value);
+}
+
+void sql_insert_mtag_map(mtag_t tag, int offset, mtag_t container)
+{
+	sql_insert(mtag_map, "%lld, %d, %lld", tag, offset, container);
+}
+
+static int save_mtag(void *_tag, int argc, char **argv, char **azColName)
+{
+	mtag_t *tag = _tag;
+
+	if (!*tag)
+		*tag = strtoll(argv[0], NULL, 10);
+	else
+		*tag = -1ULL;
+
+	return 0;
+}
+
+int mtag_map_select_container(mtag_t tag, int offset, mtag_t *container)
+{
+	mtag_t tmp = 0;
+
+	run_sql(save_mtag, &tmp,
+		"select container from mtag_map where tag = %lld and offset = %d;",
+		tag, offset);
+
+	if (tmp == 0 || tmp == -1ULL)
+		return 0;
+	*container = tmp;
+	return 1;
+}
+
+int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag)
+{
+	mtag_t tmp = 0;
+
+	run_sql(save_mtag, &tmp,
+		"select tag from mtag_map where container = %lld and offset = %d;",
+		container, offset);
+
+	if (tmp == 0 || tmp == -1ULL)
+		return 0;
+	*tag = tmp;
+	return 1;
+}
+
 char *get_static_filter(struct symbol *sym)
 {
 	static char sql_filter[1024];
@@ -1899,6 +1949,8 @@ static void init_memdb(void)
 		"db/fn_ptr_data_link.schema",
 		"db/fn_data_link.schema",
 		"db/mtag_about.schema",
+		"db/mtag_map.schema",
+		"db/mtag_data.schema",
 	};
 	static char buf[4096];
 	int fd;
