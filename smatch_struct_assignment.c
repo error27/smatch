@@ -137,6 +137,23 @@ static void split_fake_expr(struct expression *expr)
 	__in_fake_assign--;
 }
 
+static void handle_non_struct_assignments(struct expression *left, struct expression *right)
+{
+	struct symbol *type;
+	struct expression *assign;
+
+	type = get_type(left);
+	if (!type || type->type != SYM_BASETYPE)
+		return;
+	right = strip_expr(right);
+	if (right && right->type == EXPR_PREOP && right->op == '&')
+		right = remove_addr(right);
+	else
+		right = unknown_value_expression(left);
+	assign = assign_expression(left, right);
+	split_fake_expr(assign);
+}
+
 static void set_inner_struct_members(int mode, struct expression *faked, struct expression *left, struct expression *right, struct symbol *member)
 {
 	struct expression *left_member;
@@ -212,18 +229,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		 * memcpy() is handled so it feels like a good place to add this
 		 * code.
 		 */
-
-		type = get_type(left);
-		if (!type || type->type != SYM_BASETYPE)
-			goto done;
-
-		right = strip_expr(right);
-		if (right && right->type == EXPR_PREOP && right->op == '&')
-			right = remove_addr(right);
-		else
-			right = unknown_value_expression(left);
-		assign = assign_expression(left, right);
-		split_fake_expr(assign);
+		handle_non_struct_assignments(left, right);
 		goto done;
 	}
 
