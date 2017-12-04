@@ -33,7 +33,6 @@ int test_fun_degen(int i)
 /*
  * check-name: degenerate logical-not
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load
