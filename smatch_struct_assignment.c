@@ -146,9 +146,7 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 	if (!type || type->type != SYM_BASETYPE)
 		return;
 	right = strip_expr(right);
-	if (right && right->type == EXPR_PREOP && right->op == '&')
-		right = remove_addr(right);
-	else
+	if (!right)
 		right = unknown_value_expression(left);
 	assign = assign_expression(left, right);
 	split_fake_expr(assign);
