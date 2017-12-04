@@ -348,7 +348,7 @@ void sql_copy_constraint_required(const char *new_limit, const char *old_limit)
 
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data)
 {
-	sql_insert(fn_ptr_data_link, "'%s', '%s'", ptr, data);
+	sql_insert_or_ignore(fn_ptr_data_link, "'%s', '%s'", ptr, data);
 }
 
 void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value)
