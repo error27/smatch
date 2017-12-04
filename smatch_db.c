@@ -29,7 +29,7 @@ static sqlite3 *mem_db;
 
 static int return_id;
 
-#define sql_insert_helper(table, ignore, values...)				\
+#define sql_insert_helper(table, ignore, late, values...)			\
 do {										\
 	if (__inline_fn) {							\
 		char buf[1024];							\
@@ -57,16 +57,17 @@ do {										\
 		FILE *tmp_fd = sm_outfd;					\
 		sm_outfd = sql_outfd;						\
 		sm_prefix();							\
-	        sm_printf("SQL: insert %sinto " #table " values(",		\
-			  ignore ? "or ignore " : "");				\
+	        sm_printf("SQL%s: insert %sinto " #table " values(",		\
+			  late ? "_late" : "", ignore ? "or ignore " : "");	\
 	        sm_printf(values);						\
 	        sm_printf(");\n");						\
 		sm_outfd = tmp_fd;						\
 	}									\
 } while (0)
 
-#define sql_insert(table, values...) sql_insert_helper(table, 0, values);
-#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 1, values);
+#define sql_insert(table, values...) sql_insert_helper(table, 0, 0, values);
+#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 1, 0, values);
+#define sql_insert_late(table, values...) sql_insert_helper(table, 0, 1, values);
 
 struct def_callback {
 	int hook_type;
