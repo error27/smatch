@@ -2199,6 +2199,57 @@ const char *get_param_name_var_sym(const char *name, struct symbol *sym)
 	return state_name_to_param_name(name, sym->ident->name);
 }
 
+const char *get_mtag_name_var_sym(const char *state_name, struct symbol *sym)
+{
+	struct symbol *type;
+	const char *sym_name;
+	int name_len;
+	static char buf[256];
+
+	/*
+	 * mtag_name is different from param_name because mtags can be a struct
+	 * instead of a struct pointer.  But we want to treat it like a pointer
+	 * because really an mtag is a pointer.  Or in other words, if you pass
+	 * a struct foo then you want to talk about foo.bar but with an mtag
+	 * you want to refer to it as foo->bar.
+	 *
+	 */
+
+	if (!sym || !sym->ident)
+		return NULL;
+
+	type = get_real_base_type(sym);
+	if (type && type->type == SYM_BASETYPE)
+		return "*$";
+
+	sym_name = sym->ident->name;
+	name_len = strlen(sym_name);
+
+	if (state_name[name_len] == '.' && /* check for '-' from "->" */
+	    strncmp(state_name, sym_name, name_len) == 0) {
+		snprintf(buf, sizeof(buf), "$->%s", state_name + name_len + 1);
+		return buf;
+	}
+
+	return state_name_to_param_name(state_name, sym_name);
+}
+
+const char *get_mtag_name_expr(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	const char *ret = NULL;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = get_mtag_name_var_sym(name, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 const char *get_param_name(struct sm_state *sm)
 {
 	return get_param_name_var_sym(sm->name, sm->sym);
