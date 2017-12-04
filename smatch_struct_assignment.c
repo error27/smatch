@@ -143,6 +143,15 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 	struct expression *assign;
 
 	type = get_type(left);
+	if (!type)
+		return;
+	if (type->type == SYM_PTR) {
+		left = deref_expression(left);
+		right = deref_expression(right);
+		assign = assign_expression(left, right);
+		split_fake_expr(assign);
+		return;
+	}
 	if (!type || type->type != SYM_BASETYPE)
 		return;
 	right = strip_expr(right);
@@ -378,7 +387,6 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 
 void __fake_struct_member_assignments(struct expression *expr)
 {
-	struct symbol *struct_type;
 	struct symbol *left_type;
 
 	if (expr->op != '=')
@@ -392,10 +400,6 @@ void __fake_struct_member_assignments(struct expression *expr)
 	    left_type->type != SYM_PTR &&
 	    left_type->type != SYM_STRUCT &&
 	    left_type != &ulong_ctype)
-		return;
-
-	struct_type = get_struct_type(expr->left);
-	if (!struct_type)
 		return;
 
 	if (handle_param_offsets(expr))
