@@ -399,10 +399,9 @@ void __fake_struct_member_assignments(struct expression *expr)
 		return;
 
 	left_type = get_type(expr->left);
-	if (left_type &&
-	    left_type->type != SYM_PTR &&
-	    left_type->type != SYM_STRUCT &&
-	    left_type != &ulong_ctype)
+	if (!left_type ||
+	    (left_type->type != SYM_PTR &&
+	     left_type->type != SYM_STRUCT))
 		return;
 
 	if (handle_param_offsets(expr))
