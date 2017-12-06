@@ -16,37 +16,52 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 
-static struct tracker_list *ignored;
+STATE(ignore);
+static struct stree *ignored;
 
 void add_ignore(int owner, const char *name, struct symbol *sym)
 {
-	struct tracker *tmp;
-
-	tmp = malloc(sizeof(*tmp));
-	tmp->name = alloc_string(name);
-	tmp->owner = owner;
-	tmp->sym = sym;
-	add_ptr_list(&ignored, tmp);
+	set_state_stree(&ignored, owner, name, sym, &ignore);
 }
 
 int is_ignored(int owner, const char *name, struct symbol *sym)
 {
-	struct tracker *tmp;
+	return !!get_state_stree(ignored, owner, name, sym);
+}
 
-	FOR_EACH_PTR(ignored, tmp) {
-		if (tmp->owner == owner && tmp->sym == sym
-		    && !strcmp(tmp->name, name))
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
+void add_ignore_expr(int owner, struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_str_sym(expr, &sym);
+	if (!name && !sym)
+		return;
+	add_ignore(owner, name, sym);
+	free_string(name);
+}
+
+int is_ignored_expr(int owner, struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+	int ret;
+
+	name = expr_to_str_sym(expr, &sym);
+	if (!name && !sym)
+		return 0;
+	ret = is_ignored(owner, name, sym);
+	free_string(name);
+	return ret;
 }
 
 static void clear_ignores(void)
 {
 	if (__inline_fn)
 		return;
-	__free_ptr_list((struct ptr_list **)&ignored);
+	free_stree(&ignored);
 }
 
 void register_smatch_ignore(int id)

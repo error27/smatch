@@ -391,6 +391,8 @@ char *type_to_str(struct symbol *type);
 /* smatch_ignore.c */
 void add_ignore(int owner, const char *name, struct symbol *sym);
 int is_ignored(int owner, const char *name, struct symbol *sym);
+void add_ignore_expr(int owner, struct expression *expr);
+int is_ignored_expr(int owner, struct expression *expr);
 
 /* smatch_var_sym */
 struct var_sym *alloc_var_sym(const char *var, struct symbol *sym);
