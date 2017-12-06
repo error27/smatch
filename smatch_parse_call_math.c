@@ -425,13 +425,19 @@ char *get_value_in_terms_of_parameter_math(struct expression *expr)
 
 char *get_value_in_terms_of_parameter_math_var_sym(const char *name, struct symbol *sym)
 {
-	struct expression *expr;
+	struct expression *tmp, *expr;
 	char buf[256];
 	int ret;
+	int cnt = 0;
 
 	expr = get_assigned_expr_name_sym(name, sym);
 	if (!expr)
 		return NULL;
+	while ((tmp = get_assigned_expr(expr))) {
+		expr = strip_expr(tmp);
+		if (++cnt > 3)
+			break;
+	}
 
 	ret = format_expr_helper(buf, sizeof(buf), expr);
 	if (ret == 0)
