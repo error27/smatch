@@ -184,8 +184,11 @@ int param_has_filter_data(struct sm_state *sm)
 	struct smatch_state *state;
 
 	state = get_state(my_id, sm->name, sm->sym);
-	if (!state)
+	if (!state) {
+		if (get_assigned_expr_name_sym(sm->name, sm->sym))
+			return 0;
 		return 1;
+	}
 	if (estate_rl(state))
 		return 1;
 	return 0;
