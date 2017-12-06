@@ -52,6 +52,14 @@ verbose()
 }
 
 ##
+# warning(string) - prints a warning
+warning()
+{
+	[ "$quiet" -ne 1 ] && echo "warning: $1"
+	return 0
+}
+
+##
 # error(string[, die]) - prints an error and exits with value die if given
 error()
 {
@@ -253,7 +261,7 @@ do_test()
 	# can this test be handled by test-suite ?
 	# (it has to have a check-name key in it)
 	if [ "$check_name" = "" ]; then
-		echo "warning: test '$file' unhandled"
+		warning "$file: test unhandled"
 		unhandled_tests=$(($unhandled_tests + 1))
 		return 2
 	fi
