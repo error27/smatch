@@ -155,7 +155,7 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 		split_fake_expr(assign);
 		return;
 	}
-	if (!type || type->type != SYM_BASETYPE)
+	if (type->type != SYM_BASETYPE)
 		return;
 	right = strip_expr(right);
 	if (!right)
