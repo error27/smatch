@@ -429,6 +429,7 @@ do_format_help() {
 echo "Usage: $prog_name [option(s)] [--]format file [name [cmd]]"
 echo
 echo "options:"
+echo "    -a                         append the created test to the input file"
 echo "    -f                         write a test known to fail"
 echo "    -l                         write a test for linearized code"
 echo
@@ -443,11 +444,14 @@ echo "    cmd                        command to be used (defaults to 'sparse \$f
 do_format()
 {
 	def_cmd="$default_cmd"
+	append=0
 	linear=0
 	fail=0
 
 	while [ $# -gt 1 ] ; do
 		case "$1" in
+		-a)
+			append=1 ;;
 		-f)
 			fail=1 ;;
 		-l)
@@ -474,6 +478,7 @@ do_format()
 	cmd=`eval echo $default_path/$fcmd`
 	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
+	[ "append" != 0 ] && exec >> $file
 	cat <<_EOF
 
 /*
