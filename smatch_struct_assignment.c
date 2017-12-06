@@ -147,7 +147,10 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 		return;
 	if (type->type == SYM_PTR) {
 		left = deref_expression(left);
-		right = deref_expression(right);
+		if (right)
+			right = deref_expression(right);
+		else
+			right = unknown_value_expression(left);
 		assign = assign_expression(left, right);
 		split_fake_expr(assign);
 		return;
