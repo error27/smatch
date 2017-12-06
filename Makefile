@@ -142,7 +142,7 @@ endif
 LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 ifeq ($(HAVE_LLVM),yes)
-ifeq ($(shell uname -m | grep -q '\(i386\|x86\)' && echo ok),ok)
+ifeq ($(shell uname -m | grep -q '\(i[3456]86\|x86\)' && echo ok),ok)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
 LLVM_PROGS := sparse-llvm
