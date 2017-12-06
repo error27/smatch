@@ -384,7 +384,7 @@ int fn_static(void);
 const char *global_static();
 struct symbol *cur_func_return_type(void);
 struct symbol *get_arg_type(struct expression *fn, int arg);
-struct symbol *get_member_type_from_key(struct expression *expr, char *key);
+struct symbol *get_member_type_from_key(struct expression *expr, const char *key);
 int is_struct(struct expression *expr);
 char *type_to_str(struct symbol *type);
 
@@ -1012,7 +1012,7 @@ int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 
 /* smatch_address.c */
 int get_address_rl(struct expression *expr, struct range_list **rl);
-int get_member_offset(struct symbol *type, char *member_name);
+int get_member_offset(struct symbol *type, const char *member_name);
 int get_member_offset_from_deref(struct expression *expr);
 
 /* for now this is in smatch_used_parameter.c */

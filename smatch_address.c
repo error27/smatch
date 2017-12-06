@@ -62,7 +62,7 @@ static bool is_non_null_array(struct expression *expr)
 	return 0;
 }
 
-int get_member_offset(struct symbol *type, char *member_name)
+int get_member_offset(struct symbol *type, const char *member_name)
 {
 	struct symbol *tmp;
 	int offset;

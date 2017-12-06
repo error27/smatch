@@ -531,7 +531,7 @@ struct symbol *get_arg_type(struct expression *fn, int arg)
 	return NULL;
 }
 
-static struct symbol *get_member_from_string(struct symbol_list *symbol_list, char *name)
+static struct symbol *get_member_from_string(struct symbol_list *symbol_list, const char *name)
 {
 	struct symbol *tmp, *sub;
 	int chunk_len;
@@ -565,7 +565,7 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, ch
 	return NULL;
 }
 
-struct symbol *get_member_type_from_key(struct expression *expr, char *key)
+struct symbol *get_member_type_from_key(struct expression *expr, const char *key)
 {
 	struct symbol *sym;
 
