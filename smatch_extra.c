@@ -704,10 +704,23 @@ free:
 	free_string(name);
 }
 
+static int is_const_param(struct expression *expr, int param)
+{
+	struct symbol *type;
+
+	type = get_arg_type(expr, param);
+	if (!type)
+		return 0;
+	if (type->ctype.modifiers & MOD_CONST)
+		return 1;
+	return 0;
+}
+
 static void match_function_call(struct expression *expr)
 {
 	struct expression *arg;
 	struct expression *tmp;
+	int param = -1;
 
 	/* if we have the db this is handled in smatch_function_hooks.c */
 	if (!option_no_db)
@@ -716,6 +729,9 @@ static void match_function_call(struct expression *expr)
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
+		param++;
+		if (is_const_param(expr->fn, param))
+			continue;
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			set_extra_expr_mod(tmp->unop, alloc_estate_whole(get_type(tmp->unop)));
