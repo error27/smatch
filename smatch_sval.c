@@ -473,6 +473,16 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 				return 1;
 		return 0;
 	case '*':
+		if (type_signed(type)) {
+			if (left.value == 0 || right.value == 0)
+				return 0;
+			if (left.value > max.value / right.value)
+				return 1;
+			if (left.value == -1 || right.value == -1)
+				return 0;
+			return left.value != left.value * right.value / right.value;
+
+		}
 		return right.uvalue != 0 && left.uvalue > max.uvalue / right.uvalue;
 	case '-':
 		if (type_unsigned(type)) {
