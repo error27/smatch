@@ -190,6 +190,8 @@ static void save_caller_info(const char *name, struct symbol *sym, char *key, ch
 int get_mtag(struct expression *expr, mtag_t *tag)
 {
 	expr = strip_expr(expr);
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_expr(expr->unop);
 	if (expr->type == EXPR_SYMBOL &&
 	    get_toplevel_mtag(expr->symbol, tag))
 		return 1;
