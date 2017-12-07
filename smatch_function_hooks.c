@@ -267,7 +267,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
 		estate = alloc_estate_range(tmp->range->min, tmp->range->max);
-		set_extra_mod(var_name, sym, estate);
+		set_extra_mod(var_name, sym, expr->left, estate);
 
 		tmp_stree = __pop_fake_cur_stree();
 		merge_fake_stree(&final_states, tmp_stree);

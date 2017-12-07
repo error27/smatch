@@ -88,7 +88,7 @@ void call_extra_hooks(struct void_fn_list *hooks, const char *name, struct symbo
 	} END_FOR_EACH_PTR(fn);
 }
 
-void call_extra_mod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+void call_extra_mod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	call_extra_hooks(extra_mod_hooks, name, sym, state);
 }
@@ -99,10 +99,10 @@ void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct smatch_
 }
 
 static bool in_param_set;
-static void set_extra_mod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
+static void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	remove_from_equiv(name, sym);
-	call_extra_mod_hooks(name, sym, state);
+	call_extra_mod_hooks(name, sym, expr, state);
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
@@ -190,15 +190,15 @@ free:
 	return NULL;
 }
 
-void set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *state)
+void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	char *new_name;
 	struct symbol *new_sym;
 
-	set_extra_mod_helper(name, sym, state);
+	set_extra_mod_helper(name, sym, expr, state);
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
-		set_extra_mod_helper(new_name, new_sym, state);
+		set_extra_mod_helper(new_name, new_sym, expr, state);
 	free_string(new_name);
 }
 
@@ -249,7 +249,7 @@ static void set_extra_array_mod(struct expression *expr, struct smatch_state *st
 		store_link(link_id, vs->var, vs->sym, name, sym);
 	} END_FOR_EACH_PTR(vs);
 
-	call_extra_mod_hooks(name, sym, state);
+	call_extra_mod_hooks(name, sym, expr, state);
 	set_state(SMATCH_EXTRA, name, sym, state);
 free:
 	free_string(name);
@@ -269,7 +269,7 @@ void set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	set_extra_mod(name, sym, state);
+	set_extra_mod(name, sym, expr, state);
 free:
 	free_string(name);
 }
@@ -630,7 +630,7 @@ static void while_count_down_after(struct sm_state *sm, struct expression *condi
 		return;
 	after_value = estate_min(sm->state);
 	after_value.value--;
-	set_extra_mod(sm->name, sm->sym, alloc_estate_sval(after_value));
+	set_extra_mod(sm->name, sm->sym, condition->unop, alloc_estate_sval(after_value));
 }
 
 void __extra_pre_loop_hook_after(struct sm_state *sm,
@@ -678,7 +678,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 		estate_clear_fuzzy_max(state);
 	}
 
-	set_extra_mod(sm->name, sm->sym, state);
+	set_extra_mod(sm->name, sm->sym, iter_expr, state);
 }
 
 static struct stree *unmatched_stree;
@@ -715,7 +715,7 @@ static void clear_the_pointed_at(struct expression *expr)
 			continue;
 		if (strcmp(tmp->name + 1, name) != 0)
 			continue;
-		set_extra_mod(tmp->name, tmp->sym, alloc_estate_whole(estate_type(tmp->state)));
+		set_extra_mod(tmp->name, tmp->sym, expr, alloc_estate_whole(estate_type(tmp->state)));
 	} END_FOR_EACH_SM(tmp);
 
 free:
@@ -913,7 +913,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	}
 
 done:
-	set_extra_mod(name, sym, state);
+	set_extra_mod(name, sym, left, state);
 free:
 	free_string(right_name);
 }
@@ -1034,13 +1034,13 @@ static void match_assign(struct expression *expr)
 					      expr->right);
 		if (get_absolute_rl(binop_expr, &rl)) {
 			rl = cast_rl(left_type, rl);
-			set_extra_mod(name, sym, alloc_estate_rl(rl));
+			set_extra_mod(name, sym, left, alloc_estate_rl(rl));
 			goto free;
 		}
 		break;
 	}
 	rl = cast_rl(left_type, alloc_rl(res_min, res_max));
-	set_extra_mod(name, sym, alloc_estate_rl(rl));
+	set_extra_mod(name, sym, left, alloc_estate_rl(rl));
 free:
 	free_string(name);
 }
@@ -2297,7 +2297,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		if (op == PARAM_LIMIT)
 			set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(new));
 		else
-			set_extra_mod(name, sym, alloc_estate_rl(new));
+			set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
 	}
 
 free:
@@ -2354,7 +2354,7 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 		name = tmp_name;
 		sym = tmp_sym;
 	}
-	set_extra_mod(name, sym, alloc_estate_rl(new));
+	set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
 free:
 	free_string(name);
 }
@@ -2397,7 +2397,7 @@ static void db_param_value(struct expression *expr, int param, char *key, char *
 
 	call_results_to_rl(call, type, value, &rl);
 
-	set_extra_mod(name, sym, alloc_estate_rl(rl));
+	set_extra_mod(name, sym, NULL, alloc_estate_rl(rl));
 free:
 	free_string(name);
 }
