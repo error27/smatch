@@ -24,6 +24,7 @@ grep "allocation func$" $file | cut -s -d ' ' -f 2 | cut -d '(' -f 1 | \
 echo "kmalloc" >> $tmp
 echo "kzalloc" >> $tmp
 echo "kcalloc" >> $tmp
+echo "__alloc_skb" >> $tmp
 cat $tmp $remove $remove 2> /dev/null | sort | uniq -u \
     >> kernel.allocation_funcs
 rm $tmp
