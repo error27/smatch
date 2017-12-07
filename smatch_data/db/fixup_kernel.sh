@@ -34,6 +34,12 @@ delete from caller_info where caller = 'hptiop_probe' and type = 1003;
 delete from caller_info where caller = 'p9_fd_poll' and function = '(struct file_operations)->poll' and type = 1003;
 delete from caller_info where caller = 'proc_reg_poll' and function = 'proc_reg_poll ptr poll' and type = 1003;
 delete from caller_info where function = 'blkdev_ioctl' and type = 1003 and parameter = 0 and key = '\$';
+/* 9017 is USER_DATA3_SET */
+delete from return_states where function='vscnprintf' and type = 9017;
+delete from return_states where function='scnprintf' and type = 9017;
+delete from return_states where function='vsnprintf' and type = 9017;
+delete from return_states where function='snprintf' and type = 9017;
+delete from return_states where function='sprintf' and type = 9017;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$', '1');
