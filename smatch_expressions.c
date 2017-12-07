@@ -52,6 +52,7 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 	expr->op = op;
 	expr->deref = deref;
 	expr->member = member;
+	expr->member_offset = -1;
 	return expr;
 }
 
