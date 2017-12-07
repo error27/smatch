@@ -1221,7 +1221,7 @@ static void set_inner_struct_members(struct expression *expr, struct symbol *mem
 			continue;
 
 		edge_member = member_expression(expr, '.', tmp->ident);
-		if (get_state_expr(SMATCH_EXTRA, edge_member))
+		if (get_extra_state(edge_member))
 			continue;
 
 		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
@@ -1258,7 +1258,7 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 
 		if (tmp->ident) {
 			member = member_expression(expr, op, tmp->ident);
-			if (get_state_expr(SMATCH_EXTRA, member))
+			if (get_extra_state(member))
 				continue;
 		}
 

@@ -202,6 +202,24 @@ void set_extra_mod(const char *name, struct symbol *sym, struct smatch_state *st
 	free_string(new_name);
 }
 
+static struct expression *chunk_get_array_base(struct expression *expr)
+{
+	/*
+	 * The problem with is_array() is that it only returns true for things
+	 * like foo[1] but not for foo[1].bar.
+	 *
+	 */
+	expr = strip_expr(expr);
+	while (expr && expr->type == EXPR_DEREF)
+		expr = strip_expr(expr->deref);
+	return get_array_base(expr);
+}
+
+static int chunk_has_array(struct expression *expr)
+{
+	return !!chunk_get_array_base(expr);
+}
+
 static void clear_array_states(struct expression *array)
 {
 	struct sm_state *sm;
@@ -219,7 +237,7 @@ static void set_extra_array_mod(struct expression *expr, struct smatch_state *st
 	char *name;
 	struct symbol *sym;
 
-	array = get_array_base(expr);
+	array = chunk_get_array_base(expr);
 
 	name = expr_to_chunk_sym_vsl(expr, &sym, &vsl);
 	if (!name || !vsl) {
@@ -242,7 +260,7 @@ void set_extra_expr_mod(struct expression *expr, struct smatch_state *state)
 	struct symbol *sym;
 	char *name;
 
-	if (is_array(expr)) {
+	if (chunk_has_array(expr)) {
 		set_extra_array_mod(expr, state);
 		return;
 	}
@@ -826,7 +844,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	name = expr_to_var_sym(left, &sym);
 	if (!name) {
-		if (is_array(left))
+		if (chunk_has_array(left))
 			do_array_assign(left, '=', right);
 		return;
 	}
