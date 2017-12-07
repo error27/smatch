@@ -326,6 +326,47 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 }
 
+struct expr_str_cache_results {
+	struct expression *expr;
+	int no_parens;
+	char str[VAR_LEN];
+	struct symbol *sym;
+	int complicated;
+};
+
+static void get_variable_from_expr(struct symbol **sym_ptr, char *buf,
+				     struct expression *expr, int len,
+				     int *complicated, int no_parens)
+{
+	static struct expr_str_cache_results cached[8];
+	struct symbol *tmp_sym = NULL;
+	static int idx;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(cached); i++) {
+		if (expr == cached[i].expr &&
+		    no_parens == cached[i].no_parens) {
+			strncpy(buf, cached[i].str, len);
+			if (sym_ptr)
+				*sym_ptr = cached[i].sym;
+			*complicated = cached[i].complicated;
+			return;
+		}
+	}
+
+	__get_variable_from_expr(&tmp_sym, buf, expr, len, complicated, no_parens);
+	if (sym_ptr)
+		*sym_ptr = tmp_sym;
+
+	cached[idx].expr = expr;
+	cached[idx].no_parens = no_parens;
+	strncpy(cached[idx].str, buf, VAR_LEN);
+	cached[idx].sym = tmp_sym;
+	cached[idx].complicated = *complicated;
+
+	idx = (idx + 1) % ARRAY_SIZE(cached);
+}
+
 /*
  * This is returns a stylized "c looking" representation of the
  * variable name.
@@ -346,7 +387,7 @@ char *expr_to_str_sym(struct expression *expr, struct symbol **sym_ptr)
 
 	if (!expr)
 		return NULL;
-	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
+	get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
 				 &complicated, 0);
 	if (complicated < 2)
 		return alloc_string(var_name);
@@ -377,7 +418,7 @@ char *expr_to_var_sym(struct expression *expr,
 	if (!expr)
 		return NULL;
 	expr = strip_expr(expr);
-	__get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
+	get_variable_from_expr(sym_ptr, var_name, expr, sizeof(var_name),
 				 &complicated, 1);
 
 	if (complicated) {
