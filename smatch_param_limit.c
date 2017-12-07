@@ -131,7 +131,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	} END_FOR_EACH_SM(tmp);
 }
 
-static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
+static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct smatch_state *orig_vals;
 	int param;

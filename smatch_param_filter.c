@@ -91,7 +91,7 @@ static void pre_merge_hook(struct sm_state *sm)
 	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
 }
 
-static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
+static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	int param;
 

@@ -105,7 +105,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_estate_empty();
 }
 
-static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
+static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct smatch_state *old;
 	struct smatch_state *new;

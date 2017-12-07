@@ -77,7 +77,7 @@ static void match_declarations(struct symbol *sym)
 	set_state(my_id, sym->ident->name, sym, &uninitialized);
 }
 
-static void extra_mod_hook(const char *name, struct symbol *sym, struct smatch_state *state)
+static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	if (!sym || !sym->ident)
 		return;

@@ -60,7 +60,7 @@ static int in_warn_on_macro(void)
 	return 0;
 }
 
-typedef void (mod_hook)(const char *name, struct symbol *sym, struct smatch_state *state);
+typedef void (mod_hook)(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 DECLARE_PTR_LIST(void_fn_list, mod_hook *);
 static struct void_fn_list *extra_mod_hooks;
 static struct void_fn_list *extra_nomod_hooks;
@@ -79,23 +79,23 @@ void add_extra_nomod_hook(mod_hook *fn)
 	add_ptr_list(&extra_nomod_hooks, p);
 }
 
-void call_extra_hooks(struct void_fn_list *hooks, const char *name, struct symbol *sym, struct smatch_state *state)
+void call_extra_hooks(struct void_fn_list *hooks, const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	mod_hook **fn;
 
 	FOR_EACH_PTR(hooks, fn) {
-		(*fn)(name, sym, state);
+		(*fn)(name, sym, expr, state);
 	} END_FOR_EACH_PTR(fn);
 }
 
 void call_extra_mod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	call_extra_hooks(extra_mod_hooks, name, sym, state);
+	call_extra_hooks(extra_mod_hooks, name, sym, expr, state);
 }
 
 void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	call_extra_hooks(extra_nomod_hooks, name, sym, state);
+	call_extra_hooks(extra_nomod_hooks, name, sym, expr, state);
 }
 
 static bool in_param_set;
