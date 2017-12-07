@@ -93,7 +93,7 @@ void call_extra_mod_hooks(const char *name, struct symbol *sym, struct expressio
 	call_extra_hooks(extra_mod_hooks, name, sym, state);
 }
 
-void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct smatch_state *state)
+void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	call_extra_hooks(extra_nomod_hooks, name, sym, state);
 }
@@ -109,9 +109,9 @@ static void set_extra_mod_helper(const char *name, struct symbol *sym, struct ex
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
 
-static void set_extra_nomod_helper(const char *name, struct symbol *sym, struct smatch_state *state)
+static void set_extra_nomod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	call_extra_nomod_hooks(name, sym, state);
+	call_extra_nomod_hooks(name, sym, expr, state);
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
 
@@ -274,7 +274,7 @@ free:
 	free_string(name);
 }
 
-void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state)
+void set_extra_nomod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	char *new_name;
 	struct symbol *new_sym;
@@ -289,11 +289,11 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 
 	new_name = get_other_name_sym(name, sym, &new_sym);
 	if (new_name && new_sym)
-		set_extra_nomod_helper(new_name, new_sym, state);
+		set_extra_nomod_helper(new_name, new_sym, expr, state);
 	free_string(new_name);
 
 	if (!estate_related(orig_state)) {
-		set_extra_nomod_helper(name, sym, state);
+		set_extra_nomod_helper(name, sym, expr, state);
 		return;
 	}
 
@@ -306,11 +306,11 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *
 		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
 		if (!estate)
 			continue;
-		set_extra_nomod_helper(rel->name, rel->sym, clone_estate_cast(estate_type(estate), state));
+		set_extra_nomod_helper(rel->name, rel->sym, expr, clone_estate_cast(estate_type(estate), state));
 	} END_FOR_EACH_PTR(rel);
 }
 
-void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct smatch_state *state)
+void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct expression *expr, struct smatch_state *state)
 {
 	struct var_sym *vs;
 
@@ -318,7 +318,7 @@ void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_li
 		store_link(link_id, vs->var, vs->sym, name, sym);
 	} END_FOR_EACH_PTR(vs);
 
-	set_extra_nomod(name, sym, state);
+	set_extra_nomod(name, sym, expr, state);
 }
 
 /*
@@ -338,7 +338,7 @@ void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state)
 		store_link(link_id, vs->var, vs->sym, name, sym);
 	} END_FOR_EACH_PTR(vs);
 
-	set_extra_nomod(name, sym, state);
+	set_extra_nomod(name, sym, expr, state);
 free:
 	free_string(name);
 }
@@ -1228,7 +1228,7 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 			new = alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval);
 		}
 
-		set_extra_nomod(name, sym, new);
+		set_extra_nomod(name, sym, NULL, new);
 	}
 	free_string(name);
 
@@ -2295,7 +2295,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		}
 
 		if (op == PARAM_LIMIT)
-			set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(new));
+			set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(new));
 		else
 			set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
 	}

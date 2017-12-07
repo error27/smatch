@@ -946,7 +946,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 	__push_fake_cur_stree();
 	__unnullify_path();
 	if (name)
-		set_extra_nomod_vsl(name, sym, vsl, alloc_estate_rl(rl));
+		set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(rl));
 	__pass_case_to_client(switch_expr, rl);
 	extra_states = __pop_fake_cur_stree();
 	overwrite_stree(extra_states, &true_states);

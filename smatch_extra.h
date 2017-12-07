@@ -154,8 +154,8 @@ struct smatch_state *get_extra_state(struct expression *expr);
 void call_extra_mod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 void set_extra_expr_mod(struct expression *expr, struct smatch_state *state);
-void set_extra_nomod(const char *name, struct symbol *sym, struct smatch_state *state);
-void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct smatch_state *state);
+void set_extra_nomod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
+void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct expression *expr, struct smatch_state *state);
 void set_extra_expr_nomod(struct expression *expr, struct smatch_state *state);
 
 struct data_info *get_dinfo(struct smatch_state *state);
