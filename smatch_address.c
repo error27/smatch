@@ -67,7 +67,7 @@ int get_member_offset(struct symbol *type, const char *member_name)
 	struct symbol *tmp;
 	int offset;
 
-	if (type->type != SYM_STRUCT)
+	if (!type || type->type != SYM_STRUCT)
 		return -1;
 
 	offset = 0;
