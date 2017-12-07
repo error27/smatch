@@ -483,7 +483,7 @@ static void handle_arch_finalize(void)
 	handle_arch_msize_long_finalize();
 }
 
-const char *match_option(const char *arg, const char *prefix)
+static const char *match_option(const char *arg, const char *prefix)
 {
 	unsigned int n = strlen(prefix);
 	if (strncmp(arg, prefix, n) == 0)
@@ -1116,7 +1116,7 @@ static void predefined_macros(void)
 		arch_big_endian ? "BIG" : "LITTLE");
 }
 
-void declare_builtin_functions(void)
+static void declare_builtin_functions(void)
 {
 	/* Gaah. gcc knows tons of builtin <string.h> functions */
 	add_pre_buffer("extern void *__builtin_memchr(const void *, int, __SIZE_TYPE__);\n");
@@ -1281,7 +1281,7 @@ void declare_builtin_functions(void)
 	add_pre_buffer("extern int __builtin_vsnprintf(char *, __SIZE_TYPE__, const char *, __builtin_va_list ap);\n");
 }
 
-void create_builtin_stream(void)
+static void create_builtin_stream(void)
 {
 	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
 	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);

@@ -33,6 +33,8 @@
 #include "symbol.h"
 #include "expression.h"
 
+static void copy_statement(struct statement *src, struct statement *dst);
+
 static struct expression * dup_expression(struct expression *expr)
 {
 	struct expression *dup = alloc_expression(expr->pos, expr->type);
@@ -463,7 +465,7 @@ static struct statement *copy_one_statement(struct statement *stmt)
  * This doesn't do the symbol replacement right: it's not
  * re-entrant.
  */
-void copy_statement(struct statement *src, struct statement *dst)
+static void copy_statement(struct statement *src, struct statement *dst)
 {
 	struct statement *stmt;
 

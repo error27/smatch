@@ -178,8 +178,6 @@ extern int arch_m64;
 extern int arch_msize_long;
 extern int arch_big_endian;
 
-extern void declare_builtin_functions(void);
-extern void create_builtin_stream(void);
 extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
 extern struct symbol_list *__sparse(char *filename);

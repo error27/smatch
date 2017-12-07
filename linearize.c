@@ -22,8 +22,8 @@
 #include "flow.h"
 #include "target.h"
 
-pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
-pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
+static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
+static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
@@ -1369,7 +1369,7 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 
 static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
-pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
+static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false);
 
 static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 {
@@ -1499,7 +1499,7 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 }
 
 
-pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
+static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	pseudo_t cond;
 
@@ -1613,7 +1613,7 @@ static void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr
 	finish_address_gen(ep, &ad);
 }
 
-pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
+static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
 	if (!expr)
 		return VOID;
@@ -2047,7 +2047,7 @@ static pseudo_t linearize_iterator(struct entrypoint *ep, struct statement *stmt
 	return VOID;
 }
 
-pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
+static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct basic_block *bb;
 
