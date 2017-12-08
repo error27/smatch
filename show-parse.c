@@ -218,38 +218,39 @@ static void FORMAT_ATTR(2) append(struct type_name *name, const char *fmt, ...)
 static struct ctype_name {
 	struct symbol *sym;
 	const char *name;
+	const char *suffix;
 } typenames[] = {
-	{ & char_ctype,  "char" },
-	{ &schar_ctype,  "signed char" },
-	{ &uchar_ctype,  "unsigned char" },
-	{ & short_ctype, "short" },
-	{ &sshort_ctype, "signed short" },
-	{ &ushort_ctype, "unsigned short" },
-	{ & int_ctype,   "int" },
-	{ &sint_ctype,   "signed int" },
-	{ &uint_ctype,   "unsigned int" },
-	{ &slong_ctype,  "signed long" },
-	{ & long_ctype,  "long" },
-	{ &ulong_ctype,  "unsigned long" },
-	{ & llong_ctype, "long long" },
-	{ &sllong_ctype, "signed long long" },
-	{ &ullong_ctype, "unsigned long long" },
-	{ & lllong_ctype, "long long long" },
-	{ &slllong_ctype, "signed long long long" },
-	{ &ulllong_ctype, "unsigned long long long" },
+	{ & char_ctype,  "char", "" },
+	{ &schar_ctype,  "signed char", "" },
+	{ &uchar_ctype,  "unsigned char", "" },
+	{ & short_ctype, "short", "" },
+	{ &sshort_ctype, "signed short", "" },
+	{ &ushort_ctype, "unsigned short", "" },
+	{ & int_ctype,   "int", "" },
+	{ &sint_ctype,   "signed int", "" },
+	{ &uint_ctype,   "unsigned int", "U" },
+	{ & long_ctype,  "long", "L" },
+	{ &slong_ctype,  "signed long", "L" },
+	{ &ulong_ctype,  "unsigned long", "UL" },
+	{ & llong_ctype, "long long", "LL" },
+	{ &sllong_ctype, "signed long long", "LL" },
+	{ &ullong_ctype, "unsigned long long", "ULL" },
+	{ & lllong_ctype, "long long long", "LLL" },
+	{ &slllong_ctype, "signed long long long", "LLL" },
+	{ &ulllong_ctype, "unsigned long long long", "ULLL" },
 
-	{ &void_ctype,   "void" },
-	{ &bool_ctype,   "bool" },
-	{ &string_ctype, "string" },
+	{ &void_ctype,   "void", "" },
+	{ &bool_ctype,   "bool", "" },
+	{ &string_ctype, "string", "" },
 
-	{ &float_ctype,  "float" },
-	{ &double_ctype, "double" },
-	{ &ldouble_ctype,"long double" },
-	{ &incomplete_ctype, "incomplete type" },
-	{ &int_type, "abstract int" },
-	{ &fp_type, "abstract fp" },
-	{ &label_ctype, "label type" },
-	{ &bad_ctype, "bad type" },
+	{ &float_ctype,  "float", "F" },
+	{ &double_ctype, "double", "" },
+	{ &ldouble_ctype,"long double", "L" },
+	{ &incomplete_ctype, "incomplete type", "" },
+	{ &int_type, "abstract int", "" },
+	{ &fp_type, "abstract fp", "" },
+	{ &label_ctype, "label type", "" },
+	{ &bad_ctype, "bad type", "" },
 };
 
 const char *builtin_typename(struct symbol *sym)
@@ -259,6 +260,16 @@ const char *builtin_typename(struct symbol *sym)
 	for (i = 0; i < ARRAY_SIZE(typenames); i++)
 		if (typenames[i].sym == sym)
 			return typenames[i].name;
+	return NULL;
+}
+
+const char *builtin_type_suffix(struct symbol *sym)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(typenames); i++)
+		if (typenames[i].sym == sym)
+			return typenames[i].suffix;
 	return NULL;
 }
 
