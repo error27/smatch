@@ -255,6 +255,7 @@ do_test()
 {
 	test_failed=0
 	file="$1"
+	quiet=0
 
 	get_tag_value $file
 
@@ -316,7 +317,6 @@ do_test()
 	actual_exit_value=$?
 
 	must_fail=$check_known_to_fail
-	quiet=0
 	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
 	known_ko_tests=$(($known_ko_tests + $must_fail))
 
