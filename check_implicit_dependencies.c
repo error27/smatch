@@ -3,7 +3,16 @@
 
 
 static int my_id;
+static int ignore_structs;  
+// If set, we ignore struct type symbols as implicit dependencies
 static struct symbol *cur_syscall;
+/* note: cannot track return type and remove from implicit dependencies,
+ * because every syscall returns a long, and we don't have a good way to know
+ * whether or not this is a resource. The only example I can think of is open
+ * returning a filedescriptor, so in the implicit dep parsing, we will just
+ * blacklist struct fd --> file
+ */
+static struct symbol *cur_return_type;
 static char *syscall_name;
 
 static struct tracker_list *read_list; // what fields does syscall branch on?
@@ -47,10 +56,15 @@ static void match_syscall_definition(struct symbol *sym)
 	} END_FOR_EACH_PTR(tracker);
 
 	syscall_name = name;
-	// printf("-------------------------\n");	
-	// printf("\nsyscall found: %s at: ", name);
-	// prefix(); printf("\n");
 	cur_syscall = sym;
+	/*
+	printf("-------------------------\n");	
+	printf("\nsyscall found: %s at: ", name); prefix(); printf("\n");
+	cur_return_type = cur_func_return_type();
+	if (cur_return_type && cur_return_type->ident)
+		sm_msg("return type: %s\n", cur_return_type->ident->name);
+	*/
+
 
 	/*
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
@@ -99,6 +113,7 @@ static void match_after_syscall(struct symbol *sym) {
     free_trackers_and_list(&write_list);
     add_tracker(&parsed_syscalls, my_id, syscall_name, sym);
     cur_syscall = NULL;
+    cur_return_type = NULL;
     syscall_name = NULL;
 }
 
@@ -106,12 +121,32 @@ static void print_read_member_type(struct expression *expr)
 {
 	char *member;
 	struct symbol *sym;
+	struct symbol *member_sym;
 
 	member = get_member_name(expr);
 	if (!member)
 		return;
 
 	sym = get_type(expr->deref);
+	member_sym = get_type(expr);
+
+	if (member_sym->type == SYM_PTR)
+		member_sym = get_real_base_type(member_sym);
+
+	/*
+
+	if (member_sym->type == SYM_STRUCT)
+		printf("found struct type %s\n", member);
+	else
+		printf("found non-struct type %s with enum value%d\n", member, member_sym->type);
+	*/
+
+	if (ignore_structs && member_sym->type == SYM_STRUCT) {
+		// printf("ignoring %s\n", member);
+		return;
+	}
+		
+	
 	add_tracker(&read_list, my_id, member, sym);
 	// sm_msg("info: uses %s", member);
 	// prefix();
@@ -123,12 +158,30 @@ static void print_write_member_type(struct expression *expr)
 {
 	char *member;
 	struct symbol *sym;
+	struct symbol *member_sym;
 
 	member = get_member_name(expr);
 	if (!member)
 		return;
 
 	sym = get_type(expr->deref);
+	member_sym = get_type(expr);
+
+	if (member_sym->type == SYM_PTR)
+		member_sym = get_real_base_type(member_sym);
+
+	/*
+	if (member_sym->type == SYM_STRUCT)
+		printf("found struct type %s\n", member);
+	else
+		printf("found non-struct type %s with enum value%d\n", member, member_sym->type);
+	*/
+
+	if (ignore_structs && member_sym->type == SYM_STRUCT) {
+		// printf("ignoring %s\n", member);
+		return;
+	}
+
 	add_tracker(&write_list, my_id, member, sym);
 	free_string(member);
 }
@@ -210,6 +263,7 @@ static void unop_expr(struct expression *expr)
 void check_implicit_dependencies(int id)
 {
     my_id = id;
+    ignore_structs = 1;
 
     if (option_project != PROJ_KERNEL)
 	return;
