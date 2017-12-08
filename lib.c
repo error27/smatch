@@ -1125,6 +1125,15 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+#define	PTYPE_SIZEOF	(1U << 0)
+#define	PTYPE_T		(1U << 1)
+#define	PTYPE_MAX	(1U << 2)
+#define	PTYPE_MIN	(1U << 3)
+#define	PTYPE_WIDTH	(1U << 4)
+#define	PTYPE_TYPE	(1U << 5)
+#define	PTYPE_ALL	(PTYPE_MAX|PTYPE_SIZEOF|PTYPE_WIDTH)
+#define	PTYPE_ALL_T	(PTYPE_MAX|PTYPE_SIZEOF|PTYPE_WIDTH|PTYPE_T)
+
 static void predefined_sizeof(const char *name, const char *suffix, unsigned bits)
 {
 	char buf[32];
@@ -1143,24 +1152,35 @@ static void predefined_width(const char *name, unsigned bits)
 
 static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
-	unsigned long long max = bits_mask(bits - 1);
+	unsigned long long max = bits_mask(bits);
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "__%s_MAX__", name);
 	predefine(buf, 1, "%#llx%s", max, suffix);
 }
 
-static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
-{
-	predefined_max(name, suffix, bits);
-	predefined_sizeof(name, "", bits);
-	predefined_width(name, bits);
-}
-
 static void predefined_type(const char *name, struct symbol *type)
 {
 	const char *typename = builtin_typename(type);
 	add_pre_buffer("#weak_define __%s_TYPE__ %s\n", name, typename);
+}
+
+static void predefined_ctype(const char *name, struct symbol *type, int flags)
+{
+	unsigned bits = type->bit_size;
+
+	if (flags & PTYPE_SIZEOF) {
+		const char *suffix = (flags & PTYPE_T) ? "_T" : "";
+		predefined_sizeof(name, suffix, bits);
+	}
+	if (flags & PTYPE_MAX) {
+		const char *suffix = builtin_type_suffix(type);
+		predefined_max(name, suffix, bits - is_signed_type(type));
+	}
+	if (flags & PTYPE_TYPE)
+		predefined_type(name, type);
+	if (flags & PTYPE_WIDTH)
+		predefined_width(name, bits);
 }
 
 static void predefined_macros(void)
@@ -1204,27 +1224,24 @@ static void predefined_macros(void)
 		break;
 	}
 
-	predefined_sizeof("SHORT", "", bits_in_short);
-	predefined_max("SHRT", "", bits_in_short);
-	predefined_width("SHRT",   bits_in_short);
-	predefined_max("SCHAR", "", bits_in_char);
-	predefined_width("SCHAR",   bits_in_char);
 	predefined_sizeof("WCHAR", "_T", bits_in_wchar);
 	predefined_max("WCHAR", "", bits_in_wchar);
 	predefined_width("WCHAR",   bits_in_wchar);
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 
-	predefined_type_size("INT", "", bits_in_int);
-	predefined_type_size("LONG", "L", bits_in_long);
-	predefined_type_size("LONG_LONG", "LL", bits_in_longlong);
+	predefined_ctype("SHORT",     &short_ctype, PTYPE_SIZEOF);
+	predefined_ctype("SHRT",      &short_ctype, PTYPE_MAX|PTYPE_WIDTH);
+	predefined_ctype("SCHAR",     &schar_ctype, PTYPE_MAX|PTYPE_WIDTH);
+
+	predefined_ctype("INT",         &int_ctype, PTYPE_ALL);
+	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
+	predefined_ctype("LONG_LONG", &llong_ctype, PTYPE_ALL);
 
 	predefined_sizeof("INT128", "", 128);
 
-	predefined_sizeof("SIZE", "_T", bits_in_pointer);
-	predefined_width( "SIZE",   bits_in_pointer);
-	predefined_sizeof("PTRDIFF", "_T", bits_in_pointer);
-	predefined_width( "PTRDIFF",   bits_in_pointer);
-	predefined_sizeof("POINTER", "", bits_in_pointer);
+	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("SIZE",      size_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("POINTER",     &ptr_ctype, PTYPE_SIZEOF);
 
 	predefined_sizeof("FLOAT", "", bits_in_float);
 	predefined_sizeof("DOUBLE", "", bits_in_double);
@@ -1255,8 +1272,6 @@ static void create_builtin_stream(void)
 {
 	// Temporary hack
 	add_pre_buffer("#define _Pragma(x)\n");
-
-	predefined_type("SIZE", size_t_ctype);
 
 	/* add the multiarch include directories, if any */
 	if (multiarch_dir && *multiarch_dir) {

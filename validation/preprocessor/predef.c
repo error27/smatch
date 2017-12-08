@@ -17,6 +17,8 @@ int test(void)
 	TEST_SMAX(INT, int);
 	TEST_SMAX(LONG, long);
 	TEST_SMAX(LONG_LONG, long long);
+	TEST_SMAX(PTRDIFF, __PTRDIFF_TYPE__);
+	TEST_UMAX(SIZE, __SIZE_TYPE__);
 
 #define TEST_SIZEOF(X, T) if (__SIZEOF_ ## X ## __ != sizeof(T)) return 1
 	TEST_SIZEOF(SHORT, short);
@@ -24,6 +26,7 @@ int test(void)
 	TEST_SIZEOF(LONG, long);
 	TEST_SIZEOF(LONG_LONG, long long);
 	TEST_SIZEOF(INT128, __int128);
+	TEST_SIZEOF(PTRDIFF_T, __PTRDIFF_TYPE__);
 	TEST_SIZEOF(SIZE_T, __SIZE_TYPE__);
 	TEST_SIZEOF(POINTER, void*);
 	TEST_SIZEOF(FLOAT, float);
