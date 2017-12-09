@@ -275,7 +275,6 @@ extern struct symbol	zero_int;
 	extern struct ident n
 #include "ident-list.h"
 
-#define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
 extern struct symbol_list *translation_unit_used_list;
 
