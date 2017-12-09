@@ -1124,11 +1124,11 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
-static void predefined_sizeof(const char *name, unsigned bits)
+static void predefined_sizeof(const char *name, const char *suffix, unsigned bits)
 {
 	char buf[32];
 
-	snprintf(buf, sizeof(buf), "__SIZEOF_%s__", name);
+	snprintf(buf, sizeof(buf), "__SIZEOF_%s%s__", name, suffix);
 	predefine(buf, 1, "%d", bits/8);
 }
 
@@ -1152,7 +1152,7 @@ static void predefined_max(const char *name, const char *suffix, unsigned bits)
 static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
 {
 	predefined_max(name, suffix, bits);
-	predefined_sizeof(name, bits);
+	predefined_sizeof(name, "", bits);
 	predefined_width(name, bits);
 }
 
@@ -1203,12 +1203,12 @@ static void predefined_macros(void)
 		break;
 	}
 
-	predefined_sizeof("SHORT", bits_in_short);
+	predefined_sizeof("SHORT", "", bits_in_short);
 	predefined_max("SHRT", "", bits_in_short);
 	predefined_width("SHRT",   bits_in_short);
 	predefined_max("SCHAR", "", bits_in_char);
 	predefined_width("SCHAR",   bits_in_char);
-	predefined_sizeof("WCHAR_T",bits_in_wchar);
+	predefined_sizeof("WCHAR", "_T", bits_in_wchar);
 	predefined_max("WCHAR", "", bits_in_wchar);
 	predefined_width("WCHAR",   bits_in_wchar);
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
@@ -1217,17 +1217,17 @@ static void predefined_macros(void)
 	predefined_type_size("LONG", "L", bits_in_long);
 	predefined_type_size("LONG_LONG", "LL", bits_in_longlong);
 
-	predefined_sizeof("INT128", 128);
+	predefined_sizeof("INT128", "", 128);
 
-	predefined_sizeof("SIZE_T", bits_in_pointer);
+	predefined_sizeof("SIZE", "_T", bits_in_pointer);
 	predefined_width( "SIZE",   bits_in_pointer);
-	predefined_sizeof("PTRDIFF_T", bits_in_pointer);
+	predefined_sizeof("PTRDIFF", "_T", bits_in_pointer);
 	predefined_width( "PTRDIFF",   bits_in_pointer);
-	predefined_sizeof("POINTER", bits_in_pointer);
+	predefined_sizeof("POINTER", "", bits_in_pointer);
 
-	predefined_sizeof("FLOAT", bits_in_float);
-	predefined_sizeof("DOUBLE", bits_in_double);
-	predefined_sizeof("LONG_DOUBLE", bits_in_longdouble);
+	predefined_sizeof("FLOAT", "", bits_in_float);
+	predefined_sizeof("DOUBLE", "", bits_in_double);
+	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
