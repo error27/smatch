@@ -1239,6 +1239,8 @@ static void predefined_macros(void)
 
 	predefined_sizeof("INT128", "", 128);
 
+	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINTPTR",   size_t_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("SIZE",      size_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("POINTER",     &ptr_ctype, PTYPE_SIZEOF);
