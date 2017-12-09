@@ -1156,6 +1156,12 @@ static void predefined_type_size(const char *name, const char *suffix, unsigned 
 	predefined_width(name, bits);
 }
 
+static void predefined_type(const char *name, struct symbol *type)
+{
+	const char *typename = builtin_typename(type);
+	add_pre_buffer("#weak_define __%s_TYPE__ %s\n", name, typename);
+}
+
 static void predefined_macros(void)
 {
 	predefine("__CHECKER__", 0, "1");
@@ -1249,16 +1255,7 @@ static void create_builtin_stream(void)
 	// Temporary hack
 	add_pre_buffer("#define _Pragma(x)\n");
 
-	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
-	// solaris/sparc that is really "unsigned int" and for linux/x86_64
-	// it is "long unsigned int".  In either case we can probably
-	// get away with this.  We need the #weak_define as cgcc will define
-	// the right __SIZE_TYPE__.
-	if (size_t_ctype == &ulong_ctype)
-		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
-	else
-		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
-
+	predefined_type("SIZE", size_t_ctype);
 
 	/* add the multiarch include directories, if any */
 	if (multiarch_dir && *multiarch_dir) {
