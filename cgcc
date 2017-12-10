@@ -286,7 +286,7 @@ sub add_specs {
 	    " -D'_fastcall=__attribute__((__fastcall__))'" .
 	    " -D'__fastcall=__attribute__((__fastcall__))'" .
 	    " -D'__declspec(x)=__attribute__((x))'";
-    } elsif ($spec eq 'i86') {
+    } elsif ($spec eq 'i386') {
 	return (' -D__i386=1 -D__i386__=1' .
 		&float_types (1, 1, 21, [24,8], [53,11], [64,15]));
     } elsif ($spec eq 'sparc') {
@@ -341,7 +341,7 @@ sub add_specs {
 	my $arch = `uname -m`;
 	chomp $arch;
 	if ($arch =~ /^(i.?86|athlon)$/i) {
-	    return &add_specs ('i86');
+	    return &add_specs ('i386');
 	} elsif ($arch =~ /^(sun4u)$/i) {
 	    return &add_specs ('sparc');
 	} elsif ($arch =~ /^(x86_64)$/i) {
