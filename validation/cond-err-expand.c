@@ -23,5 +23,5 @@ cond-err-expand.c:13:11: error: incompatible types in conditional expression (di
  * check-error-end
  *
  * check-output-ignore
- * check-excludes: call.* __builtin_constant_p
+ * check-output-excludes: call.* __builtin_constant_p
  */

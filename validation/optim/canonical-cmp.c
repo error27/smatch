@@ -21,7 +21,7 @@ uint uat(uint p, uint a) { return (123 <  p) ? a : 0; }
  * check-name: canonical-cmp
  * check-command: test-linearize -Wno-decl $file
  *
- * check-output-exclude: \$123,
+ * check-output-excludes: \$123,
  *
  * check-output-start
 seq:

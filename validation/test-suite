@@ -42,6 +42,33 @@ vquiet=""
 quiet=0
 abort=0
 
+
+##
+# verbose(string) - prints string if we are in verbose mode
+verbose()
+{
+	[ "$V" -eq "1" ] && echo "        $1"
+	return 0
+}
+
+##
+# warning(string) - prints a warning
+warning()
+{
+	[ "$quiet" -ne 1 ] && echo "warning: $1"
+	return 0
+}
+
+##
+# error(string[, die]) - prints an error and exits with value die if given
+error()
+{
+	[ "$quiet" -ne 1 ] && echo "error: $1"
+	[ -n "$2" ] && exit $2
+	return 0
+}
+
+
 ##
 # get_tag_value(file) - get the 'check-<...>' tags & values
 get_tag_value()
@@ -55,7 +82,6 @@ get_tag_value()
 	check_output_ignore=0
 	check_output_contains=0
 	check_output_excludes=0
-	check_output_pattern_obsolete=0
 	check_output_pattern=0
 	check_arch_ignore=""
 	check_arch_only=""
@@ -77,33 +103,27 @@ get_tag_value()
 		check-output-ignore)	check_output_ignore=1 ;;
 		check-output-contains:)	check_output_contains=1 ;;
 		check-output-excludes:)	check_output_excludes=1 ;;
-		check-output-pattern-)	check_output_pattern_obsolete=1 ;;
 		check-output-pattern)	check_output_pattern=1 ;;
 		check-arch-ignore:)	arch=$(uname -m)
 					check_arch_ignore="$val" ;;
 		check-arch-only:)	arch=$(uname -m)
 					check_arch_only="$val" ;;
+
+		check-description:)	;;	# ignore
+		check-note:)		;;	# ignore
+		check-warning:)		;;	# ignore
+		check-error-start)	;;	# ignore
+		check-error-end)	;;	# ignore
+		check-output-start)	;;	# ignore
+		check-output-end)	;;	# ignore
+		check-should-pass)	;;	# ignore, unused annotation
+		check-should-fail)	;;	# ignore, unused annotation
+		check-should-warn)	;;	# ignore, unused annotation
+		check-*)		error "$1: unknown tag '$tag'" 1 ;;
 		esac
 	done << EOT
 	$lines
 EOT
-}
-
-##
-# verbose(string) - prints string if we are in verbose mode
-verbose()
-{
-	[ "$V" -eq "1" ] && echo "        $1"
-	return 0
-}
-
-##
-# error(string[, die]) - prints an error and exits with value die if given
-error()
-{
-	[ "$quiet" -ne 1 ] && echo "error: $1"
-	[ -n "$2" ] && exit $2
-	return 0
 }
 
 ##
@@ -147,29 +167,6 @@ has_each_patterns()
 has_none_patterns()
 {
 	has_patterns "$1" "$2" "$4" -eq "$3"
-}
-
-##
-# nbr_patterns(ifile tag ofile) - does ofile contains the
-#                        the patterns given by ifile's tags
-#                        the right number of time?
-nbr_patterns()
-{
-	ifile="$1"
-	patt="$2"
-	ofile="$3"
-	grep "$patt-[0-9][0-9]*-times:" "$ifile" | \
-	sed -e "s/^.*$patt-\([0-9][0-9]*\)-times: *\(.*\)/\1 \2/" | \
-	while read nbr pat; do
-		n=$(grep -s "$pat" "$ofile" | wc -l)
-		if [ "$n" -ne "$nbr" ]; then
-			error "test '$ifile' failed"
-			error "	Pattern '$pat' expected $nbr times but got $n times"
-			return 1
-		fi
-	done
-
-	return $?
 }
 
 ##
@@ -236,16 +233,17 @@ echo "$prog_name - a tiny automatic testing script"
 echo "Usage: $prog_name [option(s)] [command] [arguments]"
 echo
 echo "options:"
-echo "    -a|--abort                 abort the tests as soon as one fails"
-echo "    -q|--quiet                 be extra quiet while running the tests"
+echo "    -a|--abort                 Abort the tests as soon as one fails."
+echo "    -q|--quiet                 Be extra quiet while running the tests."
 echo
 echo "commands:"
-echo "    none                       runs the whole test suite"
-echo "    file ...                   runs the test suite on the given file(s)"
-echo "    single file                runs the test in 'file'"
-echo "    format file [name [cmd]]   helps writing a new test case using cmd"
+echo "    [file ...]                 Runs the test suite on the given file(s)."
+echo "                               If a directory is given, run only those files."
+echo "                               If no file is given, run the whole testsuite."
+echo "    single file                Run the test in 'file'."
+echo "    format file [name [cmd]]   Help writing a new test case using cmd."
 echo
-echo "    [command] help             prints usage"
+echo "    [command] help             Print usage."
 }
 
 disable()
@@ -270,13 +268,14 @@ do_test()
 {
 	test_failed=0
 	file="$1"
+	quiet=0
 
 	get_tag_value $file
 
 	# can this test be handled by test-suite ?
 	# (it has to have a check-name key in it)
 	if [ "$check_name" = "" ]; then
-		echo "warning: test '$file' unhandled"
+		warning "$file: test unhandled"
 		unhandled_tests=$(($unhandled_tests + 1))
 		return 2
 	fi
@@ -331,7 +330,6 @@ do_test()
 	actual_exit_value=$?
 
 	must_fail=$check_known_to_fail
-	quiet=0
 	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
 	known_ko_tests=$(($known_ko_tests + $must_fail))
 
@@ -367,13 +365,6 @@ do_test()
 	fi
 	if [ $check_output_excludes -eq 1 ]; then
 		has_none_patterns "$file" 'check-output-excludes' present $file.output.got
-		if [ "$?" -ne "0" ]; then
-			test_failed=1
-		fi
-	fi
-	if [ $check_output_pattern_obsolete -eq 1 ]; then
-		# verify the 'check-output-pattern-X-times' tags
-		nbr_patterns "$file" 'check-output-pattern' $file.output.got
 		if [ "$?" -ne "0" ]; then
 			test_failed=1
 		fi
@@ -438,6 +429,7 @@ do_format_help() {
 echo "Usage: $prog_name [option(s)] [--]format file [name [cmd]]"
 echo
 echo "options:"
+echo "    -a                         append the created test to the input file"
 echo "    -f                         write a test known to fail"
 echo "    -l                         write a test for linearized code"
 echo
@@ -452,11 +444,14 @@ echo "    cmd                        command to be used (defaults to 'sparse \$f
 do_format()
 {
 	def_cmd="$default_cmd"
+	append=0
 	linear=0
 	fail=0
 
 	while [ $# -gt 1 ] ; do
 		case "$1" in
+		-a)
+			append=1 ;;
 		-f)
 			fail=1 ;;
 		-l)
@@ -483,6 +478,7 @@ do_format()
 	cmd=`eval echo $default_path/$fcmd`
 	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
+	[ "append" != 0 ] && exec >> $file
 	cat <<_EOF
 
 /*
@@ -515,26 +511,13 @@ _EOF
 	return 0
 }
 
-while true; do
+while [ "$#" -gt "0" ]; do
 	case "$1" in
 	-a|--abort)
 		abort=1
-		shift
-		continue
 		;;
 	-q|--quiet)
 		vquiet=1
-		shift
-		continue
-		;;
-
-	'')
-		tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
-		do_test_suite
-		;;
-	*.c)
-		tests_list="$@"
-		do_test_suite
 		;;
 
 	single|--single)
@@ -545,18 +528,36 @@ while true; do
 			1) echo "$2 failed !";;
 			2) echo "$2 can't be handled by $prog_name";;
 		esac
+		exit $failed
 		;;
 	format|--format)
 		shift
 		do_format "$@"
+		exit 0
 		;;
-	help | *)
+	help)
 		do_usage
 		exit 1
 		;;
+
+	*.c)
+		tests_list="$tests_list $1"
+		;;
+	*)
+		if [ ! -d "$1" ]; then
+			do_usage
+			exit 1
+		fi
+		tests_list="$tests_list $(find "$1" -name '*.c' | sort)"
+		;;
 	esac
-	break
+	shift
 done
 
+if [ -z "$tests_list" ]; then
+	tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
+fi
+
+do_test_suite
 exit $failed
 

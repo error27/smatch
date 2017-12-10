@@ -26,5 +26,5 @@ ul d2ul(double a) { return a; }
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-pattern-8-times: cast\\.
+ * check-output-pattern(8): cast\\.
  */

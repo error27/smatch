@@ -7,7 +7,7 @@ _Bool  ftst(double x)           { return !x; }
 
 /*
  * check-name: floating-point ops
- * check-command: ./test-linearize -Wno-decl $file
+ * check-command: test-linearize -Wno-decl $file
 
  * check-output-start
 fadd:

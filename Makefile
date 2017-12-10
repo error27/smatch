@@ -214,7 +214,7 @@ version.h: FORCE
 
 check: all
 	$(Q)cd validation && ./test-suite
-validation/%.t: FORCE
+validation/%.t: $(PROGRAMS)
 	@validation/test-suite single $*.c
 
 
