@@ -6,6 +6,8 @@
 
 struct symbol *size_t_ctype = &uint_ctype;
 struct symbol *ssize_t_ctype = &int_ctype;
+struct symbol *intmax_ctype = &llong_ctype;
+struct symbol *uintmax_ctype = &ullong_ctype;
 struct symbol *wchar_ctype = &int_ctype;
 struct symbol *wint_ctype = &uint_ctype;
 

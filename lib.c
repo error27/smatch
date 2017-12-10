@@ -474,12 +474,16 @@ static void handle_arch_m64_finalize(void)
 		goto case_x86_64;
 	case ARCH_LP32:
 		/* default values */
+		intmax_ctype = &llong_ctype;
+		uintmax_ctype = &ullong_ctype;
 		return;
 	case ARCH_LP64:
 		bits_in_long = 64;
 		max_int_alignment = 8;
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
+		intmax_ctype = &long_ctype;
+		uintmax_ctype = &ulong_ctype;
 		predefine("__LP64__", 1, "1");
 		predefine("_LP64", 1, "1");
 		goto case_64bit_common;
@@ -1239,6 +1243,8 @@ static void predefined_macros(void)
 
 	predefined_sizeof("INT128", "", 128);
 
+	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINTPTR",   size_t_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
