@@ -335,7 +335,7 @@ static char **handle_switch_D(char *arg, char **next)
 		c = *arg;
 		if (!c)
 			break;
-		if (isspace((unsigned char)c) || c == '=') {
+		if (c == '=') {
 			*arg = '\0';
 			value = arg + 1;
 			break;
