@@ -323,12 +323,16 @@ static char **handle_switch_D(char *arg, char **next)
 	const char *name = arg + 1;
 	const char *value = "1";
 
-	if (!*name || isspace((unsigned char)*name))
-		die("argument to `-D' is missing");
+	if (!*name) {
+		arg = *++next;
+		if (!arg)
+			die("argument to `-D' is missing");
+		name = arg;
+	}
 
-	for (;;) {
+	for (;;arg++) {
 		char c;
-		c = *++arg;
+		c = *arg;
 		if (!c)
 			break;
 		if (isspace((unsigned char)c) || c == '=') {
