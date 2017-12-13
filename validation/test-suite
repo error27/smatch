@@ -6,6 +6,7 @@ cd $(dirname "$0")
 
 default_path=".."
 default_cmd="sparse \$file"
+default_args="$SPARSE_TEST_ARGS"
 tests_list=""
 prog_name=`basename $0`
 
@@ -320,7 +321,7 @@ do_test()
 	shift
 	# launch the test command and
 	# grab the actual output & exit value
-	eval $pre_cmd $default_path/$base_cmd "$@" \
+	eval $pre_cmd $default_path/$base_cmd $default_args "$@" \
 		1> $file.output.got 2> $file.error.got
 	actual_exit_value=$?
 
