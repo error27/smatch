@@ -2,13 +2,6 @@
 
 #set -x
 
-## allow flags from environment
-flags="$SPARSE_TEST_FLAGS"
-if [ ! -z "$flags" ]; then
-	unset SPARSE_TEST_FLAGS
-	exec "$0" $flags "$@"
-fi
-
 cd $(dirname "$0")
 
 default_path=".."
@@ -513,6 +506,10 @@ _EOF
 	return 0
 }
 
+## allow flags from environment
+set -- $SPARSE_TEST_FLAGS "$@"
+
+## process the flags
 while [ "$#" -gt "0" ]; do
 	case "$1" in
 	-a|--abort)
