@@ -61,7 +61,7 @@ CK(register_return_to_param_links)
 CK(register_constraints)
 CK(register_constraints_required)
 CK(register_about_fn_ptr_arg)
-CK(register_mtags)
+CK(register_mtag)
 
 CK(check_debug)
 

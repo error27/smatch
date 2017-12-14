@@ -198,7 +198,7 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 	return 0;
 }
 
-void register_mtags(int id)
+void register_mtag(int id)
 {
 	my_id = id;
 
