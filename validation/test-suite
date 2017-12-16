@@ -308,25 +308,27 @@ do_test()
 		fi
 	fi
 
-	cmd=`eval echo $default_path/$check_command`
-
 	if [ -z "$vquiet" ]; then
 		echo "  TEST    $test_name ($file)"
 	fi
 
-	verbose "Using command       : $cmd"
+	verbose "Using command       : $(echo "$@")"
 
 	# grab the expected exit value
 	expected_exit_value=$check_exit_value
 	verbose "Expecting exit value: $expected_exit_value"
 
 	# do we want a timeout?
+	pre_cmd=""
 	if [ $check_timeout -ne 0 ]; then
-		cmd="timeout -k 1s $check_timeout $cmd"
+		pre_cmd="timeout -k 1s $check_timeout"
 	fi
 
+	shift
+	# launch the test command and
 	# grab the actual output & exit value
-	$cmd 1> $file.output.got 2> $file.error.got
+	eval $pre_cmd $default_path/$base_cmd "$@" \
+		1> $file.output.got 2> $file.error.got
 	actual_exit_value=$?
 
 	must_fail=$check_known_to_fail
