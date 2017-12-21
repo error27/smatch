@@ -1777,6 +1777,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 
 	target = ctype->ctype.base_type;
+	examine_symbol_type(target);
 
 	switch (ctype->type) {
 	default:
