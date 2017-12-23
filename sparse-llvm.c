@@ -40,12 +40,6 @@ static LLVMTypeRef sym_func_type(struct symbol *sym)
 	struct symbol *arg;
 	int n_arg = 0;
 
-	/* to avoid strangeness with varargs [for now], we build
-	 * the function and type anew, for each call.  This
-	 * is probably wrong.  We should look up the
-	 * symbol declaration info.
-	 */
-
 	ret_type = func_return_type(sym);
 
 	/* count args, build argument type information */
@@ -1128,34 +1122,19 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 	struct symbol *base_type = sym->ctype.base_type;
-	LLVMTypeRef arg_types[MAX_ARGS];
-	LLVMTypeRef ret_type = symbol_type(base_type->ctype.base_type);
-	LLVMTypeRef fun_type;
 	struct function function = { .module = module };
 	struct basic_block *bb;
-	struct symbol *arg;
-	const char *name;
 	int nr_args = 0;
 	int i;
 
-	FOR_EACH_PTR(base_type->arguments, arg) {
-		struct symbol *arg_base_type = arg->ctype.base_type;
-
-		arg_types[nr_args++] = symbol_type(arg_base_type);
-	} END_FOR_EACH_PTR(arg);
-
-	name = show_ident(sym->ident);
-
-	fun_type = LLVMFunctionType(ret_type, arg_types, nr_args, base_type->variadic);
-
-	function.fn = LLVMAddFunction(module, name, fun_type);
+	function.fn = get_sym_value(&function, sym);
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
-
 	LLVMSetLinkage(function.fn, function_linkage(sym));
 
 	function.builder = LLVMCreateBuilder();
 
 	/* give a name to each argument */
+	nr_args = symbol_list_size(base_type->arguments);
 	for (i = 0; i < nr_args; i++) {
 		char name[MAX_PSEUDO_NAME];
 		LLVMValueRef arg;
