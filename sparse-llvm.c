@@ -1260,8 +1260,11 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 		struct entrypoint *ep;
 		expand_symbol(sym);
 
-		if (is_prototype(sym))
+		if (is_prototype(sym)) {
+			// this will do the LLVMAddFunction() we want
+			get_sym_value(module, sym);
 			continue;
+		}
 
 		ep = linearize_symbol(sym);
 		if (ep)
