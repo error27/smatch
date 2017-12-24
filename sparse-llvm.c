@@ -289,7 +289,7 @@ static const char *pseudo_name(pseudo_t pseudo, char *buf)
 	return buf;
 }
 
-static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
+static LLVMValueRef get_sym_value(LLVMModuleRef module, struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	LLVMTypeRef type = symbol_type(sym);
@@ -306,7 +306,7 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 			LLVMValueRef indices[] = { LLVMConstInt(LLVMInt64Type(), 0, 0), LLVMConstInt(LLVMInt64Type(), 0, 0) };
 			LLVMValueRef data;
 
-			data = LLVMAddGlobal(fn->module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
+			data = LLVMAddGlobal(module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
 			LLVMSetLinkage(data, LLVMPrivateLinkage);
 			LLVMSetGlobalConstant(data, 1);
 			LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
@@ -320,13 +320,13 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 	}
 
 	if (LLVMGetTypeKind(type) == LLVMFunctionTypeKind) {
-		result = LLVMGetNamedFunction(fn->module, name);
+		result = LLVMGetNamedFunction(module, name);
 		if (!result)
-			result = LLVMAddFunction(fn->module, name, type);
+			result = LLVMAddFunction(module, name, type);
 	} else {
-		result = LLVMGetNamedGlobal(fn->module, name);
+		result = LLVMGetNamedGlobal(module, name);
 		if (!result)
-			result = LLVMAddGlobal(fn->module, type, name);
+			result = LLVMAddGlobal(module, type, name);
 	}
 
 	return result;
@@ -375,7 +375,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct symbol *ctype, p
 		result = pseudo->priv;
 		break;
 	case PSEUDO_SYM:
-		result = get_sym_value(fn, pseudo->sym);
+		result = get_sym_value(fn->module, pseudo->sym);
 		break;
 	case PSEUDO_VAL:
 		result = val_to_value(pseudo->value, ctype);
@@ -1127,7 +1127,7 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 	int nr_args = 0;
 	int i;
 
-	function.fn = get_sym_value(&function, sym);
+	function.fn = get_sym_value(module, sym);
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
 	LLVMSetLinkage(function.fn, function_linkage(sym));
 
