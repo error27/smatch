@@ -340,14 +340,16 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 
 static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
 {
-	LLVMTypeRef itype;
 	LLVMValueRef result;
 
 	switch (LLVMGetTypeKind(dtype)) {
 	case LLVMPointerTypeKind:
-		itype = LLVMIntType(bits_in_pointer);
-		result = LLVMConstInt(itype, val, 1);
-		result = LLVMConstIntToPtr(result, dtype);
+		if (val != 0) {	 // for example: ... = (void*) 0x123;
+			LLVMTypeRef itype = LLVMIntType(bits_in_pointer);
+			result = LLVMConstInt(itype, val, 1);
+			result = LLVMConstIntToPtr(result, dtype);
+		}
+		result = LLVMConstPointerNull(dtype);
 		break;
 	case LLVMIntegerTypeKind:
 		result = LLVMConstInt(dtype, val, 1);
