@@ -25,5 +25,7 @@ constexpr-preop.c:8:4: error: bad constant expression
 constexpr-preop.c:9:4: error: bad constant expression
 constexpr-preop.c:14:4: error: bad integer constant expression
 constexpr-preop.c:15:4: error: bad integer constant expression
+constexpr-preop.c:10:4: error: index out of bounds in initializer
+constexpr-preop.c:11:4: error: index out of bounds in initializer
  * check-error-end
  */
