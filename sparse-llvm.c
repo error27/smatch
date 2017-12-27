@@ -354,6 +354,12 @@ static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
 	case LLVMIntegerTypeKind:
 		result = LLVMConstInt(dtype, val, 1);
 		break;
+	case LLVMArrayTypeKind:
+	case LLVMStructTypeKind:
+		if (val != 0)
+			return NULL;
+		result = LLVMConstNull(dtype);
+		break;
 	default:
 		return NULL;
 	}
