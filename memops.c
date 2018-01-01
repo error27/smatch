@@ -160,6 +160,8 @@ static void kill_dominated_stores(struct basic_block *bb)
 			pseudo_t pseudo = insn->src;
 			int local;
 
+			if (!insn->type)
+				continue;
 			if (insn->type->ctype.modifiers & MOD_VOLATILE)
 				continue;
 
