@@ -9,11 +9,13 @@ int test_addr_weak_fun(void)
 	if ( &arr) return 1;
 	if (  fun) return 1;
 	if ( &fun) return 1;
+	if ( *fun) return 1;
 	if (!&var) return 0;
 	if (! arr) return 0;
 	if (!&arr) return 0;
 	if (! fun) return 0;
 	if (!&fun) return 0;
+	if (!*fun) return 0;
 	return -1;
 }
 

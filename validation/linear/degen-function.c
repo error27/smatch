@@ -4,6 +4,7 @@ typedef int (*fun_t)(int);
 
 fun_t fa(void) { return &fun; }
 fun_t f0(void) { return  fun; }
+fun_t f1(void) { return *fun; }
 
 /*
  * check-name: degen-function
@@ -32,6 +33,18 @@ f0:
 .L3:
 	phi.64      %r4 <- %phi2(return)
 	ret.64      %r3
+
+
+f1:
+.L4:
+	<entry-point>
+	symaddr.64  %r5 <- fun
+	phisrc.64   %phi3(return) <- %r5
+	br          .L5
+
+.L5:
+	phi.64      %r6 <- %phi3(return)
+	ret.64      %r5
 
 
  * check-output-end

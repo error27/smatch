@@ -1776,14 +1776,18 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
-	node = alloc_symbol(expr->pos, SYM_NODE);
 	target = ctype->ctype.base_type;
+	examine_symbol_type(target);
 
 	switch (ctype->type) {
 	default:
 		expression_error(expr, "cannot dereference this type");
 		return NULL;
+	case SYM_FN:
+		*expr = *op;
+		return expr->ctype;
 	case SYM_PTR:
+		node = alloc_symbol(expr->pos, SYM_NODE);
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;
 		merge_type(node, ctype);
 		break;
@@ -1801,6 +1805,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		 * When an array is dereferenced, we need to pick
 		 * up the attributes of the original node too..
 		 */
+		node = alloc_symbol(expr->pos, SYM_NODE);
 		merge_type(node, op->ctype);
 		merge_type(node, ctype);
 		break;

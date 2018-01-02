@@ -15,6 +15,7 @@ lab:
 	if (&arr)	return 1;
 	if (fun)	return 1;
 	if (&fun)	return 1;
+	if (*fun)	return 1;
 	if (&var)	return 1;
 	if (&arg)	return 1;
 	if (&&lab)	return 1;
@@ -35,6 +36,7 @@ lab:
 	if (!&arr)	return 0;
 	if (!fun)	return 0;
 	if (!&fun)	return 0;
+	if (!*fun)	return 0;
 	if (!&var)	return 0;
 	if (!&arg)	return 0;
 	if (!&&lab)	return 0;
@@ -62,6 +64,8 @@ lab:
 	if (0 == fun)	return 0;
 	if (&fun == 0)	return 0;
 	if (0 == &fun)	return 0;
+	if (*fun == 0)	return 0;
+	if (0 == *fun)	return 0;
 	if (&var == 0)	return 0;
 	if (0 == &var)	return 0;
 	if (&arg == 0)	return 0;

@@ -364,6 +364,23 @@ static struct expression *get_symbol_initializer(struct symbol *sym)
 	return NULL;
 }
 
+static unsigned int implicit_array_size(struct symbol *node, unsigned int count)
+{
+	struct symbol *arr_ori = node->ctype.base_type;
+	struct symbol *arr_new = alloc_symbol(node->pos, SYM_ARRAY);
+	struct symbol *elem_type = arr_ori->ctype.base_type;
+	struct expression *size = alloc_const_expression(node->pos, count);
+	unsigned int bit_size = array_element_offset(elem_type->bit_size, count);
+
+	*arr_new = *arr_ori;
+	arr_new->bit_size = bit_size;
+	arr_new->array_size = size;
+	node->array_size = size;
+	node->ctype.base_type = arr_new;
+
+	return bit_size;
+}
+
 static struct symbol * examine_node_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
@@ -393,7 +410,7 @@ static struct symbol * examine_node_type(struct symbol *sym)
 			int count = count_array_initializer(node_type, initializer);
 
 			if (node_type && node_type->bit_size >= 0)
-				bit_size = array_element_offset(node_type->bit_size, count);
+				bit_size = implicit_array_size(sym, count);
 		}
 	}
 	

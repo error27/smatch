@@ -1279,15 +1279,10 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	}
 
 	fn = expr->fn;
-
-	if (fn->ctype)
-		ctype = &fn->ctype->ctype;
-
 	fntype = fn->ctype;
-	if (fntype) {
-		if (fntype->type == SYM_NODE)
-			fntype = fntype->ctype.base_type;
-	}
+	ctype = &fntype->ctype;
+	if (fntype->type == SYM_NODE)
+		fntype = fntype->ctype.base_type;
 
 	add_symbol(&insn->fntypes, fntype);
 	FOR_EACH_PTR(expr->args, arg) {
@@ -1296,13 +1291,9 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 		add_symbol(&insn->fntypes, arg->ctype);
 	} END_FOR_EACH_PTR(arg);
 
-	if (fn->type == EXPR_PREOP) {
-		if (fn->unop->type == EXPR_SYMBOL) {
-			struct symbol *sym = fn->unop->symbol;
-			if (sym->ctype.base_type->type == SYM_FN)
-				fn = fn->unop;
-		}
-	}
+	if (fn->type == EXPR_PREOP && fn->op == '*' && is_func_type(fn->ctype))
+		fn = fn->unop;
+
 	if (fn->type == EXPR_SYMBOL) {
 		call = symbol_pseudo(ep, fn->symbol);
 	} else {
@@ -1954,6 +1945,8 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 	pseudo_t pseudo;
 
 	pseudo = linearize_expression(ep, expr);
+	if (pseudo == VOID)
+		return pseudo;
 
 	active = ep->active;
 	if (!bb_reachable(active))
