@@ -40,7 +40,8 @@ int delete_ptr_list_entry(struct ptr_list **, void *, int);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void **__add_ptr_list(struct ptr_list **, void *, unsigned long);
+extern void **__add_ptr_list(struct ptr_list **, void *);
+extern void **__add_ptr_list_tag(struct ptr_list **, void *, unsigned long);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
@@ -53,13 +54,12 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
  * extensions..
  */
 #define add_ptr_list_tag(list,entry,tag) \
-	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list), (entry), (tag))))
-#define add_ptr_list_notag(list,entry)										\
-	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),			\
-								    (void *)((unsigned long)(entry) & ~3UL), 	\
-								    (unsigned long)(entry) & 3)))
-#define add_ptr_list(list,entry) \
-	add_ptr_list_tag(list,entry,0)
+	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list_tag((struct ptr_list **)(list), (entry), (tag))))
+#define add_ptr_list(list,entry)	\
+	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),	(entry))))
+#define add_ptr_list_notag(list,entry) \
+	add_ptr_list(list, entry)
+
 #define free_ptr_list(list) \
 	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
 
