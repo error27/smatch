@@ -57,8 +57,6 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list_tag((struct ptr_list **)(list), (entry), (tag))))
 #define add_ptr_list(list,entry)	\
 	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),	(entry))))
-#define add_ptr_list_notag(list,entry) \
-	add_ptr_list(list, entry)
 
 #define free_ptr_list(list) \
 	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
