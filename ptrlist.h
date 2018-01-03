@@ -77,7 +77,7 @@ static inline void *first_ptr_list(struct ptr_list *list)
 		if (list == head)
 			return NULL;
 	}
-	return PTR_ENTRY_UNTAG(list, 0);
+	return PTR_ENTRY_NOTAG(list, 0);
 }
 
 static inline void *last_ptr_list(struct ptr_list *list)
@@ -92,7 +92,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 			return NULL;
 		list = list->prev;
 	}
-	return PTR_ENTRY_UNTAG(list, list->nr-1);
+	return PTR_ENTRY_NOTAG(list, list->nr-1);
 }
 
 #define PTR_DEREF(__head, idx, PTR_ENTRY) ({						\
