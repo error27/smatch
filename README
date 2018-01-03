@@ -52,9 +52,9 @@ This means that a user of the library will literally just need to do
 
   action(sparse_initialize(argc, argv, filelist));
 
-  FOR_EACH_PTR_NOTAG(filelist, file) {
+  FOR_EACH_PTR(filelist, file) {
     action(sparse(file));
-  } END_FOR_EACH_PTR_NOTAG(file);
+  } END_FOR_EACH_PTR(file);
 
 and he is now done - having a full C parse of the file he opened.  The
 library doesn't need any more setup, and once done does not impose any

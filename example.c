@@ -1938,9 +1938,9 @@ int main(int argc, char **argv)
 
 	compile(sparse_initialize(argc, argv, &filelist));
 	dbg_dead = 1;
-	FOR_EACH_PTR_NOTAG(filelist, file) {
+	FOR_EACH_PTR(filelist, file) {
 		compile(sparse(file));
-	} END_FOR_EACH_PTR_NOTAG(file);
+	} END_FOR_EACH_PTR(file);
 	return 0;
 }
 
