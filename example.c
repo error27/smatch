@@ -383,7 +383,7 @@ static void flush_reg(struct bb_state *state, struct hardreg *reg)
 		return;
 	reg->dead = 0;
 	reg->used = 1;
-	FOR_EACH_PTR(reg->contains, pseudo) {
+	FOR_EACH_PTR_TAG(reg->contains, pseudo) {
 		if (CURRENT_TAG(pseudo) & TAG_DEAD)
 			continue;
 		if (!(CURRENT_TAG(pseudo) & TAG_DIRTY))
@@ -436,7 +436,7 @@ static void mark_reg_dead(struct bb_state *state, pseudo_t pseudo, struct hardre
 {
 	pseudo_t p;
 
-	FOR_EACH_PTR(reg->contains, p) {
+	FOR_EACH_PTR_TAG(reg->contains, p) {
 		if (p != pseudo)
 			continue;
 		if (CURRENT_TAG(p) & TAG_DEAD)
@@ -521,7 +521,7 @@ static struct hardreg *find_in_reg(struct bb_state *state, pseudo_t pseudo)
 		pseudo_t p;
 
 		reg = hardregs + i;
-		FOR_EACH_PTR(reg->contains, p) {
+		FOR_EACH_PTR_TAG(reg->contains, p) {
 			if (p == pseudo) {
 				last_reg = i;
 				output_comment(state, "found pseudo %s in reg %s (busy=%d)", show_pseudo(pseudo), reg->name, reg->busy);
@@ -861,7 +861,7 @@ static void kill_dead_reg(struct hardreg *reg)
 	if (reg->dead) {
 		pseudo_t p;
 		
-		FOR_EACH_PTR(reg->contains, p) {
+		FOR_EACH_PTR_TAG(reg->contains, p) {
 			if (CURRENT_TAG(p) & TAG_DEAD) {
 				DELETE_CURRENT_PTR(p);
 				reg->dead--;
@@ -901,7 +901,7 @@ static void generate_binop(struct bb_state *state, struct instruction *insn)
 static int is_dead_reg(struct bb_state *state, pseudo_t pseudo, struct hardreg *reg)
 {
 	pseudo_t p;
-	FOR_EACH_PTR(reg->contains, p) {
+	FOR_EACH_PTR_TAG(reg->contains, p) {
 		if (p == pseudo)
 			return CURRENT_TAG(p) & TAG_DEAD;
 	} END_FOR_EACH_PTR(p);
@@ -996,7 +996,7 @@ static void kill_pseudo(struct bb_state *state, pseudo_t pseudo)
 		pseudo_t p;
 
 		reg = hardregs + i;
-		FOR_EACH_PTR(reg->contains, p) {
+		FOR_EACH_PTR_TAG(reg->contains, p) {
 			if (p != pseudo)
 				continue;
 			if (CURRENT_TAG(p) & TAG_DEAD)
@@ -1533,7 +1533,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 		struct hardreg *reg = hardregs + i;
 		pseudo_t p;
 
-		FOR_EACH_PTR(reg->contains, p) {
+		FOR_EACH_PTR_TAG(reg->contains, p) {
 			if (p == pseudo) {
 				write_reg_to_storage(state, reg, pseudo, out);
 				return;
@@ -1641,7 +1641,7 @@ static void generate_output_storage(struct bb_state *state)
 			int flushme = 0;
 
 			reg->busy = REG_FIXED;
-			FOR_EACH_PTR(reg->contains, p) {
+			FOR_EACH_PTR_TAG(reg->contains, p) {
 				if (p == entry->pseudo) {
 					flushme = -100;
 					continue;

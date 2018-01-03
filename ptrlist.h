@@ -224,6 +224,9 @@ static inline void *last_ptr_list(struct ptr_list *list)
 #define FOR_EACH_PTR(head, ptr) \
 	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
 
+#define FOR_EACH_PTR_TAG(head, ptr) \
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
 #define END_FOR_EACH_PTR(ptr) \
 	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
@@ -233,6 +236,9 @@ static inline void *last_ptr_list(struct ptr_list *list)
 #define END_FOR_EACH_PTR_NOTAG(ptr) END_FOR_EACH_PTR(ptr)
 
 #define FOR_EACH_PTR_REVERSE(head, ptr) \
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define FOR_EACH_PTR_REVERSE_TAG(head, ptr) \
 	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
 
 #define END_FOR_EACH_PTR_REVERSE(ptr) \
