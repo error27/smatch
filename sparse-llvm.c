@@ -40,12 +40,6 @@ static LLVMTypeRef sym_func_type(struct symbol *sym)
 	struct symbol *arg;
 	int n_arg = 0;
 
-	/* to avoid strangeness with varargs [for now], we build
-	 * the function and type anew, for each call.  This
-	 * is probably wrong.  We should look up the
-	 * symbol declaration info.
-	 */
-
 	ret_type = func_return_type(sym);
 
 	/* count args, build argument type information */
@@ -295,7 +289,7 @@ static const char *pseudo_name(pseudo_t pseudo, char *buf)
 	return buf;
 }
 
-static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
+static LLVMValueRef get_sym_value(LLVMModuleRef module, struct symbol *sym)
 {
 	const char *name = show_ident(sym->ident);
 	LLVMTypeRef type = symbol_type(sym);
@@ -312,7 +306,7 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 			LLVMValueRef indices[] = { LLVMConstInt(LLVMInt64Type(), 0, 0), LLVMConstInt(LLVMInt64Type(), 0, 0) };
 			LLVMValueRef data;
 
-			data = LLVMAddGlobal(fn->module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
+			data = LLVMAddGlobal(module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
 			LLVMSetLinkage(data, LLVMPrivateLinkage);
 			LLVMSetGlobalConstant(data, 1);
 			LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
@@ -326,13 +320,13 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 	}
 
 	if (LLVMGetTypeKind(type) == LLVMFunctionTypeKind) {
-		result = LLVMGetNamedFunction(fn->module, name);
+		result = LLVMGetNamedFunction(module, name);
 		if (!result)
-			result = LLVMAddFunction(fn->module, name, type);
+			result = LLVMAddFunction(module, name, type);
 	} else {
-		result = LLVMGetNamedGlobal(fn->module, name);
+		result = LLVMGetNamedGlobal(module, name);
 		if (!result)
-			result = LLVMAddGlobal(fn->module, type, name);
+			result = LLVMAddGlobal(module, type, name);
 	}
 
 	return result;
@@ -340,17 +334,25 @@ static LLVMValueRef get_sym_value(struct function *fn, struct symbol *sym)
 
 static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
 {
-	LLVMTypeRef itype;
 	LLVMValueRef result;
 
 	switch (LLVMGetTypeKind(dtype)) {
 	case LLVMPointerTypeKind:
-		itype = LLVMIntType(bits_in_pointer);
-		result = LLVMConstInt(itype, val, 1);
-		result = LLVMConstIntToPtr(result, dtype);
+		if (val != 0) {	 // for example: ... = (void*) 0x123;
+			LLVMTypeRef itype = LLVMIntType(bits_in_pointer);
+			result = LLVMConstInt(itype, val, 1);
+			result = LLVMConstIntToPtr(result, dtype);
+		}
+		result = LLVMConstPointerNull(dtype);
 		break;
 	case LLVMIntegerTypeKind:
 		result = LLVMConstInt(dtype, val, 1);
+		break;
+	case LLVMArrayTypeKind:
+	case LLVMStructTypeKind:
+		if (val != 0)
+			return NULL;
+		result = LLVMConstNull(dtype);
 		break;
 	default:
 		return NULL;
@@ -381,7 +383,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct symbol *ctype, p
 		result = pseudo->priv;
 		break;
 	case PSEUDO_SYM:
-		result = get_sym_value(fn, pseudo->sym);
+		result = get_sym_value(fn->module, pseudo->sym);
 		break;
 	case PSEUDO_VAL:
 		result = val_to_value(pseudo->value, ctype);
@@ -1128,34 +1130,19 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 {
 	struct symbol *sym = ep->name;
 	struct symbol *base_type = sym->ctype.base_type;
-	LLVMTypeRef arg_types[MAX_ARGS];
-	LLVMTypeRef ret_type = symbol_type(base_type->ctype.base_type);
-	LLVMTypeRef fun_type;
 	struct function function = { .module = module };
 	struct basic_block *bb;
-	struct symbol *arg;
-	const char *name;
 	int nr_args = 0;
 	int i;
 
-	FOR_EACH_PTR(base_type->arguments, arg) {
-		struct symbol *arg_base_type = arg->ctype.base_type;
-
-		arg_types[nr_args++] = symbol_type(arg_base_type);
-	} END_FOR_EACH_PTR(arg);
-
-	name = show_ident(sym->ident);
-
-	fun_type = LLVMFunctionType(ret_type, arg_types, nr_args, base_type->variadic);
-
-	function.fn = LLVMAddFunction(module, name, fun_type);
+	function.fn = get_sym_value(module, sym);
 	LLVMSetFunctionCallConv(function.fn, LLVMCCallConv);
-
 	LLVMSetLinkage(function.fn, function_linkage(sym));
 
 	function.builder = LLVMCreateBuilder();
 
 	/* give a name to each argument */
+	nr_args = symbol_list_size(base_type->arguments);
 	for (i = 0; i < nr_args; i++) {
 		char name[MAX_PSEUDO_NAME];
 		LLVMValueRef arg;
@@ -1281,8 +1268,11 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 		struct entrypoint *ep;
 		expand_symbol(sym);
 
-		if (is_prototype(sym))
+		if (is_prototype(sym)) {
+			// this will do the LLVMAddFunction() we want
+			get_sym_value(module, sym);
 			continue;
+		}
 
 		ep = linearize_symbol(sym);
 		if (ep)

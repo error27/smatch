@@ -115,7 +115,7 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 		name, pos.line, pos.pos, type, buffer);
 }
 
-static int max_warnings = 100;
+unsigned int fmax_warnings = 100;
 static int show_info = 1;
 
 void info(struct position pos, const char * fmt, ...)
@@ -160,12 +160,12 @@ void warning(struct position pos, const char * fmt, ...)
 		return;
 	}
 
-	if (!max_warnings || has_error) {
+	if (!fmax_warnings || has_error) {
 		show_info = 0;
 		return;
 	}
 
-	if (!--max_warnings) {
+	if (!--fmax_warnings) {
 		show_info = 0;
 		fmt = "too many warnings";
 	}
@@ -263,6 +263,7 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
+int funsigned_char = 0;
 
 int preprocess_only;
 
@@ -578,6 +579,8 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 
 		// boolean flag
 		if (opt[0] == '\0' && flags->flag) {
+			if (flags->mask & OPT_INVERSE)
+				val = !val;
 			*flags->flag = val;
 			return 1;
 		}
@@ -611,6 +614,7 @@ static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
 }
 
 OPT_NUMERIC(ullong, unsigned long long, strtoull)
+OPT_NUMERIC(uint, unsigned int, strtoul)
 
 
 static char **handle_switch_o(char *arg, char **next)
@@ -869,13 +873,22 @@ static int handle_fmemcpy_max_count(const char *arg, const char *opt, const stru
 	return 1;
 }
 
+static int handle_fmax_warnings(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	opt_uint(arg, opt, &fmax_warnings, OPTNUM_UNLIMITED);
+	return 1;
+}
+
 static struct flag fflags[] = {
 	{ "dump-ir",		NULL,	handle_fdump_ir },
+	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
 	{ "tabstop=",		NULL,	handle_ftabstop },
 	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
 	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
+	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
+	{ "unsigned-char",	&funsigned_char, NULL, },
 	{ },
 };
 

@@ -784,4 +784,10 @@ void init_ctype(void)
 		sym->ctype.base_type = ctype->base_type;
 		sym->ctype.modifiers = ctype->modifiers;
 	}
+
+	// and now some adjustments
+	if (funsigned_char) {
+		char_ctype.ctype.modifiers |= MOD_UNSIGNED;
+		char_ctype.ctype.modifiers &= ~MOD_SIGNED;
+	}
 }

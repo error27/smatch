@@ -167,10 +167,12 @@ extern int dump_macro_defs;
 extern int dbg_entry;
 extern int dbg_dead;
 
+extern unsigned int fmax_warnings;
 extern int fmem_report;
 extern unsigned long fdump_ir;
 extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
+extern int funsigned_char;
 
 extern int arch_m64;
 extern int arch_msize_long;
