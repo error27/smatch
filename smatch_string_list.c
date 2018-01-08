@@ -45,10 +45,11 @@ void insert_string(struct string_list **str_list, const char *_new)
 		else if (strcmp(tmp, new) == 0) {
 			return;
 		} else {
-			INSERT_CURRENT(new, tmp);
+			INSERT_CURRENT(alloc_string(new), tmp);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
+	new = alloc_string(new);
 	add_ptr_list(str_list, new);
 }
 
