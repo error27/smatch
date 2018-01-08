@@ -71,6 +71,9 @@ void store_link(int link_id, const char *var, struct symbol *sym, const char *li
 	struct smatch_state *old_state;
 	struct var_sym_list *links;
 
+	if (!cur_func_sym)
+		return;
+
 	old_state = get_state(link_id, var, sym);
 	if (old_state)
 		links = clone_var_sym_list(old_state->data);
