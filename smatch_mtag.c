@@ -187,14 +187,70 @@ static void save_caller_info(const char *name, struct symbol *sym, char *key, ch
 	set_state(my_id, fullname, sym, state);
 }
 
+static int get_array_mtag(struct expression *expr, mtag_t *tag)
+{
+	struct expression *base, *offset;
+	sval_t sval;
+	mtag_t base_tag;
+	char buf[256];
+
+	if (!is_array(expr))
+		return 0;
+
+	base = get_array_base(expr);
+	if (!base)
+		return 0;
+	offset = get_array_offset(expr);
+	if (!offset)
+		return 0;
+
+	if (!get_implied_value(offset, &sval))
+		return 0;
+
+	if (!get_mtag(base, &base_tag))
+		return 0;
+
+	snprintf(buf, sizeof(buf), "%lld + %lld", base_tag, sval.value);
+	*tag = str_to_tag(buf);
+
+	return 1;
+}
+
 int get_mtag(struct expression *expr, mtag_t *tag)
 {
+	struct smatch_state *state;
+
 	expr = strip_expr(expr);
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		expr = strip_expr(expr->unop);
-	if (expr->type == EXPR_SYMBOL &&
-	    get_toplevel_mtag(expr->symbol, tag))
+	if (!expr)
+		return 0;
+
+	/* FIXME:  This doesn't feel like the right thing at all */
+	if (expr->type == EXPR_PREOP) {
+		if (expr->op == '&')
+			expr = strip_expr(expr->unop);
+		if (expr->op == '*')
+			expr = strip_expr(expr->unop);
+	}
+
+	switch (expr->type) {
+	case EXPR_SYMBOL:
+		if (get_toplevel_mtag(expr->symbol, tag))
+			return 1;
+		break;
+	case EXPR_DEREF:
+		return get_mtag(expr->unop, tag);
+	case EXPR_BINOP:
+		return get_array_mtag(expr, tag);
+	}
+
+	state = get_state_expr(my_id, expr);
+	if (!state)
+		return 0;
+	if (state->data) {
+		*tag = *(mtag_t *)state->data;
 		return 1;
+	}
+
 	return 0;
 }
 
