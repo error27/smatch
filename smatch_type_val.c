@@ -62,16 +62,50 @@ static void match_inline_end(struct expression *expr)
 	fn_type_val = pop_stree(&fn_type_val_stack);
 }
 
+struct expr_rl {
+	struct expression *expr;
+	struct range_list *rl;
+};
+static struct expr_rl cached_results[10];
+static int res_idx;
+
+static int get_cached(struct expression *expr, struct range_list **rl, int *ret)
+{
+	int i;
+
+	*ret = 0;
+
+	for (i = 0; i < ARRAY_SIZE(cached_results); i++) {
+		if (expr == cached_results[i].expr) {
+			if (cached_results[i].rl) {
+				*rl = clone_rl(cached_results[i].rl);
+				*ret = 1;
+			}
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 int get_db_type_rl(struct expression *expr, struct range_list **rl)
 {
 	char *db_vals = NULL;
 	char *member;
 	struct range_list *tmp;
 	struct symbol *type;
+	int ret;
+
+	if (get_cached(expr, rl, &ret))
+		return ret;
 
 	member = get_member_name(expr);
 	if (!member)
 		return 0;
+
+	res_idx = (res_idx + 1) % ARRAY_SIZE(cached_results);
+	cached_results[res_idx].expr = expr;
+	cached_results[res_idx].rl = NULL;
 
 	run_sql(get_vals, &db_vals,
 		"select value from type_value where type = '%s';", member);
@@ -83,7 +117,9 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 	free_string(db_vals);
 	if (is_whole_rl(tmp))
 		return 0;
+
 	*rl = tmp;
+	cached_results[res_idx].rl = clone_rl(tmp);
 
 	return 1;
 }
@@ -516,6 +552,11 @@ static void match_end_func_info(struct symbol *sym)
 	} END_FOR_EACH_SM(sm);
 }
 
+static void clear_cache(struct symbol *sym)
+{
+	memset(cached_results, 0, sizeof(cached_results));
+}
+
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&fn_type_val);
@@ -532,10 +573,11 @@ static void match_end_file(struct symbol_list *sym_list)
 
 void register_type_val(int id)
 {
+	my_id = id;
+	add_hook(&clear_cache, AFTER_FUNC_HOOK);
+
 	if (!option_info)
 		return;
-
-	my_id = id;
 
 	add_hook(&match_assign_value, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&match_assign_pointer, ASSIGNMENT_HOOK);
