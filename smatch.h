@@ -1040,6 +1040,7 @@ int get_offset_from_container_of(struct expression *expr);
 /* smatch_mtag.c */
 int get_toplevel_mtag(struct symbol *sym, mtag_t *tag);
 int get_mtag(struct expression *expr, mtag_t *tag);
+int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)

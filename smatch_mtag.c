@@ -254,6 +254,32 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 	return 0;
 }
 
+int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
+{
+	char buf[256];
+	int lines_from_start;
+	char *str;
+
+	/*
+	 * We need the alias to be unique.  It's not totally required that it
+	 * be the same from one DB build to then next, but it makes debugging
+	 * a bit simpler.
+	 *
+	 */
+
+	if (!cur_func_sym)
+		return 0;
+
+	lines_from_start = expr->pos.line - cur_func_sym->pos.line;
+	str = expr_to_str(expr);
+	snprintf(buf, sizeof(buf), "%lld %d %s", tag, lines_from_start, str);
+	free_string(str);
+
+	*new = str_to_tag(buf);
+
+	return 1;
+}
+
 void register_mtag(int id)
 {
 	my_id = id;
