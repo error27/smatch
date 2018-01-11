@@ -547,17 +547,19 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 
 struct select_caller_info_data {
 	struct stree *final_states;
+	struct timeval start_time;
 	int prev_func_id;
 	int ignore;
 	int results;
 };
 
+static int caller_info_callback(void *_data, int argc, char **argv, char **azColName);
+
 static void sql_select_caller_info(struct select_caller_info_data *data,
-	const char *cols, struct symbol *sym,
-	int (*callback)(void*, int, char**, char**))
+	const char *cols, struct symbol *sym)
 {
 	if (__inline_fn) {
-		mem_sql(callback, data,
+		mem_sql(caller_info_callback, data,
 			"select %s from caller_info where call_id = %lu;",
 			cols, (unsigned long)__inline_fn);
 		return;
@@ -565,13 +567,13 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 
 	if (sym->ident->name && is_common_function(sym->ident->name))
 		return;
-	run_sql(callback, data,
+	run_sql(caller_info_callback, data,
 		"select %s from common_caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 	if (data->results)
 		return;
 
-	run_sql(callback, data,
+	run_sql(caller_info_callback, data,
 		"select %s from caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 }
@@ -905,10 +907,15 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
 	struct stree *stree;
+	struct timeval cur_time;
 
 	data->results = 1;
 
 	if (argc != 5)
+		return 0;
+
+	gettimeofday(&cur_time, NULL);
+	if (cur_time.tv_sec - data->start_time.tv_sec > 10)
 		return 0;
 
 	func_id = atoi(argv[0]);
@@ -950,13 +957,6 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 	} END_FOR_EACH_PTR(def_callback);
 
 	return 0;
-}
-
-static void get_direct_callers(struct select_caller_info_data *data, struct symbol *sym)
-{
-	sql_select_caller_info(data,
-			       "call_id, type, parameter, key, value", sym,
-			       caller_info_callback);
 }
 
 static struct string_list *ptr_names_done;
@@ -1012,9 +1012,12 @@ static void match_data_from_db(struct symbol *sym)
 	struct select_caller_info_data data = { .prev_func_id = -1 };
 	struct sm_state *sm;
 	struct stree *stree;
+	struct timeval end_time;
 
 	if (!sym || !sym->ident)
 		return;
+
+	gettimeofday(&data.start_time, NULL);
 
 	__push_fake_cur_stree();
 	__unnullify_path();
@@ -1035,7 +1038,10 @@ static void match_data_from_db(struct symbol *sym)
 			return;
 		}
 
-		get_direct_callers(&data, sym);
+		sql_select_caller_info(&data,
+				       "call_id, type, parameter, key, value",
+				       sym);
+
 
 		stree = __pop_fake_cur_stree();
 		if (!data.ignore)
@@ -1072,7 +1078,9 @@ free_ptr_names:
 		__free_ptr_list((struct ptr_list **)&ptr_names);
 		__free_ptr_list((struct ptr_list **)&ptr_names_done);
 	} else {
-		get_direct_callers(&data, sym);
+		sql_select_caller_info(&data,
+				       "call_id, type, parameter, key, value",
+				       sym);
 	}
 
 	stree = __pop_fake_cur_stree();
@@ -1080,9 +1088,12 @@ free_ptr_names:
 		merge_stree(&data.final_states, stree);
 	free_stree(&stree);
 
-	FOR_EACH_SM(data.final_states, sm) {
-		__set_sm(sm);
-	} END_FOR_EACH_SM(sm);
+	gettimeofday(&end_time, NULL);
+	if (end_time.tv_sec - data.start_time.tv_sec <= 10) {
+		FOR_EACH_SM(data.final_states, sm) {
+			__set_sm(sm);
+		} END_FOR_EACH_SM(sm);
+	}
 
 	free_stree(&data.final_states);
 }
