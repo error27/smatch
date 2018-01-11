@@ -57,9 +57,9 @@ static void add_constraint(struct constraint_list **list, int op, int constraint
 		if (tmp->id < constraint)
 			continue;
 		if (tmp->id == constraint) {
-			if (tmp->op == SPECIAL_LTE)
+			if (tmp->op == '<')
 				return;
-			if (op == '<')
+			if (op == SPECIAL_LTE)
 				return;
 
 			new = __alloc_constraint(0);
