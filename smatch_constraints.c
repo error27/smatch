@@ -296,12 +296,6 @@ char *unmet_constraint(struct expression *data, struct expression *offset)
 	char *data_str;
 	char *required;
 	int req_op;
-	int found = 0;
-
-	state = get_state_expr(my_id, offset);
-	if (!state)
-		return NULL;
-	list = state->data;
 
 	data_str = get_constraint_str(data);
 	if (!data_str)
@@ -309,7 +303,12 @@ char *unmet_constraint(struct expression *data, struct expression *offset)
 
 	required = get_required_constraint(data_str);
 	if (!required)
-		return NULL;
+		goto free_data;
+
+	state = get_state_expr(my_id, offset);
+	if (!state)
+		goto free_data;
+	list = state->data;
 
 	/* check the list of bounds on our index against the list that work */
 	FOR_EACH_PTR(list, con) {
@@ -326,16 +325,13 @@ char *unmet_constraint(struct expression *data, struct expression *offset)
 		if (!req_op)
 			continue;
 		if (con->op == '<' || con->op == req_op) {
-			found = 1;
+			free_string(required);
+			required = NULL;
 			goto free_data;
 		}
 	} END_FOR_EACH_PTR(con);
 
 free_data:
-	if (found) {
-		free_string(required);
-		required = NULL;
-	}
 	free_string(data_str);
 	return required;
 }
