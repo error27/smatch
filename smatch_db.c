@@ -1779,6 +1779,9 @@ static int split_by_null_nonnull_param(struct expression *expr)
 {
 	struct symbol *arg;
 	struct sm_state *sm;
+	sval_t zero = {
+		.type = &ulong_ctype,
+	};
 
 	/* function must only take one pointer */
 	if (ptr_list_size((struct ptr_list *)cur_func_sym->ctype.base_type->arguments) != 1)
@@ -1793,6 +1796,9 @@ static int split_by_null_nonnull_param(struct expression *expr)
 		return 0;
 	sm = get_sm_state(SMATCH_EXTRA, arg->ident->name, arg);
 	if (!sm)
+		return 0;
+
+	if (!rl_has_sval(estate_rl(sm->state), zero))
 		return 0;
 
 	return split_on_bool_sm(sm, expr);
