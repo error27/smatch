@@ -419,34 +419,6 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, CONSTRAINT, param, printed_name, sm->state->name);
 }
 
-static void print_return_implies_constrained(int return_id, char *return_ranges, struct expression *expr)
-{
-	struct smatch_state *orig;
-	struct sm_state *sm;
-	const char *param_name;
-	int param;
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state == &merged || sm->state == &undefined)
-			continue;
-
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
-
-		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
-		if (orig && strcmp(sm->state->name, orig->name) == 0)
-			continue;
-
-		param_name = get_param_name(sm);
-		if (!param_name)
-			continue;
-
-		sql_insert_return_states(return_id, return_ranges, CONSTRAINT,
-					 param, param_name, sm->state->name);
-	} END_FOR_EACH_SM(sm);
-}
-
 static struct smatch_state *constraint_str_to_state(char *value)
 {
 	struct constraint_list *list = NULL;
@@ -473,6 +445,34 @@ static struct smatch_state *constraint_str_to_state(char *value)
 	}
 
 	return alloc_constraint_state(list);
+}
+
+static void print_return_implies_constrained(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct smatch_state *orig;
+	struct sm_state *sm;
+	const char *param_name;
+	int param;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->state == &merged || sm->state == &undefined)
+			continue;
+
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+
+		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
+		if (orig && strcmp(sm->state->name, orig->name) == 0)
+			continue;
+
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+
+		sql_insert_return_states(return_id, return_ranges, CONSTRAINT,
+					 param, param_name, sm->state->name);
+	} END_FOR_EACH_SM(sm);
 }
 
 static void db_returns_constrained(struct expression *expr, int param, char *key, char *value)
