@@ -109,39 +109,74 @@ int get_member_offset_from_deref(struct expression *expr)
 	return offset;
 }
 
-static void add_offset_to_min(struct range_list **rl, int offset)
+static struct range_list *filter_unknown_negatives(struct range_list *rl)
 {
-	sval_t sval, max;
+	struct data_range *first;
+	struct range_list *filter = NULL;
+
+	first = first_ptr_list((struct ptr_list *)rl);
+
+	if (sval_is_min(first->min) &&
+	    sval_is_negative(first->max) &&
+	    first->max.value == -1) {
+		add_ptr_list(&filter, first);
+		return rl_filter(rl, filter);
+	}
+
+	return rl;
+}
+
+static void add_offset_to_pointer(struct range_list **rl, int offset)
+{
+	sval_t min, remove, max;
 	struct range_list *orig = *rl;
-	struct range_list *offset_rl;
-	struct range_list *big_rl;
-	struct range_list *tmp;
 
 	/*
-	 * I don't know.  I guess I want to preserve the upper value because
-	 * that has no information.  Only the lower value is interesting.
+	 * Ha ha.  Treating zero as a special case means I'm correct at least a
+	 * tiny fraction of the time.  Which is better than nothing.
+	 *
+	 */
+	if (offset == 0)
+		return;
+
+	/*
+	 * This function doesn't necessarily work how you might expect...
+	 *
+	 * Say you have s64min-(-1),1-s64max and you add 8 then I guess what
+	 * we want to say is maybe something like 9-s64max.  This shows that the
+	 * min it could be is 9 which is potentially useful information.  But
+	 * if we start with (-12),5000000-57777777 and we add 8 then we'd want
+	 * the result to be (-4),5000008-57777777 but (-4),5000000-57777777 is
+	 * also probably acceptable.  If you start with s64min-s64max then the
+	 * result should be 8-s64max.
+	 *
 	 */
 
-	if (!orig)
-		return;
-	sval = rl_min(orig); /* get the type */
-	sval.value = offset;
+	if (!orig || is_whole_rl(orig)) {
+		min = sval_type_min(&ptr_ctype);
+		max = sval_type_max(&ptr_ctype);
 
-	offset_rl = alloc_rl(sval, sval);
-	tmp = rl_binop(orig, '+', offset_rl);
-	if (!tmp)
-		tmp = alloc_whole_rl(sval.type);
-
-	max = rl_max(orig);
-	/* if we actually "know" the max then preserve it. */
-	if (max.value < 100000) {
-		*rl = tmp;
+		min.value = offset;
+		*rl = alloc_rl(min, max);
 		return;
 	}
-	sval.value = 0;
-	big_rl = alloc_rl(sval, max);
 
-	*rl = rl_intersection(tmp, big_rl);
+	orig = filter_unknown_negatives(orig);
+
+	min = rl_min(orig);
+
+	/*
+	 * FIXME:  This is not really accurate but we're a bit screwed anyway
+	 * when we start doing pointer math with error pointers so it's probably
+	 * not important.
+	 *
+	 */
+	if (sval_is_negative(min))
+		return;
+
+	remove = min;
+	remove.value += (offset - 1);
+	*rl = remove_range(orig, min, remove);
 }
 
 static struct range_list *where_allocated_rl(struct symbol *sym)
@@ -191,7 +226,7 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 				return 0;
 			}
 
-			add_offset_to_min(rl, offset);
+			add_offset_to_pointer(rl, offset);
 			return 1;
 		}
 
