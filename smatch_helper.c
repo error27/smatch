@@ -457,11 +457,11 @@ int get_complication_score(struct expression *expr)
 	 */
 
 	if (!expr)
-		return 999;
+		return 990;
 
 	switch (expr->type) {
 	case EXPR_CALL:
-		return 999;
+		return 991;
 	case EXPR_COMPARE:
 	case EXPR_BINOP:
 		score += get_complication_score(expr->left);
@@ -474,13 +474,13 @@ int get_complication_score(struct expression *expr)
 	case EXPR_PREOP:
 		if (expr->op == '*')
 			return score + get_complication_score(expr->unop);
-		return 999;
+		return 993;
 	case EXPR_DEREF:
 		return score + get_complication_score(expr->deref);
 	case EXPR_VALUE:
 		return 0;
 	default:
-		return 999;
+		return 994;
 	}
 }
 
