@@ -447,6 +447,20 @@ static struct smatch_state *constraint_str_to_state(char *value)
 	return alloc_constraint_state(list);
 }
 
+static void set_param_constrained(const char *name, struct symbol *sym, char *key, char *value)
+{
+	char fullname[256];
+
+	if (strcmp(key, "*$") == 0)
+		snprintf(fullname, sizeof(fullname), "*%s", name);
+	else if (strncmp(key, "$", 1) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 1);
+	else
+		return;
+
+	set_state(my_id, name, sym, constraint_str_to_state(value));
+}
+
 static void print_return_implies_constrained(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *orig;
@@ -498,6 +512,7 @@ void register_constraints(int id)
 
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
+	select_caller_info_hook(&set_param_constrained, CONSTRAINT);
 
 	add_split_return_callback(print_return_implies_constrained);
 	select_return_states_hook(CONSTRAINT, &db_returns_constrained);
