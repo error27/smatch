@@ -687,7 +687,7 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 
 	user_data_flag = 0;
 	custom_get_absolute_rl(expr, &var_user_rl, rl);
-	if (!user_data_flag) {
+	if (!user_data_flag || !*rl) {
 		*rl = NULL;
 		return 0;
 	}
