@@ -160,9 +160,9 @@ static int handle_zero_size_arrays(struct expression *pointer, struct expression
 	return 1;
 }
 
-static void match_alloc_helper(struct expression *pointer, struct expression *size)
+static void match_alloc_helper(struct expression *pointer, struct expression *size, int recurse)
 {
-	struct expression *tmp;
+	struct expression *size_orig, *tmp;
 	sval_t sval;
 	int cnt = 0;
 
@@ -171,10 +171,17 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	if (!size || !pointer)
 		return;
 
-	while ((tmp = get_assigned_expr(size))) {
-		size = strip_expr(tmp);
-		if (cnt++ > 5)
-			break;
+	size_orig = size;
+	if (recurse) {
+		while ((tmp = get_assigned_expr(size))) {
+			size = strip_expr(tmp);
+			if (cnt++ > 5)
+				break;
+		}
+		if (size != size_orig) {
+			match_alloc_helper(pointer, size, 0);
+			size = size_orig;
+		}
 	}
 
 	if (handle_zero_size_arrays(pointer, size))
@@ -212,7 +219,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, size_arg);
 
-	match_alloc_helper(expr->left, arg);
+	match_alloc_helper(expr->left, arg, 1);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
@@ -282,7 +289,7 @@ static void match_assign_has_buf_comparison(struct expression *expr)
 	size = get_size_variable(expr->right);
 	if (!size)
 		return;
-	match_alloc_helper(expr->left, size);
+	match_alloc_helper(expr->left, size, 1);
 }
 
 static void match_assign_data(struct expression *expr)
@@ -341,11 +348,11 @@ static void match_assign_data(struct expression *expr)
 
 found:
 	arg = get_argument_from_call_expr(right->args, size_arg);
-	match_alloc_helper(expr->left, arg);
+	match_alloc_helper(expr->left, arg, 1);
 	if (size_arg2 == -1)
 		return;
 	arg = get_argument_from_call_expr(right->args, size_arg2);
-	match_alloc_helper(expr->left, arg);
+	match_alloc_helper(expr->left, arg, 1);
 }
 
 static void match_assign_ARRAY_SIZE(struct expression *expr)
@@ -393,7 +400,7 @@ static void match_assign_buf_comparison(struct expression *expr)
 	if (!pointer)
 		return;
 
-	match_alloc_helper(pointer, expr->right);
+	match_alloc_helper(pointer, expr->right, 1);
 }
 
 static int constraint_found(void *_found, int argc, char **argv, char **azColName)
