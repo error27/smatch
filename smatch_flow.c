@@ -1562,6 +1562,7 @@ static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
+	struct timeval time_backup = fn_start_time;
 
 	save_flow_state();
 
@@ -1598,6 +1599,7 @@ static void parse_inline(struct expression *call)
 	free_goto_stack();
 
 	restore_flow_state();
+	fn_start_time = time_backup;
 	cur_func = cur_func_bak;
 
 	restore_all_states();
