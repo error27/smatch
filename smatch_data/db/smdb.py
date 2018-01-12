@@ -255,6 +255,9 @@ def get_next_str(txt):
     return [parsed, val]
 
 def txt_to_rl(txt):
+    if len(txt) == 0:
+        return []
+
     ret = []
     pairs = txt.split(",")
     for pair in pairs:
@@ -403,7 +406,7 @@ def print_unmerged_caller_values(filename, func, ptrs, param_names):
                 prev = int(call_id)
 
             parameter = int(parameter)
-            if len(param_names) and param_names[parameter]:
+            if parameter < len(param_names):
                 name = name.replace("$", param_names[parameter])
             else:
                 name = name.replace("$", "$%d" %(parameter))
