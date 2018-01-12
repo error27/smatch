@@ -1968,6 +1968,7 @@ static void init_memdb(void)
 		"db/mtag_about.schema",
 		"db/mtag_map.schema",
 		"db/mtag_data.schema",
+		"db/mtag_alias.schema",
 	};
 	static char buf[4096];
 	int fd;

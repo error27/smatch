@@ -280,6 +280,32 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 	return 1;
 }
 
+int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, int *offset)
+{
+	static char buf[256];
+
+	*offset = 0;
+	*name = 0;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return 0;
+
+	if (expr->type ==  EXPR_DEREF) {
+		*offset = get_member_offset_from_deref(expr);
+		if (*offset < 0)
+			return 0;
+		snprintf(buf, sizeof(buf), "$->%s", expr->member->name);
+		*name = buf;
+		return get_mtag(expr->deref, tag);
+	}
+
+	snprintf(buf, sizeof(buf), "*$");
+	*name = buf;
+
+	return get_mtag(expr, tag);
+}
+
 void register_mtag(int id)
 {
 	my_id = id;

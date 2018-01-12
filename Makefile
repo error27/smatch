@@ -77,7 +77,9 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_imaginary_absolute.o smatch_parameter_names.o \
 	smatch_return_to_param.o smatch_passes_array_size.o \
 	smatch_constraints.o smatch_constraints_required.o \
-	smatch_fn_arg_link.o smatch_about_fn_ptr_arg.o smatch_mtag.o
+	smatch_fn_arg_link.o smatch_about_fn_ptr_arg.o smatch_mtag.o \
+	smatch_mtag_map.o smatch_mtag_data.o \
+	smatch_param_to_mtag_data.o
 
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs \

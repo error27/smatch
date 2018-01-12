@@ -639,6 +639,34 @@ static void match_print_stree_id(const char *fn, struct expression *expr, void *
 	sm_msg("stree_id %d", __stree_id);
 }
 
+static void match_mtag(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name;
+	mtag_t tag = 0;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+	get_mtag(arg, &tag);
+	sm_msg("mtag: '%s' => tag: %lld", name, tag);
+	free_string(name);
+}
+
+static void match_mtag_data_offset(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name;
+	mtag_t tag = 0;
+	int offset = -1;
+	char *data_name = (char *)"";
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	name = expr_to_str(arg);
+	expr_to_mtag_name_offset(arg, &tag, &data_name, &offset);
+	sm_msg("mtag: '%s' => tag: %lld, offset: %d, name: '%s'", name, tag, offset, data_name);
+	free_string(name);
+}
+
 static void match_exit(const char *fn, struct expression *expr, void *info)
 {
 	exit(0);
@@ -720,6 +748,8 @@ void check_debug(int id)
 	add_implied_return_hook("__smatch_type_rl_helper", &match_type_rl_return, NULL);
 	add_function_hook("__smatch_merge_tree", &match_print_merge_tree, NULL);
 	add_function_hook("__smatch_stree_id", &match_print_stree_id, NULL);
+	add_function_hook("__smatch_mtag", &match_mtag, NULL);
+	add_function_hook("__smatch_mtag_data", &match_mtag_data_offset, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);
