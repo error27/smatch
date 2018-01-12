@@ -236,6 +236,18 @@ void parse_args(int *argcp, char ***argvp)
 		option_project = PROJ_WINE;
 }
 
+static char *read_bin_filename(void)
+{
+	char filename[PATH_MAX] = {};
+	char proc[PATH_MAX];
+
+	pid_t pid = getpid();
+	sprintf(proc, "/proc/%d/exe", pid);
+	if (readlink(proc, filename, PATH_MAX) < 0)
+		return NULL;
+	return alloc_string(filename);
+}
+
 static char *get_data_dir(char *arg0)
 {
 	char *bin_dir;
@@ -259,7 +271,9 @@ static char *get_data_dir(char *arg0)
 	if (!access(dir, R_OK))
 		return dir;
 
-	orig = alloc_string(arg0);
+	orig = read_bin_filename();
+	if (!orig)
+		orig = alloc_string(arg0);
 	bin_dir = dirname(orig);
 	strncpy(buf, bin_dir, 254);
 	free_string(orig);
