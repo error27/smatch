@@ -74,7 +74,7 @@ void __print_stree(struct stree *stree)
 {
 	struct sm_state *sm;
 
-	printf("dumping stree at %d\n", get_lineno());
+	printf("dumping stree at %d [%ld states]\n", get_lineno(), stree_count(stree));
 	FOR_EACH_SM(stree, sm) {
 		printf("%s\n", show_sm(sm));
 	} END_FOR_EACH_SM(sm);
