@@ -766,6 +766,9 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'O':
 		device_node_string(fmt, type, basetype, vaidx);
 		break;
+	case 'x':
+		/* 'x' is for an unhashed pointer */
+		break;
 	default:
 		sm_msg("error: unrecognized %%p extension '%c', treated as normal %%p", *fmt);
 	}
