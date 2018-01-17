@@ -110,8 +110,6 @@ static void record_param_assignment(struct expression *expr, int param, char *ke
 	if (!name || !sym)
 		goto free;
 
-	if (local_debug)
-		sm_msg("FAKE ASSIGN: %s = %s.  sym = %p", name, expr_to_str(right), sym);
 	set_state(my_id, name, sym, alloc_state_expr(right));
 free:
 	free_string(name);
