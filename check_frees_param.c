@@ -106,14 +106,14 @@ void check_frees_param(int id)
 {
 	my_id = id;
 
+	if (option_project == PROJ_KERNEL) {
+		/* The kernel uses check_frees_param_strict.c */
+		return;
+	}
+
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
-	if (option_project == PROJ_KERNEL) {
-		add_function_hook("kfree", &match_free, INT_PTR(0));
-		add_function_hook("kmem_cache_free", &match_free, INT_PTR(1));
-	} else {
-		add_function_hook("free", &match_free, INT_PTR(0));
-	}
+	add_function_hook("free", &match_free, INT_PTR(0));
 
 	select_call_implies_hook(PARAM_FREED, &set_param_freed);
 	add_modification_hook(my_id, &set_ignore);

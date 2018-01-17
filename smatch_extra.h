@@ -166,6 +166,7 @@ int implied_not_equal(struct expression *expr, long long val);
 int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val);
 int parent_is_null_var_sym(const char *name, struct symbol *sym);
 int parent_is_null(struct expression *expr);
+int parent_is_free_var_sym_strict(const char *name, struct symbol *sym);
 int parent_is_free_var_sym(const char *name, struct symbol *sym);
 int parent_is_free(struct expression *expr);
 

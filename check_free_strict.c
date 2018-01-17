@@ -23,7 +23,6 @@
 #include <string.h>
 #include "smatch.h"
 #include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int my_id;
 
@@ -216,29 +215,44 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	set_state_expr(my_id, arg, &freed);
 }
 
-static void set_param_freed(struct expression *call, struct expression *arg, char *key, char *unused)
+static void set_param_freed(struct expression *expr, int param, char *key, char *value)
 {
-	struct symbol *sym;
+	struct expression *arg;
 	char *name;
+	struct symbol *sym;
+	struct sm_state *sm;
 
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
+
+	if (!is_impossible_path()) {
+		sm = get_sm_state(my_id, name, sym);
+		if (sm && slist_has_state(sm->possible, &freed)) {
+			sm_msg("warn: '%s' double freed", name);
+			set_state(my_id, name, sym, &ok);  /* fixme: doesn't silence anything.  I know */
+		}
+	}
 
 	set_state(my_id, name, sym, &freed);
 free:
 	free_string(name);
 }
 
-int parent_is_free_var_sym(const char *name, struct symbol *sym)
+int parent_is_free_var_sym_strict(const char *name, struct symbol *sym)
 {
 	char buf[256];
 	char *start;
 	char *end;
 	struct smatch_state *state;
-
-	if (option_project == PROJ_KERNEL)
-		return parent_is_free_var_sym_strict(name, sym);
 
 	strncpy(buf, name, sizeof(buf) - 1);
 	buf[sizeof(buf) - 1] = '\0';
@@ -256,7 +270,7 @@ int parent_is_free_var_sym(const char *name, struct symbol *sym)
 	return 0;
 }
 
-int parent_is_free(struct expression *expr)
+int parent_is_free_strict(struct expression *expr)
 {
 	struct symbol *sym;
 	char *var;
@@ -266,22 +280,21 @@ int parent_is_free(struct expression *expr)
 	var = expr_to_var_sym(expr, &sym);
 	if (!var || !sym)
 		goto free;
-	ret = parent_is_free_var_sym(var, sym);
+	ret = parent_is_free_var_sym_strict(var, sym);
 free:
 	free_string(var);
 	return ret;
 }
 
-void check_free(int id)
+void check_free_strict(int id)
 {
 	my_id = id;
 
-	if (option_project == PROJ_KERNEL) {
-		/* The kernel use check_free_strict.c */
+	if (option_project != PROJ_KERNEL)
 		return;
-	}
 
-	add_function_hook("free", &match_free, INT_PTR(0));
+	add_function_hook("kfree", &match_free, INT_PTR(0));
+	add_function_hook("kmem_cache_free", &match_free, INT_PTR(1));
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
@@ -289,7 +302,8 @@ void check_free(int id)
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 
-	add_modification_hook(my_id, &ok_to_use);
-	select_call_implies_hook(PARAM_FREED, &set_param_freed);
+	add_modification_hook_late(my_id, &ok_to_use);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
+
+	select_return_states_hook(PARAM_FREED, &set_param_freed);
 }
