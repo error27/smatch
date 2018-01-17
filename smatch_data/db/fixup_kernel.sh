@@ -156,6 +156,19 @@ delete from return_states where function = "__write_once_size";
 
 update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_set' and parameter = 0 and type = 1025;
 
+/* handled in the check itself */
+delete from return_states where function = 'atomic_inc_return' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_add_return' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_sub_return' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_sub_and_test' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_dec_and_test' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_dec' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_inc' and (type = 8023 or type = 8024);
+delete from return_states where function = 'atomic_sub' and (type = 8023 or type = 8024);
+delete from return_states where function = 'refcount_add_not_zero' and (type = 8023 or type = 8024);
+delete from return_states where function = 'refcount_inc_not_zero' and (type = 8023 or type = 8024);
+delete from return_states where function = 'refcount_sub_and_test' and (type = 8023 or type = 8024);
+
 update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
 update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
 

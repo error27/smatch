@@ -1026,6 +1026,7 @@ int db_var_is_array_limit(struct expression *array, const char *name, struct var
 
 struct stree *get_all_return_states(void);
 struct stree_stack *get_all_return_strees(void);
+int on_atomic_dec_path(void);
 int was_inced(const char *name, struct symbol *sym);
 
 /* smatch_constraints.c */
