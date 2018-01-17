@@ -61,8 +61,16 @@ static void match_assignment(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
-	if (is_fake_call(expr->right) || __in_fake_assign)
+	if (is_fake_call(expr->right))
 		return;
+	if (__in_fake_assign) {
+		struct range_list *rl;
+
+		if (!get_implied_rl(expr->right, &rl))
+			return;
+		if (is_whole_rl(rl))
+			return;
+	}
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
