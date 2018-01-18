@@ -201,6 +201,7 @@ struct expression *symbol_expression(struct symbol *sym);
 struct expression *compare_expression(struct expression *left, int op, struct expression *right);
 struct expression *unknown_value_expression(struct expression *expr);
 int is_fake_call(struct expression *expr);
+struct expression *gen_expression_from_key(struct expression *arg, const char *key);
 
 /* smatch_param_limit.c */
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);

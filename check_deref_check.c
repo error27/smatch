@@ -29,6 +29,9 @@ static void underef(struct sm_state *sm, struct expression *mod_expr)
 
 static void match_dereference(struct expression *expr)
 {
+	if (__in_fake_assign)
+		return;
+
 	if (expr->type != EXPR_PREOP)
 		return;
 	expr = strip_expr(expr->unop);

@@ -50,6 +50,9 @@ static void check_dereference(struct expression *expr)
 	struct sm_state *sm;
 	struct sm_state *tmp;
 
+	if (__in_fake_assign)
+		return;
+
 	expr = strip_expr(expr);
 
 	sm = get_sm_state_expr(my_id, expr);
