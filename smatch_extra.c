@@ -437,43 +437,94 @@ static void set_extra_expr_true_false(struct expression *expr,
 	free_string(name);
 }
 
+static int get_countdown_info(struct expression *condition, struct expression **unop, int *op, sval_t *right)
+{
+	struct expression *unop_expr;
+	int comparison;
+	sval_t limit;
+
+	right->type = &int_ctype;
+	right->value = 0;
+
+	condition = strip_expr(condition);
+
+	if (condition->type == EXPR_COMPARE) {
+		comparison = remove_unsigned_from_comparison(condition->op);
+
+		if (comparison != SPECIAL_GTE && comparison != '>')
+			return 0;
+		if (!get_value(condition->right, &limit))
+			return 0;
+
+		unop_expr = condition->left;
+		if (unop_expr->type != EXPR_PREOP && unop_expr->type != EXPR_POSTOP)
+			return 0;
+		if (unop_expr->op != SPECIAL_DECREMENT)
+			return 0;
+
+		*unop = unop_expr;
+		*op = comparison;
+		*right = limit;
+
+		return 1;
+	}
+
+	if (condition->type != EXPR_PREOP && condition->type != EXPR_POSTOP)
+		return 0;
+	if (condition->op != SPECIAL_DECREMENT)
+		return 0;
+
+	*unop = condition;
+	*op = '>';
+
+	return 1;
+}
+
 static struct sm_state *handle_canonical_while_count_down(struct statement *loop)
 {
 	struct expression *iter_var;
-	struct expression *condition;
+	struct expression *condition, *unop;
 	struct sm_state *sm;
 	struct smatch_state *estate;
-	sval_t start;
+	int op;
+	sval_t start, right;
+
+	right.type = &int_ctype;
+	right.value = 0;
 
 	condition = strip_expr(loop->iterator_pre_condition);
 	if (!condition)
 		return NULL;
-	if (condition->type != EXPR_PREOP && condition->type != EXPR_POSTOP)
-		return NULL;
-	if (condition->op != SPECIAL_DECREMENT)
+
+	if (!get_countdown_info(condition, &unop, &op, &right))
 		return NULL;
 
-	iter_var = condition->unop;
+	iter_var = unop->unop;
+
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
 	if (!sm)
 		return NULL;
-	if (sval_cmp_val(estate_min(sm->state), 0) < 0)
+	if (sval_cmp(estate_min(sm->state), right) < 0)
 		return NULL;
 	start = estate_max(sm->state);
-	if  (sval_cmp_val(start, 0) <= 0)
+	if  (sval_cmp(start, right) <= 0)
 		return NULL;
 	if (!sval_is_max(start))
 		start.value--;
 
-	if (condition->type == EXPR_PREOP) {
-		estate = alloc_estate_range(sval_type_val(start.type, 1), start);
+	if (op == SPECIAL_GTE)
+		right.value--;
+
+	if (unop->type == EXPR_PREOP) {
+		right.value++;
+		estate = alloc_estate_range(right, start);
 		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
 		estate_copy_fuzzy_max(estate, sm->state);
 		set_extra_expr_mod(iter_var, estate);
 	}
-	if (condition->type == EXPR_POSTOP) {
-		estate = alloc_estate_range(sval_type_val(start.type, 0), start);
+	if (unop->type == EXPR_POSTOP) {
+		estate = alloc_estate_range(right, start);
 		if (estate_has_hard_max(sm->state))
 			estate_set_hard_max(estate);
 		estate_copy_fuzzy_max(estate, sm->state);
@@ -598,6 +649,16 @@ struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct s
 {
 	struct sm_state *ret;
 
+	/*
+	 * Canonical loops are a hack.  The proper way to handle this is to
+	 * use two passes, but unfortunately, doing two passes makes parsing
+	 * code twice as slow.
+	 *
+	 * What we do is we set the inside state here, which overwrites whatever
+	 * __extra_match_condition() does.  Then we set the outside state in
+	 * __extra_pre_loop_hook_after().
+	 *
+	 */
 	__push_fake_cur_stree();
 	if (!loop->iterator_post_statement)
 		ret = handle_canonical_while_count_down(loop);
@@ -618,15 +679,11 @@ int __iterator_unchanged(struct sm_state *sm)
 
 static void while_count_down_after(struct sm_state *sm, struct expression *condition)
 {
-	sval_t after_value;
+	struct expression *unop;
+	int op;
+	sval_t limit, after_value;
 
-	/* paranoid checking.  prolly not needed */
-	condition = strip_expr(condition);
-	if (!condition)
-		return;
-	if (condition->type != EXPR_PREOP && condition->type != EXPR_POSTOP)
-		return;
-	if (condition->op != SPECIAL_DECREMENT)
+	if (!get_countdown_info(condition, &unop, &op, &limit))
 		return;
 	after_value = estate_min(sm->state);
 	after_value.value--;
