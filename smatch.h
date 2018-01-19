@@ -76,6 +76,7 @@ struct sm_state {
 	struct symbol *sym;
 	unsigned short owner;
 	unsigned short merged:1;
+	unsigned short skip_implications:1;
 	unsigned int nr_children;
 	unsigned int line;
   	struct smatch_state *state;

@@ -392,35 +392,59 @@ static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_g
 	return 0;
 }
 
+static int taking_too_long(void)
+{
+	static void *printed;
+
+	if (out_of_memory())
+		return 1;
+
+	if (time_parsing_function() < 60)
+		return 0;
+
+	if (printed != cur_func_sym) {
+		sm_msg("internal: turning off implications after 60 seconds");
+		printed = cur_func_sym;
+	}
+	return 1;
+}
+
 /*
- * NOTE: If a state is in both the keep stack and the remove stack then it is
- * removed.  If that happens it means you have a bug.  Only add states which are
- * definitely true or definitely false.  If you have a leaf state that could be
- * both true and false, then create a fake split history where one side is true
- * and one side is false.  Otherwise, if you can't do that, then don't add it to
- * either list, and it will be treated as true.
+ * NOTE: If a state is in both the keep stack and the remove stack then that is
+ * a bug.  Only add states which are definitely true or definitely false.  If
+ * you have a leaf state that could be both true and false, then create a fake
+ * split history where one side is true and one side is false.  Otherwise, if
+ * you can't do that, then don't add it to either list.
  */
 struct sm_state *filter_pools(struct sm_state *sm,
 			      const struct state_list *remove_stack,
 			      const struct state_list *keep_stack,
-			      int *modified)
+			      int *modified, int *recurse_cnt,
+			      struct timeval *start)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
 	struct sm_state *right;
 	int removed = 0;
+	struct timeval now;
 
 	if (!sm)
 		return NULL;
+	if (sm->skip_implications)
+		return sm;
+	if (taking_too_long())
+		return sm;
 
-	if (sm->nr_children > 4000) {
-		if (option_debug || option_debug_implied) {
+	gettimeofday(&now, NULL);
+	if ((*recurse_cnt)++ > 1000 || now.tv_sec - start->tv_sec > 5) {
+		if (local_debug || option_debug_implied) {
 			static char buf[1028];
 			snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
 				 __func__, sm->nr_children, sm->name, show_state(sm->state));
 			implied_debug_msg = buf;
 		}
-		return NULL;
+		sm->skip_implications = 1;
+		return sm;
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
@@ -442,8 +466,8 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		 show_sm(sm), sm->line, sm->nr_children,
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
-	left = filter_pools(sm->left, remove_stack, keep_stack, &removed);
-	right = filter_pools(sm->right, remove_stack, keep_stack, &removed);
+	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start);
+	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start);
 	if (!removed) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
@@ -494,8 +518,13 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	struct sm_state *tmp;
 	struct sm_state *filtered_sm;
 	int modified;
+	int recurse_cnt;
+	struct timeval start;
 
 	if (!remove_stack)
+		return NULL;
+
+	if (taking_too_long())
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
@@ -506,14 +535,16 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		if (sm_in_keep_leafs(tmp, keep_stack))
 			continue;
 		modified = 0;
-		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified);
+		recurse_cnt = 0;
+		gettimeofday(&start, NULL);
+		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start);
 		if (!filtered_sm || !modified)
 			continue;
 		/* the assignments here are for borrowed implications */
 		filtered_sm->name = tmp->name;
 		filtered_sm->sym = tmp->sym;
 		avl_insert(&ret, filtered_sm);
-		if (out_of_memory())
+		if (out_of_memory() || taking_too_long())
 			return NULL;
 
 	} END_FOR_EACH_SM(tmp);
