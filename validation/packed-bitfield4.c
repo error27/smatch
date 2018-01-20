@@ -15,5 +15,4 @@ static int ld(struct s *s)
 /*
  * check-name: packed-bitfield4
  * check-description: Is check_access() OK with short packed bitfields?
- * check-known-to-fail
  */

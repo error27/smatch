@@ -764,6 +764,8 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 	token = parse(token->next, sym);
 	token = expect(token, '}', "at end of specifier");
+	attr.ctype.base_type = sym;
+	token = handle_attributes(token, &attr);
 	apply_ctype(token->pos, &sym->ctype, &attr.ctype);
 
 	sym->endpos = token->pos;

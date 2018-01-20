@@ -14,7 +14,6 @@ void main(void)
 
 /*
  * check-name: type-attribute-mod
- * check-known-to-fail
  *
  * check-error-start
 type-attribute-mod.c:12:9: warning: dereference of noderef expression

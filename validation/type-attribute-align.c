@@ -16,5 +16,4 @@ void main(void)
 
 /*
  * check-name: type-attribute-align
- * check-known-to-fail
  */
