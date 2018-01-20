@@ -56,7 +56,7 @@ arithmetic operations other than bitwise operations, and on any conversion of
 one restricted type into another, except via a cast that includes
 \fB__attribute__((force))\fR.
 
-__bitwise ends up being a "stronger integer separation". That one
+__bitwise ends up being a "stronger integer separation", one that
 doesn't allow you to mix with non-bitwise integers, so now it's much
 harder to lose the type by mistake.
 
@@ -204,7 +204,7 @@ Sparse issues these warnings by default.  To turn them off, use
 .B \-Winit\-cstring
 Warn about initialization of a char array with a too long constant C string.
 
-If the size of the char array and the length of the string is the same,
+If the size of the char array and the length of the string are the same,
 there is no space for the last nul char of the string in the array:
 
 .nf
@@ -348,7 +348,7 @@ Warn about preprocessor conditionals that use the value of an undefined
 preprocessor symbol.
 
 Standard C (C99 6.10.1) permits using the value of an undefined preprocessor
-symbol in preprocessor conditionals, and specifies it has have a value of 0.
+symbol in preprocessor conditionals, and specifies it has a value of 0.
 However, this behavior can lead to subtle errors.
 
 Sparse does not issue these warnings by default.
@@ -368,7 +368,7 @@ normalized GNU triplet. (e.g. i386-linux-gnu).
 .TP
 .B \-fdump-linearize[=only]
 Dump the IR code of a function directly after its linearization,
-before any simplifications is made. If the argument \fB=only\fR is
+before any simplifications are made. If the argument \fB=only\fR is
 also given no further processing is done on the function.
 .
 .B \-fmem-report
