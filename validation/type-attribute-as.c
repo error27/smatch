@@ -21,7 +21,6 @@ void main(void)
 
 /*
  * check-name: type-attribute-as
- * check-known-to-fail
  *
  * check-error-start
 type-attribute-as.c:16:15: warning: incorrect type in argument 1 (different address spaces)
