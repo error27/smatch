@@ -669,6 +669,8 @@ struct statement *alloc_statement(struct position pos, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
+static void apply_ctype(struct position pos, struct ctype *dst, struct ctype *src);
+
 static void apply_modifiers(struct position pos, struct decl_state *ctx)
 {
 	struct symbol *ctype;
@@ -1042,8 +1044,6 @@ static struct token *enum_specifier(struct token *token, struct symbol *sym, str
 
 	return ret;
 }
-
-static void apply_ctype(struct position pos, struct ctype *dst, struct ctype *src);
 
 static struct token *typeof_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
 {
