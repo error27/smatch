@@ -68,7 +68,8 @@ struct asm_rules {
 DECLARE_ALLOCATOR(asm_rules);
 
 struct instruction {
-	unsigned opcode:8,
+	unsigned opcode:7,
+		 tainted:1,
 		 size:24;
 	struct basic_block *bb;
 	struct position pos;
