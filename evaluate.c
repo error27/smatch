@@ -847,8 +847,10 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 		val->value = value;
 
 		if (value & (value-1)) {
-			if (Wptr_subtraction_blows)
+			if (Wptr_subtraction_blows) {
 				warning(expr->pos, "potentially expensive pointer subtraction");
+				info(expr->pos, "    '%s' has a non-power-of-2 size: %lu", show_typename(lbase), value);
+			}
 		}
 
 		sub->op = '-';
