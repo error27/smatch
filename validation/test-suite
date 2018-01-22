@@ -31,6 +31,7 @@ known_ko_tests=0
 
 # defaults to not verbose
 [ -z "$V" ] && V=0
+[ $V -eq 0 ] && quiet=1 || quiet=0
 
 ##
 # get_tag_value(file) - get the 'check-<...>' tags & values
