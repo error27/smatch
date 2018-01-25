@@ -118,6 +118,8 @@ static int has_global_scope(struct expression *expr)
 	if (expr->type != EXPR_SYMBOL)
 		return FALSE;
 	sym = expr->symbol;
+	if (!sym)
+		return FALSE;
 	return toplevel(sym->scope);
 }
 
