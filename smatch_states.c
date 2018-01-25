@@ -1057,6 +1057,11 @@ void __save_switch_states(struct expression *switch_expr)
 	push_stree(&switch_stack, clone_stree(cur_stree));
 }
 
+int have_remaining_cases(void)
+{
+	return !!top_rl(remaining_cases);
+}
+
 void __merge_switches(struct expression *switch_expr, struct range_list *case_rl)
 {
 	struct stree *stree;

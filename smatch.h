@@ -654,6 +654,7 @@ void __use_breaks(void);
 
 void __save_switch_states(struct expression *switch_expr);
 void __discard_switches(void);
+int have_remaining_cases(void);
 void __merge_switches(struct expression *switch_expr, struct range_list *case_rl);
 void __push_default(void);
 void __set_default(void);

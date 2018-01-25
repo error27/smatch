@@ -1068,7 +1068,7 @@ void __split_stmt(struct statement *stmt)
 		__push_default();
 		__push_breaks();
 		__split_stmt(stmt->switch_statement);
-		if (!__pop_default())
+		if (!__pop_default() && have_remaining_cases())
 			fake_an_empty_default(stmt->pos);
 		__discard_switches();
 		__merge_breaks();
