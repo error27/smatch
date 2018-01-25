@@ -1590,6 +1590,7 @@ static void parse_inline(struct expression *call)
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	loop_num = 0;
+	loop_count = 0;
 	start_function_definition(call->fn->symbol);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
