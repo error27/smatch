@@ -15,7 +15,7 @@ DECLARE_PTR_LIST(named_stree_stack, struct named_stree);
 extern struct state_list_stack *implied_pools;
 extern int __stree_id;
 
-char *show_sm(struct sm_state *sm);
+const char *show_sm(struct sm_state *sm);
 void __print_stree(struct stree *stree);
 void add_history(struct sm_state *sm);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);

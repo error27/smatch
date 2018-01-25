@@ -31,12 +31,15 @@ static int sm_state_counter;
 
 static struct stree_stack *all_pools;
 
-char *show_sm(struct sm_state *sm)
+const char *show_sm(struct sm_state *sm)
 {
 	static char buf[256];
 	struct sm_state *tmp;
 	int pos;
 	int i;
+
+	if (!sm)
+		return "<none>";
 
 	pos = snprintf(buf, sizeof(buf), "[%s] '%s' = '%s'",
 		       check_name(sm->owner), sm->name, show_state(sm->state));
