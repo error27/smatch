@@ -450,7 +450,7 @@ def print_call_implies(func):
         count += 1
         print "%15s | %15s" %(txt[0], txt[1]),
         print "| %15s" %(type_to_str(txt[4])),
-        print "| %3d | %15s | %15s |" %(txt[5], txt[6], txt[7])
+        print "| %3d | %s | %15s |" %(txt[5], txt[6], txt[7])
 
 def print_type_size(struct_type, member):
     cur = con.cursor()
