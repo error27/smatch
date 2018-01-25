@@ -272,22 +272,31 @@ static int is_ignored_function(void)
 	return 0;
 }
 
-static int is_uncasted_function(void)
+static int is_uncasted_pointer_assign(void)
 {
 	struct expression *expr;
 	struct symbol *left_type, *right_type;
 
 	expr = get_faked_expression();
-	if (!expr || expr->type != EXPR_ASSIGNMENT)
+	if (!expr)
 		return 0;
-	if (expr->right->type != EXPR_CALL)
+	if (expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) {
+		if (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT)
+			return 1;
+	}
+	if (expr->type != EXPR_ASSIGNMENT)
 		return 0;
 	left_type = get_type(expr->left);
 	right_type = get_type(expr->right);
 
 	if (!left_type || !right_type)
 		return 0;
-	if (left_type->type != SYM_PTR || right_type->type != SYM_PTR)
+
+	if (left_type->type != SYM_PTR &&
+	    left_type->type != SYM_ARRAY)
+		return 0;
+	if (right_type->type != SYM_PTR &&
+	    right_type->type != SYM_ARRAY)
 		return 0;
 	left_type = get_real_base_type(left_type);
 	right_type = get_real_base_type(right_type);
@@ -399,7 +408,7 @@ static void match_assign_value(struct expression *expr)
 			goto free;
 		if (is_ignored_function())
 			goto free;
-		if (is_uncasted_function())
+		if (is_uncasted_pointer_assign())
 			goto free;
 		if (is_uncasted_fn_param_from_db())
 			goto free;
