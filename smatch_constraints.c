@@ -345,29 +345,30 @@ static void save_new_constraint(const char *con)
 	sql_save_constraint(con);
 }
 
-static void match_condition(struct expression *expr)
+static void handle_comparison(struct expression *left, int op, struct expression *right)
 {
-	struct expression *left, *right;
 	struct constraint_list *constraints;
 	struct smatch_state *state;
 	char *constraint;
 	int constraint_id;
-	int op;
+	int orig_op = op;
+	sval_t sval;
 
-	if (expr->type != EXPR_COMPARE)
+	/* known values are handled in smatch extra */
+	if (get_value(left, &sval) || get_value(right, &sval))
 		return;
 
-	if (expr->op == SPECIAL_EQUAL ||
-	    expr->op == SPECIAL_NOTEQUAL)
-		return;
-
-	left = expr->left;
-	right = expr->right;
+	if (local_debug)
+		sm_msg("COMPARE: %s %s %s", expr_to_str(left), show_special(op), expr_to_str(right));
 
 	constraint = get_constraint_str(right);
 	if (!constraint)
 		return;
+	if (local_debug)
+		sm_msg("EXPR: %s CONSTRAINT %s", expr_to_str(right), constraint);
 	constraint_id = constraint_str_to_id(constraint);
+	if (local_debug)
+		sm_msg("CONSTRAINT ID %d", constraint_id);
 	if (constraint_id < 0)
 		save_new_constraint(constraint);
 	free_string(constraint);
@@ -376,14 +377,33 @@ static void match_condition(struct expression *expr)
 
 	constraints = get_constraints(left);
 	constraints = clone_constraint_list(constraints);
-	op = negate_gt(expr->op);
+	op = negate_gt(orig_op);
 	add_constraint(&constraints, remove_unsigned_from_comparison(op), constraint_id);
 	state = alloc_constraint_state(constraints);
 
-	if (op == expr->op)
+	if (op == orig_op) {
+		if (local_debug)
+			sm_msg("SETTING %s true %s", expr_to_str(left), state->name);
 		set_true_false_states_expr(my_id, left,	state, NULL);
-	else
+	} else {
+		if (local_debug)
+			sm_msg("SETTING %s false %s", expr_to_str(left), state->name);
+
 		set_true_false_states_expr(my_id, left, NULL, state);
+	}
+}
+
+static void match_condition(struct expression *expr)
+{
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	if (expr->op == SPECIAL_EQUAL ||
+	    expr->op == SPECIAL_NOTEQUAL)
+		return;
+
+	handle_comparison(expr->left, expr->op, expr->right);
+	handle_comparison(expr->right, flip_comparison(expr->op), expr->left);
 }
 
 struct constraint_list *get_constraints(struct expression *expr)
