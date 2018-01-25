@@ -468,9 +468,7 @@ int get_complication_score(struct expression *expr)
 		score += get_complication_score(expr->right);
 		return score;
 	case EXPR_SYMBOL:
-		if (is_local_variable(expr))
-			return 1;
-		return 999;
+		return 1;
 	case EXPR_PREOP:
 		if (expr->op == '*')
 			return score + get_complication_score(expr->unop);
@@ -512,6 +510,7 @@ free:
 
 char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl)
 {
+	struct var_sym_list *tmp_vsl;
 	char *name;
 	struct symbol *tmp;
 	int score;
@@ -539,10 +538,19 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 	if (score <= 0 || score > 2)
 		return NULL;
 
+	tmp_vsl = expr_to_vsl(expr);
 	if (vsl) {
-		*vsl = expr_to_vsl(expr);
+		*vsl = tmp_vsl;
 		if (!*vsl)
 			return NULL;
+	}
+	if (sym) {
+		if (ptr_list_size((struct ptr_list *)tmp_vsl) == 1) {
+			struct var_sym *vs;
+
+			vs = first_ptr_list((struct ptr_list *)tmp_vsl);
+			*sym = vs->sym;
+		}
 	}
 
 	expr = reorder_expr_alphabetically(expr);
