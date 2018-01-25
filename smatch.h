@@ -218,11 +218,15 @@ static inline void sm_prefix(void)
 
 static inline void print_implied_debug_msg();
 
+extern bool __silence_warnings_for_stmt;
+
 #define sm_msg(msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
-	if (!option_debug && !final_pass && !local_debug)      \
+	if (!final_pass && !option_debug && !local_debug)      \
 		break;                                         \
+	if (__silence_warnings_for_stmt && !option_debug && !local_debug) \
+		break;					       \
 	if (!option_info && is_silenced_function())	       \
 		break;					       \
 	sm_prefix();					       \

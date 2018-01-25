@@ -179,8 +179,6 @@ static int handle_offset_subtraction(struct expression *expr)
 	int left_offset, right_offset;
 
 	type = get_type(expr);
-
-
 	if (!type || type->type != SYM_PTR)
 		return -1;
 	type = get_real_base_type(type);
@@ -964,8 +962,10 @@ static sval_t handle_sizeof(struct expression *expr)
 	sym = expr->cast_type;
 	if (!sym) {
 		sym = evaluate_expression(expr->cast_expression);
-		if (!sym)
+		if (!sym) {
+			__silence_warnings_for_stmt = true;
 			sym = &int_ctype;
+		}
 #if 0
 		/*
 		 * Expressions of restricted types will possibly get

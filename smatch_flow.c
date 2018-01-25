@@ -967,6 +967,9 @@ void __split_stmt(struct statement *stmt)
 	if (!stmt)
 		goto out;
 
+	if (!__in_fake_assign)
+		__silence_warnings_for_stmt = false;
+
 	if (__bail_on_rest_of_function)
 		return;
 

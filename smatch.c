@@ -41,6 +41,8 @@ FILE *sm_outfd;
 FILE *sql_outfd;
 FILE *caller_info_fd;
 
+bool __silence_warnings_for_stmt;
+
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x, .enabled = 0},
 static struct reg_func_info {
