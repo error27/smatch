@@ -80,12 +80,38 @@ static void pre_merge_hook(struct sm_state *sm)
 	struct smatch_state *extra;
 	struct range_list *rl;
 	sval_t dummy;
+	sval_t sval_100 = {
+		.type = &int_ctype,
+		.value = 100,
+	};
 
+	user = get_state(my_id, sm->name, sm->sym);
+	if (!user)
+		return;
+	if (!estate_rl(sm->state)) {
+		/*
+		 * If the one side is capped and the other side is empty then
+		 * let's just mark it as not-user data because the information
+		 * isn't going to be useful.  How this looks is:
+		 *
+		 * if (user_var > trusted)
+		 *	user_var = trusted;  <-- empty state
+		 * else
+		 *	<-- capped
+		 *
+		 * The problem is that sometimes things are capped to a literal
+		 * and we'd like to keep the state in that case...  Ugh.  I've
+		 * added a check which assumes that everything less than 100 is
+		 * probably capped against a literal.
+		 *
+		 */
+		if (is_capped_var_sym(sm->name, sm->sym) &&
+		    sval_cmp(estate_max(user), sval_100) > 0)
+			set_state(my_id, sm->name, sm->sym, alloc_estate_empty());
+		return;
+	}
 	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!extra || !estate_rl(extra))
-		return;
-	user = get_state(my_id, sm->name, sm->sym);
-	if (!user || !estate_rl(user))
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
 	if (rl_to_sval(rl, &dummy))
