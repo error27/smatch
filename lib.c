@@ -682,6 +682,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct flag warn
 			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
 				*warnings[i].flag = WARNING_ON;
 		}
+		return NULL;
 	}
 
 	// Prefixes "no" and "no-" mean to turn warning off.
