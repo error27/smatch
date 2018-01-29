@@ -34,26 +34,19 @@ static LLVMTypeRef func_return_type(struct symbol *sym)
 
 static LLVMTypeRef sym_func_type(struct symbol *sym)
 {
-	LLVMTypeRef *arg_type;
-	LLVMTypeRef func_type;
-	LLVMTypeRef ret_type;
+	int n_arg = symbol_list_size(sym->arguments);
+	LLVMTypeRef *arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
+	LLVMTypeRef ret_type = func_return_type(sym);
 	struct symbol *arg;
-	int n_arg;
-
-	ret_type = func_return_type(sym);
-	n_arg = symbol_list_size(sym->arguments);
-	arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
-
 	int idx = 0;
+
 	FOR_EACH_PTR(sym->arguments, arg) {
 		struct symbol *arg_sym = arg->ctype.base_type;
 
 		arg_type[idx++] = symbol_type(arg_sym);
 	} END_FOR_EACH_PTR(arg);
-	func_type = LLVMFunctionType(ret_type, arg_type, n_arg,
-				     sym->variadic);
 
-	return func_type;
+	return LLVMFunctionType(ret_type, arg_type, n_arg, sym->variadic);
 }
 
 static LLVMTypeRef sym_array_type(struct symbol *sym)
