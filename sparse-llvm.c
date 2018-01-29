@@ -38,15 +38,10 @@ static LLVMTypeRef sym_func_type(struct symbol *sym)
 	LLVMTypeRef func_type;
 	LLVMTypeRef ret_type;
 	struct symbol *arg;
-	int n_arg = 0;
+	int n_arg;
 
 	ret_type = func_return_type(sym);
-
-	/* count args, build argument type information */
-	FOR_EACH_PTR(sym->arguments, arg) {
-		n_arg++;
-	} END_FOR_EACH_PTR(arg);
-
+	n_arg = symbol_list_size(sym->arguments);
 	arg_type = calloc(n_arg, sizeof(LLVMTypeRef));
 
 	int idx = 0;
