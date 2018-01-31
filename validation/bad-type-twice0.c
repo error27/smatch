@@ -5,7 +5,6 @@ static int foo(a)
 
 /*
  * check-name: bad-type-twice0
- * check-known-to-fail
  *
  * check-error-start
 bad-type-twice0.c:3:16: error: incorrect type in conditional
