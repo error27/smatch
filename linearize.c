@@ -1273,10 +1273,8 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	struct symbol *fntype;
 	struct context *context;
 
-	if (!expr->ctype) {
-		warning(expr->pos, "call with no type!");
+	if (!expr->ctype)
 		return VOID;
-	}
 
 	fn = expr->fn;
 	fntype = fn->ctype;
