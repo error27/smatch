@@ -3,7 +3,7 @@
 
 
 static int my_id;
-static int ignore_structs;  
+static int ignore_structs;
 // If set, we ignore struct type symbols as implicit dependencies
 static struct symbol *cur_syscall;
 /* note: cannot track return type and remove from implicit dependencies,
@@ -17,6 +17,7 @@ static char *syscall_name;
 
 static struct tracker_list *read_list; // what fields does syscall branch on?
 static struct tracker_list *write_list; // what fields does syscall modify?
+static struct tracker_list *arg_list;		// what struct arguments does the syscall take?
 static struct tracker_list *parsed_syscalls; // syscalls we have already checked
 
 static inline void prefix() {
@@ -25,7 +26,7 @@ static inline void prefix() {
 
 static void match_syscall_definition(struct symbol *sym)
 {
-	// struct symbol *arg;
+	struct symbol *arg;
 	struct tracker *tracker;
 	char *macro;
 	char *name;
@@ -38,7 +39,7 @@ static void match_syscall_definition(struct symbol *sym)
 		is_syscall = 1;
 
 	name = get_function();
-	
+
 	if (name && strncmp(name, "sys_", 4) == 0)
 		is_syscall = 1;
 
@@ -58,7 +59,7 @@ static void match_syscall_definition(struct symbol *sym)
 	syscall_name = name;
 	cur_syscall = sym;
 	/*
-	printf("-------------------------\n");	
+	printf("-------------------------\n");
 	printf("\nsyscall found: %s at: ", name); prefix(); printf("\n");
 	cur_return_type = cur_func_return_type();
 	if (cur_return_type && cur_return_type->ident)
@@ -66,11 +67,15 @@ static void match_syscall_definition(struct symbol *sym)
 	*/
 
 
-	/*
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		set_state(my_id, arg->ident->name, arg, &user_data_set);
+		// set_state(my_id, arg->ident->name, arg, &user_data_set);
+		sm_msg("=======check_impl: arguments for call %s=========\n", syscall_name);
+		if (arg->type == SYM_STRUCT)
+			arg = get_real_base_type(arg);
+		sm_msg("arg type: %s\n", cur_return_type->ident->name);
+		// add_tracker(&arg_list, my_id, member, arg);
+		sm_msg("=================================\n");
 	} END_FOR_EACH_PTR(arg);
-	*/
 }
 
 static void print_read_list()
@@ -78,27 +83,41 @@ static void print_read_list()
     struct tracker *tracker;
     int i = 0;
     FOR_EACH_PTR(read_list, tracker) {
-	if (i == 0)
-	    sm_printf("%s read_list: [", syscall_name);
-	sm_printf("%s, ", tracker->name);
-	i++;
+			if (i == 0)
+			    sm_printf("%s read_list: [", syscall_name);
+			sm_printf("%s, ", tracker->name);
+			i++;
     } END_FOR_EACH_PTR(tracker);
     if (i > 0)
-	sm_printf("]\n");
-}
+			sm_printf("]\n");
+	}
 
 static void print_write_list()
 {
     struct tracker *tracker;
     int i = 0;
     FOR_EACH_PTR(write_list, tracker) {
-	if (i == 0)
-	    sm_printf("%s write_list: [", syscall_name);
-	sm_printf("%s, ", tracker->name);
-	i++;
+			if (i == 0)
+			    sm_printf("%s write_list: [", syscall_name);
+			sm_printf("%s, ", tracker->name);
+			i++;
     } END_FOR_EACH_PTR(tracker);
     if (i > 0)
-	sm_printf("]\n");
+			sm_printf("]\n");
+	}
+
+static void print_arg_list()
+{
+    struct tracker *tracker;
+    int i = 0;
+    FOR_EACH_PTR(write_list, tracker) {
+			if (i == 0)
+			    sm_printf("%s arg_list: [", syscall_name);
+			sm_printf("%s, ", tracker->name);
+			i++;
+    } END_FOR_EACH_PTR(tracker);
+    if (i > 0)
+			sm_printf("]\n");
 }
 
 static void match_after_syscall(struct symbol *sym) {
@@ -109,8 +128,10 @@ static void match_after_syscall(struct symbol *sym) {
     // printf("-------------------------\n");
     print_read_list();
     print_write_list();
+		print_arg_list();
     free_trackers_and_list(&read_list);
     free_trackers_and_list(&write_list);
+		free_trackers_and_list(&arg_list);
     add_tracker(&parsed_syscalls, my_id, syscall_name, sym);
     cur_syscall = NULL;
     cur_return_type = NULL;
@@ -145,8 +166,8 @@ static void print_read_member_type(struct expression *expr)
 		// printf("ignoring %s\n", member);
 		return;
 	}
-		
-	
+
+
 	add_tracker(&read_list, my_id, member, sym);
 	// sm_msg("info: uses %s", member);
 	// prefix();
@@ -191,7 +212,7 @@ static void match_condition(struct expression *expr) {
 
     if (!cur_syscall)
 	return;
-    
+
     // prefix(); printf("-- condition found\n");
 
     if (expr->type == EXPR_COMPARE || expr->type == EXPR_BINOP
@@ -202,14 +223,14 @@ static void match_condition(struct expression *expr) {
 	    match_condition(expr->right);
 	    return;
     } else if (expr->type == EXPR_CALL) {
-	FOR_EACH_PTR(expr->args, arg) {
-	    // if we find deref in conditional call,
-	    // mark it as a read dependency
-	    print_read_member_type(arg);
-	} END_FOR_EACH_PTR(arg);
-	return;
+				FOR_EACH_PTR(expr->args, arg) {
+		    // if we find deref in conditional call,
+		    // mark it as a read dependency
+		    print_read_member_type(arg);
+				} END_FOR_EACH_PTR(arg);
+				return;
     }
-	
+
     print_read_member_type(expr);
 }
 
@@ -263,7 +284,7 @@ static void unop_expr(struct expression *expr)
 void check_implicit_dependencies(int id)
 {
     my_id = id;
-    ignore_structs = 1;
+    ignore_structs = 0;
 
     if (option_project != PROJ_KERNEL)
 	return;
@@ -277,4 +298,3 @@ void check_implicit_dependencies(int id)
     add_hook(&match_assign_value, ASSIGNMENT_HOOK_AFTER);
     add_hook(&unop_expr, OP_HOOK);
 }
-
