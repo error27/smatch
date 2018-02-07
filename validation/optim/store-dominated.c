@@ -9,7 +9,6 @@ static void foo(void)
 /*
  * check-name: store-dominated
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: add\.
