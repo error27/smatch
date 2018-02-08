@@ -179,7 +179,7 @@ static int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_
 	} END_FOR_EACH_PTR(pu);
 	assert(count <= 0);
 out:
-	if (ptr_list_size((struct ptr_list *) *list) == 0)
+	if (pseudo_user_list_size(*list) == 0)
 		*list = NULL;
 	return count;
 }
@@ -797,7 +797,7 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (!simple_pseudo(def->src2))
 		return 0;
-	if (ptr_list_size((struct ptr_list *)def->target->users) != 1)
+	if (pseudo_user_list_size(def->target->users) != 1)
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
