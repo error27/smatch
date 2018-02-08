@@ -40,7 +40,7 @@ check-output-start / check-output-end
 
 check-output-ignore / check-error-ignore
 	Don't check the expected output (stdout or stderr) of check-command
-	(usefull when this output is not comparable or if you're only interested
+	(useful when this output is not comparable or if you're only interested
 	in the exit value).
 	By default this check is done.
 
@@ -60,8 +60,8 @@ check-output-excludes: <pattern>
 
 check-output-pattern(<nbr>): <pattern>
 check-output-pattern(<min>,<max>): <pattern>
-	Similar to the '-contains/excludes' here above, but with full control
-	of the number of times the pattern should occurs in the output.
+	Similar to the contains/excludes above, but with full control
+	of the number of times the pattern should occur in the output.
 	If <min> or <max> is '-' the corresponding check is ignored.
 
 	Using test-suite
@@ -91,7 +91,7 @@ cmd:
 	"sparse $file".
 
 The output of the test-suite format command can be redirected into the
-test case to create a test-suite formated file.
+test case to create a test-suite formatted file.
 
 $ ./test-suite format bad-assignment.c Assignment >> bad-assignment.c
 $ cat !$

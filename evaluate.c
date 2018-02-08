@@ -47,6 +47,17 @@ struct symbol *current_fn;
 static struct symbol *degenerate(struct expression *expr);
 static struct symbol *evaluate_symbol(struct symbol *sym);
 
+static inline int valid_expr_type(struct expression *expr)
+{
+	return expr && valid_type(expr->ctype);
+}
+
+static inline int valid_subexpr_type(struct expression *expr)
+{
+	return valid_expr_type(expr->left)
+	    && valid_expr_type(expr->right);
+}
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct expression *addr;
@@ -393,15 +404,20 @@ static inline int is_string_type(struct symbol *type)
 
 static struct symbol *bad_expr_type(struct expression *expr)
 {
-	sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 	switch (expr->type) {
 	case EXPR_BINOP:
 	case EXPR_COMPARE:
+		if (!valid_subexpr_type(expr))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
 		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
+		if (!valid_expr_type(expr->unop))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
 		break;
 	default:
@@ -847,8 +863,10 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 		val->value = value;
 
 		if (value & (value-1)) {
-			if (Wptr_subtraction_blows)
+			if (Wptr_subtraction_blows) {
 				warning(expr->pos, "potentially expensive pointer subtraction");
+				info(expr->pos, "    '%s' has a non-power-of-2 size: %lu", show_typename(lbase), value);
+			}
 		}
 
 		sub->op = '-';
@@ -877,23 +895,23 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		warning(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
-	if (ctype) {
-		if (is_safe_type(ctype))
-			warning(expr->pos, "testing a 'safe expression'");
-		if (is_func_type(ctype)) {
-			if (Waddress)
-				warning(expr->pos, "the address of %s will always evaluate as true", "a function");
-		} else if (is_array_type(ctype)) {
-			if (Waddress)
-				warning(expr->pos, "the address of %s will always evaluate as true", "an array");
-		} else if (!is_scalar_type(ctype)) {
-			sparse_error(expr->pos, "incorrect type in conditional");
-			info(expr->pos, "   got %s", show_typename(ctype));
-			ctype = NULL;
-		}
+	if (!valid_type(ctype))
+		return NULL;
+	if (is_safe_type(ctype))
+		warning(expr->pos, "testing a 'safe expression'");
+	if (is_func_type(ctype)) {
+		if (Waddress)
+			warning(expr->pos, "the address of %s will always evaluate as true", "a function");
+	} else if (is_array_type(ctype)) {
+		if (Waddress)
+			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
+	} else if (!is_scalar_type(ctype)) {
+		sparse_error(expr->pos, "incorrect type in conditional");
+		info(expr->pos, "   got %s", show_typename(ctype));
+		return NULL;
 	}
-	ctype = degenerate(expr);
 
+	ctype = degenerate(expr);
 	return ctype;
 }
 
@@ -3187,9 +3205,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SYMBOL:
 		return evaluate_symbol_expression(expr);
 	case EXPR_BINOP:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_binop(expr);
 	case EXPR_LOGICAL:
@@ -3200,15 +3218,15 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_comma(expr);
 	case EXPR_COMPARE:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_compare(expr);
 	case EXPR_ASSIGNMENT:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_assignment(expr);
 	case EXPR_PREOP:

@@ -496,7 +496,9 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 			sym->ctype.base_type = base;
 			return examine_node_type(sym);
 		}
-		break;
+		sym->type = SYM_NODE;
+		sym->ctype.base_type = &bad_ctype;
+		return sym;
 	}
 	case SYM_PREPROCESSOR:
 		sparse_error(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));

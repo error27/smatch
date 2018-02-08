@@ -393,6 +393,131 @@ static unsigned int operand_size(struct instruction *insn, pseudo_t pseudo)
 	return size;
 }
 
+static pseudo_t eval_insn(struct instruction *insn)
+{
+	/* FIXME! Verify signs and sizes!! */
+	unsigned int size = insn->size;
+	long long left = insn->src1->value;
+	long long right = insn->src2->value;
+	unsigned long long ul, ur;
+	long long res, mask, bits;
+
+	mask = 1ULL << (size-1);
+	bits = mask | (mask-1);
+
+	if (left & mask)
+		left |= ~bits;
+	if (right & mask)
+		right |= ~bits;
+	ul = left & bits;
+	ur = right & bits;
+
+	switch (insn->opcode) {
+	case OP_ADD:
+		res = left + right;
+		break;
+	case OP_SUB:
+		res = left - right;
+		break;
+	case OP_MULU:
+		res = ul * ur;
+		break;
+	case OP_MULS:
+		res = left * right;
+		break;
+	case OP_DIVU:
+		if (!ur)
+			goto undef;
+		res = ul / ur;
+		break;
+	case OP_DIVS:
+		if (!right)
+			goto undef;
+		if (left == mask && right == -1)
+			goto undef;
+		res = left / right;
+		break;
+	case OP_MODU:
+		if (!ur)
+			goto undef;
+		res = ul % ur;
+		break;
+	case OP_MODS:
+		if (!right)
+			goto undef;
+		if (left == mask && right == -1)
+			goto undef;
+		res = left % right;
+		break;
+	case OP_SHL:
+		res = left << right;
+		break;
+	case OP_LSR:
+		res = ul >> ur;
+		break;
+	case OP_ASR:
+		res = left >> right;
+		break;
+       /* Logical */
+	case OP_AND:
+		res = left & right;
+		break;
+	case OP_OR:
+		res = left | right;
+		break;
+	case OP_XOR:
+		res = left ^ right;
+		break;
+	case OP_AND_BOOL:
+		res = left && right;
+		break;
+	case OP_OR_BOOL:
+		res = left || right;
+		break;
+
+	/* Binary comparison */
+	case OP_SET_EQ:
+		res = left == right;
+		break;
+	case OP_SET_NE:
+		res = left != right;
+		break;
+	case OP_SET_LE:
+		res = left <= right;
+		break;
+	case OP_SET_GE:
+		res = left >= right;
+		break;
+	case OP_SET_LT:
+		res = left < right;
+		break;
+	case OP_SET_GT:
+		res = left > right;
+		break;
+	case OP_SET_B:
+		res = ul < ur;
+		break;
+	case OP_SET_A:
+		res = ul > ur;
+		break;
+	case OP_SET_BE:
+		res = ul <= ur;
+		break;
+	case OP_SET_AE:
+		res = ul >= ur;
+		break;
+	default:
+		return NULL;
+	}
+	res &= bits;
+
+	return value_pseudo(res);
+
+undef:
+	return NULL;
+}
+
+
 static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long value)
 {
 	unsigned int size = operand_size(insn, pseudo);
@@ -548,122 +673,12 @@ static int simplify_constant_leftside(struct instruction *insn)
 
 static int simplify_constant_binop(struct instruction *insn)
 {
-	/* FIXME! Verify signs and sizes!! */
-	long long left = insn->src1->value;
-	long long right = insn->src2->value;
-	unsigned long long ul, ur;
-	long long res, mask, bits;
+	pseudo_t res = eval_insn(insn);
 
-	mask = 1ULL << (insn->size-1);
-	bits = mask | (mask-1);
-
-	if (left & mask)
-		left |= ~bits;
-	if (right & mask)
-		right |= ~bits;
-	ul = left & bits;
-	ur = right & bits;
-
-	switch (insn->opcode) {
-	case OP_ADD:
-		res = left + right;
-		break;
-	case OP_SUB:
-		res = left - right;
-		break;
-	case OP_MULU:
-		res = ul * ur;
-		break;
-	case OP_MULS:
-		res = left * right;
-		break;
-	case OP_DIVU:
-		if (!ur)
-			return 0;
-		res = ul / ur;
-		break;
-	case OP_DIVS:
-		if (!right)
-			return 0;
-		if (left == mask && right == -1)
-			return 0;
-		res = left / right;
-		break;
-	case OP_MODU:
-		if (!ur)
-			return 0;
-		res = ul % ur;
-		break;
-	case OP_MODS:
-		if (!right)
-			return 0;
-		if (left == mask && right == -1)
-			return 0;
-		res = left % right;
-		break;
-	case OP_SHL:
-		res = left << right;
-		break;
-	case OP_LSR:
-		res = ul >> ur;
-		break;
-	case OP_ASR:
-		res = left >> right;
-		break;
-       /* Logical */
-	case OP_AND:
-		res = left & right;
-		break;
-	case OP_OR:
-		res = left | right;
-		break;
-	case OP_XOR:
-		res = left ^ right;
-		break;
-	case OP_AND_BOOL:
-		res = left && right;
-		break;
-	case OP_OR_BOOL:
-		res = left || right;
-		break;
-			       
-	/* Binary comparison */
-	case OP_SET_EQ:
-		res = left == right;
-		break;
-	case OP_SET_NE:
-		res = left != right;
-		break;
-	case OP_SET_LE:
-		res = left <= right;
-		break;
-	case OP_SET_GE:
-		res = left >= right;
-		break;
-	case OP_SET_LT:
-		res = left < right;
-		break;
-	case OP_SET_GT:
-		res = left > right;
-		break;
-	case OP_SET_B:
-		res = ul < ur;
-		break;
-	case OP_SET_A:
-		res = ul > ur;
-		break;
-	case OP_SET_BE:
-		res = ul <= ur;
-		break;
-	case OP_SET_AE:
-		res = ul >= ur;
-		break;
-	default:
+	if (!res)
 		return 0;
-	}
-	res &= bits;
 
-	replace_with_pseudo(insn, value_pseudo(res));
+	replace_with_pseudo(insn, res);
 	return REPEAT_CSE;
 }
 
