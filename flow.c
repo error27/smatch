@@ -453,10 +453,10 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * and convert the load into a LNOP and replace the
 	 * pseudo.
 	 */
+	convert_load_instruction(insn, new);
 	FOR_EACH_PTR(dominators, phi) {
 		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
-	convert_load_instruction(insn, new);
 	return;
 
 complex_phi:

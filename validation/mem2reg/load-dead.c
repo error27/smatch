@@ -12,7 +12,6 @@ static void foo(int a)
 /*
  * check-name: load-dead
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: VOID
