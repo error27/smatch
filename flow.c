@@ -481,7 +481,7 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable load? Undo it */
 	if (!bb) {
-		insn->opcode = OP_LNOP;
+		kill_use(&insn->src);
 		return 1;
 	}
 
