@@ -265,8 +265,6 @@ static const char *opcodes[] = {
 	[OP_VANEXT] = "va_next",
 	[OP_VAARG] = "va_arg",
 	[OP_SLICE] = "slice",
-	[OP_SNOP] = "snop",
-	[OP_LNOP] = "lnop",
 	[OP_NOP] = "nop",
 	[OP_DEATHNOTE] = "dead",
 	[OP_ASM] = "asm",
@@ -428,10 +426,10 @@ const char *show_instruction(struct instruction *insn)
 		} END_FOR_EACH_PTR(phi);
 		break;
 	}	
-	case OP_LOAD: case OP_LNOP:
+	case OP_LOAD:
 		buf += sprintf(buf, "%s <- %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
-	case OP_STORE: case OP_SNOP:
+	case OP_STORE:
 		buf += sprintf(buf, "%s -> %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_INLINED_CALL:

@@ -1013,14 +1013,8 @@ static void output_insn(struct function *fn, struct instruction *insn)
 	case OP_LOAD:
 		output_op_load(fn, insn);
 		break;
-	case OP_LNOP:
-		assert(0);
-		break;
 	case OP_STORE:
 		output_op_store(fn, insn);
-		break;
-	case OP_SNOP:
-		assert(0);
 		break;
 	case OP_INLINED_CALL:
 		break;

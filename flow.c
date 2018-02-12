@@ -690,8 +690,6 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 			mod |= MOD_ADDRESSABLE;
 			goto external_visibility;
 		case OP_NOP:
-		case OP_SNOP:
-		case OP_LNOP:
 		case OP_PHI:
 			continue;
 		default:
@@ -963,7 +961,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 			if (!first->bb)
 				continue;
 			switch (first->opcode) {
-			case OP_NOP: case OP_LNOP: case OP_SNOP:
+			case OP_NOP:
 			case OP_INLINED_CALL:
 				continue;
 			case OP_CBR:

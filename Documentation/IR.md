@@ -351,12 +351,6 @@ Invalid operation (should never be generated).
 #### OP_NOP
 No-op (should never be generated).
 
-#### OP_SNOP
-Store no-op (removed store operation).
-
-#### OP_LNOP
-Load no-op (removed load operation).
-
 #### OP_DEATHNOTE
 Annotation telling the pseudo will be death after the next
 instruction (other than some other annotation, that is).

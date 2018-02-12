@@ -151,8 +151,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	case OP_GET_ELEMENT_PTR:
 	case OP_VANEXT:
 	case OP_VAARG:
-	case OP_SNOP:
-	case OP_LNOP:
 	case OP_NOP:
 	case OP_CONTEXT:
 		break;

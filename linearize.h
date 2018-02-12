@@ -234,8 +234,6 @@ enum opcode {
 	OP_VANEXT,
 	OP_VAARG,
 	OP_SLICE,
-	OP_SNOP,
-	OP_LNOP,
 	OP_NOP,
 	OP_DEATHNOTE,
 	OP_ASM,
