@@ -342,24 +342,11 @@ const char *show_instruction(struct instruction *insn)
 		buf += sprintf(buf, ".L%u", insn->bb_true->nr);
 		break;
 
-	case OP_SYMADDR: {
-		struct symbol *sym = insn->symbol->sym;
+	case OP_SYMADDR:
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
-
-		if (!insn->bb && !sym)
-			break;
-		if (sym->bb_target) {
-			buf += sprintf(buf, ".L%u", sym->bb_target->nr);
-			break;
-		}
-		if (sym->ident) {
-			buf += sprintf(buf, "%s", show_ident(sym->ident));
-			break;
-		}
-		buf += sprintf(buf, "<anon symbol:%p>", verbose ? sym : NULL);
+		buf += sprintf(buf, "%s", show_pseudo(insn->symbol));
 		break;
-	}
-		
+
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
 		struct symbol *sym;
