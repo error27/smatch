@@ -111,6 +111,10 @@ const char *show_pseudo(pseudo_t pseudo)
 		struct symbol *sym = pseudo->sym;
 		struct expression *expr;
 
+		if (!sym) {
+			snprintf(buf, 64, "<bad symbol>");
+			break;
+		}
 		if (sym->bb_target) {
 			snprintf(buf, 64, ".L%u", sym->bb_target->nr);
 			break;
