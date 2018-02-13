@@ -401,6 +401,23 @@ static void split_conditions(struct expression *expr)
 		return;
 	}
 
+	/*
+	 * On fast paths (and also I guess some people think it's cool) people
+	 * sometimes use | instead of ||.  It works the same basically except
+	 * that || implies a memory barrier between conditions.  The easiest way
+	 * to handle it is by pretending that | also has a barrier and re-using
+	 * all the normal condition code.  This potentially hides some bugs, but
+	 * people who write code like this should just be careful or they
+	 * deserve bugs.
+	 *
+	 * We could potentially treat boolean bitwise & this way but that seems
+	 * too complicated to deal with.
+	 */
+	if (expr->type == EXPR_BINOP && expr->op == '|') {
+		handle_logical(expr);
+		return;
+	}
+
 	switch (expr->type) {
 	case EXPR_LOGICAL:
 		__pass_to_client(expr, LOGIC_HOOK);
