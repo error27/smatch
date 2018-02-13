@@ -678,6 +678,7 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 }
 
 static int user_data_flag;
+static int no_user_data_flag;
 static struct range_list *var_user_rl(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -692,6 +693,34 @@ static struct range_list *var_user_rl(struct expression *expr)
 		get_absolute_rl(expr->left, &left);
 		rl = rl_binop(left, '%', right);
 		goto found;
+	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '/') {
+		struct range_list *left = NULL;
+		struct range_list *right = NULL;
+		struct range_list *abs_right;
+
+		/*
+		 * The specific bug I'm dealing with is:
+		 *
+		 * foo = capped_user / unknown;
+		 *
+		 * Instead of just saying foo is now entirely user_rl we should
+		 * probably say instead that it is not at all user data.
+		 *
+		 */
+
+		get_user_rl(expr->left, &left);
+		get_user_rl(expr->right, &right);
+		get_absolute_rl(expr->right, &abs_right);
+
+		if (left && !right) {
+			rl = rl_binop(left, '/', abs_right);
+			if (sval_cmp(rl_max(left), rl_max(rl)) < 0)
+				no_user_data_flag = 1;
+		}
+
+		return NULL;
 	}
 
 	if (get_user_macro_rl(expr, &rl))
@@ -722,8 +751,9 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 {
 
 	user_data_flag = 0;
+	no_user_data_flag = 0;
 	custom_get_absolute_rl(expr, &var_user_rl, rl);
-	if (!user_data_flag || !*rl) {
+	if (!user_data_flag || no_user_data_flag || !*rl) {
 		*rl = NULL;
 		return 0;
 	}
