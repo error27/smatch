@@ -904,7 +904,7 @@ static int linearize_simple_address(struct entrypoint *ep,
 	return 1;
 }
 
-static struct symbol *base_type(struct symbol *sym)
+static struct symbol *bitfield_base_type(struct symbol *sym)
 {
 	struct symbol *base = sym;
 
@@ -936,7 +936,7 @@ static int linearize_address_gen(struct entrypoint *ep,
 
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 {
-	struct symbol *btype = base_type(ad->type);
+	struct symbol *btype = bitfield_base_type(ad->type);
 	struct instruction *insn;
 	pseudo_t new;
 
@@ -955,7 +955,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	struct basic_block *bb = ep->active;
 
 	if (bb_reachable(bb)) {
-		struct symbol *btype = base_type(ad->type);
+		struct symbol *btype = bitfield_base_type(ad->type);
 		struct instruction *store = alloc_typed_instruction(OP_STORE, btype);
 		store->offset = ad->offset;
 		use_pseudo(store, value, &store->target);
@@ -969,7 +969,7 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		struct access_data *ad)
 {
 	struct symbol *ctype = ad->type;
-	struct symbol *btype = base_type(ctype);
+	struct symbol *btype = bitfield_base_type(ctype);
 	pseudo_t store = value;
 
 	if (type_size(btype) != type_size(ctype)) {
@@ -1034,7 +1034,7 @@ static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
 static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad)
 {
 	struct symbol *ctype = ad->type;
-	struct symbol *btype = base_type(ctype);
+	struct symbol *btype = bitfield_base_type(ctype);
 	pseudo_t new = add_load(ep, ad);
 
 	if (ctype->bit_offset) {
