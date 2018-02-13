@@ -555,14 +555,24 @@ static void match_simple_strtoul(const char *fn, struct expression *expr, void *
 
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 {
+	struct expression *parent;
 	char *macro;
 
 	if (!expr)
 		return 0;
-	macro = get_macro_name(expr->pos);
 
+	macro = get_macro_name(expr->pos);
 	if (!macro)
 		return 0;
+
+	/* handle ntohl(foo[i]) where "i" is trusted */
+	parent = expr_get_parent_expr(expr);
+	if (parent && parent->type == EXPR_BINOP) {
+		char *parent_macro = get_macro_name(parent->pos);
+
+		if (parent_macro && strcmp(macro, parent_macro) == 0)
+			return 0;
+	}
 
 	if (strcmp(macro, "ntohl") == 0) {
 		*rl = alloc_whole_rl(&uint_ctype);
