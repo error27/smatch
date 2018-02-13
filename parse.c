@@ -1194,7 +1194,7 @@ static struct token *recover_unknown_attribute(struct token *token)
 	struct expression *expr = NULL;
 
 	if (Wunknown_attribute)
-		warning(token->pos, "attribute '%s': unknown attribute", show_ident(token->ident));
+		warning(token->pos, "unknown attribute '%s'", show_ident(token->ident));
 	token = token->next;
 	if (match_op(token, '('))
 		token = parens_expression(token, &expr, "in attribute");
