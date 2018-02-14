@@ -54,8 +54,7 @@ const struct opcode_table opcode_table[OP_LAST] = {
 
 	[OP_ADD] = {	.to_float = OP_FADD, },
 	[OP_SUB] = {	.to_float = OP_FSUB, },
-	[OP_MULS] = {	.to_float = OP_FMUL, },
-	[OP_MULU] = {	.to_float = OP_FMUL, },
+	[OP_MUL] = {	.to_float = OP_FMUL, },
 	[OP_DIVS] = {	.to_float = OP_FDIV, },
 	[OP_DIVU] = {	.to_float = OP_FDIV, },
 	[OP_NEG] = {	.to_float = OP_FNEG, },

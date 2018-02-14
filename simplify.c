@@ -415,11 +415,8 @@ static pseudo_t eval_insn(struct instruction *insn)
 	case OP_SUB:
 		res = left - right;
 		break;
-	case OP_MULU:
+	case OP_MUL:
 		res = ul * ur;
-		break;
-	case OP_MULS:
-		res = left * right;
 		break;
 	case OP_DIVU:
 		if (!ur)
@@ -536,8 +533,7 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 		return replace_with_pseudo(insn, insn->src1);
 
 	switch (insn->opcode) {
-	case OP_MULS:
-	case OP_MULU:
+	case OP_MUL:
 		if (value == 0)
 			return replace_with_pseudo(insn, insn->src2);
 	/* Fall through */
@@ -627,7 +623,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 		return 0;
 
 	case OP_DIVU: case OP_DIVS:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 		return simplify_mul_div(insn, value);
 
 	case OP_AND_BOOL:
@@ -659,7 +655,7 @@ static int simplify_constant_leftside(struct instruction *insn)
 	case OP_SHL:
 	case OP_LSR: case OP_ASR:
 	case OP_AND:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
@@ -1167,8 +1163,7 @@ int simplify_instruction(struct instruction *insn)
 	if (!insn->bb)
 		return 0;
 	switch (insn->opcode) {
-	case OP_ADD: case OP_MULS:
-	case OP_MULU:
+	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		canonicalize_commutative(insn);

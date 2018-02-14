@@ -542,11 +542,7 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 	case OP_SUB:
 		target = LLVMBuildSub(fn->builder, lhs, rhs, target_name);
 		break;
-	case OP_MULU:
-		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
-		break;
-	case OP_MULS:
-		assert(!is_float_type(insn->type));
+	case OP_MUL:
 		target = LLVMBuildMul(fn->builder, lhs, rhs, target_name);
 		break;
 	case OP_DIVU:

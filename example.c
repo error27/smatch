@@ -32,8 +32,7 @@ static const char *opcodes[] = {
 	/* Binary */
 	[OP_ADD] = "add",
 	[OP_SUB] = "sub",
-	[OP_MULU] = "mulu",
-	[OP_MULS] = "muls",
+	[OP_MUL] = "mul",
 	[OP_DIVU] = "divu",
 	[OP_DIVS] = "divs",
 	[OP_MODU] = "modu",
@@ -1404,7 +1403,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		generate_copy(state, insn);
 		break;
 
-	case OP_ADD: case OP_MULU: case OP_MULS:
+	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		generate_commutative_binop(state, insn);

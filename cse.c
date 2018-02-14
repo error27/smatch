@@ -53,7 +53,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 
 	/* Binary arithmetic */
 	case OP_ADD: case OP_SUB:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 	case OP_DIVU: case OP_DIVS:
 	case OP_MODU: case OP_MODS:
 	case OP_SHL:
@@ -192,7 +192,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 
 	/* commutative binop */
 	case OP_ADD:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 	case OP_AND: case OP_OR:
 	case OP_XOR:

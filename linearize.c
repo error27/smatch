@@ -183,8 +183,7 @@ static const char *opcodes[] = {
 	/* Binary */
 	[OP_ADD] = "add",
 	[OP_SUB] = "sub",
-	[OP_MULU] = "mulu",
-	[OP_MULS] = "muls",
+	[OP_MUL] = "mul",
 	[OP_DIVU] = "divu",
 	[OP_DIVS] = "divs",
 	[OP_MODU] = "modu",
@@ -1192,7 +1191,7 @@ static int map_opcode(int opcode, struct symbol *ctype)
 		return opcode_table[opcode].to_float;
 	if (ctype && (ctype->ctype.modifiers & MOD_SIGNED)) {
 		switch(opcode) {
-		case OP_MULU: case OP_DIVU: case OP_MODU: case OP_LSR:
+		case OP_DIVU: case OP_MODU: case OP_LSR:
 			opcode++;
 		}
 	}
@@ -1236,7 +1235,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 		static const int op_trans[] = {
 			[SPECIAL_ADD_ASSIGN - SPECIAL_BASE] = OP_ADD,
 			[SPECIAL_SUB_ASSIGN - SPECIAL_BASE] = OP_SUB,
-			[SPECIAL_MUL_ASSIGN - SPECIAL_BASE] = OP_MULU,
+			[SPECIAL_MUL_ASSIGN - SPECIAL_BASE] = OP_MUL,
 			[SPECIAL_DIV_ASSIGN - SPECIAL_BASE] = OP_DIVU,
 			[SPECIAL_MOD_ASSIGN - SPECIAL_BASE] = OP_MODU,
 			[SPECIAL_SHL_ASSIGN - SPECIAL_BASE] = OP_SHL,
@@ -1347,7 +1346,7 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 	pseudo_t src1, src2, dst;
 	static const int opcode[] = {
 		['+'] = OP_ADD, ['-'] = OP_SUB,
-		['*'] = OP_MULU, ['/'] = OP_DIVU,
+		['*'] = OP_MUL, ['/'] = OP_DIVU,
 		['%'] = OP_MODU, ['&'] = OP_AND,
 		['|'] = OP_OR,  ['^'] = OP_XOR,
 		[SPECIAL_LEFTSHIFT] = OP_SHL,

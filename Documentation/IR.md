@@ -54,11 +54,8 @@ Integer addition.
 #### OP_SUB
 Integer subtraction.
 
-#### OP_MULU
-Integer unsigned multiplication.
-
-#### OP_MULS
-Integer signed multiplication.
+#### OP_MUL
+Integer multiplication.
 
 #### OP_DIVU
 Integer unsigned division.
