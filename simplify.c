@@ -1168,6 +1168,7 @@ int simplify_instruction(struct instruction *insn)
 		return 0;
 	switch (insn->opcode) {
 	case OP_ADD: case OP_MULS:
+	case OP_MULU:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		canonicalize_commutative(insn);
@@ -1175,7 +1176,6 @@ int simplify_instruction(struct instruction *insn)
 			return REPEAT_CSE;
 		return simplify_associative_binop(insn);
 
-	case OP_MULU:
 	case OP_SET_EQ: case OP_SET_NE:
 		canonicalize_commutative(insn);
 		return simplify_binop(insn);
