@@ -51,6 +51,35 @@ static int evaluate_pure_unop(struct expression *expr)
 	return 1;
 }
 
+/*
+ * eval_args - check the number of arguments and evaluate them.
+ */
+static int eval_args(struct expression *expr, int n)
+{
+	struct expression *arg;
+	struct symbol *sym;
+	const char *msg;
+	int rc = 1;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		if (n-- == 0) {
+			msg = "too many arguments";
+			goto error;
+		}
+		if (!evaluate_expression(arg))
+			rc = 0;
+	} END_FOR_EACH_PTR(arg);
+	if (n > 0) {
+		msg = "not enough arguments";
+		goto error;
+	}
+	return rc;
+
+error:
+	sym = expr->fn->ctype;
+	expression_error(expr, "%s for %s", msg, show_ident(sym->ident));
+	return 0;
+}
 
 static int evaluate_expect(struct expression *expr)
 {
@@ -61,25 +90,7 @@ static int evaluate_expect(struct expression *expr)
 
 static int arguments_choose(struct expression *expr)
 {
-	struct expression_list *arglist = expr->args;
-	struct expression *arg;
-	int i = 0;
-
-	FOR_EACH_PTR (arglist, arg) {
-		if (!evaluate_expression(arg))
-			return 0;
-		i++;
-	} END_FOR_EACH_PTR(arg);
-	if (i < 3) {
-		sparse_error(expr->pos,
-			     "not enough arguments for __builtin_choose_expr");
-		return 0;
-	} if (i > 3) {
-		sparse_error(expr->pos,
-			     "too many arguments for __builtin_choose_expr");
-		return 0;
-	}
-	return 1;
+	return eval_args(expr, 3);
 }
 
 static int evaluate_choose(struct expression *expr)
