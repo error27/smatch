@@ -212,7 +212,6 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 	else if (!get_implied_rl_var_sym(data->right_var, vsl_to_sym(data->right_vsl), &right_rl))
 		return &undefined;
 
-
 	op = rl_comparison(left_rl, right_rl);
 	if (op)
 		return alloc_compare_state(
@@ -1641,6 +1640,37 @@ void __add_comparison_info(struct expression *expr, struct expression *call, con
 	copy_comparisons(expr, call);
 }
 
+static char *get_mask_comparison(struct expression *expr, int ignore)
+{
+	struct expression *tmp, *right;
+	int count, param;
+	char buf[256];
+
+	/* The return value for "return foo & param;" is <= param */
+
+	count = 0;
+	while ((tmp = get_assigned_expr(expr))) {
+		expr = strip_expr(tmp);
+		if (count++ > 4)
+			break;
+	}
+
+	if (local_debug)
+		sm_msg("%s: %s", __func__, expr_to_str(expr));
+
+	if (expr->type != EXPR_BINOP || expr->op != '&')
+		return NULL;
+
+	right = strip_expr(expr->right);
+	param = get_param_num(right);
+
+	if (param == ignore)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "[<=$%d]", param);
+	return alloc_sname(buf);
+}
+
 static char *range_comparison_to_param_helper(struct expression *expr, char starts_with, int ignore)
 {
 	struct symbol *param;
@@ -1650,9 +1680,12 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 	int compare;
 	int i;
 
+	if (!expr)
+		return NULL;
+
 	var = chunk_to_var(expr);
 	if (!var)
-		goto free;
+		goto try_mask;
 
 	i = -1;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
@@ -1672,8 +1705,15 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 		break;
 	} END_FOR_EACH_PTR(param);
 
-free:
 	free_string(var);
+	if (!ret_str)
+		goto try_mask;
+
+	return ret_str;
+
+try_mask:
+	if (starts_with == '<')
+		ret_str = get_mask_comparison(expr, ignore);
 	return ret_str;
 }
 
