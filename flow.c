@@ -305,9 +305,7 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 void convert_load_instruction(struct instruction *insn, pseudo_t src)
 {
 	convert_instruction_target(insn, src);
-	/* Turn the load into a no-op */
-	insn->opcode = OP_LNOP;
-	insn->bb = NULL;
+	kill_instruction(insn);
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
@@ -481,7 +479,7 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable load? Undo it */
 	if (!bb) {
-		insn->opcode = OP_LNOP;
+		kill_use(&insn->src);
 		return 1;
 	}
 
@@ -544,15 +542,6 @@ found:
 	return 1;
 }
 
-static void kill_store(struct instruction *insn)
-{
-	if (insn) {
-		insn->bb = NULL;
-		insn->opcode = OP_SNOP;
-		kill_use(&insn->target);
-	}
-}
-
 /* Kill a pseudo that is dead on exit from the bb */
 static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
@@ -577,7 +566,7 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 		if (insn->src == pseudo) {
 			if (opcode == OP_LOAD)
 				return;
-			kill_store(insn);
+			kill_instruction_force(insn);
 			continue;
 		}
 		if (local)
@@ -608,7 +597,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable store? Undo it */
 	if (!bb) {
-		kill_store(insn);
+		kill_instruction_force(insn);
 		return;
 	}
 	if (bb->generation == generation)
@@ -631,7 +620,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 			return;
 		if (one->opcode == OP_LOAD)
 			return;
-		kill_store(one);
+		kill_instruction_force(one);
 	} END_FOR_EACH_PTR_REVERSE(one);
 
 	if (!found) {
@@ -723,7 +712,7 @@ external_visibility:
 		FOR_EACH_PTR(pseudo->users, pu) {
 			struct instruction *insn = pu->insn;
 			if (insn->opcode == OP_STORE)
-				kill_store(insn);
+				kill_instruction_force(insn);
 		} END_FOR_EACH_PTR(pu);
 	} else {
 		/*

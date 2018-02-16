@@ -139,15 +139,6 @@ next_load:
 	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
-static void kill_store(struct instruction *insn)
-{
-	if (insn) {
-		insn->bb = NULL;
-		insn->opcode = OP_SNOP;
-		kill_use(&insn->target);
-	}
-}
-
 static void kill_dominated_stores(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -178,7 +169,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 					if (dom->opcode == OP_LOAD)
 						goto next_store;
 					/* Yeehaa! Found one! */
-					kill_store(dom);
+					kill_instruction_force(dom);
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
 

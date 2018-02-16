@@ -179,7 +179,7 @@ static int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_
 	} END_FOR_EACH_PTR(pu);
 	assert(count <= 0);
 out:
-	if (ptr_list_size((struct ptr_list *) *list) == 0)
+	if (pseudo_user_list_size(*list) == 0)
 		*list = NULL;
 	return count;
 }
@@ -221,10 +221,10 @@ static void kill_use_list(struct pseudo_list *list)
  * the function does that unconditionally (must only be used
  * for unreachable instructions.
  */
-void kill_insn(struct instruction *insn, int force)
+int kill_insn(struct instruction *insn, int force)
 {
 	if (!insn || !insn->bb)
-		return;
+		return 0;
 
 	switch (insn->opcode) {
 	case OP_SEL:
@@ -266,9 +266,9 @@ void kill_insn(struct instruction *insn, int force)
 		if (!force) {
 			/* a "pure" function can be killed too */
 			if (!(insn->func->type == PSEUDO_SYM))
-				return;
+				return 0;
 			if (!(insn->func->sym->ctype.modifiers & MOD_PURE))
-				return;
+				return 0;
 		}
 		kill_use_list(insn->arguments);
 		if (insn->func->type == PSEUDO_REG)
@@ -277,20 +277,20 @@ void kill_insn(struct instruction *insn, int force)
 
 	case OP_LOAD:
 		if (!force && insn->type->ctype.modifiers & MOD_VOLATILE)
-			return;
+			return 0;
 		kill_use(&insn->src);
 		break;
 
 	case OP_STORE:
 		if (!force)
-			return;
+			return 0;
 		kill_use(&insn->src);
 		kill_use(&insn->target);
 		break;
 
 	case OP_ENTRY:
 		/* ignore */
-		return;
+		return 0;
 
 	case OP_BR:
 	case OP_SETFVAL:
@@ -299,8 +299,7 @@ void kill_insn(struct instruction *insn, int force)
 	}
 
 	insn->bb = NULL;
-	repeat_phase |= REPEAT_CSE;
-	return;
+	return repeat_phase |= REPEAT_CSE;
 }
 
 /*
@@ -308,11 +307,8 @@ void kill_insn(struct instruction *insn, int force)
  */
 static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, pseudo_t *src3)
 {
-	struct pseudo_user *pu;
-	FOR_EACH_PTR(insn->target->users, pu) {
-		if (*pu->userp != VOID)
-			return 0;
-	} END_FOR_EACH_PTR(pu);
+	if (has_users(insn->target))
+		return 0;
 
 	insn->bb = NULL;
 	kill_use(src1);
@@ -797,7 +793,7 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (!simple_pseudo(def->src2))
 		return 0;
-	if (ptr_list_size((struct ptr_list *)def->target->users) != 1)
+	if (pseudo_user_list_size(def->target->users) != 1)
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
@@ -1199,7 +1195,11 @@ int simplify_instruction(struct instruction *insn)
 
 	case OP_NOT: case OP_NEG:
 		return simplify_unop(insn);
-	case OP_LOAD: case OP_STORE:
+	case OP_LOAD:
+		if (!has_users(insn->target))
+			return kill_instruction(insn);
+		/* fall-through */
+	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
 		if (dead_insn(insn, NULL, NULL, NULL))
