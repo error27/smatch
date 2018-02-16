@@ -237,6 +237,27 @@ static struct symbol_op bswap_op = {
 };
 
 
+static int evaluate_fp_unop(struct expression *expr)
+{
+	struct expression *arg;
+
+	if (!eval_args(expr, 1))
+		return 0;
+
+	arg = first_expression(expr->args);
+	if (!is_float_type(arg->ctype)) {
+		expression_error(expr, "non-floating-point argument in call to %s()",
+			show_ident(expr->fn->ctype->ident));
+		return 0;
+	}
+	return 1;
+}
+
+static struct symbol_op fp_unop_op = {
+	.evaluate = evaluate_fp_unop,
+};
+
+
 /*
  * Builtin functions
  */
@@ -255,6 +276,12 @@ static struct sym_init {
 	{ "__builtin_bswap16", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
 	{ "__builtin_bswap32", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
 	{ "__builtin_bswap64", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
+	{ "__builtin_isfinite", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_isinf", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_isinf_sign", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_isnan", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_isnormal", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_signbit", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ NULL,		NULL,		0 }
 };
 
@@ -343,11 +370,13 @@ void declare_builtins(void)
 	declare_builtin("__builtin_isfinite", &int_ctype, 1, NULL);
 	declare_builtin("__builtin_isgreater", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
 	declare_builtin("__builtin_isgreaterequal", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
+	declare_builtin("__builtin_isinf", &int_ctype, 1, NULL);
 	declare_builtin("__builtin_isinf_sign", &int_ctype, 1, NULL);
 	declare_builtin("__builtin_isless", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
 	declare_builtin("__builtin_islessequal", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
 	declare_builtin("__builtin_islessgreater", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
 	declare_builtin("__builtin_isnan", &int_ctype, 1, NULL);
+	declare_builtin("__builtin_isnormal", &int_ctype, 1, NULL);
 	declare_builtin("__builtin_isunordered", &int_ctype, 0, &float_ctype, &float_ctype, NULL);
 	declare_builtin("__builtin_labs", &long_ctype, 0, &long_ctype, NULL);
 	declare_builtin("__builtin_llabs", &llong_ctype, 0, &llong_ctype, NULL);
@@ -374,6 +403,7 @@ void declare_builtins(void)
 	declare_builtin("__builtin_realloc", &ptr_ctype, 0, &ptr_ctype, size_t_ctype, NULL);
 	declare_builtin("__builtin_return_address", &ptr_ctype, 0, &uint_ctype, NULL);
 	declare_builtin("__builtin_rindex", &string_ctype, 0, &const_string_ctype, &int_ctype, NULL);
+	declare_builtin("__builtin_signbit", &int_ctype, 1, NULL);
 	declare_builtin("__builtin_snprintf", &int_ctype, 1, &string_ctype, size_t_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_sprintf", &int_ctype, 1, &string_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_stpcpy", &string_ctype, 0, &const_string_ctype, &const_string_ctype, NULL);
