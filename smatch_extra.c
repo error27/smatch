@@ -1826,10 +1826,11 @@ static void handle_AND_op(struct expression *var, sval_t known)
 	sval_t low_mask = known;
 	sval_t high_mask;
 
+	get_absolute_rl(var, &orig_rl);
+
 	if (known.value > 0) {
 		bit = ffsll(known.value) - 1;
 		low_mask.uvalue = (1ULL << bit) - 1;
-		get_absolute_rl(var, &orig_rl);
 		true_rl = remove_range(orig_rl, sval_type_val(known.type, 0), low_mask);
 	}
 	high_mask = get_high_mask(known);
@@ -1837,10 +1838,10 @@ static void handle_AND_op(struct expression *var, sval_t known)
 		bit = ffsll(high_mask.value) - 1;
 		low_mask.uvalue = (1ULL << bit) - 1;
 
-		get_absolute_rl(var, &orig_rl);
+		false_rl = orig_rl;
 		if (sval_is_negative(rl_min(orig_rl)))
-			orig_rl = remove_range(orig_rl, sval_type_min(known.type), sval_type_val(known.type, -1));
-		false_rl = remove_range(orig_rl, low_mask, sval_type_max(known.type));
+			false_rl = remove_range(false_rl, sval_type_min(known.type), sval_type_val(known.type, -1));
+		false_rl = remove_range(false_rl, low_mask, sval_type_max(known.type));
 		if (type_signed(high_mask.type) && type_unsigned(rl_type(false_rl))) {
 			false_rl = remove_range(false_rl,
 						sval_type_val(rl_type(false_rl), sval_type_max(known.type).uvalue),
