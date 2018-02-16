@@ -1390,11 +1390,36 @@ int get_comparison_strings(const char *one, const char *two)
 	return ret;
 }
 
+static int is_plus_one(struct expression *expr)
+{
+	sval_t sval;
+
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return 0;
+	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
+		return 0;
+	return 1;
+}
+
+static int is_minus_one(struct expression *expr)
+{
+	sval_t sval;
+
+	if (expr->type != EXPR_BINOP || expr->op != '-')
+		return 0;
+	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
+		return 0;
+	return 1;
+}
+
 int get_comparison(struct expression *a, struct expression *b)
 {
 	char *one = NULL;
 	char *two = NULL;
 	int ret = 0;
+
+	a = strip_parens(a);
+	b = strip_parens(b);
 
 	one = chunk_to_var(a);
 	if (!one)
@@ -1404,6 +1429,29 @@ int get_comparison(struct expression *a, struct expression *b)
 		goto free;
 
 	ret = get_comparison_strings(one, two);
+	if (ret)
+		goto free;
+
+	if (is_plus_one(a) || is_minus_one(a)) {
+		free_string(one);
+		one = chunk_to_var(a->left);
+		ret = get_comparison_strings(one, two);
+	} else if (is_plus_one(b) || is_minus_one(b)) {
+		free_string(two);
+		two = chunk_to_var(b->left);
+		ret = get_comparison_strings(one, two);
+	}
+
+	if (!ret)
+		goto free;
+
+	if ((is_plus_one(a) || is_minus_one(b)) && ret == '<')
+		ret = SPECIAL_LTE;
+	else if ((is_minus_one(a) || is_plus_one(b)) && ret == '>')
+		ret = SPECIAL_GTE;
+	else
+		ret = 0;
+
 free:
 	free_string(one);
 	free_string(two);
