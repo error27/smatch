@@ -1520,8 +1520,6 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	}
 
 	ctype = &fntype->ctype;
-	if (fntype->type == SYM_NODE)
-		fntype = fntype->ctype.base_type;
 
 	add_symbol(&insn->fntypes, fntype);
 	FOR_EACH_PTR(expr->args, arg) {
