@@ -1057,10 +1057,9 @@ static int simplify_cond_branch(struct instruction *br, pseudo_t cond, struct in
 	use_pseudo(br, *pp, &br->cond);
 	remove_usage(cond, &br->cond);
 	if (def->opcode == OP_SET_EQ) {
-		struct basic_block *true = br->bb_true;
-		struct basic_block *false = br->bb_false;
-		br->bb_false = true;
-		br->bb_true = false;
+		struct basic_block *tmp = br->bb_true;
+		br->bb_true = br->bb_false;
+		br->bb_false = tmp;
 	}
 	return REPEAT_CSE;
 }
@@ -1111,10 +1110,9 @@ static int simplify_branch(struct instruction *insn)
 					return REPEAT_CSE;
 				}
 				if (val2) {
-					struct basic_block *true = insn->bb_true;
-					struct basic_block *false = insn->bb_false;
-					insn->bb_false = true;
-					insn->bb_true = false;
+					struct basic_block *tmp = insn->bb_true;
+					insn->bb_true = insn->bb_false;
+					insn->bb_false = tmp;
 				}
 				use_pseudo(insn, def->src1, &insn->cond);
 				remove_usage(cond, &insn->cond);

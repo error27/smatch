@@ -1367,19 +1367,19 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 
 static pseudo_t linearize_select(struct entrypoint *ep, struct expression *expr)
 {
-	pseudo_t cond, true, false, res;
+	pseudo_t cond, valt, valf, res;
 	struct instruction *insn;
 
-	true = linearize_expression(ep, expr->cond_true);
-	false = linearize_expression(ep, expr->cond_false);
+	valt = linearize_expression(ep, expr->cond_true);
+	valf = linearize_expression(ep, expr->cond_false);
 	cond = linearize_expression(ep, expr->conditional);
 
 	insn = alloc_typed_instruction(OP_SEL, expr->ctype);
 	if (!expr->cond_true)
-		true = cond;
+		valt = cond;
 	use_pseudo(insn, cond, &insn->src1);
-	use_pseudo(insn, true, &insn->src2);
-	use_pseudo(insn, false, &insn->src3);
+	use_pseudo(insn, valt, &insn->src2);
+	use_pseudo(insn, valf, &insn->src3);
 
 	res = alloc_pseudo(insn);
 	insn->target = res;

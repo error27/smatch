@@ -1140,7 +1140,7 @@ OK:
  */
 static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
-	struct expression **true;
+	struct expression **cond;
 	struct symbol *ctype, *ltype, *rtype, *lbase, *rbase;
 	int lclass, rclass;
 	const char * typediff;
@@ -1154,16 +1154,16 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	ctype = degenerate(expr->conditional);
 	rtype = degenerate(expr->cond_false);
 
-	true = &expr->conditional;
+	cond = &expr->conditional;
 	ltype = ctype;
 	if (expr->cond_true) {
 		if (!evaluate_expression(expr->cond_true))
 			return NULL;
 		ltype = degenerate(expr->cond_true);
-		true = &expr->cond_true;
+		cond = &expr->cond_true;
 	}
 
-	expr->flags = (expr->conditional->flags & (*true)->flags &
+	expr->flags = (expr->conditional->flags & (*cond)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
 	/*
 	 * A conditional operator yields a particular constant
@@ -1179,32 +1179,32 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	 * address constants, mark the result as an address constant.
 	 */
 	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
-		expr->flags = (*true)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
+		expr->flags = (*cond)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
 	if (lclass & rclass & TYPE_NUM) {
-		ctype = usual_conversions('?', *true, expr->cond_false,
+		ctype = usual_conversions('?', *cond, expr->cond_false,
 					  lclass, rclass, ltype, rtype);
-		*true = cast_to(*true, ctype);
+		*cond = cast_to(*cond, ctype);
 		expr->cond_false = cast_to(expr->cond_false, ctype);
 		goto out;
 	}
 
 	if ((lclass | rclass) & TYPE_PTR) {
-		int is_null1 = is_null_pointer_constant(*true);
+		int is_null1 = is_null_pointer_constant(*cond);
 		int is_null2 = is_null_pointer_constant(expr->cond_false);
 
 		if (is_null1 && is_null2) {
-			*true = cast_to(*true, &ptr_ctype);
+			*cond = cast_to(*cond, &ptr_ctype);
 			expr->cond_false = cast_to(expr->cond_false, &ptr_ctype);
 			ctype = &ptr_ctype;
 			goto out;
 		}
 		if (is_null1 && (rclass & TYPE_PTR)) {
 			if (is_null1 == 2)
-				bad_null(*true);
-			*true = cast_to(*true, rtype);
+				bad_null(*cond);
+			*cond = cast_to(*cond, rtype);
 			ctype = rtype;
 			goto out;
 		}
@@ -1284,7 +1284,7 @@ Qual:
 		sym->ctype.modifiers |= qual;
 		ctype = sym;
 	}
-	*true = cast_to(*true, ctype);
+	*cond = cast_to(*cond, ctype);
 	expr->cond_false = cast_to(expr->cond_false, ctype);
 	goto out;
 }

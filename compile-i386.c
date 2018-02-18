@@ -1554,7 +1554,7 @@ static struct storage *emit_return_stmt(struct statement *stmt)
 
 static struct storage *emit_conditional_expr(struct expression *expr)
 {
-	struct storage *cond, *true = NULL, *false = NULL;
+	struct storage *cond, *stot = NULL, *stof = NULL;
 	struct storage *new = stack_alloc(expr->ctype->bit_size / 8);
 	int target_false, cond_end;
 
@@ -1563,16 +1563,16 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 	target_false = emit_conditional_test(cond);
 
 	/* handle if-true part of the expression */
-	true = x86_expression(expr->cond_true);
+	stot = x86_expression(expr->cond_true);
 
-	emit_copy(new, true, expr->ctype);
+	emit_copy(new, stot, expr->ctype);
 
 	cond_end = emit_conditional_end(target_false);
 
 	/* handle if-false part of the expression */
-	false = x86_expression(expr->cond_false);
+	stof = x86_expression(expr->cond_false);
 
-	emit_copy(new, false, expr->ctype);
+	emit_copy(new, stof, expr->ctype);
 
 	/* end of conditional; jump target for if-true branch */
 	emit_label(cond_end, "end conditional");
@@ -1583,15 +1583,15 @@ static struct storage *emit_conditional_expr(struct expression *expr)
 static struct storage *emit_select_expr(struct expression *expr)
 {
 	struct storage *cond = x86_expression(expr->conditional);
-	struct storage *true = x86_expression(expr->cond_true);
-	struct storage *false = x86_expression(expr->cond_false);
+	struct storage *stot = x86_expression(expr->cond_true);
+	struct storage *stof = x86_expression(expr->cond_false);
 	struct storage *reg_cond, *reg_true, *reg_false;
 	struct storage *new = stack_alloc(4);
 
 	emit_comment("begin SELECT");
 	reg_cond = get_reg_value(cond, get_regclass(expr->conditional));
-	reg_true = get_reg_value(true, get_regclass(expr));
-	reg_false = get_reg_value(false, get_regclass(expr));
+	reg_true = get_reg_value(stot, get_regclass(expr));
+	reg_false = get_reg_value(stof, get_regclass(expr));
 
 	/*
 	 * Do the actual select: check the conditional for zero,
