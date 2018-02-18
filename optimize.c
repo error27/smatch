@@ -5,11 +5,14 @@
 // Copyright (C) 2004 Linus Torvalds
 // Copyright (C) 2004 Christopher Li
 
+#include <assert.h>
 #include "optimize.h"
 #include "linearize.h"
 #include "liveness.h"
 #include "flow.h"
+#include "cse.h"
 
+int repeat_phase;
 
 static void clear_symbol_pseudos(struct entrypoint *ep)
 {
@@ -18,6 +21,41 @@ static void clear_symbol_pseudos(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->accesses, pseudo) {
 		pseudo->sym->pseudo = NULL;
 	} END_FOR_EACH_PTR(pseudo);
+}
+
+
+static void clean_up_insns(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR(bb->insns, insn) {
+			repeat_phase |= simplify_instruction(insn);
+			if (!insn->bb)
+				continue;
+			assert(insn->bb == bb);
+			cse_collect(insn);
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
+}
+
+static void cleanup_and_cse(struct entrypoint *ep)
+{
+	simplify_memops(ep);
+repeat:
+	repeat_phase = 0;
+	clean_up_insns(ep);
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(ep);
+
+	cse_eliminate(ep);
+
+	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
+		simplify_memops(ep);
+
+	if (repeat_phase & REPEAT_CSE)
+		goto repeat;
 }
 
 void optimize(struct entrypoint *ep)

@@ -21,8 +21,6 @@
 #define INSN_HASH_SIZE 256
 static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
 
-int repeat_phase;
-
 static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
 	const struct instruction *def1 = phi1->def;
@@ -130,22 +128,6 @@ void cse_collect(struct instruction *insn)
 	hash += hash >> 16;
 	hash &= INSN_HASH_SIZE-1;
 	add_instruction(insn_hash_table + hash, insn);
-}
-
-static void clean_up_insns(struct entrypoint *ep)
-{
-	struct basic_block *bb;
-
-	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *insn;
-		FOR_EACH_PTR(bb->insns, insn) {
-			repeat_phase |= simplify_instruction(insn);
-			if (!insn->bb)
-				continue;
-			assert(insn->bb == bb);
-			cse_collect(insn);
-		} END_FOR_EACH_PTR(insn);
-	} END_FOR_EACH_PTR(bb);
 }
 
 /* Compare two (sorted) phi-lists */
@@ -408,22 +390,4 @@ void cse_eliminate(struct entrypoint *ep)
 			free_ptr_list((struct ptr_list **)list);
 		}
 	}
-}
-
-void cleanup_and_cse(struct entrypoint *ep)
-{
-	simplify_memops(ep);
-repeat:
-	repeat_phase = 0;
-	clean_up_insns(ep);
-	if (repeat_phase & REPEAT_CFG_CLEANUP)
-		kill_unreachable_bbs(ep);
-
-	cse_eliminate(ep);
-
-	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-		simplify_memops(ep);
-
-	if (repeat_phase & REPEAT_CSE)
-		goto repeat;
 }
