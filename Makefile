@@ -99,10 +99,10 @@ EXTRA_OBJS += compile-i386.o
 
 # Can we use GCC's generated dependencies?
 HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
-		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
+		$(CC) -c -Wp,-MP,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
 ifeq ($(HAVE_GCC_DEP),yes)
-cflags += -Wp,-MD,$(@D)/.$(@F).d
+cflags += -Wp,-MP,-MD,$(@D)/.$(@F).d
 endif
 
 # Can we use libxml (needed for c2xml)?
