@@ -40,24 +40,6 @@ static void clean_up_insns(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
-static void cleanup_and_cse(struct entrypoint *ep)
-{
-	simplify_memops(ep);
-repeat:
-	repeat_phase = 0;
-	clean_up_insns(ep);
-	if (repeat_phase & REPEAT_CFG_CLEANUP)
-		kill_unreachable_bbs(ep);
-
-	cse_eliminate(ep);
-
-	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-		simplify_memops(ep);
-
-	if (repeat_phase & REPEAT_CSE)
-		goto repeat;
-}
-
 void optimize(struct entrypoint *ep)
 {
 	if (fdump_ir & PASS_LINEARIZE)
@@ -85,7 +67,18 @@ repeat:
 	 * the rest.
 	 */
 	do {
-		cleanup_and_cse(ep);
+		simplify_memops(ep);
+		do {
+			repeat_phase = 0;
+			clean_up_insns(ep);
+			if (repeat_phase & REPEAT_CFG_CLEANUP)
+				kill_unreachable_bbs(ep);
+
+			cse_eliminate(ep);
+
+			if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
+				simplify_memops(ep);
+		} while (repeat_phase & REPEAT_CSE);
 		pack_basic_blocks(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
