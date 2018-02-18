@@ -45,7 +45,7 @@
 #include "target.h"
 #include "version.h"
 
-int verbose, optimize, optimize_size, preprocessing;
+int verbose, optimize_level, optimize_size, preprocessing;
 int die_if_error = 0;
 int has_error = 0;
 
@@ -803,7 +803,7 @@ static char **handle_switch_O(char *arg, char **next)
 	int level = 1;
 	if (arg[1] >= '0' && arg[1] <= '9')
 		level = arg[1] - '0';
-	optimize = level;
+	optimize_level = level;
 	optimize_size = arg[1] == 's';
 	return next;
 }
@@ -1217,7 +1217,7 @@ static void create_builtin_stream(void)
 	/* FIXME! We need to do these as special magic macros at expansion time! */
 	add_pre_buffer("#define __BASE_FILE__ \"base_file.c\"\n");
 
-	if (optimize)
+	if (optimize_level)
 		add_pre_buffer("#define __OPTIMIZE__ 1\n");
 	if (optimize_size)
 		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
