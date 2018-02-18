@@ -16,6 +16,7 @@
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
+#include "cse.h"
 
 #define INSN_HASH_SIZE 256
 static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
@@ -35,7 +36,7 @@ static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 }
 
 
-static void cse_collect(struct instruction *insn)
+void cse_collect(struct instruction *insn)
 {
 	unsigned long hash;
 
@@ -381,7 +382,7 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	return i1;
 }
 
-static void cse_eliminate(struct entrypoint *ep)
+void cse_eliminate(struct entrypoint *ep)
 {
 	int i;
 
