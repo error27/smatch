@@ -41,10 +41,6 @@ void convert_load_instruction(struct instruction *, pseudo_t);
 void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);
 
-extern void clear_liveness(struct entrypoint *ep);
-extern void track_pseudo_liveness(struct entrypoint *ep);
-extern void track_pseudo_death(struct entrypoint *ep);
-
 extern void vrfy_flow(struct entrypoint *ep);
 extern int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo);
 

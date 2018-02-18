@@ -7,6 +7,7 @@
 
 #include <assert.h>
 
+#include "liveness.h"
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"

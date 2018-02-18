@@ -7,6 +7,7 @@
 
 #include "optimize.h"
 #include "linearize.h"
+#include "liveness.h"
 #include "flow.h"
 
 
