@@ -451,7 +451,7 @@ static const char *stor_op_name(struct storage *s)
 		strcpy(name, s->reg->name);
 		break;
 	case STOR_VALUE:
-		sprintf(name, "$%Ld", s->value);
+		sprintf(name, "$%lld", s->value);
 		break;
 	case STOR_LABEL:
 		sprintf(name, "%s.L%d", s->flags & STOR_LABEL_VAL ? "$" : "",
@@ -936,7 +936,7 @@ static void emit_scalar(struct expression *expr, unsigned int bit_size)
 
 	assert(type != NULL);
 
-	printf("\t.%s\t%Ld\n", type, ll);
+	printf("\t.%s\t%lld\n", type, ll);
 }
 
 static void emit_global_noinit(const char *name, unsigned long modifiers,
