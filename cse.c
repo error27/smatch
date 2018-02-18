@@ -381,16 +381,10 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	return i1;
 }
 
-void cleanup_and_cse(struct entrypoint *ep)
+static void cse_eliminate(struct entrypoint *ep)
 {
 	int i;
 
-	simplify_memops(ep);
-repeat:
-	repeat_phase = 0;
-	clean_up_insns(ep);
-	if (repeat_phase & REPEAT_CFG_CLEANUP)
-		kill_unreachable_bbs(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
 		if (*list) {
@@ -413,6 +407,18 @@ repeat:
 			free_ptr_list((struct ptr_list **)list);
 		}
 	}
+}
+
+void cleanup_and_cse(struct entrypoint *ep)
+{
+	simplify_memops(ep);
+repeat:
+	repeat_phase = 0;
+	clean_up_insns(ep);
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(ep);
+
+	cse_eliminate(ep);
 
 	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
 		simplify_memops(ep);
