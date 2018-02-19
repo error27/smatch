@@ -474,7 +474,7 @@ do_format()
 	cmd=`eval echo $default_path/$fcmd`
 	$cmd 1> $file.output.got 2> $file.error.got
 	fexit_value=$?
-	[ "append" != 0 ] && exec >> $file
+	[ $append != 0 ] && exec >> $file
 	cat <<_EOF
 
 /*
