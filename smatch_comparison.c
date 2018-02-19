@@ -1009,6 +1009,57 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 	set_true_false_states(compare_id, state_name, NULL, NULL, false_state);
 }
 
+static int is_plus_one(struct expression *expr)
+{
+	sval_t sval;
+
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return 0;
+	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
+		return 0;
+	return 1;
+}
+
+static int is_minus_one(struct expression *expr)
+{
+	sval_t sval;
+
+	if (expr->type != EXPR_BINOP || expr->op != '-')
+		return 0;
+	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
+		return 0;
+	return 1;
+}
+
+static void move_plus_to_minus_helper(struct expression **left_p, struct expression **right_p)
+{
+	struct expression *left = *left_p;
+	struct expression *right = *right_p;
+
+	/*
+	 * These two are basically equivalent: "foo + 1 != bar" and
+	 * "foo != bar - 1".  There are issues with signedness and integer
+	 * overflows.  There are also issues with type as well.  But let's
+	 * pretend we can ignore all that stuff for now.
+	 *
+	 */
+
+	if (!is_plus_one(left))
+		return;
+
+	*left_p = left->left;
+	*right_p = binop_expression(right, '-', left->right);
+}
+
+static void move_plus_to_minus(struct expression **left_p, struct expression **right_p)
+{
+	if (is_plus_one(*left_p) && is_plus_one(*right_p))
+		return;
+
+	move_plus_to_minus_helper(left_p, right_p);
+	move_plus_to_minus_helper(right_p, left_p);
+}
+
 static void handle_comparison(struct expression *left_expr, int op, struct expression *right_expr, char **_state_name, struct smatch_state **_false_state)
 {
 	char *left = NULL;
@@ -1022,7 +1073,12 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	struct stree *pre_stree;
 	sval_t sval;
 
+	left_expr = strip_parens(left_expr);
+	right_expr = strip_parens(right_expr);
+
 	false_op = negate_comparison(op);
+
+	move_plus_to_minus(&left_expr, &right_expr);
 
 	if (op == SPECIAL_UNSIGNED_LT &&
 	    get_implied_value(left_expr, &sval) &&
@@ -1061,7 +1117,7 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 		false_op = flip_comparison(false_op);
 	}
 
-	orig_comparison = get_comparison_strings(left, right);
+	orig_comparison = get_comparison(left_expr, right_expr);
 	op = filter_comparison(orig_comparison, op);
 	false_op = filter_comparison(orig_comparison, false_op);
 
@@ -1389,28 +1445,6 @@ int get_comparison_strings(const char *one, const char *two)
 	return ret;
 }
 
-static int is_plus_one(struct expression *expr)
-{
-	sval_t sval;
-
-	if (expr->type != EXPR_BINOP || expr->op != '+')
-		return 0;
-	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
-		return 0;
-	return 1;
-}
-
-static int is_minus_one(struct expression *expr)
-{
-	sval_t sval;
-
-	if (expr->type != EXPR_BINOP || expr->op != '-')
-		return 0;
-	if (!get_implied_value(expr->right, &sval) || sval.value != 1)
-		return 0;
-	return 1;
-}
-
 int get_comparison(struct expression *a, struct expression *b)
 {
 	char *one = NULL;
@@ -1419,6 +1453,8 @@ int get_comparison(struct expression *a, struct expression *b)
 
 	a = strip_parens(a);
 	b = strip_parens(b);
+
+	move_plus_to_minus(&a, &b);
 
 	one = chunk_to_var(a);
 	if (!one)
