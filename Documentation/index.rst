@@ -6,6 +6,13 @@ Welcome to sparse's documentation
 .. toctree::
    :maxdepth: 1
 
+User documentation
+------------------
+.. toctree::
+   :maxdepth: 1
+
+   nocast-vs-bitwise
+
 Developer documentation
 -----------------------
 .. toctree::
