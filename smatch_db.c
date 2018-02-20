@@ -732,6 +732,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	int is_address = 0;
 
 	expr = strip_expr(expr);
+	if (!expr)
+		return;
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		expr = strip_expr(expr->unop);
 		is_address = 1;
