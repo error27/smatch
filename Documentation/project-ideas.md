@@ -9,8 +9,7 @@ Why hacking on sparse
    With sparse-llvm, sparse uses llvm as back end to emit real machine code.
 
 New developer hacking on sparse
-==============================
-
+------------------------------
 
 * All sparse warning messages should include the option how
    to disable it.  
@@ -29,7 +28,7 @@ used. (-Wno-vla)"
 * checker error output database
 
 For experienced developers
-==========================
+--------------------------
 
 * merge C type on incremental declare of C type and function prototype.
 * move attribute out of ctype to allow easier to add new attribute.
