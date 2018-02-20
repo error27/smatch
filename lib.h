@@ -218,7 +218,7 @@ static inline int bb_list_size(struct basic_block_list *list)
 
 static inline void free_instruction_list(struct instruction_list **head)
 {
-	free_ptr_list((struct ptr_list **)head);
+	free_ptr_list(head);
 }
 
 static inline struct instruction * delete_last_instruction(struct instruction_list **head)

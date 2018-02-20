@@ -387,7 +387,7 @@ void cse_eliminate(struct entrypoint *ep)
 					last = insn;
 				} END_FOR_EACH_PTR(insn);
 			}
-			free_ptr_list((struct ptr_list **)list);
+			free_ptr_list(list);
 		}
 	}
 }
