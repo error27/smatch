@@ -216,13 +216,20 @@ static int get_array_mtag(struct expression *expr, mtag_t *tag)
 	return 1;
 }
 
+static int get_mtag_cnt;
 int get_mtag(struct expression *expr, mtag_t *tag)
 {
 	struct smatch_state *state;
+	int ret = 0;
 
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
+
+	if (get_mtag_cnt > 0)
+		return 0;
+
+	get_mtag_cnt++;
 
 	/* FIXME:  This doesn't feel like the right thing at all */
 	if (expr->type == EXPR_PREOP) {
@@ -234,24 +241,34 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 
 	switch (expr->type) {
 	case EXPR_SYMBOL:
-		if (get_toplevel_mtag(expr->symbol, tag))
-			return 1;
+		if (get_toplevel_mtag(expr->symbol, tag)) {
+			ret = 1;
+			goto dec_cnt;
+		}
 		break;
 	case EXPR_DEREF:
-		return get_mtag(expr->unop, tag);
+		if (get_deref_mtag(expr, tag)) {
+			ret = 1;
+			goto dec_cnt;
+		}
+		break;
 	case EXPR_BINOP:
-		return get_array_mtag(expr, tag);
+		ret = get_array_mtag(expr, tag);
+		goto dec_cnt;
 	}
 
 	state = get_state_expr(my_id, expr);
 	if (!state)
-		return 0;
+		goto dec_cnt;
 	if (state->data) {
 		*tag = *(mtag_t *)state->data;
-		return 1;
+		ret = 1;
+		goto dec_cnt;
 	}
 
-	return 0;
+dec_cnt:
+	get_mtag_cnt--;
+	return ret;
 }
 
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
