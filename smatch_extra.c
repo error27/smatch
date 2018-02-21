@@ -1557,6 +1557,16 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		right_false_state = NULL;
 	}
 
+	/* Don't introduce new states for known true/false conditions */
+	if (rl_equiv(left_orig, estate_rl(left_true_state)))
+		left_true_state = NULL;
+	if (rl_equiv(left_orig, estate_rl(left_false_state)))
+		left_false_state = NULL;
+	if (rl_equiv(right_orig, estate_rl(right_true_state)))
+		right_true_state = NULL;
+	if (rl_equiv(right_orig, estate_rl(right_false_state)))
+		right_false_state = NULL;
+
 	set_extra_expr_true_false(left, left_true_state, left_false_state);
 	set_extra_expr_true_false(right, right_true_state, right_false_state);
 }
