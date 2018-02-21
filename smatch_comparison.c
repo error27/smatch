@@ -1423,6 +1423,9 @@ int get_comparison_strings(const char *one, const char *two)
 	int invert = 0;
 	int ret = 0;
 
+	if (!one || !two)
+		return 0;
+
 	if (strcmp(one, two) == 0)
 		return SPECIAL_EQUAL;
 
