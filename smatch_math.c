@@ -574,8 +574,10 @@ static struct range_list *handle_binop_rl(struct expression *expr, int implied, 
 	}
 
 	state = get_extra_state(expr);
-	if (state && !is_whole_rl(estate_rl(state)))
-		return clone_rl(estate_rl(state));
+	if (state && !is_whole_rl(estate_rl(state))) {
+		if (implied != RL_HARD || estate_has_hard_max(state))
+			return clone_rl(estate_rl(state));
+	}
 
 	type = get_type(expr);
 	left_rl = _get_rl(expr->left, implied, recurse_cnt);
