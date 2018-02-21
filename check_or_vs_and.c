@@ -68,11 +68,9 @@ static void check_or(struct expression *expr)
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 
-	if (left->type != EXPR_COMPARE ||
-			left->op != SPECIAL_NOTEQUAL)
+	if (left->type != EXPR_COMPARE || left->op != SPECIAL_NOTEQUAL)
 		return;
-	if (right->type != EXPR_COMPARE ||
-			right->op != SPECIAL_NOTEQUAL)
+	if (right->type != EXPR_COMPARE || right->op != SPECIAL_NOTEQUAL)
 		return;
 	if (!inconsistent_check(left, right))
 		return;
