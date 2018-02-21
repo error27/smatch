@@ -131,6 +131,15 @@ static int print_call_is_linked(struct expression *call)
 	return 0;
 }
 
+static int is_recursive_call(struct expression *call)
+{
+	if (call->fn->type != EXPR_SYMBOL)
+		return 0;
+	if (call->fn->symbol == cur_func_sym)
+		return 1;
+	return 0;
+}
+
 static void check_passes_fn_and_data(struct expression *call, struct expression *fn, char *key, char *value)
 {
 	struct expression *arg;
@@ -139,6 +148,9 @@ static void check_passes_fn_and_data(struct expression *call, struct expression 
 	struct symbol *type;
 	int data_nr;
 	int fn_param, arg_param;
+
+	if (is_recursive_call(call))
+		return;
 
 	type = get_type(fn);
 	if (!type || type->type != SYM_PTR)
