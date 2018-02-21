@@ -1835,6 +1835,7 @@ static void handle_AND_op(struct expression *var, sval_t known)
 	int bit;
 	sval_t low_mask = known;
 	sval_t high_mask;
+	sval_t max;
 
 	get_absolute_rl(var, &orig_rl);
 
@@ -1857,6 +1858,11 @@ static void handle_AND_op(struct expression *var, sval_t known)
 						sval_type_val(rl_type(false_rl), sval_type_max(known.type).uvalue),
 					sval_type_val(rl_type(false_rl), -1));
 		}
+	} else if (known.value == 1 &&
+		   get_hard_max(var, &max) &&
+		   sval_cmp(max, rl_max(orig_rl)) == 0 &&
+		   max.value & 1) {
+		false_rl = remove_range(orig_rl, max, max);
 	}
 	set_extra_expr_true_false(var,
 				  true_rl ? alloc_estate_rl(true_rl) : NULL,
