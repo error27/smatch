@@ -1043,7 +1043,7 @@ static struct token *enum_specifier(struct token *token, struct symbol *sym, str
 	return ret;
 }
 
-static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype);
+static void apply_ctype(struct position pos, struct ctype *src, struct ctype *dst);
 
 static struct token *typeof_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
 {
@@ -1427,24 +1427,24 @@ static struct token *generic_qualifier(struct token *next, struct symbol *sym, s
 	return next;
 }
 
-static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype)
+static void apply_ctype(struct position pos, struct ctype *src, struct ctype *dst)
 {
-	unsigned long mod = thistype->modifiers;
+	unsigned long mod = src->modifiers;
 
 	if (mod)
-		apply_qualifier(&pos, ctype, mod);
+		apply_qualifier(&pos, dst, mod);
 
 	/* Context */
-	concat_ptr_list((struct ptr_list *)thistype->contexts,
-	                (struct ptr_list **)&ctype->contexts);
+	concat_ptr_list((struct ptr_list *)src->contexts,
+	                (struct ptr_list **)&dst->contexts);
 
 	/* Alignment */
-	if (thistype->alignment > ctype->alignment)
-		ctype->alignment = thistype->alignment;
+	if (src->alignment > dst->alignment)
+		dst->alignment = src->alignment;
 
 	/* Address space */
-	if (thistype->as)
-		ctype->as = thistype->as;
+	if (src->as)
+		dst->as = src->as;
 }
 
 static void specifier_conflict(struct position pos, int what, struct ident *new)
