@@ -268,6 +268,8 @@ static int is_ignored_function(void)
 		return 1;
 	if (sym_name_is("netdev_priv", expr->fn))
 		return 1;
+	if (sym_name_is("dev_get_drvdata", expr->fn))
+		return 1;
 
 	return 0;
 }
