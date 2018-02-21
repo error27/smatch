@@ -632,6 +632,7 @@ int __handle_select_assigns(struct expression *expr)
 		return 0;
 	sm_debug("%d in __handle_ternary_assigns\n", get_lineno());
 	right = strip_expr(expr->right);
+	__pass_to_client(right, SELECT_HOOK);
 
 	is_true = implied_condition_true(right->conditional);
 	is_false = implied_condition_false(right->conditional);
