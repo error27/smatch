@@ -118,12 +118,12 @@ int estate_has_hard_max(struct smatch_state *state)
 
 void estate_set_hard_max(struct smatch_state *state)
 {
-	 get_dinfo(state)->hard_max = 1;
+	get_dinfo(state)->hard_max = 1;
 }
 
 void estate_clear_hard_max(struct smatch_state *state)
 {
-	 get_dinfo(state)->hard_max = 0;
+	get_dinfo(state)->hard_max = 0;
 }
 
 int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
