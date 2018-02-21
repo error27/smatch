@@ -197,6 +197,44 @@ static int match_next_bit(struct expression *call, void *unused, struct range_li
 	return 1;
 }
 
+static int match_fls(struct expression *call, void *unused, struct range_list **rl)
+{
+	struct expression *arg;
+	struct range_list *arg_rl;
+	sval_t zero = {};
+	sval_t start = {
+		.type = &int_ctype,
+		.value = 0,
+	};
+	sval_t end = {
+		.type = &int_ctype,
+		.value = 32,
+	};
+	sval_t sval;
+
+	arg = get_argument_from_call_expr(call->args, 0);
+	if (!get_implied_rl(arg, &arg_rl))
+		return 0;
+	if (rl_to_sval(arg_rl, &sval)) {
+		int i;
+
+		for (i = 63; i >= 0; i--) {
+			if (sval.uvalue & 1ULL << i)
+				break;
+		}
+		sval.value = i + 1;
+		*rl = alloc_rl(sval, sval);
+		return 1;
+	}
+	zero.type = rl_type(arg_rl);
+	if (!rl_has_sval(arg_rl, zero))
+		start.value = 1;
+	*rl = alloc_rl(start, end);
+	return 1;
+}
+
+
+
 static void find_module_init_exit(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -329,6 +367,9 @@ void check_kernel(int id)
 	add_implied_return_hook("find_next_zero_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
+
+	add_implied_return_hook("fls", &match_fls, NULL);
+	add_implied_return_hook("fls64", &match_fls, NULL);
 
 	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
 	add_function_hook("__write_once_size", &match__write_once_size, NULL);
