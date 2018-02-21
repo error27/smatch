@@ -2460,10 +2460,8 @@ static void match_call_info(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		type = get_arg_type(expr->fn, i);
 
-		if (get_implied_rl(arg, &rl))
-			rl = cast_rl(type, rl);
-		else
-			rl = cast_rl(type, alloc_whole_rl(get_type(arg)));
+		get_absolute_rl(arg, &rl);
+		rl = cast_rl(type, rl);
 
 		if (!is_whole_rl(rl)) {
 			rl = intersect_with_real_abs_expr(arg, rl);
