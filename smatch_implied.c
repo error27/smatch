@@ -1073,12 +1073,6 @@ int assume(struct expression *expr)
 	__split_whole_condition(expr);
 	final_pass = orig_final_pass;
 
-	if (!found_implications) {
-		__discard_false_states();
-		__free_fake_cur_stree();
-		return 0;
-	}
-
 	return 1;
 }
 
