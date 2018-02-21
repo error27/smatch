@@ -200,6 +200,8 @@ char *get_constraint_str(struct expression *expr)
 		return NULL;
 	if (expr->type == EXPR_CALL)
 		return get_func_constraint(expr);
+	if (expr->type == EXPR_BINOP)
+		return expr_to_str(expr);
 	name = get_toplevel_name(expr);
 	if (name)
 		return name;
