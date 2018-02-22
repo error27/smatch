@@ -688,6 +688,8 @@ struct expression *strip_expr(struct expression *expr)
 	switch (expr->type) {
 	case EXPR_FORCE_CAST:
 	case EXPR_CAST:
+		if (!expr->cast_expression)
+			return expr;
 		return strip_expr(expr->cast_expression);
 	case EXPR_PREOP: {
 		struct expression *unop;
