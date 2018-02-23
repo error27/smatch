@@ -31,9 +31,16 @@ import datetime
 extensions = [
 ]
 
-source_parsers = {
-   '.md': 'recommonmark.parser.CommonMarkParser',
-}
+# support .md with python2 & python3
+if sys.version_info[0] > 2:
+    from recommonmark.parser import CommonMarkParser
+    source_parsers = {
+        '.md': CommonMarkParser,
+    }
+else:
+    source_parsers = {
+        '.md': 'recommonmark.parser.CommonMarkParser',
+    }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
