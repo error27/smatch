@@ -443,9 +443,9 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	new = first_pseudo(dominators)->def->src1;
+	new = first_pseudo(dominators)->def->phi_src;
 	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->def->src1)
+		if (new != phi->def->phi_src)
 			goto complex_phi;
 		new->ident = new->ident ? : phi->ident;
 	} END_FOR_EACH_PTR(phi);

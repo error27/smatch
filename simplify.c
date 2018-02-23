@@ -68,9 +68,9 @@ static int if_convert_phi(struct instruction *insn)
 		return 0;
 	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
 		return 0;
-	p1 = array[0]->src1;
+	p1 = array[0]->phi_src;
 	bb1 = array[0]->bb;
-	p2 = array[1]->src1;
+	p2 = array[1]->phi_src;
 	bb2 = array[1]->bb;
 
 	/* Only try the simple "direct parents" case */
@@ -146,10 +146,10 @@ static int clean_up_phi(struct instruction *insn)
 		if (phi == VOID)
 			continue;
 		def = phi->def;
-		if (def->src1 == VOID || !def->bb)
+		if (def->phi_src == VOID || !def->bb)
 			continue;
 		if (last) {
-			if (last->src1 != def->src1)
+			if (last->phi_src != def->phi_src)
 				same = 0;
 			continue;
 		}
@@ -157,7 +157,7 @@ static int clean_up_phi(struct instruction *insn)
 	} END_FOR_EACH_PTR(phi);
 
 	if (same) {
-		pseudo_t pseudo = last ? last->src1 : VOID;
+		pseudo_t pseudo = last ? last->phi_src : VOID;
 		convert_instruction_target(insn, pseudo);
 		kill_instruction(insn);
 		return REPEAT_CSE;
