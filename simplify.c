@@ -352,7 +352,7 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 	return REPEAT_CSE;
 }
 
-static unsigned int value_size(long long value)
+unsigned int value_size(long long value)
 {
 	value >>= 8;
 	if (!value)
@@ -398,7 +398,7 @@ static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long val
 
 	if (value >= size) {
 		warning(insn->pos, "right shift by bigger than source value");
-		return replace_with_pseudo(insn, value_pseudo(0));
+		return replace_with_pseudo(insn, value_pseudo(insn->type, 0));
 	}
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
@@ -508,7 +508,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_SUB:
 		if (value) {
 			insn->opcode = OP_ADD;
-			insn->src2 = value_pseudo(-value);
+			insn->src2 = value_pseudo(insn->type, -value);
 			return REPEAT_CSE;
 		}
 	/* Fall through */
@@ -525,7 +525,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 
 	case OP_MODU: case OP_MODS:
 		if (value == 1)
-			return replace_with_pseudo(insn, value_pseudo(0));
+			return replace_with_pseudo(insn, value_pseudo(insn->type, 0));
 		return 0;
 
 	case OP_DIVU: case OP_DIVS:
@@ -686,7 +686,7 @@ static int simplify_constant_binop(struct instruction *insn)
 	}
 	res &= bits;
 
-	replace_with_pseudo(insn, value_pseudo(res));
+	replace_with_pseudo(insn, value_pseudo(insn->type, res));
 	return REPEAT_CSE;
 }
 
@@ -700,14 +700,14 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 			warning(insn->pos, "self-comparison always evaluates to false");
 	case OP_SUB:
 	case OP_XOR:
-		return replace_with_pseudo(insn, value_pseudo(0));
+		return replace_with_pseudo(insn, value_pseudo(insn->type, 0));
 
 	case OP_SET_EQ:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_BE: case OP_SET_AE:
 		if (Wtautological_compare)
 			warning(insn->pos, "self-comparison always evaluates to true");
-		return replace_with_pseudo(insn, value_pseudo(1));
+		return replace_with_pseudo(insn, value_pseudo(insn->type, 1));
 
 	case OP_AND:
 	case OP_OR:
@@ -716,7 +716,7 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 	case OP_AND_BOOL:
 	case OP_OR_BOOL:
 		remove_usage(arg, &insn->src2);
-		insn->src2 = value_pseudo(0);
+		insn->src2 = value_pseudo(insn->type, 0);
 		insn->opcode = OP_SET_NE;
 		return REPEAT_CSE;
 
@@ -819,7 +819,7 @@ static int simplify_constant_unop(struct instruction *insn)
 	mask = 1ULL << (insn->size-1);
 	res &= mask | (mask-1);
 	
-	replace_with_pseudo(insn, value_pseudo(res));
+	replace_with_pseudo(insn, value_pseudo(insn->type, res));
 	return REPEAT_CSE;
 }
 
@@ -952,7 +952,7 @@ static int simplify_cast(struct instruction *insn)
 	if (constant(src)) {
 		int sign = orig_type->ctype.modifiers & MOD_SIGNED;
 		long long val = get_cast_value(src->value, orig_size, size, sign);
-		src = value_pseudo(val);
+		src = value_pseudo(orig_type, val);
 		goto simplify;
 	}
 
