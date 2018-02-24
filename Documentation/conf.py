@@ -154,6 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
+	('dev-options', 'dev-options', u'options for development', [author], 1),
 ]
 
 
