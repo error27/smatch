@@ -242,23 +242,28 @@ static LLVMTypeRef symbol_type(LLVMModuleRef module, struct symbol *sym)
 	return ret;
 }
 
-static LLVMTypeRef insn_symbol_type(LLVMModuleRef module, struct instruction *insn)
+static LLVMTypeRef int_type_by_size(int size)
 {
-	if (insn->type)
-		return symbol_type(module, insn->type);
-
-	switch (insn->size) {
+	switch (size) {
+		case 1:		return LLVMInt1Type();
 		case 8:		return LLVMInt8Type();
 		case 16:	return LLVMInt16Type();
 		case 32:	return LLVMInt32Type();
 		case 64:	return LLVMInt64Type();
 
 		default:
-			die("invalid bit size %d", insn->size);
+			die("invalid bit size %d", size);
 			break;
 	}
-
 	return NULL;	/* not reached */
+}
+
+static LLVMTypeRef insn_symbol_type(LLVMModuleRef module, struct instruction *insn)
+{
+	if (insn->type)
+		return symbol_type(module, insn->type);
+
+	return int_type_by_size(insn->size);
 }
 
 static LLVMLinkage data_linkage(struct symbol *sym)
@@ -360,7 +365,7 @@ static LLVMValueRef pseudo_to_value(struct function *fn, struct instruction *ins
 		break;
 	}
 	case PSEUDO_VAL:
-		result = LLVMConstInt(insn_symbol_type(fn->module, insn), pseudo->value, 1);
+		result = LLVMConstInt(int_type_by_size(pseudo->size), pseudo->value, 1);
 		break;
 	case PSEUDO_ARG: {
 		result = LLVMGetParam(fn->fn, pseudo->nr - 1);
@@ -535,28 +540,41 @@ static void output_op_binary(struct function *fn, struct instruction *insn)
 		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 		break;
 	}
-
-	/* Binary comparison */
-	case OP_BINCMP ... OP_BINCMP_END: {
-		LLVMTypeRef dst_type = insn_symbol_type(fn->module, insn);
-
-		if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
-			LLVMIntPredicate op = translate_op(insn->opcode);
-
-			target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
-		} else {
-			LLVMRealPredicate op = translate_fop(insn->opcode);
-
-			target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
-		}
-
-		target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
-		break;
-	}
 	default:
 		assert(0);
 		break;
 	}
+
+	insn->target->priv = target;
+}
+
+static void output_op_compare(struct function *fn, struct instruction *insn)
+{
+	LLVMValueRef lhs, rhs, target;
+	char target_name[64];
+
+	lhs = pseudo_to_value(fn, insn, insn->src1);
+
+	if (insn->src2->type == PSEUDO_VAL)
+		rhs = LLVMConstInt(LLVMTypeOf(lhs), insn->src2->value, 1);
+	else
+		rhs = pseudo_to_value(fn, insn, insn->src2);
+
+	pseudo_name(insn->target, target_name);
+
+	LLVMTypeRef dst_type = insn_symbol_type(fn->module, insn);
+
+	if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+		LLVMIntPredicate op = translate_op(insn->opcode);
+
+		target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
+	} else {
+		LLVMRealPredicate op = translate_fop(insn->opcode);
+
+		target = LLVMBuildFCmp(fn->builder, op, lhs, rhs, target_name);
+	}
+
+	target = LLVMBuildZExt(fn->builder, target, dst_type, target_name);
 
 	insn->target->priv = target;
 }
@@ -629,19 +647,19 @@ static LLVMValueRef bool_value(struct function *fn, LLVMValueRef value)
 	return value;
 }
 
+static void output_op_cbr(struct function *fn, struct instruction *br)
+{
+	LLVMValueRef cond = bool_value(fn,
+			pseudo_to_value(fn, br, br->cond));
+
+	LLVMBuildCondBr(fn->builder, cond,
+			br->bb_true->priv,
+			br->bb_false->priv);
+}
+
 static void output_op_br(struct function *fn, struct instruction *br)
 {
-	if (br->cond) {
-		LLVMValueRef cond = bool_value(fn,
-				pseudo_to_value(fn, br, br->cond));
-
-		LLVMBuildCondBr(fn->builder, cond,
-				br->bb_true->priv,
-				br->bb_false->priv);
-	} else
-		LLVMBuildBr(fn->builder,
-			    br->bb_true ? br->bb_true->priv :
-			    br->bb_false->priv);
+	LLVMBuildBr(fn->builder, br->bb_true->priv);
 }
 
 static void output_op_sel(struct function *fn, struct instruction *insn)
@@ -788,34 +806,6 @@ static void output_op_cast(struct function *fn, struct instruction *insn, LLVMOp
 	insn->target->priv = target;
 }
 
-static void output_op_copy(struct function *fn, struct instruction *insn,
-			   pseudo_t pseudo)
-{
-	LLVMValueRef src, target;
-	LLVMTypeRef const_type;
-	char target_name[64];
-
-	pseudo_name(insn->target, target_name);
-	src = pseudo_to_value(fn, insn, pseudo);
-	const_type = insn_symbol_type(fn->module, insn);
-
-	/*
-	 * This is nothing more than 'target = src'
-	 *
-	 * TODO: find a better way to provide an identity function,
-	 * than using "X + 0" simply to produce a new LLVM pseudo
-	 */
-
-	if (symbol_is_fp_type(insn->type))
-		target = LLVMBuildFAdd(fn->builder, src,
-			LLVMConstReal(const_type, 0.0), target_name);
-	else
-		target = LLVMBuildAdd(fn->builder, src,
-			LLVMConstInt(const_type, 0, 0), target_name);
-
-	insn->target->priv = target;
-}
-
 static void output_insn(struct function *fn, struct instruction *insn)
 {
 	switch (insn->opcode) {
@@ -824,6 +814,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_BR:
 		output_op_br(fn, insn);
+		break;
+	case OP_CBR:
+		output_op_cbr(fn, insn);
 		break;
 	case OP_SYMADDR:
 		assert(0);
@@ -874,8 +867,10 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		output_op_ptrcast(fn, insn);
 		break;
 	case OP_BINARY ... OP_BINARY_END:
-	case OP_BINCMP ... OP_BINCMP_END:
 		output_op_binary(fn, insn);
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		output_op_compare(fn, insn);
 		break;
 	case OP_SEL:
 		output_op_sel(fn, insn);
@@ -914,7 +909,7 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		assert(0);
 		break;
 	case OP_COPY:
-		output_op_copy(fn, insn, insn->src);
+		assert(0);
 		break;
 	default:
 		break;
@@ -1070,6 +1065,13 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 	return data;
 }
 
+static int is_prototype(struct symbol *sym)
+{
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	return sym && sym->type == SYM_FN && !sym->stmt;
+}
+
 static int compile(LLVMModuleRef module, struct symbol_list *list)
 {
 	struct symbol *sym;
@@ -1077,6 +1079,10 @@ static int compile(LLVMModuleRef module, struct symbol_list *list)
 	FOR_EACH_PTR(list, sym) {
 		struct entrypoint *ep;
 		expand_symbol(sym);
+
+		if (is_prototype(sym))
+			continue;
+
 		ep = linearize_symbol(sym);
 		if (ep)
 			output_fn(module, ep);
@@ -1165,5 +1171,6 @@ int main(int argc, char **argv)
 
 	LLVMDisposeModule(module);
 
+	report_stats();
 	return 0;
 }

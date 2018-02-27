@@ -57,6 +57,7 @@
 #include "target.h"
 #include "compile.h"
 #include "bitmap.h"
+#include "version.h"
 
 struct textbuf {
 	unsigned int	len;	/* does NOT include terminating null */
@@ -691,7 +692,7 @@ void emit_unit_begin(const char *basename)
 void emit_unit_end(void)
 {
 	textbuf_emit(&unit_post_text);
-	printf("\t.ident\t\"sparse silly x86 backend (built %s)\"\n", __DATE__);
+	printf("\t.ident\t\"sparse silly x86 backend (version %s)\"\n", SPARSE_VERSION);
 }
 
 /* conditionally switch sections */
@@ -732,7 +733,8 @@ static void emit_insn_atom(struct function *f, struct atom *atom)
 			atom->insn,
 			comment[0] ? "\t\t" : "", comment);
 
-	write(STDOUT_FILENO, s, strlen(s));
+	if (write(STDOUT_FILENO, s, strlen(s)) < 0)
+		die("can't write to stdout");
 }
 
 static void emit_atom_list(struct function *f)
@@ -742,9 +744,8 @@ static void emit_atom_list(struct function *f)
 	FOR_EACH_PTR(f->atom_list, atom) {
 		switch (atom->type) {
 		case ATOM_TEXT: {
-			ssize_t rc = write(STDOUT_FILENO, atom->text,
-					   atom->text_len);
-			(void) rc;	/* FIXME */
+			if (write(STDOUT_FILENO, atom->text, atom->text_len) < 0)
+				die("can't write to stdout");
 			break;
 		}
 		case ATOM_INSN:
@@ -997,11 +998,7 @@ static void sort_array(struct expression *expr)
 	struct expression *entry, **list;
 	unsigned int elem, sorted, i;
 
-	elem = 0;
-	FOR_EACH_PTR(expr->expr_list, entry) {
-		elem++;
-	} END_FOR_EACH_PTR(entry);
-
+	elem = expression_list_size(expr->expr_list);
 	if (!elem)
 		return;
 
@@ -1048,6 +1045,7 @@ static void sort_array(struct expression *expr)
 			*THIS_ADDRESS(entry) = list[i++];
 	} END_FOR_EACH_PTR(entry);
 
+	free(list);
 }
 
 static void emit_array(struct symbol *sym)

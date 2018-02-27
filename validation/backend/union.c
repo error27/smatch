@@ -8,5 +8,5 @@ static union foo foo;
 
 /*
  * check-name: Union code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

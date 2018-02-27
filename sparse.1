@@ -24,7 +24,7 @@ off those warnings, pass the negation of the associated warning option,
 Turn on all sparse warnings, except for those explicitly disabled via
 \fB\-Wno\-something\fR.
 .TP
-.B \-Werror
+.B \-Wsparse\-error
 Turn all sparse warnings into errors.
 .TP
 .B \-Waddress\-space
@@ -56,7 +56,7 @@ arithmetic operations other than bitwise operations, and on any conversion of
 one restricted type into another, except via a cast that includes
 \fB__attribute__((force))\fR.
 
-__bitwise ends up being a "stronger integer separation". That one
+__bitwise ends up being a "stronger integer separation", one that
 doesn't allow you to mix with non-bitwise integers, so now it's much
 harder to lose the type by mistake.
 
@@ -67,8 +67,8 @@ kind of like "NULL" for pointers). So "gfp_t" or the "safe endianness"
 types would be __bitwise: you can only operate on them by doing
 specific operations that know about *that* particular type.
 
-Generally, you want bitwise if you are looking for type safety. Sparse
-does not issue these warnings by default.
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-bitwise\fR.
 .
 .TP
 .B \-Wcast\-to\-as
@@ -84,6 +84,15 @@ Warn about casts that truncate constant values.
 
 Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-cast\-truncate\fR.
+.
+.TP
+.B \-Wconstexpr-not-const
+Warn if a non-constant expression is encountered when really expecting a
+constant expression instead.
+Currently, this warns when initializing an object of static storage duration
+with an initializer which is not a constant expression.
+
+Sparse does not issue these warnings by default.
 .
 .TP
 .B \-Wcontext
@@ -195,7 +204,7 @@ Sparse issues these warnings by default.  To turn them off, use
 .B \-Winit\-cstring
 Warn about initialization of a char array with a too long constant C string.
 
-If the size of the char array and the length of the string is the same,
+If the size of the char array and the length of the string are the same,
 there is no space for the last nul char of the string in the array:
 
 .nf
@@ -208,6 +217,17 @@ dealing with C string like printf(%s) and strcmp, it may cause a
 trouble.
 
 Sparse does not issue these warnings by default.
+.
+.TP
+.B \-Wmemcpy\-max\-count
+Warn about call of \fBmemcpy()\fR, \fBmemset()\fR, \fBcopy_from_user()\fR, or
+\fBcopy_to_user()\fR with a large compile-time byte count.
+
+Sparse issues these warnings by default. To turn them off, use
+\fB\-Wno\-memcpy\-max\-count\fR.
+
+The limit can be changed with \fB\-fmemcpy\-max\-count=COUNT\fR,
+the default being \fB100000\fR.
 .
 .TP
 .B \-Wnon\-pointer\-null
@@ -328,7 +348,7 @@ Warn about preprocessor conditionals that use the value of an undefined
 preprocessor symbol.
 
 Standard C (C99 6.10.1) permits using the value of an undefined preprocessor
-symbol in preprocessor conditionals, and specifies it has have a value of 0.
+symbol in preprocessor conditionals, and specifies it has a value of 0.
 However, this behavior can lead to subtle errors.
 
 Sparse does not issue these warnings by default.
@@ -338,7 +358,29 @@ Sparse does not issue these warnings by default.
 .B \-gcc-base-dir \fIdir\fR
 Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/include-fixed/.
 .
+.TP
+.B \-multiarch-dir \fIdir\fR
+Look for system headers in the multiarch subdirectory \fIdir\fR.
+The \fIdir\fR name would normally take the form of the target's
+normalized GNU triplet. (e.g. i386-linux-gnu).
+.
+.SH DEBUG OPTIONS
+.TP
+.B \-fdump-linearize[=only]
+Dump the IR code of a function directly after its linearization,
+before any simplifications are made. If the argument \fB=only\fR is
+also given no further processing is done on the function.
+.
+.B \-fmem-report
+Report some statistics about memory allocation used by the tool.
+.
 .SH OTHER OPTIONS
+.TP
+.B \-fmemcpy-max-count=COUNT
+Set the limit for the warnings given by \fB-Wmemcpy-max-count\fR.
+A COUNT of 0, useless in itself, will effectively disable the warning.
+The default limit is 100000.
+.
 .TP
 .B \-ftabstop=WIDTH
 Set the distance between tab stops.  This helps sparse report correct
@@ -355,4 +397,4 @@ http://www.kernel.org/pub/software/devel/sparse/
 linux-sparse@vger.kernel.org
 .
 .SH MAINTAINER
-Josh Triplett <josh@kernel.org>
+Christopher Li <sparse@chrisli.org>

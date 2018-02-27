@@ -41,12 +41,8 @@
 #include "symbol.h"
 #include "target.h"
 #include "expression.h"
+#include "expand.h"
 
-/* Random cost numbers */
-#define SIDE_EFFECTS 10000	/* The expression has side effects */
-#define UNSAFE 100		/* The expression may be "infinitely costly" due to exceptions */
-#define SELECT_COST 20		/* Cut-off for turning a conditional into a select */
-#define BRANCH_COST 10		/* Cost of a conditional branch */
 
 static int expand_expression(struct expression *);
 static int expand_statement(struct statement *);
@@ -92,8 +88,7 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 	long long value, mask, signmask;
 	long long oldmask, oldsignmask, dropped;
 
-	if (newtype->ctype.base_type == &fp_type ||
-	    oldtype->ctype.base_type == &fp_type)
+	if (is_float_type(newtype) || is_float_type(oldtype))
 		goto Float;
 
 	// For pointers and integers, we can just move the value around
@@ -487,8 +482,8 @@ static int expand_comma(struct expression *expr)
 
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {
-	struct ctype c1 = {.base_type = left, .attribute = &null_attr};
-	struct ctype c2 = {.base_type = right, .attribute = &null_attr};
+	struct ctype c1 = {.base_type = left};
+	struct ctype c2 = {.base_type = right};
 	switch (op) {
 	case SPECIAL_EQUAL:
 		return !type_difference(&c1, &c2, MOD_IGN, MOD_IGN);
@@ -784,24 +779,6 @@ static int expand_cast(struct expression *expr)
 	return cost + 1;
 }
 
-/* The arguments are constant if the cost of all of them is zero */
-int expand_constant_p(struct expression *expr, int cost)
-{
-	expr->type = EXPR_VALUE;
-	expr->value = !cost;
-	expr->taint = 0;
-	return 0;
-}
-
-/* The arguments are safe, if their cost is less than SIDE_EFFECTS */
-int expand_safe_p(struct expression *expr, int cost)
-{
-	expr->type = EXPR_VALUE;
-	expr->value = (cost < SIDE_EFFECTS);
-	expr->taint = 0;
-	return 0;
-}
-
 /*
  * expand a call expression with a symbol. This
  * should expand builtins.
@@ -818,7 +795,7 @@ static int expand_symbol_call(struct expression *expr, int cost)
 		return ctype->op->expand(expr, cost);
 
 	if (ctype->ctype.modifiers & MOD_PURE)
-		return 0;
+		return cost + 1;
 
 	return SIDE_EFFECTS;
 }
@@ -918,6 +895,20 @@ static unsigned long bit_offset(const struct expression *expr)
 	return offset;
 }
 
+static unsigned long bit_range(const struct expression *expr)
+{
+	unsigned long range = 0;
+	unsigned long size = 0;
+	while (expr->type == EXPR_POS) {
+		unsigned long nr = expr->init_nr;
+		size = expr->ctype->bit_size;
+		range += (nr - 1) * size;
+		expr = expr->init_expr;
+	}
+	range += size;
+	return range;
+}
+
 static int compare_expressions(const void *_a, const void *_b)
 {
 	const struct expression *a = _a;
@@ -933,20 +924,40 @@ static void sort_expression_list(struct expression_list **list)
 	sort_list((struct ptr_list **)list, compare_expressions);
 }
 
-static void verify_nonoverlapping(struct expression_list **list)
+static void verify_nonoverlapping(struct expression_list **list, struct expression *expr)
 {
 	struct expression *a = NULL;
+	unsigned long max = 0;
+	unsigned long whole = expr->ctype->bit_size;
 	struct expression *b;
 
+	if (!Woverride_init)
+		return;
+
 	FOR_EACH_PTR(*list, b) {
+		unsigned long off, end;
 		if (!b->ctype || !b->ctype->bit_size)
 			continue;
-		if (a && bit_offset(a) == bit_offset(b)) {
+		off = bit_offset(b);
+		if (a && off < max) {
 			warning(a->pos, "Initializer entry defined twice");
 			info(b->pos, "  also defined here");
-			return;
+			if (!Woverride_init_all)
+				return;
 		}
-		a = b;
+		end = off + bit_range(b);
+		if (!a && !Woverride_init_whole_range) {
+			// If first entry is the whole range, do not let
+			// any warning about it (this allow to initialize
+			// an array with some default value and then override
+			// some specific entries).
+			if (off == 0 && end == whole)
+				continue;
+		}
+		if (end > max) {
+			max = end;
+			a = b;
+		}
 	} END_FOR_EACH_PTR(b);
 }
 
@@ -1016,7 +1027,7 @@ static int expand_expression(struct expression *expr)
 
 	case EXPR_INITIALIZER:
 		sort_expression_list(&expr->expr_list);
-		verify_nonoverlapping(&expr->expr_list);
+		verify_nonoverlapping(&expr->expr_list, expr);
 		return expand_expression_list(expr->expr_list);
 
 	case EXPR_IDENTIFIER:
@@ -1212,7 +1223,7 @@ static int expand_statement(struct statement *stmt)
 
 static inline int bad_integer_constant_expression(struct expression *expr)
 {
-	if (!(expr->flags & Int_const_expr))
+	if (!(expr->flags & CEF_ICE))
 		return 1;
 	if (expr->taint & Taint_comma)
 		return 1;
@@ -1268,6 +1279,36 @@ long long get_expression_value_silent(struct expression *expr)
 {
 
 	return __get_expression_value(expr, 2);
+}
+
+int expr_truth_value(struct expression *expr)
+{
+	const int saved = conservative;
+	struct symbol *ctype;
+
+	if (!expr)
+		return 0;
+
+	ctype = evaluate_expression(expr);
+	if (!ctype)
+		return -1;
+
+	conservative = 1;
+	expand_expression(expr);
+	conservative = saved;
+
+redo:
+	switch (expr->type) {
+	case EXPR_COMMA:
+		expr = expr->right;
+		goto redo;
+	case EXPR_VALUE:
+		return expr->value != 0;
+	case EXPR_FVALUE:
+		return expr->fvalue != 0;
+	default:
+		return -1;
+	}
 }
 
 int is_zero_constant(struct expression *expr)

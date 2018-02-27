@@ -72,8 +72,7 @@ int get_member_offset(struct symbol *type, const char *member_name)
 
 	offset = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
-		if (!type->ctype.attribute->is_packed)
-			offset = ALIGN(offset, tmp->ctype.alignment);
+		offset = ALIGN(offset, tmp->ctype.alignment);
 		if (tmp->ident &&
 		    strcmp(member_name, tmp->ident->name) == 0) {
 			return offset;

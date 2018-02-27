@@ -52,7 +52,7 @@ struct statement {
 		struct /* declaration */ {
 			struct symbol_list *declaration;
 		};
-		struct {
+		struct /* context */ {
 			struct expression *expression;
 			struct expression *context;
 		};
@@ -105,15 +105,6 @@ struct statement {
 			struct expression *goto_expression;
 			struct symbol_list *target_list;
 		};
-		struct /* goto_bb */ {
-			struct expression *bb_conditional;
-			struct symbol *bb_target;
-		};
-		struct /* multijmp */ {
-			struct expression *multi_from;
-			struct expression *multi_to;
-			struct symbol *multi_target;
-		};
 		struct /* asm */ {
 			struct expression *asm_string;
 			struct expression_list *asm_outputs;
@@ -139,7 +130,8 @@ extern int show_statement(struct statement *);
 extern void show_statement_list(struct statement_list *, const char *);
 extern int show_expression(struct expression *);
 
-extern struct token *external_declaration(struct token *token, struct symbol_list **list);
+typedef void (*validate_decl_t)(struct symbol *decl);
+extern struct token *external_declaration(struct token *, struct symbol_list **, validate_decl_t);
 
 extern struct symbol *ctype_integer(int size, int want_unsigned);
 

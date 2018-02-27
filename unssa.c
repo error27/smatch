@@ -10,15 +10,19 @@
  *
  * This is similar to the "Sreedhar method I" except that the copies to the
  * temporaries are not placed at the end of the predecessor basic blocks, but
- * at the place where the phi-node operands are defined (the same place where the
- * phisrc were present).
- * Is this a problem? 
+ * at the place where the phi-node operands are defined.
+ * This is particulary easy since these copies are essentialy already present
+ * as the corresponding OP_PHISOURCE.
  *
  * While very simple this method create a lot more copies that really necessary.
+ * We eliminate some of these copies but most probably most of them are still
+ * useless.
  * Ideally, "Sreedhar method III" should be used:
  * "Translating Out of Static Single Assignment Form", V. C. Sreedhar, R. D.-C. Ju,
  * D. M. Gillies and V. Santhanam.  SAS'99, Vol. 1694 of Lecture Notes in Computer
  * Science, Springer-Verlag, pp. 194-210, 1999.
+ * But for this we need precise liveness, on each %phi and not only on OP_PHI's
+ * target pseudos.
  *
  * Copyright (C) 2005 Luc Van Oostenryck
  */
@@ -30,34 +34,89 @@
 #include <assert.h>
 
 
-static void remove_phisrc_defines(struct instruction *phisrc)
+static inline int nbr_pseudo_users(pseudo_t p)
 {
-	struct instruction *phi;
-	struct basic_block *bb = phisrc->bb;
+	return ptr_list_size((struct ptr_list *)p->users);
+}
 
-	FOR_EACH_PTR(phisrc->phi_users, phi) {
-		remove_pseudo(&bb->defines, phi->target);
-	} END_FOR_EACH_PTR(phi);
+static int simplify_phi_node(struct instruction *phi, pseudo_t tmp)
+{
+	pseudo_t target = phi->target;
+	struct pseudo_user *pu;
+	pseudo_t src;
+
+	// verify if this phi can be simplified
+	FOR_EACH_PTR(phi->phi_list, src) {
+		struct instruction *def = src->def;
+
+		if (!def)
+			continue;
+		if (def->bb == phi->bb)
+			return 0;
+	} END_FOR_EACH_PTR(src);
+
+	// no need to make a copy of this one
+	// -> replace the target pseudo by the tmp
+	FOR_EACH_PTR(target->users, pu) {
+		use_pseudo(pu->insn, tmp, pu->userp);
+	} END_FOR_EACH_PTR(pu);
+
+	phi->bb = NULL;
+	return 1;
 }
 
 static void replace_phi_node(struct instruction *phi)
 {
 	pseudo_t tmp;
+	pseudo_t p;
 
 	tmp = alloc_pseudo(NULL);
 	tmp->type = phi->target->type;
 	tmp->ident = phi->target->ident;
 	tmp->def = NULL;		// defined by all the phisrc
-	
-	// update the current liveness
-	remove_pseudo(&phi->bb->needs, phi->target);
-	add_pseudo(&phi->bb->needs, tmp);
-	track_phi_uses(phi);
 
+	// can we avoid to make of copy?
+	simplify_phi_node(phi, tmp);
+
+	// rewrite all it's phi_src to copy to a new tmp
+	FOR_EACH_PTR(phi->phi_list, p) {
+		struct instruction *def = p->def;
+		pseudo_t src;
+
+		if (p == VOID)
+			continue;
+
+		assert(def->opcode == OP_PHISOURCE);
+
+		def->opcode = OP_COPY;
+		def->target = tmp;
+
+		// can we eliminate the copy?
+		src = def->phi_src;
+		if (src->type != PSEUDO_REG)
+			continue;
+		switch (nbr_pseudo_users(src)) {
+			struct instruction *insn;
+		case 1:
+			insn = src->def;
+			if (!insn)
+				break;
+			insn->target = tmp;
+		case 0:
+			kill_instruction(def);
+			def->bb = NULL;
+		}
+	} END_FOR_EACH_PTR(p);
+
+	if (!phi->bb)
+		return;
+
+	// rewrite the phi node:
+	//	phi	%rt, ...
+	// to:
+	//	copy	%rt, %tmp
 	phi->opcode = OP_COPY;
 	use_pseudo(phi, tmp, &phi->src);
-
-	// FIXME: free phi->phi_list;
 }
 
 static void rewrite_phi_bb(struct basic_block *bb)
@@ -76,63 +135,12 @@ static void rewrite_phi_bb(struct basic_block *bb)
 	} END_FOR_EACH_PTR(insn);
 }
 
-static void rewrite_phisrc_bb(struct basic_block *bb)
-{
-	struct instruction *insn;
-
-	// Replace all the phisrc by one or several copies to
-	// the temporaries associated to each phi-node it defines.
-	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
-		struct instruction *phi;
-		int i;
-
-		if (!insn->bb)
-			continue;
-		if (insn->opcode != OP_PHISOURCE)
-			continue;
-
-		i = 0;
-		FOR_EACH_PTR(insn->phi_users, phi) {
-			pseudo_t tmp = phi->src;
-			pseudo_t src = insn->phi_src;
-
-			if (i == 0) {	// first phi: we overwrite the phisrc
-				insn->opcode = OP_COPY;
-				insn->target = tmp;
-				insn->src = src;
-			} else {
-				struct instruction *copy = __alloc_instruction(0);
-
-				copy->bb = bb;
-				copy->opcode = OP_COPY;
-				copy->size = insn->size;
-				copy->pos = insn->pos;
-				copy->target = tmp;
-				copy->src = src;
-
-				INSERT_CURRENT(copy, insn);
-			}
-			// update the liveness info
-			remove_phisrc_defines(insn);
-			// FIXME: should really something like add_pseudo_exclusive()
-			add_pseudo(&bb->defines, tmp);
-
-			i++;
-		} END_FOR_EACH_PTR(phi);
-
-	} END_FOR_EACH_PTR_REVERSE(insn);
-}
-
 int unssa(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		rewrite_phi_bb(bb);
-	} END_FOR_EACH_PTR(bb);
-
-	FOR_EACH_PTR(ep->bbs, bb) {
-		rewrite_phisrc_bb(bb);
 	} END_FOR_EACH_PTR(bb);
 
 	return 0;

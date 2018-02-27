@@ -165,7 +165,8 @@ enum special_token {
 };
 
 struct string {
-	unsigned int length;
+	unsigned int length:31;
+	unsigned int immutable:1;
 	char data[];
 };
 
@@ -218,7 +219,7 @@ extern int init_stream(const char *, int fd, const char **next_path);
 extern const char *stream_name(int stream);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
-extern struct token *built_in_token(int, const char *);
+extern struct token *built_in_token(int, struct ident *);
 extern const char *show_special(int);
 extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
@@ -238,7 +239,7 @@ extern char *pos_ident(struct position pos);
 extern void store_macro_pos(struct token *);
 extern char *get_macro_name(struct position pos);
 
-static inline int match_op(struct token *token, int op)
+static inline int match_op(struct token *token, unsigned int op)
 {
 	return token->pos.type == TOKEN_SPECIAL && token->special == op;
 }

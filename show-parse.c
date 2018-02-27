@@ -75,11 +75,11 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %d) %p (%s:%d:%d) %s\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
-		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.attribute->as,
+		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.as,
 		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos,
 		builtin_typename(sym) ?: "");
 	i = 0;
-	FOR_EACH_PTR(sym->ctype.attribute->contexts, context) {
+	FOR_EACH_PTR(sym->ctype.contexts, context) {
 		/* FIXME: should print context expression */
 		fprintf(stderr, "< context%d: in=%d, out=%d\n",
 			i, context->in, context->out);
@@ -315,7 +315,7 @@ deeper:
 	case SYM_PTR:
 		prepend(name, "*");
 		mod = sym->ctype.modifiers;
-		as = sym->ctype.attribute->as;
+		as = sym->ctype.as;
 		was_ptr = 1;
 		break;
 
@@ -347,12 +347,12 @@ deeper:
 	case SYM_NODE:
 		append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.attribute->as;
+		as |= sym->ctype.as;
 		break;
 
 	case SYM_BITFIELD:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.attribute->as;
+		as |= sym->ctype.as;
 		append(name, ":%d", sym->bit_size);
 		break;
 
@@ -362,7 +362,7 @@ deeper:
 
 	case SYM_ARRAY:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.attribute->as;
+		as |= sym->ctype.as;
 		if (was_ptr) {
 			prepend(name, "( ");
 			append(name, " )");
@@ -529,14 +529,14 @@ static void show_switch_statement(struct statement *stmt)
 			} else
 				printf("    what?");
 		}
-		printf(": .L%p\n", sym->bb_target);
+		printf(": .L%p\n", sym);
 	} END_FOR_EACH_PTR(sym);
 	printf("# end case table\n");
 
 	show_statement(stmt->switch_statement);
 
 	if (stmt->switch_break->used)
-		printf(".L%p:\n", stmt->switch_break->bb_target);
+		printf(".L%p:\n", stmt->switch_break);
 }
 
 static void show_symbol_decl(struct symbol_list *syms)
@@ -683,7 +683,7 @@ int show_statement(struct statement *stmt)
 			int val = show_expression(stmt->goto_expression);
 			printf("\tgoto\t\t*v%d\n", val);
 		} else {
-			printf("\tgoto\t\t.L%p\n", stmt->goto_label->bb_target);
+			printf("\tgoto\t\t.L%p\n", stmt->goto_label);
 		}
 		break;
 	case STMT_ASM:

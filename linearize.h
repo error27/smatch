@@ -30,7 +30,8 @@ enum pseudo_type {
 
 struct pseudo {
 	int nr;
-	enum pseudo_type type;
+	int size:16;	/* OP_SETVAL only */
+	enum pseudo_type type:8;
 	struct pseudo_user_list *users;
 	struct ident *ident;
 	union {
@@ -106,9 +107,6 @@ struct instruction {
 			pseudo_t base;
 			unsigned from, len;
 		};
-		struct /* multijump */ {
-			int begin, end;
-		};
 		struct /* setval */ {
 			pseudo_t symbol;		/* Subtle: same offset as "src" !! */
 			struct expression *val;
@@ -140,6 +138,7 @@ enum opcode {
 	OP_TERMINATOR,
 	OP_RET = OP_TERMINATOR,
 	OP_BR,
+	OP_CBR,
 	OP_SWITCH,
 	OP_INVOKE,
 	OP_COMPUTEDGOTO,
@@ -233,13 +232,12 @@ struct basic_block {
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct pseudo_list *needs, *defines;
-	void *priv;
+	union {
+		unsigned int nr;	/* unique id for label's names */
+		void *priv;
+	};
 };
 
-static inline int is_branch_goto(struct instruction *br)
-{
-	return br && br->opcode==OP_BR && (!br->bb_true || !br->bb_false);
-}
 
 static inline void add_bb(struct basic_block_list **list, struct basic_block *bb)
 {
@@ -336,7 +334,8 @@ extern void insert_branch(struct basic_block *bb, struct instruction *br, struct
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size);
 pseudo_t alloc_pseudo(struct instruction *def);
-pseudo_t value_pseudo(long long val);
+pseudo_t value_pseudo(struct symbol *type, long long val);
+unsigned int value_size(long long value);
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
 int unssa(struct entrypoint *ep);

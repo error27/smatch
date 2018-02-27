@@ -10,7 +10,7 @@ static void r(void) __attribute__((context(1,0)))
 	__context__(-1);
 }
 
-extern void _ca(int fail);
+extern int _ca(int fail);
 #define ca(fail) __cond_lock(_ca(fail))
 
 static void good_paired1(void)

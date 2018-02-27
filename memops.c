@@ -18,12 +18,10 @@
 
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
-	int local, int loads)
+	int local)
 {
 	struct basic_block *parent;
 
-	if (bb_list_size(bb->parents) > 1)
-		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
 		struct instruction *br;
@@ -31,6 +29,8 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
+			if (!one->bb)
+				continue;
 			if (one == insn)
 				goto no_dominance;
 			dominance = dominates(pseudo, insn, one, local);
@@ -41,8 +41,6 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			}
 			if (!dominance)
 				continue;
-			if (one->opcode == OP_LOAD && !loads)
-				continue;
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
@@ -50,7 +48,7 @@ no_dominance:
 			continue;
 		parent->generation = generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local, loads))
+		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
 			return 0;
 		continue;
 
@@ -99,6 +97,9 @@ static void simplify_loads(struct basic_block *bb)
 			/* Check for illegal offsets.. */
 			check_access(insn);
 
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				continue;
+
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
 				if (!dom->bb)
@@ -121,12 +122,12 @@ static void simplify_loads(struct basic_block *bb)
 			generation = ++bb_generation;
 			bb->generation = generation;
 			dominators = NULL;
-			if (find_dominating_parents(pseudo, insn, bb, generation, &dominators, local, 1)) {
+			if (find_dominating_parents(pseudo, insn, bb, generation, &dominators, local)) {
 				/* This happens with initial assignments to structures etc.. */
 				if (!dominators) {
 					if (local) {
 						assert(pseudo->type != PSEUDO_ARG);
-						convert_load_instruction(insn, value_pseudo(0));
+						convert_load_instruction(insn, value_pseudo(insn->type, 0));
 					}
 					goto next_load;
 				}

@@ -43,6 +43,8 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 		return;
 	assert(insn->bb == bb);
 	repeat_phase |= simplify_instruction(insn);
+	if (!insn->bb)
+		return;
 	hash = (insn->opcode << 3) + (insn->size >> 3);
 	switch (insn->opcode) {
 	case OP_SEL:
@@ -174,30 +176,36 @@ static int insn_compare(const void *_i1, const void *_i2)
 		return i1->opcode < i2->opcode ? -1 : 1;
 
 	switch (i1->opcode) {
+
+	/* commutative binop */
+	case OP_ADD:
+	case OP_MULU: case OP_MULS:
+	case OP_AND_BOOL: case OP_OR_BOOL:
+	case OP_AND: case OP_OR:
+	case OP_XOR:
+	case OP_SET_EQ: case OP_SET_NE:
+		if (i1->src1 == i2->src2 && i1->src2 == i2->src1)
+			return 0;
+		goto case_binops;
+
 	case OP_SEL:
 		if (i1->src3 != i2->src3)
 			return i1->src3 < i2->src3 ? -1 : 1;
 		/* Fall-through to binops */
 
 	/* Binary arithmetic */
-	case OP_ADD: case OP_SUB:
-	case OP_MULU: case OP_MULS:
+	case OP_SUB:
 	case OP_DIVU: case OP_DIVS:
 	case OP_MODU: case OP_MODS:
 	case OP_SHL:
 	case OP_LSR: case OP_ASR:
-	case OP_AND: case OP_OR:
-
-	/* Binary logical */
-	case OP_XOR: case OP_AND_BOOL:
-	case OP_OR_BOOL:
 
 	/* Binary comparison */
-	case OP_SET_EQ: case OP_SET_NE:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+	case_binops:
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
 		/* Fall through to unops */
@@ -251,20 +259,7 @@ static struct instruction * cse_one_instruction(struct instruction *insn, struct
 {
 	convert_instruction_target(insn, def->target);
 
-	if (insn->opcode == OP_PHI) {
-		/* Remove the instruction from PHI users */
-		pseudo_t phi;
-		FOR_EACH_PTR(insn->phi_list, phi) {
-			struct pseudo_user *pu;
-			FOR_EACH_PTR(phi->users, pu) {
-				if (pu->insn == insn)
-					DELETE_CURRENT_PTR(pu);
-			} END_FOR_EACH_PTR(pu);
-		} END_FOR_EACH_PTR(phi);
-	}
-
-	insn->opcode = OP_NOP;
-	insn->bb = NULL;
+	kill_instruction(insn);
 	repeat_phase |= REPEAT_CSE;
 	return def;
 }
@@ -369,6 +364,8 @@ void cleanup_and_cse(struct entrypoint *ep)
 repeat:
 	repeat_phase = 0;
 	clean_up_insns(ep);
+	if (repeat_phase & REPEAT_CFG_CLEANUP)
+		kill_unreachable_bbs(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
 		if (*list) {

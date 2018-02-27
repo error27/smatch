@@ -1,48 +1,19 @@
-#include "enum-common.c"
+enum ea { A = 0, };
+enum eb { B = 1, };
+
+
+static enum eb foo(enum ea a)
+{
+	return a;
+}
 
 /*
- * check-name: -Wenum-mismatch
- * check-command: sparse -Wenum-mismatch -Wno-int-to-enum $file
+ * check-name: enum-mismatch
+ * check-command: sparse -Wenum-mismatch $file
  *
  * check-error-start
-enum-common.c:57:45: warning: mixing different enum types
-enum-common.c:57:45:     int enum ENUM_TYPE_B  versus
-enum-common.c:57:45:     int enum ENUM_TYPE_A 
-enum-common.c:58:45: warning: mixing different enum types
-enum-common.c:58:45:     int enum ENUM_TYPE_B  versus
-enum-common.c:58:45:     int enum ENUM_TYPE_A 
-enum-common.c:54:22: warning: mixing different enum types
-enum-common.c:54:22:     int enum ENUM_TYPE_B  versus
-enum-common.c:54:22:     int enum ENUM_TYPE_A 
-enum-common.c:55:22: warning: mixing different enum types
-enum-common.c:55:22:     int enum <noident>  versus
-enum-common.c:55:22:     int enum ENUM_TYPE_A 
-enum-common.c:64:45: warning: mixing different enum types
-enum-common.c:64:45:     int enum <noident>  versus
-enum-common.c:64:45:     int enum ENUM_TYPE_A 
-enum-common.c:65:45: warning: mixing different enum types
-enum-common.c:65:45:     int enum <noident>  versus
-enum-common.c:65:45:     int enum ENUM_TYPE_A 
-enum-common.c:62:22: warning: mixing different enum types
-enum-common.c:62:22:     int enum ENUM_TYPE_A  versus
-enum-common.c:62:22:     int enum <noident> 
-enum-common.c:69:17: warning: mixing different enum types
-enum-common.c:69:17:     int enum ENUM_TYPE_B  versus
-enum-common.c:69:17:     int enum ENUM_TYPE_A 
-enum-common.c:70:17: warning: mixing different enum types
-enum-common.c:70:17:     int enum <noident>  versus
-enum-common.c:70:17:     int enum ENUM_TYPE_B 
-enum-common.c:71:25: warning: mixing different enum types
-enum-common.c:71:25:     int enum ENUM_TYPE_A  versus
-enum-common.c:71:25:     int enum <noident> 
-enum-common.c:74:17: warning: mixing different enum types
-enum-common.c:74:17:     int enum ENUM_TYPE_B  versus
-enum-common.c:74:17:     int enum ENUM_TYPE_A 
-enum-common.c:75:17: warning: mixing different enum types
-enum-common.c:75:17:     int enum <noident>  versus
-enum-common.c:75:17:     int enum ENUM_TYPE_B 
-enum-common.c:76:25: warning: mixing different enum types
-enum-common.c:76:25:     int enum ENUM_TYPE_A  versus
-enum-common.c:76:25:     int enum <noident> 
+enum-mismatch.c:7:16: warning: mixing different enum types
+enum-mismatch.c:7:16:     int enum ea  versus
+enum-mismatch.c:7:16:     int enum eb 
  * check-error-end
  */

@@ -30,11 +30,12 @@ static int rewrite_branch(struct basic_block *bb,
 	struct basic_block *old,
 	struct basic_block *new)
 {
-	if (*ptr != old || new == old)
+	if (*ptr != old || new == old || !bb->ep)
 		return 0;
 
 	/* We might find new if-conversions or non-dominating CSEs */
-	repeat_phase |= REPEAT_CSE;
+	/* we may also create new dead cycles */
+	repeat_phase |= REPEAT_CSE | REPEAT_CFG_CLEANUP;
 	*ptr = new;
 	replace_bb_in_list(&bb->children, old, new, 1);
 	remove_bb_from_list(&old->parents, bb, 1);
@@ -80,6 +81,28 @@ static int bb_depends_on(struct basic_block *target, struct basic_block *src)
 }
 
 /*
+ * This really should be handled by bb_depends_on()
+ * which efficiently check the dependence using the
+ * defines - needs liveness info. Problem is that
+ * there is no liveness done on OP_PHI & OP_PHISRC.
+ *
+ * This function add the missing dependency checks.
+ */
+static int bb_depends_on_phi(struct basic_block *target, struct basic_block *src)
+{
+	struct instruction *insn;
+	FOR_EACH_PTR(src->insns, insn) {
+		if (!insn->bb)
+			continue;
+		if (insn->opcode != OP_PHI)
+			continue;
+		if (pseudo_in_list(target->needs, insn->target))
+			return 1;
+	} END_FOR_EACH_PTR(insn);
+	return 0;
+}
+
+/*
  * When we reach here, we have:
  *  - a basic block that ends in a conditional branch and
  *    that has no side effects apart from the pseudos it
@@ -94,6 +117,14 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 {
 	int changed = 0;
 	pseudo_t phi;
+	int bogus;
+
+	/*
+	 * This a due to improper dominance tracking during
+	 * simplify_symbol_usage()/conversion to SSA form.
+	 * No sane simplification can be done when we have this.
+	 */
+	bogus = bb_list_size(bb->parents) != pseudo_list_size(first->phi_list);
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
@@ -111,7 +142,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 		br = last_instruction(source->insns);
 		if (!br)
 			continue;
-		if (br->opcode != OP_BR)
+		if (br->opcode != OP_CBR && br->opcode != OP_BR)
 			continue;
 		true = pseudo_truth_value(pseudo);
 		if (true < 0)
@@ -119,8 +150,12 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 		target = true ? second->bb_true : second->bb_false;
 		if (bb_depends_on(target, bb))
 			continue;
+		if (bb_depends_on_phi(target, bb))
+			continue;
 		changed |= rewrite_branch(source, &br->bb_true, bb, target);
 		changed |= rewrite_branch(source, &br->bb_false, bb, target);
+		if (changed && !bogus)
+			kill_use(THIS_ADDRESS(phi));
 	} END_FOR_EACH_PTR(phi);
 	return changed;
 }
@@ -174,7 +209,7 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 	if (target == bb)
 		return 0;
 	insn = last_instruction(target->insns);
-	if (!insn || insn->opcode != OP_BR || insn->cond != br->cond)
+	if (!insn || insn->opcode != OP_CBR || insn->cond != br->cond)
 		return 0;
 	/*
 	 * Ahhah! We've found a branch to a branch on the same conditional!
@@ -186,6 +221,8 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 		goto try_to_rewrite_target;
 	if (bb_depends_on(final, target))
 		goto try_to_rewrite_target;
+	if (bb_depends_on_phi(final, target))
+		return 0;
 	return rewrite_branch(bb, target_p, target, final);
 
 try_to_rewrite_target:
@@ -196,7 +233,6 @@ try_to_rewrite_target:
 	if (bb_list_size(target->parents) != 1)
 		return retval;
 	insert_branch(target, insn, final);
-	kill_instruction(insn);
 	return 1;
 }
 
@@ -216,7 +252,7 @@ static int simplify_branch_nodes(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *br = last_instruction(bb->insns);
 
-		if (!br || br->opcode != OP_BR || !br->bb_false)
+		if (!br || br->opcode != OP_CBR)
 			continue;
 		changed |= simplify_one_branch(bb, br);
 	} END_FOR_EACH_PTR(bb);
@@ -252,7 +288,8 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 			*pu->userp = src;
 		}
 	} END_FOR_EACH_PTR(pu);
-	concat_user_list(target->users, &src->users);
+	if (has_use_list(src))
+		concat_user_list(target->users, &src->users);
 	target->users = NULL;
 }
 
@@ -283,6 +320,15 @@ static inline int same_memop(struct instruction *a, struct instruction *b)
 	return	a->offset == b->offset && a->size == b->size;
 }
 
+static inline int distinct_symbols(pseudo_t a, pseudo_t b)
+{
+	if (a->type != PSEUDO_SYM)
+		return 0;
+	if (b->type != PSEUDO_SYM)
+		return 0;
+	return a->sym != b->sym;
+}
+
 /*
  * Return 1 if "dom" dominates the access to "pseudo"
  * in "insn".
@@ -301,7 +347,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 		if (local)
 			return 0;
 		/* We don't think two explicitly different symbols ever alias */
-		if (dom->src->type == PSEUDO_SYM)
+		if (distinct_symbols(insn->src, dom->src))
 			return 0;
 		/* We could try to do some alias analysis here */
 		return -1;
@@ -316,17 +362,26 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 	return 1;
 }
 
+static int phisrc_in_bb(struct pseudo_list *list, struct basic_block *bb)
+{
+	pseudo_t p;
+	FOR_EACH_PTR(list, p) {
+		if (p->def->bb == bb)
+			return 1;
+	} END_FOR_EACH_PTR(p);
+
+	return 0;
+}
+
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
-	int local, int loads)
+	int local)
 {
 	struct basic_block *parent;
 
 	if (!bb->parents)
 		return !!local;
 
-	if (bb_list_size(bb->parents) > 1)
-		loads = 0;
 	FOR_EACH_PTR(bb->parents, parent) {
 		struct instruction *one;
 		struct instruction *br;
@@ -344,8 +399,6 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			}
 			if (!dominance)
 				continue;
-			if (one->opcode == OP_LOAD && !loads)
-				continue;
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
@@ -353,11 +406,13 @@ no_dominance:
 			continue;
 		parent->generation = generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local, loads))
+		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
 			return 0;
 		continue;
 
 found_dominator:
+		if (dominators && phisrc_in_bb(*dominators, parent))
+			continue;
 		br = delete_last_instruction(&parent->insns);
 		phi = alloc_phi(parent, one->target, one->size);
 		phi->ident = phi->ident ? : pseudo->ident;
@@ -392,7 +447,7 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * pseudo.
 	 */
 	FOR_EACH_PTR(dominators, phi) {
-		phi->def->bb = NULL;
+		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
 	convert_load_instruction(insn, new);
 	return;
@@ -454,7 +509,7 @@ found:
 	bb->generation = generation;
 
 	dominators = NULL;
-	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators, local, 1))
+	if (!find_dominating_parents(pseudo, insn, bb, generation, &dominators, local))
 		return 0;
 
 	/* This happens with initial assignments to structures etc.. */
@@ -462,7 +517,7 @@ found:
 		if (!local)
 			return 0;
 		check_access(insn);
-		convert_load_instruction(insn, value_pseudo(0));
+		convert_load_instruction(insn, value_pseudo(insn->type, 0));
 		return 1;
 	}
 
@@ -595,11 +650,10 @@ void check_access(struct instruction *insn)
 
 static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 {
-	pseudo_t pseudo, src;
+	pseudo_t pseudo;
 	struct pseudo_user *pu;
-	struct instruction *def;
 	unsigned long mod;
-	int all, stores, complex;
+	int all;
 
 	/* Never used as a symbol? */
 	pseudo = sym->pseudo;
@@ -615,17 +669,12 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	if (mod)
 		goto external_visibility;
 
-	def = NULL;
-	stores = 0;
-	complex = 0;
 	FOR_EACH_PTR(pseudo->users, pu) {
 		/* We know that the symbol-pseudo use is the "src" in the instruction */
 		struct instruction *insn = pu->insn;
 
 		switch (insn->opcode) {
 		case OP_STORE:
-			stores++;
-			def = insn;
 			break;
 		case OP_LOAD:
 			break;
@@ -642,37 +691,8 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 		default:
 			warning(sym->pos, "symbol '%s' pseudo used in unexpected way", show_ident(sym->ident));
 		}
-		complex |= insn->offset;
 	} END_FOR_EACH_PTR(pu);
 
-	if (complex)
-		goto complex_def;
-	if (stores > 1)
-		goto multi_def;
-
-	/*
-	 * Goodie, we have a single store (if even that) in the whole
-	 * thing. Replace all loads with moves from the pseudo,
-	 * replace the store with a def.
-	 */
-	src = VOID;
-	if (def)
-		src = def->target;
-
-	FOR_EACH_PTR(pseudo->users, pu) {
-		struct instruction *insn = pu->insn;
-		if (insn->opcode == OP_LOAD) {
-			check_access(insn);
-			convert_load_instruction(insn, src);
-		}
-	} END_FOR_EACH_PTR(pu);
-
-	/* Turn the store into a no-op */
-	kill_store(def);
-	return;
-
-multi_def:
-complex_def:
 external_visibility:
 	all = 1;
 	FOR_EACH_PTR_REVERSE(pseudo->users, pu) {
@@ -750,13 +770,12 @@ void kill_bb(struct basic_block *bb)
 	struct basic_block *child, *parent;
 
 	FOR_EACH_PTR(bb->insns, insn) {
-		kill_instruction(insn);
+		kill_instruction_force(insn);
 		kill_defs(insn);
 		/*
 		 * We kill unreachable instructions even if they
 		 * otherwise aren't "killable" (e.g. volatile loads)
 		 */
-		insn->bb = NULL;
 	} END_FOR_EACH_PTR(insn);
 	bb->insns = NULL;
 
@@ -801,9 +820,11 @@ static int rewrite_parent_branch(struct basic_block *bb, struct basic_block *old
 		return 0;
 
 	switch (insn->opcode) {
+	case OP_CBR:
+		changed |= rewrite_branch(bb, &insn->bb_false, old, new);
+		/* fall through */
 	case OP_BR:
 		changed |= rewrite_branch(bb, &insn->bb_true, old, new);
-		changed |= rewrite_branch(bb, &insn->bb_false, old, new);
 		assert(changed);
 		return changed;
 	case OP_SWITCH: {
@@ -825,7 +846,7 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 	struct basic_block *target = br->bb_true;
 	struct basic_block *false = br->bb_false;
 
-	if (target && false) {
+	if (br->opcode == OP_CBR) {
 		pseudo_t cond = br->cond;
 		if (cond->type != PSEUDO_VAL)
 			return NULL;
@@ -876,9 +897,11 @@ static void vrfy_children(struct basic_block *bb)
 	}
 	switch (br->opcode) {
 		struct multijmp *jmp;
+	case OP_CBR:
+		vrfy_bb_in_list(br->bb_false, bb->children);
+		/* fall through */
 	case OP_BR:
 		vrfy_bb_in_list(br->bb_true, bb->children);
-		vrfy_bb_in_list(br->bb_false, bb->children);
 		break;
 	case OP_SWITCH:
 	case OP_COMPUTEDGOTO:
@@ -935,6 +958,7 @@ void pack_basic_blocks(struct entrypoint *ep)
 			switch (first->opcode) {
 			case OP_NOP: case OP_LNOP: case OP_SNOP:
 				continue;
+			case OP_CBR:
 			case OP_BR: {
 				struct basic_block *replace;
 				replace = rewrite_branch_bb(bb, first);

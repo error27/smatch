@@ -152,9 +152,9 @@ static void check_byte_count(struct instruction *insn, pseudo_t count)
 	if (!count)
 		return;
 	if (count->type == PSEUDO_VAL) {
-		long long val = count->value;
-		if (val <= 0 || val > 100000)
-			warning(insn->pos, "%s with byte count of %lld",
+		unsigned long long val = count->value;
+		if (Wmemcpy_max_count && val > fmemcpy_max_count)
+			warning(insn->pos, "%s with byte count of %llu",
 				show_ident(insn->func->sym->ident), val);
 		return;
 	}
@@ -264,7 +264,7 @@ static void check_context(struct entrypoint *ep)
 
 	check_instructions(ep);
 
-	FOR_EACH_PTR(sym->ctype.attribute->contexts, context) {
+	FOR_EACH_PTR(sym->ctype.contexts, context) {
 		in_context += context->in;
 		out_context += context->out;
 	} END_FOR_EACH_PTR(context);
@@ -288,7 +288,7 @@ static void check_symbols(struct symbol_list *list)
 		}
 	} END_FOR_EACH_PTR(sym);
 
-	if (die_if_error)
+	if (Wsparse_error && die_if_error)
 		exit(1);
 }
 
@@ -302,5 +302,7 @@ int main(int argc, char **argv)
 	FOR_EACH_PTR_NOTAG(filelist, file) {
 		check_symbols(sparse(file));
 	} END_FOR_EACH_PTR_NOTAG(file);
+
+	report_stats();
 	return 0;
 }

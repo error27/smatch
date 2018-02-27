@@ -1,4 +1,6 @@
-#include <limits.h>
+#define	INT_MIN		(-__INT_MAX__ - 1)
+#define	LONG_MIN	(-__LONG_MAX__ - 1)
+#define	LLONG_MIN	(-__LONG_LONG_MAX__ - 1)
 
 static int xd = 1 / 0;
 static int xl = 1L / 0;
@@ -16,14 +18,14 @@ static long long zll = LLONG_MIN % -1;
  * check-name: division constants
  *
  * check-error-start
-div.c:3:19: warning: division by zero
-div.c:4:20: warning: division by zero
-div.c:5:22: warning: division by zero
-div.c:7:25: warning: constant integer operation overflow
-div.c:8:27: warning: constant integer operation overflow
-div.c:9:34: warning: constant integer operation overflow
-div.c:11:25: warning: constant integer operation overflow
-div.c:12:27: warning: constant integer operation overflow
-div.c:13:34: warning: constant integer operation overflow
+div.c:5:19: warning: division by zero
+div.c:6:20: warning: division by zero
+div.c:7:22: warning: division by zero
+div.c:9:25: warning: constant integer operation overflow
+div.c:10:27: warning: constant integer operation overflow
+div.c:11:34: warning: constant integer operation overflow
+div.c:13:25: warning: constant integer operation overflow
+div.c:14:27: warning: constant integer operation overflow
+div.c:15:34: warning: constant integer operation overflow
  * check-error-end
  */

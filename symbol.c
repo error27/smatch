@@ -79,7 +79,6 @@ struct symbol *alloc_symbol(struct position pos, int type)
 	sym->type = type;
 	sym->pos = pos;
 	sym->endpos.type = 0;
-	sym->ctype.attribute = &null_attr;
 	return sym;
 }
 
@@ -87,7 +86,6 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
-	int is_packed;
 };
 
 /*
@@ -130,7 +128,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 
 	// Unnamed bitfields do not affect alignment.
 	if (sym->ident || !is_bitfield_type(sym)) {
-		if (!info->is_packed && sym->ctype.alignment > info->max_align)
+		if (sym->ctype.alignment > info->max_align)
 			info->max_align = sym->ctype.alignment;
 	}
 
@@ -146,10 +144,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		base_size = 0;
 	}
 
-	if (info->is_packed)
-		align_bit_mask = 0;
-	else
-		align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
+	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -194,7 +189,6 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 	void (*fn)(struct symbol *, struct struct_union_info *);
 	struct symbol *member;
 
-	info.is_packed = sym->ctype.attribute->is_packed;
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
 		fn(member, &info);
@@ -219,10 +213,10 @@ static struct symbol *examine_base_type(struct symbol *sym)
 	base_type = examine_symbol_type(sym->ctype.base_type);
 	if (!base_type || base_type->type == SYM_PTR)
 		return base_type;
+	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= base_type->ctype.modifiers & MOD_PTRINHERIT;
-
-	merge_attr(&sym->ctype, &base_type->ctype);
-
+	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
+			(struct ptr_list **)&sym->ctype.contexts);
 	if (base_type->type == SYM_NODE) {
 		base_type = base_type->ctype.base_type;
 		sym->ctype.base_type = base_type;
@@ -283,8 +277,10 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
  */
 void merge_type(struct symbol *sym, struct symbol *base_type)
 {
+	sym->ctype.as |= base_type->ctype.as;
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
-	merge_attr(&sym->ctype, &base_type->ctype);
+	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
+	                (struct ptr_list **)&sym->ctype.contexts);
 	sym->ctype.base_type = base_type->ctype.base_type;
 	if (sym->ctype.base_type->type == SYM_NODE)
 		merge_type(sym, sym->ctype.base_type);
@@ -397,7 +393,7 @@ static struct symbol * examine_node_type(struct symbol *sym)
 			int count = count_array_initializer(node_type, initializer);
 
 			if (node_type && node_type->bit_size >= 0)
-				bit_size = node_type->bit_size * count;
+				bit_size = array_element_offset(node_type->bit_size, count);
 		}
 	}
 	
@@ -470,12 +466,16 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_TYPEOF: {
 		struct symbol *base = evaluate_expression(sym->initializer);
 		if (base) {
+			unsigned long mod = 0;
+
 			if (is_bitfield_type(base))
 				warning(base->pos, "typeof applied to bitfield type");
-			if (base->type == SYM_NODE)
+			if (base->type == SYM_NODE) {
+				mod |= base->ctype.modifiers & MOD_TYPEOF;
 				base = base->ctype.base_type;
+			}
 			sym->type = SYM_NODE;
-			sym->ctype.modifiers = 0;
+			sym->ctype.modifiers = mod;
 			sym->ctype.base_type = base;
 			return examine_node_type(sym);
 		}
@@ -494,7 +494,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		examine_base_type(sym);
 		return sym;
 	default:
-		sparse_error(sym->pos, "Examining unknown symbol type %d", sym->type);
+//		sparse_error(sym->pos, "Examining unknown symbol type %d", sym->type);
 		break;
 	}
 	return sym;
@@ -639,166 +639,22 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 
 struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
 {
-	struct token *token = built_in_token(stream, name);
-	struct symbol *sym = alloc_symbol(token->pos, type);
+	struct ident *ident = built_in_ident(name);
+	struct symbol *sym = lookup_symbol(ident, namespace);
 
-	bind_symbol(sym, token->ident, namespace);
+	if (sym && sym->type != type)
+		die("symbol %s created with different types: %d old %d", name,
+				type, sym->type);
+
+	if (!sym) {
+		struct token *token = built_in_token(stream, ident);
+
+		sym = alloc_symbol(token->pos, type);
+		bind_symbol(sym, token->ident, namespace);
+	}
 	return sym;
 }
 
-static int evaluate_to_integer(struct expression *expr)
-{
-	expr->ctype = &int_ctype;
-	return 1;
-}
-
-static int evaluate_expect(struct expression *expr)
-{
-	/* Should we evaluate it to return the type of the first argument? */
-	expr->ctype = &int_ctype;
-	return 1;
-}
-
-static int arguments_choose(struct expression *expr)
-{
-	struct expression_list *arglist = expr->args;
-	struct expression *arg;
-	int i = 0;
-
-	FOR_EACH_PTR (arglist, arg) {
-		if (!evaluate_expression(arg))
-			return 0;
-		i++;
-	} END_FOR_EACH_PTR(arg);
-	if (i < 3) {
-		sparse_error(expr->pos,
-			     "not enough arguments for __builtin_choose_expr");
-		return 0;
-	} if (i > 3) {
-		sparse_error(expr->pos,
-			     "too many arguments for __builtin_choose_expr");
-		return 0;
-	}
-	return 1;
-}
-
-static int evaluate_choose(struct expression *expr)
-{
-	struct expression_list *list = expr->args;
-	struct expression *arg, *args[3];
-	int n = 0;
-
-	/* there will be exactly 3; we'd already verified that */
-	FOR_EACH_PTR(list, arg) {
-		args[n++] = arg;
-	} END_FOR_EACH_PTR(arg);
-
-	*expr = get_expression_value(args[0]) ? *args[1] : *args[2];
-
-	return 1;
-}
-
-static int expand_expect(struct expression *expr, int cost)
-{
-	struct expression *arg = first_ptr_list((struct ptr_list *) expr->args);
-
-	if (arg)
-		*expr = *arg;
-	return 0;
-}
-
-/*
- * __builtin_warning() has type "int" and always returns 1,
- * so that you can use it in conditionals or whatever
- */
-static int expand_warning(struct expression *expr, int cost)
-{
-	struct expression *arg;
-	struct expression_list *arglist = expr->args;
-
-	FOR_EACH_PTR (arglist, arg) {
-		/*
-		 * Constant strings get printed out as a warning. By the
-		 * time we get here, the EXPR_STRING has been fully 
-		 * evaluated, so by now it's an anonymous symbol with a
-		 * string initializer.
-		 *
-		 * Just for the heck of it, allow any constant string
-		 * symbol.
-		 */
-		if (arg->type == EXPR_SYMBOL) {
-			struct symbol *sym = arg->symbol;
-			if (sym->initializer && sym->initializer->type == EXPR_STRING) {
-				struct string *string = sym->initializer->string;
-				warning(expr->pos, "%*s", string->length-1, string->data);
-			}
-			continue;
-		}
-
-		/*
-		 * Any other argument is a conditional. If it's
-		 * non-constant, or it is false, we exit and do
-		 * not print any warning.
-		 */
-		if (arg->type != EXPR_VALUE)
-			goto out;
-		if (!arg->value)
-			goto out;
-	} END_FOR_EACH_PTR(arg);
-out:
-	expr->type = EXPR_VALUE;
-	expr->value = 1;
-	expr->taint = 0;
-	return 0;
-}
-
-static struct symbol_op constant_p_op = {
-	.evaluate = evaluate_to_integer,
-	.expand = expand_constant_p
-};
-
-static struct symbol_op safe_p_op = {
-	.evaluate = evaluate_to_integer,
-	.expand = expand_safe_p
-};
-
-static struct symbol_op warning_op = {
-	.evaluate = evaluate_to_integer,
-	.expand = expand_warning
-};
-
-static struct symbol_op expect_op = {
-	.evaluate = evaluate_expect,
-	.expand = expand_expect
-};
-
-static struct symbol_op choose_op = {
-	.evaluate = evaluate_choose,
-	.args = arguments_choose,
-};
-
-/*
- * Builtin functions
- */
-static struct symbol builtin_fn_type = { .type = SYM_FN /* , .variadic =1 */ };
-static struct sym_init {
-	const char *name;
-	struct symbol *base_type;
-	unsigned int modifiers;
-	struct symbol_op *op;
-} eval_init_table[] = {
-	{ "__builtin_constant_p", &builtin_fn_type, MOD_TOPLEVEL, &constant_p_op },
-	{ "__builtin_safe_p", &builtin_fn_type, MOD_TOPLEVEL, &safe_p_op },
-	{ "__builtin_warning", &builtin_fn_type, MOD_TOPLEVEL, &warning_op },
-	{ "__builtin_expect", &builtin_fn_type, MOD_TOPLEVEL, &expect_op },
-	{ "__builtin_choose_expr", &builtin_fn_type, MOD_TOPLEVEL, &choose_op },
-	{ NULL,		NULL,		0 }
-};
-
-/*
- * Default empty attribute
- */
-struct attribute null_attr = {};
 
 /*
  * Abstract types
@@ -833,24 +689,13 @@ struct symbol	zero_int;
 void init_symbols(void)
 {
 	int stream = init_stream("builtin", -1, includepath);
-	struct sym_init *ptr;
 
 #define __IDENT(n,str,res) \
 	hash_ident(&n)
 #include "ident-list.h"
 
 	init_parser(stream);
-
-	builtin_fn_type.variadic = 1;
-	builtin_fn_type.ctype.attribute = &null_attr;
-	for (ptr = eval_init_table; ptr->name; ptr++) {
-		struct symbol *sym;
-		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
-		sym->ctype.base_type = ptr->base_type;
-		sym->ctype.modifiers = ptr->modifiers;
-		sym->ctype.attribute = &null_attr;
-		sym->op = ptr->op;
-	}
+	init_builtins(stream);
 }
 
 #ifdef __CHAR_UNSIGNED__
@@ -927,6 +772,5 @@ void init_ctype(void)
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
 		sym->ctype.modifiers = ctype->modifiers;
-		sym->ctype.attribute = &null_attr;
 	}
 }

@@ -23,6 +23,7 @@ static const char *opcodes[] = {
 	/* Terminator */
 	[OP_RET] = "ret",
 	[OP_BR] = "br",
+	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
 	[OP_INVOKE] = "invoke",
 	[OP_COMPUTEDGOTO] = "jmp *",
@@ -1428,6 +1429,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		break;
 
 	case OP_BR:
+	case OP_CBR:
 		generate_branch(state, insn);
 		break;
 

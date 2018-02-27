@@ -486,11 +486,10 @@ enum {
 	Dot = 16,
 	ValidSecond = 32,
 	Quote = 64,
-	Escape = 128,
 };
 
 static const long cclass[257] = {
-	['0' + 1 ... '7' + 1] = Digit | Hex | Escape,	/* \<octal> */
+	['0' + 1 ... '7' + 1] = Digit | Hex,	/* \<octal> */
 	['8' + 1 ... '9' + 1] = Digit | Hex,
 	['A' + 1 ... 'D' + 1] = Letter | Hex,
 	['E' + 1] = Letter | Hex | Exp,	/* E<exp> */
@@ -498,22 +497,22 @@ static const long cclass[257] = {
 	['G' + 1 ... 'O' + 1] = Letter,
 	['P' + 1] = Letter | Exp,	/* P<exp> */
 	['Q' + 1 ... 'Z' + 1] = Letter,
-	['a' + 1 ... 'b' + 1] = Letter | Hex | Escape, /* \a, \b */
+	['a' + 1 ... 'b' + 1] = Letter | Hex, /* \a, \b */
 	['c' + 1 ... 'd' + 1] = Letter | Hex,
-	['e' + 1] = Letter | Hex | Exp | Escape,/* \e, e<exp> */
-	['f' + 1] = Letter | Hex | Escape,	/* \f */
+	['e' + 1] = Letter | Hex | Exp,/* \e, e<exp> */
+	['f' + 1] = Letter | Hex,	/* \f */
 	['g' + 1 ... 'm' + 1] = Letter,
-	['n' + 1] = Letter | Escape,	/* \n */
+	['n' + 1] = Letter,	/* \n */
 	['o' + 1] = Letter,
 	['p' + 1] = Letter | Exp,	/* p<exp> */
 	['q' + 1] = Letter,
-	['r' + 1] = Letter | Escape,	/* \r */
+	['r' + 1] = Letter,	/* \r */
 	['s' + 1] = Letter,
-	['t' + 1] = Letter | Escape,	/* \t */
+	['t' + 1] = Letter,	/* \t */
 	['u' + 1] = Letter,
-	['v' + 1] = Letter | Escape,	/* \v */
+	['v' + 1] = Letter,	/* \v */
 	['w' + 1] = Letter,
-	['x' + 1] = Letter | Escape,	/* \x<hex> */
+	['x' + 1] = Letter,	/* \x<hex> */
 	['y' + 1 ... 'z' + 1] = Letter,
 	['_' + 1] = Letter,
 	['.' + 1] = Dot | ValidSecond,
@@ -525,10 +524,8 @@ static const long cclass[257] = {
 	['&' + 1] = ValidSecond,
 	['|' + 1] = ValidSecond,
 	['#' + 1] = ValidSecond,
-	['\'' + 1] = Quote | Escape,
-	['"' + 1] = Quote | Escape,
-	['\\' + 1] = Escape,
-	['?' + 1] = Escape,
+	['\'' + 1] = Quote,
+	['"' + 1] = Quote,
 };
 
 /*
@@ -620,9 +617,6 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 			want_hex = 0;
 			escape = next == '\\';
 		} else {
-			if (!(cclass[next + 1] & Escape))
-				warning(stream_pos(stream),
-					"Unknown escape '%c'", next);
 			escape = 0;
 			want_hex = next == 'x';
 		}
@@ -915,14 +909,14 @@ struct ident *built_in_ident(const char *name)
 	return create_hashed_ident(name, len, hash_name(name, len));
 }
 
-struct token *built_in_token(int stream, const char *name)
+struct token *built_in_token(int stream, struct ident *ident)
 {
 	struct token *token;
 
 	token = __alloc_token(0);
 	token->pos.stream = stream;
 	token_type(token) = TOKEN_IDENT;
-	token->ident = built_in_ident(name);
+	token->ident = ident;
 	return token;
 }
 

@@ -2,42 +2,134 @@
 
 #set -x
 
+cd $(dirname "$0")
+
 default_path=".."
 default_cmd="sparse \$file"
 tests_list=`find . -name '*.c' | sed -e 's#^\./\(.*\)#\1#' | sort`
 prog_name=`basename $0`
 
+if [ ! -x "$default_path/sparse-llvm" ]; then
+	disabled_cmds="sparsec sparsei sparse-llvm"
+fi
+
+# flags:
+#	- some tests gave an unexpected result
+failed=0
+
 # counts:
 #	- tests that have not been converted to test-suite format
+#	- tests that are disabled
 #	- tests that passed
 #	- tests that failed
 #	- tests that failed but are known to fail
 unhandled_tests=0
+disabled_tests=0
 ok_tests=0
 ko_tests=0
 known_ko_tests=0
 
 # defaults to not verbose
 [ -z "$V" ] && V=0
+[ $V -eq 0 ] && quiet=1 || quiet=0
 
 ##
-# get_value(key, file) - gets the value of a (key, value) pair in file.
-#
-# returns 0 on success, 1 if the file does not have the key
-get_value()
+# get_tag_value(file) - get the 'check-<...>' tags & values
+get_tag_value()
 {
-	last_result=`grep $1: $2 | sed -e "s/^.*$1:\(.*\)$/\1/"`
-	[ -z "$last_result" ] && return 1
-	return 0
+	check_name=""
+	check_command="$default_cmd"
+	check_exit_value=0
+	check_timeout=0
+	check_known_to_fail=0
+	check_error_ignore=0
+	check_output_ignore=0
+	check_output_contains=0
+	check_output_excludes=0
+	check_output_pattern=0
+
+	lines=$(grep 'check-[a-z-]*' $1 | \
+		sed -e 's/^.*\(check-[a-z-]*:*\) *\(.*\)$/\1 \2/')
+
+	while read tag val; do
+		#echo "-> tag: '$tag'"
+		#echo "-> val: '$val'"
+		case $tag in
+		check-name:)		check_name="$val" ;;
+		check-command:)		check_command="$val" ;;
+		check-exit-value:)	check_exit_value="$val" ;;
+		check-timeout:)		[ -z "$val" ] && val=1
+					check_timeout="$val" ;;
+		check-known-to-fail)	check_known_to_fail=1 ;;
+		check-error-ignore)	check_error_ignore=1 ;;
+		check-output-ignore)	check_output_ignore=1 ;;
+		check-output-contains:)	check_output_contains=1 ;;
+		check-output-excludes:)	check_output_excludes=1 ;;
+		check-output-pattern-)	check_output_pattern=1 ;;
+		esac
+	done << EOT
+	$lines
+EOT
 }
 
 ##
-# get_tag(key, file) - does file has the tag key in it ?
-#
-# returns 0 if present, 1 otherwise
-get_tag()
+# helper for has_(each|none)_patterns()
+has_patterns()
 {
-	last_result=`grep $1 $2`
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	cmp="$4"
+	grep "$patt:" "$ifile" | \
+	sed -e "s/^.*$patt: *\(.*\)$/\1/" | \
+	while read val; do
+		grep -s -q "$val" "$ofile"
+		if [ "$?" $cmp 0 ]; then
+			return 1
+		fi
+	done
+
+	return $?
+}
+
+##
+# has_each_patterns(ifile tag ofile) - does ofile contains some
+#                        of the patterns given by ifile's tags?
+#
+# returns 0 if all present, 1 otherwise
+has_each_patterns()
+{
+	has_patterns "$1" "$2" "$3" -ne
+}
+
+##
+# has_none_patterns(ifile tag ofile) - does ofile contains some
+#                        of the patterns given by ifile's tags?
+#
+# returns 1 if any present, 0 otherwise
+has_none_patterns()
+{
+	has_patterns "$1" "$2" "$3" -eq
+}
+
+##
+# nbr_patterns(ifile tag ofile) - does ofile contains the
+#                        the patterns given by ifile's tags
+#                        the right number of time?
+nbr_patterns()
+{
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	grep "$patt-[0-9][0-9]*-times:" "$ifile" | \
+	sed -e "s/^.*$patt-\([0-9][0-9]*\)-times: *\(.*\)/\1 \2/" | \
+	while read nbr pat; do
+		n=$(grep -s "$pat" "$ofile" | wc -l)
+		if [ "$n" -ne "$nbr" ]; then
+			return 1
+		fi
+	done
+
 	return $?
 }
 
@@ -53,7 +145,7 @@ verbose()
 # error(string[, die]) - prints an error and exits with value die if given
 error()
 {
-	echo "error: $1"
+	[ "$quiet" -ne 1 ] && echo "error: $1"
 	[ -n "$2" ] && exit $2
 	return 0
 }
@@ -80,63 +172,76 @@ echo "    help                       prints usage"
 #	- 0 if the test passed,
 #	- 1 if it failed,
 #	- 2 if it is not a "test-suite" test.
+#	- 3 if the test is disabled.
 do_test()
 {
 	test_failed=0
 	file="$1"
 
+	get_tag_value $file
+
 	# can this test be handled by test-suite ?
 	# (it has to have a check-name key in it)
-	get_value "check-name" $file
-	if [ "$?" -eq 1 ]; then
+	if [ "$check_name" = "" ]; then
 		echo "warning: test '$file' unhandled"
-		unhandled_tests=`expr $unhandled_tests + 1`
+		unhandled_tests=$(($unhandled_tests + 1))
 		return 2
 	fi
-	test_name=$last_result
+	test_name="$check_name"
+
+	# does the test provide a specific command ?
+	if [ "$check_command" = "" ]; then
+		check_command="$defaut_command"
+	fi
+
+	# check for disabled commands
+	set -- $check_command
+	base_cmd=$1
+	for i in $disabled_cmds; do
+		if [ "$i" = "$base_cmd" ] ; then
+			disabled_tests=$(($disabled_tests + 1))
+			echo "     DISABLE $test_name ($file)"
+			return 3
+		fi
+	done
+
+	cmd=`eval echo $default_path/$check_command`
 
 	echo "     TEST    $test_name ($file)"
 
-	# does the test provide a specific command ?
-	cmd=`eval echo $default_path/$default_cmd`
-	get_value "check-command" $file
-	if [ "$?" -eq "0" ]; then
-		last_result=`echo $last_result | sed -e 's/^ *//'`
-		cmd=`eval echo $default_path/$last_result`
-	fi
 	verbose "Using command       : $cmd"
 
-	# grab the expected output
-	sed -n '/check-output-start/,/check-output-end/p' $file \
-		| grep -v check-output > "$file".output.expected
-	sed -n '/check-error-start/,/check-error-end/p' $file \
-		| grep -v check-error > "$file".error.expected
-
 	# grab the expected exit value
-	get_value "check-exit-value" $file
-	if [ "$?" -eq "0" ]; then
-		expected_exit_value=`echo $last_result | tr -d ' '`
-	else
-		grep -q -E "^[^:]+:[[:digit:]]+:[[:digit:]]+: error:" "$file".error.expected
-		if  [ "$?" -eq "0" ]; then
-			expected_exit_value=1
-		else
-			expected_exit_value=0
-		fi
-	fi
+	expected_exit_value=$check_exit_value
 	verbose "Expecting exit value: $expected_exit_value"
 
+	# do we want a timeout?
+	if [ $check_timeout -ne 0 ]; then
+		cmd="timeout -k 1s $check_timeout $cmd"
+	fi
 
 	# grab the actual output & exit value
 	$cmd 1> $file.output.got 2> $file.error.got
 	actual_exit_value=$?
 
+	must_fail=$check_known_to_fail
+	quiet=0
+	[ $must_fail -eq 1 ] && [ $V -eq 0 ] && quiet=1
+	known_ko_tests=$(($known_ko_tests + $must_fail))
+
 	for stream in output error; do
+		eval ignore=\$check_${stream}_ignore
+		[ $ignore -eq 1 ] && continue
+
+		# grab the expected output
+		sed -n "/check-$stream-start/,/check-$stream-end/p" $file \
+		| grep -v check-$stream > "$file".$stream.expected
+
 		diff -u "$file".$stream.expected "$file".$stream.got > "$file".$stream.diff
 		if [ "$?" -ne "0" ]; then
 			error "actual $stream text does not match expected $stream text."
 			error  "see $file.$stream.* for further investigation."
-			cat "$file".$stream.diff
+			[ $quiet -ne 1 ] && cat "$file".$stream.diff
 			test_failed=1
 		fi
 	done
@@ -147,18 +252,48 @@ do_test()
 		test_failed=1
 	fi
 
-	if [ "$test_failed" -eq "1" ]; then
-		ko_tests=`expr $ko_tests + 1`
-		get_tag "check-known-to-fail" $file
-		if [ "$?" -eq "0" ]; then
-			echo "info: test '$file' is known to fail"
-			known_ko_tests=`expr $known_ko_tests + 1`
+	# verify the 'check-output-contains/excludes' tags
+	if [ $check_output_contains -eq 1 ]; then
+		has_each_patterns "$file" 'check-output-contains' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output doesn't contain some of the expected patterns."
+			test_failed=1
 		fi
-		return 1
-	else
-		ok_tests=`expr $ok_tests + 1`
-		return 0
 	fi
+	if [ $check_output_excludes -eq 1 ]; then
+		has_none_patterns "$file" 'check-output-excludes' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output contains some patterns which are not expected."
+			test_failed=1
+		fi
+	fi
+	if [ $check_output_pattern -eq 1 ]; then
+		# verify the 'check-output-pattern-X-times' tags
+		nbr_patterns "$file" 'check-output-pattern' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			error "Actual output doesn't contain the pattern the expected number."
+			test_failed=1
+		fi
+	fi
+
+	[ "$test_failed" -eq "$must_fail" ] || failed=1
+
+	if [ "$must_fail" -eq "1" ]; then
+		if [ "$test_failed" -eq "1" ]; then
+			echo "info: test '$file' is known to fail"
+		else
+			echo "error: test '$file' is known to fail but succeed!"
+			test_failed=1
+		fi
+	fi
+
+	if [ "$test_failed" -eq "1" ]; then
+		ko_tests=$(($ko_tests + 1))
+	else
+		ok_tests=$(($ok_tests + 1))
+		rm -f $file.{error,output}.{expected,got,diff}
+	fi
+	return $test_failed
 }
 
 do_test_suite()
@@ -168,11 +303,14 @@ do_test_suite()
 	done
 
 	# prints some numbers
-	tests_nr=`expr $ok_tests + $ko_tests`
+	tests_nr=$(($ok_tests + $ko_tests))
 	echo -n "Out of $tests_nr tests, $ok_tests passed, $ko_tests failed"
 	echo " ($known_ko_tests of them are known to fail)"
 	if [ "$unhandled_tests" -ne "0" ]; then
 		echo "$unhandled_tests tests could not be handled by $prog_name"
+	fi
+	if [ "$disabled_tests" -ne "0" ]; then
+		echo "$disabled_tests tests were disabled"
 	fi
 }
 
@@ -254,5 +392,5 @@ case "$1" in
 		;;
 esac
 
-exit 0
+exit $failed
 

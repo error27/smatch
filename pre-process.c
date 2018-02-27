@@ -46,7 +46,9 @@
 #include "expression.h"
 #include "scope.h"
 
+static struct ident_list *macros;	// only needed for -dD
 static int false_nesting = 0;
+static int counter_macro = 0;		// __COUNTER__ expansion
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -184,6 +186,8 @@ static int expand_one_symbol(struct token **list)
 			time(&t);
 		strftime(buffer, 9, "%T", localtime(&t));
 		replace_with_string(token, buffer);
+	} else if (token->ident == &__COUNTER___ident) {
+		replace_with_integer(token, counter_macro++);
 	}
 	return 1;
 }
@@ -212,7 +216,7 @@ static void expand_list(struct token **list)
 
 static void preprocessor_line(struct stream *stream, struct token **line);
 
-static struct token *collect_arg(struct token *prev, int vararg, struct position *pos)
+static struct token *collect_arg(struct token *prev, int vararg, struct position *pos, int count)
 {
 	struct stream *stream = input_streams + prev->pos.stream;
 	struct token **p = &prev->next;
@@ -234,6 +238,11 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 		case TOKEN_STREAMBEGIN:
 			*p = &eof_token_entry;
 			return next;
+		case TOKEN_STRING:
+		case TOKEN_WIDE_STRING:
+			if (count > 1)
+				next->string->immutable = 1;
+			break;
 		}
 		if (false_nesting) {
 			*p = next->next;
@@ -279,7 +288,7 @@ static int collect_arguments(struct token *start, struct token *arglist, struct 
 	arglist = arglist->next;	/* skip counter */
 
 	if (!wanted) {
-		next = collect_arg(start, 0, &what->pos);
+		next = collect_arg(start, 0, &what->pos, 0);
 		if (eof_token(next))
 			goto Eclosing;
 		if (!eof_token(start->next) || !match_op(next, ')')) {
@@ -289,10 +298,12 @@ static int collect_arguments(struct token *start, struct token *arglist, struct 
 	} else {
 		for (count = 0; count < wanted; count++) {
 			struct argcount *p = &arglist->next->count;
-			next = collect_arg(start, p->vararg, &what->pos);
-			arglist = arglist->next->next;
+			next = collect_arg(start, p->vararg, &what->pos, p->normal);
 			if (eof_token(next))
 				goto Eclosing;
+			if (p->vararg && wanted == 1 && eof_token(start->next))
+				break;
+			arglist = arglist->next->next;
 			args[count].arg = start->next;
 			args[count].n_normal = p->normal;
 			args[count].n_quoted = p->quoted;
@@ -326,7 +337,7 @@ Efew:
 	goto out;
 Emany:
 	while (match_op(next, ',')) {
-		next = collect_arg(next, 0, &what->pos);
+		next = collect_arg(next, 0, &what->pos, 0);
 		count++;
 	}
 	if (eof_token(next))
@@ -1384,8 +1395,15 @@ static struct token *parse_expansion(struct token *expansion, struct token *argl
 		} else {
 			try_arg(token, TOKEN_MACRO_ARGUMENT, arglist);
 		}
-		if (token_type(token) == TOKEN_ERROR)
+		switch (token_type(token)) {
+		case TOKEN_ERROR:
 			goto Earg;
+
+		case TOKEN_STRING:
+		case TOKEN_WIDE_STRING:
+			token->string->immutable = 1;
+			break;
+		}
 	}
 	token = alloc_token(&expansion->pos);
 	token_type(token) = TOKEN_UNTAINT;
@@ -1461,6 +1479,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 	if (!sym || sym->scope != file_scope) {
 		sym = alloc_symbol(left->pos, SYM_NODE);
 		bind_symbol(sym, name, NS_MACRO);
+		add_ident(&macros, name);
 		ret = 0;
 	}
 
@@ -2007,6 +2026,7 @@ static void init_preprocessor(void)
 		sym->normal = 0;
 	}
 
+	counter_macro = 0;
 }
 
 static void handle_preprocessor_line(struct stream *stream, struct token **line, struct token *start)
@@ -2148,4 +2168,57 @@ struct token * preprocess(struct token *token)
 	preprocessing = 0;
 
 	return token;
+}
+
+static void dump_macro(struct symbol *sym)
+{
+	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
+	struct token *args[nargs];
+	struct token *token;
+
+	printf("#define %s", show_ident(sym->ident));
+	token = sym->arglist;
+	if (token) {
+		const char *sep = "";
+		int narg = 0;
+		putchar('(');
+		for (; !eof_token(token); token = token->next) {
+			if (token_type(token) == TOKEN_ARG_COUNT)
+				continue;
+			printf("%s%s", sep, show_token(token));
+			args[narg++] = token;
+			sep = ", ";
+		}
+		putchar(')');
+	}
+	putchar(' ');
+
+	token = sym->expansion;
+	while (!eof_token(token)) {
+		struct token *next = token->next;
+		switch (token_type(token)) {
+		case TOKEN_UNTAINT:
+			break;
+		case TOKEN_MACRO_ARGUMENT:
+			token = args[token->argnum];
+			/* fall-through */
+		default:
+			printf("%s", show_token(token));
+			if (next->pos.whitespace)
+				putchar(' ');
+		}
+		token = next;
+	}
+	putchar('\n');
+}
+
+void dump_macro_definitions(void)
+{
+	struct ident *name;
+
+	FOR_EACH_PTR(macros, name) {
+		struct symbol *sym = lookup_macro(name);
+		if (sym)
+			dump_macro(sym);
+	} END_FOR_EACH_PTR(name);
 }

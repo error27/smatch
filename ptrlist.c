@@ -23,7 +23,7 @@ int ptr_list_size(struct ptr_list *head)
 	if (head) {
 		struct ptr_list *list = head;
 		do {
-			nr += list->nr;
+			nr += list->nr - list->rm;
 		} while ((list = list->next) != head);
 	}
 	return nr;

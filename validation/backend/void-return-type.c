@@ -9,5 +9,5 @@ static void *bar(void *p)
 
 /*
  * check-name: void return type code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

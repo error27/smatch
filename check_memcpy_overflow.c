@@ -170,8 +170,7 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 			    name_in_union(tmp, expr->member->name))
 				found = 1;
 
-			if (!type->ctype.attribute->is_packed)
-			    offset = ALIGN(offset, tmp->ctype.alignment);
+			offset = ALIGN(offset, tmp->ctype.alignment);
 
 			offset += type_bytes(tmp);
 			size = type_bytes(tmp);
@@ -179,8 +178,7 @@ static int ends_on_struct_member_boundary(struct expression *expr, int needed)
 		}
 
 		/* if there is a hole then fail. */
-		if (!type->ctype.attribute->is_packed &&
-		    offset != ALIGN(offset, tmp->ctype.alignment))
+		if (offset != ALIGN(offset, tmp->ctype.alignment))
 			return 0;
 		offset += type_bytes(tmp);
 		size += type_bytes(tmp);

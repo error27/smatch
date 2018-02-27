@@ -46,10 +46,14 @@ series
 
 #cscope
 cscope.files
-cscope.out
 
 # local makefile
 local.mk
 
 # local smatch checks
 check_list_local.h
+
+# cscope and Qt files
+cscope.out
+*.pro*
+

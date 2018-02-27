@@ -70,7 +70,7 @@ static int check_struct(struct expression *expr, struct symbol *type)
 			if (check_struct(expr, base_type))
 				return 1;
 		}
-		if (type->ctype.attribute->is_packed)
+		if (tmp->ctype.alignment == 1)
 			continue;
 
 		if (!tmp->ctype.alignment) {

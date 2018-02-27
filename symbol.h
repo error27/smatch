@@ -27,7 +27,6 @@
 
 #include "token.h"
 #include "target.h"
-#include "allocate.h"
 
 /*
  * An identifier with semantic meaning is a "symbol".
@@ -96,17 +95,13 @@ struct context {
 
 extern struct context *alloc_context(void);
 
-struct attribute {
-	struct context_list *contexts;
-	unsigned int as;
-	unsigned int is_packed:1;
-};
-
+DECLARE_PTR_LIST(context_list, struct context);
 
 struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
-	struct attribute *attribute;
+	struct context_list *contexts;
+	unsigned int as;
 	struct symbol *base_type;
 };
 
@@ -133,8 +128,6 @@ struct symbol_op {
 	int test, set, class;
 };
 
-extern int expand_safe_p(struct expression *expr, int cost);
-extern int expand_constant_p(struct expression *expr, int cost);
 
 #define SYM_ATTR_WEAK		0
 #define SYM_ATTR_NORMAL		1
@@ -252,10 +245,10 @@ struct symbol {
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
 #define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
 	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
-#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_STORAGE | MOD_NORETURN)
+#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
+/* modifiers preserved by typeof() operator */
+#define MOD_TYPEOF	(MOD_VOLATILE | MOD_CONST | MOD_NOCAST | MOD_SPECIFIER)
 
-/* default empty attribute */
-extern struct attribute null_attr;
 
 /* Current parsing/evaluation function */
 extern struct symbol *current_fn;
@@ -296,6 +289,7 @@ extern const char * type_difference(struct ctype *c1, struct ctype *c2,
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
+extern void init_builtins(int stream);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
@@ -348,11 +342,23 @@ static inline int is_type_type(struct symbol *type)
 
 static inline int is_ptr_type(struct symbol *type)
 {
-	if (!type)
-		return 0;
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	return type->type == SYM_PTR || type->type == SYM_ARRAY || type->type == SYM_FN;
+}
+
+static inline int is_func_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_FN;
+}
+
+static inline int is_array_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_ARRAY;
 }
 
 static inline int is_float_type(struct symbol *type)
@@ -381,6 +387,26 @@ static inline int is_bool_type(struct symbol *type)
 	return type == &bool_ctype;
 }
 
+static inline int is_scalar_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	switch (type->type) {
+	case SYM_ENUM:
+	case SYM_BITFIELD:
+	case SYM_PTR:
+	case SYM_RESTRICT:	// OK, always integer types
+		return 1;
+	default:
+		break;
+	}
+	if (type->ctype.base_type == &int_type)
+		return 1;
+	if (type->ctype.base_type == &fp_type)
+		return 1;
+	return 0;
+}
+
 static inline int is_function(struct symbol *type)
 {
 	return type && type->type == SYM_FN;
@@ -407,51 +433,6 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 	if (!ident->keyword)
 		return NULL;
 	return lookup_symbol(ident, ns);
-}
-
-static inline struct attribute *duplicate_attribute(struct attribute *attr)
-{
-		struct attribute *newattr = __alloc_attribute(0);
-		*newattr = *attr;
-		return newattr;
-}
-
-static inline void attr_set_as(struct ctype *ctype, unsigned int as)
-{
-	if (ctype->attribute->as != as) {
-		ctype->attribute = duplicate_attribute(ctype->attribute);
-		ctype->attribute->as = as;
-	}
-}
-
-static inline void attr_add_context(struct ctype *ctype, struct context *context)
-{
-	ctype->attribute = duplicate_attribute(ctype->attribute);
-	add_ptr_list(&ctype->attribute->contexts, context);
-}
-
-static inline void merge_attr(struct ctype *dst, struct ctype *src)
-{
-	struct attribute *attr;
-
-	if (src->attribute == &null_attr)
-		return;
-	if (dst->attribute == &null_attr) {
-		dst->attribute  = src->attribute;
-		return;
-	}
-	
-	dst->attribute = attr = duplicate_attribute(dst->attribute);
-	attr->as |= src->attribute->as;
-	concat_ptr_list((struct ptr_list *)src->attribute->contexts,
-			(struct ptr_list **)&attr->contexts);
-}
-
-static inline void set_attr_is_packed(struct ctype *ctype)
-{
-	if (ctype->attribute == &null_attr)
-		ctype->attribute = __alloc_attribute(0);
-	ctype->attribute->is_packed = 1;
 }
 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)

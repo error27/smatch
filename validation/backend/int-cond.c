@@ -26,5 +26,5 @@ static long bar_bool(_Bool a, long b, long c)
 
 /*
  * check-name: Non-bool condition values in branch/select
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

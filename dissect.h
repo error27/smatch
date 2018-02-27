@@ -26,15 +26,4 @@ struct reporter
 
 extern void dissect(struct symbol_list *, struct reporter *);
 
-#define	MK_IDENT(s)	({				\
-	static struct {					\
-		struct ident ident;			\
-		char __[sizeof(s)];			\
-	} ident = {{					\
-		.len  = sizeof(s)-1,			\
-		.name = s,				\
-	}};						\
-	&ident.ident;					\
-})
-
 #endif

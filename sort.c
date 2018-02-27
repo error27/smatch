@@ -99,7 +99,7 @@ static void verify_seq_sorted (struct ptr_list *l, int n,
 	assert (nbuf >= nr);					\
 	memcpy ((b)->list, buffer, nr * sizeof (void *));	\
 	nbuf -= nr;						\
-	memcpy (buffer, buffer + nr, nbuf * sizeof (void *));	\
+	memmove (buffer, buffer + nr, nbuf * sizeof (void *));	\
   } while (0)
 
 #define DUMP_TO(b)						\

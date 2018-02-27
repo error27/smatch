@@ -60,5 +60,5 @@ static unsigned int unot(unsigned int x)
 
 /*
  * check-name: Bitwise operator code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

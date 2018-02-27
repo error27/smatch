@@ -5,5 +5,5 @@ static _Bool return_false(void)
 
 /*
  * check-name: Boolean type code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

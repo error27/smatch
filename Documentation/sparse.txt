@@ -42,4 +42,4 @@ Reference:
 
 * Linus' e-mail about __nocast vs __bitwise:
 
-  http://article.gmane.org/gmane.linux.kernel.mm/75784
+  http://marc.info/?l=linux-mm&m=133245421127324&w=2

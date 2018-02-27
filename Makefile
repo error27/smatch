@@ -1,4 +1,4 @@
-VERSION=0.5.0
+VERSION=0.5.1
 
 # Generating file version.h if current version has changed
 SPARSE_VERSION:=$(shell git describe 2>/dev/null || echo '$(VERSION)')
@@ -13,14 +13,17 @@ OS = linux
 ifeq ($(CC),"")
 CC = gcc
 endif
+
 CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings -Wno-switch
 LDFLAGS += -g -lm -lsqlite3 -lssl -lcrypto
 LD = gcc
 AR = ar
 PKG_CONFIG = pkg-config
+COMMON_CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
+COMMON_CFLAGS += -Wall -Wwrite-strings
 
-ALL_CFLAGS = $(CFLAGS) $(BASIC_CFLAGS)
+ALL_CFLAGS = $(COMMON_CFLAGS) $(PKG_CFLAGS) $(CFLAGS)
 #
 # For debugging, put this in local.mk:
 #
@@ -31,19 +34,25 @@ HAVE_LIBXML:=$(shell $(PKG_CONFIG) --exists libxml-2.0 2>/dev/null && echo 'yes'
 HAVE_GCC_DEP:=$(shell touch .gcc-test.c && 				\
 		$(CC) -c -Wp,-MD,.gcc-test.d .gcc-test.c 2>/dev/null && \
 		echo 'yes'; rm -f .gcc-test.d .gcc-test.o .gcc-test.c)
-HAVE_GTK2:=$(shell $(PKG_CONFIG) --exists gtk+-2.0 2>/dev/null && echo 'yes')
-LLVM_CONFIG:=llvm-config
-HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
-ifeq ($(HAVE_LLVM),yes)
-HAVE_LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version | grep "^[3-9].*" >/dev/null 2>&1 && echo yes)
-LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
+
+GTK_VERSION:=3.0
+HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
+ifneq ($(HAVE_GTK),yes)
+	GTK_VERSION:=2.0
+	HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
 endif
 
-GCC_BASE = $(shell $(CC) --print-file-name=)
-BASIC_CFLAGS = -DGCC_BASE=\"$(GCC_BASE)\"
+LLVM_CONFIG:=llvm-config
+HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
+
+GCC_BASE := $(shell $(CC) --print-file-name=)
+COMMON_CFLAGS += -DGCC_BASE=\"$(GCC_BASE)\"
+
+MULTIARCH_TRIPLET := $(shell $(CC) -print-multiarch 2>/dev/null)
+COMMON_CFLAGS += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
 
 ifeq ($(HAVE_GCC_DEP),yes)
-BASIC_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
+COMMON_CFLAGS += -Wp,-MD,$(@D)/.$(@F).d
 endif
 
 DESTDIR=
@@ -117,40 +126,46 @@ ifeq ($(HAVE_LIBXML),yes)
 PROGRAMS+=c2xml
 INST_PROGRAMS+=c2xml
 c2xml_EXTRA_OBJS = `$(PKG_CONFIG) --libs libxml-2.0`
+LIBXML_CFLAGS := $(shell $(PKG_CONFIG) --cflags libxml-2.0)
 else
 $(warning Your system does not have libxml, disabling c2xml)
 endif
 
-ifeq ($(HAVE_GTK2),yes)
-GTK2_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-2.0)
-GTK2_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-2.0)
+ifeq ($(HAVE_GTK),yes)
+GTK_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-$(GTK_VERSION))
+GTK_LIBS := $(shell $(PKG_CONFIG) --libs gtk+-$(GTK_VERSION))
 PROGRAMS += test-inspect
 INST_PROGRAMS += test-inspect
 test-inspect_EXTRA_DEPS := ast-model.o ast-view.o ast-inspect.o
-test-inspect.o $(test-inspect_EXTRA_DEPS): BASIC_CFLAGS += $(GTK2_CFLAGS)
-test-inspect_EXTRA_OBJS := $(GTK2_LIBS)
+test-inspect_OBJS := test-inspect.o $(test-inspect_EXTRA_DEPS)
+$(test-inspect_OBJS) $(test-inspect_OBJS:.o=.sc): PKG_CFLAGS += $(GTK_CFLAGS)
+test-inspect_EXTRA_OBJS := $(GTK_LIBS)
 else
-$(warning Your system does not have libgtk2, disabling test-inspect)
+$(warning Your system does not have gtk3/gtk2, disabling test-inspect)
 endif
 
-ifneq ($(HAVE_LLVM),yes)
-$(warning Your system does not have llvm, disabling sparse-llvm)
-else
-ifneq ($(HAVE_LLVM_VERSION),yes)
-$(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
-HAVE_LLVM=no
-else
+ifeq ($(HAVE_LLVM),yes)
+ifeq ($(shell uname -m | grep -q '\(i386\|x86\)' && echo ok),ok)
+LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
+ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
 LLVM_PROGS := sparse-llvm
 $(LLVM_PROGS): LD := g++
 LLVM_LDFLAGS := $(shell $(LLVM_CONFIG) --ldflags)
-LLVM_CFLAGS := $(shell $(LLVM_CONFIG) --cflags | sed -e "s/-DNDEBUG//g")
+LLVM_CFLAGS := $(shell $(LLVM_CONFIG) --cflags | sed -e "s/-DNDEBUG//g" | sed -e "s/-pedantic//g")
 LLVM_LIBS := $(shell $(LLVM_CONFIG) --libs)
 LLVM_LIBS += $(shell $(LLVM_CONFIG) --system-libs 2>/dev/null)
 PROGRAMS += $(LLVM_PROGS)
 INST_PROGRAMS += sparse-llvm sparsec
-sparse-llvm.o: BASIC_CFLAGS += $(LLVM_CFLAGS)
+sparse-llvm.o sparse-llvm.sc: PKG_CFLAGS += $(LLVM_CFLAGS)
 sparse-llvm_EXTRA_OBJS := $(LLVM_LIBS) $(LLVM_LDFLAGS)
+else
+$(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
 endif
+else
+$(warning sparse-llvm disabled on $(shell uname -m))
+endif
+else
+$(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
 LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
@@ -160,8 +175,11 @@ LIB_H=    token.h parse.h lib.h symbol.h scope.h expression.h target.h \
 LIB_OBJS= target.o parse.o tokenize.o pre-process.o symbol.o lib.o scope.o \
 	  expression.o show-parse.o evaluate.o expand.o inline.o linearize.o \
 	  char.o sort.o allocate.o compat-$(OS).o ptrlist.o \
+	  builtin.o \
+	  stats.o \
 	  flow.o cse.o simplify.o memops.o liveness.o storage.o unssa.o \
-	  dissect.o macro_table.o token_store.o cwchash/hashtable.o
+	  dissect.o \
+	  macro_table.o token_store.o cwchash/hashtable.o
 
 LIB_FILE= libsparse.a
 SLIB_FILE= libsparse.so
@@ -180,6 +198,7 @@ LIBS=$(LIB_FILE)
 V	      = @
 Q	      = $(V:1=)
 QUIET_CC      = $(Q:@=@echo    '     CC       '$@;)
+QUIET_CHECK   = $(Q:@=@echo    '     CHECK    '$<;)
 QUIET_AR      = $(Q:@=@echo    '     AR       '$@;)
 QUIET_GEN     = $(Q:@=@echo    '     GEN      '$@;)
 QUIET_LINK    = $(Q:@=@echo    '     LINK     '$@;)
@@ -254,22 +273,28 @@ smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
 	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
 DEP_FILES := $(wildcard .*.o.d)
-$(if $(DEP_FILES),$(eval include $(DEP_FILES)))
 
-c2xml.o: c2xml.c $(LIB_H)
-	$(QUIET_CC)$(CC) `$(PKG_CONFIG) --cflags libxml-2.0` -o $@ -c $(ALL_CFLAGS) $<
+ifneq ($(DEP_FILES),)
+include $(DEP_FILES)
+endif
 
-compat-linux.o: compat/strtold.c compat/mmap-blob.c $(LIB_H)
-compat-solaris.o: compat/mmap-blob.c $(LIB_H)
-compat-mingw.o: $(LIB_H)
-compat-cygwin.o: $(LIB_H)
+c2xml.o c2xml.sc: PKG_CFLAGS += $(LIBXML_CFLAGS)
 
-%.o: %.c
+pre-process.sc: CHECKER_FLAGS += -Wno-vla
+
+%.o: %.c $(LIB_H)
 	$(QUIET_CC)$(CC) -o $@ -c $(ALL_CFLAGS) $<
+
+%.sc: %.c sparse
+	$(QUIET_CHECK) $(CHECKER) $(CHECKER_FLAGS) -c $(ALL_CFLAGS) $<
+
+ALL_OBJS :=  $(LIB_OBJS) $(foreach p,$(PROGRAMS),$(p).o $($(p)_EXTRA_DEPS))
+selfcheck: $(ALL_OBJS:.o=.sc)
+
 
 clean: clean-check
 	rm -f *.[oa] .*.d *.so cwchash/*.o cwchash/.*.d cwchash/tester \
-		$(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc
+		$(PROGRAMS) $(SLIB_FILE) pre-process.h sparse.pc version.h
 
 dist:
 	@if test "$(SPARSE_VERSION)" != "v$(VERSION)" ; then \

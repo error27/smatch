@@ -8,5 +8,5 @@ static void set(struct foo *f)
 
 /*
  * check-name: Type of stored objects
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

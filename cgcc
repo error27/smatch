@@ -3,6 +3,7 @@
 
 my $cc = $ENV{'REAL_CC'} || 'cc';
 my $check = $ENV{'CHECK'} || 'sparse';
+my $ccom = $cc;
 
 my $m32 = 0;
 my $m64 = 0;
@@ -11,6 +12,7 @@ my $gendeps = 0;
 my $do_check = 0;
 my $do_compile = 1;
 my $gcc_base_dir;
+my $multiarch_dir;
 my $verbose = 0;
 
 while (@ARGV) {
@@ -44,6 +46,12 @@ while (@ARGV) {
         next;
     }
 
+    if (/^-multiarch-dir$/) {
+        $multiarch_dir = shift @ARGV;
+        die ("$0: missing argument for -multiarch-dir option") if !$multiarch_dir;
+        next;
+    }
+
     # If someone adds "-E", don't pre-process twice.
     $do_compile = 0 if $_ eq '-E';
 
@@ -65,8 +73,13 @@ if ($do_check) {
 	$check .= &add_specs ('host_os_specs');
     }
 
-    $gcc_base_dir = qx($cc -print-file-name=) if !$gcc_base_dir;
+    $gcc_base_dir = qx($ccom -print-file-name=) if !$gcc_base_dir;
+    chomp($gcc_base_dir);  # possibly remove '\n' from compiler
     $check .= " -gcc-base-dir " . $gcc_base_dir if $gcc_base_dir;
+
+    $multiarch_dir = qx($ccom -print-multiarch) if ! defined $multiarch_dir;
+    chomp($multiarch_dir);  # possibly remove '\n' from compiler
+    $check .= " -multiarch-dir " . $multiarch_dir if $multiarch_dir;
 
     print "$check\n" if $verbose;
     if ($do_compile) {
@@ -88,8 +101,9 @@ exit 0;
 
 sub check_only_option {
     my ($arg) = @_;
-    return 1 if $arg =~ /^-W(no-?)?(default-bitfield-sign|one-bit-signed-bitfield|cast-truncate|bitwise|typesign|context|undef|ptr-subtraction-blows|cast-to-as|decl|transparent-union|address-space|enum-mismatch|do-while|old-initializer|non-pointer-null|paren-string|return-void|designated-init|sparse-all)$/;
+    return 1 if $arg =~ /^-W(no-?)?(address-space|bitwise|cast-to-as|cast-truncate|context|decl|default-bitfield-sign|designated-init|do-while|enum-mismatch|init-cstring|memcpy-max-count|non-pointer-null|old-initializer|one-bit-signed-bitfield|override-init-all|paren-string|ptr-subtraction-blows|return-void|sizeof-bool|sparse-all|sparse-error|transparent-union|typesign|undef|unknown-attribute)$/;
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
+    return 1 if $arg =~ /^-f(dump-linearize|memcpy-max-count)(=\S*)?$/;
     return 0;
 }
 
@@ -221,9 +235,15 @@ sub add_specs {
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
 	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
+    } elsif ($spec eq 'gnu/kfreebsd') {
+	return &add_specs ('unix') .
+	    ' -D__FreeBSD_kernel__=1';
     } elsif ($spec eq 'openbsd') {
 	return &add_specs ('unix') .
 	    ' -D__OpenBSD__=1';
+    } elsif ($spec eq 'darwin') {
+	return
+	    ' -D__APPLE__=1 -D__MACH__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
@@ -237,25 +257,25 @@ sub add_specs {
 	    " -D'__fastcall=__attribute__((__fastcall__))'" .
 	    " -D'__declspec(x)=__attribute__((x))'";
     } elsif ($spec eq 'i86') {
-	return (' -Di386=1 -D__i386=1 -D__i386__=1' .
+	return (' -D__i386=1 -D__i386__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 21, [24,8], [53,11], [64,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'sparc') {
-	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1' .
+	return (' -D__sparc=1 -D__sparc__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'sparc64') {
-	return (' -Dsparc=1 -D__sparc=1 -D__sparc__=1 -D__sparcv9__=1 -D__sparc64__=1 -D__arch64__=1 -D__LP64__=1' .
+	return (' -D__sparc=1 -D__sparc__=1 -D__sparcv9__=1 -D__sparc64__=1 -D__arch64__=1 -D__LP64__=1' .
 		&integer_types (8, 16, 32, 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=8');
     } elsif ($spec eq 'x86_64') {
-	return (' -Dx86_64=1 -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
+	return (' -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
 		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m32 ? "unsigned int" : "long unsigned int") .
@@ -266,6 +286,30 @@ sub add_specs {
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
 		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+    } elsif ($spec eq 'ppc64') {
+	return (' -D__powerpc__=1 -D__PPC__=1 -D_STRING_ARCH_unaligned=1' .
+		' -D__powerpc64__=1 -D__PPC64__=1' .
+		' -m64' .
+		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 's390x') {
+	return (' -D__s390x__ -D__s390__ -D_BIG_ENDIAN' .
+		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
+		&float_types (1, 1, 36, [24,8], [53,11], [113,15]) .
+		&define_size_t ("long unsigned int") .
+		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+    } elsif ($spec eq 'arm') {
+	chomp (my $gccmachine = `$cc -dumpmachine`);
+	my $cppsymbols = ' -D__arm__=1 -m32';
+
+	if ($gccmachine eq 'arm-linux-gnueabihf') {
+	    $cppsymbols .= ' -D__ARM_PCS_VFP=1';
+	}
+
+	return ($cppsymbols .
+		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
+    } elsif ($spec eq 'aarch64') {
+	return (' -D__aarch64__=1 -m64' .
+		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;
@@ -281,8 +325,18 @@ sub add_specs {
 	    return &add_specs ('x86_64');
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
+	} elsif ($arch =~ /^(ppc64)$/i) {
+	    return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
+	} elsif ($arch =~ /^(ppc64le)$/i) {
+	    return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
+	} elsif ($arch =~ /^(s390x)$/i) {
+	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
 	    return &add_specs ('sparc64');
+	} elsif ($arch =~ /^arm(?:v[78]l)?$/i) {
+	    return &add_specs ('arm');
+	} elsif ($arch =~ /^(aarch64)$/i) {
+	    return &add_specs ('aarch64');
 	}
     } else {
 	die "$0: invalid specs: $spec\n";

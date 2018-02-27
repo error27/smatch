@@ -1,7 +1,7 @@
 /*
  * sparse/dissect.c
  *
- * Started by Oleg Nesterov <oleg@tv-sign.ru>
+ * Started by Oleg Nesterov <oleg@redhat.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -130,7 +130,7 @@ static inline struct symbol *no_member(struct ident *name)
 	return &sym;
 }
 
-static struct symbol *report_member(mode_t mode, struct position *pos,
+static struct symbol *report_member(usage_t mode, struct position *pos,
 					struct symbol *type, struct symbol *mem)
 {
 	struct symbol *ret = mem->ctype.base_type;
@@ -429,6 +429,20 @@ again:
 			lookup_member(p_type, expr->member, NULL));
 	}
 
+	break; case EXPR_OFFSETOF: {
+		struct symbol *in = base_type(expr->in);
+
+		do {
+			if (expr->op == '.') {
+				in = report_member(U_VOID, &expr->pos, in,
+					lookup_member(in, expr->ident, NULL));
+			} else {
+				do_expression(U_R_VAL, expr->index);
+				in = in->ctype.base_type;
+			}
+		} while ((expr = expr->down));
+	}
+
 	break; case EXPR_SYMBOL:
 		ret = report_symbol(mode, expr);
 	}
@@ -527,28 +541,33 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 
 	break; case EXPR_INITIALIZER:
 		m_addr = 0;
-		FOR_EACH_PTR(expr->expr_list, m_expr)
+		FOR_EACH_PTR(expr->expr_list, m_expr) {
 			if (type->type == SYM_ARRAY) {
 				m_type = base_type(type);
 				if (m_expr->type == EXPR_INDEX)
 					m_expr = m_expr->idx_expression;
 			} else {
-				struct position *pos = &m_expr->pos;
-				struct ident *m_name = NULL;
+				int *m_atop = &m_addr;
 
-				if (m_expr->type == EXPR_IDENTIFIER) {
-					m_name = m_expr->expr_ident;
+				m_type = type;
+				while (m_expr->type == EXPR_IDENTIFIER) {
+					m_type = report_member(U_W_VAL, &m_expr->pos, m_type,
+							lookup_member(m_type, m_expr->expr_ident, m_atop));
 					m_expr = m_expr->ident_expression;
+					m_atop = NULL;
 				}
 
-				m_type = report_member(U_W_VAL, pos, type,
-						lookup_member(type, m_name, &m_addr));
+				if (m_atop) {
+					m_type = report_member(U_W_VAL, &m_expr->pos, m_type,
+							lookup_member(m_type, NULL, m_atop));
+				}
+
 				if (m_expr->type != EXPR_INITIALIZER)
-					report_implicit(U_W_VAL, pos, m_type);
+					report_implicit(U_W_VAL, &m_expr->pos, m_type);
 			}
 			do_initializer(m_type, m_expr);
 			m_addr++;
-		END_FOR_EACH_PTR(m_expr);
+		} END_FOR_EACH_PTR(m_expr);
 	}
 
 	return type;

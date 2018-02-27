@@ -66,10 +66,70 @@ enum expression_type {
 	EXPR_OFFSETOF,
 };
 
-enum {
-	Int_const_expr = 1,
-	Float_literal = 2,
-}; /* for expr->flags */
+
+/*
+ * Flags for tracking the promotion of constness related attributes
+ * from subexpressions to their parents.
+ *
+ * The flags are not independent as one might imply another.
+ * The implications are as follows:
+ * - CEF_INT, CEF_ENUM and
+ *   CEF_CHAR imply CEF_ICE.
+ *
+ * Use the CEF_*_SET_MASK and CEF_*_CLEAR_MASK
+ * helper macros defined below to set or clear one of these flags.
+ */
+enum constexpr_flag {
+	CEF_NONE = 0,
+	/*
+	 * A constant in the sense of [6.4.4]:
+	 * - Integer constant [6.4.4.1]
+	 * - Floating point constant [6.4.4.2]
+	 * - Enumeration constant [6.4.4.3]
+	 * - Character constant [6.4.4.4]
+	 */
+	CEF_INT = (1 << 0),
+	CEF_FLOAT = (1 << 1),
+	CEF_ENUM = (1 << 2),
+	CEF_CHAR = (1 << 3),
+
+	/*
+	 * A constant expression in the sense of [6.6]:
+	 * - integer constant expression [6.6(6)]
+	 * - arithmetic constant expression [6.6(8)]
+	 * - address constant [6.6(9)]
+	 */
+	CEF_ICE = (1 << 4),
+	CEF_ACE = (1 << 5),
+	CEF_ADDR = (1 << 6),
+
+	/* integer constant expression => arithmetic constant expression */
+	CEF_SET_ICE = (CEF_ICE | CEF_ACE),
+
+	/* integer constant => integer constant expression */
+	CEF_SET_INT = (CEF_INT | CEF_SET_ICE),
+
+	/* floating point constant => arithmetic constant expression */
+	CEF_SET_FLOAT = (CEF_FLOAT | CEF_ACE),
+
+	/* enumeration constant => integer constant expression */
+	CEF_SET_ENUM = (CEF_ENUM | CEF_SET_ICE),
+
+	/* character constant => integer constant expression */
+	CEF_SET_CHAR = (CEF_CHAR | CEF_SET_ICE),
+
+	/*
+	 * Remove any "Constant" [6.4.4] flag, but retain the "constant
+	 * expression" [6.6] flags.
+	 */
+	CEF_CONST_MASK = (CEF_INT | CEF_FLOAT | CEF_CHAR),
+
+	/*
+	 * not an integer constant expression => neither of integer,
+	 * enumeration and character constant
+	 */
+	CEF_CLR_ICE = (CEF_ICE | CEF_INT | CEF_ENUM | CEF_CHAR),
+};
 
 enum {
 	Handled = 1,
@@ -185,6 +245,7 @@ struct expression {
 
 /* Constant expression values */
 int is_zero_constant(struct expression *);
+int expr_truth_value(struct expression *expr);
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
 long long get_expression_value_silent(struct expression *expr);
@@ -207,6 +268,7 @@ static inline struct expression *alloc_expression(struct position pos, int type)
 	struct expression *expr = __alloc_expression(0);
 	expr->type = type;
 	expr->pos = pos;
+	expr->flags = CEF_NONE;
 	return expr;
 }
 
@@ -217,6 +279,7 @@ static inline struct expression *alloc_const_expression(struct position pos, int
 	expr->pos = pos;
 	expr->value = value;
 	expr->ctype = &int_ctype;
+	expr->flags = CEF_SET_INT;
 	return expr;
 }
 

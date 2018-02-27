@@ -21,5 +21,5 @@ static struct unnamed un;
 
 /*
  * check-name: Struct code generation
- * check-command: ./sparsec -c $file -o tmp.o
+ * check-command: sparsec -c $file -o tmp.o
  */

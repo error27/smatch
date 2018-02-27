@@ -4,6 +4,7 @@
 #include "allocate.h"
 #include "token.h"
 #include "expression.h"
+#include "char.h"
 
 static const char *parse_escape(const char *p, unsigned *val, const char *end, int bits, struct position pos)
 {
@@ -53,7 +54,13 @@ static const char *parse_escape(const char *p, unsigned *val, const char *end, i
 		break;
 	}
 	default:	/* everything else is left as is */
+		warning(pos, "unknown escape sequence: '\\%c'", c);
 		break;
+	case '\\':
+	case '\'':
+	case '"':
+	case '?':
+		break;	/* those are legal, so no warnings */
 	}
 	*val = c & ~((~0U << (bits - 1)) << 1);
 	return p;
@@ -77,7 +84,7 @@ void get_char_constant(struct token *token, unsigned long long *val)
 		end = p + type - TOKEN_WIDE_CHAR;
 	}
 	p = parse_escape(p, &v, end,
-			type < TOKEN_WIDE_CHAR ? bits_in_char : 32, token->pos);
+			type < TOKEN_WIDE_CHAR ? bits_in_char : bits_in_wchar, token->pos);
 	if (p != end)
 		warning(token->pos,
 			"multi-character character constant");
@@ -93,7 +100,7 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 	static char buffer[MAX_STRING];
 	int len = 0;
 	int bits;
-	int parts = 0;
+	int esc_count = 0;
 
 	while (!done) {
 		switch (token_type(next)) {
@@ -106,30 +113,33 @@ struct token *get_string_constant(struct token *token, struct expression *expr)
 			done = next;
 		}
 	}
-	bits = is_wide ? 32 : bits_in_char;
+	bits = is_wide ? bits_in_wchar : bits_in_char;
 	while (token != done) {
 		unsigned v;
 		const char *p = token->string->data;
 		const char *end = p + token->string->length - 1;
 		while (p < end) {
+			if (*p == '\\')
+				esc_count++;
 			p = parse_escape(p, &v, end, bits, token->pos);
 			if (len < MAX_STRING)
 				buffer[len] = v;
 			len++;
 		}
 		token = token->next;
-		parts++;
 	}
 	if (len > MAX_STRING) {
 		warning(token->pos, "trying to concatenate %d-character string (%d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
 
-	if (len >= string->length || parts > 1)	/* safe to reuse the string buffer */
-		string = __alloc_string(len+1);
-	string->length = len+1;
-	memcpy(string->data, buffer, len);
-	string->data[len] = '\0';
+	if (esc_count || len >= string->length) {
+		if (string->immutable || len >= string->length)	/* can't cannibalize */
+			string = __alloc_string(len+1);
+		string->length = len+1;
+		memcpy(string->data, buffer, len);
+		string->data[len] = '\0';
+	}
 	expr->string = string;
 	expr->wide = is_wide;
 	return token;

@@ -25,13 +25,37 @@ check-command: (optional)
 check-exit-value: (optional)
 	The expected exit value of check-command. It defaults to 0.
 
+check-timeout: (optional)
+	The maximum expected duration of check-command, in seconds.
+	It defaults to 1.
+
 check-output-start / check-output-end (optional)
 	The expected output (stdout and stderr) of check-command lies between
 	those two tags. It defaults to no output.
 
+check-output-ignore / check-error-ignore (optional)
+	Don't check the expected output (stdout or stderr) of check-command
+	(useful when this output is not comparable or if you're only interested
+	in the exit value).
+	By default this check is done.
+
 check-known-to-fail (optional)
 	Mark the test as being known to fail.
 
+check-output-contains: <pattern> (optional)
+	Check that the output (stdout) contains the given pattern.
+	Several such tags can be given, in which case the output
+	must contains all the patterns.
+
+check-output-excludes: <pattern> (optional)
+	Similar than the above one, but with opposite logic.
+	Check that the output (stdout) doesn't contain the given pattern.
+	Several such tags can be given, in which case the output
+	must contains none of the patterns.
+
+check-output-pattern-<nbr>-times: <pattern> (optional)
+	Similar to the contains/excludes above, but with full control
+	of the number of times the pattern should occur in the output.
 
 	Using test-suite
 	~~~~~~~~~~~~~~~~
@@ -60,7 +84,7 @@ cmd:
 	"sparse $file".
 
 The output of the test-suite format command can be redirected into the
-test case to create a test-suite formated file.
+test case to create a test-suite formatted file.
 
 $ ./test-suite format bad-assignment.c Assignment >> bad-assignment.c
 $ cat !$
