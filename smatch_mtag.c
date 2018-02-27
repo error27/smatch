@@ -130,6 +130,33 @@ int get_toplevel_mtag(struct symbol *sym, mtag_t *tag)
 	return 1;
 }
 
+int get_deref_mtag(struct expression *expr, mtag_t *tag)
+{
+	mtag_t container_tag, member_tag;
+	int offset;
+
+	/*
+	 * I'm not totally sure what I'm doing...
+	 *
+	 * This is supposed to get something like "global_var->ptr", but I don't
+	 * feel like it's complete at all.
+	 *
+	 */
+
+	if (!get_mtag(expr->unop, &container_tag))
+		return 0;
+
+	offset = get_member_offset_from_deref(expr);
+	if (offset < 0)
+		return 0;
+
+	if (!mtag_map_select_tag(container_tag, -offset, &member_tag))
+		return 0;
+
+	*tag = member_tag;
+	return 1;
+}
+
 static void global_variable(struct symbol *sym)
 {
 	mtag_t tag;
