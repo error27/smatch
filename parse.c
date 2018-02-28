@@ -2888,6 +2888,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		if (decl->same_symbol) {
 			decl->definition = decl->same_symbol->definition;
 			decl->op = decl->same_symbol->op;
+			if (is_typedef) {
+				// TODO: handle -std=c89 --pedantic
+				check_duplicates(decl);
+			}
 		}
 
 		if (!match_op(token, ','))

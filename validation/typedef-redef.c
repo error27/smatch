@@ -6,7 +6,6 @@ typedef long ko_t;
 
 /*
  * check-name: typedef-redef
- * check-known-to-fail
  *
  * check-error-start
 typedef-redef.c:5:14: error: symbol 'ko_t' redeclared with different type (originally declared at typedef-redef.c:4) - different type sizes
