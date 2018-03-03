@@ -12,4 +12,4 @@ if [ $# -eq 0 ]; then
 fi
 
 DIRNAME=$(dirname $0)
-$DIRNAME/sparse-llvm "$@" | "$DIS"
+$DIRNAME/sparse-llvm "$@" | "$DIS" | grep -v '^target '
