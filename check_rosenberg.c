@@ -63,6 +63,9 @@ static int check_struct(struct expression *expr, struct symbol *type)
 	const char *prev = NULL;
 	int align;
 
+	if (type->ctype.alignment == 1)
+		return 0;
+
 	align = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		base_type = get_real_base_type(tmp);
@@ -70,8 +73,6 @@ static int check_struct(struct expression *expr, struct symbol *type)
 			if (check_struct(expr, base_type))
 				return 1;
 		}
-		if (tmp->ctype.alignment == 1)
-			continue;
 
 		if (!tmp->ctype.alignment) {
 			sm_msg("warn: cannot determine the alignment here\n");
