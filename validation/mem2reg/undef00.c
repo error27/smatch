@@ -1,14 +1,22 @@
-void bad0(void)
+static int badr(void)
 {
 	int *a;
-	*a++;
+	return *a;
+}
+
+static void badw(int v)
+{
+	int *a;
+	*a = v;
 }
 
 /*
  * check-name: undef00
- * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
+ * check-command: test-linearize -fdump-ir=mem2reg $file
  * check-known-to-fail
  * check-output-ignore
  * check-output-pattern(1): load\\.
  * check-output-pattern(1): load\\..*\\[UNDEF\\]
+ * check-output-pattern(1): store\\.
+ * check-output-pattern(1): store\\..*\\[UNDEF\\]
  */

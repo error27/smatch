@@ -16,7 +16,7 @@ int foo(void)
 
 /*
  * check-name: loop02 global
- * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
+ * check-command: test-linearize -Wno-decl $file
  * check-output-ignore
  * check-output-excludes: load\\.
  */
