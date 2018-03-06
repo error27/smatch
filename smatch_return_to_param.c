@@ -256,17 +256,14 @@ void __add_return_to_param_mapping(struct expression *expr, const char *return_s
 	    expr_get_parent_stmt(expr) &&
 	    expr_get_parent_stmt(expr)->type == STMT_RETURN) {
 		call = strip_expr(expr);
+		left_sym = expr_to_sym(call->fn);
+		if (!left_sym)
+			return;
 		left_name = expr_to_str(call);
 		if (!left_name)
-			goto free;
+			return;
 
-		/*
-		 * HACK ALERT: The symbol pointer is basically used as a cookie
-		 * and not used as a pointer so we can pass expr here without
-		 * causing an issue.
-		 *
-		 */
-		store_mapping_helper(left_name, (struct symbol *)expr, call, return_string);
+		store_mapping_helper(left_name, left_sym, call, return_string);
 		goto free;
 
 	}
