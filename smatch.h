@@ -431,6 +431,7 @@ int in_condition(void);
 /* smatch_flow.c */
 
 extern int __in_fake_assign;
+extern int __in_fake_struct_assign;
 void smatch (int argc, char **argv);
 int inside_loop(void);
 int definitely_inside_loop(void);

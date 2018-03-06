@@ -133,7 +133,9 @@ struct expression *get_faked_expression(void)
 static void split_fake_expr(struct expression *expr)
 {
 	__in_fake_assign++;
+	__in_fake_struct_assign++;
 	__split_expr(expr);
+	__in_fake_struct_assign--;
 	__in_fake_assign--;
 }
 

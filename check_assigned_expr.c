@@ -63,7 +63,7 @@ static void match_assignment(struct expression *expr)
 		return;
 	if (is_fake_call(expr->right))
 		return;
-	if (__in_fake_assign) {
+	if (__in_fake_struct_assign) {
 		struct range_list *rl;
 
 		if (!get_implied_rl(expr->right, &rl))
