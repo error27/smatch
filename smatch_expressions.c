@@ -1,5 +1,7 @@
 #include "smatch.h"
 
+__ALLOCATOR(struct expression, "temporary expr", tmp_expression);
+
 static struct position get_cur_pos(void)
 {
 	static struct position pos;
@@ -16,6 +18,19 @@ static struct position get_cur_pos(void)
 	else
 		pos = none;
 	return pos;
+}
+
+struct expression *alloc_tmp_expression(struct position pos, int type)
+{
+	struct expression *expr = __alloc_tmp_expression(0);
+	expr->type = type;
+	expr->pos = pos;
+	return expr;
+}
+
+void free_tmp_expressions(void)
+{
+	clear_tmp_expression_alloc();
 }
 
 struct expression *zero_expr(void)
@@ -38,7 +53,7 @@ struct expression *value_expr(long long val)
 	if (!val)
 		return zero_expr();
 
-	expr = alloc_expression(get_cur_pos(), EXPR_VALUE);
+	expr = alloc_tmp_expression(get_cur_pos(), EXPR_VALUE);
 	expr->value = val;
 	expr->ctype = &llong_ctype;
 	return expr;
@@ -48,7 +63,7 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 {
 	struct expression *expr;
 
-	expr = alloc_expression(deref->pos, EXPR_DEREF);
+	expr = alloc_tmp_expression(deref->pos, EXPR_DEREF);
 	expr->op = op;
 	expr->deref = deref;
 	expr->member = member;
@@ -60,7 +75,7 @@ struct expression *deref_expression(struct expression *expr)
 {
 	struct expression *preop;
 
-	preop = alloc_expression(expr->pos, EXPR_PREOP);
+	preop = alloc_tmp_expression(expr->pos, EXPR_PREOP);
 	preop->unop = expr;
 	preop->op = '*';
 	return preop;
@@ -70,7 +85,7 @@ struct expression *assign_expression(struct expression *left, struct expression 
 {
 	struct expression *expr;
 
-	expr = alloc_expression(right->pos, EXPR_ASSIGNMENT);
+	expr = alloc_tmp_expression(right->pos, EXPR_ASSIGNMENT);
 	expr->op = '=';
 	expr->left = left;
 	expr->right = right;
@@ -81,7 +96,7 @@ struct expression *binop_expression(struct expression *left, int op, struct expr
 {
 	struct expression *expr;
 
-	expr = alloc_expression(right->pos, EXPR_BINOP);
+	expr = alloc_tmp_expression(right->pos, EXPR_BINOP);
 	expr->op = op;
 	expr->left = left;
 	expr->right = right;
@@ -100,7 +115,7 @@ struct expression *symbol_expression(struct symbol *sym)
 {
 	struct expression *expr;
 
-	expr = alloc_expression(sym->pos, EXPR_SYMBOL);
+	expr = alloc_tmp_expression(sym->pos, EXPR_SYMBOL);
 	expr->symbol = sym;
 	expr->symbol_name = sym->ident;
 	return expr;
@@ -110,7 +125,7 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 {
 	struct expression *expr;
 
-	expr = alloc_expression(get_cur_pos(), EXPR_COMPARE);
+	expr = alloc_tmp_expression(get_cur_pos(), EXPR_COMPARE);
 	expr->op = op;
 	expr->left = left;
 	expr->right = right;

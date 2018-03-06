@@ -201,6 +201,12 @@ static void check_passes_fn_and_data(struct expression *call, struct expression 
 	link_function_arg(fn, 0, arg);
 }
 
+static void match_end_func(struct symbol *sym)
+{
+	next_param_sym = NULL;
+	next_fn = NULL;
+}
+
 void register_about_fn_ptr_arg(int id)
 {
 	my_id = id;
@@ -210,4 +216,5 @@ void register_about_fn_ptr_arg(int id)
 	add_hook(match_assign_param, ASSIGNMENT_HOOK);
 	add_hook(match_assign_function, ASSIGNMENT_HOOK);
 	select_call_implies_hook(FN_ARG_LINK, &check_passes_fn_and_data);
+	add_hook(&match_end_func, END_FUNC_HOOK);
 }

@@ -688,6 +688,7 @@ void clear_all_states(void)
 	free_goto_stack();
 
 	free_every_single_sm_state();
+	free_tmp_expressions();
 }
 
 void __push_cond_stacks(void)
