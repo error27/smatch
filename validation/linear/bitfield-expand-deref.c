@@ -22,6 +22,6 @@ int bar(int a)
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-excludes: ret\..*\$12
- * check-output-contains: ret\..*\$34
+ * check-output-excludes: ret\\..*\\$12
+ * check-output-contains: ret\\..*\\$34
  */

@@ -18,7 +18,7 @@ uint xtc_umul_ytc(uint x, uint y) { return (x * 3) * (y * 2); }
  * check-known-to-fail
  * check-output-ignore
  *
- * check-output-excludes: \$3
- * check-output-excludes: \$2
- * check-output-contains: \$6
+ * check-output-excludes: \\$3
+ * check-output-excludes: \\$2
+ * check-output-contains: \\$6
  */

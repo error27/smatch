@@ -11,5 +11,5 @@ int g3(int (*fun)(void)) { return (***fun)(); }	// C99,C11 6.5.3.2p4
  *
  * check-output-ignore
  * check-output-excludes: load
- * check-output-pattern(5): call\..* %arg1
+ * check-output-pattern(5): call\\..* %arg1
  */

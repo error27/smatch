@@ -10,5 +10,5 @@ static int foo(int *p, int i)
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-excludes: add\.
+ * check-output-excludes: add\\.
  */

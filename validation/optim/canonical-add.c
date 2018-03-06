@@ -50,6 +50,6 @@ int xmc_sub_ymc(int x, int y)
  * check-known-to-fail
  * check-output-ignore
 
- * check-output-excludes: \$1
- * check-output-excludes: \$-1
+ * check-output-excludes: \\$1
+ * check-output-excludes: \\$-1
  */

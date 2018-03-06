@@ -26,6 +26,6 @@ int quz(void *a, void *fun)
  *
  * check-output-ignore
  * check-output-excludes: load
- * check-output-pattern(4): ptrcast\..* %arg2
- * check-output-pattern(4): call\..* %arg1
+ * check-output-pattern(4): ptrcast\\..* %arg2
+ * check-output-pattern(4): call\\..* %arg1
  */

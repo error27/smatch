@@ -11,5 +11,5 @@ static void foo(void)
  * check-command: test-linearize -fdump-ir=mem2reg $file
  *
  * check-output-ignore
- * check-output-excludes: store\.
+ * check-output-excludes: store\\.
  */

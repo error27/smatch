@@ -11,5 +11,5 @@ static void foo(void)
  * check-command: test-linearize $file
  *
  * check-output-ignore
- * check-output-excludes: add\.
+ * check-output-excludes: add\\.
  */

@@ -490,10 +490,10 @@ _EOF
 		echo " * check-known-to-fail"
 	fi
 	if [ $linear != 0 ]; then
-		echo " *"
-		echo " * check-output-ignore"
-		echo " * check-output-contains: xyz\\\\."
-		echo " * check-output-excludes: \\\\."
+		echo ' *'
+		echo ' * check-output-ignore'
+		echo ' * check-output-contains: xyz\\\\.'
+		echo ' * check-output-excludes: \\\\.'
 	fi
 	for stream in output error; do
 		if [ -s "$file.$stream.got" ]; then

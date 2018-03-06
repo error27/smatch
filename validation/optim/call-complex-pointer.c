@@ -8,6 +8,6 @@ int foo(int p, int (*f0)(int), int (*f1)(int), int arg)
  * check-known-to-fail
  *
  * check-output-ignore
- * check-output-excludes: ptrcast\.
- * check-output-contains: select\.
+ * check-output-excludes: ptrcast\\.
+ * check-output-contains: select\\.
  */

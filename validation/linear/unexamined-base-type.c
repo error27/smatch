@@ -31,6 +31,6 @@ static void bar(struct s *d, struct s *s1, struct s *s2)
  *
  * check-output-ignore
  * check-output-excludes: load[^.]
- * check-output-excludes: cast\..*(0)
+ * check-output-excludes: cast\\..*(0)
  * check-output-excludes: store[^.]
  */

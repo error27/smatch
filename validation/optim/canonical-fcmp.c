@@ -20,7 +20,7 @@ int nfcmp_ge(double a) { return !(g <  a); }
  * check-name: canonical-cmp
  * check-command: test-linearize -Wno-decl $file
  *
- * check-output-excludes: \$123,
+ * check-output-excludes: \\$123,
  *
  * check-output-start
 fcmp_eq:

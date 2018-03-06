@@ -8,9 +8,9 @@ char *foo(char **pfmt)
  * check-command: test-linearize -m64 -Wno-decl $file
  *
  * check-output-excludes: load[^.]
- * check-output-contains: load\.
+ * check-output-contains: load\\.
  * check-output-excludes: store[^.]
- * check-output-contains: store\.
+ * check-output-contains: store\\.
  *
  * check-output-start
 foo:

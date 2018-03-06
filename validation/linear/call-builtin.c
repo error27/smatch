@@ -13,5 +13,5 @@ u32 f3(u32 a) { return (***__builtin_popcount)(a); }	// C99,C11 6.5.3.2p4
  *
  * check-output-ignore
  * check-output-excludes: load
- * check-output-pattern(5): call\..*__builtin_.*, %arg1
+ * check-output-pattern(5): call\\..*__builtin_.*, %arg1
  */

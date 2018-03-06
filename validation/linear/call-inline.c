@@ -14,5 +14,5 @@ int i3(void) { return (***fun)(); }		// C99,C11 6.5.3.2p4
  * check-output-ignore
  * check-output-excludes: load
  * check-output-excludes: call
- * check-output-pattern(5): ret\..* \\$42
+ * check-output-pattern(5): ret\\..* \\$42
  */
