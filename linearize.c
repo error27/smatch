@@ -935,6 +935,9 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 	struct instruction *insn;
 	pseudo_t new;
 
+	if (!ep->active)
+		return VOID;
+
 	insn = alloc_typed_instruction(OP_LOAD, btype);
 	new = alloc_pseudo(insn);
 
@@ -967,6 +970,9 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 	struct symbol *ctype = ad->type;
 	struct symbol *btype = bitfield_base_type(ctype);
 	pseudo_t store = value;
+
+	if (!ep->active)
+		return VOID;
 
 	if (type_size(btype) != type_size(ctype)) {
 		unsigned int shift = ctype->bit_offset;
@@ -1031,8 +1037,12 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad
 {
 	struct symbol *ctype = ad->type;
 	struct symbol *btype = bitfield_base_type(ctype);
-	pseudo_t new = add_load(ep, ad);
+	pseudo_t new;
 
+	if (!ep->active)
+		return VOID;
+
+	new = add_load(ep, ad);
 	if (ctype->bit_offset) {
 		pseudo_t shift = value_pseudo(ctype->bit_offset);
 		pseudo_t newval = add_binary_op(ep, btype, OP_LSR, new, shift);
