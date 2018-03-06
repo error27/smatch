@@ -40,8 +40,7 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 	if (!expr)
 		return NULL;
 
-	if ((expr->type == EXPR_PREOP && expr->op == '*') ||
-	    expr->type == EXPR_DEREF) {
+	if ((expr->type == EXPR_PREOP && expr->op == '*')) {
 		unop = strip_expr(expr->unop);
 
 		if (unop->type == EXPR_SYMBOL)
@@ -61,6 +60,9 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 		free_var_syms_and_list(&right);
 		return ret;
 	}
+
+	if (expr->type == EXPR_DEREF)
+		return expr_to_vsl(expr->deref);
 
 one_var:
 	var = expr_to_var_sym(expr, &sym);
