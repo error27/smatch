@@ -109,7 +109,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 
 	prev = get_state(my_id, name, sym);
 
-	if (!__in_fake_assign)
+	if (cur_func_sym && !__in_fake_assign)
 		set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
