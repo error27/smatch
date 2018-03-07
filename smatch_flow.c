@@ -456,6 +456,7 @@ void __split_expr(struct expression *expr)
 		if (inlinable(expr->fn))
 			__inline_call = 1;
 		__process_post_op_stack();
+		__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		__inline_call = 0;
 		if (inlinable(expr->fn)) {
