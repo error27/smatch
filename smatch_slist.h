@@ -14,6 +14,7 @@ DECLARE_PTR_LIST(named_stree_stack, struct named_stree);
 
 extern struct state_list_stack *implied_pools;
 extern int __stree_id;
+extern int sm_state_counter;
 
 const char *show_sm(struct sm_state *sm);
 void __print_stree(struct stree *stree);

@@ -27,7 +27,7 @@ ALLOCATOR(sm_state, "sm state");
 ALLOCATOR(named_stree, "named slist");
 __DO_ALLOCATOR(char, 1, 4, "state names", sname);
 
-static int sm_state_counter;
+int sm_state_counter;
 
 static struct stree_stack *all_pools;
 
