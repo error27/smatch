@@ -813,8 +813,9 @@ void sql_copy_constraint_required(const char *new_limit, const char *old_limit);
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data);
 void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value);
 void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_name);
-void insert_mtag_data(mtag_t tag, const char *data_name, int offset, struct range_list *rl);
+void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl);
 void sql_insert_mtag_map(mtag_t tag, int offset, mtag_t container);
+void sql_insert_mtag_alias(mtag_t orig, mtag_t alias);
 int mtag_map_select_container(mtag_t tag, int offset, mtag_t *container);
 int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag);
 
@@ -1049,8 +1050,10 @@ int get_offset_from_container_of(struct expression *expr);
 /* smatch_mtag.c */
 int get_toplevel_mtag(struct symbol *sym, mtag_t *tag);
 int get_mtag(struct expression *expr, mtag_t *tag);
+int get_mtag_offset(struct expression *expr);
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, int *offset);
+void update_mtag_data(struct expression *expr);
 
 static inline int type_bits(struct symbol *type)
 {

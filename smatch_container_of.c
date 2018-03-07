@@ -251,76 +251,131 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 
 static struct expression *get_outer_struct(struct expression *expr)
 {
-	struct expression *unop;
-
 	expr = strip_expr(expr);
+
 	if (expr->type != EXPR_DEREF)
 		return NULL;
-	unop = strip_expr(expr->deref);
-	if (unop->type == EXPR_SYMBOL)
-		return unop;
-	if (unop->type != EXPR_PREOP || unop->op != '*')
-		return NULL;
-	return strip_expr(unop->unop);
+	expr = strip_expr(expr->deref);
+	if (expr->type == EXPR_SYMBOL)
+		return expr;
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		return strip_expr(expr->unop);
+	return expr;
 }
 
 static void match_call(struct expression *call)
 {
-	struct expression *ptr, *unop, *arg, *arg_unop;
+	struct expression *fn_ptr, *fn_parent, *arg, *arg_parent;
+	struct symbol *fn_sym, *arg_sym;
 	struct symbol *type;
 	int i, offset;
 	int arg_offset = 0;
-	char offset_str[12];
-	char param_str[12];
+	char parent_str[64];
+	char offset_str[64];
+	char param_str[64];
+	char *p;
 	bool star = 0;
 
-	ptr = strip_expr(call->fn);
-	unop = get_outer_struct(ptr);
-	if (!unop)
+	/*
+	 * We're trying to link the function with the parameter.  There are a
+	 * couple ways this can be passed:
+	 * foo->func(foo, ...);
+	 * foo->func(foo->x, ...);
+	 * foo->bar.func(&foo->bar, ...);
+	 * foo->bar->baz->func(foo, ...);
+	 *
+	 * So the method is basically to subtract the offsets until we get to
+	 * the common bit, then the member offsets for the parameter.
+	 *
+	 * If the argument is not a pointer then we star it.  This is perhaps
+	 * not right.  We should probably be treating addresses of a pointer
+	 * different from the pointer value.
+	 *
+	 */
+	fn_ptr = strip_expr(call->fn);
+	fn_parent = get_outer_struct(fn_ptr);
+	if (!fn_parent)
+		return;
+	fn_sym = expr_to_sym(fn_parent);
+	if (!fn_sym)
+		return;
+
+	type = get_type(fn_parent);
+	if (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	offset = get_member_offset(type, fn_ptr->member->name);
+	if (offset < 0)
 		return;
 
 	i = -1;
 	FOR_EACH_PTR(call->args, arg) {
 		i++;
-		if (expr_equiv(arg, unop))
-			goto found;
-	} END_FOR_EACH_PTR(arg);
 
-	i = -1;
-	FOR_EACH_PTR(call->args, arg) {
-		i++;
-		arg_unop = get_outer_struct(arg);
-		if (!arg_unop)
+#if 0
+		/*
+		 * This doesn't work because of things like:
+		 * foo = bar;
+		 * foo->func(foo, ...);
+		 * We don't want to use "bar" here.  But also perhaps I should
+		 * be changing the short names to long names or something?
+		 *
+		 */
+		count = 0;
+		while ((tmp = get_assigned_expr(arg))) {
+			arg = strip_expr(tmp);
+			if (count++ > 4)
+				break;
+		}
+#endif
+		arg_sym = expr_to_sym(arg);
+		if (!arg_sym)
 			continue;
-		if (!expr_equiv(arg_unop, unop))
+		if (arg_sym != fn_sym)
 			continue;
-		arg_offset = get_member_offset_from_deref(arg);
-		if (arg_offset < 0)
-			continue;
-		if (!is_pointer(arg))
-			star = 1;
-		goto found;
+
+		/*
+		 * We know these are related because arg_sym == fn_sym.
+		 * If we don't record something in the DB, that is a failure.
+		 *
+		 */
+
+		if (arg->type == EXPR_PREOP && arg->op == '&')
+			arg = strip_expr(arg->unop);
+
+		if (expr_equiv(arg, fn_parent)) {
+			snprintf(parent_str, sizeof(parent_str), "-%d", offset);
+			goto found;
+		}
+
+		p = parent_str;
+		while ((arg_parent = get_outer_struct(arg))) {
+			arg = arg_parent;
+
+			p += snprintf(p, parent_str + sizeof(parent_str) - p, "-%d", offset);
+
+			if (!expr_equiv(arg, fn_parent))
+				continue;
+			arg_offset = get_member_offset_from_deref(arg);
+			if (arg_offset < 0)
+				continue;
+			if (!is_pointer(arg))
+				star = 1;
+			goto found;
+		}
 	} END_FOR_EACH_PTR(arg);
 
 	return;
 
 found:
-	type = get_type(unop);
-	if (type && type->type == SYM_PTR)
-		type = get_real_base_type(type);
-	offset = get_member_offset(type, ptr->member->name);
-	if (offset < 0)
-		return;
-
 	if (star)
-		snprintf(offset_str, sizeof(offset_str), "*(-%d+%d)", offset, arg_offset);
+		snprintf(offset_str, sizeof(offset_str), "*(%s+%d)", parent_str, arg_offset);
 	else
-		snprintf(offset_str, sizeof(offset_str), "-%d+%d", offset, arg_offset);
+		snprintf(offset_str, sizeof(offset_str), "%s+%d", parent_str, arg_offset);
 	snprintf(param_str, sizeof(param_str), "$%d", i);
 	sql_insert_caller_info(call, CONTAINER, -1, offset_str, param_str);
 }
 
-static void db_func_def(const char *name, struct symbol *sym, char *key, char *value)
+static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)
 {
 	sval_t offset = {
 		.type = &int_ctype,
@@ -368,25 +423,61 @@ static void db_func_def(const char *name, struct symbol *sym, char *key, char *v
 
 struct db_info {
 	struct symbol *param_sym;
-	const char *prev_key;
+	int prev_offset;
 	struct range_list *rl;
 };
 
-static void set_param_value(const char *key, struct symbol *sym, struct range_list *rl)
+static struct symbol *get_member_from_offset(struct symbol *sym, int offset)
 {
+	struct symbol *type, *tmp;
+	int cur;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return NULL;
+
+	cur = 0;
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		cur = ALIGN(cur, tmp->ctype.alignment);
+		if (offset == cur)
+			return tmp;
+		cur += type_bytes(tmp);
+	} END_FOR_EACH_PTR(tmp);
+	return NULL;
+}
+
+static struct symbol *get_member_type_from_offset(struct symbol *sym, int offset)
+{
+	struct symbol *member;
+
+	member = get_member_from_offset(sym, offset);
+	if (!member)
+		return NULL;
+	return get_real_base_type(member);
+}
+
+static void set_param_value(struct symbol *sym, int offset, struct range_list *rl)
+{
+	struct symbol *member;
 	const char *name;
 	char fullname[256];
 
 	if (!sym || !sym->ident)
 		return;
-
 	name = sym->ident->name;
-	if (strcmp(key, "*$") == 0)
-		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (key[0] == '$')
-		snprintf(fullname, 256, "%s%s", name, key + 1);
-	else
-		return;
+
+	member = get_member_from_offset(sym, offset);
+	if (!member) {
+		if (offset == 0)
+			snprintf(fullname, sizeof(fullname), "%s", name);
+		else
+			return;
+	} else {
+		snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
+	}
 
 	set_state(SMATCH_EXTRA, fullname, sym, alloc_estate_rl(rl));
 }
@@ -396,26 +487,25 @@ static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
 	struct db_info *db_info = _db_info;
 	struct symbol *type;
 	struct range_list *rl;
-	const char *key;
+	int offset = 0;
 	const char *value;
 
 	if (argc == 2) {
-		key = argv[0];
+		offset = atoi(argv[0]);
 		value = argv[1];
 	} else {
-		key = "$";
 		value = argv[0];
 	}
 
-	if (db_info->prev_key &&
-	    strcmp(db_info->prev_key, key) != 0) {
-		set_param_value(db_info->prev_key, db_info->param_sym, db_info->rl);
+	if (db_info->prev_offset != -1 &&
+	    db_info->prev_offset != offset) {
+		set_param_value(db_info->param_sym, db_info->prev_offset, db_info->rl);
 		db_info->rl = NULL;
 	}
 
-	db_info->prev_key = alloc_sname(key);
+	db_info->prev_offset = offset;
 
-	type = get_member_type_from_key(symbol_expression(db_info->param_sym), key);
+	type = get_member_type_from_offset(db_info->param_sym, offset);
 	str_to_rl(type, (char *)value, &rl);
 	if (db_info->rl)
 		db_info->rl = rl_union(db_info->rl, rl);
@@ -429,6 +519,7 @@ static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, in
 {
 	struct db_info db_info = {
 		.param_sym = sym,
+		.prev_offset = -1,
 	};
 
 	if (!tag)
@@ -440,12 +531,12 @@ static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, in
 			tag, arg_offset, DATA_VALUE);
 	} else {
 		run_sql(save_vals, &db_info,
-			"select data, value from mtag_data where tag = %lld and type = %d;",
+			"select offset, value from mtag_data where tag = %lld and type = %d;",
 			tag, DATA_VALUE);
 	}
 
-	if (db_info.prev_key)
-		set_param_value(db_info.prev_key, db_info.param_sym, db_info.rl);
+	if (db_info.prev_offset != -1)
+		set_param_value(db_info.param_sym, db_info.prev_offset, db_info.rl);
 }
 
 static void handle_passed_container(struct symbol *sym)
@@ -514,7 +605,7 @@ void register_container_of2(int id)
 {
 	param_id = id;
 
-	select_caller_info_hook(db_func_def, CONTAINER);
+	select_caller_info_hook(db_passed_container, CONTAINER);
 	add_hook(&handle_passed_container, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(param_id, &unmatched_state);
 	add_merge_hook(param_id, &merge_estates);

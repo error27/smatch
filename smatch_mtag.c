@@ -184,6 +184,37 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 //	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
 }
 
+static void db_returns_memory_tag(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *call, *arg;
+	mtag_t tag, alias;
+	char *name;
+	struct symbol *sym;
+
+	call = strip_expr(expr);
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return;
+
+	tag = strtoul(value, NULL, 10);
+
+	if (!create_mtag_alias(tag, call, &alias))
+		return;
+
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	set_state(my_id, name, sym, alloc_tag_state(alias));
+free:
+	free_string(name);
+}
+
 static void match_call_info(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -298,6 +329,16 @@ dec_cnt:
 	return ret;
 }
 
+int get_mtag_offset(struct expression *expr)
+{
+	if (!expr)
+		return -1;
+	expr = strip_expr(expr);
+	if (expr->type == EXPR_SYMBOL)
+		return 0;
+	return get_member_offset_from_deref(expr);
+}
+
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 {
 	char buf[256];
@@ -320,6 +361,7 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 	free_string(str);
 
 	*new = str_to_tag(buf);
+	sql_insert_mtag_alias(tag, *new);
 
 	return 1;
 }
@@ -350,6 +392,31 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 	return get_mtag(expr, tag);
 }
 
+static void print_stored_to_mtag(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct sm_state *sm;
+	char buf[256];
+	const char *param_name;
+	int param;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (!sm->state->data)
+			continue;
+
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+		if (strcmp(param_name, "$") == 0)
+			continue;
+
+		snprintf(buf, sizeof(buf), "%lld", *(mtag_t *)sm->state->data);
+		sql_insert_return_states(return_id, return_ranges, MEMORY_TAG, param, param_name, buf);
+	} END_FOR_EACH_SM(sm);
+}
+
 void register_mtag(int id)
 {
 	my_id = id;
@@ -363,4 +430,6 @@ void register_mtag(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	select_caller_info_hook(save_caller_info, MEMORY_TAG);
+	add_split_return_callback(&print_stored_to_mtag);
+	select_return_states_hook(MEMORY_TAG, db_returns_memory_tag);
 }

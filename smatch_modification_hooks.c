@@ -136,6 +136,9 @@ static void call_modification_hooks(struct expression *expr, struct expression *
 	char *name;
 	struct symbol *sym;
 
+	if (late == LATE)
+		update_mtag_data(expr);
+
 	name = expr_to_known_chunk_sym(expr, &sym);
 	if (!name)
 		goto free;
@@ -146,7 +149,7 @@ free:
 
 static void db_param_add(struct expression *expr, int param, char *key, char *value)
 {
-	struct expression *arg;
+	struct expression *arg, *gen_expr;
 	char *name, *other_name;
 	struct symbol *sym, *other_sym;
 
@@ -159,15 +162,23 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!arg)
 		return;
 
+	gen_expr = gen_expression_from_key(arg, key);
+	if (gen_expr)
+		update_mtag_data(gen_expr);
+
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
 
+	__in_fake_assign++;
 	call_modification_hooks_name_sym(name, sym, expr, BOTH);
+	__in_fake_assign--;
 
 	other_name = map_long_to_short_name_sym(name, sym, &other_sym);
 	if (other_name) {
+		__in_fake_assign++;
 		call_modification_hooks_name_sym(other_name, other_sym, expr, BOTH);
+		__in_fake_assign--;
 		free_string(other_name);
 	}
 
@@ -268,14 +279,14 @@ void register_modification_hooks(int id)
 	add_hook(&match_assign_early, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr_early, OP_HOOK);
 	add_hook(&asm_expr_early, ASM_HOOK);
-
-	select_return_states_hook(PARAM_ADD, &db_param_add);
-	select_return_states_hook(PARAM_SET, &db_param_add);
 }
 
 void register_modification_hooks_late(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
+
+	select_return_states_hook(PARAM_ADD, &db_param_add);
+	select_return_states_hook(PARAM_SET, &db_param_add);
 
 	add_hook(&match_assign_late, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&unop_expr_late, OP_HOOK);

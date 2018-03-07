@@ -47,11 +47,10 @@ static int my_id;
 struct tag_assign_info {
 	mtag_t tag;
 	int offset;
-	int param;
 };
 ALLOCATOR(tag_assign_info, "tag name offset");
 
-static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *data_name, int offset, int param)
+static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *data_name, int offset)
 {
 	struct smatch_state *state;
 	struct tag_assign_info *data;
@@ -59,7 +58,6 @@ static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *data_name, in
 	data = __alloc_tag_assign_info(0);
 	data->tag = tag;
 	data->offset = offset;
-	data->param = param;
 
 	state = __alloc_smatch_state(0);
 	state->name = alloc_sname(data_name);
@@ -80,7 +78,8 @@ struct smatch_state *merge_tag_info(struct smatch_state *s1, struct smatch_state
 
 static void match_assign(struct expression *expr)
 {
-	struct expression *left, *right;
+	struct expression *left;
+	struct symbol *right_sym;
 	char *data_name;
 	mtag_t tag;
 	int offset;
@@ -89,41 +88,69 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 	left = strip_expr(expr->left);
-	right = strip_expr(expr->right);
-
-	if (right->type != EXPR_SYMBOL)
+	right_sym = expr_to_sym(expr->right);
+	if (!right_sym)
 		return;
-	param = get_param_num_from_sym(right->symbol);
+
+	param = get_param_num_from_sym(right_sym);
 	if (param < 0)
 		return;
 	// FIXME:  modify param_has_filter_data() to take a name/sym
 	if (!expr_to_mtag_name_offset(left, &tag, &data_name, &offset))
 		return;
-	set_state_expr(my_id, left, alloc_tag_data_state(tag, data_name, offset, param));
+	set_state_expr(my_id, expr->right, alloc_tag_data_state(tag, data_name, offset));
 }
 
-static int propogate_assignment(struct expression *expr, int param, mtag_t tag, int offset)
+#if 0
+static void save_mtag_to_map(struct expression *expr, mtag_t tag, int offset, int param, char *key, char *value)
+{
+	struct expression *arg, *gen_expr;
+	mtag_t arg_tag;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return;
+
+	gen_expr = gen_expression_from_key(arg, key);
+	if (!gen_expr)
+		return;
+
+	if (!get_mtag(gen_expr, &arg_tag))
+		arg_tag = 0;
+
+	if (local_debug)
+		sm_msg("finding mtag for '%s' %lld", expr_to_str(gen_expr), arg_tag);
+}
+#endif
+
+static void propogate_assignment(struct expression *expr, mtag_t tag, int offset, int param, char *key)
 {
 	struct expression *arg;
 	int orig_param;
 	char buf[32];
+	char *name;
+	struct symbol *sym;
 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
-		return 0;
-	if (arg->type != EXPR_SYMBOL)
-		return 0;
-	orig_param = get_param_num_from_sym(arg->symbol);
+		return;
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	orig_param = get_param_num_from_sym(sym);
 	if (orig_param < 0)
-		return 0;
+		goto free;
+
 	snprintf(buf, sizeof(buf), "$->[%d]", offset);
-	set_state_expr(my_id, arg, alloc_tag_data_state(tag, buf, offset, orig_param));
-	return 1;
+	set_state(my_id, name, sym, alloc_tag_data_state(tag, buf, offset));
+free:
+	free_string(name);
 }
 
-static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int offset)
+static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int offset, char *key)
 {
-	struct expression *arg;
+	struct expression *arg, *gen_expr;
 	struct range_list *rl;
 	mtag_t arg_tag;
 	mtag_t alias;
@@ -131,14 +158,19 @@ static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return;
-	get_absolute_rl(arg, &rl);
+
+	gen_expr = gen_expression_from_key(arg, key);
+	if (!gen_expr)
+		return;
+
+	get_absolute_rl(gen_expr, &rl);
 
 	if (!create_mtag_alias(tag, expr, &alias))
 		return;
 
-	insert_mtag_data(alias, "", offset, rl);
+	insert_mtag_data(alias, offset, rl);
 
-	if (get_mtag(arg, &arg_tag))
+	if (get_mtag(gen_expr, &arg_tag))
 		sql_insert_mtag_map(arg_tag, -offset, alias);
 }
 
@@ -159,25 +191,34 @@ static void call_does_mtag_assign(struct expression *expr, int param, char *key,
 		return;
 	offset = atoi(p + 1);
 
-	if (propogate_assignment(expr, param, tag, offset))
-		return;
-
-	assign_to_alias(expr, param, tag, offset);
+//	save_mtag_to_map(expr, tag, offset, param, key, value);
+	propogate_assignment(expr, tag, offset, param, key);
+	assign_to_alias(expr, param, tag, offset, key);
 }
 
 static void print_stored_to_mtag(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct sm_state *tmp;
+	struct sm_state *sm;
 	struct tag_assign_info *data;
 	char buf[256];
+	const char *param_name;
+	int param;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), tmp) {
-		if (!tmp->state->data)
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (!sm->state->data)
 			continue;
-		data = tmp->state->data;
+
+		param = get_param_num_from_sym(sm->sym);
+		if (param < 0)
+			continue;
+		param_name = get_param_name(sm);
+		if (!param_name)
+			continue;
+
+		data = sm->state->data;
 		snprintf(buf, sizeof(buf), "%lld+%d", data->tag, data->offset);
-		sql_insert_return_states(return_id, return_ranges, MTAG_ASSIGN, data->param, "$", buf);
-	} END_FOR_EACH_SM(tmp);
+		sql_insert_return_states(return_id, return_ranges, MTAG_ASSIGN, param, param_name, buf);
+	} END_FOR_EACH_SM(sm);
 }
 
 void register_param_to_mtag_data(int id)

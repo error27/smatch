@@ -379,14 +379,22 @@ void sql_insert_mtag_map(mtag_t tag, int offset, mtag_t container)
 	sql_insert(mtag_map, "%lld, %d, %lld", tag, offset, container);
 }
 
+void sql_insert_mtag_alias(mtag_t orig, mtag_t alias)
+{
+	sql_insert(mtag_alias, "%lld, %lld", orig, alias);
+}
+
 static int save_mtag(void *_tag, int argc, char **argv, char **azColName)
 {
-	mtag_t *tag = _tag;
+	mtag_t *saved_tag = _tag;
+	mtag_t new_tag;
 
-	if (!*tag)
-		*tag = strtoll(argv[0], NULL, 10);
-	else
-		*tag = -1ULL;
+	new_tag = strtoll(argv[0], NULL, 10);
+
+	if (!*saved_tag)
+		*saved_tag = new_tag;
+	else if (*saved_tag != new_tag)
+		*saved_tag = -1ULL;
 
 	return 0;
 }
