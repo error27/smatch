@@ -490,6 +490,7 @@ struct stree *__implied_case_stree(struct expression *switch_expr,
 void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool_sm);
 int assume(struct expression *expr);
 void end_assume(void);
+int impossible_assumption(struct expression *left, int op, sval_t sval);
 
 /* smatch_extras.c */
 #define SMATCH_EXTRA 5 /* this is my_id from smatch extra set in smatch.c */

@@ -1079,6 +1079,23 @@ void end_assume(void)
 	__free_fake_cur_stree();
 }
 
+int impossible_assumption(struct expression *left, int op, sval_t sval)
+{
+	struct expression *value;
+	struct expression *comparison;
+	int ret;
+
+	value = value_expr(sval.value);
+	comparison = compare_expression(left, op, value);
+
+	if (!assume(comparison))
+		return 0;
+	ret = is_impossible_path();
+	end_assume();
+
+	return ret;
+}
+
 void __extra_match_condition(struct expression *expr);
 void __comparison_match_condition(struct expression *expr);
 void __stored_condition(struct expression *expr);
