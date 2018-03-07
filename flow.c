@@ -570,26 +570,26 @@ static void kill_dead_stores_bb(pseudo_t pseudo, unsigned long generation, struc
 		return;
 	bb->generation = generation;
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
-		int opcode = insn->opcode;
-
 		if (!insn->bb)
 			continue;
-		if (opcode != OP_LOAD && opcode != OP_STORE) {
-			if (local)
+		switch (insn->opcode) {
+		case OP_LOAD:
+			if (insn->src == pseudo)
+				return;
+			break;
+		case OP_STORE:
+			if (insn->src == pseudo) {
+				kill_instruction_force(insn);
 				continue;
-			if (opcode == OP_CALL)
+			}
+			break;
+		case OP_CALL:
+			if (!local)
 				return;
+		default:
 			continue;
 		}
-		if (insn->src == pseudo) {
-			if (opcode == OP_LOAD)
-				return;
-			kill_instruction_force(insn);
-			continue;
-		}
-		if (local)
-			continue;
-		if (insn->src->type != PSEUDO_SYM)
+		if (!local && insn->src->type != PSEUDO_SYM)
 			return;
 	} END_FOR_EACH_PTR_REVERSE(insn);
 
