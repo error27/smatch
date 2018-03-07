@@ -740,6 +740,15 @@ static struct range_list *var_user_rl(struct expression *expr)
 	if (expr->type == EXPR_CALL && db_returned_user_rl(expr, &rl))
 		goto found;
 
+	if (is_array(expr)) {
+		struct expression *array = get_array_base(expr);
+
+		if (!get_state_expr(my_id, array)) {
+			no_user_data_flag = 1;
+			return NULL;
+		}
+	}
+
 	return NULL;
 found:
 	user_data_flag = 1;
