@@ -56,7 +56,7 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 		goto free;
 
 	if (implied_not_equal_name_sym(name, sym, 0))
-		return;
+		goto free;
 	set_state(my_id, name, sym, &derefed);
 
 free:
