@@ -105,8 +105,8 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 		struct range_list **left_true_rl, struct range_list **left_false_rl,
 		struct range_list **right_true_rl, struct range_list **right_false_rl);
 
-void free_rl(struct range_list **rlist);
 void free_data_info_allocs(void);
+void free_all_rl(void);
 
 /* smatch_estate.c */
 

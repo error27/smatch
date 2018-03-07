@@ -688,10 +688,8 @@ static int handle_comparison(struct expression *expr,
 		comparison = flip_comparison(comparison);
 	}
 
-	if (!rl || !sm) {
-		free_rl(&rl);
+	if (!rl || !sm)
 		return 0;
-	}
 
 	type = get_type(expr);
 	if (!type)
@@ -703,7 +701,6 @@ static int handle_comparison(struct expression *expr,
 	rl = cast_rl(type, rl);
 
 	separate_and_filter(sm, comparison, rl, __get_cur_stree(), implied_true, implied_false, &mixed);
-	free_rl(&rl);
 
 	delete_gate_sm_equiv(implied_true, sm->name, sm->sym);
 	delete_gate_sm_equiv(implied_false, sm->name, sm->sym);
