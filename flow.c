@@ -547,6 +547,20 @@ found:
 }
 
 /* Kill a pseudo that is dead on exit from the bb */
+// The context is:
+// * the variable is not global but may have its address used (local/non-local)
+// * the stores are only needed by others functions which would do some
+//   loads via the escaped address
+// We start by the terminating BB (normal exit BB + no-return/unreachable)
+// We walkup the BB' intruction backward
+// * we're only concerned by loads, stores & calls
+// * if we reach a call			-> we have to stop if var is non-local
+// * if we reach a load of our var	-> we have to stop
+// * if we reach a store of our var	-> we can kill it, it's dead
+// * we can ignore other stores & loads if the var is local
+// * if we reach another store or load done via non-symbol access
+//   (so done via some address calculation) -> we have to stop
+// If we reach the top of the BB we can recurse into the parents BBs.
 static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
 	struct instruction *insn;
