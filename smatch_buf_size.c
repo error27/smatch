@@ -691,6 +691,8 @@ static void match_array_assignment(struct expression *expr)
 	}
 
 	rl = get_array_size_bytes_rl(right);
+	if (!rl && __in_fake_assign)
+		return;
 
 store:
 	store_alloc(left, rl);
