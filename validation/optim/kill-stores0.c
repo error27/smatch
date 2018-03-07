@@ -28,7 +28,6 @@ static int baz(struct p p, struct q q)
 /*
  * check-name: kill-stores0
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: store\\.

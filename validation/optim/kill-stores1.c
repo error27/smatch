@@ -38,7 +38,6 @@ static void foo5(void)
 /*
  * check-name: kill-stores1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(4): load\\.
