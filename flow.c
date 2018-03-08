@@ -520,47 +520,6 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 	return 1;
 }
 
-/*
- * We should probably sort the phi list just to make it easier to compare
- * later for equality. 
- */
-void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
-{
-	pseudo_t new, phi;
-
-	/*
-	 * Check for somewhat common case of duplicate
-	 * phi nodes.
-	 */
-	new = first_pseudo(dominators)->def->phi_src;
-	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->def->phi_src)
-			goto complex_phi;
-		new->ident = new->ident ? : phi->ident;
-	} END_FOR_EACH_PTR(phi);
-
-	/*
-	 * All the same pseudo - mark the phi-nodes unused
-	 * and convert the load into a LNOP and replace the
-	 * pseudo.
-	 */
-	convert_load_instruction(insn, new);
-	FOR_EACH_PTR(dominators, phi) {
-		kill_instruction(phi->def);
-	} END_FOR_EACH_PTR(phi);
-	goto end;
-
-complex_phi:
-	/* We leave symbol pseudos with a bogus usage list here */
-	if (insn->src->type != PSEUDO_SYM)
-		kill_use(&insn->src);
-	insn->opcode = OP_PHI;
-	insn->phi_list = dominators;
-
-end:
-	repeat_phase |= REPEAT_CSE;
-}
-
 /* Kill a pseudo that is dead on exit from the bb */
 // The context is:
 // * the variable is not global but may have its address used (local/non-local)

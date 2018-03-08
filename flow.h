@@ -39,7 +39,6 @@ static inline int kill_instruction_force(struct instruction *insn)
 
 void check_access(struct instruction *insn);
 void convert_load_instruction(struct instruction *, pseudo_t);
-void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);
 
 extern void vrfy_flow(struct entrypoint *ep);
