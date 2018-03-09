@@ -646,11 +646,15 @@ void check_access(struct instruction *insn)
 		int offset = insn->offset, bit = bytes_to_bits(offset) + insn->size;
 		struct symbol *sym = pseudo->sym;
 
-		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size))
+		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size)) {
+			if (insn->tainted)
+				return;
 			warning(insn->pos, "invalid access %s '%s' (%d %d)",
 				offset < 0 ? "below" : "past the end of",
 				show_ident(sym->ident), offset,
 				bits_to_bytes(sym->bit_size));
+			insn->tainted = 1;
+		}
 	}
 }
 
