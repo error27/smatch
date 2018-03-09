@@ -306,6 +306,7 @@ void convert_load_instruction(struct instruction *insn, pseudo_t src)
 {
 	convert_instruction_target(insn, src);
 	kill_instruction(insn);
+	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
@@ -459,7 +460,7 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	FOR_EACH_PTR(dominators, phi) {
 		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
-	return;
+	goto end;
 
 complex_phi:
 	/* We leave symbol pseudos with a bogus usage list here */
@@ -467,6 +468,9 @@ complex_phi:
 		kill_use(&insn->src);
 	insn->opcode = OP_PHI;
 	insn->phi_list = dominators;
+
+end:
+	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 }
 
 static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
