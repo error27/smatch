@@ -766,6 +766,19 @@ void simplify_symbol_usage(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(pseudo);
 }
 
+void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local)
+{
+	unsigned long generation;
+	struct basic_block *bb;
+
+	generation = ++bb_generation;
+	FOR_EACH_PTR(ep->bbs, bb) {
+		if (bb->children)
+			continue;
+		kill_dead_stores_bb(addr, generation, bb, local);
+	} END_FOR_EACH_PTR(bb);
+}
+
 static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
 {
 	struct basic_block *child;
