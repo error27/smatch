@@ -84,7 +84,6 @@ repeat:
 			kill_unreachable_bbs(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
-	kill_unreachable_bbs(ep);
 	vrfy_flow(ep);
 
 	/* Cleanup */
