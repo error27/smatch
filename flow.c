@@ -1012,7 +1012,7 @@ out:
 		/*
 		 * Merge the two.
 		 */
-		repeat_phase |= REPEAT_CSE;
+		repeat_phase |= REPEAT_CFG_CLEANUP;
 
 		parent->children = bb->children;
 		bb->children = NULL;
