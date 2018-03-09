@@ -187,6 +187,8 @@ out:
 static inline void remove_usage(pseudo_t p, pseudo_t *usep)
 {
 	if (has_use_list(p)) {
+		if (p->type == PSEUDO_SYM)
+			repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		delete_pseudo_user_list_entry(&p->users, usep, 1);
 		if (!p->users)
 			kill_instruction(p->def);
