@@ -78,11 +78,11 @@ repeat:
 
 			if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
 				simplify_memops(ep);
-		} while (repeat_phase & REPEAT_CSE);
+		} while (repeat_phase);
 		pack_basic_blocks(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
 			kill_unreachable_bbs(ep);
-	} while (repeat_phase & REPEAT_CSE);
+	} while (repeat_phase);
 
 	vrfy_flow(ep);
 
