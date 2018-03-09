@@ -69,6 +69,8 @@ static int address_taken(pseudo_t pseudo)
 		struct instruction *insn = pu->insn;
 		if (insn->bb && (insn->opcode != OP_LOAD && insn->opcode != OP_STORE))
 			return 1;
+		if (pu->userp != &insn->src)
+			return 1;
 	} END_FOR_EACH_PTR(pu);
 	return 0;
 }

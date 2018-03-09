@@ -11,8 +11,9 @@ int foo(int **g, int j)
 }
 
 /*
- * check-name: address-used00
+ * check-name: address-used01
  * check-command: test-linearize -Wno-decl -fdump-ir=final $file
+ * check-known-to-fail
  * check-output-ignore
- * check-output-excludes: ret\\..* \\$1
+ * check-output-contains: ret\\..* \\$0
  */
