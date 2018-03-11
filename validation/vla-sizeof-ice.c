@@ -16,5 +16,4 @@ static void test(int n)
 /*
  * check-name: vla-sizeof-ice
  * check-command: sparse -Wno-vla $file
- * check-known-to-fail
  */

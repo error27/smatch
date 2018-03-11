@@ -11,7 +11,6 @@ static unsigned int foo(int x)
 /*
  * check-name: vla-sizeof var,cte
  * check-command: test-linearize -Wvla $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\.32 *\\$1

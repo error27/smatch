@@ -11,7 +11,6 @@ static unsigned long foo(int x, int y)
 /*
  * check-name: vla-sizeof var X var
  * check-command: test-linearize -Wvla $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\..*\\$1
