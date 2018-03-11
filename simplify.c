@@ -1019,6 +1019,12 @@ static int simplify_select(struct instruction *insn)
 			return REPEAT_CSE;
 		}
 	}
+	if (cond == src2 && is_zero(src1)) {
+		kill_use(&insn->src1);
+		kill_use(&insn->src3);
+		replace_with_pseudo(insn, value_pseudo(0));
+		return REPEAT_CSE;
+	}
 	return 0;
 }
 
