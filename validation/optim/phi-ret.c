@@ -15,7 +15,6 @@ int foo(int p, int q, int v)
 /*
  * check-name: phi-ret
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: phi\\.

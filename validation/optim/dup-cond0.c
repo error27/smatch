@@ -13,7 +13,6 @@ static int foo(struct s *s)
 /*
  * check-name: dup-cond0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: select

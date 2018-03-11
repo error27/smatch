@@ -80,6 +80,8 @@ repeat:
 				simplify_memops(ep);
 		} while (repeat_phase & REPEAT_CSE);
 		pack_basic_blocks(ep);
+		if (repeat_phase & REPEAT_CFG_CLEANUP)
+			kill_unreachable_bbs(ep);
 	} while (repeat_phase & REPEAT_CSE);
 
 	kill_unreachable_bbs(ep);
@@ -99,6 +101,8 @@ repeat:
 	 */
 	if (simplify_flow(ep)) {
 		clear_liveness(ep);
+		if (repeat_phase & REPEAT_CFG_CLEANUP)
+			kill_unreachable_bbs(ep);
 		goto repeat;
 	}
 
