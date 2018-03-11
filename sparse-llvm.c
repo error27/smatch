@@ -330,8 +330,9 @@ static LLVMValueRef constant_value(unsigned long long val, LLVMTypeRef dtype)
 			LLVMTypeRef itype = LLVMIntType(bits_in_pointer);
 			result = LLVMConstInt(itype, val, 1);
 			result = LLVMConstIntToPtr(result, dtype);
+		} else {
+			result = LLVMConstPointerNull(dtype);
 		}
-		result = LLVMConstPointerNull(dtype);
 		break;
 	case LLVMIntegerTypeKind:
 		result = LLVMConstInt(dtype, val, 1);
