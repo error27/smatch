@@ -24,7 +24,7 @@ ALLOCATOR(data_info, "smatch extra data");
 ALLOCATOR(data_range, "data range");
 __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct data_range),
 			 "permanent ranges", perm_data_range);
-static struct range_list *cast_rl_private(struct symbol *type, struct range_list *rl);
+__DECLARE_ALLOCATOR(struct ptr_list, rl_ptrlist);
 
 char *show_rl(struct range_list *list)
 {
@@ -50,26 +50,9 @@ char *show_rl(struct range_list *list)
 	return alloc_sname(full);
 }
 
-struct range_list_stack *big_rl_stack;
-
-static void record_rl(struct range_list *rl)
-{
-	if (!cur_func_sym)
-		return;
-	if (!rl)
-		return;
-	push_rl(&big_rl_stack, rl);
-}
-
 void free_all_rl(void)
 {
-	struct range_list *rl;
-
-	FOR_EACH_PTR(big_rl_stack, rl) {
-		free_ptr_list(&rl);
-	} END_FOR_EACH_PTR(rl);
-
-	free_ptr_list(&big_rl_stack);
+	clear_rl_ptrlist_alloc();
 }
 
 static int sval_too_big(struct symbol *type, sval_t sval)
@@ -678,6 +661,7 @@ struct range_list *alloc_whole_rl(struct symbol *type)
 	return alloc_rl(sval_type_min(type), sval_type_max(type));
 }
 
+extern int rl_ptrlist_hack;
 void add_range(struct range_list **list, sval_t min, sval_t max)
 {
 	struct data_range *tmp;
@@ -703,12 +687,12 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 			min = sval_cast(rl_type(*list), min);
 			max = sval_cast(rl_type(*list), max);
 		} else if (min.type->type == SYM_PTR) {
-			*list = cast_rl_private(min.type, *list);
+			*list = cast_rl(min.type, *list);
 		} else if (type_bits(rl_type(*list)) >= type_bits(min.type)) {
 			min = sval_cast(rl_type(*list), min);
 			max = sval_cast(rl_type(*list), max);
 		} else {
-			*list = cast_rl_private(min.type, *list);
+			*list = cast_rl(min.type, *list);
 		}
 	}
 
@@ -792,7 +776,10 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 	if (check_next)
 		return;
 	new = alloc_range(min, max);
+
+	rl_ptrlist_hack = 1;
 	add_ptr_list(list, new);
+	rl_ptrlist_hack = 0;
 }
 
 struct range_list *clone_rl(struct range_list *list)
@@ -803,7 +790,6 @@ struct range_list *clone_rl(struct range_list *list)
 	FOR_EACH_PTR(list, tmp) {
 		add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
-	record_rl(ret);
 	return ret;
 }
 
@@ -831,7 +817,6 @@ struct range_list *rl_union(struct range_list *one, struct range_list *two)
 	FOR_EACH_PTR(two, tmp) {
 		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
-	record_rl(ret);
 	return ret;
 }
 
@@ -875,7 +860,6 @@ struct range_list *remove_range(struct range_list *list, sval_t min, sval_t max)
 			add_range(&ret, max, tmp->max);
 		}
 	} END_FOR_EACH_PTR(tmp);
-	record_rl(ret);
 	return ret;
 }
 
@@ -1221,7 +1205,6 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl)
 		add_range_t(type, &ret, min, max);
 	} END_FOR_EACH_PTR(tmp);
 
-	record_rl(ret);
 	return ret;
 }
 
@@ -1288,7 +1271,7 @@ static struct range_list *cast_to_bool(struct range_list *rl)
 	return ret;
 }
 
-static struct range_list *cast_rl_helper(struct symbol *type, struct range_list *rl)
+struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
@@ -1316,24 +1299,6 @@ static struct range_list *cast_rl_helper(struct symbol *type, struct range_list 
 	return ret;
 }
 
-struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
-{
-	struct range_list *ret;
-
-	ret = cast_rl_helper(type, rl);
-	if (ret != rl)
-		record_rl(ret);
-	return ret;
-}
-
-static struct range_list *cast_rl_private(struct symbol *type, struct range_list *rl)
-{
-	struct range_list *ret;
-
-	ret = cast_rl_helper(type, rl);
-	return ret;
-}
-
 struct range_list *rl_invert(struct range_list *orig)
 {
 	struct range_list *ret = NULL;
@@ -1353,17 +1318,14 @@ struct range_list *rl_invert(struct range_list *orig)
 			sval = sval_type_val(tmp->min.type, tmp->min.value - 1);
 			add_range(&ret, gap_min, sval);
 		}
-		if (sval_cmp(tmp->max, abs_max) == 0) {
-			record_rl(ret);
+		if (sval_cmp(tmp->max, abs_max) == 0)
 			return ret;
-		}
 		gap_min = sval_type_val(tmp->max.type, tmp->max.value + 1);
 	} END_FOR_EACH_PTR(tmp);
 
 	if (sval_cmp(gap_min, abs_max) <= 0)
 		add_range(&ret, gap_min, abs_max);
 
-	record_rl(ret);
 	return ret;
 }
 
@@ -1470,7 +1432,6 @@ static struct range_list *get_neg_rl(struct range_list *rl)
 		add_range(&ret, tmp->min, tmp->max);
 	} END_FOR_EACH_PTR(tmp);
 
-	record_rl(ret);
 	return ret;
 }
 
@@ -1497,7 +1458,6 @@ static struct range_list *get_pos_rl(struct range_list *rl)
 		add_range(&ret, new->min, new->max);
 	} END_FOR_EACH_PTR(tmp);
 
-	record_rl(ret);
 	return ret;
 }
 

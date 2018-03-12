@@ -15,6 +15,7 @@
 
 __DECLARE_ALLOCATOR(struct ptr_list, ptrlist);
 __ALLOCATOR(struct ptr_list, "ptr list", ptrlist);
+__ALLOCATOR(struct ptr_list, "rl ptr list", rl_ptrlist);
 
 int ptr_list_size(struct ptr_list *head)
 {
@@ -114,6 +115,7 @@ void split_ptr_list_head(struct ptr_list *head)
 	memset(head->list + old, 0xf0, nr * sizeof(void *));
 }
 
+int rl_ptrlist_hack;
 void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 {
 	struct ptr_list *list = *listp;
@@ -127,7 +129,12 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 	ptr = (void *)(tag | (unsigned long)ptr);
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
-		struct ptr_list *newlist = __alloc_ptrlist(0);
+		struct ptr_list *newlist;
+
+		if (rl_ptrlist_hack)
+			newlist = __alloc_rl_ptrlist(0);
+		else
+			newlist = __alloc_ptrlist(0);
 		if (!list) {
 			newlist->next = newlist;
 			newlist->prev = newlist;
