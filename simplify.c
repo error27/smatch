@@ -1091,7 +1091,7 @@ static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 
 offset:
 	/* Invalid code */
-	if (new == orig) {
+	if (new == orig || new == addr) {
 		if (new == VOID)
 			return 0;
 		/*
@@ -1103,8 +1103,9 @@ offset:
 		 */
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
 			return 0;
-		new = VOID;
 		warning(insn->pos, "crazy programmer");
+		replace_pseudo(insn, &insn->src, VOID);
+		return 0;
 	}
 	insn->offset += off->value;
 	replace_pseudo(insn, &insn->src, new);
