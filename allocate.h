@@ -14,7 +14,7 @@ struct allocator_struct {
 	unsigned int chunking;
 	void *freelist;
 	/* statistics */
-	unsigned int allocations, total_bytes, useful_bytes;
+	unsigned long allocations, total_bytes, useful_bytes;
 };
 
 struct allocator_stats {
