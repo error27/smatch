@@ -134,6 +134,11 @@ static void simplify_loads(struct basic_block *bb)
 					goto next_load;
 				}
 				rewrite_load_instruction(insn, dominators);
+			} else {	// cleanup pending phi-sources
+				pseudo_t phi;
+				FOR_EACH_PTR(dominators, phi) {
+					kill_instruction(phi->def);
+				} END_FOR_EACH_PTR(phi);
 			}
 		}
 next_load:
