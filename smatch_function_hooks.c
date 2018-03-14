@@ -760,8 +760,9 @@ static void fake_a_param_assignment(struct expression *expr, const char *return_
 	char *p;
 	int param;
 	char buf[256];
+	char *str;
 
-	if (expr->type != EXPR_ASSIGNMENT)
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
 	left = expr->left;
 	right = expr->right;
@@ -795,6 +796,15 @@ static void fake_a_param_assignment(struct expression *expr, const char *return_
 	arg = get_argument_from_call_expr(right->args, param);
 	if (!arg)
 		return;
+	/*
+	 * This is a sanity check to prevent side effects from evaluating stuff
+	 * twice.
+	 */
+	str = expr_to_chunk_sym_vsl(arg, NULL, NULL);
+	if (!str)
+		return;
+	free_string(str);
+
 	right = gen_expression_from_key(arg, buf);
 	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
 		return;
