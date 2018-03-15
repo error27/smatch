@@ -766,10 +766,37 @@ void simplify_symbol_usage(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(pseudo);
 }
 
+static struct pseudo_user *first_user(pseudo_t p)
+{
+	struct pseudo_user *pu;
+	FOR_EACH_PTR(p->users, pu) {
+		if (!pu)
+			continue;
+		return pu;
+	} END_FOR_EACH_PTR(pu);
+	return NULL;
+}
+
 void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local)
 {
 	unsigned long generation;
 	struct basic_block *bb;
+
+	switch (pseudo_user_list_size(addr->users)) {
+	case 0:
+		return;
+	case 1:
+		if (local) {
+			struct pseudo_user *pu = first_user(addr);
+			struct instruction *insn = pu->insn;
+			if (insn->opcode == OP_STORE) {
+				kill_instruction_force(insn);
+				return;
+			}
+		}
+	default:
+		break;
+	}
 
 	generation = ++bb_generation;
 	FOR_EACH_PTR(ep->bbs, bb) {
