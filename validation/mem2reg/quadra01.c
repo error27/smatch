@@ -20,7 +20,6 @@ static void foo(void) {
  * check-name: quadratic @ liveness
  * check-command: test-linearize -I. $file
  * check-timeout:
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: phi\\.

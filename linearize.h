@@ -104,6 +104,7 @@ struct instruction {
 		struct /* phi_node */ {
 			pseudo_t phi_var;		// used for SSA conversion
 			struct pseudo_list *phi_list;
+			unsigned int used:1;
 		};
 		struct /* phi source */ {
 			pseudo_t phi_src;

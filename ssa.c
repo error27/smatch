@@ -263,6 +263,9 @@ static pseudo_t lookup_var(struct basic_block *bb, struct symbol *var)
 	return undef_pseudo();
 }
 
+static struct instruction_list *phis_all;
+static struct instruction_list *phis_used;
+
 static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 {
 	struct symbol *var;
@@ -295,6 +298,7 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		if (!var || !var->torename)
 			break;
 		phi_map_update(&bb->phi_map, var, insn->target);
+		add_instruction(&phis_all, insn);
 		break;
 	}
 }
@@ -311,6 +315,21 @@ static void ssa_rename_insns(struct entrypoint *ep)
 			ssa_rename_insn(bb, insn);
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
+}
+
+static void mark_phi_used(pseudo_t val)
+{
+	struct instruction *node;
+
+	if (val->type != PSEUDO_REG)
+		return;
+	node = val->def;
+	if (node->opcode != OP_PHI)
+		return;
+	if (node->used)
+		return;
+	node->used = 1;
+	add_instruction(&phis_used, node);
 }
 
 static void ssa_rename_phi(struct instruction *insn)
@@ -330,22 +349,27 @@ static void ssa_rename_phi(struct instruction *insn)
 		phi->ident = var->ident;
 		add_instruction(&par->insns, term);
 		use_pseudo(insn, phi, add_pseudo(&insn->phi_list, phi));
+		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
 }
 
 static void ssa_rename_phis(struct entrypoint *ep)
 {
-	struct basic_block *bb;
+	struct instruction *phi;
 
+	phis_used = NULL;
+	FOR_EACH_PTR(phis_all, phi) {
+		if (has_users(phi->target)) {
+			phi->used = 1;
+			add_instruction(&phis_used, phi);
+		}
+	} END_FOR_EACH_PTR(phi);
 
-	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *insn;
-		FOR_EACH_PTR(bb->insns, insn) {
-			if (!insn->bb || insn->opcode != OP_PHI)
-				continue;
-			ssa_rename_phi(insn);
-		} END_FOR_EACH_PTR(insn);
-	} END_FOR_EACH_PTR(bb);
+	FOR_EACH_PTR(phis_used, phi) {
+		if (!phi->bb)
+			continue;
+		ssa_rename_phi(phi);
+	} END_FOR_EACH_PTR(phi);
 }
 
 void ssa_convert(struct entrypoint *ep)
@@ -371,6 +395,7 @@ void ssa_convert(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(pseudo);
 
 	// rename the converted accesses
+	phis_all = phis_used = NULL;
 	ssa_rename_insns(ep);
 	ssa_rename_phis(ep);
 }
