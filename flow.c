@@ -561,7 +561,7 @@ found:
 // * if we reach another store or load done via non-symbol access
 //   (so done via some address calculation) -> we have to stop
 // If we reach the top of the BB we can recurse into the parents BBs.
-static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
+static void kill_dead_stores_bb(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
 	struct instruction *insn;
 	struct basic_block *parent;
@@ -599,7 +599,7 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 			if (child && child != bb)
 				return;
 		} END_FOR_EACH_PTR(child);
-		kill_dead_stores(pseudo, generation, parent, local);
+		kill_dead_stores_bb(pseudo, generation, parent, local);
 	} END_FOR_EACH_PTR(parent);
 }
 
@@ -749,7 +749,7 @@ external_visibility:
 			struct basic_block *bb;
 			FOR_EACH_PTR(ep->bbs, bb) {
 				if (!bb->children)
-					kill_dead_stores(pseudo, ++bb_generation, bb, !mod);
+					kill_dead_stores_bb(pseudo, ++bb_generation, bb, !mod);
 			} END_FOR_EACH_PTR(bb);
 		}
 	}
