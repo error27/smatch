@@ -594,11 +594,8 @@ static void kill_dead_stores_bb(pseudo_t pseudo, unsigned long generation, struc
 	} END_FOR_EACH_PTR_REVERSE(insn);
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct basic_block *child;
-		FOR_EACH_PTR(parent->children, child) {
-			if (child && child != bb)
-				return;
-		} END_FOR_EACH_PTR(child);
+		if (bb_list_size(parent->children) > 1)
+			continue;
 		kill_dead_stores_bb(pseudo, generation, parent, local);
 	} END_FOR_EACH_PTR(parent);
 }

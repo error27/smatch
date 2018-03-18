@@ -11,7 +11,6 @@ static void foo(void)
 /*
  * check-name: kill-stores2
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: store\\.
