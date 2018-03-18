@@ -102,6 +102,18 @@ static struct basic_block *intersect_dom(struct basic_block *doms[],
 	return b1;
 }
 
+static void debug_domtree(struct entrypoint *ep)
+{
+	struct basic_block *bb = ep->entry->bb;
+
+	printf("%s's idoms:\n", show_ident(ep->name->ident));
+	FOR_EACH_PTR(ep->bbs, bb) {
+		if (bb == ep->entry->bb)
+			continue;	// entry node has no idom
+		printf("\t%s	<- %s\n", show_label(bb), show_label(bb->idom));
+	} END_FOR_EACH_PTR(bb);
+}
+
 void domtree_build(struct entrypoint *ep)
 {
 	struct basic_block *entry = ep->entry->bb;
@@ -178,4 +190,6 @@ void domtree_build(struct entrypoint *ep)
 	ep->dom_levels = max_level + 1;
 
 	free(doms);
+	if (dbg_domtree)
+		debug_domtree(ep);
 }
