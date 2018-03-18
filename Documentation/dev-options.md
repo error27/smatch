@@ -26,3 +26,9 @@ document options only useful for development on sparse itself.
   * 'linearize'
   * 'mem2reg'
   * 'final'
+
+* '-v<debug-flag>'
+
+  Add or display some debug info. The flag can be one of:
+  * 'dead': annotate dead pseudos.
+  * 'entry': dump the IR after all optimization passes.
