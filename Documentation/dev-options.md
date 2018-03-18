@@ -1,8 +1,7 @@
 # Options
 
-This file is a complement of man page for sparse but meant
-for options not to be used by sparse itself but by the other
-tools.
+This file is a complement of sparse's man page meant to
+document options only useful for development on sparse itself.
 
 ## Developer options:
 
@@ -17,7 +16,7 @@ tools.
   * 'mem2reg'
   * 'optim'
 
-### Internal Representation
+### Debugging
 
 * '-fdump-ir[=\<pass\>[,\<pass\>...]]'
 
