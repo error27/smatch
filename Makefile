@@ -201,7 +201,7 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 selfcheck: $(OBJS:.o=.sc)
 
 
-SPARSE_VERSION:=$(shell git describe 2>/dev/null || echo '$(VERSION)')
+SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
 lib.o: version.h
 version.h: FORCE
 	@echo '#define SPARSE_VERSION "$(SPARSE_VERSION)"' > version.h.tmp
