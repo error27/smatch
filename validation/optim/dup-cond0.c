@@ -8,6 +8,7 @@ static int foo(struct s *s)
 		return 0;
 	else if (!s->f)
 		return 4;
+	return -1;
 }
 
 /*
