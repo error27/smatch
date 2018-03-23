@@ -32,12 +32,21 @@ static sval_t one   = {.type = &int_ctype, {.value = 1} };
 
 struct range_list *rl_zero(void)
 {
-	return alloc_rl(zero, zero);
+	static struct range_list *zero_perm;
+
+	if (!zero_perm)
+		zero_perm = clone_rl_permanent(alloc_rl(zero, zero));
+	return zero_perm;
 }
 
 struct range_list *rl_one(void)
 {
-	return alloc_rl(one, one);
+	static struct range_list *one_perm;
+
+	if (!one_perm)
+		one_perm = clone_rl_permanent(alloc_rl(one, one));
+
+	return one_perm;
 }
 
 enum {
