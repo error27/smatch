@@ -688,7 +688,7 @@ static struct statement *split_then_return_last(struct statement *stmt)
 		if (tmp == last_stmt) {
 			if (tmp->type == STMT_LABEL) {
 				__split_label_stmt(tmp);
-				return stmt->label_statement;
+				return tmp->label_statement;
 			}
 			return last_stmt;
 		}
