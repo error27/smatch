@@ -1165,15 +1165,46 @@ out_cast:
 	return NULL;
 }
 
+struct {
+	struct expression *expr;
+	struct range_list *rl;
+} cached_results[24];
+static int cache_idx;
+
+void clear_math_cache(void)
+{
+	memset(cached_results, 0, sizeof(cached_results));
+}
+
 /* returns 1 if it can get a value literal or else returns 0 */
 int get_value(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 	int recurse_cnt = 0;
+	sval_t tmp;
+	int i;
+
+	/*
+	 * This only handles RL_EXACT because other expr statements can be
+	 * different at different points.  Like the list iterator, for example.
+	 */
+	for (i = 0; i < ARRAY_SIZE(cached_results); i++) {
+		if (expr == cached_results[i].expr)
+			return rl_to_sval(cached_results[i].rl, sval);
+	}
 
 	rl = _get_rl(expr, RL_EXACT, &recurse_cnt);
-	if (!rl_to_sval(rl, sval))
+	if (!rl_to_sval(rl, &tmp))
+		rl = NULL;
+
+	cached_results[cache_idx].expr = expr;
+	cached_results[cache_idx].rl = rl;
+	cache_idx = (cache_idx + 1) % ARRAY_SIZE(cached_results);
+
+	if (!rl)
 		return 0;
+
+	*sval = tmp;
 	return 1;
 }
 

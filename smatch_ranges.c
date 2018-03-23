@@ -1716,6 +1716,7 @@ void free_data_info_allocs(void)
 	struct allocation_blob *blob = desc->blobs;
 
 	free_all_rl();
+	clear_math_cache();
 
 	desc->blobs = NULL;
 	desc->allocations = 0;
