@@ -1031,9 +1031,25 @@ static struct range_list *handle_strlen(struct expression *expr, int implied, in
 	return NULL;
 }
 
+static struct range_list *handle_builtin_constant_p(struct expression *expr, int implied, int *recurse_cnt)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	sval_t sval;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	rl = _get_rl(arg, RL_EXACT, recurse_cnt);
+	if (rl_to_sval(rl, &sval))
+		return rl_one();
+	return rl_zero();
+}
+
 static struct range_list *handle_call_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct range_list *rl;
+
+	if (sym_name_is("__builtin_constant_p", expr->fn))
+		return handle_builtin_constant_p(expr, implied, recurse_cnt);
 
 	if (sym_name_is("__builtin_expect", expr->fn) ||
 	    sym_name_is("__builtin_bswap16", expr->fn) ||
@@ -1373,10 +1389,6 @@ int known_condition_false(struct expression *expr)
 	if (is_zero(expr))
 		return 1;
 
-	if (expr->type == EXPR_CALL) {
-		if (sym_name_is("__builtin_constant_p", expr->fn))
-			return 1;
-	}
 	return 0;
 }
 
