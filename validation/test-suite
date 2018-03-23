@@ -233,6 +233,7 @@ echo
 echo "options:"
 echo "    -a|--abort                 Abort the tests as soon as one fails."
 echo "    -q|--quiet                 Be extra quiet while running the tests."
+echo "    --args='...'               Add these options to the test command."
 echo
 echo "commands:"
 echo "    [file ...]                 Runs the test suite on the given file(s)."
@@ -544,6 +545,9 @@ while [ "$#" -gt "0" ]; do
 		;;
 	-q|--quiet)
 		vquiet=1
+		;;
+	--args=*)
+		default_args="${1#--args=}";
 		;;
 
 	single|--single)
