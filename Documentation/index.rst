@@ -30,7 +30,7 @@ How to contribute
    :maxdepth: 1
 
    submitting-patches
-   project-ideas
+   TODO
 
 Indices and tables
 ==================
