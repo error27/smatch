@@ -1,4 +1,4 @@
-VERSION=0.5.2-RC1
+VERSION=0.5.2
 
 # Generating file version.h if current version has changed
 SPARSE_VERSION:=$(shell git describe 2>/dev/null || echo '$(VERSION)')
