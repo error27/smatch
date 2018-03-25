@@ -269,6 +269,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_SYMADDR:
+		kill_use(&insn->symbol);
 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		break;
 
