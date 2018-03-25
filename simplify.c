@@ -1217,7 +1217,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
-		if (dead_insn(insn, NULL, NULL, NULL))
+		if (dead_insn(insn, &insn->symbol, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->symbol);
 	case OP_CAST:
