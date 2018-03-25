@@ -74,6 +74,8 @@ static void graph_ep(struct entrypoint *ep)
 
 		/* List loads and stores */
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			switch(insn->opcode) {
 			case OP_STORE:
 				if (insn->symbol->type == PSEUDO_SYM) {

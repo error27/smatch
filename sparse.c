@@ -47,6 +47,8 @@ static int context_increase(struct basic_block *bb, int entry)
 
 	FOR_EACH_PTR(bb->insns, insn) {
 		int val;
+		if (!insn->bb)
+			continue;
 		if (insn->opcode != OP_CONTEXT)
 			continue;
 		val = insn->increment;
