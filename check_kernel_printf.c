@@ -668,6 +668,8 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		return;
 
 	basetype = get_real_base_type(type);
+	if (is_void_type(basetype))
+		return;
 	/*
 	 * Passing a pointer-to-array is harmless, but most likely one
 	 * meant to pass pointer-to-first-element. If basetype is
