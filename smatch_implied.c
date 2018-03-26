@@ -914,6 +914,10 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	if (!arg)
 		return;
 
+	arg = strip_parens(arg);
+	while (arg->type == EXPR_ASSIGNMENT && arg->op == '=')
+		arg = strip_parens(arg->left);
+
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
