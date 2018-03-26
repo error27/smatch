@@ -158,6 +158,16 @@ static void set_parent(struct expression *expr, struct smatch_state *state)
 	char *name;
 	struct symbol *sym;
 
+	expr = strip_expr(expr);
+	if (!expr)
+		return;
+	if (expr->type == EXPR_CONDITIONAL ||
+	    expr->type == EXPR_SELECT) {
+		set_parent(expr->cond_true, state);
+		set_parent(expr->cond_false, state);
+		return;
+	}
+
 	name = get_parent_from_expr(expr, &sym);
 	if (!name || !sym)
 		goto free;
