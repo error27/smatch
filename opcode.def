@@ -1,0 +1,114 @@
+//      OPCODE          negated   swaped    float
+
+OPCODE(BADOP,           BADOP,    BADOP,    BADOP)
+
+/* Entry */
+OPCODE(ENTRY,           BADOP,    BADOP,    BADOP)
+
+/* Terminator */
+OPCODE(RET,             BADOP,    BADOP,    BADOP)
+OPCODE(BR,              BADOP,    BADOP,    BADOP)
+OPCODE(CBR,             BADOP,    BADOP,    BADOP)
+OPCODE(SWITCH,          BADOP,    BADOP,    BADOP)
+OPCODE(COMPUTEDGOTO,    BADOP,    BADOP,    BADOP)
+OPCODE_RANGE(TERMINATOR, RET, COMPUTEDGOTO)
+
+/* Binary */
+OPCODE(ADD,             BADOP,    BADOP,    FADD)
+OPCODE(SUB,             BADOP,    BADOP,    FSUB)
+OPCODE(MUL,             BADOP,    BADOP,    FMUL)
+OPCODE(DIVU,            BADOP,    BADOP,    FDIV)
+OPCODE(DIVS,            BADOP,    BADOP,    FDIV)
+OPCODE(MODU,            BADOP,    BADOP,    BADOP)
+OPCODE(MODS,            BADOP,    BADOP,    BADOP)
+OPCODE(SHL,             BADOP,    BADOP,    BADOP)
+OPCODE(LSR,             BADOP,    BADOP,    BADOP)
+OPCODE(ASR,             BADOP,    BADOP,    BADOP)
+
+/* Floating-point binops */
+OPCODE(FADD,            BADOP,    BADOP,    BADOP)
+OPCODE(FSUB,            BADOP,    BADOP,    BADOP)
+OPCODE(FMUL,            BADOP,    BADOP,    BADOP)
+OPCODE(FDIV,            BADOP,    BADOP,    BADOP)
+
+/* Logical */
+OPCODE(AND_BOOL,        BADOP,    BADOP,    BADOP)
+OPCODE(OR_BOOL,         BADOP,    BADOP,    BADOP)
+OPCODE(AND,             BADOP,    BADOP,    BADOP)
+OPCODE(OR,              BADOP,    BADOP,    BADOP)
+OPCODE(XOR,             BADOP,    BADOP,    BADOP)
+OPCODE_RANGE(BINARY, ADD, XOR)
+
+/* floating-point comparison */
+OPCODE(FCMP_ORD,        FCMP_UNO, FCMP_ORD, BADOP)
+OPCODE(FCMP_OEQ,        FCMP_UNE, FCMP_OEQ, BADOP)
+OPCODE(FCMP_ONE,        FCMP_UEQ, FCMP_ONE, BADOP)
+OPCODE(FCMP_UEQ,        FCMP_ONE, FCMP_UEQ, BADOP)
+OPCODE(FCMP_UNE,        FCMP_OEQ, FCMP_UNE, BADOP)
+OPCODE(FCMP_OLT,        FCMP_UGE, FCMP_OGT, BADOP)
+OPCODE(FCMP_OLE,        FCMP_UGT, FCMP_OGE, BADOP)
+OPCODE(FCMP_OGE,        FCMP_ULT, FCMP_OLE, BADOP)
+OPCODE(FCMP_OGT,        FCMP_ULE, FCMP_OLT, BADOP)
+OPCODE(FCMP_ULT,        FCMP_OGE, FCMP_UGT, BADOP)
+OPCODE(FCMP_ULE,        FCMP_OGT, FCMP_UGE, BADOP)
+OPCODE(FCMP_UGE,        FCMP_OLT, FCMP_ULE, BADOP)
+OPCODE(FCMP_UGT,        FCMP_OLE, FCMP_ULT, BADOP)
+OPCODE(FCMP_UNO,        FCMP_ORD, FCMP_UNO, BADOP)
+OPCODE_RANGE(FPCMP, FCMP_ORD, FCMP_UNO)
+
+/* Binary comparison */
+OPCODE(SET_EQ,          SET_NE,   SET_EQ,   FCMP_OEQ)
+OPCODE(SET_LT,          SET_GE,   SET_GT,   FCMP_OLT)
+OPCODE(SET_LE,          SET_GT,   SET_GE,   FCMP_OLE)
+OPCODE(SET_GE,          SET_LT,   SET_LE,   FCMP_OGE)
+OPCODE(SET_GT,          SET_LE,   SET_LT,   FCMP_OGT)
+OPCODE(SET_B,           SET_AE,   SET_A,    FCMP_OLT)
+OPCODE(SET_BE,          SET_A,    SET_AE,   FCMP_OLE)
+OPCODE(SET_AE,          SET_B,    SET_BE,   FCMP_OGE)
+OPCODE(SET_A,           SET_BE,   SET_B,    FCMP_OGT)
+OPCODE(SET_NE,          SET_EQ,   SET_NE,   FCMP_UNE)
+OPCODE_RANGE(BINCMP, SET_EQ, SET_NE)
+
+/* Uni */
+OPCODE(NOT,             BADOP,    BADOP,    BADOP)
+OPCODE(NEG,             BADOP,    BADOP,    FNEG)
+OPCODE(FNEG,            BADOP,    BADOP,    BADOP)
+OPCODE(TRUNC,           BADOP,    BADOP,    BADOP)
+OPCODE(ZEXT,            BADOP,    BADOP,    BADOP)
+OPCODE(SEXT,            BADOP,    BADOP,    BADOP)
+OPCODE(FCVTU,           BADOP,    BADOP,    BADOP)
+OPCODE(FCVTS,           BADOP,    BADOP,    BADOP)
+OPCODE(UCVTF,           BADOP,    BADOP,    BADOP)
+OPCODE(SCVTF,           BADOP,    BADOP,    BADOP)
+OPCODE(FCVTF,           BADOP,    BADOP,    BADOP)
+OPCODE(UTPTR,           BADOP,    BADOP,    BADOP)
+OPCODE(PTRTU,           BADOP,    BADOP,    BADOP)
+OPCODE(PTRCAST,         BADOP,    BADOP,    BADOP)
+OPCODE_RANGE(UNOP, NOT, PTRCAST)
+OPCODE(SYMADDR,         BADOP,    BADOP,    BADOP)
+OPCODE(SLICE,           BADOP,    BADOP,    BADOP)
+
+/* Select - three input values */
+OPCODE(SEL,             BADOP,    BADOP,    BADOP)
+
+/* Memory */
+OPCODE(LOAD,            BADOP,    BADOP,    BADOP)
+OPCODE(STORE,           BADOP,    BADOP,    BADOP)
+
+/* Other */
+OPCODE(PHISOURCE,       BADOP,    BADOP,    BADOP)
+OPCODE(PHI,             BADOP,    BADOP,    BADOP)
+OPCODE(SETVAL,          BADOP,    BADOP,    BADOP)
+OPCODE(SETFVAL,         BADOP,    BADOP,    BADOP)
+OPCODE(CALL,            BADOP,    BADOP,    BADOP)
+OPCODE(INLINED_CALL,    BADOP,    BADOP,    BADOP)
+OPCODE(NOP,             BADOP,    BADOP,    BADOP)
+OPCODE(DEATHNOTE,       BADOP,    BADOP,    BADOP)
+OPCODE(ASM,             BADOP,    BADOP,    BADOP)
+
+/* Sparse tagging (line numbers, context, whatever) */
+OPCODE(CONTEXT,         BADOP,    BADOP,    BADOP)
+OPCODE(RANGE,           BADOP,    BADOP,    BADOP)
+
+/* Needed to translate SSA back to normal form */
+OPCODE(COPY,            BADOP,    BADOP,    BADOP)

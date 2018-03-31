@@ -3,6 +3,15 @@
 
 #include "symbol.h"
 
+enum opcode {
+#define OPCODE(OP,NG,SW,TF)	OP_##OP,
+#define OPCODE_RANGE(OP,S,E)	OP_##OP = OP_##S, OP_##OP##_END = OP_##E,
+#include "opcode.def"
+#undef  OPCODE
+#undef  OPCODE_RANGE
+	OP_LAST,			/* keep this one last! */
+};
+
 extern const struct opcode_table {
 	int	negate:8;
 	int	swap:8;
