@@ -4,7 +4,7 @@
 #include "symbol.h"
 
 enum opcode {
-#define OPCODE(OP,NG,SW,TF,N)  OP_##OP,
+#define OPCODE(OP,NG,SW,TF,N,FL)  OP_##OP,
 #define OPCODE_RANGE(OP,S,E)	OP_##OP = OP_##S, OP_##OP##_END = OP_##E,
 #include "opcode.def"
 #undef  OPCODE
@@ -17,6 +17,9 @@ extern const struct opcode_table {
 	int	swap:8;
 	int	to_float:8;
 	unsigned int arity:2;
+	unsigned int flags:6;
+#define			OPF_NONE	0
+#define			OPF_TARGET	(1 << 0)
 } opcode_table[];
 
 
