@@ -349,6 +349,7 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 		kill_use(&insn->src2);
 	case OP_NOT:
 	case OP_NEG:
+	case OP_FNEG:
 	case OP_SYMADDR:
 	case OP_CAST:
 	case OP_SCAST:
@@ -1207,7 +1208,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_LSR: case OP_ASR:
 		return simplify_binop(insn);
 
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: case OP_NEG: case OP_FNEG:
 		return simplify_unop(insn);
 	case OP_LOAD:
 		if (!has_users(insn->target))
