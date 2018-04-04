@@ -76,15 +76,15 @@ static void graph_ep(struct entrypoint *ep)
 		FOR_EACH_PTR(bb->insns, insn) {
 			switch(insn->opcode) {
 			case OP_STORE:
-				if (insn->symbol->type == PSEUDO_SYM) {
-				  printf("%s store(%s)", s, show_ident(insn->symbol->sym->ident));
+				if (insn->src->type == PSEUDO_SYM) {
+				  printf("%s store(%s)", s, show_ident(insn->src->sym->ident));
 				  s = ",";
 				}
 				break;
 
 			case OP_LOAD:
-				if (insn->symbol->type == PSEUDO_SYM) {
-				  printf("%s load(%s)", s, show_ident(insn->symbol->sym->ident));
+				if (insn->src->type == PSEUDO_SYM) {
+				  printf("%s load(%s)", s, show_ident(insn->src->sym->ident));
 				  s = ",";
 				}
 				break;
