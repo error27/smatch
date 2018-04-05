@@ -37,7 +37,7 @@ void add_ignore_expr(int owner, struct expression *expr)
 	char *name;
 
 	name = expr_to_str_sym(expr, &sym);
-	if (!name && !sym)
+	if (!name || !sym)
 		return;
 	add_ignore(owner, name, sym);
 	free_string(name);
