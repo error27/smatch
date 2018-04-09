@@ -753,6 +753,7 @@ void scoped_state(int my_id, const char *name, struct symbol *sym)
 int is_error_return(struct expression *expr)
 {
 	struct symbol *cur_func = cur_func_sym;
+	struct range_list *rl;
 	sval_t sval;
 
 	if (!expr)
@@ -765,6 +766,12 @@ int is_error_return(struct expression *expr)
 	cur_func = get_base_type(cur_func);
 	if (cur_func == &void_ctype)
 		return 0;
+	if (option_project == PROJ_KERNEL &&
+	    get_implied_rl(expr, &rl) &&
+	    rl_type(rl) == &int_ctype &&
+	    sval_is_negative(rl_min(rl)) &&
+	    rl_max(rl).value == -1)
+		return 1;
 	if (!get_implied_value(expr, &sval))
 		return 0;
 	if (sval.value < 0)
