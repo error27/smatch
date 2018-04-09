@@ -134,7 +134,7 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 
 struct expression *gen_expression_from_key(struct expression *arg, const char *key)
 {
-	struct expression *ret = NULL;
+	struct expression *ret;
 	struct token *token, *end;
 	const char *p = key;
 	char buf[4095];
@@ -143,7 +143,7 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 
 	/* The idea is that we can parse either $0->foo or $->foo */
 	if (key[0] != '$')
-		goto free;
+		return NULL;
 	p++;
 	while (*p >= '0' && *p <= '9')
 		p++;
@@ -152,28 +152,25 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 
 	token = tokenize_buffer(alloc, len, &end);
 	if (!token)
-		goto free;
+		return NULL;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
-		goto free;
+		return NULL;
 	token = token->next;
 
 	ret = arg;
 	while (token_type(token) == TOKEN_SPECIAL &&
 	       token->special == SPECIAL_DEREFERENCE) {
 		token = token->next;
-		if (token_type(token) != TOKEN_IDENT) {
-			ret = NULL;
-			goto free;
-		}
+		if (token_type(token) != TOKEN_IDENT)
+			return NULL;
 		ret = deref_expression(ret);
 		ret = member_expression(ret, '*', token->ident);
 		token = token->next;
 	}
 
 	if (token_type(token) != TOKEN_STREAMEND)
-		ret = NULL;
+		return NULL;
 
-free:
 	return ret;
 }
 
