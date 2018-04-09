@@ -356,6 +356,7 @@ int cmp_pos(struct position pos1, struct position pos2);
 int positions_eq(struct position pos1, struct position pos2);
 struct statement *get_current_statement(void);
 struct statement *get_prev_statement(void);
+struct expression *get_last_expr_from_expression_stmt(struct expression *expr);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
 int ms_since(struct timeval *start);

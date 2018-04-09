@@ -914,6 +914,33 @@ struct statement *get_prev_statement(void)
 	return NULL;
 }
 
+struct expression *get_last_expr_from_expression_stmt(struct expression *expr)
+{
+	struct statement *stmt;
+	struct statement *last_stmt;
+
+	while (expr->type == EXPR_PREOP && expr->op == '(')
+		expr = expr->unop;
+	if (expr->type != EXPR_STATEMENT)
+		return NULL;
+	stmt = expr->statement;
+	if (!stmt)
+		return NULL;
+	if (stmt->type == STMT_COMPOUND) {
+		last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+		if (!last_stmt)
+			return NULL;
+		if (last_stmt->type == STMT_LABEL)
+			last_stmt = last_stmt->label_statement;
+		if (last_stmt->type != STMT_EXPRESSION)
+			return NULL;
+		return last_stmt->expression;
+	}
+	if (stmt->type == STMT_EXPRESSION)
+		return stmt->expression;
+	return NULL;
+}
+
 int get_param_num_from_sym(struct symbol *sym)
 {
 	struct symbol *tmp;
