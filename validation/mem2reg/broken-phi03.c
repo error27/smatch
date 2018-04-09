@@ -23,7 +23,6 @@ int foo(int a, int b)
  *	is used) causes a missed select-conversion at later stage.
  *
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  * check-output-ignore
  * check-output-contains: select\\.
  */

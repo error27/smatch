@@ -13,6 +13,5 @@ static void foo(void)
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-excludes: phi\\.
- * check-output-excludes: phisrc\\.
+ * check-output-pattern(2): phi\\.
  */

@@ -16,6 +16,5 @@ int foo(int a, int b)
  * check-description: trigger a bug in symbol/memop simplification
  * check-description: sparse-llvm is used here as semantic checker of sparse's IR
  * check-command: sparse-llvm -Wno-decl $file
- * check-known-to-fail
  * check-output-ignore
  */

@@ -11,7 +11,6 @@ int foo(int p, int q, int a)
 /*
  * check-name: cond-expr5
  * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: load\\.

@@ -13,6 +13,7 @@
 #include "flow.h"
 #include "cse.h"
 #include "ir.h"
+#include "ssa.h"
 
 int repeat_phase;
 
@@ -60,7 +61,7 @@ void optimize(struct entrypoint *ep)
 	 * Turn symbols into pseudos
 	 */
 	if (fpasses & PASS_MEM2REG)
-		simplify_symbol_usage(ep);
+		ssa_convert(ep);
 	ir_validate(ep);
 	if (fdump_ir & PASS_MEM2REG)
 		show_entry(ep);
