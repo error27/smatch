@@ -1152,9 +1152,10 @@ free:
 
 void __comparison_match_condition(struct expression *expr)
 {
-	struct expression *left, *right, *new_left, *new_right;
+	struct expression *left, *right, *new_left, *new_right, *tmp;
 	struct smatch_state *false_state = NULL;
 	char *state_name = NULL;
+	int redo, count;
 
 	if (expr->type != EXPR_COMPARE)
 		return;
@@ -1162,7 +1163,6 @@ void __comparison_match_condition(struct expression *expr)
 	handle_comparison(expr->left, expr->op, expr->right, &state_name, &false_state);
 	if (false_state && state_name)
 		handle_for_loops(expr, state_name, false_state);
-
 
 	left = strip_parens(expr->left);
 	right = strip_parens(expr->right);
@@ -1176,6 +1176,37 @@ void __comparison_match_condition(struct expression *expr)
 		new_right = binop_expression(right, '-', left->left);
 		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
 	}
+
+
+	redo = 0;
+	left = strip_parens(expr->left);
+	right = strip_parens(expr->right);
+	if (get_last_expr_from_expression_stmt(expr->left)) {
+		left = get_last_expr_from_expression_stmt(expr->left);
+		redo = 1;
+	}
+	if (get_last_expr_from_expression_stmt(expr->right)) {
+		right = get_last_expr_from_expression_stmt(expr->right);
+		redo = 1;
+	}
+
+	if (!redo)
+		return;
+
+	count = 0;
+	while ((tmp = get_assigned_expr(left))) {
+		if (count++ > 3)
+			break;
+		left = strip_expr(tmp);
+	}
+	count = 0;
+	while ((tmp = get_assigned_expr(right))) {
+		if (count++ > 3)
+			break;
+		right = strip_expr(tmp);
+	}
+
+	handle_comparison(left, expr->op, right, NULL, NULL);
 }
 
 static void add_comparison_var_sym(
@@ -1605,6 +1636,36 @@ struct state_list *get_all_possible_equal_comparisons(struct expression *expr)
 	return ret;
 }
 
+struct state_list *get_all_possible_not_equal_comparisons(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct string_list *links;
+	struct state_list *ret = NULL;
+	struct sm_state *sm;
+	struct sm_state *possible;
+	char *link;
+
+	return NULL;
+
+	state = get_state_chunk(link_id, expr);
+	if (!state)
+		return NULL;
+	links = state->data;
+
+	FOR_EACH_PTR(links, link) {
+		sm = get_sm_state(compare_id, link, NULL);
+		if (!sm)
+			continue;
+		FOR_EACH_PTR(sm->possible, possible) {
+			if (strcmp(possible->state->name, "!=") != 0)
+				continue;
+			add_ptr_list(&ret, sm);
+			break;
+		} END_FOR_EACH_PTR(link);
+	} END_FOR_EACH_PTR(link);
+
+	return ret;
+}
 
 static void update_links_from_call(struct expression *left,
 				   int left_compare,
