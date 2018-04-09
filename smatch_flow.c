@@ -1835,4 +1835,6 @@ void smatch(int argc, char **argv)
 	set_position(last_pos);
 	if (option_time)
 		sm_msg("time: %lu", stop.tv_sec - start.tv_sec);
+	if (option_mem)
+		sm_msg("mem: %luKb", get_max_memory());
 }

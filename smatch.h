@@ -1058,6 +1058,10 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, int *offset);
 void update_mtag_data(struct expression *expr);
 
+/* smatch_mem_tracker.c */
+extern int option_mem;
+unsigned long get_max_memory(void);
+
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)

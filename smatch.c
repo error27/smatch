@@ -36,6 +36,7 @@ int option_enable = 0;
 int option_debug_related;
 int option_file_output;
 int option_time;
+int option_mem;
 char *option_datadir_str;
 FILE *sm_outfd;
 FILE *sql_outfd;
@@ -223,6 +224,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(call_tree);
 		OPTION(file_output);
 		OPTION(time);
+		OPTION(mem);
 		OPTION(no_db);
 		if (!found)
 			break;
