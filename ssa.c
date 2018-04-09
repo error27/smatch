@@ -253,6 +253,66 @@ external_visibility:
 	kill_dead_stores(ep, addr, !mod);
 }
 
+static pseudo_t lookup_var(struct basic_block *bb, struct symbol *var)
+{
+	do {
+		pseudo_t val = phi_map_lookup(bb->phi_map, var);
+		if (val)
+			return val;
+	} while ((bb = bb->idom));
+	return undef_pseudo();
+}
+
+static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
+{
+	struct symbol *var;
+	pseudo_t addr;
+	pseudo_t val;
+
+	switch (insn->opcode) {
+	case OP_STORE:
+		addr = insn->src;
+		if (addr->type != PSEUDO_SYM)
+			break;
+		var = addr->sym;
+		if (!var || !var->torename)
+			break;
+		phi_map_update(&bb->phi_map, var, insn->target);
+		kill_store(insn);
+		break;
+	case OP_LOAD:
+		addr = insn->src;
+		if (addr->type != PSEUDO_SYM)
+			break;
+		var = addr->sym;
+		if (!var || !var->torename)
+			break;
+		val = lookup_var(bb, var);
+		convert_load_instruction(insn, val);
+		break;
+	case OP_PHI:
+		var = insn->type;
+		if (!var || !var->torename)
+			break;
+		phi_map_update(&bb->phi_map, var, insn->target);
+		break;
+	}
+}
+
+static void ssa_rename_insns(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			ssa_rename_insn(bb, insn);
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
+}
+
 void ssa_convert(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -274,4 +334,7 @@ void ssa_convert(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->accesses, pseudo) {
 		ssa_convert_one_var(ep, pseudo->sym);
 	} END_FOR_EACH_PTR(pseudo);
+
+	// rename the converted accesses
+	ssa_rename_insns(ep);
 }
