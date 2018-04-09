@@ -1694,9 +1694,6 @@ static char *get_mask_comparison(struct expression *expr, int ignore)
 			break;
 	}
 
-	if (local_debug)
-		sm_msg("%s: %s", __func__, expr_to_str(expr));
-
 	if (expr->type != EXPR_BINOP || expr->op != '&')
 		return NULL;
 
