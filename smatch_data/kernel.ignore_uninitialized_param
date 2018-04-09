@@ -46,9 +46,11 @@ acpi_smbus_read 4
 pci_read_config_dword 2
 viafb_i2c_readbyte 3
 bap_read 1
+of_get_property 2
 of_property_read_u32 2
 of_property_read_u8 2
 of_property_read_u16 2
+of_property_read_u32_index 3
 intel_gvt_hypervisor_read_gpa 2
 cs5536_read 1
 __amd64_read_pci_cfg_dword 2
@@ -96,3 +98,7 @@ iosf_mbi_read 3
 lola_codec_read 5
 chipio_read 2
 pcxhr_write_io_num_reg_cont 3
+read_current_timer 0
+pwrap_read 2
+dibusb_read_eeprom_byte 2
+of_fdt_unflatten_tree 2
