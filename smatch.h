@@ -936,7 +936,7 @@ struct sm_state *comparison_implication_hook(struct expression *expr,
 void __compare_param_limit_hook(struct expression *left_expr, struct expression *right_expr,
 				const char *state_name,
 				struct smatch_state *true_state, struct smatch_state *false_state);
-
+int impossibly_high_comparison(struct expression *expr);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);

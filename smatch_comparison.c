@@ -2265,6 +2265,38 @@ free:
 	return ret;
 }
 
+int impossibly_high_comparison(struct expression *expr)
+{
+	struct smatch_state *link_state;
+	struct sm_state *sm;
+	struct string_list *links;
+	char *link;
+	struct compare_data *data;
+
+	link_state = get_state_expr(link_id, expr);
+	if (!link_state) {
+		if (expr->type == EXPR_BINOP &&
+		    (impossibly_high_comparison(expr->left) ||
+		     impossibly_high_comparison(expr->right)))
+			return 1;
+		return 0;
+	}
+
+	links = link_state->data;
+	FOR_EACH_PTR(links, link) {
+		sm = get_sm_state(compare_id, link, NULL);
+		if (!sm)
+			continue;
+		data = sm->state->data;
+		if (!data)
+			continue;
+		if (!possibly_true(data->left, data->comparison, data->right))
+			return 1;
+	} END_FOR_EACH_PTR(link);
+
+	return 0;
+}
+
 static void free_data(struct symbol *sym)
 {
 	if (__inline_fn)
