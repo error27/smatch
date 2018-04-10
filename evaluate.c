@@ -2193,7 +2193,8 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	size = type->bit_size;
 
 	if (size < 0 && is_void_type(type)) {
-		warning(expr->pos, "expression using sizeof(void)");
+		if (Wpointer_arith)
+			warning(expr->pos, "expression using sizeof(void)");
 		size = bits_in_char;
 	}
 
@@ -2204,7 +2205,8 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	}
 
 	if (is_function(type->ctype.base_type)) {
-		warning(expr->pos, "expression using sizeof on a function");
+		if (Wpointer_arith)
+			warning(expr->pos, "expression using sizeof on a function");
 		size = bits_in_char;
 	}
 

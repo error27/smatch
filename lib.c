@@ -242,6 +242,7 @@ int Woverride_init = 1;
 int Woverride_init_all = 0;
 int Woverride_init_whole_range = 0;
 int Wparen_string = 0;
+int Wpointer_arith = 0;
 int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
 int Wshadow = 0;
@@ -654,6 +655,7 @@ static const struct flag warnings[] = {
 	{ "return-void", &Wreturn_void },
 	{ "shadow", &Wshadow },
 	{ "sizeof-bool", &Wsizeof_bool },
+	{ "pointer-arith", &Wpointer_arith },
 	{ "sparse-error", &Wsparse_error },
 	{ "tautological-compare", &Wtautological_compare },
 	{ "transparent-union", &Wtransparent_union },

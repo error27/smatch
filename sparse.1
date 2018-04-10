@@ -291,6 +291,19 @@ initializer.  GCC allows this syntax as an extension.  With
 Sparse does not issue these warnings by default.
 .
 .TP
+.B \-Wpointer\-arith
+Warn about anything that depends on the \fBsizeof\fR a void or function type.
+
+C99 does not allow the \fBsizeof\fR operator to be applied to function types
+or to incomplete types such as void. GCC allows \fBsizeof\fR to be applied to
+these types as an extension and assigns these types a size of \fI1\fR. With
+\fB\-pointer\-arith\fR, Sparse will warn about pointer arithmetic on void
+or function pointers, as well as expressions which directly apply the
+\fBsizeof\fR operator to void or function types.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wptr\-subtraction\-blows
 Warn when subtracting two pointers to a type with a non-power-of-two size.
 
