@@ -182,11 +182,23 @@ static void match_assign_function(struct expression *expr)
 	}
 }
 
+static int is_recursive_call(struct expression *call)
+{
+	if (call->fn->type != EXPR_SYMBOL)
+		return 0;
+	if (call->fn->symbol == cur_func_sym)
+		return 1;
+	return 0;
+}
+
 static void check_passes_fn_and_data(struct expression *call, struct expression *fn, char *key, char *value)
 {
 	struct expression *arg;
 	struct symbol *type;
 	int data_nr;
+
+	if (is_recursive_call(call))
+		return;
 
 	type = get_type(fn);
 	if (!type || type->type != SYM_FN)
