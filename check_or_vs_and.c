@@ -78,9 +78,28 @@ static void check_or(struct expression *expr)
 	sm_msg("warn: was && intended here instead of ||?");
 }
 
+static int is_kernel_min_macro(struct expression *expr)
+{
+	char *macro;
+
+	if (option_project != PROJ_KERNEL)
+		return 0;
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return 0;
+	if (strcmp(macro, "min") == 0)
+		return 1;
+	if (strcmp(macro, "max") == 0)
+		return 1;
+	return 0;
+}
+
 static void check_and(struct expression *expr)
 {
 	struct expression *left, *right;
+
+	if (is_kernel_min_macro(expr))
+		return;
 
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
