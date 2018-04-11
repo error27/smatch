@@ -286,6 +286,27 @@ next:
 	} while (1);
 }
 
+static int handle__builtin_choose_expr(struct expression *expr)
+{
+	struct expression *const_expr, *expr1, *expr2;
+	sval_t sval;
+
+	if (!sym_name_is("__builtin_choose_expr", expr->fn))
+		return 0;
+
+	const_expr = get_argument_from_call_expr(expr->args, 0);
+	expr1 = get_argument_from_call_expr(expr->args, 1);
+	expr2 = get_argument_from_call_expr(expr->args, 2);
+
+	if (!get_value(const_expr, &sval) || !expr1 || !expr2)
+		return 0;
+	if (sval.value)
+		__split_expr(expr1);
+	else
+		__split_expr(expr2);
+	return 1;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -448,6 +469,8 @@ void __split_expr(struct expression *expr)
 		expr_set_parent_expr(expr->fn, expr);
 
 		if (sym_name_is("__builtin_constant_p", expr->fn))
+			break;
+		if (handle__builtin_choose_expr(expr))
 			break;
 		split_expr_list(expr->args, expr);
 		__split_expr(expr->fn);
