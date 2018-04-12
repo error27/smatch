@@ -105,11 +105,9 @@ static void check_and(struct expression *expr)
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 
-	if (left->type != EXPR_COMPARE ||
-			left->op != SPECIAL_EQUAL)
+	if (left->type != EXPR_COMPARE || left->op != SPECIAL_EQUAL)
 		return;
-	if (right->type != EXPR_COMPARE ||
-			right->op != SPECIAL_EQUAL)
+	if (right->type != EXPR_COMPARE || right->op != SPECIAL_EQUAL)
 		return;
 	if (!inconsistent_check(left, right))
 		return;
