@@ -87,9 +87,10 @@ static int is_kernel_min_macro(struct expression *expr)
 	macro = get_macro_name(expr->pos);
 	if (!macro)
 		return 0;
-	if (strcmp(macro, "min") == 0)
-		return 1;
-	if (strcmp(macro, "max") == 0)
+	if (strcmp(macro, "min") == 0 ||
+	    strcmp(macro, "min_t") == 0 ||
+	    strcmp(macro, "max") == 0 ||
+	    strcmp(macro, "max_t") == 0)
 		return 1;
 	return 0;
 }
