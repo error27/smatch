@@ -318,13 +318,7 @@ int funsigned_char = -1;
 
 int preprocess_only;
 
-static enum { STANDARD_C89,
-              STANDARD_C94,
-              STANDARD_C99,
-              STANDARD_C11,
-              STANDARD_GNU11,
-              STANDARD_GNU89,
-              STANDARD_GNU99, } standard = STANDARD_GNU89;
+enum standard standard = STANDARD_GNU89;
 
 static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;

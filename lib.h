@@ -224,6 +224,17 @@ enum {
 };
 extern int arch_cmodel;
 
+enum standard {
+	STANDARD_C89,
+	STANDARD_C94,
+	STANDARD_C99,
+	STANDARD_C11,
+	STANDARD_GNU11,
+	STANDARD_GNU89,
+	STANDARD_GNU99,
+};
+extern enum standard standard;
+
 extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
 extern struct symbol_list *__sparse(char *filename);
