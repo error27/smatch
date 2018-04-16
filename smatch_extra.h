@@ -203,6 +203,10 @@ struct expression *unknown_value_expression(struct expression *expr);
 int is_fake_call(struct expression *expr);
 struct expression *gen_expression_from_key(struct expression *arg, const char *key);
 void free_tmp_expressions(void);
+void expr_set_parent_expr(struct expression *expr, struct expression *parent);
+void expr_set_parent_stmt(struct expression *expr, struct statement *parent);
+struct expression *expr_get_parent_expr(struct expression *expr);
+struct statement *expr_get_parent_stmt(struct expression *expr);
 
 /* smatch_param_limit.c */
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);

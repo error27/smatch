@@ -307,36 +307,4 @@ struct token *compound_statement(struct token *, struct statement *);
 void cast_value(struct expression *expr, struct symbol *newtype,
 	struct expression *old, struct symbol *oldtype);
 
-static inline void expr_set_parent_expr(struct expression *expr, struct expression *parent)
-{
-	if (!expr)
-		return;
-	expr->parent = (unsigned long)parent | 0x1UL;
-}
-
-static inline void expr_set_parent_stmt(struct expression *expr, struct statement *parent)
-{
-	if (!expr)
-		return;
-	expr->parent = (unsigned long)parent;
-}
-
-static inline struct expression *expr_get_parent_expr(struct expression *expr)
-{
-	if (!expr)
-		return NULL;
-	if (!(expr->parent & 0x1UL))
-		return NULL;
-	return (struct expression *)(expr->parent & ~0x1UL);
-}
-
-static inline struct statement *expr_get_parent_stmt(struct expression *expr)
-{
-	if (!expr)
-		return NULL;
-	if (expr->parent & 0x1UL)
-		return NULL;
-	return (struct statement *)expr->parent;
-}
-
 #endif

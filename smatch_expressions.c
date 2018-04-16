@@ -1,4 +1,5 @@
 #include "smatch.h"
+#include "smatch_extra.h"
 
 __ALLOCATOR(struct expression, "temporary expr", tmp_expression);
 
@@ -172,5 +173,38 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 		return NULL;
 
 	return ret;
+}
+
+void expr_set_parent_expr(struct expression *expr, struct expression *parent)
+{
+	if (!expr)
+		return;
+
+	expr->parent = (unsigned long)parent | 0x1UL;
+}
+
+void expr_set_parent_stmt(struct expression *expr, struct statement *parent)
+{
+	if (!expr)
+		return;
+	expr->parent = (unsigned long)parent;
+}
+
+struct expression *expr_get_parent_expr(struct expression *expr)
+{
+	if (!expr)
+		return NULL;
+	if (!(expr->parent & 0x1UL))
+		return NULL;
+	return (struct expression *)(expr->parent & ~0x1UL);
+}
+
+struct statement *expr_get_parent_stmt(struct expression *expr)
+{
+	if (!expr)
+		return NULL;
+	if (expr->parent & 0x1UL)
+		return NULL;
+	return (struct statement *)expr->parent;
 }
 
