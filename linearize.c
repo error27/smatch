@@ -794,7 +794,7 @@ static pseudo_t symbol_pseudo(struct entrypoint *ep, struct symbol *sym)
 		sym->pseudo = pseudo;
 		add_pseudo(&ep->accesses, pseudo);
 	}
-	/* Symbol pseudos have neither nr, usage nor def */
+	/* Symbol pseudos have neither nr nor def */
 	return pseudo;
 }
 
