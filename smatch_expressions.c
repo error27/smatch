@@ -36,14 +36,11 @@ void free_tmp_expressions(void)
 
 struct expression *zero_expr(void)
 {
-	static struct expression *zero;
+	struct expression *zero;
 
-	if (zero)
-		return zero;
-
-	zero = alloc_expression(get_cur_pos(), EXPR_VALUE);
+	zero = alloc_tmp_expression(get_cur_pos(), EXPR_VALUE);
 	zero->value = 0;
-	zero->ctype = &char_ctype;
+	zero->ctype = &int_ctype;
 	return zero;
 }
 
