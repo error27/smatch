@@ -23,7 +23,10 @@ static struct position get_cur_pos(void)
 
 struct expression *alloc_tmp_expression(struct position pos, int type)
 {
-	struct expression *expr = __alloc_tmp_expression(0);
+	struct expression *expr;
+
+	expr = __alloc_tmp_expression(0);
+	expr->smatch_flags |= Fake;
 	expr->type = type;
 	expr->pos = pos;
 	return expr;
@@ -175,6 +178,8 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 void expr_set_parent_expr(struct expression *expr, struct expression *parent)
 {
 	if (!expr)
+		return;
+	if (parent->smatch_flags & Fake)
 		return;
 
 	expr->parent = (unsigned long)parent | 0x1UL;

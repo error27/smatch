@@ -132,7 +132,8 @@ enum constexpr_flag {
 };
 
 enum {
-	Handled = 1,
+	Handled = 1 << 0,
+	Fake	= 1 << 1,
 }; /* for expr->flags */
 
 enum {
