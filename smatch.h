@@ -735,6 +735,7 @@ enum info_type {
 	CONSTRAINT	= 1031,
 	PASSES_TYPE	= 1032,
 	CONSTRAINT_REQUIRED = 1033,
+	NOSPEC		= 1035,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
@@ -1062,6 +1063,9 @@ void update_mtag_data(struct expression *expr);
 /* smatch_mem_tracker.c */
 extern int option_mem;
 unsigned long get_max_memory(void);
+
+/* check_is_nospec.c */
+bool is_nospec(struct expression *expr);
 
 static inline int type_bits(struct symbol *type)
 {

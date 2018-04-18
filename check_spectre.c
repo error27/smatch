@@ -1,0 +1,148 @@
+/*
+ * Copyright (C) 2018 Oracle.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
+ */
+
+#include "smatch.h"
+#include "smatch_extra.h"
+
+static int my_id;
+
+static int is_write(struct expression *expr)
+{
+	return 0;
+}
+
+static int is_read(struct expression *expr)
+{
+	struct expression *parent, *last_parent;
+	struct statement *stmt;
+
+	if (is_write(expr))
+		return 0;
+
+	last_parent = expr;
+	while ((parent = expr_get_parent_expr(expr))){
+
+		last_parent = parent;
+
+		/* If we pass a value as a parameter that's a read, probably? */
+//		if (parent->type == EXPR_CALL)
+//			return 1;
+
+		if (parent->type == EXPR_ASSIGNMENT) {
+			if (parent->right == expr)
+				return 1;
+			if (parent->left == expr)
+				return 0;
+		}
+		expr = parent;
+	}
+
+	stmt = expr_get_parent_stmt(last_parent);
+	if (stmt && stmt->type == STMT_RETURN)
+		return 1;
+
+	return 0;
+}
+
+static unsigned long long get_max_by_type(struct expression *expr)
+{
+	sval_t max = {
+		.type = &ullong_ctype,
+		.uvalue = -1ULL,
+	};
+	struct symbol *type;
+	int cnt = 0;
+
+	while (true) {
+		expr = strip_parens(expr);
+		type = get_type(expr);
+		if (type && sval_type_max(type).uvalue < max.uvalue)
+			max = sval_type_max(type);
+		if (expr->type == EXPR_PREOP) {
+			expr = expr->unop;
+		} else if (expr->type == EXPR_BINOP) {
+			if (expr->op == '%' || expr->op == '&')
+				expr = expr->right;
+			else
+				return max.uvalue;
+		} else {
+			expr = get_assigned_expr(expr);
+			if (!expr)
+				return max.uvalue;
+		}
+		if (cnt++ > 5)
+			return max.uvalue;
+	}
+
+	return max.uvalue;
+}
+
+static void array_check(struct expression *expr)
+{
+	struct expression_list *conditions;
+	struct expression *array_expr, *offset;
+	struct range_list *user_rl;
+//	struct bit_info *binfo;
+	int array_size;
+	char *name;
+
+	expr = strip_expr(expr);
+	if (!is_array(expr))
+		return;
+
+	if (is_impossible_path())
+		return;
+	if (is_write(expr))
+		return;
+	if (!is_read(expr))
+		return;
+
+	array_expr = get_array_base(expr);
+	if (is_ignored_expr(my_id, array_expr))
+		return;
+
+	offset = get_array_offset(expr);
+	if (!get_user_rl(offset, &user_rl))
+		return;
+	if (is_nospec(offset))
+		return;
+
+	array_size = get_array_size(array_expr);
+	if (array_size > 0 && get_max_by_type(offset) < array_size)
+		return;
+//	binfo = get_bit_info(offset);
+//	if (array_size > 0 && binfo && binfo->possible < array_size)
+//		return;
+
+	conditions = get_conditions(offset);
+
+	name = expr_to_str(array_expr);
+	sm_msg("warn: potential spectre issue '%s'%s",
+	       name, conditions ? " (local cap)" : "");
+	add_ignore_expr(my_id, array_expr);
+	free_string(name);
+}
+
+void check_spectre(int id)
+{
+	my_id = id;
+
+	if (option_project != PROJ_KERNEL)
+		return;
+
+	add_hook(&array_check, OP_HOOK);
+}

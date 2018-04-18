@@ -175,6 +175,8 @@ CK(check_capable)
 CK(check_ns_capable)
 CK(check_test_bit)
 CK(check_dma_mapping_error)
+CK(check_nospec)
+CK(check_spectre)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
