@@ -245,7 +245,7 @@ static int handle_comma_assigns(struct expression *expr)
 	__split_expr(right->left);
 	__process_post_op_stack();
 
-	assign = assign_expression(expr->left, right->right);
+	assign = assign_expression(expr->left, '=', right->right);
 	__split_expr(assign);
 
 	return 1;
@@ -265,7 +265,7 @@ static int handle_postop_assigns(struct expression *expr)
 		return 0;
 
 	fake_left = deref_expression(strip_expr(left->unop));
-	assign = assign_expression(fake_left, expr->right);
+	assign = assign_expression(fake_left, '=', expr->right);
 
 	__split_expr(assign);
 	__split_expr(expr->left);
@@ -1269,7 +1269,7 @@ static void set_inner_struct_members(struct expression *expr, struct symbol *mem
 		if (!tmp->ident)
 			continue;
 
-		assign = assign_expression(edge_member, zero_expr());
+		assign = assign_expression(edge_member, '=', zero_expr());
 		__split_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 
@@ -1308,7 +1308,7 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 		if (!tmp->ident)
 			continue;
 
-		assign = assign_expression(member, zero_expr());
+		assign = assign_expression(member, '=', zero_expr());
 		__split_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -1363,7 +1363,7 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 			else
 				fake_member_assigns_helper(deref, right->expr_list, fake_cb);
 		} else {
-			assign = assign_expression(deref, right);
+			assign = assign_expression(deref, '=', right);
 			fake_cb(assign);
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -1405,7 +1405,7 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 			else
 				fake_member_assigns_helper(binop, tmp->expr_list, fake_cb);
 		} else {
-			assign = assign_expression(binop, tmp);
+			assign = assign_expression(binop, '=', tmp);
 			fake_cb(assign);
 		}
 next:
@@ -1423,7 +1423,7 @@ static void fake_assign_expr(struct symbol *sym)
 	struct expression *assign, *symbol;
 
 	symbol = symbol_expression(sym);
-	assign = assign_expression(symbol, sym->initializer);
+	assign = assign_expression(symbol, '=', sym->initializer);
 	__split_expr(assign);
 }
 
@@ -1472,7 +1472,7 @@ static void fake_global_assign(struct symbol *sym)
 			fake_element_assigns(sym, call_global_assign_hooks);
 		} else if (sym->initializer) {
 			symbol = symbol_expression(sym);
-			assign = assign_expression(symbol, sym->initializer);
+			assign = assign_expression(symbol, '=', sym->initializer);
 			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 		} else {
 			fake_element_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
@@ -1482,7 +1482,7 @@ static void fake_global_assign(struct symbol *sym)
 			fake_member_assigns(sym, call_global_assign_hooks);
 		} else if (sym->initializer) {
 			symbol = symbol_expression(sym);
-			assign = assign_expression(symbol, sym->initializer);
+			assign = assign_expression(symbol, '=', sym->initializer);
 			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 		} else {
 			fake_member_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
@@ -1490,9 +1490,9 @@ static void fake_global_assign(struct symbol *sym)
 	} else {
 		symbol = symbol_expression(sym);
 		if (sym->initializer)
-			assign = assign_expression(symbol, sym->initializer);
+			assign = assign_expression(symbol, '=', sym->initializer);
 		else
-			assign = assign_expression(symbol, zero_expr());
+			assign = assign_expression(symbol, '=', zero_expr());
 		__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 	}
 }

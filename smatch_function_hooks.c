@@ -808,7 +808,7 @@ static void fake_a_param_assignment(struct expression *expr, const char *return_
 	right = gen_expression_from_key(arg, buf);
 	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
 		return;
-	fake_assign = assign_expression(left, right);
+	fake_assign = assign_expression(left, '=', right);
 	__in_fake_assign++;
 	__split_expr(fake_assign);
 	__in_fake_assign--;

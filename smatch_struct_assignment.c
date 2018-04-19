@@ -153,7 +153,7 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 			right = deref_expression(right);
 		else
 			right = unknown_value_expression(left);
-		assign = assign_expression(left, right);
+		assign = assign_expression(left, '=', right);
 		split_fake_expr(assign);
 		return;
 	}
@@ -162,7 +162,7 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 	right = strip_expr(right);
 	if (!right)
 		right = unknown_value_expression(left);
-	assign = assign_expression(left, right);
+	assign = assign_expression(left, '=', right);
 	split_fake_expr(assign);
 }
 
@@ -211,7 +211,7 @@ static void set_inner_struct_members(int mode, struct expression *faked, struct 
 			break;
 		}
 
-		assign = assign_expression(left_member, right_member);
+		assign = assign_expression(left_member, '=', right_member);
 		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -286,7 +286,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 			sm_msg("internal.  No right member");
 			continue;
 		}
-		assign = assign_expression(left_member, right_member);
+		assign = assign_expression(left_member, '=', right_member);
 		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 

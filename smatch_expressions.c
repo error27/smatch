@@ -82,12 +82,12 @@ struct expression *deref_expression(struct expression *expr)
 	return preop;
 }
 
-struct expression *assign_expression(struct expression *left, struct expression *right)
+struct expression *assign_expression(struct expression *left, int op, struct expression *right)
 {
 	struct expression *expr;
 
 	expr = alloc_tmp_expression(right->pos, EXPR_ASSIGNMENT);
-	expr->op = '=';
+	expr->op = op;
 	expr->left = left;
 	expr->right = right;
 	return expr;

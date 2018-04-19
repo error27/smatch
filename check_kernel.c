@@ -338,7 +338,7 @@ static void match__write_once_size(const char *fn, struct expression *call,
 	if (!data)
 		return;
 	get_absolute_rl(data, &rl);
-	assign = assign_expression(dest, data);
+	assign = assign_expression(dest, '=', data);
 
 	__in_fake_assign++;
 	__split_expr(assign);
