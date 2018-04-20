@@ -11,5 +11,4 @@ _Static_assert([typeof(DUO)] == [typeof(NEG)], "enum same type");
 
 /*
  * check-name: enum-same-type
- * check-known-to-fail
  */

@@ -855,6 +855,7 @@ static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
 		if (expr->type != EXPR_VALUE)
 			continue;
 		ctype = expr->ctype;
+		expr->ctype = base_type;
 		if (ctype->bit_size == base_type->bit_size)
 			continue;
 		cast_value(expr, base_type, expr, ctype);
