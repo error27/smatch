@@ -1198,6 +1198,7 @@ void clear_math_cache(void)
 /* returns 1 if it can get a value literal or else returns 0 */
 int get_value(struct expression *expr, sval_t *sval)
 {
+	struct range_list *(*orig_custom_fn)(struct expression *expr);
 	struct range_list *rl;
 	int recurse_cnt = 0;
 	sval_t tmp;
@@ -1212,9 +1213,12 @@ int get_value(struct expression *expr, sval_t *sval)
 			return rl_to_sval(cached_results[i].rl, sval);
 	}
 
+	orig_custom_fn = custom_handle_variable;
+	custom_handle_variable = NULL;
 	rl = _get_rl(expr, RL_EXACT, &recurse_cnt);
 	if (!rl_to_sval(rl, &tmp))
 		rl = NULL;
+	custom_handle_variable = orig_custom_fn;
 
 	cached_results[cache_idx].expr = expr;
 	cached_results[cache_idx].rl = rl;
