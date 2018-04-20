@@ -345,6 +345,43 @@ static void match__write_once_size(const char *fn, struct expression *call,
 	__in_fake_assign--;
 }
 
+static void match__read_once_size(const char *fn, struct expression *call,
+			       void *unused)
+{
+	struct expression *dest, *data, *assign;
+	struct symbol *type, *val_sym;
+
+	/*
+	 * We want to change:
+	 *	__read_once_size_nocheck(&(x), __u.__c, sizeof(x));
+	 * into a fake assignment:
+	 *	__u.val = x;
+	 *
+	 */
+
+	data = get_argument_from_call_expr(call->args, 0);
+	if (data->type != EXPR_PREOP || data->op != '&')
+		return;
+	data = strip_parens(data->unop);
+
+	dest = get_argument_from_call_expr(call->args, 1);
+	if (dest->type != EXPR_DEREF || dest->op != '.')
+		return;
+	if (!dest->member || strcmp(dest->member->name, "__c") != 0)
+		return;
+	dest = dest->deref;
+	type = get_type(dest);
+	if (!type)
+		return;
+	val_sym = first_ptr_list((struct ptr_list *)type->symbol_list);
+	dest = member_expression(dest, '.', val_sym->ident);
+
+	assign = assign_expression(dest, '=', data);
+	__in_fake_assign++;
+	__split_expr(assign);
+	__in_fake_assign--;
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -373,6 +410,9 @@ void check_kernel(int id)
 
 	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
 	add_function_hook("__write_once_size", &match__write_once_size, NULL);
+
+	add_function_hook("__read_once_size", &match__read_once_size, NULL);
+	add_function_hook("__read_once_size_nocheck", &match__read_once_size, NULL);
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
