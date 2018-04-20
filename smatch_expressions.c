@@ -86,7 +86,8 @@ struct expression *assign_expression(struct expression *left, int op, struct exp
 {
 	struct expression *expr;
 
-	expr = alloc_tmp_expression(right->pos, EXPR_ASSIGNMENT);
+	/* FIXME: make this a tmp expression. */
+	expr = alloc_expression(right->pos, EXPR_ASSIGNMENT);
 	expr->op = op;
 	expr->left = left;
 	expr->right = right;

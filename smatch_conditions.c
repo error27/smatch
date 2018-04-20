@@ -642,26 +642,22 @@ int __handle_select_assigns(struct expression *expr)
 	__split_whole_condition(right->conditional);
 
 	if (!is_false) {
-		struct expression fake_expr = {
-			.smatch_flags = Fake,
-		};
+		struct expression *fake_expr;
 
 		if (right->cond_true)
-			set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_true);
+			fake_expr = assign_expression(expr->left, expr->op, right->cond_true);
 		else
-			set_fake_assign(&fake_expr, expr->left, expr->op, right->conditional);
-		__split_expr(&fake_expr);
+			fake_expr = assign_expression(expr->left, expr->op, right->conditional);
+		__split_expr(fake_expr);
 		final_states = clone_stree(__get_cur_stree());
 	}
 
 	__use_false_states();
 	if (!is_true) {
-		struct expression fake_expr = {
-			.smatch_flags = Fake,
-		};
+		struct expression *fake_expr;
 
-		set_fake_assign(&fake_expr, expr->left, expr->op, right->cond_false);
-		__split_expr(&fake_expr);
+		fake_expr = assign_expression(expr->left, expr->op, right->cond_false);
+		__split_expr(fake_expr);
 		merge_stree(&final_states, __get_cur_stree());
 	}
 
@@ -716,7 +712,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	stmt = right->statement;
 	if (stmt->type == STMT_COMPOUND) {
 		struct statement *last_stmt;
-		struct expression fake_assign = { .smatch_flags = Fake, };
+		struct expression *fake_assign;
 		struct expression fake_expr_stmt = { .smatch_flags = Fake, };
 
 		last_stmt = split_then_return_last(stmt);
@@ -730,26 +726,16 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		fake_expr_stmt.op = 0;
 		fake_expr_stmt.statement = last_stmt;
 
-		fake_assign.pos = last_stmt->pos;
-		fake_assign.op = expr->op;
-		fake_assign.type = EXPR_ASSIGNMENT;
-		fake_assign.left = expr->left;
-		fake_assign.right = &fake_expr_stmt;
-
-		__split_expr(&fake_assign);
+		fake_assign = assign_expression(expr->left, expr->op, &fake_expr_stmt);
+		__split_expr(fake_assign);
 
 		__pass_to_client(stmt, STMT_HOOK_AFTER);
 		__call_scope_hooks();
 	} else if (stmt->type == STMT_EXPRESSION) {
-		struct expression fake_assign = { .smatch_flags = Fake, };
+		struct expression *fake_assign;
 
-		fake_assign.pos = stmt->pos;
-		fake_assign.op = expr->op;
-		fake_assign.type = EXPR_ASSIGNMENT;
-		fake_assign.left = expr->left;
-		fake_assign.right = stmt->expression;
-
-		__split_expr(&fake_assign);
+		fake_assign = assign_expression(expr->left, expr->op, stmt->expression);
+		__split_expr(fake_assign);
 
 	} else {
 		__split_stmt(stmt);

@@ -154,15 +154,6 @@ int is_assigned_call(struct expression *expr)
 	    strip_expr(parent->right) == expr)
 		return 1;
 
-	/*
-	 * The problem is that the fake assignments we do in the initializer
-	 * don't have a real assignment backing them so we don't set the
-	 * ->parent pointer.  This is a bit of an ugly hack, probably.
-	 *
-	 */
-	if (!parent && __cur_stmt && __cur_stmt->type == STMT_DECLARATION)
-		return 1;
-
 	return 0;
 }
 
