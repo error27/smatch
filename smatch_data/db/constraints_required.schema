@@ -4,4 +4,4 @@ CREATE TABLE constraints_required (
 	bound varchar(256),
 
 	CONSTRAINT unique_row UNIQUE (data, op, bound)
-)
+);
