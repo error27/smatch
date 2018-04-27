@@ -276,9 +276,11 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
-#define ARCH_LP32  0
-#define ARCH_LP64  1
-#define ARCH_LLP64 2
+enum {
+	ARCH_LP32,
+	ARCH_LP64,
+	ARCH_LLP64,
+};
 
 #ifdef __LP64__
 #define ARCH_M64_DEFAULT ARCH_LP64
