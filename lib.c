@@ -285,7 +285,7 @@ enum {
 
 #ifdef __LP64__
 #define ARCH_M64_DEFAULT ARCH_LP64
-#elif defined(__x86_64__)
+#elif defined(__x86_64__) || defined(__x86_64)
 #define ARCH_M64_DEFAULT ARCH_X32
 #else
 #define ARCH_M64_DEFAULT ARCH_LP32
@@ -477,8 +477,9 @@ static void handle_arch_m64_finalize(void)
 		pointer_alignment = 8;
 		/* fall through */
 	case_x86_64:
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__x86_64)
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
+		add_pre_buffer("#weak_define __x86_64   1\n");
 #endif
 		break;
 	}
