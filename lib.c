@@ -280,7 +280,7 @@ static enum { STANDARD_C89,
 #define ARCH_LP64  1
 #define ARCH_LLP64 2
 
-#ifdef __x86_64__
+#ifdef __LP64__
 #define ARCH_M64_DEFAULT ARCH_LP64
 #else
 #define ARCH_M64_DEFAULT ARCH_LP32
