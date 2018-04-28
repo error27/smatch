@@ -455,7 +455,7 @@ static void handle_arch_m64_finalize(void)
 		goto case_64bit_common;
 	case ARCH_LLP64:
 		bits_in_long = 32;
-		max_int_alignment = 4;
+		max_int_alignment = 8;
 		size_t_ctype = &ullong_ctype;
 		ssize_t_ctype = &llong_ctype;
 		add_pre_buffer("#weak_define __LLP64__ 1\n");
