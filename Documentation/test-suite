@@ -27,6 +27,10 @@ check-arch-only: <arch[|...]>
 	Ignore the test if the current architecture (as returned by 'uname -m')
 	match or not one of the archs given in the pattern.
 
+check-cpp-if: <condition>
+	Ignore the test if the given condition is false when evaluated
+	by sparse's pre-processor.
+
 check-exit-value: <value>
 	The expected exit value of check-command. It defaults to 0.
 
