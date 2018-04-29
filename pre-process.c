@@ -848,6 +848,10 @@ static void set_stream_include_path(struct stream *stream)
 	includepath[0] = path;
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096	// for Hurd where it's not defined
+#endif
+
 static int try_include(const char *path, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
