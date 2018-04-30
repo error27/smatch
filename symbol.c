@@ -696,6 +696,9 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
+struct symbol	float32_ctype, float32x_ctype;
+struct symbol	float64_ctype, float64x_ctype;
+struct symbol	float128_ctype;
 struct symbol	const_void_ctype, const_char_ctype;
 struct symbol	const_ptr_ctype, const_string_ctype;
 
@@ -718,6 +721,11 @@ void init_symbols(void)
 	init_parser(stream);
 	init_builtins(stream);
 }
+
+// For fix-sized types
+static int bits_in_type32 = 32;
+static int bits_in_type64 = 64;
+static int bits_in_type128 = 128;
 
 #define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LL (MOD_LONG | MOD_LONGLONG)
@@ -758,6 +766,12 @@ static const struct ctype_declare {
 	{ &float_ctype,	    SYM_BASETYPE,  0,			    &bits_in_float,          &max_fp_alignment,  &fp_type },
 	{ &double_ctype,    SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
 	{ &ldouble_ctype,   SYM_BASETYPE, MOD_LONG | MOD_LONGLONG,  &bits_in_longdouble,     &max_fp_alignment,  &fp_type },
+
+	{ &float32_ctype,   SYM_BASETYPE,  0,			    &bits_in_type32,          &max_fp_alignment, &fp_type },
+	{ &float32x_ctype,  SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
+	{ &float64_ctype,   SYM_BASETYPE,  0,			    &bits_in_type64,          &max_fp_alignment, &fp_type },
+	{ &float64x_ctype,  SYM_BASETYPE, MOD_LONG | MOD_LONGLONG,  &bits_in_longdouble,     &max_fp_alignment,  &fp_type },
+	{ &float128_ctype,  SYM_BASETYPE,  0,			    &bits_in_type128,         &max_alignment,    &fp_type },
 
 	{ &string_ctype,    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &char_ctype },
 	{ &ptr_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
