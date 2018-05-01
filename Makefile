@@ -144,7 +144,7 @@ LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 ifeq ($(HAVE_LLVM),yes)
 arch := $(shell uname -m)
-ifeq ($(shell echo ${arch} | grep -q '\(i[3456]86\|x86\|amd64\)' && echo ok),ok)
+ifneq ($(filter ${arch},i386 i486 i586 i686 x86_64 amd64),)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
 LLVM_PROGS := sparse-llvm
