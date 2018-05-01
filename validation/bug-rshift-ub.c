@@ -6,7 +6,6 @@ static enum a a = A;
 
 /*
  * check-name: bug-rshift-ub
- * check-known-to-fail
  * check-description:
  *	This test trigger(ed) a bug on x86 caused by a
  *	full width shift (which is UB), expecting to get

@@ -805,6 +805,19 @@ static void lower_boundary(Num *n, Num *v)
 		n->y = v->y;
 }
 
+///
+// safe right shift
+//
+// This allow to use a shift amount as big (or bigger)
+// than the width of the value to be shifted, in which case
+// the result is, of course, 0.
+static unsigned long long rshift(unsigned long long val, unsigned int n)
+{
+	if (n >= (sizeof(val) * 8))
+		return 0;
+	return val >> n;
+}
+
 static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
 {
 	int shift = type->bit_size;
@@ -812,9 +825,9 @@ static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
 
 	if (!is_unsigned)
 		shift--;
-	if (upper->x == 0 && upper->y >> shift)
+	if (upper->x == 0 && rshift(upper->y, shift))
 		return 0;
-	if (lower->x == 0 || (!is_unsigned && (~lower->y >> shift) == 0))
+	if (lower->x == 0 || (!is_unsigned && rshift(~lower->y, shift) == 0))
 		return 1;
 	return 0;
 }
