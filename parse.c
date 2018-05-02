@@ -854,6 +854,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	unsigned long long lastval = 0;
 	struct symbol *ctype = NULL, *base_type = NULL;
 	Num upper = {-1, 0}, lower = {1, 0};
+	int mix_bitwise = 0;
 
 	parent->examined = 1;
 	parent->ctype.base_type = &int_ctype;
@@ -915,6 +916,10 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 				/* nothing */
 			} else if (is_int_type(base_type) && is_int_type(ctype)) {
 				base_type = &int_ctype;
+			} else if (is_restricted_type(base_type) != is_restricted_type(ctype)) {
+				if (!mix_bitwise++) {
+					warning(expr->pos, "mixed bitwiseness");
+				}
 			} else
 				base_type = &bad_ctype;
 			parent->ctype.base_type = base_type;
@@ -962,6 +967,8 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	parent->ctype.modifiers |= (base_type->ctype.modifiers & MOD_UNSIGNED);
 	parent->examined = 0;
 
+	if (mix_bitwise)
+		return token;
 	cast_enum_list(parent->symbol_list, base_type);
 
 	return token;
