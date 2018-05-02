@@ -832,19 +832,6 @@ static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
 	return 0;
 }
 
-static struct symbol *bigger_enum_type(struct symbol *s1, struct symbol *s2)
-{
-	if (s1->bit_size < s2->bit_size) {
-		s1 = s2;
-	} else if (s1->bit_size == s2->bit_size) {
-		if (s2->ctype.modifiers & MOD_UNSIGNED)
-			s1 = s2;
-	}
-	if (s1->bit_size < bits_in_int)
-		return &int_ctype;
-	return s1;
-}
-
 static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
 {
 	struct symbol *sym;
@@ -927,7 +914,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			} else if (ctype == base_type) {
 				/* nothing */
 			} else if (is_int_type(base_type) && is_int_type(ctype)) {
-				base_type = bigger_enum_type(base_type, ctype);
+				base_type = &int_ctype;
 			} else
 				base_type = &bad_ctype;
 			parent->ctype.base_type = base_type;
