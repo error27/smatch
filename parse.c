@@ -910,7 +910,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			 *    base type is at least "int_ctype".
 			 *  - otherwise the base_type is "bad_ctype".
 			 */
-			if (!base_type) {
+			if (!base_type || ctype == &bad_ctype) {
 				base_type = ctype;
 			} else if (ctype == base_type) {
 				/* nothing */
@@ -925,8 +925,10 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 				info(expr->pos, "   expected: %s", show_typename(base_type));
 				info(expr->pos, "        got: %s", show_typename(ctype));
 				base_type = &bad_ctype;
-			} else
+			} else if (base_type != &bad_ctype) {
+				sparse_error(token->pos, "bad enum definition");
 				base_type = &bad_ctype;
+			}
 			parent->ctype.base_type = base_type;
 		}
 		if (is_int_type(base_type)) {
