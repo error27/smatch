@@ -143,7 +143,11 @@ endif
 LLVM_CONFIG:=llvm-config
 HAVE_LLVM:=$(shell $(LLVM_CONFIG) --version >/dev/null 2>&1 && echo 'yes')
 ifeq ($(HAVE_LLVM),yes)
-ifeq ($(shell uname -m | grep -q '\(i[3456]86\|x86\|amd64\)' && echo ok),ok)
+arch := $(shell uname -m)
+ifeq (${MULTIARCH_TRIPLET},x86_64-linux-gnux32)
+arch := x32
+endif
+ifneq ($(filter ${arch},i386 i486 i586 i686 x86_64 amd64),)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
 LLVM_PROGS := sparse-llvm
@@ -161,7 +165,7 @@ else
 $(warning LLVM 3.0 or later required. Your system has version $(LLVM_VERSION) installed.)
 endif
 else
-$(warning sparse-llvm disabled on $(shell uname -m))
+$(warning sparse-llvm disabled on ${arch})
 endif
 else
 $(warning Your system does not have llvm, disabling sparse-llvm)

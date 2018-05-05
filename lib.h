@@ -168,6 +168,7 @@ extern int dump_macro_defs;
 
 extern int dbg_entry;
 extern int dbg_dead;
+extern int dbg_compound;
 
 extern unsigned int fmax_warnings;
 extern int fmem_report;

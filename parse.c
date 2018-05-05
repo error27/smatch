@@ -458,6 +458,11 @@ static struct init_keyword {
 	{ "__builtin_ms_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 	{ "__int128_t",	NS_TYPEDEF, .type = &lllong_ctype, .op = &spec_op },
 	{ "__uint128_t",NS_TYPEDEF, .type = &ulllong_ctype, .op = &spec_op },
+	{ "_Float32",	NS_TYPEDEF, .type = &float32_ctype, .op = &spec_op },
+	{ "_Float32x",	NS_TYPEDEF, .type = &float32x_ctype, .op = &spec_op },
+	{ "_Float64",	NS_TYPEDEF, .type = &float64_ctype, .op = &spec_op },
+	{ "_Float64x",	NS_TYPEDEF, .type = &float64x_ctype, .op = &spec_op },
+	{ "_Float128",	NS_TYPEDEF, .type = &float128_ctype, .op = &spec_op },
 
 	/* Extended types */
 	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },

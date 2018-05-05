@@ -272,6 +272,37 @@ static void check_context(struct entrypoint *ep)
 	check_bb_context(ep, ep->entry->bb, in_context, out_context);
 }
 
+/* list_compound_symbol - symbol info for arrays, structures, unions */
+static void list_compound_symbol(struct symbol *sym)
+{
+	struct symbol *base;
+
+	/* Only show symbols that have a positive size */
+	if (sym->bit_size <= 0)
+		return;
+	if (!sym->ctype.base_type)
+		return;
+	/* Don't show unnamed types */
+	if (!sym->ident)
+		return;
+
+	if (sym->type == SYM_NODE)
+		base = sym->ctype.base_type;
+	else
+		base = sym;
+	switch (base->type) {
+	case SYM_STRUCT: case SYM_UNION: case SYM_ARRAY:
+		break;
+	default:
+		return;
+	}
+
+	info(sym->pos, "%s: compound size %u, alignment %lu",
+		show_typename(sym),
+		bits_to_bytes(sym->bit_size),
+		sym->ctype.alignment);
+}
+
 static void check_symbols(struct symbol_list *list)
 {
 	struct symbol *sym;
@@ -287,6 +318,8 @@ static void check_symbols(struct symbol_list *list)
 
 			check_context(ep);
 		}
+		if (dbg_compound)
+			list_compound_symbol(sym);
 	} END_FOR_EACH_PTR(sym);
 
 	if (Wsparse_error && die_if_error)

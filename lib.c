@@ -259,6 +259,7 @@ int dump_macro_defs = 0;
 
 int dbg_entry = 0;
 int dbg_dead = 0;
+int dbg_compound = 0;
 
 unsigned long fdump_ir;
 int fmem_report = 0;
@@ -276,12 +277,17 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
-#define ARCH_LP32  0
-#define ARCH_LP64  1
-#define ARCH_LLP64 2
+enum {
+	ARCH_LP32,
+	ARCH_X32,
+	ARCH_LP64,
+	ARCH_LLP64,
+};
 
-#ifdef __x86_64__
+#ifdef __LP64__
 #define ARCH_M64_DEFAULT ARCH_LP64
+#elif defined(__x86_64__) || defined(__x86_64)
+#define ARCH_M64_DEFAULT ARCH_X32
 #else
 #define ARCH_M64_DEFAULT ARCH_LP32
 #endif
@@ -425,6 +431,8 @@ static char **handle_switch_m(char *arg, char **next)
 		arch_m64 = ARCH_LP64;
 	} else if (!strcmp(arg, "m32")) {
 		arch_m64 = ARCH_LP32;
+	} else if (!strcmp(arg, "mx32")) {
+		arch_m64 = ARCH_X32;
 	} else if (!strcmp(arg, "msize-llp64")) {
 		arch_m64 = ARCH_LLP64;
 	} else if (!strcmp(arg, "msize-long")) {
@@ -442,6 +450,11 @@ static char **handle_switch_m(char *arg, char **next)
 static void handle_arch_m64_finalize(void)
 {
 	switch (arch_m64) {
+	case ARCH_X32:
+		max_int_alignment = 8;
+		add_pre_buffer("#weak_define __ILP32__ 1\n");
+		add_pre_buffer("#weak_define _ILP32 1\n");
+		goto case_x86_64;
 	case ARCH_LP32:
 		/* default values */
 		return;
@@ -455,7 +468,7 @@ static void handle_arch_m64_finalize(void)
 		goto case_64bit_common;
 	case ARCH_LLP64:
 		bits_in_long = 32;
-		max_int_alignment = 4;
+		max_int_alignment = 8;
 		size_t_ctype = &ullong_ctype;
 		ssize_t_ctype = &llong_ctype;
 		add_pre_buffer("#weak_define __LLP64__ 1\n");
@@ -463,8 +476,11 @@ static void handle_arch_m64_finalize(void)
 	case_64bit_common:
 		bits_in_pointer = 64;
 		pointer_alignment = 8;
-#ifdef __x86_64__
+		/* fall through */
+	case_x86_64:
+#if defined(__x86_64__) || defined(__x86_64)
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
+		add_pre_buffer("#weak_define __x86_64   1\n");
 #endif
 		break;
 	}
@@ -719,6 +735,7 @@ static char **handle_switch_W(char *arg, char **next)
 static struct flag debugs[] = {
 	{ "entry", &dbg_entry},
 	{ "dead", &dbg_dead},
+	{ "compound", &dbg_compound},
 };
 
 
