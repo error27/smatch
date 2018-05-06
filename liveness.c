@@ -72,6 +72,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 
 	/* Uni */
 	case OP_UNOP ... OP_UNOP_END:
+	case OP_SYMADDR:
 		USES(src1); DEFINES(target);
 		break;
 
@@ -91,10 +92,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	case OP_SETVAL:
 	case OP_SETFVAL:
 		DEFINES(target);
-		break;
-
-	case OP_SYMADDR:
-		USES(symbol); DEFINES(target);
 		break;
 
 	/* Other */
