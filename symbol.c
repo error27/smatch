@@ -504,7 +504,7 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		sparse_error(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
 	case SYM_UNINITIALIZED:
-		sparse_error(sym->pos, "ctype on uninitialized symbol %p", sym);
+		sparse_error(sym->pos, "ctype on uninitialized symbol '%s'", show_typename(sym));
 		return NULL;
 	case SYM_RESTRICT:
 		examine_base_type(sym);

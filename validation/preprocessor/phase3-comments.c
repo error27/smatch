@@ -3,7 +3,15 @@
  */
 
 /* This should give nothing */
-/* XXX: currently sparse produces Y */
-/* Fixed */
 #define X /*
  */ Y
+
+/*
+ * check-name: phase3-comments
+ * check-command: sparse -E $file
+ *
+ * check-output-start
+
+
+ * check-output-end
+ */

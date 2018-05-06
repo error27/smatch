@@ -117,8 +117,10 @@ struct instruction {
 			pseudo_t base;
 			unsigned from, len;
 		};
-		struct /* setval and symaddr */ {
+		struct /* symaddr */ {
 			pseudo_t symbol;		/* Subtle: same offset as "src" !! */
+		};
+		struct /* setval */ {
 			struct expression *val;
 		};
 		struct /* setfval */ {

@@ -3291,7 +3291,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 	return NULL;
 }
 
-static void check_duplicates(struct symbol *sym)
+void check_duplicates(struct symbol *sym)
 {
 	int declared = 0;
 	struct symbol *next = sym;

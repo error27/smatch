@@ -17,11 +17,26 @@
  * the rest of tokenizer.
  */
 
+/*
+ * check-name: phase2-backslash
+ * check-command: sparse -E $file
+ *
+ * check-output-start
+
+"\a"
+1
+D
+'\a'
+ * check-output-end
+ *
+ * check-error-start
+preprocessor/phase2-backslash.c:68:0: warning: backslash-newline at end of file
+ * check-error-end
+ */
+
 #define A(x) #x
 #define B(x) A(x)
 /* This should result in "\a" */
-/* XXX: currently sparse produces "a" */
-/* Partially fixed: now it gives "\\a", which is a separate problem */
 B(\a)
 
 #define C\
@@ -32,31 +47,21 @@ C
 #define D\
 1
 /* And this should give D, since '\n' is removed and we get no whitespace */
-/* XXX: currently sparse produces 1 */
-/* Fixed */
 D
 
 #define E '\\
 a'
 /* This should give '\a' - with no warnings issued */
-/* XXX: currently sparse complains a lot and ends up producing a */
-/* Fixed */
 E
 
 /* This should give nothing */
-/* XXX: currently sparse produces more junk */
-/* Fixed */
 // junk \
 more junk
 
 /* This should also give nothing */
-/* XXX: currently sparse produces / * comment * / */
-/* Fixed */
 /\
 * comment *\
 /
 
 /* And this should complain since final newline should not be eaten by '\\' */
-/* XXX: currently sparse does not notice */
-/* Fixed */
 \

@@ -71,7 +71,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	/* Uni */
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: case OP_NEG: case OP_FNEG:
 		USES(src1); DEFINES(target);
 		break;
 

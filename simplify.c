@@ -269,6 +269,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_SYMADDR:
+		kill_use(&insn->symbol);
 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		break;
 
@@ -349,6 +350,7 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 		kill_use(&insn->src2);
 	case OP_NOT:
 	case OP_NEG:
+	case OP_FNEG:
 	case OP_SYMADDR:
 	case OP_CAST:
 	case OP_SCAST:
@@ -1207,7 +1209,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_LSR: case OP_ASR:
 		return simplify_binop(insn);
 
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: case OP_NEG: case OP_FNEG:
 		return simplify_unop(insn);
 	case OP_LOAD:
 		if (!has_users(insn->target))
@@ -1216,7 +1218,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
-		if (dead_insn(insn, NULL, NULL, NULL))
+		if (dead_insn(insn, &insn->symbol, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->symbol);
 	case OP_CAST:

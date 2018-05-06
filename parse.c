@@ -2372,11 +2372,14 @@ static struct token *parse_context_statement(struct token *token, struct stateme
 static struct token *parse_range_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_RANGE;
-	token = assignment_expression(token->next, &stmt->range_expression);
+	token = token->next;
+	token = expect(token, '(', "after __range__ statement");
+	token = assignment_expression(token, &stmt->range_expression);
 	token = expect(token, ',', "after range expression");
 	token = assignment_expression(token, &stmt->range_low);
 	token = expect(token, ',', "after low range");
 	token = assignment_expression(token, &stmt->range_high);
+	token = expect(token, ')', "after range statement");
 	return expect(token, ';', "after range statement");
 }
 
@@ -2893,6 +2896,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		if (decl->same_symbol) {
 			decl->definition = decl->same_symbol->definition;
 			decl->op = decl->same_symbol->op;
+			if (is_typedef) {
+				// TODO: handle -std=c89 --pedantic
+				check_duplicates(decl);
+			}
 		}
 
 		if (!match_op(token, ','))
