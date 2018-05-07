@@ -920,6 +920,11 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 				if (!mix_bitwise++) {
 					warning(expr->pos, "mixed bitwiseness");
 				}
+			} else if (is_restricted_type(base_type) && base_type != ctype) {
+				sparse_error(expr->pos, "incompatible restricted type");
+				info(expr->pos, "   expected: %s", show_typename(base_type));
+				info(expr->pos, "        got: %s", show_typename(ctype));
+				base_type = &bad_ctype;
 			} else
 				base_type = &bad_ctype;
 			parent->ctype.base_type = base_type;
