@@ -775,36 +775,6 @@ static struct token *union_specifier(struct token *token, struct decl_state *ctx
 	return struct_union_enum_specifier(SYM_UNION, token, ctx, parse_union_declaration);
 }
 
-
-typedef struct {
-	int x;
-	unsigned long long y;
-} Num;
-
-static void upper_boundary(Num *n, Num *v)
-{
-	if (n->x > v->x)
-		return;
-	if (n->x < v->x) {
-		*n = *v;
-		return;
-	}
-	if (n->y < v->y)
-		n->y = v->y;
-}
-
-static void lower_boundary(Num *n, Num *v)
-{
-	if (n->x < v->x)
-		return;
-	if (n->x > v->x) {
-		*n = *v;
-		return;
-	}
-	if (n->y > v->y)
-		n->y = v->y;
-}
-
 ///
 // safe right shift
 //
@@ -818,18 +788,40 @@ static unsigned long long rshift(unsigned long long val, unsigned int n)
 	return val >> n;
 }
 
-static int type_is_ok(struct symbol *type, Num *upper, Num *lower)
+struct range {
+	long long		neg;
+	unsigned long long	pos;
+};
+
+static void update_range(struct range *range, unsigned long long uval, struct symbol *vtype)
+{
+	long long sval = uval;
+
+	if (is_signed_type(vtype) && (sval < 0)) {
+		if (sval < range->neg)
+			range->neg = sval;
+	} else {
+		if (uval > range->pos)
+			range->pos = uval;
+	}
+}
+
+static int type_is_ok(struct symbol *type, struct range range)
 {
 	int shift = type->bit_size;
 	int is_unsigned = type->ctype.modifiers & MOD_UNSIGNED;
 
 	if (!is_unsigned)
 		shift--;
-	if (upper->x == 0 && rshift(upper->y, shift))
+	if (rshift(range.pos, shift))
 		return 0;
-	if (lower->x == 0 || (!is_unsigned && rshift(~lower->y, shift) == 0))
+	if (range.neg == 0)
 		return 1;
-	return 0;
+	if (is_unsigned)
+		return 0;
+	if (rshift(~range.neg, shift))
+		return 0;
+	return 1;
 }
 
 static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
@@ -853,7 +845,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 {
 	unsigned long long lastval = 0;
 	struct symbol *ctype = NULL, *base_type = NULL;
-	Num upper = {-1, 0}, lower = {1, 0};
+	struct range range = { };
 	int mix_bitwise = 0;
 
 	parent->examined = 1;
@@ -932,15 +924,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 			parent->ctype.base_type = base_type;
 		}
 		if (is_int_type(base_type)) {
-			Num v = {.y = lastval};
-			if (ctype->ctype.modifiers & MOD_UNSIGNED)
-				v.x = 0;
-			else if ((long long)lastval >= 0)
-				v.x = 0;
-			else
-				v.x = -1;
-			upper_boundary(&upper, &v);
-			lower_boundary(&lower, &v);
+			update_range(&range, lastval, ctype);
 		}
 		token = next;
 
@@ -956,17 +940,17 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	}
 	else if (!is_int_type(base_type))
 		base_type = base_type;
-	else if (type_is_ok(&int_ctype, &upper, &lower))
+	else if (type_is_ok(&int_ctype, range))
 		base_type = &int_ctype;
-	else if (type_is_ok(&uint_ctype, &upper, &lower))
+	else if (type_is_ok(&uint_ctype, range))
 		base_type = &uint_ctype;
-	else if (type_is_ok(&long_ctype, &upper, &lower))
+	else if (type_is_ok(&long_ctype, range))
 		base_type = &long_ctype;
-	else if (type_is_ok(&ulong_ctype, &upper, &lower))
+	else if (type_is_ok(&ulong_ctype, range))
 		base_type = &ulong_ctype;
-	else if (type_is_ok(&llong_ctype, &upper, &lower))
+	else if (type_is_ok(&llong_ctype, range))
 		base_type = &llong_ctype;
-	else if (type_is_ok(&ullong_ctype, &upper, &lower))
+	else if (type_is_ok(&ullong_ctype, range))
 		base_type = &ullong_ctype;
 	else
 		base_type = &bad_ctype;
