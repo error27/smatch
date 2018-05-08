@@ -26,5 +26,4 @@ _Static_assert(sizeof(enum p) == sizeof(int), "UL");
 /*
  * check-name: enum-base-type
  * check-command: sparse -m64 $file
- * check-known-to-fail
  */

@@ -26,5 +26,4 @@ _Static_assert(sizeof(enum n) == sizeof(int), "llong");
 
 /*
  * check-name: enum-min-size
- * check-known-to-fail
  */

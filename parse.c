@@ -957,8 +957,6 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	}
 	else if (!is_int_type(base_type))
 		base_type = base_type;
-	else if (type_is_ok(base_type, &upper, &lower))
-		base_type = base_type;
 	else if (type_is_ok(&int_ctype, &upper, &lower))
 		base_type = &int_ctype;
 	else if (type_is_ok(&uint_ctype, &upper, &lower))
