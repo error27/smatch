@@ -977,18 +977,18 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	}
 	else if (!is_int_type(base_type))
 		base_type = base_type;
-	else if (type_is_ok(&int_ctype, range))
-		base_type = &int_ctype;
 	else if (type_is_ok(&uint_ctype, range))
 		base_type = &uint_ctype;
-	else if (type_is_ok(&long_ctype, range))
-		base_type = &long_ctype;
+	else if (type_is_ok(&int_ctype, range))
+		base_type = &int_ctype;
 	else if (type_is_ok(&ulong_ctype, range))
 		base_type = &ulong_ctype;
-	else if (type_is_ok(&llong_ctype, range))
-		base_type = &llong_ctype;
+	else if (type_is_ok(&long_ctype, range))
+		base_type = &long_ctype;
 	else if (type_is_ok(&ullong_ctype, range))
 		base_type = &ullong_ctype;
+	else if (type_is_ok(&llong_ctype, range))
+		base_type = &llong_ctype;
 	else
 		base_type = &bad_ctype;
 	parent->ctype.base_type = base_type;
