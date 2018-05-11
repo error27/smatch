@@ -21,14 +21,14 @@ import datetime
 
 # -- General configuration ------------------------------------------------
 
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
+needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+sys.path.insert(0, os.path.abspath('sphinx'))
 extensions = [
+	'cdoc'
 ]
 
 # support .md with python2 & python3
@@ -87,6 +87,10 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# -- Options for cdoc extension -------------------------------------------
+
+cdoc_srcdir = '..'
 
 # -- Options for HTML output ----------------------------------------------
 

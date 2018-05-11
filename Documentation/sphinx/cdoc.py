@@ -39,6 +39,11 @@
 // Some future versions will also allow to document structures, unions,
 // enums, typedefs and variables.
 //
+// This documentation can be extracted into a .rst document by using
+// the *autodoc* directive::
+//
+// 	.. c:autodoc:: file.c
+//
 
 """
 
@@ -239,5 +244,49 @@ if __name__ == '__main__':
 	import sys
 
 	dump_doc(extract(sys.stdin, '<stdin>'))
+
+
+from sphinx.ext.autodoc import AutodocReporter
+import docutils
+import os
+class CDocDirective(docutils.parsers.rst.Directive):
+	required_argument = 1
+	optional_arguments = 1
+	has_content = False
+	option_spec = {
+	}
+
+	def run(self):
+		env = self.state.document.settings.env
+		filename = os.path.join(env.config.cdoc_srcdir, self.arguments[0])
+		env.note_dependency(os.path.abspath(filename))
+
+		## create a (view) list from the extracted doc
+		lst = docutils.statemachine.ViewList()
+		f = open(filename, 'r')
+		for (lineno, lines) in extract(f, filename):
+			for l in lines.split('\n'):
+				lst.append(l.expandtabs(8), filename, lineno)
+				lineno += 1
+
+		## let parse this new reST content
+		memo = self.state.memo
+		save = memo.reporter, memo.title_styles, memo.section_level
+		memo.reporter = AutodocReporter(lst, memo.reporter)
+		node = docutils.nodes.section()
+		try:
+			self.state.nested_parse(lst, 0, node, match_titles=1)
+		finally:
+			memo.reporter, memo.title_styles, memo.section_level = save
+		return node.children
+
+def setup(app):
+	app.add_config_value('cdoc_srcdir', None, 'env')
+	app.add_directive_to_domain('c', 'autodoc', CDocDirective)
+
+	return {
+		'version': '0.9',
+		'parallel_read_safe': True,
+	}
 
 # vim: tabstop=4
