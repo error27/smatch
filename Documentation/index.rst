@@ -21,6 +21,7 @@ Developer documentation
    test-suite
    dev-options
    IR
+   api
 
 How to contribute
 -----------------
