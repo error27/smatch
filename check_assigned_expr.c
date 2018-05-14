@@ -134,6 +134,7 @@ void check_assigned_expr(int id)
 void check_assigned_expr_links(int id)
 {
 	link_id = id;
+	db_ignore_states(link_id);
 	set_up_link_functions(my_id, link_id);
 }
 

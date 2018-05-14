@@ -188,6 +188,25 @@ static const char *replace_return_ranges(const char *return_ranges)
 	return return_ranges;
 }
 
+
+static char *use_states;
+static int get_db_state_count(void)
+{
+	struct sm_state *sm;
+	int count = 0;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->owner >= 0 && use_states[sm->owner])
+			count++;
+	} END_FOR_EACH_SM(sm);
+	return count;
+}
+
+void db_ignore_states(int id)
+{
+	use_states[id] = 0;
+}
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
@@ -1347,7 +1366,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
-	nr_states = stree_count(__get_cur_stree());
+	nr_states = get_db_state_count();
 	if (nr_states * nr_possible >= 2000)
 		return 0;
 
@@ -1457,7 +1476,7 @@ static int split_positive_from_negative(struct expression *expr)
 	int undo;
 
 	/* We're going to print the states 3 times */
-	if (stree_count(__get_cur_stree()) > 10000 / 3)
+	if (get_db_state_count() > 10000 / 3)
 		return 0;
 
 	if (!get_implied_rl(expr, &rl) || !rl)
@@ -1544,7 +1563,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 	if (!rl_has_sval(estate_rl(state), sval_type_val(estate_type(state), 0)))
 		return 0;
 
-	nr_states = stree_count(__get_cur_stree());
+	nr_states = get_db_state_count();
 	if (option_info && nr_states >= 1500)
 		return 0;
 
@@ -1598,7 +1617,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (option_project != PROJ_KERNEL)
 		return 0;
 
-	nr_states = stree_count(__get_cur_stree());
+	nr_states = get_db_state_count();
 	if (nr_states > 1500)
 		return 0;
 
@@ -1734,7 +1753,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 
 	/* bail if it gets too complicated */
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
-	nr_states = stree_count(__get_cur_stree());
+	nr_states = get_db_state_count();
 	if (nr_states * nr_possible >= 2000)
 		return 0;
 
@@ -1882,7 +1901,7 @@ vanilla:
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
 
 	return_id++;
-	nr_states = stree_count(__get_cur_stree());
+	nr_states = get_db_state_count();
 	if (nr_states >= 10000) {
 		match_return_info(return_id, (char *)return_ranges, expr);
 		mark_all_params_untracked(return_id, (char *)return_ranges, expr);
@@ -2024,6 +2043,9 @@ void open_smatch_db(void)
 
 	if (option_no_db)
 		return;
+
+	use_states = malloc(num_checks + 1);
+	memset(use_states, 0xff, num_checks + 1);
 
 	init_memdb();
 

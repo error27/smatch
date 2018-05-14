@@ -758,6 +758,7 @@ enum info_type {
 
 void debug_sql(const char *sql);
 void debug_mem_sql(const char *sql);
+void db_ignore_states(int id);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
