@@ -40,6 +40,22 @@ delete from return_states where function='scnprintf' and type = 9017;
 delete from return_states where function='vsnprintf' and type = 9017;
 delete from return_states where function='snprintf' and type = 9017;
 delete from return_states where function='sprintf' and type = 9017;
+delete from return_states where function='vscnprintf' and type = 8017;
+delete from return_states where function='scnprintf' and type = 8017;
+delete from return_states where function='vsnprintf' and type = 8017;
+delete from return_states where function='snprintf' and type = 8017;
+delete from return_states where function='sprintf' and type = 8017;
+/* There is something setting skb->sk->sk_mark and friends to user_data and */
+/* because of recursion it gets passed to everything and is impossible to debug */
+delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
+delete from caller_info where function = '__netdev_start_xmit' and type = 8017;
+/* comparison doesn't deal with chunks, I guess.  */
+delete from return_states where function='get_tty_driver' and type = 8017;
+delete from caller_info where caller = 'snd_ctl_elem_write' and function = '(struct snd_kcontrol)->put' and type = 8017;
+delete from caller_info where caller = 'snd_ctl_elem_read' and function = '(struct snd_kcontrol)->get' and type = 8017;
+delete from caller_info where function = 'nf_tables_newexpr' and type = 8017 and key = '\$->family';
+delete from caller_info where caller = 'fb_set_var' and function = '(struct fb_ops)->fb_set_par' and type = 8017 and parameter = 0;
+delete from return_states where function = 'tty_lookup_driver' and parameter = 2 and type = 8017;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$', '1');
@@ -150,6 +166,9 @@ update return_states set value = "" where function = 'gfs2_ea_find' and return =
 
 delete from type_value where type = '(struct fd)->file';
 delete from type_value where type = '(struct fd)->flags';
+
+/* This is sometimes an enum or a u64 */
+delete from type_value where type = '(struct mc_cmd_header)->status';
 
 /* this is handled in check_kernel.c */
 delete from return_states where function = "__write_once_size";
