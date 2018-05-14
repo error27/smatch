@@ -180,6 +180,11 @@ def process_file(f):
 
 	return docs
 
+def decorate(l):
+	# type: (str) -> str
+	l = re.sub(r"@(\w+)", "**\\1**", l)
+	return l
+
 def convert_to_rst(info):
 	# type: (Dict[str, Any]) -> List[Tuple[int, str]]
 	lst = []
@@ -214,6 +219,7 @@ def convert_to_rst(info):
 			for (n, name, l) in info.get('tags', []):
 				if name != 'return':
 					name = 'param ' + name
+				l = decorate(l)
 				l = '\t:%s: %s' % (name, l)
 				lst.append((n, l))
 			lst.append((n+1, ''))
@@ -222,6 +228,7 @@ def convert_to_rst(info):
 			n = desc[0]
 			r = ''
 			for l in desc[1:]:
+				l = decorate(l)
 				r += '\t' + l + '\n'
 			lst.append((n, r))
 	return lst
