@@ -93,7 +93,7 @@ static int is_local_symbol(struct symbol *sym)
 {
 	if (!sym ||
 	    !(sym->ctype.modifiers & MOD_TOPLEVEL))
-		return 0;
+		return 1;
 	return 0;
 }
 
