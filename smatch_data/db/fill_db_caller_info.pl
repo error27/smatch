@@ -29,13 +29,6 @@ sub get_too_common_functions($$$)
 
     close(FUNCS);
 
-    open(FILE, "$path/../$project.common_functions");
-    while (<FILE>) {
-        s/\n//;
-        $too_common_funcs{$_} = 1;
-    }
-    close(FILE);
-
     open(FILE, ">", "$path/../$project.common_functions");
     foreach my $func (keys %too_common_funcs) {
         if ($func =~ / /) {
