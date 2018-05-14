@@ -1418,11 +1418,6 @@ static void fake_assign_expr(struct symbol *sym)
 	__split_expr(assign);
 }
 
-static void call_split_expr(struct expression *expr)
-{
-	__split_expr(expr);
-}
-
 static void do_initializer_stuff(struct symbol *sym)
 {
 	if (!sym->initializer)
@@ -1430,9 +1425,9 @@ static void do_initializer_stuff(struct symbol *sym)
 
 	if (sym->initializer->type == EXPR_INITIALIZER) {
 		if (get_real_base_type(sym)->type == SYM_ARRAY)
-			fake_element_assigns(sym, call_split_expr);
+			fake_element_assigns(sym, __split_expr);
 		else
-			fake_member_assigns(sym, call_split_expr);
+			fake_member_assigns(sym, __split_expr);
 	} else {
 		fake_assign_expr(sym);
 	}
