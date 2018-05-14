@@ -1768,9 +1768,10 @@ static void match_comparison(struct expression *expr)
 {
 	struct expression *left_orig = strip_parens(expr->left);
 	struct expression *right_orig = strip_parens(expr->right);
-	struct expression *left, *right;
+	struct expression *left, *right, *tmp;
 	struct expression *prev;
 	struct symbol *type;
+	int redo, count;
 
 	if (match_func_comparison(expr))
 		return;
@@ -1807,6 +1808,36 @@ static void match_comparison(struct expression *expr)
 		move_known_values(&left, &right);
 		handle_comparison(type, left, expr->op, right);
 	}
+
+	redo = 0;
+	left = left_orig;
+	right = right_orig;
+	if (get_last_expr_from_expression_stmt(left_orig)) {
+		left = get_last_expr_from_expression_stmt(left_orig);
+		redo = 1;
+	}
+	if (get_last_expr_from_expression_stmt(right_orig)) {
+		right = get_last_expr_from_expression_stmt(right_orig);
+		redo = 1;
+	}
+
+	if (!redo)
+		return;
+
+	count = 0;
+	while ((tmp = get_assigned_expr(left))) {
+		if (count++ > 3)
+			break;
+		left = strip_expr(tmp);
+	}
+	count = 0;
+	while ((tmp = get_assigned_expr(right))) {
+		if (count++ > 3)
+			break;
+		right = strip_expr(tmp);
+	}
+
+	handle_comparison(type, left, expr->op, right);
 }
 
 static sval_t get_high_mask(sval_t known)
