@@ -222,6 +222,9 @@ int sval_too_low(struct symbol *type, sval_t sval)
 		return 1;
 	if (type_signed(type) &&  sval_unsigned(sval))
 		return 0;
+	if (type_signed(sval.type) &&
+	    sval.value < sval_type_min(type).value)
+		return 1;
 	if (sval_cmp(sval, sval_type_min(type)) < 0)
 		return 1;
 	return 0;
