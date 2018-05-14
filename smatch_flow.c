@@ -1678,6 +1678,29 @@ static struct symbol *get_last_scoped_symbol(struct symbol_list *big_list, int u
 	return NULL;
 }
 
+static bool interesting_function(struct symbol *sym)
+{
+	static int prev_stream = -1;
+	static bool prev_answer;
+	const char *filename;
+	int len;
+
+	if (!(sym->ctype.modifiers & MOD_INLINE))
+		return true;
+
+	if (sym->pos.stream == prev_stream)
+		return prev_answer;
+
+	prev_stream = sym->pos.stream;
+	prev_answer = false;
+
+	filename = stream_name(sym->pos.stream);
+	len = strlen(filename);
+	if (len > 0 && filename[len - 1] == 'c')
+		prev_answer = true;
+	return prev_answer;
+}
+
 static void split_inlines_in_scope(struct symbol *sym)
 {
 	struct symbol *base;
@@ -1699,6 +1722,8 @@ static void split_inlines_in_scope(struct symbol *sym)
 		if (base->type != SYM_FN)
 			continue;
 		if (!base->inline_stmt)
+			continue;
+		if (!interesting_function(sym))
 			continue;
 		add_inline_function(sym);
 	} END_FOR_EACH_PTR_REVERSE(sym);
@@ -1728,30 +1753,6 @@ static struct stree *clone_estates_perm(struct stree *orig)
 	} END_FOR_EACH_SM(tmp);
 
 	return ret;
-}
-
-static bool interesting_function(struct symbol *sym)
-{
-	static int prev_stream = -1;
-	static bool prev_answer;
-	const char *filename;
-	int len;
-
-
-	if (!(sym->ctype.modifiers & MOD_INLINE))
-		return true;
-
-	if (sym->pos.stream == prev_stream)
-		return prev_answer;
-
-	prev_stream = sym->pos.stream;
-	prev_answer = false;
-
-	filename = stream_name(sym->pos.stream);
-	len = strlen(filename);
-	if (len > 0 && filename[len - 1] == 'c')
-		prev_answer = true;
-	return prev_answer;
 }
 
 struct position last_pos;
