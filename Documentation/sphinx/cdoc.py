@@ -175,23 +175,69 @@ def process_file(f):
 
 	return docs
 
+def convert_to_rst(info):
+	# type: (Dict[str, Any]) -> List[Tuple[int, str]]
+	lst = []
+	#print('info= ' + str(info))
+	typ = info.get('type', '???')
+	if typ == '???':
+		## uh ?
+		pass
+	elif typ == 'bloc':
+		if 'short' in info:
+			(n, l) = info['short']
+			lst.append((n, l))
+		if 'desc' in info:
+			desc = info['desc']
+			n = desc[0]
+			r = ''
+			for l in desc[1:]:
+				r += l + '\n'
+			lst.append((n, r))
+		lst.append((n+1, '\n'))
+
+	elif typ == 'func':
+		(n, l) = info['func']
+		l = '.. c:function:: ' + l
+		lst.append((n, l + '\n'))
+		if 'short' in info:
+			(n, l) = info['short']
+			l = l[0].capitalize() + l[1:].strip('.')
+			l = '\t' + l + '.'
+			lst.append((n, l + '\n'))
+		if 'tags' in info:
+			for (n, name, l) in info.get('tags', []):
+				if name != 'return':
+					name = 'param ' + name
+				l = '\t:%s: %s' % (name, l)
+				lst.append((n, l))
+			lst.append((n+1, ''))
+		if 'desc' in info:
+			desc = info['desc']
+			n = desc[0]
+			r = ''
+			for l in desc[1:]:
+				r += '\t' + l + '\n'
+			lst.append((n, r))
+	return lst
+
+def extract(f, filename):
+	# type: (TextIOWrapper, str) -> List[Tuple[int, str]]
+	res = process_file(f)
+	res = [ i for r in res for i in convert_to_rst(r) ]
+	return res
+
+def dump_doc(lst):
+	# type: (List[Tuple[int, str]]) -> None
+	for (n, lines) in lst:
+		for l in lines.split('\n'):
+			print('%4d: %s' % (n, l))
+			n += 1
 
 if __name__ == '__main__':
 	""" extract the doc from stdin """
 	import sys
 
-	res = process_file(sys.stdin)
-	for info in res:
-		print('###');
-		print('type: %s' % (info.get('type', '???')))
-		val = info.get('short', None)
-		if val:
-			print('short:%4d: %s' % val)
-		for val in info.get('tags', []):
-			print('tags: %4d: @%s: %s' % val)
-		val = info.get('desc', None)
-		if val:
-			n = val[0]
-			print('desc: %4d:\n\t%s' % (n, '\n\t'.join(val[1:])))
+	dump_doc(extract(sys.stdin, '<stdin>'))
 
 # vim: tabstop=4
