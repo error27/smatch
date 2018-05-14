@@ -133,6 +133,22 @@ static void match_after_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+void mark_all_params_untracked(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct symbol *arg;
+	int param;
+
+	param = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		param++;
+
+		if (!arg->ident)
+			continue;
+		sql_insert_return_states(return_id, return_ranges,
+					 UNTRACKED_PARAM, param, "$", "");
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void print_untracked_params(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct symbol *arg;

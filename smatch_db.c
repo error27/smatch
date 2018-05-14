@@ -460,7 +460,7 @@ static int get_row_count(void *_row_count, int argc, char **argv, char **azColNa
 	return 0;
 }
 
-static void mark_params_untracked(struct expression *call)
+static void mark_call_params_untracked(struct expression *call)
 {
 	struct expression *arg;
 	int i = 0;
@@ -486,7 +486,7 @@ static void sql_select_return_states_pointer(const char *cols,
 		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
 	/* The magic number 100 is just from testing on the kernel. */
 	if (return_count > 100) {
-		mark_params_untracked(call);
+		mark_call_params_untracked(call);
 		return;
 	}
 
@@ -1885,6 +1885,7 @@ vanilla:
 	nr_states = stree_count(__get_cur_stree());
 	if (nr_states >= 10000) {
 		match_return_info(return_id, (char *)return_ranges, expr);
+		mark_all_params_untracked(return_id, (char *)return_ranges, expr);
 		return;
 	}
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
