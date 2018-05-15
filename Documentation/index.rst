@@ -22,6 +22,7 @@ Developer documentation
    dev-options
    IR
    api
+   doc-guide
 
 How to contribute
 -----------------
