@@ -291,9 +291,9 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 
 void sql_insert_call_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert(call_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'", get_base_file(),
-	           get_function(), (unsigned long)__inline_fn, fn_static(),
-		   type, param, key, value);
+	sql_insert_or_ignore(call_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'",
+		get_base_file(), get_function(), (unsigned long)__inline_fn,
+		fn_static(), type, param, key, value);
 }
 
 void sql_insert_function_type_size(const char *member, const char *ranges)
