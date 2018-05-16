@@ -24,6 +24,7 @@
  */
 
 #include "expression.h"
+#include "evaluate.h"
 #include "expand.h"
 #include "symbol.h"
 #include "compat/bswap.h"

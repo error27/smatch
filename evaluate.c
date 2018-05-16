@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#include "evaluate.h"
 #include "lib.h"
 #include "allocate.h"
 #include "parse.h"

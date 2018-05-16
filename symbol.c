@@ -33,6 +33,7 @@
 #include "symbol.h"
 #include "scope.h"
 #include "expression.h"
+#include "evaluate.h"
 
 #include "target.h"
 

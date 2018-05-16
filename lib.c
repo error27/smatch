@@ -40,6 +40,7 @@
 #include "parse.h"
 #include "symbol.h"
 #include "expression.h"
+#include "evaluate.h"
 #include "scope.h"
 #include "linearize.h"
 #include "target.h"

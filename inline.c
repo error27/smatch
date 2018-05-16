@@ -32,6 +32,7 @@
 #include "parse.h"
 #include "symbol.h"
 #include "expression.h"
+#include "evaluate.h"
 
 static void copy_statement(struct statement *src, struct statement *dst);
 
