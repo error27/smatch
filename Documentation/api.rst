@@ -9,3 +9,13 @@ Utilities
 ~~~~~~~~~
 
 .. c:autodoc:: ptrlist.c
+
+Parsing
+~~~~~~~
+
+.. c:autodoc:: expression.h
+
+Typing
+~~~~~~
+
+.. c:autodoc:: evaluate.h

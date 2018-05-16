@@ -243,9 +243,23 @@ struct expression {
 	};
 };
 
-/* Constant expression values */
-int is_zero_constant(struct expression *);
+///
+// Constant expression values
+// --------------------------
+
+///
+// test if an expression evaluates to the constant ``0``.
+// @return: ``1`` if @expr evaluate to ``0``,
+//	``0`` otherwise.
+int is_zero_constant(struct expression *expr);
+
+///
+// test the compile time truth value of an expression
+// @return:
+//	* ``-1`` if @expr is not constant,
+//	* ``0`` or ``1`` depending on the truth value of @expr.
 int expr_truth_value(struct expression *expr);
+
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
 long long get_expression_value_silent(struct expression *expr);
