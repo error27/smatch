@@ -24,7 +24,8 @@
 // 	// <mandatory short one-line description>
 // 	// <optional blank line>
 // 	// @<1st parameter's name>: <description>
-// 	// @<2nd parameter's name>: ...
+// 	// @<2nd parameter's name>: <long description
+// 	// <tab>which needs multiple lines>
 // 	// @return: <description> (absent for void functions)
 // 	// <optional blank line>
 // 	// <optional long multi-line description>
@@ -79,6 +80,18 @@ class Lines:
 	def undo(self):
 		# type: () -> None
 		self.back = True
+
+def readline_multi(lines, line):
+	# type: (Lines, str) -> str
+	try:
+		while True:
+			(n, l) = next(lines)
+			if not l.startswith('//\t'):
+				raise StopIteration
+			line += '\n' + l[3:]
+	except:
+		lines.undo()
+	return line
 
 def readline_delim(lines, delim):
 	# type: (Lines, Tuple[str, str]) -> Tuple[int, str]
@@ -136,7 +149,7 @@ def process_block(lines):
 				sep = m.group(2)
 				## FIXME/ warn if sep != ': '
 				l = m.group(3)
-				## FIXME: try multi-line ???
+				l = readline_multi(lines, l)
 				tags.append((n, tag, l))
 			else:
 				lines.undo()
@@ -221,6 +234,7 @@ def convert_to_rst(info):
 					name = 'param ' + name
 				l = decorate(l)
 				l = '\t:%s: %s' % (name, l)
+				l = '\n\t\t'.join(l.split('\n'))
 				lst.append((n, l))
 			lst.append((n+1, ''))
 		if 'desc' in info:
@@ -292,7 +306,7 @@ def setup(app):
 	app.add_directive_to_domain('c', 'autodoc', CDocDirective)
 
 	return {
-		'version': '0.9',
+		'version': '1.0',
 		'parallel_read_safe': True,
 	}
 
