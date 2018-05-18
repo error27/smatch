@@ -20,7 +20,7 @@ help:
 $(targets): conf.py Makefile
 	@$(SPHINXBUILD) -M  $@  "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
-%.1: %.md man
+%.1: %.rst man
 	@mv build/man/$@ $@
 
 .PHONY: Makefile	# avoid circular deps with the catch-all rule
