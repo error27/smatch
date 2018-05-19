@@ -103,7 +103,8 @@ sub check_only_option {
     my ($arg) = @_;
     return 1 if $arg =~ /^-W(no-?)?(address-space|bitwise|cast-to-as|cast-truncate|context|decl|default-bitfield-sign|designated-init|do-while|enum-mismatch|init-cstring|memcpy-max-count|non-pointer-null|old-initializer|one-bit-signed-bitfield|override-init-all|paren-string|ptr-subtraction-blows|return-void|sizeof-bool|sparse-all|sparse-error|transparent-union|typesign|undef|unknown-attribute)$/;
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
-    return 1 if $arg =~ /^-f(dump-linearize|memcpy-max-count)(=\S*)?$/;
+    return 1 if $arg =~ /^-f(dump-ir|memcpy-max-count)(=\S*)?$/;
+    return 1 if $arg =~ /^-f(mem2reg|optim)(-enable|-disable|=last)?$/;
     return 0;
 }
 
@@ -241,6 +242,12 @@ sub add_specs {
     } elsif ($spec eq 'openbsd') {
 	return &add_specs ('unix') .
 	    ' -D__OpenBSD__=1';
+    } elsif ($spec eq 'freebsd') {
+	return &add_specs ('unix') .
+	    ' -D__FreeBSD__=1';
+    } elsif ($spec eq 'netbsd') {
+	return &add_specs ('unix') .
+	    ' -D__NetBSD__=1';
     } elsif ($spec eq 'darwin') {
 	return
 	    ' -D__APPLE__=1 -D__MACH__=1';
@@ -258,10 +265,7 @@ sub add_specs {
 	    " -D'__declspec(x)=__attribute__((x))'";
     } elsif ($spec eq 'i86') {
 	return (' -D__i386=1 -D__i386__=1' .
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 21, [24,8], [53,11], [64,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		&float_types (1, 1, 21, [24,8], [53,11], [64,15]));
     } elsif ($spec eq 'sparc') {
 	return (' -D__sparc=1 -D__sparc__=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
@@ -275,11 +279,7 @@ sub add_specs {
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=8');
     } elsif ($spec eq 'x86_64') {
-	return (' -D__x86_64=1 -D__x86_64__=1' . ($m32 ? '' : ' -D__LP64__=1') .
-		&integer_types (8, 16, 32, $m32 ? 32 : 64, 64, 128) .
-		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m32 ? "unsigned int" : "long unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m32 ? '4' : '8'));
+	return &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
     } elsif ($spec eq 'ppc') {
 	return (' -D__powerpc__=1 -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .

@@ -16,11 +16,10 @@
 #include "expression.h"
 #include "linearize.h"
 #include "flow.h"
+#include "cse.h"
 
 #define INSN_HASH_SIZE 256
 static struct instruction_list *insn_hash_table[INSN_HASH_SIZE];
-
-int repeat_phase;
 
 static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 {
@@ -35,16 +34,10 @@ static int phi_compare(pseudo_t phi1, pseudo_t phi2)
 }
 
 
-static void clean_up_one_instruction(struct basic_block *bb, struct instruction *insn)
+void cse_collect(struct instruction *insn)
 {
 	unsigned long hash;
 
-	if (!insn->bb)
-		return;
-	assert(insn->bb == bb);
-	repeat_phase |= simplify_instruction(insn);
-	if (!insn->bb)
-		return;
 	hash = (insn->opcode << 3) + (insn->size >> 3);
 	switch (insn->opcode) {
 	case OP_SEL:
@@ -53,7 +46,7 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 
 	/* Binary arithmetic */
 	case OP_ADD: case OP_SUB:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 	case OP_DIVU: case OP_DIVS:
 	case OP_MODU: case OP_MODS:
 	case OP_SHL:
@@ -70,16 +63,28 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+
+	/* floating-point arithmetic & comparison */
+	case OP_FPCMP ... OP_FPCMP_END:
+	case OP_FADD:
+	case OP_FSUB:
+	case OP_FMUL:
+	case OP_FDIV:
 		hash += hashval(insn->src2);
 		/* Fall through */
 	
 	/* Unary */
 	case OP_NOT: case OP_NEG:
+	case OP_FNEG:
 		hash += hashval(insn->src1);
 		break;
 
 	case OP_SETVAL:
 		hash += hashval(insn->val);
+		break;
+
+	case OP_SETFVAL:
+		hash += hashval(insn->fvalue);
 		break;
 
 	case OP_SYMADDR:
@@ -125,18 +130,6 @@ static void clean_up_one_instruction(struct basic_block *bb, struct instruction 
 	add_instruction(insn_hash_table + hash, insn);
 }
 
-static void clean_up_insns(struct entrypoint *ep)
-{
-	struct basic_block *bb;
-
-	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *insn;
-		FOR_EACH_PTR(bb->insns, insn) {
-			clean_up_one_instruction(bb, insn);
-		} END_FOR_EACH_PTR(insn);
-	} END_FOR_EACH_PTR(bb);
-}
-
 /* Compare two (sorted) phi-lists */
 static int phi_list_compare(struct pseudo_list *l1, struct pseudo_list *l2)
 {
@@ -171,6 +164,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 {
 	const struct instruction *i1 = _i1;
 	const struct instruction *i2 = _i2;
+	int diff;
 
 	if (i1->opcode != i2->opcode)
 		return i1->opcode < i2->opcode ? -1 : 1;
@@ -179,7 +173,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 
 	/* commutative binop */
 	case OP_ADD:
-	case OP_MULU: case OP_MULS:
+	case OP_MUL:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 	case OP_AND: case OP_OR:
 	case OP_XOR:
@@ -205,6 +199,13 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SET_LT: case OP_SET_GT:
 	case OP_SET_B:  case OP_SET_A:
 	case OP_SET_BE: case OP_SET_AE:
+
+	/* floating-point arithmetic */
+	case OP_FPCMP ... OP_FPCMP_END:
+	case OP_FADD:
+	case OP_FSUB:
+	case OP_FMUL:
+	case OP_FDIV:
 	case_binops:
 		if (i1->src2 != i2->src2)
 			return i1->src2 < i2->src2 ? -1 : 1;
@@ -212,6 +213,7 @@ static int insn_compare(const void *_i1, const void *_i2)
 
 	/* Unary */
 	case OP_NOT: case OP_NEG:
+	case OP_FNEG:
 		if (i1->src1 != i2->src1)
 			return i1->src1 < i2->src1 ? -1 : 1;
 		break;
@@ -224,6 +226,12 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SETVAL:
 		if (i1->val != i2->val)
 			return i1->val < i2->val ? -1 : 1;
+		break;
+
+	case OP_SETFVAL:
+		diff = memcmp(&i1->fvalue, &i2->fvalue, sizeof(i1->fvalue));
+		if (diff)
+			return diff;
 		break;
 
 	/* Other */
@@ -356,16 +364,10 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	return i1;
 }
 
-void cleanup_and_cse(struct entrypoint *ep)
+void cse_eliminate(struct entrypoint *ep)
 {
 	int i;
 
-	simplify_memops(ep);
-repeat:
-	repeat_phase = 0;
-	clean_up_insns(ep);
-	if (repeat_phase & REPEAT_CFG_CLEANUP)
-		kill_unreachable_bbs(ep);
 	for (i = 0; i < INSN_HASH_SIZE; i++) {
 		struct instruction_list **list = insn_hash_table + i;
 		if (*list) {
@@ -385,13 +387,7 @@ repeat:
 					last = insn;
 				} END_FOR_EACH_PTR(insn);
 			}
-			free_ptr_list((struct ptr_list **)list);
+			free_ptr_list(list);
 		}
 	}
-
-	if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-		simplify_memops(ep);
-
-	if (repeat_phase & REPEAT_CSE)
-		goto repeat;
 }

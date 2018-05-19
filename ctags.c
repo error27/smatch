@@ -135,7 +135,7 @@ static void examine_symbol(struct symbol *sym)
 
 	switch (sym->type) {
 	case SYM_NODE:
-		if (base->type == SYM_FN)
+		if (base && base->type == SYM_FN)
 			sym->kind = 'f';
 		examine_symbol(base);
 		break;

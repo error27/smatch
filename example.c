@@ -25,15 +25,12 @@ static const char *opcodes[] = {
 	[OP_BR] = "br",
 	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
-	[OP_INVOKE] = "invoke",
 	[OP_COMPUTEDGOTO] = "jmp *",
-	[OP_UNWIND] = "unwind",
 	
 	/* Binary */
 	[OP_ADD] = "add",
 	[OP_SUB] = "sub",
-	[OP_MULU] = "mulu",
-	[OP_MULS] = "muls",
+	[OP_MUL] = "mul",
 	[OP_DIVU] = "divu",
 	[OP_DIVS] = "divs",
 	[OP_MODU] = "modu",
@@ -69,13 +66,9 @@ static const char *opcodes[] = {
 	[OP_SEL] = "select",
 	
 	/* Memory */
-	[OP_MALLOC] = "malloc",
-	[OP_FREE] = "free",
-	[OP_ALLOCA] = "alloca",
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
 	[OP_SETVAL] = "set",
-	[OP_GET_ELEMENT_PTR] = "getelem",
 
 	/* Other */
 	[OP_PHI] = "phi",
@@ -86,11 +79,7 @@ static const char *opcodes[] = {
 	[OP_FPCAST] = "fpcast",
 	[OP_PTRCAST] = "ptrcast",
 	[OP_CALL] = "call",
-	[OP_VANEXT] = "va_next",
-	[OP_VAARG] = "va_arg",
 	[OP_SLICE] = "slice",
-	[OP_SNOP] = "snop",
-	[OP_LNOP] = "lnop",
 	[OP_NOP] = "nop",
 	[OP_DEATHNOTE] = "dead",
 	[OP_ASM] = "asm",
@@ -1404,7 +1393,7 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 		generate_copy(state, insn);
 		break;
 
-	case OP_ADD: case OP_MULU: case OP_MULS:
+	case OP_ADD: case OP_MUL:
 	case OP_AND: case OP_OR: case OP_XOR:
 	case OP_AND_BOOL: case OP_OR_BOOL:
 		generate_commutative_binop(state, insn);

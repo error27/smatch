@@ -478,7 +478,7 @@ static int expand_comma(struct expression *expr)
 	return cost;
 }
 
-#define MOD_IGN (MOD_VOLATILE | MOD_CONST)
+#define MOD_IGN (MOD_QUALIFIER)
 
 static int compare_types(int op, struct symbol *left, struct symbol *right)
 {
@@ -529,27 +529,27 @@ static int expand_compare(struct expression *expr)
 static int expand_conditional(struct expression *expr)
 {
 	struct expression *cond = expr->conditional;
-	struct expression *true = expr->cond_true;
-	struct expression *false = expr->cond_false;
+	struct expression *valt = expr->cond_true;
+	struct expression *valf = expr->cond_false;
 	int cost, cond_cost;
 
 	cond_cost = expand_expression(cond);
 	if (cond->type == EXPR_VALUE) {
 		unsigned flags = expr->flags;
 		if (!cond->value)
-			true = false;
-		if (!true)
-			true = cond;
-		cost = expand_expression(true);
-		*expr = *true;
+			valt = valf;
+		if (!valt)
+			valt = cond;
+		cost = expand_expression(valt);
+		*expr = *valt;
 		expr->flags = flags;
 		if (expr->type == EXPR_VALUE)
 			expr->taint |= cond->taint;
 		return cost;
 	}
 
-	cost = expand_expression(true);
-	cost += expand_expression(false);
+	cost = expand_expression(valt);
+	cost += expand_expression(valf);
 
 	if (cost < SELECT_COST) {
 		expr->type = EXPR_SELECT;
@@ -582,7 +582,7 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
 	struct expression *value;
 
-	if (sym->ctype.modifiers & (MOD_ASSIGNED | MOD_ADDRESSABLE))
+	if (sym->ctype.modifiers & MOD_ACCESS)
 		return NULL;
 	value = sym->initializer;
 	if (!value)
@@ -644,6 +644,8 @@ static int expand_dereference(struct expression *expr)
 		if (value) {
 			/* FIXME! We should check that the size is right! */
 			if (value->type == EXPR_VALUE) {
+				if (is_bitfield_type(value->ctype))
+					return UNSAFE;
 				expr->type = EXPR_VALUE;
 				expr->value = value->value;
 				expr->taint = 0;
@@ -1047,6 +1049,9 @@ static int expand_expression(struct expression *expr)
 	case EXPR_ALIGNOF:
 	case EXPR_OFFSETOF:
 		expression_error(expr, "internal front-end error: sizeof in expansion?");
+		return UNSAFE;
+	case EXPR_ASM_OPERAND:
+		expression_error(expr, "internal front-end error: ASM_OPERAND in expansion?");
 		return UNSAFE;
 	}
 	return SIDE_EFFECTS;

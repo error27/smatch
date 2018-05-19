@@ -1,6 +1,7 @@
 #ifndef LIB_H
 #define LIB_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stddef.h>
 
@@ -40,9 +41,9 @@
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 #endif
 
-extern int verbose, optimize, optimize_size, preprocessing;
+extern int verbose, optimize_level, optimize_size, preprocessing;
 extern int die_if_error;
-extern int repeat_phase, merge_phi_sources;
+extern int repeat_phase;
 extern int gcc_major, gcc_minor, gcc_patchlevel;
 
 extern unsigned int hexval(unsigned int c);
@@ -107,6 +108,22 @@ extern void expression_error(struct expression *, const char *, ...) FORMAT_ATTR
 #define	ERROR_PREV_PHASE	(1 << 1)
 extern int has_error;
 
+
+enum phase {
+	PASS__PARSE,
+	PASS__LINEARIZE,
+	PASS__MEM2REG,
+	PASS__OPTIM,
+	PASS__FINAL,
+};
+
+#define	PASS_PARSE		(1UL << PASS__PARSE)
+#define	PASS_LINEARIZE		(1UL << PASS__LINEARIZE)
+#define	PASS_MEM2REG		(1UL << PASS__MEM2REG)
+#define	PASS_OPTIM		(1UL << PASS__OPTIM)
+#define	PASS_FINAL		(1UL << PASS__FINAL)
+
+
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 
 extern int preprocess_only;
@@ -134,6 +151,7 @@ extern int Woverride_init;
 extern int Woverride_init_all;
 extern int Woverride_init_whole_range;
 extern int Wparen_string;
+extern int Wpointer_arith;
 extern int Wptr_subtraction_blows;
 extern int Wreturn_void;
 extern int Wshadow;
@@ -150,17 +168,19 @@ extern int dump_macro_defs;
 
 extern int dbg_entry;
 extern int dbg_dead;
+extern int dbg_compound;
 
+extern unsigned int fmax_warnings;
 extern int fmem_report;
-extern int fdump_linearize;
+extern unsigned long fdump_ir;
 extern unsigned long long fmemcpy_max_count;
+extern unsigned long fpasses;
+extern int funsigned_char;
 
 extern int arch_m64;
 extern int arch_msize_long;
 extern int arch_big_endian;
 
-extern void declare_builtin_functions(void);
-extern void create_builtin_stream(void);
 extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
 extern struct symbol_list *__sparse(char *filename);
@@ -200,17 +220,12 @@ static inline int bb_list_size(struct basic_block_list *list)
 
 static inline void free_instruction_list(struct instruction_list **head)
 {
-	free_ptr_list((struct ptr_list **)head);
+	free_ptr_list(head);
 }
 
 static inline struct instruction * delete_last_instruction(struct instruction_list **head)
 {
 	return undo_ptr_list_last((struct ptr_list **)head);
-}
-
-static inline struct basic_block * delete_last_basic_block(struct basic_block_list **head)
-{
-	return delete_ptr_list_last((struct ptr_list **)head);
 }
 
 static inline struct basic_block *first_basic_block(struct basic_block_list *head)

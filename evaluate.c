@@ -47,6 +47,17 @@ struct symbol *current_fn;
 static struct symbol *degenerate(struct expression *expr);
 static struct symbol *evaluate_symbol(struct symbol *sym);
 
+static inline int valid_expr_type(struct expression *expr)
+{
+	return expr && valid_type(expr->ctype);
+}
+
+static inline int valid_subexpr_type(struct expression *expr)
+{
+	return valid_expr_type(expr->left)
+	    && valid_expr_type(expr->right);
+}
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct expression *addr;
@@ -393,15 +404,20 @@ static inline int is_string_type(struct symbol *type)
 
 static struct symbol *bad_expr_type(struct expression *expr)
 {
-	sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 	switch (expr->type) {
 	case EXPR_BINOP:
 	case EXPR_COMPARE:
+		if (!valid_subexpr_type(expr))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
 		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
+		if (!valid_expr_type(expr->unop))
+			break;
+		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
 		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
 		break;
 	default:
@@ -638,7 +654,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 
 static void examine_fn_arguments(struct symbol *fn);
 
-#define MOD_IGN (MOD_VOLATILE | MOD_CONST | MOD_PURE)
+#define MOD_IGN (MOD_QUALIFIER | MOD_PURE)
 
 const char *type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2)
@@ -847,8 +863,10 @@ static struct symbol *evaluate_ptr_sub(struct expression *expr)
 		val->value = value;
 
 		if (value & (value-1)) {
-			if (Wptr_subtraction_blows)
+			if (Wptr_subtraction_blows) {
 				warning(expr->pos, "potentially expensive pointer subtraction");
+				info(expr->pos, "    '%s' has a non-power-of-2 size: %lu", show_typename(lbase), value);
+			}
 		}
 
 		sub->op = '-';
@@ -877,23 +895,23 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		warning(expr->pos, "assignment expression in conditional");
 
 	ctype = evaluate_expression(expr);
-	if (ctype) {
-		if (is_safe_type(ctype))
-			warning(expr->pos, "testing a 'safe expression'");
-		if (is_func_type(ctype)) {
-			if (Waddress)
-				warning(expr->pos, "the address of %s will always evaluate as true", "a function");
-		} else if (is_array_type(ctype)) {
-			if (Waddress)
-				warning(expr->pos, "the address of %s will always evaluate as true", "an array");
-		} else if (!is_scalar_type(ctype)) {
-			sparse_error(expr->pos, "incorrect type in conditional");
-			info(expr->pos, "   got %s", show_typename(ctype));
-			ctype = NULL;
-		}
+	if (!valid_type(ctype))
+		return NULL;
+	if (is_safe_type(ctype))
+		warning(expr->pos, "testing a 'safe expression'");
+	if (is_func_type(ctype)) {
+		if (Waddress)
+			warning(expr->pos, "the address of %s will always evaluate as true", "a function");
+	} else if (is_array_type(ctype)) {
+		if (Waddress)
+			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
+	} else if (!is_scalar_type(ctype)) {
+		sparse_error(expr->pos, "incorrect type in conditional");
+		info(expr->pos, "   got %s", show_typename(ctype));
+		return NULL;
 	}
-	ctype = degenerate(expr);
 
+	ctype = degenerate(expr);
 	return ctype;
 }
 
@@ -1122,7 +1140,7 @@ OK:
  */
 static struct symbol *evaluate_conditional_expression(struct expression *expr)
 {
-	struct expression **true;
+	struct expression **cond;
 	struct symbol *ctype, *ltype, *rtype, *lbase, *rbase;
 	int lclass, rclass;
 	const char * typediff;
@@ -1136,16 +1154,16 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	ctype = degenerate(expr->conditional);
 	rtype = degenerate(expr->cond_false);
 
-	true = &expr->conditional;
+	cond = &expr->conditional;
 	ltype = ctype;
 	if (expr->cond_true) {
 		if (!evaluate_expression(expr->cond_true))
 			return NULL;
 		ltype = degenerate(expr->cond_true);
-		true = &expr->cond_true;
+		cond = &expr->cond_true;
 	}
 
-	expr->flags = (expr->conditional->flags & (*true)->flags &
+	expr->flags = (expr->conditional->flags & (*cond)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
 	/*
 	 * A conditional operator yields a particular constant
@@ -1161,32 +1179,32 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	 * address constants, mark the result as an address constant.
 	 */
 	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
-		expr->flags = (*true)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
+		expr->flags = (*cond)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
 	if (lclass & rclass & TYPE_NUM) {
-		ctype = usual_conversions('?', *true, expr->cond_false,
+		ctype = usual_conversions('?', *cond, expr->cond_false,
 					  lclass, rclass, ltype, rtype);
-		*true = cast_to(*true, ctype);
+		*cond = cast_to(*cond, ctype);
 		expr->cond_false = cast_to(expr->cond_false, ctype);
 		goto out;
 	}
 
 	if ((lclass | rclass) & TYPE_PTR) {
-		int is_null1 = is_null_pointer_constant(*true);
+		int is_null1 = is_null_pointer_constant(*cond);
 		int is_null2 = is_null_pointer_constant(expr->cond_false);
 
 		if (is_null1 && is_null2) {
-			*true = cast_to(*true, &ptr_ctype);
+			*cond = cast_to(*cond, &ptr_ctype);
 			expr->cond_false = cast_to(expr->cond_false, &ptr_ctype);
 			ctype = &ptr_ctype;
 			goto out;
 		}
 		if (is_null1 && (rclass & TYPE_PTR)) {
 			if (is_null1 == 2)
-				bad_null(*true);
-			*true = cast_to(*true, rtype);
+				bad_null(*cond);
+			*cond = cast_to(*cond, rtype);
 			ctype = rtype;
 			goto out;
 		}
@@ -1266,7 +1284,7 @@ Qual:
 		sym->ctype.modifiers |= qual;
 		ctype = sym;
 	}
-	*true = cast_to(*true, ctype);
+	*cond = cast_to(*cond, ctype);
 	expr->cond_false = cast_to(expr->cond_false, ctype);
 	goto out;
 }
@@ -1776,14 +1794,18 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
-	node = alloc_symbol(expr->pos, SYM_NODE);
 	target = ctype->ctype.base_type;
+	examine_symbol_type(target);
 
 	switch (ctype->type) {
 	default:
 		expression_error(expr, "cannot dereference this type");
 		return NULL;
+	case SYM_FN:
+		*expr = *op;
+		return expr->ctype;
 	case SYM_PTR:
+		node = alloc_symbol(expr->pos, SYM_NODE);
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;
 		merge_type(node, ctype);
 		break;
@@ -1801,6 +1823,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		 * When an array is dereferenced, we need to pick
 		 * up the attributes of the original node too..
 		 */
+		node = alloc_symbol(expr->pos, SYM_NODE);
 		merge_type(node, op->ctype);
 		merge_type(node, ctype);
 		break;
@@ -1914,6 +1937,7 @@ static struct symbol *evaluate_preop(struct expression *expr)
 		return evaluate_postop(expr);
 
 	case '!':
+		ctype = degenerate(expr->unop);
 		expr->flags = expr->unop->flags & ~CEF_CONST_MASK;
 		/*
 		 * A logical negation never yields an address constant
@@ -2169,18 +2193,20 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 	size = type->bit_size;
 
 	if (size < 0 && is_void_type(type)) {
-		warning(expr->pos, "expression using sizeof(void)");
+		if (Wpointer_arith)
+			warning(expr->pos, "expression using sizeof(void)");
 		size = bits_in_char;
 	}
 
 	if (size == 1 && is_bool_type(type)) {
 		if (Wsizeof_bool)
-			warning(expr->pos, "expression using sizeof bool");
+			warning(expr->pos, "expression using sizeof _Bool");
 		size = bits_in_char;
 	}
 
 	if (is_function(type->ctype.base_type)) {
-		warning(expr->pos, "expression using sizeof on a function");
+		if (Wpointer_arith)
+			warning(expr->pos, "expression using sizeof on a function");
 		size = bits_in_char;
 	}
 
@@ -3181,9 +3207,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SYMBOL:
 		return evaluate_symbol_expression(expr);
 	case EXPR_BINOP:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_binop(expr);
 	case EXPR_LOGICAL:
@@ -3194,15 +3220,15 @@ struct symbol *evaluate_expression(struct expression *expr)
 			return NULL;
 		return evaluate_comma(expr);
 	case EXPR_COMPARE:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_compare(expr);
 	case EXPR_ASSIGNMENT:
-		if (!evaluate_expression(expr->left))
-			return NULL;
-		if (!evaluate_expression(expr->right))
+		evaluate_expression(expr->left);
+		evaluate_expression(expr->right);
+		if (!valid_subexpr_type(expr))
 			return NULL;
 		return evaluate_assignment(expr);
 	case EXPR_PREOP:
@@ -3258,11 +3284,14 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SLICE:
 		expression_error(expr, "internal front-end error: SLICE re-evaluated");
 		return NULL;
+	case EXPR_ASM_OPERAND:
+		expression_error(expr, "internal front-end error: ASM_OPERAND evaluated");
+		return NULL;
 	}
 	return NULL;
 }
 
-static void check_duplicates(struct symbol *sym)
+void check_duplicates(struct symbol *sym)
 {
 	int declared = 0;
 	struct symbol *next = sym;
@@ -3420,8 +3449,8 @@ static void verify_input_constraint(struct expression *expr, const char *constra
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
+	struct expression *op;
 	struct symbol *sym;
-	int state;
 
 	expr = stmt->asm_string;
 	if (!expr || expr->type != EXPR_STRING) {
@@ -3429,58 +3458,41 @@ static void evaluate_asm_statement(struct statement *stmt)
 		return;
 	}
 
-	state = 0;
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		switch (state) {
-		case 0: /* Identifier */
-			state = 1;
-			continue;
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		/* Identifier */
 
-		case 1: /* Constraint */
-			state = 2;
-			if (!expr || expr->type != EXPR_STRING) {
-				sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
-				*THIS_ADDRESS(expr) = NULL;
-				continue;
-			}
+		/* Constraint */
+		expr = op->constraint;
+		if (!expr || expr->type != EXPR_STRING) {
+			sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
+			op->constraint = NULL;
+		} else
 			verify_output_constraint(expr, expr->string->data);
-			continue;
 
-		case 2: /* Expression */
-			state = 0;
-			if (!evaluate_expression(expr))
-				return;
-			if (!lvalue_expression(expr))
-				warning(expr->pos, "asm output is not an lvalue");
-			evaluate_assign_to(expr, expr->ctype);
-			continue;
-		}
-	} END_FOR_EACH_PTR(expr);
+		/* Expression */
+		expr = op->expr;
+		if (!evaluate_expression(expr))
+			return;
+		if (!lvalue_expression(expr))
+			warning(expr->pos, "asm output is not an lvalue");
+		evaluate_assign_to(expr, expr->ctype);
+	} END_FOR_EACH_PTR(op);
 
-	state = 0;
-	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		switch (state) {
-		case 0: /* Identifier */
-			state = 1;
-			continue;
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		/* Identifier */
 
-		case 1:	/* Constraint */
-			state = 2;
-			if (!expr || expr->type != EXPR_STRING) {
-				sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
-				*THIS_ADDRESS(expr) = NULL;
-				continue;
-			}
+		/* Constraint */
+		expr = op->constraint;
+		if (!expr || expr->type != EXPR_STRING) {
+			sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
+			op->constraint = NULL;
+		} else
 			verify_input_constraint(expr, expr->string->data);
-			continue;
 
-		case 2: /* Expression */
-			state = 0;
-			if (!evaluate_expression(expr))
-				return;
-			continue;
-		}
-	} END_FOR_EACH_PTR(expr);
+		/* Expression */
+		if (!evaluate_expression(op->expr))
+			return;
+	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
 		if (!expr) {

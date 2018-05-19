@@ -37,7 +37,7 @@ IDENT_RESERVED(_Imaginary);
 /* C11 keywords */
 IDENT(_Alignas);
 IDENT_RESERVED(_Alignof);
-IDENT_RESERVED(_Atomic);
+IDENT(_Atomic);
 IDENT_RESERVED(_Generic);
 IDENT(_Noreturn);
 IDENT_RESERVED(_Static_assert);

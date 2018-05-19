@@ -131,7 +131,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 		struct basic_block *source, *target;
 		pseudo_t pseudo;
 		struct instruction *br;
-		int true;
+		int cond;
 
 		if (!def)
 			continue;
@@ -144,10 +144,10 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 			continue;
 		if (br->opcode != OP_CBR && br->opcode != OP_BR)
 			continue;
-		true = pseudo_truth_value(pseudo);
-		if (true < 0)
+		cond = pseudo_truth_value(pseudo);
+		if (cond < 0)
 			continue;
-		target = true ? second->bb_true : second->bb_false;
+		target = cond ? second->bb_true : second->bb_false;
 		if (bb_depends_on(target, bb))
 			continue;
 		if (bb_depends_on_phi(target, bb))
@@ -164,10 +164,19 @@ static int bb_has_side_effects(struct basic_block *bb)
 {
 	struct instruction *insn;
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
 		switch (insn->opcode) {
 		case OP_CALL:
 			/* FIXME! This should take "const" etc into account */
 			return 1;
+
+		case OP_LOAD:
+			if (!insn->type)
+				return 1;
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				return 1;
+			continue;
 
 		case OP_STORE:
 		case OP_CONTEXT:
@@ -200,7 +209,7 @@ static int simplify_phi_branch(struct basic_block *bb, struct instruction *br)
 }
 
 static int simplify_branch_branch(struct basic_block *bb, struct instruction *br,
-	struct basic_block **target_p, int true)
+	struct basic_block **target_p, int bb_true)
 {
 	struct basic_block *target = *target_p, *final;
 	struct instruction *insn;
@@ -216,7 +225,7 @@ static int simplify_branch_branch(struct basic_block *bb, struct instruction *br
 	 * Now we just need to see if we can rewrite the branch..
 	 */
 	retval = 0;
-	final = true ? insn->bb_true : insn->bb_false;
+	final = bb_true ? insn->bb_true : insn->bb_false;
 	if (bb_has_side_effects(target))
 		goto try_to_rewrite_target;
 	if (bb_depends_on(final, target))
@@ -296,9 +305,8 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 void convert_load_instruction(struct instruction *insn, pseudo_t src)
 {
 	convert_instruction_target(insn, src);
-	/* Turn the load into a no-op */
-	insn->opcode = OP_LNOP;
-	insn->bb = NULL;
+	kill_instruction(insn);
+	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
@@ -389,6 +397,8 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
 			int dominance;
+			if (!one->bb)
+				continue;
 			if (one == insn)
 				goto no_dominance;
 			dominance = dominates(pseudo, insn, one, local);
@@ -414,7 +424,7 @@ found_dominator:
 		if (dominators && phisrc_in_bb(*dominators, parent))
 			continue;
 		br = delete_last_instruction(&parent->insns);
-		phi = alloc_phi(parent, one->target, one->size);
+		phi = alloc_phi(parent, one->target, one->type);
 		phi->ident = phi->ident ? : pseudo->ident;
 		add_instruction(&parent->insns, br);
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
@@ -434,9 +444,9 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	new = first_pseudo(dominators)->def->src1;
+	new = first_pseudo(dominators)->def->phi_src;
 	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->def->src1)
+		if (new != phi->def->phi_src)
 			goto complex_phi;
 		new->ident = new->ident ? : phi->ident;
 	} END_FOR_EACH_PTR(phi);
@@ -446,11 +456,11 @@ void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *domi
 	 * and convert the load into a LNOP and replace the
 	 * pseudo.
 	 */
+	convert_load_instruction(insn, new);
 	FOR_EACH_PTR(dominators, phi) {
 		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
-	convert_load_instruction(insn, new);
-	return;
+	goto end;
 
 complex_phi:
 	/* We leave symbol pseudos with a bogus usage list here */
@@ -458,6 +468,9 @@ complex_phi:
 		kill_use(&insn->src);
 	insn->opcode = OP_PHI;
 	insn->phi_list = dominators;
+
+end:
+	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 }
 
 static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
@@ -470,13 +483,15 @@ static int find_dominating_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable load? Undo it */
 	if (!bb) {
-		insn->opcode = OP_LNOP;
+		kill_use(&insn->src);
 		return 1;
 	}
 
 	partial = 0;
 	FOR_EACH_PTR(bb->insns, one) {
 		int dominance;
+		if (!one->bb)
+			continue;
 		if (one == insn)
 			goto found;
 		dominance = dominates(pseudo, insn, one, local);
@@ -531,15 +546,6 @@ found:
 	return 1;
 }
 
-static void kill_store(struct instruction *insn)
-{
-	if (insn) {
-		insn->bb = NULL;
-		insn->opcode = OP_SNOP;
-		kill_use(&insn->target);
-	}
-}
-
 /* Kill a pseudo that is dead on exit from the bb */
 static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
@@ -552,6 +558,8 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
 		int opcode = insn->opcode;
 
+		if (!insn->bb)
+			continue;
 		if (opcode != OP_LOAD && opcode != OP_STORE) {
 			if (local)
 				continue;
@@ -562,7 +570,7 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 		if (insn->src == pseudo) {
 			if (opcode == OP_LOAD)
 				return;
-			kill_store(insn);
+			kill_instruction_force(insn);
 			continue;
 		}
 		if (local)
@@ -593,7 +601,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 
 	/* Unreachable store? Undo it */
 	if (!bb) {
-		kill_store(insn);
+		kill_instruction_force(insn);
 		return;
 	}
 	if (bb->generation == generation)
@@ -601,6 +609,8 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 	bb->generation = generation;
 	FOR_EACH_PTR_REVERSE(bb->insns, one) {
 		int dominance;
+		if (!one->bb)
+			continue;
 		if (!found) {
 			if (one != insn)
 				continue;
@@ -614,7 +624,7 @@ static void kill_dominated_stores(pseudo_t pseudo, struct instruction *insn,
 			return;
 		if (one->opcode == OP_LOAD)
 			return;
-		kill_store(one);
+		kill_instruction_force(one);
 	} END_FOR_EACH_PTR_REVERSE(one);
 
 	if (!found) {
@@ -640,11 +650,15 @@ void check_access(struct instruction *insn)
 		int offset = insn->offset, bit = bytes_to_bits(offset) + insn->size;
 		struct symbol *sym = pseudo->sym;
 
-		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size))
+		if (sym->bit_size > 0 && (offset < 0 || bit > sym->bit_size)) {
+			if (insn->tainted)
+				return;
 			warning(insn->pos, "invalid access %s '%s' (%d %d)",
 				offset < 0 ? "below" : "past the end of",
 				show_ident(sym->ident), offset,
 				bits_to_bytes(sym->bit_size));
+			insn->tainted = 1;
+		}
 	}
 }
 
@@ -684,8 +698,6 @@ static void simplify_one_symbol(struct entrypoint *ep, struct symbol *sym)
 			mod |= MOD_ADDRESSABLE;
 			goto external_visibility;
 		case OP_NOP:
-		case OP_SNOP:
-		case OP_LNOP:
 		case OP_PHI:
 			continue;
 		default:
@@ -706,7 +718,7 @@ external_visibility:
 		FOR_EACH_PTR(pseudo->users, pu) {
 			struct instruction *insn = pu->insn;
 			if (insn->opcode == OP_STORE)
-				kill_store(insn);
+				kill_instruction_force(insn);
 		} END_FOR_EACH_PTR(pu);
 	} else {
 		/*
@@ -770,6 +782,8 @@ void kill_bb(struct basic_block *bb)
 	struct basic_block *child, *parent;
 
 	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
 		kill_instruction_force(insn);
 		kill_defs(insn);
 		/*
@@ -844,13 +858,12 @@ static struct basic_block * rewrite_branch_bb(struct basic_block *bb, struct ins
 {
 	struct basic_block *parent;
 	struct basic_block *target = br->bb_true;
-	struct basic_block *false = br->bb_false;
 
 	if (br->opcode == OP_CBR) {
 		pseudo_t cond = br->cond;
 		if (cond->type != PSEUDO_VAL)
 			return NULL;
-		target = cond->value ? target : false;
+		target = cond->value ? target : br->bb_false;
 	}
 
 	/*
@@ -956,7 +969,8 @@ void pack_basic_blocks(struct entrypoint *ep)
 			if (!first->bb)
 				continue;
 			switch (first->opcode) {
-			case OP_NOP: case OP_LNOP: case OP_SNOP:
+			case OP_NOP:
+			case OP_INLINED_CALL:
 				continue;
 			case OP_CBR:
 			case OP_BR: {
@@ -1002,7 +1016,7 @@ out:
 		/*
 		 * Merge the two.
 		 */
-		repeat_phase |= REPEAT_CSE;
+		repeat_phase |= REPEAT_CFG_CLEANUP;
 
 		parent->children = bb->children;
 		bb->children = NULL;
@@ -1014,10 +1028,10 @@ out:
 
 		kill_instruction(delete_last_instruction(&parent->insns));
 		FOR_EACH_PTR(bb->insns, insn) {
-			if (insn->bb) {
-				assert(insn->bb == bb);
-				insn->bb = parent;
-			}
+			if (!insn->bb)
+				continue;
+			assert(insn->bb == bb);
+			insn->bb = parent;
 			add_instruction(&parent->insns, insn);
 		} END_FOR_EACH_PTR(insn);
 		bb->insns = NULL;

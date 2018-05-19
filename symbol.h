@@ -164,7 +164,6 @@ struct symbol {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
-					arg_count:10,
 					variadic:1,
 					initialized:1,
 					examined:1,
@@ -173,6 +172,7 @@ struct symbol {
 					string:1,
 					designated_init:1,
 					forced_arg:1,
+					accessed:1,
 					transparent_union:1;
 			struct expression *array_size;
 			struct ctype ctype;
@@ -183,7 +183,6 @@ struct symbol {
 			struct symbol_list *inline_symbol_list;
 			struct expression *initializer;
 			struct entrypoint *ep;
-			long long value;		/* Initial value */
 			struct symbol *definition;
 		};
 	};
@@ -199,55 +198,54 @@ struct symbol {
 };
 
 /* Modifiers */
-#define MOD_AUTO	0x0001
-#define MOD_REGISTER	0x0002
-#define MOD_STATIC	0x0004
-#define MOD_EXTERN	0x0008
+#define MOD_AUTO		0x00000001
+#define MOD_REGISTER		0x00000002
+#define MOD_STATIC		0x00000004
+#define MOD_EXTERN		0x00000008
+#define MOD_TOPLEVEL		0x00000010	// scoping..
+#define MOD_TLS			0x00000020
+#define MOD_INLINE		0x00000040
 
-#define MOD_CONST	0x0010
-#define MOD_VOLATILE	0x0020
-#define MOD_SIGNED	0x0040
-#define MOD_UNSIGNED	0x0080
+#define MOD_ASSIGNED		0x00000080
+#define MOD_ADDRESSABLE		0x00000100
 
-#define MOD_CHAR	0x0100
-#define MOD_SHORT	0x0200
-#define MOD_LONG	0x0400
-#define MOD_LONGLONG	0x0800
-#define MOD_LONGLONGLONG	0x1000
-#define MOD_PURE	0x2000
+#define MOD_CONST		0x00000200
+#define MOD_VOLATILE		0x00000400
+#define MOD_RESTRICT		0x00000800
+#define MOD_ATOMIC		0x00001000
 
-#define MOD_TYPEDEF	0x10000
+#define MOD_SIGNED		0x00002000
+#define MOD_UNSIGNED		0x00004000
+#define MOD_EXPLICITLY_SIGNED	0x00008000
 
-#define MOD_TLS		0x20000
-#define MOD_INLINE	0x40000
-#define MOD_ADDRESSABLE	0x80000
+#define MOD_TYPE		0x00010000
+#define MOD_USERTYPE		0x00020000
+#define MOD_CHAR		0x00040000
+#define MOD_SHORT		0x00080000
+#define MOD_LONG		0x00100000
+#define MOD_LONGLONG		0x00200000
+#define MOD_LONGLONGLONG	0x00400000
 
-#define MOD_NOCAST	0x100000
-#define MOD_NODEREF	0x200000
-#define MOD_ACCESSED	0x400000
-#define MOD_TOPLEVEL	0x800000	// scoping..
-
-#define MOD_ASSIGNED	0x2000000
-#define MOD_TYPE	0x4000000
-#define MOD_SAFE	0x8000000	// non-null/non-trapping pointer
-
-#define MOD_USERTYPE	0x10000000
-#define MOD_NORETURN	0x20000000
-#define MOD_EXPLICITLY_SIGNED	0x40000000
-#define MOD_BITWISE	0x80000000
+#define MOD_SAFE		0x00800000	// non-null/non-trapping pointer
+#define MOD_PURE		0x01000000
+#define MOD_BITWISE		0x02000000
+#define MOD_NOCAST		0x04000000
+#define MOD_NODEREF		0x08000000
+#define MOD_NORETURN		0x10000000
 
 
+#define MOD_ACCESS	(MOD_ASSIGNED | MOD_ADDRESSABLE)
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
 #define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
 #define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
-#define MOD_IGNORE (MOD_TOPLEVEL | MOD_STORAGE | MOD_ADDRESSABLE |	\
-	MOD_ASSIGNED | MOD_USERTYPE | MOD_ACCESSED | MOD_EXPLICITLY_SIGNED)
-#define MOD_PTRINHERIT (MOD_VOLATILE | MOD_CONST | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
+#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED)
+#define	MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT | MOD_ATOMIC)
+#define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
-#define MOD_TYPEOF	(MOD_VOLATILE | MOD_CONST | MOD_NOCAST | MOD_SPECIFIER)
+#define MOD_TYPEOF	(MOD_QUALIFIER | MOD_NOCAST | MOD_SPECIFIER)
 
 
 /* Current parsing/evaluation function */
@@ -269,6 +267,11 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
+extern struct symbol	float32_ctype, float32x_ctype;
+extern struct symbol	float64_ctype, float64x_ctype;
+extern struct symbol	float128_ctype;
+extern struct symbol	const_void_ctype, const_char_ctype;
+extern struct symbol	const_ptr_ctype, const_string_ctype;
 
 /* Special internal symbols */
 extern struct symbol	zero_int;
@@ -277,7 +280,6 @@ extern struct symbol	zero_int;
 	extern struct ident n
 #include "ident-list.h"
 
-#define symbol_is_typename(sym) ((sym)->type == SYM_TYPE)
 
 extern struct symbol_list *translation_unit_used_list;
 
@@ -290,6 +292,7 @@ extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
 extern void init_builtins(int stream);
+extern void declare_builtins(void);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
@@ -303,7 +306,6 @@ extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
-extern void examine_simple_symbol_type(struct symbol *);
 extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
@@ -312,6 +314,12 @@ extern const char* get_type_name(enum type type);
 extern void debug_symbol(struct symbol *);
 extern void merge_type(struct symbol *sym, struct symbol *base_type);
 extern void check_declaration(struct symbol *sym);
+extern void check_duplicates(struct symbol *sym);
+
+static inline int valid_type(const struct symbol *ctype)
+{
+	return ctype && ctype != &bad_ctype;
+}
 
 static inline struct symbol *get_base_type(const struct symbol *sym)
 {
@@ -333,6 +341,15 @@ static inline int is_enum_type(const struct symbol *type)
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	return (type->type == SYM_ENUM);
+}
+
+static inline int is_signed_type(struct symbol *sym)
+{
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	if (sym->type == SYM_PTR)
+		return 0;
+	return !(sym->ctype.modifiers & MOD_UNSIGNED);
 }
 
 static inline int is_type_type(struct symbol *type)
@@ -438,7 +455,6 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 #define is_restricted_type(type) (get_sym_type(type) == SYM_RESTRICT)
 #define is_fouled_type(type) (get_sym_type(type) == SYM_FOULED)
 #define is_bitfield_type(type)   (get_sym_type(type) == SYM_BITFIELD)
-extern int is_ptr_type(struct symbol *);
 
 void create_fouled(struct symbol *type);
 struct symbol *befoul(struct symbol *type);

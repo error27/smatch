@@ -29,8 +29,8 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-TMPLLVM=`mktemp -t tmp.XXXXXX`".llvm"
-TMPFILE=`mktemp -t tmp.XXXXXX`".o"
+TMPLLVM=`mktemp -t tmp.XXXXXX.llvm`
+TMPFILE=`mktemp -t tmp.XXXXXX.o`
 
 $DIRNAME/sparse-llvm $SPARSEOPTS > $TMPLLVM
 

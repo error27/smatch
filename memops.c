@@ -54,7 +54,7 @@ no_dominance:
 
 found_dominator:
 		br = delete_last_instruction(&parent->insns);
-		phi = alloc_phi(parent, one->target, one->size);
+		phi = alloc_phi(parent, one->target, one->type);
 		phi->ident = phi->ident ? : one->target->ident;
 		add_instruction(&parent->insns, br);
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
@@ -68,6 +68,8 @@ static int address_taken(pseudo_t pseudo)
 	FOR_EACH_PTR(pseudo->users, pu) {
 		struct instruction *insn = pu->insn;
 		if (insn->bb && (insn->opcode != OP_LOAD && insn->opcode != OP_STORE))
+			return 1;
+		if (pu->userp != &insn->src)
 			return 1;
 	} END_FOR_EACH_PTR(pu);
 	return 0;
@@ -132,20 +134,16 @@ static void simplify_loads(struct basic_block *bb)
 					goto next_load;
 				}
 				rewrite_load_instruction(insn, dominators);
+			} else {	// cleanup pending phi-sources
+				pseudo_t phi;
+				FOR_EACH_PTR(dominators, phi) {
+					kill_instruction(phi->def);
+				} END_FOR_EACH_PTR(phi);
 			}
 		}
 next_load:
 		/* Do the next one */;
 	} END_FOR_EACH_PTR_REVERSE(insn);
-}
-
-static void kill_store(struct instruction *insn)
-{
-	if (insn) {
-		insn->bb = NULL;
-		insn->opcode = OP_SNOP;
-		kill_use(&insn->target);
-	}
 }
 
 static void kill_dominated_stores(struct basic_block *bb)
@@ -158,8 +156,14 @@ static void kill_dominated_stores(struct basic_block *bb)
 		if (insn->opcode == OP_STORE) {
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
-			int local = local_pseudo(pseudo);
+			int local;
 
+			if (!insn->type)
+				continue;
+			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+				continue;
+
+			local = local_pseudo(pseudo);
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
 				if (!dom->bb)
@@ -172,7 +176,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 					if (dom->opcode == OP_LOAD)
 						goto next_store;
 					/* Yeehaa! Found one! */
-					kill_store(dom);
+					kill_instruction_force(dom);
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
 

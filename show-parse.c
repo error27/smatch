@@ -125,6 +125,8 @@ const char *modifier_string(unsigned long mod)
 		{MOD_EXTERN,		"extern"},
 		{MOD_CONST,		"const"},
 		{MOD_VOLATILE,		"volatile"},
+		{MOD_RESTRICT,		"restrict"},
+		{MOD_ATOMIC,		"[atomic]"},
 		{MOD_SIGNED,		"[signed]"},
 		{MOD_UNSIGNED,		"[unsigned]"},
 		{MOD_CHAR,		"[char]"},
@@ -132,13 +134,11 @@ const char *modifier_string(unsigned long mod)
 		{MOD_LONG,		"[long]"},
 		{MOD_LONGLONG,		"[long long]"},
 		{MOD_LONGLONGLONG,	"[long long long]"},
-		{MOD_TYPEDEF,		"[typedef]"},
 		{MOD_TLS,		"[tls]"},
 		{MOD_INLINE,		"inline"},
 		{MOD_ADDRESSABLE,	"[addressable]"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
-		{MOD_ACCESSED,		"[accessed]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
 		{MOD_ASSIGNED,		"[assigned]"},
 		{MOD_TYPE,		"[type]"},
@@ -927,7 +927,7 @@ static int show_symbol_expr(struct symbol *sym)
 		return new;
 	}
 	if (sym->ctype.modifiers & MOD_ADDRESSABLE) {
-		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, sym->value);
+		printf("\taddi.%d\t\tv%d,vFP,$%lld\n", bits_in_pointer, new, 0LL);
 		return new;
 	}
 	printf("\taddi.%d\t\tv%d,vFP,$offsetof(%s:%p)\n", bits_in_pointer, new, show_ident(sym->ident), sym);
@@ -949,15 +949,6 @@ static int show_symbol_init(struct symbol *sym)
 	return 0;
 }
 
-static int type_is_signed(struct symbol *sym)
-{
-	if (sym->type == SYM_NODE)
-		sym = sym->ctype.base_type;
-	if (sym->type == SYM_PTR)
-		return 0;
-	return !(sym->ctype.modifiers & MOD_UNSIGNED);
-}
-
 static int show_cast_expr(struct expression *expr)
 {
 	struct symbol *old_type, *new_type;
@@ -973,7 +964,7 @@ static int show_cast_expr(struct expression *expr)
 	if (oldbits >= newbits)
 		return op;
 	new = new_pseudo();
-	is_signed = type_is_signed(old_type);
+	is_signed = is_signed_type(old_type);
 	if (is_signed) {
 		printf("\tsext%d.%d\tv%d,v%d\n", oldbits, newbits, new, op);
 	} else {
@@ -1018,11 +1009,11 @@ static int show_label_expr(struct expression *expr)
 static int show_conditional_expr(struct expression *expr)
 {
 	int cond = show_expression(expr->conditional);
-	int true = show_expression(expr->cond_true);
-	int false = show_expression(expr->cond_false);
+	int valt = show_expression(expr->cond_true);
+	int valf = show_expression(expr->cond_false);
 	int new = new_pseudo();
 
-	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n", cond, expr->ctype->bit_size, new, true, false);
+	printf("[v%d]\tcmov.%d\t\tv%d,v%d,v%d\n", cond, expr->ctype->bit_size, new, valt, valf);
 	return new;
 }
 
@@ -1168,6 +1159,9 @@ int show_expression(struct expression *expr)
 		return 0;
 	case EXPR_TYPE:
 		warning(expr->pos, "unable to show type expression");
+		return 0;
+	case EXPR_ASM_OPERAND:
+		warning(expr->pos, "unable to show asm operand expression");
 		return 0;
 	}
 	return 0;

@@ -4,11 +4,11 @@
 #include "lib.h"
 #include "allocate.h"
 #include "token.h"
+#include "opcode.h"
 #include "parse.h"
 #include "symbol.h"
 
 struct instruction;
-DECLARE_PTR_LIST(pseudo_ptr_list, pseudo_t);
 
 struct pseudo_user {
 	struct instruction *insn;
@@ -45,9 +45,20 @@ extern struct pseudo void_pseudo;
 
 #define VOID (&void_pseudo)
 
+static inline bool is_zero(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL && pseudo->value == 0;
+}
+
+static inline bool is_nonzero(pseudo_t pseudo)
+{
+	return pseudo->type == PSEUDO_VAL && pseudo->value != 0;
+}
+
+
 struct multijmp {
 	struct basic_block *target;
-	int begin, end;
+	long long begin, end;
 };
 
 struct asm_constraint {
@@ -68,23 +79,23 @@ struct asm_rules {
 DECLARE_ALLOCATOR(asm_rules);
 
 struct instruction {
-	unsigned opcode:8,
+	unsigned opcode:7,
+		 tainted:1,
 		 size:24;
 	struct basic_block *bb;
 	struct position pos;
 	struct symbol *type;
-	union {
-		pseudo_t target;
-		pseudo_t cond;		/* for branch and switch */
-	};
+	pseudo_t target;
 	union {
 		struct /* entrypoint */ {
 			struct pseudo_list *arg_list;
 		};
 		struct /* branch */ {
+			pseudo_t cond;
 			struct basic_block *bb_true, *bb_false;
 		};
 		struct /* switch */ {
+			pseudo_t _cond;
 			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
@@ -106,14 +117,19 @@ struct instruction {
 			pseudo_t base;
 			unsigned from, len;
 		};
-		struct /* setval */ {
+		struct /* symaddr */ {
 			pseudo_t symbol;		/* Subtle: same offset as "src" !! */
+		};
+		struct /* setval */ {
 			struct expression *val;
+		};
+		struct /* setfval */ {
+			long double fvalue;
 		};
 		struct /* call */ {
 			pseudo_t func;
 			struct pseudo_list *arguments;
-			struct symbol *fntype;
+			struct symbol_list *fntypes;
 		};
 		struct /* context */ {
 			int increment;
@@ -139,21 +155,25 @@ enum opcode {
 	OP_BR,
 	OP_CBR,
 	OP_SWITCH,
-	OP_INVOKE,
 	OP_COMPUTEDGOTO,
-	OP_UNWIND,
-	OP_TERMINATOR_END = OP_UNWIND,
+	OP_TERMINATOR_END = OP_COMPUTEDGOTO,
 	
 	/* Binary */
 	OP_BINARY,
 	OP_ADD = OP_BINARY,
 	OP_SUB,
-	OP_MULU, OP_MULS,
+	OP_MUL,
 	OP_DIVU, OP_DIVS,
 	OP_MODU, OP_MODS,
 	OP_SHL,
 	OP_LSR, OP_ASR,
 	
+	/* Floating-point binops */
+	OP_FADD,
+	OP_FSUB,
+	OP_FMUL,
+	OP_FDIV,
+
 	/* Logical */
 	OP_AND,
 	OP_OR,
@@ -161,6 +181,24 @@ enum opcode {
 	OP_AND_BOOL,
 	OP_OR_BOOL,
 	OP_BINARY_END = OP_OR_BOOL,
+
+	/* floating-point comparison */
+	OP_FPCMP,
+	OP_FCMP_ORD = OP_FPCMP,
+	OP_FCMP_OEQ,
+	OP_FCMP_ONE,
+	OP_FCMP_OLE,
+	OP_FCMP_OGE,
+	OP_FCMP_OLT,
+	OP_FCMP_OGT,
+	OP_FCMP_UEQ,
+	OP_FCMP_UNE,
+	OP_FCMP_ULE,
+	OP_FCMP_UGE,
+	OP_FCMP_ULT,
+	OP_FCMP_UGT,
+	OP_FCMP_UNO,
+	OP_FPCMP_END = OP_FCMP_UNO,
 
 	/* Binary comparison */
 	OP_BINCMP,
@@ -179,19 +217,17 @@ enum opcode {
 	/* Uni */
 	OP_NOT,
 	OP_NEG,
+	OP_FNEG,
 
 	/* Select - three input values */
 	OP_SEL,
 	
 	/* Memory */
-	OP_MALLOC,
-	OP_FREE,
-	OP_ALLOCA,
 	OP_LOAD,
 	OP_STORE,
 	OP_SETVAL,
+	OP_SETFVAL,
 	OP_SYMADDR,
-	OP_GET_ELEMENT_PTR,
 
 	/* Other */
 	OP_PHI,
@@ -202,11 +238,7 @@ enum opcode {
 	OP_PTRCAST,
 	OP_INLINED_CALL,
 	OP_CALL,
-	OP_VANEXT,
-	OP_VAARG,
 	OP_SLICE,
-	OP_SNOP,
-	OP_LNOP,
 	OP_NOP,
 	OP_DEATHNOTE,
 	OP_ASM,
@@ -217,6 +249,8 @@ enum opcode {
 
 	/* Needed to translate SSA back to normal form */
 	OP_COPY,
+
+	OP_LAST,			/* keep this one last! */
 };
 
 struct basic_block_list;
@@ -278,11 +312,6 @@ static inline int bb_reachable(struct basic_block *bb)
 	return bb != NULL;
 }
 
-static inline void add_pseudo_ptr(pseudo_t *ptr, struct pseudo_ptr_list **list)
-{
-	add_ptr_list(list, ptr);
-}
-
 static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_user_list **list)
 {
 	add_ptr_list(list, user);
@@ -291,6 +320,16 @@ static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_u
 static inline int has_use_list(pseudo_t p)
 {
 	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
+}
+
+static inline int pseudo_user_list_size(struct pseudo_user_list *list)
+{
+	return ptr_list_size((struct ptr_list *)list);
+}
+
+static inline int has_users(pseudo_t p)
+{
+	return pseudo_user_list_size(p->users) != 0;
 }
 
 static inline struct pseudo_user *alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)
@@ -331,7 +370,9 @@ struct entrypoint {
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);
 extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
-pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, int size);
+struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
+
+pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type);
 pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);
 
@@ -341,6 +382,7 @@ void show_entry(struct entrypoint *ep);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
 const char *show_instruction(struct instruction *insn);
+const char *show_label(struct basic_block *bb);
 
 #endif /* LINEARIZE_H */
 

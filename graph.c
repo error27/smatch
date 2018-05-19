@@ -74,17 +74,19 @@ static void graph_ep(struct entrypoint *ep)
 
 		/* List loads and stores */
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			switch(insn->opcode) {
 			case OP_STORE:
-				if (insn->symbol->type == PSEUDO_SYM) {
-				  printf("%s store(%s)", s, show_ident(insn->symbol->sym->ident));
+				if (insn->src->type == PSEUDO_SYM) {
+				  printf("%s store(%s)", s, show_ident(insn->src->sym->ident));
 				  s = ",";
 				}
 				break;
 
 			case OP_LOAD:
-				if (insn->symbol->type == PSEUDO_SYM) {
-				  printf("%s load(%s)", s, show_ident(insn->symbol->sym->ident));
+				if (insn->src->type == PSEUDO_SYM) {
+				  printf("%s load(%s)", s, show_ident(insn->src->sym->ident));
 				  s = ",";
 				}
 				break;
@@ -130,6 +132,8 @@ static void graph_calls(struct entrypoint *ep, int internal)
 			continue;
 
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			if (insn->opcode == OP_CALL &&
 			    internal == !(insn->func->sym->ctype.modifiers & MOD_EXTERN)) {
 

@@ -848,6 +848,10 @@ static void set_stream_include_path(struct stream *stream)
 	includepath[0] = path;
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096	// for Hurd where it's not defined
+#endif
+
 static int try_include(const char *path, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
@@ -1427,13 +1431,13 @@ static int handle_strong_undef(struct stream *stream, struct token **line, struc
 	return do_handle_undef(stream, line, token, SYM_ATTR_STRONG);
 }
 
-static int preprocessor_if(struct stream *stream, struct token *token, int true)
+static int preprocessor_if(struct stream *stream, struct token *token, int cond)
 {
 	token_type(token) = false_nesting ? TOKEN_SKIP_GROUPS : TOKEN_IF;
 	free_preprocessor_line(token->next);
 	token->next = stream->top_if;
 	stream->top_if = token;
-	if (false_nesting || true != 1)
+	if (false_nesting || cond != 1)
 		false_nesting++;
 	return 0;
 }

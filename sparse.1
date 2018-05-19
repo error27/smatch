@@ -20,6 +20,12 @@ off those warnings, pass the negation of the associated warning option,
 .
 .SH WARNING OPTIONS
 .TP
+.B \-fmax-warnings=COUNT
+Set the maximum number of displayed warnings to COUNT, which should be
+a numerical value or 'unlimited'.
+The default limit is 100.
+.
+.TP
 .B \-Wsparse\-all
 Turn on all sparse warnings, except for those explicitly disabled via
 \fB\-Wno\-something\fR.
@@ -285,6 +291,19 @@ initializer.  GCC allows this syntax as an extension.  With
 Sparse does not issue these warnings by default.
 .
 .TP
+.B \-Wpointer\-arith
+Warn about anything that depends on the \fBsizeof\fR a void or function type.
+
+C99 does not allow the \fBsizeof\fR operator to be applied to function types
+or to incomplete types such as void. GCC allows \fBsizeof\fR to be applied to
+these types as an extension and assigns these types a size of \fI1\fR. With
+\fB\-pointer\-arith\fR, Sparse will warn about pointer arithmetic on void
+or function pointers, as well as expressions which directly apply the
+\fBsizeof\fR operator to void or function types.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wptr\-subtraction\-blows
 Warn when subtracting two pointers to a type with a non-power-of-two size.
 
@@ -323,7 +342,7 @@ Sparse does not issue these warnings by default.
 .B \-Wsizeof-bool
 Warn when checking the sizeof a _Bool.
 
-C99 does not specify the sizeof a _Bool.  gcc uses 1.
+C99 does not specify the size of a _Bool. GCC, by default, uses \fI1\fR.
 
 Sparse does not issue these warnings by default.
 .
@@ -366,11 +385,6 @@ normalized GNU triplet. (e.g. i386-linux-gnu).
 .
 .SH DEBUG OPTIONS
 .TP
-.B \-fdump-linearize[=only]
-Dump the IR code of a function directly after its linearization,
-before any simplifications are made. If the argument \fB=only\fR is
-also given no further processing is done on the function.
-.
 .B \-fmem-report
 Report some statistics about memory allocation used by the tool.
 .
@@ -378,7 +392,7 @@ Report some statistics about memory allocation used by the tool.
 .TP
 .B \-fmemcpy-max-count=COUNT
 Set the limit for the warnings given by \fB-Wmemcpy-max-count\fR.
-A COUNT of 0, useless in itself, will effectively disable the warning.
+A COUNT of 'unlimited' or '0' will effectively disable the warning.
 The default limit is 100000.
 .
 .TP
@@ -386,6 +400,11 @@ The default limit is 100000.
 Set the distance between tab stops.  This helps sparse report correct
 column numbers in warnings or errors.  If the value is less than 1 or
 greater than 100, the option is ignored.  The default is 8.
+.
+.TP
+.B \-f[no-]unsigned-char, \-f[no-]signed-char
+Let plain 'char' be unsigned or signed.
+By default chars are signed.
 .
 .SH SEE ALSO
 .BR cgcc (1)
