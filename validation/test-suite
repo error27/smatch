@@ -566,7 +566,7 @@ while [ "$#" -gt "0" ]; do
 		exit 1
 		;;
 
-	*.c)
+	*.c|*.cdoc)
 		tests_list="$tests_list $1"
 		;;
 	*)

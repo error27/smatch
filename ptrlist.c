@@ -1,10 +1,13 @@
 /*
  * ptrlist.c
  *
- * Pointer list manipulation
- *
  * (C) Copyright Linus Torvalds 2003-2005
  */
+
+///
+// Pointer list manipulation
+// -------------------------
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -16,6 +19,10 @@
 __DECLARE_ALLOCATOR(struct ptr_list, ptrlist);
 __ALLOCATOR(struct ptr_list, "ptr list", ptrlist);
 
+///
+// get the size of a ptrlist
+// @head: the head of the list
+// @return: the size of the list given by @head.
 int ptr_list_size(struct ptr_list *head)
 {
 	int nr = 0;
@@ -29,14 +36,20 @@ int ptr_list_size(struct ptr_list *head)
 	return nr;
 }
 
-/*
- * Linearize the entries of a list up to a total of 'max',
- * and return the nr of entries linearized.
- *
- * The array to linearize into (second argument) should really
- * be "void *x[]", but we want to let people fill in any kind
- * of pointer array, so let's just call it "void **".
- */
+///
+// linearize the entries of a list
+//
+// @head: the list to be linearized
+// @arr: a ``void*`` array to fill with @head's entries
+// @max: the maximum number of entries to store into @arr
+// @return: the number of entries linearized.
+//
+// Linearize the entries of a list up to a total of @max,
+// and return the nr of entries linearized.
+//
+// The array to linearize into (@arr) should really
+// be ``void *x[]``, but we want to let people fill in any kind
+// of pointer array, so let's just call it ``void **``.
 int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 {
 	int nr = 0;
@@ -58,12 +71,15 @@ int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 	return nr;
 }
 
-/*
- * When we've walked the list and deleted entries,
- * we may need to re-pack it so that we don't have
- * any empty blocks left (empty blocks upset the
- * walking code
- */
+///
+// pack a ptrlist
+//
+// @listp: a pointer to the list to be packed.
+//
+// When we've walked the list and deleted entries,
+// we may need to re-pack it so that we don't have
+// any empty blocks left (empty blocks upset the
+// walking code).
 void pack_ptr_list(struct ptr_list **listp)
 {
 	struct ptr_list *head = *listp;
@@ -97,6 +113,13 @@ restart:
 	}
 }		
 
+///
+// split a ptrlist block
+// @head: the ptrlist block to be splitted
+//
+// A new block is inserted just after @head and the entries
+// at the half end of @head are moved to this new block.
+// The goal being to create space inside @head for a new entry.
 void split_ptr_list_head(struct ptr_list *head)
 {
 	int old = head->nr, nr = old / 2;
@@ -114,6 +137,16 @@ void split_ptr_list_head(struct ptr_list *head)
 	memset(head->list + old, 0xf0, nr * sizeof(void *));
 }
 
+///
+// add an entry to a ptrlist
+// @listp: a pointer to the list
+// @ptr: the entry to add to the list
+// @tag: the tag to add to **ptr**, usually ``0``.
+// @return: the address where the new entry is stored.
+//
+// :note: code must not use this function and should use one of
+//	:func:`add_ptr_list`, :func:`add_ptr_list_notag` or
+//	:func:`add_ptr_list_tag` instead.
 void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 {
 	struct ptr_list *list = *listp;
@@ -148,6 +181,11 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 	return ret;
 }
 
+///
+// delete an entry from a ptrlist
+// @list: a pointer to the list
+// @entry: the item to be deleted
+// @count: the minimum number of times @entry should be deleted or 0.
 int delete_ptr_list_entry(struct ptr_list **list, void *entry, int count)
 {
 	void *ptr;
@@ -165,7 +203,14 @@ out:
 	return count;
 }
 
-int replace_ptr_list_entry(struct ptr_list **list, void *old_ptr, void *new_ptr, int count)
+///
+// replace an entry in a ptrlist
+// @list: a pointer to the list
+// @old_ptr: the entry to be replaced
+// @new_ptr: the new entry
+// @count: the minimum number of times @entry should be deleted or 0.
+int replace_ptr_list_entry(struct ptr_list **list, void *old_ptr,
+	void *new_ptr, int count)
 {
 	void *ptr;
 
@@ -181,7 +226,8 @@ out:
 	return count;
 }
 
-/* This removes the last entry, but doesn't pack the ptr list */
+///
+// remove the last entry but doesn't pack the ptr list
 void * undo_ptr_list_last(struct ptr_list **head)
 {
 	struct ptr_list *last, *first = *head;
@@ -202,6 +248,8 @@ void * undo_ptr_list_last(struct ptr_list **head)
 	return NULL;
 }
 
+///
+// remove the last entry and repack the list
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;
@@ -222,6 +270,11 @@ void * delete_ptr_list_last(struct ptr_list **head)
 	return ptr;
 }
 
+///
+// concat two ptrlists
+// @a: the source list
+// @b: a pointer to the destination list.
+// The element of @a are added at the end of @b.
 void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 {
 	void *entry;
@@ -230,6 +283,14 @@ void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 	} END_FOR_EACH_PTR(entry);
 }
 
+///
+// free a ptrlist
+// @listp: a pointer to the list
+// Each blocks of the list are freed (but the entries
+// themselves are not freed).
+//
+// :note: code must not use this function and should use
+//	the macro :func:`free_ptr_list` instead.
 void __free_ptr_list(struct ptr_list **listp)
 {
 	struct ptr_list *tmp, *list = *listp;

@@ -243,9 +243,23 @@ struct expression {
 	};
 };
 
-/* Constant expression values */
-int is_zero_constant(struct expression *);
+///
+// Constant expression values
+// --------------------------
+
+///
+// test if an expression evaluates to the constant ``0``.
+// @return: ``1`` if @expr evaluate to ``0``,
+//	``0`` otherwise.
+int is_zero_constant(struct expression *expr);
+
+///
+// test the compile time truth value of an expression
+// @return:
+//	* ``-1`` if @expr is not constant,
+//	* ``0`` or ``1`` depending on the truth value of @expr.
 int expr_truth_value(struct expression *expr);
+
 long long get_expression_value(struct expression *);
 long long const_expression_value(struct expression *);
 long long get_expression_value_silent(struct expression *expr);
@@ -256,10 +270,6 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
-
-extern void evaluate_symbol_list(struct symbol_list *list);
-extern struct symbol *evaluate_statement(struct statement *stmt);
-extern struct symbol *evaluate_expression(struct expression *);
 
 extern int expand_symbol(struct symbol *);
 

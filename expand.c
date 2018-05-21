@@ -41,6 +41,7 @@
 #include "symbol.h"
 #include "target.h"
 #include "expression.h"
+#include "evaluate.h"
 #include "expand.h"
 
 
