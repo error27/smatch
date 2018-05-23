@@ -27,10 +27,10 @@ void test(void)
 	int x;
 
 	x = returns_user_data();
-	__smatch_state("check_user_data", "x");
+	__smatch_user_rl(x);
 	p = returns_user_member();
-	__smatch_state("check_user_data", "p");
-	__smatch_state("check_user_data", "p->x");
+	__smatch_user_rl(p);
+	__smatch_user_rl(p->x);
 }
 
 /*
@@ -38,8 +38,8 @@ void test(void)
  * check-command: smatch -p=kernel -I.. sm_user_data4.c
  *
  * check-output-start
-sm_user_data4.c:30 test() 'x' = 'user_data_set'
-sm_user_data4.c:32 test() check_user_data 'p' not found
-sm_user_data4.c:33 test() 'p->x' = 'user_data_set'
+sm_user_data4.c:30 test() user rl: 'x' = 's32min-s32max'
+sm_user_data4.c:32 test() user rl: 'p' = ''
+sm_user_data4.c:33 test() user rl: 'p->x' = 's32min-s32max'
  * check-output-end
  */

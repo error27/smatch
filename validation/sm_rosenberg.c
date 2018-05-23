@@ -50,7 +50,7 @@ int main(void)
 	}
 
 	copy_to_user(ptr, &p->a, sizeof(struct aa_policy));
-	copy_to_user(ptr, &global_dec, sizeof(struct global_dec));
+	copy_to_user(ptr, &global_dec, sizeof(global_dec));
 	copy_to_user(ptr, &one, sizeof(one));
 	copy_to_user(ptr, &two, sizeof(two));
 	copy_to_user(ptr, &three, sizeof(three));

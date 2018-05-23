@@ -48,6 +48,6 @@ sm_casts4.c:30 main() implied: ul = '18446744073709551614-u64max'
 sm_casts4.c:31 main() implied: i = '(-2)-s32max'
 sm_casts4.c:32 main() implied: ui = '4294967294-u32max'
 sm_casts4.c:33 main() implied: c = '(-2)-127'
-sm_casts4.c:34 main() implied: uc = '0-255'
+sm_casts4.c:34 main() implied: uc = ''
  * check-output-end
  */

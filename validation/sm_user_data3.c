@@ -16,11 +16,12 @@ void test(void)
 {
 	copy_from_user(a, src, sizeof(*a));
 	b = returns_filter(a);
-	__smatch_state("check_user_data", "b->y");
+	__smatch_user_rl(b->y);
 	b = returns_filter(src);
-	__smatch_state("check_user_data", "b->y");
+	__smatch_user_rl(b->y);
 	b = returns_filter(a);
-	__smatch_state("check_user_data", "b->y");
+	__smatch_user_rl(b->y);
+	__smatch_states("check_user_data2");
 }
 
 /*

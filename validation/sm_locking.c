@@ -1,5 +1,5 @@
-_spin_lock(int name);
-_spin_unlock(int name);
+void _spin_lock(int name);
+void _spin_unlock(int name);
 
 int a, b, c;
 

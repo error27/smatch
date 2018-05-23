@@ -1,4 +1,5 @@
 void *kmalloc(void);
+void free(void *);
 
 struct ture {
 	int *a;
@@ -28,6 +29,7 @@ void func (void)
  * check-command: smatch sm_memory.c
  *
  * check-output-start
-sm_memory.c:21 func() warn: possible memory leak of 'ac'
+sm_memory.c:22 func() warn: possible memory leak of 'ac'
+sm_memory.c:22 func() error: memory leak of 'ac'
  * check-output-end
  */
