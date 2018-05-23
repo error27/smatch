@@ -1133,43 +1133,24 @@ static struct token *attribute_context(struct token *token, struct symbol *attr,
 {
 	struct context *context = alloc_context();
 	struct expression *args[3];
-	int argc = 0;
+	int idx = 0;
 
 	token = expect(token, '(', "after context attribute");
-	while (!match_op(token, ')')) {
-		struct expression *expr = NULL;
-		token = conditional_expression(token, &expr);
-		if (!expr)
-			break;
-		if (argc < 3)
-			args[argc++] = expr;
-		if (!match_op(token, ','))
-			break;
+	token = conditional_expression(token, &args[0]);
+	token = expect(token, ',', "after context 1st argument");
+	token = conditional_expression(token, &args[1]);
+	if (match_op(token, ',')) {
 		token = token->next;
-	}
-
-	switch(argc) {
-	case 0:
-		sparse_error(token->pos, "expected context input/output values");
-		break;
-	case 1:
-		context->in = get_expression_value(args[0]);
-		break;
-	case 2:
-		context->in = get_expression_value(args[0]);
-		context->out = get_expression_value(args[1]);
-		break;
-	case 3:
+		token = conditional_expression(token, &args[2]);
+		token = expect(token, ')', "after context 3rd argument");
 		context->context = args[0];
-		context->in = get_expression_value(args[1]);
-		context->out = get_expression_value(args[2]);
-		break;
+		idx++;
+	} else {
+		token = expect(token, ')', "after context 2nd argument");
 	}
-
-	if (argc)
-		add_ptr_list(&ctx->ctype.contexts, context);
-
-	token = expect(token, ')', "after context attribute");
+	context->in =  get_expression_value(args[idx++]);
+	context->out = get_expression_value(args[idx++]);
+	add_ptr_list(&ctx->ctype.contexts, context);
 	return token;
 }
 
