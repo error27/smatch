@@ -2339,8 +2339,10 @@ static struct token *parse_context_statement(struct token *token, struct stateme
 {
 	stmt->type = STMT_CONTEXT;
 	token = parse_expression(token->next, &stmt->expression);
-	if (stmt->expression->type == EXPR_PREOP
+	if (stmt->expression
+	    && stmt->expression->type == EXPR_PREOP
 	    && stmt->expression->op == '('
+	    && stmt->expression->unop
 	    && stmt->expression->unop->type == EXPR_COMMA) {
 		struct expression *expr;
 		expr = stmt->expression->unop;

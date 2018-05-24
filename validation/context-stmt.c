@@ -6,6 +6,9 @@ static void foo(int x)
 
 	__context__(x);		// KO: no const expr
 	__context__(1,x);	// KO: no const expr
+
+	__context__;		// KO: no expression at all
+	__context__(;		// KO: no expression at all
 }
 
 /*
@@ -13,7 +16,11 @@ static void foo(int x)
  * check-command: sparse -Wno-context $file
  *
  * check-error-start
+context-stmt.c:11:21: error: an expression is expected before ')'
+context-stmt.c:11:21: error: Expected ) in expression
+context-stmt.c:11:21: error: got ;
 context-stmt.c:7:21: error: bad constant expression
 context-stmt.c:8:23: error: bad constant expression
+context-stmt.c:11:20: error: bad constant expression type
  * check-error-end
  */
