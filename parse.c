@@ -2338,17 +2338,15 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 static struct token *parse_context_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_CONTEXT;
-	token = parse_expression(token->next, &stmt->expression);
-	if (stmt->expression
-	    && stmt->expression->type == EXPR_PREOP
-	    && stmt->expression->op == '('
-	    && stmt->expression->unop
-	    && stmt->expression->unop->type == EXPR_COMMA) {
-		struct expression *expr;
-		expr = stmt->expression->unop;
-		stmt->context = expr->left;
-		stmt->expression = expr->right;
+	token = token->next;
+	token = expect(token, '(', "after __context__ statement");
+	token = assignment_expression(token, &stmt->expression);
+	if (match_op(token, ',')) {
+		token = token->next;
+		stmt->context = stmt->expression;
+		token = assignment_expression(token, &stmt->expression);
 	}
+	token = expect(token, ')', "at end of __context__ statement");
 	return expect(token, ';', "at end of statement");
 }
 
