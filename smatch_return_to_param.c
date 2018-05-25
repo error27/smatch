@@ -172,16 +172,22 @@ char *map_long_to_short_name_sym_nostack(const char *name, struct symbol *sym, s
 char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym)
 {
 	char *name;
+	struct symbol *start_sym;
 	struct smatch_state *state;
 
 	*sym = NULL;
 
-	name = expr_to_str(expr);
+	name = expr_to_str_sym(expr, &start_sym);
 	if (!name)
 		return NULL;
-	state = get_state(my_id, name, (struct symbol *)expr);
+	if (expr->type == EXPR_CALL)
+		start_sym = expr_to_sym(expr->fn);
+
+	state = get_state(my_id, name, start_sym);
+	free_string(name);
 	if (!state || !state->data)
 		return NULL;
+
 	*sym = state->data;
 	return alloc_string(state->name);
 }
@@ -189,48 +195,45 @@ char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym)
 static void store_mapping_helper(char *left_name, struct symbol *left_sym, struct expression *call, const char *return_string)
 {
 	const char *p = return_string;
-	const char *end;
+	char *close;
 	int param;
-	struct expression *arg;
-	char *name = NULL;
+	struct expression *arg, *new;
+	char *right_name;
 	struct symbol *right_sym;
 	char buf[256];
 
 	while (*p && *p != '[')
 		p++;
 	if (!*p)
-		goto free;
+		return;
 	p++;
 	if (*p != '$')
-		goto free;
-	p++;
-	param = atoi(p);
-	p++;
-	if (*p != '-' || *(p + 1) != '>')
-		goto free;
-	end = strchr(p, ']');
-	if (!end)
-		goto free;
+		return;
 
+	snprintf(buf, sizeof(buf), "%s", p);
+	close = strchr(buf, ']');
+	if (!close)
+		return;
+	*close = '\0';
+
+	param = atoi(buf + 1);
 	arg = get_argument_from_call_expr(call->args, param);
 	if (!arg)
-		goto free;
-	name = expr_to_var_sym(arg, &right_sym);
-	if (!name || !right_sym)
-		goto free;
-	snprintf(buf, sizeof(buf), "%s", name);
+		return;
 
-	if (end - p + strlen(buf) >= sizeof(buf))
+	new = gen_expression_from_key(arg, buf);
+	if (!new)
+		return;
+
+	right_name = expr_to_var_sym(new, &right_sym);
+	if (!right_name || !right_sym)
 		goto free;
-	strncat(buf, p, end - p);
 
-	set_state(my_id, left_name, left_sym, alloc_my_state(buf, right_sym));
-	//set_state(my_id, buf, right_sym, alloc_my_state(left_name, left_sym));
-
-	store_link(link_id, buf, right_sym, left_name, left_sym);
+	set_state(my_id, left_name, left_sym, alloc_my_state(right_name, right_sym));
+	store_link(link_id, right_name, right_sym, left_name, left_sym);
 
 free:
-	free_string(name);
+	free_string(right_name);
 }
 
 void __add_return_to_param_mapping(struct expression *expr, const char *return_string)
