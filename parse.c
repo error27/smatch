@@ -2395,12 +2395,15 @@ static struct token *statement(struct token *token, struct statement **tree)
 
 		if (match_op(token->next, ':')) {
 			struct symbol *s = label_symbol(token);
+			token = skip_attributes(token->next->next);
+			if (s->stmt) {
+				sparse_error(stmt->pos, "label '%s' redefined", show_ident(s->ident));
+				// skip the label to avoid multiple definitions
+				return statement(token, tree);
+			}
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = s;
-			if (s->stmt)
-				sparse_error(stmt->pos, "label '%s' redefined", show_ident(token->ident));
 			s->stmt = stmt;
-			token = skip_attributes(token->next->next);
 			return statement(token, &stmt->label_statement);
 		}
 	}

@@ -10,7 +10,6 @@ l:
 
 /*
  * check-name: label-redefined
- * check-known-to-fail
  *
  * check-error-start
 label-redefined.c:7:1: error: label 'l' redefined
