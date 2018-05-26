@@ -444,6 +444,7 @@ static struct token *mark_eof(stream_t *stream)
 	struct token *end;
 
 	end = alloc_token(stream);
+	eof_token_entry.pos = end->pos;
 	token_type(end) = TOKEN_STREAMEND;
 	end->pos.newline = 1;
 
