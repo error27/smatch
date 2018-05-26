@@ -2341,10 +2341,14 @@ static struct token *parse_context_statement(struct token *token, struct stateme
 	token = token->next;
 	token = expect(token, '(', "after __context__ statement");
 	token = assignment_expression(token, &stmt->expression);
+	if (!stmt->expression)
+		unexpected(token, "expression expected after '('");
 	if (match_op(token, ',')) {
 		token = token->next;
 		stmt->context = stmt->expression;
 		token = assignment_expression(token, &stmt->expression);
+		if (!stmt->expression)
+			unexpected(token, "expression expected after ','");
 	}
 	token = expect(token, ')', "at end of __context__ statement");
 	return expect(token, ';', "at end of statement");
