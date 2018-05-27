@@ -2211,6 +2211,38 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		size = bits_in_char;
 	}
 
+	if (is_array_type(type) && size < 0) {	// VLA, 1-dimension only
+		struct expression *base, *size;
+		struct symbol *base_type;
+
+		if (type->type == SYM_NODE)
+			type = type->ctype.base_type;	// strip the SYM_NODE
+		base_type = get_base_type(type);
+		if (!base_type)
+			goto error;
+		if (base_type->bit_size <= 0) {
+			base = alloc_expression(expr->pos, EXPR_SIZEOF);
+			base->cast_type = base_type;
+			if (!evaluate_sizeof(base))
+				goto error;
+		} else {
+			base = alloc_expression(expr->pos, EXPR_VALUE);
+			base->value = bits_to_bytes(base_type->bit_size);
+			base->ctype = size_t_ctype;
+		}
+		size = alloc_expression(expr->pos, EXPR_CAST);
+		size->cast_type = size_t_ctype;
+		size->cast_expression = type->array_size;
+		if (!evaluate_expression(size))
+			goto error;
+		expr->left = size;
+		expr->right = base;
+		expr->type = EXPR_BINOP;
+		expr->op = '*';
+		return expr->ctype = size_t_ctype;
+	}
+
+error:
 	if ((size < 0) || (size & (bits_in_char - 1)))
 		expression_error(expr, "cannot size expression");
 
