@@ -82,13 +82,6 @@ error:
 	return 0;
 }
 
-static int evaluate_expect(struct expression *expr)
-{
-	/* Should we evaluate it to return the type of the first argument? */
-	expr->ctype = &int_ctype;
-	return 1;
-}
-
 static int arguments_choose(struct expression *expr)
 {
 	return eval_args(expr, 3);
@@ -198,7 +191,6 @@ static struct symbol_op warning_op = {
 };
 
 static struct symbol_op expect_op = {
-	.evaluate = evaluate_expect,
 	.expand = expand_expect
 };
 
@@ -354,6 +346,7 @@ void declare_builtins(void)
 	declare_builtin("__builtin_ctzl", &int_ctype, 0, &long_ctype, NULL);
 	declare_builtin("__builtin_ctzll", &int_ctype, 0, &llong_ctype, NULL);
 	declare_builtin("__builtin_exit", &void_ctype, 0, &int_ctype, NULL);
+	declare_builtin("__builtin_expect", &long_ctype, 0, &long_ctype ,&long_ctype, NULL);
 	declare_builtin("__builtin_extract_return_addr", &ptr_ctype, 0, &ptr_ctype, NULL);
 	declare_builtin("__builtin_fabs", &double_ctype, 0, &double_ctype, NULL);
 	declare_builtin("__builtin_ffs", &int_ctype, 0, &int_ctype, NULL);
