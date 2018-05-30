@@ -1775,19 +1775,11 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 			right_false = remove_range(right_false, rl_max(left_orig), rl_max(left_orig));
 		break;
 	case SPECIAL_EQUAL:
-		if (!sval_is_max(rl_max(right_orig))) {
-			left_true = remove_range(left_true, add_one(rl_max(right_orig)), max);
-		}
-		if (!sval_is_min(rl_min(right_orig))) {
-			left_true = remove_range(left_true, min, sub_one(rl_min(right_orig)));
-		}
+		left_true = rl_intersection(left_orig, right_orig);
+		right_true = clone_rl(left_true);
+
 		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
 			left_false = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
-
-		if (!sval_is_max(rl_max(left_orig)))
-			right_true = remove_range(right_true, add_one(rl_max(left_orig)), max);
-		if (!sval_is_min(rl_min(left_orig)))
-			right_true = remove_range(right_true, min, sub_one(rl_min(left_orig)));
 		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
 			right_false = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
@@ -1817,17 +1809,11 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 			right_false = remove_range(right_orig, min, sub_one(rl_min(left_orig)));
 		break;
 	case SPECIAL_NOTEQUAL:
-		if (!sval_is_max(rl_max(right_orig)))
-			left_false = remove_range(left_false, add_one(rl_max(right_orig)), max);
-		if (!sval_is_min(rl_min(right_orig)))
-			left_false = remove_range(left_false, min, sub_one(rl_min(right_orig)));
+		left_false = rl_intersection(left_orig, right_orig);
+		right_false = clone_rl(left_false);
+
 		if (sval_cmp(rl_min(right_orig), rl_max(right_orig)) == 0)
 			left_true = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
-
-		if (!sval_is_max(rl_max(left_orig)))
-			right_false = remove_range(right_false, add_one(rl_max(left_orig)), max);
-		if (!sval_is_min(rl_min(left_orig)))
-			right_false = remove_range(right_false, min, sub_one(rl_min(left_orig)));
 		if (sval_cmp(rl_min(left_orig), rl_max(left_orig)) == 0)
 			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
