@@ -59,8 +59,10 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);	\
 	})
 
-#define free_ptr_list(list) \
-	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
+#define free_ptr_list(list)	do {				\
+		VRFY_PTR_LIST(*(list));				\
+		__free_ptr_list((struct ptr_list **)(list));	\
+	} while (0)
 
 #define PTR_UNTAG(p)		((void*)(~3UL & (unsigned long)(p)))
 #define PTR_ENTRY_NOTAG(h,i)	((h)->list[i])
