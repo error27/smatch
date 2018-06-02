@@ -248,7 +248,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 extern void split_ptr_list_head(struct ptr_list *);
 
-#define DO_SPLIT(ptr, __head, __list, __nr) do {					\
+#define DO_SPLIT(__head, __list, __nr) do {						\
 	split_ptr_list_head((struct ptr_list*)__list);					\
 	if (__nr >= __list->nr) {							\
 		__nr -= __list->nr;							\
@@ -256,10 +256,10 @@ extern void split_ptr_list_head(struct ptr_list *);
 	};										\
 } while (0)
 
-#define DO_INSERT_CURRENT(new, ptr, __head, __list, __nr) do {				\
+#define DO_INSERT_CURRENT(new, __head, __list, __nr) do {				\
 	TYPEOF(__head) __this, __last;							\
 	if (__list->nr == LIST_NODE_NR)							\
-		DO_SPLIT(ptr, __head, __list, __nr);					\
+		DO_SPLIT(__head, __list, __nr);						\
 	__this = __list->list + __nr;							\
 	__last = __list->list + __list->nr - 1;						\
 	while (__last >= __this) {							\
@@ -271,9 +271,9 @@ extern void split_ptr_list_head(struct ptr_list *);
 } while (0)
 
 #define INSERT_CURRENT(new, ptr) \
-	DO_INSERT_CURRENT(new, ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_INSERT_CURRENT(new, __head##ptr, __list##ptr, __nr##ptr)
 
-#define DO_DELETE_CURRENT(ptr, __head, __list, __nr) do {				\
+#define DO_DELETE_CURRENT(__head, __list, __nr) do {					\
 	TYPEOF(__head) __this = __list->list + __nr;					\
 	TYPEOF(__head) __last = __list->list + __list->nr - 1;				\
 	while (__this < __last) {							\
@@ -285,7 +285,7 @@ extern void split_ptr_list_head(struct ptr_list *);
 } while (0)
 
 #define DELETE_CURRENT_PTR(ptr) \
-	DO_DELETE_CURRENT(ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_DELETE_CURRENT(__head##ptr, __list##ptr, __nr##ptr)
 
 #define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
 	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
