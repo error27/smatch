@@ -112,7 +112,6 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		__typeof__(head) __head = (head);					\
 		__typeof__(head) __list = __head;					\
 		int __nr = 0;								\
-		CHECK_TYPE(head,ptr);							\
 		ptr = PTR_DEREF(__head, 0, PTR_ENTRY);					\
 
 #define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
@@ -157,7 +156,6 @@ static inline void *last_ptr_list(struct ptr_list *list)
 #define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {			\
 	__typeof__(head) __head = (head);						\
 	__typeof__(head) __list = __head;						\
-	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
 			for (__nr = 0; __nr < __list->nr; __nr++) {			\
@@ -178,7 +176,6 @@ static inline void *last_ptr_list(struct ptr_list *list)
 #define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do {		\
 	__typeof__(head) __head = (head);						\
 	__typeof__(head) __list = __head;						\
-	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
 			__list = __list->prev;						\
