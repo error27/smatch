@@ -10,7 +10,6 @@
  */
 
 /* Silly type-safety check ;) */
-#define DECLARE_PTR_LIST(listname,type)	struct listname { type *list[1]; }
 #define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
 #define TYPEOF(head)			__typeof__(&(head)->list[0])
 #define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
@@ -24,13 +23,16 @@
 
 #define LIST_NODE_NR (13)
 
-struct ptr_list {
-	int nr:8;
-	int rm:8;
-	struct ptr_list *prev;
-	struct ptr_list *next;
-	void *list[LIST_NODE_NR];
-};
+#define DECLARE_PTR_LIST(listname, type)	\
+	struct listname {			\
+		int nr:8;			\
+		int rm:8;			\
+		struct listname *prev;		\
+		struct listname *next;		\
+		type *list[LIST_NODE_NR];	\
+	}
+
+DECLARE_PTR_LIST(ptr_list, void);
 
 #define ptr_list_empty(x) ((x) == NULL)
 
