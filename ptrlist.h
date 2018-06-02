@@ -98,7 +98,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 }
 
 #define PTR_DEREF(__head, idx, PTR_ENTRY) ({						\
-	struct ptr_list *__list = __head;						\
+	__typeof__(__head) __list = __head;						\
 	while (__list && __list->nr == 0) {						\
 		__list = __list->next;							\
 		if (__list == __head)							\
@@ -109,8 +109,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 #define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)				\
 	do {										\
-		struct ptr_list *__head = (struct ptr_list *) (head);			\
-		struct ptr_list *__list = __head;					\
+		__typeof__(head) __head = (head);					\
+		__typeof__(head) __list = __head;					\
 		int __nr = 0;								\
 		CHECK_TYPE(head,ptr);							\
 		ptr = PTR_DEREF(__head, 0, PTR_ENTRY);					\
@@ -155,8 +155,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {			\
-	struct ptr_list *__head = (struct ptr_list *) (head);				\
-	struct ptr_list *__list = __head;						\
+	__typeof__(head) __head = (head);						\
+	__typeof__(head) __list = __head;						\
 	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
@@ -176,8 +176,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 } while (0)
 
 #define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do {		\
-	struct ptr_list *__head = (struct ptr_list *) (head);				\
-	struct ptr_list *__list = __head;						\
+	__typeof__(head) __head = (head);						\
+	__typeof__(head) __list = __head;						\
 	CHECK_TYPE(head,ptr);								\
 	if (__head) {									\
 		do { int __nr;								\
@@ -201,8 +201,8 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 #define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead,				\
 		   __newlist, __newnr, PTR_ENTRY) do { 					\
-	struct ptr_list *__newhead = __head;						\
-	struct ptr_list *__newlist = __list;						\
+	__typeof__(__head) __newhead = __head;						\
+	__typeof__(__head) __newlist = __list;						\
 	int __newnr = __nr;								\
 	new = ptr;									\
 	goto __inside##new;								\
@@ -221,7 +221,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		   new, __head##new, __list##new, __nr##new, PTR_ENTRY_UNTAG)
 
 #define DO_THIS_ADDRESS(ptr, __head, __list, __nr)					\
-	((__typeof__(&(ptr))) (__list->list + __nr))
+	(&__list->list[__nr])
 
 #define FOR_EACH_PTR(head, ptr) \
 	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
@@ -251,7 +251,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 extern void split_ptr_list_head(struct ptr_list *);
 
 #define DO_SPLIT(ptr, __head, __list, __nr) do {					\
-	split_ptr_list_head(__list);							\
+	split_ptr_list_head((struct ptr_list*)__list);					\
 	if (__nr >= __list->nr) {							\
 		__nr -= __list->nr;							\
 		__list = __list->next;							\
@@ -259,7 +259,7 @@ extern void split_ptr_list_head(struct ptr_list *);
 } while (0)
 
 #define DO_INSERT_CURRENT(new, ptr, __head, __list, __nr) do {				\
-	void **__this, **__last;							\
+	TYPEOF(__head) __this, __last;							\
 	if (__list->nr == LIST_NODE_NR)							\
 		DO_SPLIT(ptr, __head, __list, __nr);					\
 	__this = __list->list + __nr;							\
@@ -276,8 +276,8 @@ extern void split_ptr_list_head(struct ptr_list *);
 	DO_INSERT_CURRENT(new, ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define DO_DELETE_CURRENT(ptr, __head, __list, __nr) do {				\
-	void **__this = __list->list + __nr;						\
-	void **__last = __list->list + __list->nr - 1;					\
+	TYPEOF(__head) __this = __list->list + __nr;					\
+	TYPEOF(__head) __last = __list->list + __list->nr - 1;				\
 	while (__this < __last) {							\
 		__this[0] = __this[1];							\
 		__this++;								\
