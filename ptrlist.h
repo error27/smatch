@@ -14,13 +14,6 @@
 #define TYPEOF(head)			__typeof__(&(head)->list[0])
 #define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
 
-/*
- * The "unnecessary" statement expression is there to shut up a totally 
- * bogus gcc warning about unused expressions, brought on by the fact
- * that we cast the result to the proper type.
- */
-#define MKTYPE(head,expr)		({ (TYPEOF(head))(expr); })
-
 #define LIST_NODE_NR (13)
 
 #define DECLARE_PTR_LIST(listname, type)	\
@@ -55,10 +48,16 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
  * You just have to be creative, and use some gcc
  * extensions..
  */
-#define add_ptr_list_tag(list,entry,tag) \
-	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list_tag((struct ptr_list **)(list), (entry), (tag))))
-#define add_ptr_list(list,entry)	\
-	MKTYPE(*(list), (CHECK_TYPE(*(list),(entry)),__add_ptr_list((struct ptr_list **)(list),	(entry))))
+#define add_ptr_list(list, ptr) ({					\
+		struct ptr_list** head = (struct ptr_list**)(list);	\
+		CHECK_TYPE(*(list),ptr);				\
+		(__typeof__(&(ptr))) __add_ptr_list(head, ptr);		\
+	})
+#define add_ptr_list_tag(list, ptr, tag) ({				\
+		struct ptr_list** head = (struct ptr_list**)(list);	\
+		CHECK_TYPE(*(list),ptr);				\
+		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);	\
+	})
 
 #define free_ptr_list(list) \
 	do { VRFY_PTR_LIST(*(list)); __free_ptr_list((struct ptr_list **)(list)); } while (0)
