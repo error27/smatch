@@ -1135,6 +1135,43 @@ static void predefined_type_size(const char *name, const char *suffix, unsigned 
 static void predefined_macros(void)
 {
 	predefine("__CHECKER__", 0, "1");
+	predefine("__GNUC__", 1, "%d", gcc_major);
+	predefine("__GNUC_MINOR__", 1, "%d", gcc_minor);
+	predefine("__GNUC_PATCHLEVEL__", 1, "%d", gcc_patchlevel);
+
+	predefine("__STDC__", 1, "1");
+	switch (standard) {
+	case STANDARD_C89:
+		predefine("__STRICT_ANSI__", 1, "1");
+		break;
+
+	case STANDARD_C94:
+		predefine("__STDC_VERSION__", 1, "199409L");
+		predefine("__STRICT_ANSI__", 1, "1");
+		break;
+
+	case STANDARD_C99:
+		predefine("__STDC_VERSION__", 1, "199901L");
+		predefine("__STRICT_ANSI__", 1, "1");
+		break;
+
+	case STANDARD_GNU89:
+	default:
+		break;
+
+	case STANDARD_GNU99:
+		predefine("__STDC_VERSION__", 1, "199901L");
+		break;
+
+	case STANDARD_C11:
+		predefine("__STRICT_ANSI__", 1, "1");
+	case STANDARD_GNU11:
+		predefine("__STDC_NO_ATOMICS__", 1, "1");
+		predefine("__STDC_NO_COMPLEX__", 1, "1");
+		predefine("__STDC_NO_THREADS__", 1, "1");
+		predefine("__STDC_VERSION__", 1, "201112L");
+		break;
+	}
 
 	predefined_sizeof("SHORT", bits_in_short);
 	predefined_max("SHRT", "", bits_in_short);
@@ -1166,6 +1203,15 @@ static void predefined_macros(void)
 		predefine("__LITTLE_ENDIAN__", 1, "1");
 		predefine("__BYTE_ORDER__", 1, "__ORDER_LITTLE_ENDIAN__");
 	}
+
+	if (optimize_level)
+		predefine("__OPTIMIZE__", 0, "1");
+	if (optimize_size)
+		predefine("__OPTIMIZE_SIZE__", 0, "1");
+
+	// Temporary hacks
+	predefine("__extension__", 0, NULL);
+	predefine("__pragma__", 0, NULL);
 }
 
 static void declare_builtin_functions(void)
@@ -1187,9 +1233,19 @@ static void declare_builtin_functions(void)
 
 static void create_builtin_stream(void)
 {
-	predefine("__GNUC__", 1, "%d", gcc_major);
-	predefine("__GNUC_MINOR__", 1, "%d", gcc_minor);
-	predefine("__GNUC_PATCHLEVEL__", 1, "%d", gcc_patchlevel);
+	// Temporary hack
+	add_pre_buffer("#define _Pragma(x)\n");
+
+	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
+	// solaris/sparc that is really "unsigned int" and for linux/x86_64
+	// it is "long unsigned int".  In either case we can probably
+	// get away with this.  We need the #weak_define as cgcc will define
+	// the right __SIZE_TYPE__.
+	if (size_t_ctype == &ulong_ctype)
+		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
+	else
+		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
+
 
 	/* add the multiarch include directories, if any */
 	if (multiarch_dir && *multiarch_dir) {
@@ -1202,57 +1258,6 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#add_system \"%s/include\"\n", gcc_base_dir);
 	add_pre_buffer("#add_system \"%s/include-fixed\"\n", gcc_base_dir);
 
-	predefine("__extension__", 0, NULL);
-	predefine("__pragma__", 0, NULL);
-	add_pre_buffer("#define _Pragma(x)\n");
-
-	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
-	// solaris/sparc that is really "unsigned int" and for linux/x86_64
-	// it is "long unsigned int".  In either case we can probably
-	// get away with this.  We need the #weak_define as cgcc will define
-	// the right __SIZE_TYPE__.
-	if (size_t_ctype == &ulong_ctype)
-		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
-	else
-		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
-	predefine("__STDC__", 1, "1");
-
-	switch (standard)
-	{
-		case STANDARD_C89:
-			predefine("__STRICT_ANSI__", 1, "1");
-			break;
-
-		case STANDARD_C94:
-			predefine("__STDC_VERSION__", 1, "199409L");
-			predefine("__STRICT_ANSI__", 1, "1");
-			break;
-
-		case STANDARD_C99:
-			predefine("__STDC_VERSION__", 1, "199901L");
-			predefine("__STRICT_ANSI__", 1, "1");
-			break;
-
-		case STANDARD_GNU89:
-			break;
-
-		case STANDARD_GNU99:
-			predefine("__STDC_VERSION__", 1, "199901L");
-			break;
-
-		case STANDARD_C11:
-			predefine("__STRICT_ANSI__", 1, "1");
-		case STANDARD_GNU11:
-			predefine("__STDC_NO_ATOMICS__", 1, "1");
-			predefine("__STDC_NO_COMPLEX__", 1, "1");
-			predefine("__STDC_NO_THREADS__", 1, "1");
-			predefine("__STDC_VERSION__", 1, "201112L");
-			break;
-
-		default:
-			assert (0);
-	}
-
 	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
 	add_pre_buffer("#define __builtin_ms_va_start(a,b) ((a) = (__builtin_ms_va_list)(&(b)))\n");
@@ -1264,11 +1269,6 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");
-
-	if (optimize_level)
-		predefine("__OPTIMIZE__", 0, "1");
-	if (optimize_size)
-		predefine("__OPTIMIZE_SIZE__", 0, "1");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
