@@ -477,8 +477,8 @@ static void handle_arch_m64_finalize(void)
 	switch (arch_m64) {
 	case ARCH_X32:
 		max_int_alignment = 8;
-		add_pre_buffer("#weak_define __ILP32__ 1\n");
-		add_pre_buffer("#weak_define _ILP32 1\n");
+		predefine("__ILP32__", 1, "1");
+		predefine("_ILP32", 1, "1");
 		goto case_x86_64;
 	case ARCH_LP32:
 		/* default values */
@@ -488,15 +488,15 @@ static void handle_arch_m64_finalize(void)
 		max_int_alignment = 8;
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
-		add_pre_buffer("#weak_define __LP64__ 1\n");
-		add_pre_buffer("#weak_define _LP64 1\n");
+		predefine("__LP64__", 1, "1");
+		predefine("_LP64", 1, "1");
 		goto case_64bit_common;
 	case ARCH_LLP64:
 		bits_in_long = 32;
 		max_int_alignment = 8;
 		size_t_ctype = &ullong_ctype;
 		ssize_t_ctype = &llong_ctype;
-		add_pre_buffer("#weak_define __LLP64__ 1\n");
+		predefine("__LLP64__", 1, "1");
 		goto case_64bit_common;
 	case_64bit_common:
 		bits_in_pointer = 64;
@@ -504,8 +504,8 @@ static void handle_arch_m64_finalize(void)
 		/* fall through */
 	case_x86_64:
 #if defined(__x86_64__) || defined(__x86_64)
-		add_pre_buffer("#weak_define __x86_64__ 1\n");
-		add_pre_buffer("#weak_define __x86_64   1\n");
+		predefine("__x86_64__", 1, "1");
+		predefine("__x86_64", 1, "1");
 #endif
 		break;
 	}
@@ -1111,14 +1111,19 @@ static char **handle_switch(char *arg, char **next)
 
 static void predefined_sizeof(const char *name, unsigned bits)
 {
-	add_pre_buffer("#weak_define __SIZEOF_%s__ %d\n", name, bits/8);
+	char buf[32];
+
+	snprintf(buf, sizeof(buf), "__SIZEOF_%s__", name);
+	predefine(buf, 1, "%d", bits/8);
 }
 
 static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
 	unsigned long long max = (1ULL << (bits - 1 )) - 1;
+	char buf[32];
 
-	add_pre_buffer("#weak_define __%s_MAX__ %#llx%s\n", name, max, suffix);
+	snprintf(buf, sizeof(buf), "__%s_MAX__", name);
+	predefine(buf, 1, "%#llx%s", max, suffix);
 }
 
 static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
@@ -1129,13 +1134,13 @@ static void predefined_type_size(const char *name, const char *suffix, unsigned 
 
 static void predefined_macros(void)
 {
-	add_pre_buffer("#define __CHECKER__ 1\n");
+	predefine("__CHECKER__", 0, "1");
 
 	predefined_sizeof("SHORT", bits_in_short);
 	predefined_max("SHRT", "", bits_in_short);
 	predefined_max("SCHAR", "", bits_in_char);
 	predefined_max("WCHAR", "", bits_in_wchar);
-	add_pre_buffer("#weak_define __CHAR_BIT__ %d\n", bits_in_char);
+	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 
 	predefined_type_size("INT", "", bits_in_int);
 	predefined_type_size("LONG", "L", bits_in_long);
@@ -1151,14 +1156,16 @@ static void predefined_macros(void)
 	predefined_sizeof("DOUBLE", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", bits_in_longdouble);
 
-	add_pre_buffer("#weak_define __%s_ENDIAN__ 1\n",
-		arch_big_endian ? "BIG" : "LITTLE");
-
-	add_pre_buffer("#weak_define __ORDER_LITTLE_ENDIAN__ 1234\n");
-	add_pre_buffer("#weak_define __ORDER_BIG_ENDIAN__ 4321\n");
-	add_pre_buffer("#weak_define __ORDER_PDP_ENDIAN__ 3412\n");
-	add_pre_buffer("#weak_define __BYTE_ORDER__ __ORDER_%s_ENDIAN__\n",
-		arch_big_endian ? "BIG" : "LITTLE");
+	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
+	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
+	predefine("__ORDER_PDP_ENDIAN__", 1, "3412");
+	if (arch_big_endian) {
+		predefine("__BIG_ENDIAN__", 1, "1");
+		predefine("__BYTE_ORDER__", 1, "__ORDER_BIG_ENDIAN__");
+	} else {
+		predefine("__LITTLE_ENDIAN__", 1, "1");
+		predefine("__BYTE_ORDER__", 1, "__ORDER_LITTLE_ENDIAN__");
+	}
 }
 
 static void declare_builtin_functions(void)
@@ -1180,9 +1187,9 @@ static void declare_builtin_functions(void)
 
 static void create_builtin_stream(void)
 {
-	add_pre_buffer("#weak_define __GNUC__ %d\n", gcc_major);
-	add_pre_buffer("#weak_define __GNUC_MINOR__ %d\n", gcc_minor);
-	add_pre_buffer("#weak_define __GNUC_PATCHLEVEL__ %d\n", gcc_patchlevel);
+	predefine("__GNUC__", 1, "%d", gcc_major);
+	predefine("__GNUC_MINOR__", 1, "%d", gcc_minor);
+	predefine("__GNUC_PATCHLEVEL__", 1, "%d", gcc_patchlevel);
 
 	/* add the multiarch include directories, if any */
 	if (multiarch_dir && *multiarch_dir) {
@@ -1195,8 +1202,8 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#add_system \"%s/include\"\n", gcc_base_dir);
 	add_pre_buffer("#add_system \"%s/include-fixed\"\n", gcc_base_dir);
 
-	add_pre_buffer("#define __extension__\n");
-	add_pre_buffer("#define __pragma__\n");
+	predefine("__extension__", 0, NULL);
+	predefine("__pragma__", 0, NULL);
 	add_pre_buffer("#define _Pragma(x)\n");
 
 	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
@@ -1208,38 +1215,38 @@ static void create_builtin_stream(void)
 		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
 	else
 		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
-	add_pre_buffer("#weak_define __STDC__ 1\n");
+	predefine("__STDC__", 1, "1");
 
 	switch (standard)
 	{
 		case STANDARD_C89:
-			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			predefine("__STRICT_ANSI__", 1, "1");
 			break;
 
 		case STANDARD_C94:
-			add_pre_buffer("#weak_define __STDC_VERSION__ 199409L\n");
-			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			predefine("__STDC_VERSION__", 1, "199409L");
+			predefine("__STRICT_ANSI__", 1, "1");
 			break;
 
 		case STANDARD_C99:
-			add_pre_buffer("#weak_define __STDC_VERSION__ 199901L\n");
-			add_pre_buffer("#weak_define __STRICT_ANSI__\n");
+			predefine("__STDC_VERSION__", 1, "199901L");
+			predefine("__STRICT_ANSI__", 1, "1");
 			break;
 
 		case STANDARD_GNU89:
 			break;
 
 		case STANDARD_GNU99:
-			add_pre_buffer("#weak_define __STDC_VERSION__ 199901L\n");
+			predefine("__STDC_VERSION__", 1, "199901L");
 			break;
 
 		case STANDARD_C11:
-			add_pre_buffer("#weak_define __STRICT_ANSI__ 1\n");
+			predefine("__STRICT_ANSI__", 1, "1");
 		case STANDARD_GNU11:
-			add_pre_buffer("#weak_define __STDC_NO_ATOMICS__ 1\n");
-			add_pre_buffer("#weak_define __STDC_NO_COMPLEX__ 1\n");
-			add_pre_buffer("#weak_define __STDC_NO_THREADS__ 1\n");
-			add_pre_buffer("#weak_define __STDC_VERSION__ 201112L\n");
+			predefine("__STDC_NO_ATOMICS__", 1, "1");
+			predefine("__STDC_NO_COMPLEX__", 1, "1");
+			predefine("__STDC_NO_THREADS__", 1, "1");
+			predefine("__STDC_VERSION__", 1, "201112L");
 			break;
 
 		default:
@@ -1259,9 +1266,9 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");
 
 	if (optimize_level)
-		add_pre_buffer("#define __OPTIMIZE__ 1\n");
+		predefine("__OPTIMIZE__", 0, "1");
 	if (optimize_size)
-		add_pre_buffer("#define __OPTIMIZE_SIZE__ 1\n");
+		predefine("__OPTIMIZE_SIZE__", 0, "1");
 }
 
 static struct symbol_list *sparse_tokenstream(struct token *token)
