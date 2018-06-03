@@ -1327,13 +1327,64 @@ Earg:
 	return NULL;
 }
 
+static int do_define(struct position pos, struct token *token, struct ident *name,
+		     struct token *arglist, struct token *expansion, int attr)
+{
+	struct symbol *sym;
+	int ret = 1;
+
+	expansion = parse_expansion(expansion, arglist, name);
+	if (!expansion)
+		return 1;
+
+	sym = lookup_symbol(name, NS_MACRO | NS_UNDEF);
+	if (sym) {
+		int clean;
+
+		if (attr < sym->attr)
+			goto out;
+
+		clean = (attr == sym->attr && sym->namespace == NS_MACRO);
+
+		if (token_list_different(sym->expansion, expansion) ||
+		    token_list_different(sym->arglist, arglist)) {
+			ret = 0;
+			if ((clean && attr == SYM_ATTR_NORMAL)
+					|| sym->used_in == file_scope) {
+				warning(pos, "preprocessor token %.*s redefined",
+						name->len, name->name);
+				info(sym->pos, "this was the original definition");
+			}
+		} else if (clean)
+			goto out;
+	}
+
+	if (!sym || sym->scope != file_scope) {
+		sym = alloc_symbol(pos, SYM_NODE);
+		bind_symbol(sym, name, NS_MACRO);
+		add_ident(&macros, name);
+		ret = 0;
+	}
+
+	if (!ret) {
+		sym->expansion = expansion;
+		sym->arglist = arglist;
+		if (token) /* Free the "define" token, but not the rest of the line */
+			__free_token(token);
+	}
+
+	sym->namespace = NS_MACRO;
+	sym->used_in = NULL;
+	sym->attr = attr;
+out:
+	return ret;
+}
+
 static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int attr)
 {
 	struct token *arglist, *expansion;
 	struct token *left = token->next;
-	struct symbol *sym;
 	struct ident *name;
-	int ret;
 
 	if (token_type(left) != TOKEN_IDENT) {
 		sparse_error(token->pos, "expected identifier to 'define'");
@@ -1356,51 +1407,7 @@ static int do_handle_define(struct stream *stream, struct token **line, struct t
 		}
 	}
 
-	expansion = parse_expansion(expansion, arglist, name);
-	if (!expansion)
-		return 1;
-
-	ret = 1;
-	sym = lookup_symbol(name, NS_MACRO | NS_UNDEF);
-	if (sym) {
-		int clean;
-
-		if (attr < sym->attr)
-			goto out;
-
-		clean = (attr == sym->attr && sym->namespace == NS_MACRO);
-
-		if (token_list_different(sym->expansion, expansion) ||
-		    token_list_different(sym->arglist, arglist)) {
-			ret = 0;
-			if ((clean && attr == SYM_ATTR_NORMAL)
-					|| sym->used_in == file_scope) {
-				warning(left->pos, "preprocessor token %.*s redefined",
-						name->len, name->name);
-				info(sym->pos, "this was the original definition");
-			}
-		} else if (clean)
-			goto out;
-	}
-
-	if (!sym || sym->scope != file_scope) {
-		sym = alloc_symbol(left->pos, SYM_NODE);
-		bind_symbol(sym, name, NS_MACRO);
-		add_ident(&macros, name);
-		ret = 0;
-	}
-
-	if (!ret) {
-		sym->expansion = expansion;
-		sym->arglist = arglist;
-		__free_token(token);	/* Free the "define" token, but not the rest of the line */
-	}
-
-	sym->namespace = NS_MACRO;
-	sym->used_in = NULL;
-	sym->attr = attr;
-out:
-	return ret;
+	return do_define(left->pos, token, name, arglist, expansion, attr);
 }
 
 static int handle_define(struct stream *stream, struct token **line, struct token *token)
