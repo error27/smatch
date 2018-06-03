@@ -1214,23 +1214,6 @@ static void predefined_macros(void)
 	predefine("__pragma__", 0, NULL);
 }
 
-static void declare_builtin_functions(void)
-{
-	/* Note:
-	 * Most builtin functions are declared in builtin.c:declare_builtins().
-	 * Some are also defined in builtin:init_builtins().
-	 */
-
-	/* Add Blackfin-specific stuff */
-	add_pre_buffer(
-		"#ifdef __bfin__\n"
-		"extern void __builtin_bfin_csync(void);\n"
-		"extern void __builtin_bfin_ssync(void);\n"
-		"extern int __builtin_bfin_norm_fr1x32(int);\n"
-		"#endif\n"
-	);
-}
-
 static void create_builtin_stream(void)
 {
 	// Temporary hack
@@ -1385,8 +1368,6 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		predefined_macros();
 		create_builtin_stream();
 		declare_builtins();
-		if (!preprocess_only)
-			declare_builtin_functions();
 
 		list = sparse_initial();
 

@@ -459,4 +459,9 @@ void declare_builtins(void)
 	declare_builtin("__sync_synchronize", &void_ctype, 0, NULL);
 	declare_builtin("__sync_val_compare_and_swap", &int_ctype, 1, &ptr_ctype, NULL);
 	declare_builtin("__sync_xor_and_fetch", &int_ctype, 1, &ptr_ctype, NULL);
+
+	// Blackfin-specific stuff
+	declare_builtin("__builtin_bfin_csync", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_bfin_ssync", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_bfin_norm_fr1x32", &int_ctype, 0, &int_ctype, NULL);
 }
