@@ -1380,6 +1380,44 @@ out:
 	return ret;
 }
 
+///
+// predefine a macro with a printf-formatted value
+// @name: the name of the macro
+// @weak: 0/1 for a normal or a weak define
+// @fmt: the printf format followed by it's arguments.
+//
+// The type of the value is automatically infered:
+// TOKEN_NUMBER if it starts by a digit, TOKEN_IDENT otherwise.
+// If @fmt is null or empty, the macro is defined with an empty definition.
+void predefine(const char *name, int weak, const char *fmt, ...)
+{
+	struct ident *ident = built_in_ident(name);
+	struct token *value = &eof_token_entry;
+	int attr = weak ? SYM_ATTR_WEAK : SYM_ATTR_NORMAL;
+
+	if (fmt && fmt[0]) {
+		static char buf[256];
+		va_list ap;
+
+		va_start(ap, fmt);
+		vsnprintf(buf, sizeof(buf), fmt, ap);
+		va_end(ap);
+
+		value = __alloc_token(0);
+		if (isdigit(buf[0])) {
+			token_type(value) = TOKEN_NUMBER;
+			value->number = xstrdup(buf);
+		} else {
+			token_type(value) = TOKEN_IDENT;
+			value->ident = built_in_ident(buf);
+		}
+		value->pos.whitespace = 1;
+		value->next = &eof_token_entry;
+	}
+
+	do_define(value->pos, NULL, ident, NULL, value, attr);
+}
+
 static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int attr)
 {
 	struct token *arglist, *expansion;
