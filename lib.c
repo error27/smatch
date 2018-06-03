@@ -1382,9 +1382,9 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		// Initialize type system
 		init_ctype();
 
-		declare_builtins();
-		create_builtin_stream();
 		predefined_macros();
+		create_builtin_stream();
+		declare_builtins();
 		if (!preprocess_only)
 			declare_builtin_functions();
 
