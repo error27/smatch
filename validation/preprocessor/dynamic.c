@@ -13,6 +13,9 @@ time
 #if defined(__COUNTER__)
 counter
 #endif
+#if defined(__INCLUDE_LEVEL__)
+__INCLUDE_LEVEL__
+#endif
 
 /*
  * check-name: dynamic-macros
@@ -25,5 +28,6 @@ counter
 date
 time
 counter
+0
  * check-output-end
  */

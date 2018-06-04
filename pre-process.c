@@ -47,6 +47,7 @@
 static struct ident_list *macros;	// only needed for -dD
 static int false_nesting = 0;
 static int counter_macro = 0;		// __COUNTER__ expansion
+static int include_level = 0;
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -188,6 +189,11 @@ static void expand_time(struct token *token)
 static void expand_counter(struct token *token)
 {
 	replace_with_integer(token, counter_macro++);
+}
+
+static void expand_include_level(struct token *token)
+{
+	replace_with_integer(token, include_level - 1);
 }
 
 static int expand_one_symbol(struct token **list)
@@ -1921,6 +1927,7 @@ static void init_preprocessor(void)
 		{ "__DATE__",		expand_date },
 		{ "__TIME__",		expand_time },
 		{ "__COUNTER__",	expand_counter },
+		{ "__INCLUDE_LEVEL__",	expand_include_level },
 	};
 
 	for (i = 0; i < ARRAY_SIZE(normal); i++) {
@@ -2021,9 +2028,11 @@ static void do_preprocess(struct token **list)
 			if (!stream->dirty)
 				stream->constant = CONSTANT_FILE_YES;
 			*list = next->next;
+			include_level--;
 			continue;
 		case TOKEN_STREAMBEGIN:
 			*list = next->next;
+			include_level++;
 			continue;
 
 		default:
