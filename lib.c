@@ -70,10 +70,10 @@ struct token *skip_to(struct token *token, int op)
 	return token;
 }
 
+static struct token bad_token = { .pos.type = TOKEN_BAD };
 struct token *expect(struct token *token, int op, const char *where)
 {
 	if (!match_op(token, op)) {
-		static struct token bad_token;
 		if (token != &bad_token) {
 			bad_token.next = token;
 			sparse_error(token->pos, "Expected %s %s", show_special(op), where);
@@ -84,6 +84,21 @@ struct token *expect(struct token *token, int op, const char *where)
 		return &bad_token;
 	}
 	return token->next;
+}
+
+///
+// issue an error message on new parsing errors
+// @token: the current token
+// @errmsg: the error message
+// If the current token is from a previous error, an error message
+// has already been issued, so nothing more is done.
+// Otherwise, @errmsg is displayed followed by the current token.
+void unexpected(struct token *token, const char *errmsg)
+{
+	if (token == &bad_token)
+		return;
+	sparse_error(token->pos, "%s", errmsg);
+	sparse_error(token->pos, "got %s", show_token(token));
 }
 
 unsigned int hexval(unsigned int c)
@@ -107,6 +122,10 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 {
 	static char buffer[512];
 	const char *name;
+
+	/* Shut up warnings if position is bad_token.pos */
+	if (pos.type == TOKEN_BAD)
+		return;
 
 	vsprintf(buffer, fmt, args);	
 	name = stream_name(pos.stream);
@@ -135,6 +154,9 @@ static void do_error(struct position pos, const char * fmt, va_list args)
 	static int errors = 0;
         die_if_error = 1;
 	show_info = 1;
+	/* Shut up warnings if position is bad_token.pos */
+	if (pos.type == TOKEN_BAD)
+		return;
 	/* Shut up warnings after an error */
 	has_error |= ERROR_CURR_PHASE;
 	if (errors > 100) {

@@ -1777,12 +1777,8 @@ static pseudo_t linearize_context(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn = alloc_instruction(OP_CONTEXT, 0);
 	struct expression *expr = stmt->expression;
-	int value = 0;
 
-	if (expr->type == EXPR_VALUE)
-		value = expr->value;
-
-	insn->increment = value;
+	insn->increment = get_expression_value(expr);
 	insn->context_expr = stmt->context;
 	add_one_insn(ep, insn);
 	return VOID;

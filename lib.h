@@ -83,6 +83,8 @@ typedef struct pseudo *pseudo_t;
 
 struct token *skip_to(struct token *, int);
 struct token *expect(struct token *, int, const char *);
+void unexpected(struct token *, const char *errmsg);
+
 #ifdef __GNUC__
 #define FORMAT_ATTR(pos) __attribute__ ((__format__ (__printf__, pos, pos+1)))
 #define NORETURN_ATTR __attribute__ ((__noreturn__))
