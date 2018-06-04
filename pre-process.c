@@ -154,39 +154,60 @@ static void replace_with_defined(struct token *token)
 	token->number = string[defined];
 }
 
+static void expand_line(struct token *token)
+{
+	replace_with_integer(token, token->pos.line);
+}
+
+static void expand_file(struct token *token)
+{
+	replace_with_string(token, stream_name(token->pos.stream));
+}
+
+static time_t t = 0;
+static void expand_date(struct token *token)
+{
+	static char buffer[12]; /* __DATE__: 3 + ' ' + 2 + ' ' + 4 + '\0' */
+
+	if (!t)
+		time(&t);
+	strftime(buffer, 12, "%b %e %Y", localtime(&t));
+	replace_with_string(token, buffer);
+}
+
+static void expand_time(struct token *token)
+{
+	static char buffer[9]; /* __TIME__: 2 + ':' + 2 + ':' + 2 + '\0' */
+
+	if (!t)
+		time(&t);
+	strftime(buffer, 9, "%T", localtime(&t));
+	replace_with_string(token, buffer);
+}
+
+static void expand_counter(struct token *token)
+{
+	replace_with_integer(token, counter_macro++);
+}
+
 static int expand_one_symbol(struct token **list)
 {
 	struct token *token = *list;
 	struct symbol *sym;
-	static char buffer[12]; /* __DATE__: 3 + ' ' + 2 + ' ' + 4 + '\0' */
-	static time_t t = 0;
 
 	if (token->pos.noexpand)
 		return 1;
 
 	sym = lookup_macro(token->ident);
-	if (sym) {
+	if (!sym)
+		return 1;
+	if (sym->expander) {
+		sym->expander(token);
+		return 1;
+	} else {
 		sym->used_in = file_scope;
 		return expand(list, sym);
 	}
-	if (token->ident == &__LINE___ident) {
-		replace_with_integer(token, token->pos.line);
-	} else if (token->ident == &__FILE___ident) {
-		replace_with_string(token, stream_name(token->pos.stream));
-	} else if (token->ident == &__DATE___ident) {
-		if (!t)
-			time(&t);
-		strftime(buffer, 12, "%b %e %Y", localtime(&t));
-		replace_with_string(token, buffer);
-	} else if (token->ident == &__TIME___ident) {
-		if (!t)
-			time(&t);
-		strftime(buffer, 9, "%T", localtime(&t));
-		replace_with_string(token, buffer);
-	} else if (token->ident == &__COUNTER___ident) {
-		replace_with_integer(token, counter_macro++);
-	}
-	return 1;
 }
 
 static inline struct token *scan_next(struct token **where)
@@ -1891,6 +1912,16 @@ static void init_preprocessor(void)
 		{ "if",		handle_if },
 		{ "elif",	handle_elif },
 	};
+	static struct {
+		const char *name;
+		void (*expander)(struct token *);
+	} dynamic[] = {
+		{ "__LINE__",		expand_line },
+		{ "__FILE__",		expand_file },
+		{ "__DATE__",		expand_date },
+		{ "__TIME__",		expand_time },
+		{ "__COUNTER__",	expand_counter },
+	};
 
 	for (i = 0; i < ARRAY_SIZE(normal); i++) {
 		struct symbol *sym;
@@ -1903,6 +1934,11 @@ static void init_preprocessor(void)
 		sym = create_symbol(stream, special[i].name, SYM_PREPROCESSOR, NS_PREPROCESSOR);
 		sym->handler = special[i].handler;
 		sym->normal = 0;
+	}
+	for (i = 0; i < ARRAY_SIZE(dynamic); i++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, dynamic[i].name, SYM_NODE, NS_MACRO);
+		sym->expander = dynamic[i].expander;
 	}
 
 	counter_macro = 0;

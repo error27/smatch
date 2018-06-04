@@ -17,7 +17,6 @@ counter
 /*
  * check-name: dynamic-macros
  * check-command: sparse -E $file
- * check-known-to-fail
  *
  * check-output-start
 

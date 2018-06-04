@@ -155,6 +155,7 @@ struct symbol {
 			struct token *expansion;
 			struct token *arglist;
 			struct scope *used_in;
+			void (*expander)(struct token *);
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
