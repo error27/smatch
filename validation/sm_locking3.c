@@ -1,6 +1,6 @@
-_spin_trylock(int name);
-_spin_lock(int name);
-_spin_unlock(int name);
+int _spin_trylock(int name);
+void _spin_lock(int name);
+void _spin_unlock(int name);
 
 int func (void)
 {
