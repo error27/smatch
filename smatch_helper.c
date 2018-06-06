@@ -727,7 +727,10 @@ struct expression *strip_expr(struct expression *expr)
 			return strip_expr(expr->cond_false);
 		return expr;
 	case EXPR_CALL:
-		if (sym_name_is("__builtin_expect", expr->fn)) {
+		if (sym_name_is("__builtin_expect", expr->fn) ||
+		    sym_name_is("__builtin_bswap16", expr->fn) ||
+		    sym_name_is("__builtin_bswap32", expr->fn) ||
+		    sym_name_is("__builtin_bswap64", expr->fn)) {
 			expr = get_argument_from_call_expr(expr->args, 0);
 			return strip_expr(expr);
 		}
