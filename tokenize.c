@@ -528,8 +528,7 @@ static int get_one_number(int c, int next, stream_t *stream)
 {
 	struct token *token;
 	static char buffer[4095];
-	char *p = buffer, *buf, *buffer_end = buffer + sizeof (buffer);
-	int len;
+	char *p = buffer, *buffer_end = buffer + sizeof (buffer);
 
 	*p++ = c;
 	for (;;) {
@@ -557,13 +556,9 @@ static int get_one_number(int c, int next, stream_t *stream)
 	}
 
 	*p++ = 0;
-	len = p - buffer;
-	buf = __alloc_bytes(len);
-	memcpy(buf, buffer, len);
-
 	token = stream->token;
 	token_type(token) = TOKEN_NUMBER;
-	token->number = buf;
+	token->number = xmemdup(buffer, p - buffer);
 	add_token(stream);
 
 	return next;

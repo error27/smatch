@@ -543,13 +543,10 @@ static int merge(struct token *left, struct token *right)
 		left->pos.noexpand = 0;
 		return 1;
 
-	case TOKEN_NUMBER: {
-		char *number = __alloc_bytes(strlen(buffer) + 1);
-		memcpy(number, buffer, strlen(buffer) + 1);
+	case TOKEN_NUMBER:
 		token_type(left) = TOKEN_NUMBER;	/* could be . + num */
-		left->number = number;
+		left->number = xstrdup(buffer);
 		return 1;
-	}
 
 	case TOKEN_SPECIAL:
 		if (buffer[2] && buffer[3])
@@ -900,8 +897,7 @@ static int try_include(const char *path, const char *filename, int flen, struct 
 		return 1;
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
-		char * streamname = __alloc_bytes(plen + flen);
-		memcpy(streamname, fullname, plen + flen);
+		char *streamname = xmemdup(fullname, plen + flen);
 		*where = tokenize(streamname, fd, *where, next_path);
 		close(fd);
 		return 1;
