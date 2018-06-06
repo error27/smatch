@@ -180,7 +180,8 @@ static int str_to_comparison_arg_helper(const char *str,
 	c++;
 
 	param = strtoll(c, &c, 10);
-	c++; /* skip the ']' character */
+	if (*c == ']')
+		c++; /* skip the ']' character */
 	if (endp)
 		*endp = (char *)c;
 
@@ -189,6 +190,19 @@ static int str_to_comparison_arg_helper(const char *str,
 	*arg = get_argument_from_call_expr(call->args, param);
 	if (!*arg)
 		return 0;
+	if (*c == '-' && *(c + 1) == '>') {
+		char buf[256];
+		int n;
+
+		n = snprintf(buf, sizeof(buf), "$%s", c);
+		if (n >= sizeof(buf))
+			return 0;
+		if (buf[n - 1] == ']')
+			buf[n - 1] = '\0';
+		*arg = gen_expression_from_key(*arg, buf);
+		while (*c && *c != ']')
+			c++;
+	}
 	return 1;
 }
 
