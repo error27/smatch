@@ -37,6 +37,8 @@ static int link_id;
 static int inc_dec_id;
 static int inc_dec_link_id;
 
+static void add_comparison(struct expression *left, int comparison, struct expression *right);
+
 /* for handling for loops */
 STATE(start);
 STATE(incremented);
@@ -207,6 +209,7 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 		left_rl = get_orig_rl(data->left_vsl);
 	else if (!get_implied_rl_var_sym(data->left_var, vsl_to_sym(data->left_vsl), &left_rl))
 		return &undefined;
+
 	if (strstr(data->right_var, " orig"))
 		right_rl = get_orig_rl(data->right_vsl);
 	else if (!get_implied_rl_var_sym(data->right_var, vsl_to_sym(data->right_vsl), &right_rl))
@@ -600,7 +603,8 @@ static void save_link_var_sym(const char *var, struct symbol *sym, const char *l
 static void match_inc(struct sm_state *sm)
 {
 	struct string_list *links;
-	struct smatch_state *state;
+	struct smatch_state *state, *new;
+	struct compare_data *data;
 	char *tmp;
 	int flip;
 	int op;
@@ -609,6 +613,9 @@ static void match_inc(struct sm_state *sm)
 
 	FOR_EACH_PTR(links, tmp) {
 		state = get_state(compare_id, tmp, NULL);
+		data = state->data;
+		if (!data)
+			continue;
 
 		flip = 0;
 		if (strncmp(sm->name, tmp, strlen(sm->name)) != 0 ||
@@ -622,17 +629,21 @@ static void match_inc(struct sm_state *sm)
 		case SPECIAL_GTE:
 		case SPECIAL_UNSIGNED_GTE:
 		case '>':
-		case SPECIAL_UNSIGNED_GT: {
-			struct compare_data *data = state->data;
-			struct smatch_state *new;
-
+		case SPECIAL_UNSIGNED_GT:
 			new = alloc_compare_state(
 					data->left, data->left_var, data->left_vsl,
 					flip ? '<' : '>',
 					data->right, data->right_var, data->right_vsl);
 			set_state(compare_id, tmp, NULL, new);
 			break;
-		}
+		case '<':
+		case SPECIAL_UNSIGNED_LT:
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					flip ? SPECIAL_GTE : SPECIAL_LTE,
+					data->right, data->right_var, data->right_vsl);
+			set_state(compare_id, tmp, NULL, new);
+			break;
 		default:
 			set_state(compare_id, tmp, NULL, &undefined);
 		}
@@ -707,6 +718,52 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 		set_state(compare_id, tmp, NULL, &undefined);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
+}
+
+static void match_preop(struct expression *expr)
+{
+	struct expression *parent;
+	struct range_list *left, *right;
+	int op;
+
+	/*
+	 * This is an important special case.  Say you have:
+	 *
+	 * 	if (++j == limit)
+	 *
+	 * Assume that we know the range of limit is higher than the start
+	 * value for "j".  Then the first thing that we process is the ++j.  We
+	 * have not comparison states set up so it doesn't get caught by the
+	 * modification hook.  But it does get caught by smatch_extra which sets
+	 * j to unknown then we parse the "j == limit" and sets false to != but
+	 * really we want false to be <.
+	 *
+	 * So what we do is we set j < limit here, then the match_modify catches
+	 * it and we do a match_inc_dec().
+	 *
+	 */
+
+	if (expr->type != EXPR_PREOP ||
+	    (expr->op != SPECIAL_INCREMENT && expr->op != SPECIAL_DECREMENT))
+		return;
+
+	parent = expr_get_parent_expr(expr);
+	if (!parent)
+		return;
+	if (parent->type != EXPR_COMPARE || parent->op != SPECIAL_EQUAL)
+		return;
+	if (parent->left != expr)
+		return;
+
+	if (!get_implied_rl(expr->unop, &left) ||
+	   !get_implied_rl(parent->right, &right))
+		return;
+
+	op = rl_comparison(left, right);
+	if (!op)
+		return;
+
+	add_comparison(expr->unop, op, parent->right);
 }
 
 static char *chunk_to_var_sym(struct expression *expr, struct symbol **sym)
@@ -2377,6 +2434,7 @@ void register_comparison(int id)
 	add_split_return_callback(&print_return_comparison);
 
 	select_return_states_hook(PARAM_COMPARE, &db_return_comparison);
+	add_hook(&match_preop, OP_HOOK);
 }
 
 void register_comparison_late(int id)
@@ -2388,7 +2446,7 @@ void register_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook(link_id, &match_modify);
+	add_modification_hook_late(link_id, &match_modify);
 
 	add_member_info_callback(link_id, struct_member_callback);
 }
