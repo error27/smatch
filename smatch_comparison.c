@@ -182,6 +182,18 @@ static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl
 	return 0;
 }
 
+static int comparison_from_extra(struct expression *a, struct expression *b)
+{
+	struct range_list *left, *right;
+
+	if (!get_implied_rl(a, &left))
+		return 0;
+	if (!get_implied_rl(b, &right))
+		return 0;
+
+	return rl_comparison(left, right);
+}
+
 static struct range_list *get_orig_rl(struct var_sym_list *vsl)
 {
 	struct symbol *sym;
@@ -1585,6 +1597,9 @@ int get_comparison(struct expression *a, struct expression *b)
 free:
 	free_string(one);
 	free_string(two);
+
+	if (!ret)
+		return comparison_from_extra(a, b);
 	return ret;
 }
 
