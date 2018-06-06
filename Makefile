@@ -61,6 +61,7 @@ LIB_OBJS += symbol.o
 LIB_OBJS += target.o
 LIB_OBJS += tokenize.o
 LIB_OBJS += unssa.o
+LIB_OBJS += utils.o
 
 PROGRAMS :=
 PROGRAMS += compile
