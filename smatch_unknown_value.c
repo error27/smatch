@@ -61,6 +61,8 @@ static void __attribute__((constructor)) initialize_local_variables(void)
 
 struct expression *unknown_value_expression(struct expression *expr)
 {
+	fake_fn_expr.parent = 0;
+	fake_call.parent = 0;
 	return &fake_call;
 }
 
