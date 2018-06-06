@@ -1065,7 +1065,8 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	char *left = NULL;
 	char *right = NULL;
 	struct symbol *left_sym, *right_sym;
-	struct var_sym_list *left_vsl, *right_vsl;
+	struct var_sym_list *left_vsl = NULL;
+	struct var_sym_list *right_vsl = NULL;
 	int false_op;
 	int orig_comparison;
 	struct smatch_state *true_state, *false_state;
@@ -1093,24 +1094,27 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	left = chunk_to_var_sym(left_expr, &left_sym);
 	if (!left)
 		goto free;
-	left_vsl = expr_to_vsl(left_expr);
+	if (left_sym)
+		add_var_sym(&left_vsl, left, left_sym);
+	else
+		left_vsl = expr_to_vsl(left_expr);
 	right = chunk_to_var_sym(right_expr, &right_sym);
 	if (!right)
 		goto free;
-	right_vsl = expr_to_vsl(right_expr);
+	if (right_sym)
+		add_var_sym(&right_vsl, right, right_sym);
+	else
+		right_vsl = expr_to_vsl(right_expr);
 
 	if (strcmp(left, right) > 0) {
-		struct symbol *tmp_sym = left_sym;
 		char *tmp_name = left;
 		struct var_sym_list *tmp_vsl = left_vsl;
 		struct expression *tmp_expr = left_expr;
 
 		left = right;
-		left_sym = right_sym;
 		left_vsl = right_vsl;
 		left_expr = right_expr;
 		right = tmp_name;
-		right_sym = tmp_sym;
 		right_vsl = tmp_vsl;
 		right_expr = tmp_expr;
 		op = flip_comparison(op);
