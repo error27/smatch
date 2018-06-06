@@ -99,7 +99,7 @@ void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct express
 }
 
 static bool in_param_set;
-static void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, expr, state);
@@ -914,7 +914,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	if (!__in_fake_assign &&
 	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
-	    values_fit_type(left, right) &&
+	    values_fit_type(left, strip_expr(right)) &&
 	    !has_symbol(right, sym)) {
 		set_equiv(left, right);
 		goto free;

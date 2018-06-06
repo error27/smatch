@@ -141,28 +141,21 @@ static void add_related(struct related_list **rlist, const char *name, struct sy
 	add_ptr_list(rlist, new);
 }
 
-void del_related(struct smatch_state *state, const char *name, struct symbol *sym)
+static struct related_list *del_related(struct smatch_state *state, const char *name, struct symbol *sym)
 {
 	struct relation *tmp;
 	struct relation remove = {
 		.name = (char *)name,
 		.sym = sym,
 	};
+	struct related_list *ret = NULL;
 
 	FOR_EACH_PTR(estate_related(state), tmp) {
-		if (cmp_relation(tmp, &remove) < 0)
-			continue;
-		if (cmp_relation(tmp, &remove) == 0) {
-			DELETE_CURRENT_PTR(tmp);
-			return;
-		}
-		return;
+		if (cmp_relation(tmp, &remove) != 0)
+			add_ptr_list(&ret, tmp);
 	} END_FOR_EACH_PTR(tmp);
-}
 
-static void del_equiv(struct smatch_state *state, const char *name, struct symbol *sym)
-{
-	del_related(state, name, sym);
+	return ret;
 }
 
 void remove_from_equiv(const char *name, struct symbol *sym)
@@ -172,24 +165,22 @@ void remove_from_equiv(const char *name, struct symbol *sym)
 	struct smatch_state *state;
 	struct related_list *to_update;
 
-	// FIXME equiv => related
 	orig_sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!orig_sm || !get_dinfo(orig_sm->state)->related)
 		return;
 
 	state = clone_estate(orig_sm->state);
-	del_equiv(state, name, sym);
-	to_update = get_dinfo(state)->related;
-	if (ptr_list_size((struct ptr_list *)get_dinfo(state)->related) == 1)
-		get_dinfo(state)->related = NULL;
+	to_update = del_related(state, name, sym);
 
 	FOR_EACH_PTR(to_update, rel) {
-		struct sm_state *new_sm;
+		struct sm_state *old_sm, *new_sm;
 
-		new_sm = clone_sm(orig_sm);
-		new_sm->name = rel->name;
-		new_sm->sym = rel->sym;
-		new_sm->state = state;
+		old_sm = get_sm_state(SMATCH_EXTRA, rel->name, rel->sym);
+		if (!old_sm)
+			continue;
+
+		new_sm = clone_sm(old_sm);
+		get_dinfo(new_sm->state)->related = to_update;
 		__set_sm(new_sm);
 	} END_FOR_EACH_PTR(rel);
 }
@@ -221,8 +212,7 @@ void set_related(struct smatch_state *estate, struct related_list *rlist)
  */
 void set_equiv(struct expression *left, struct expression *right)
 {
-	struct sm_state *right_sm;
-	struct smatch_state *state;
+	struct sm_state *right_sm, *left_sm;
 	struct relation *rel;
 	char *left_name;
 	struct symbol *left_sym;
@@ -238,24 +228,27 @@ void set_equiv(struct expression *left, struct expression *right)
 	if (!right_sm)
 		goto free;
 
-	remove_from_equiv(left_name, left_sym);
+	/* This block is because we want to preserve the implications. */
+	left_sm = clone_sm(right_sm);
+	left_sm->name = alloc_string(left_name);
+	left_sm->sym = left_sym;
+	left_sm->state = clone_estate_cast(get_type(left), right_sm->state);
+	set_extra_mod_helper(left_name, left_sym, left, left_sm->state);
+	__set_sm(left_sm);
 
 	rlist = clone_related_list(estate_related(right_sm->state));
 	add_related(&rlist, right_sm->name, right_sm->sym);
 	add_related(&rlist, left_name, left_sym);
 
-	state = clone_estate(right_sm->state);
-	get_dinfo(state)->related = rlist;
-
-	call_extra_mod_hooks(left_name, left_sym, left, clone_estate_cast(get_type(left), state));
-
 	FOR_EACH_PTR(rlist, rel) {
-		struct sm_state *new_sm;
+		struct sm_state *old_sm, *new_sm;
 
-		new_sm = clone_sm(right_sm);
-		new_sm->name = rel->name;
-		new_sm->sym = rel->sym;
-		new_sm->state = state;
+		old_sm = get_sm_state(SMATCH_EXTRA, rel->name, rel->sym);
+		if (!old_sm)  /* shouldn't happen */
+			continue;
+		new_sm = clone_sm(old_sm);
+		new_sm->state = clone_estate(old_sm->state);
+		get_dinfo(new_sm->state)->related = rlist;
 		__set_sm(new_sm);
 	} END_FOR_EACH_PTR(rel);
 free:
