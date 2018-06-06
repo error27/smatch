@@ -29,20 +29,19 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-TMPLLVM=`mktemp -t tmp.XXXXXX.llvm`
-TMPFILE=`mktemp -t tmp.XXXXXX.o`
+TMPFILE=`mktemp -t tmp.XXXXXX`
 
-$DIRNAME/sparse-llvm $SPARSEOPTS > $TMPLLVM
 
 LLC=`"${LLVM_CONFIG:-llvm-config}" --bindir`/llc
 
-$LLC -o - $TMPLLVM | as -o $TMPFILE
+$DIRNAME/sparse-llvm $SPARSEOPTS | $LLC | as -o $TMPFILE
 
 if [ $NEED_LINK -eq 1 ]; then
 	if [ -z $OUTFILE ]; then
 		OUTFILE=a.out
 	fi
 	gcc $TMPFILE -o $OUTFILE
+	rm -f $TMPFILE
 else
 	if [ -z $OUTFILE ]; then
 		echo "`basename $0`: no output file"
@@ -50,5 +49,3 @@ else
 	fi
 	mv $TMPFILE $OUTFILE
 fi
-
-rm -f $TMPLLVM
