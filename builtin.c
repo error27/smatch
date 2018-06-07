@@ -251,6 +251,71 @@ static struct symbol_op fp_unop_op = {
 };
 
 
+static int evaluate_overflow_gen(struct expression *expr, int ptr)
+{
+	struct expression *arg;
+	int n = 0;
+
+	/* there will be exactly 3; we'd already verified that */
+	FOR_EACH_PTR(expr->args, arg) {
+		struct symbol *type;
+
+		n++;
+		if (!arg || !(type = arg->ctype))
+			return 0;
+		// 1st & 2nd args must be a basic integer type
+		// 3rd arg must be a pointer to such a type.
+		if (n == 3 && ptr) {
+			if (type->type == SYM_NODE)
+				type = type->ctype.base_type;
+			if (!type)
+				return 0;
+			if (type->type != SYM_PTR)
+				goto err;
+			type = type->ctype.base_type;
+			if (!type)
+				return 0;
+		}
+		if (type->type == SYM_NODE)
+			type = type->ctype.base_type;
+		if (!type)
+			return 0;
+		if (type->ctype.base_type != &int_type || type == &bool_ctype)
+			goto err;
+	} END_FOR_EACH_PTR(arg);
+
+	// the builtin returns a bool
+	expr->ctype = &bool_ctype;
+	return 1;
+
+err:
+	sparse_error(arg->pos, "invalid type for argument %d:", n);
+	info(arg->pos, "        %s", show_typename(arg->ctype));
+	expr->ctype = &bad_ctype;
+	return 0;
+}
+
+static int evaluate_overflow(struct expression *expr)
+{
+	return evaluate_overflow_gen(expr, 1);
+}
+
+static struct symbol_op overflow_op = {
+	.args = args_triadic,
+	.evaluate = evaluate_overflow,
+};
+
+static int evaluate_overflow_p(struct expression *expr)
+{
+	return evaluate_overflow_gen(expr, 0);
+}
+
+static struct symbol_op overflow_p_op = {
+	.args = args_triadic,
+	.evaluate = evaluate_overflow_p,
+};
+
+
 /*
  * Builtin functions
  */
@@ -275,6 +340,12 @@ static struct sym_init {
 	{ "__builtin_isnan", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isnormal", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_signbit", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_add_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_sub_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_mul_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_add_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
+	{ "__builtin_sub_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
+	{ "__builtin_mul_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
 	{ NULL,		NULL,		0 }
 };
 
