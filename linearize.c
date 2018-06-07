@@ -1269,6 +1269,12 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 		}
 		/* fall through */
 	default:
+		if (src->type == SYM_NODE)
+			src = src->ctype.base_type;
+		if (dst->type == SYM_NODE)
+			dst = dst->ctype.base_type;
+		if (src == dst)
+			return OP_NOP;
 		return OP_BADOP;
 	}
 }
