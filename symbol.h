@@ -268,6 +268,9 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
+extern struct symbol	int_ptr_ctype, uint_ptr_ctype;
+extern struct symbol	long_ptr_ctype, ulong_ptr_ctype;
+extern struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
 extern struct symbol	float32_ctype, float32x_ctype;
 extern struct symbol	float64_ctype, float64x_ctype;
 extern struct symbol	float128_ctype;
