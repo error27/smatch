@@ -695,22 +695,20 @@ static void match_dec(struct sm_state *sm)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static int match_inc_dec(struct sm_state *sm, struct expression *mod_expr)
+static void match_inc_dec(struct sm_state *sm, struct expression *mod_expr)
 {
+	/*
+	 * if (foo > bar) then ++foo is also > bar.
+	 */
 	if (!mod_expr)
-		return 0;
+		return;
 	if (mod_expr->type != EXPR_PREOP && mod_expr->type != EXPR_POSTOP)
-		return 0;
+		return;
 
-	if (mod_expr->op == SPECIAL_INCREMENT) {
+	if (mod_expr->op == SPECIAL_INCREMENT)
 		match_inc(sm);
-		return 1;
-	}
-	if (mod_expr->op == SPECIAL_DECREMENT) {
+	else if (mod_expr->op == SPECIAL_DECREMENT)
 		match_dec(sm);
-		return 1;
-	}
-	return 0;
 }
 
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
@@ -718,10 +716,10 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	struct string_list *links;
 	char *tmp;
 
-	/*
-	 * if (foo > bar) then ++foo is also > bar.
-	 */
-	if (match_inc_dec(sm, mod_expr))
+	/* handled by match_inc_dec() */
+	if (mod_expr &&
+	    (mod_expr->type == EXPR_PREOP || mod_expr->type == EXPR_POSTOP) &&
+	    (mod_expr->op == SPECIAL_INCREMENT || mod_expr->op == SPECIAL_DECREMENT))
 		return;
 
 	links = sm->state->data;
@@ -2461,7 +2459,8 @@ void register_comparison_links(int id)
 {
 	link_id = id;
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook_late(link_id, &match_modify);
+	add_modification_hook(link_id, &match_modify);
+	add_modification_hook_late(link_id, match_inc_dec);
 
 	add_member_info_callback(link_id, struct_member_callback);
 }
