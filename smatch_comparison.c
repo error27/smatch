@@ -625,6 +625,8 @@ static void match_inc(struct sm_state *sm)
 
 	FOR_EACH_PTR(links, tmp) {
 		state = get_state(compare_id, tmp, NULL);
+		if (!state)
+			continue;
 		data = state->data;
 		if (!data)
 			continue;
