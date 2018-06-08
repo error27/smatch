@@ -390,6 +390,12 @@ Report some statistics about memory allocation used by the tool.
 .
 .SH OTHER OPTIONS
 .TP
+.B \-fdiagnostic-prefix[=PREFIX]
+Prefix all diagnostics by the given PREFIX, followed by ": ".
+If no one is given "sparse" is used.
+The default is to not use a prefix at all.
+.
+.TP
 .B \-fmemcpy-max-count=COUNT
 Set the limit for the warnings given by \fB-Wmemcpy-max-count\fR.
 A COUNT of 'unlimited' or '0' will effectively disable the warning.

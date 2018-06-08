@@ -62,6 +62,7 @@ int gcc_patchlevel = __GNUC_PATCHLEVEL__;
 
 const char *base_filename;
 
+static const char *diag_prefix = "";
 static const char *gcc_base_dir = GCC_BASE;
 static const char *multiarch_dir = MULTIARCH_TRIPLET;
 
@@ -133,8 +134,8 @@ static void do_warn(const char *type, struct position pos, const char * fmt, va_
 	name = stream_name(pos.stream);
 		
 	fflush(stdout);
-	fprintf(stderr, "%s:%d:%d: %s%s\n",
-		name, pos.line, pos.pos, type, buffer);
+	fprintf(stderr, "%s:%d:%d: %s%s%s\n",
+		name, pos.line, pos.pos, diag_prefix, type, buffer);
 }
 
 unsigned int fmax_warnings = 100;
@@ -237,7 +238,7 @@ void die(const char *fmt, ...)
 	vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	fprintf(stderr, "%s\n", buffer);
+	fprintf(stderr, "%s%s\n", diag_prefix, buffer);
 	exit(1);
 }
 
@@ -899,6 +900,20 @@ static int handle_fpasses(const char *arg, const char *opt, const struct flag *f
 	return 0;
 }
 
+static int handle_fdiagnostic_prefix(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	switch (*opt) {
+	case '\0':
+		diag_prefix = "sparse: ";
+		return 1;
+	case '=':
+		diag_prefix = xasprintf("%s: ", opt+1);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static int handle_fdump_ir(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	static const struct mask_map dump_ir_options[] = {
@@ -925,6 +940,7 @@ static int handle_fmax_warnings(const char *arg, const char *opt, const struct f
 }
 
 static struct flag fflags[] = {
+	{ "diagnostic-prefix",	NULL,	handle_fdiagnostic_prefix },
 	{ "dump-ir",		NULL,	handle_fdump_ir },
 	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
