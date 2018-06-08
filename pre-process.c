@@ -146,13 +146,17 @@ static int token_defined(struct token *token)
 	return 0;
 }
 
-static void replace_with_defined(struct token *token)
+static void replace_with_bool(struct token *token, bool val)
 {
 	static const char *string[] = { "0", "1" };
-	int defined = token_defined(token);
 
 	token_type(token) = TOKEN_NUMBER;
-	token->number = string[defined];
+	token->number = string[val];
+}
+
+static void replace_with_defined(struct token *token)
+{
+	replace_with_bool(token, token_defined(token));
 }
 
 static void expand_line(struct token *token)
