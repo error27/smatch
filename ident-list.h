@@ -59,6 +59,7 @@ IDENT_RESERVED(__label__);
  * sparse. */
 IDENT(defined);
 IDENT(once);
+IDENT(__has_builtin);
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
 __IDENT(__func___ident, "__func__", 0);

@@ -360,6 +360,7 @@ void init_builtins(int stream)
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
 		sym->op = ptr->op;
+		sym->builtin = 1;
 	}
 }
 
@@ -373,6 +374,7 @@ static void declare_builtin(const char *name, struct symbol *rtype, int variadic
 
 	sym->ctype.base_type = fun;
 	sym->ctype.modifiers = MOD_TOPLEVEL;
+	sym->builtin = 1;
 
 	fun->ctype.base_type = rtype;
 	fun->variadic = variadic;

@@ -159,6 +159,12 @@ static void replace_with_defined(struct token *token)
 	replace_with_bool(token, token_defined(token));
 }
 
+static void replace_with_has_builtin(struct token *token)
+{
+	struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
+	replace_with_bool(token, sym && sym->builtin);
+}
+
 static void expand_line(struct token *token)
 {
 	replace_with_integer(token, token->pos.line);
@@ -1541,6 +1547,10 @@ static int expression_value(struct token **where)
 				state = 1;
 				beginning = list;
 				break;
+			} else if (p->ident == &__has_builtin_ident) {
+				state = 4;
+				beginning = list;
+				break;
 			}
 			if (!expand_one_symbol(list))
 				continue;
@@ -1569,6 +1579,33 @@ static int expression_value(struct token **where)
 			state = 0;
 			if (!match_op(p, ')'))
 				sparse_error(p->pos, "missing ')' after \"defined\"");
+			*list = p->next;
+			continue;
+
+		// __has_builtin(xyz)
+		case 4:
+			if (match_op(p, '(')) {
+				state = 5;
+			} else {
+				sparse_error(p->pos, "missing '(' after \"__has_builtin\"");
+				state = 0;
+			}
+			*beginning = p;
+			break;
+		case 5:
+			if (token_type(p) != TOKEN_IDENT) {
+				sparse_error(p->pos, "identifier expected");
+				state = 0;
+				break;
+			}
+			if (!match_op(p->next, ')'))
+				sparse_error(p->pos, "missing ')' after \"__has_builtin\"");
+			state = 6;
+			replace_with_has_builtin(p);
+			*beginning = p;
+			break;
+		case 6:
+			state = 0;
 			*list = p->next;
 			continue;
 		}
