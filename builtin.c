@@ -82,7 +82,7 @@ error:
 	return 0;
 }
 
-static int arguments_choose(struct expression *expr)
+static int args_triadic(struct expression *expr)
 {
 	return eval_args(expr, 3);
 }
@@ -195,8 +195,8 @@ static struct symbol_op expect_op = {
 };
 
 static struct symbol_op choose_op = {
+	.args = args_triadic,
 	.evaluate = evaluate_choose,
-	.args = arguments_choose,
 };
 
 /* The argument is constant and valid if the cost is zero */
