@@ -160,15 +160,11 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	if (!__head) break;								\
 	do { int __nr;									\
 		for (__nr = 0; __nr < __list->nr; __nr++) {				\
-			do {								\
-				ptr = PTR_ENTRY(__list,__nr);				\
-				if (__list->rm && !ptr)					\
-					continue;					\
-				do {
+			ptr = PTR_ENTRY(__list,__nr);					\
+			if (__list->rm && !ptr)						\
+				continue;						\
 
 #define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
-				} while (0);						\
-			} while (0);							\
 		}									\
 	} while ((__list = __list->next) != __head);					\
 } while (0)
@@ -181,16 +177,12 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		__list = __list->prev;							\
 		__nr = __list->nr;							\
 		while (--__nr >= 0) {							\
-			do {								\
-				ptr = PTR_ENTRY(__list,__nr);				\
-				if (__list->rm && !ptr)					\
-					continue;					\
-				do {
+			ptr = PTR_ENTRY(__list,__nr);					\
+			if (__list->rm && !ptr)						\
+				continue;						\
 
 
 #define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr)				\
-				} while (0);						\
-			} while (0);							\
 		}									\
 	} while (__list != __head);							\
 } while (0)
@@ -207,9 +199,7 @@ static inline void *last_ptr_list(struct ptr_list *list)
 		__newnr = __newlist->nr;						\
 	__inside##new:									\
 		while (--__newnr >= 0) {						\
-			do {								\
-				new = PTR_ENTRY(__newlist,__newnr);			\
-				do {
+			new = PTR_ENTRY(__newlist,__newnr);				\
 
 #define RECURSE_PTR_REVERSE(ptr, new)							\
 	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,				\
