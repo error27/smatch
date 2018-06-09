@@ -117,18 +117,14 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 #define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
 		if (ptr) {								\
-			if (++__nr < __list->nr) {					\
-				ptr = PTR_ENTRY(__list,__nr);				\
-			} else {							\
-				__list = __list->next;					\
-				ptr = NULL;						\
-				while (__list->nr == 0 && __list != __head)		\
-					__list = __list->next;				\
-				if (__list != __head) {					\
-					__nr = 0;					\
-					ptr = PTR_ENTRY(__list,0);			\
+			do {								\
+				if (++__nr < __list->nr) {				\
+					ptr = PTR_ENTRY(__list,__nr);			\
+					break;						\
 				}							\
-			}								\
+				ptr = NULL;						\
+				__nr = -1;						\
+			} while ((__list = __list->next) != __head);			\
 		}
 
 #define DO_RESET(ptr, __head, __list, __nr, PTR_ENTRY)					\
