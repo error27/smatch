@@ -98,40 +98,38 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	return PTR_ENTRY_NOTAG(list, list->nr-1);
 }
 
-#define PTR_DEREF(__head, idx, PTR_ENTRY) ({						\
-	__typeof__(__head) __list = __head;						\
-	while (__list && __list->nr == 0) {						\
-		__list = __list->next;							\
-		if (__list == __head)							\
-			__list = NULL;							\
-	}										\
-	__list ? PTR_ENTRY(__list, idx) : NULL;						\
-})
+#define PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
+	do {										\
+		if (__nr < __list->nr) {						\
+			ptr = PTR_ENTRY(__list,__nr);					\
+			__nr++;								\
+			break;								\
+		}									\
+		ptr = NULL;								\
+		__nr = 0;								\
+	} while ((__list = __list->next) != __head)					\
 
 #define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)				\
 	do {										\
 		__typeof__(head) __head = (head);					\
 		__typeof__(head) __list = __head;					\
 		int __nr = 0;								\
-		ptr = PTR_DEREF(__head, 0, PTR_ENTRY);					\
+		ptr = NULL;								\
+		if (__head) {								\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
+		}									\
 
 #define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
 		if (ptr) {								\
-			do {								\
-				if (++__nr < __list->nr) {				\
-					ptr = PTR_ENTRY(__list,__nr);			\
-					break;						\
-				}							\
-				ptr = NULL;						\
-				__nr = -1;						\
-			} while ((__list = __list->next) != __head);			\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
 		}
 
 #define DO_RESET(ptr, __head, __list, __nr, PTR_ENTRY)					\
 	do {										\
 		__nr = 0;								\
 		__list = __head;							\
-		if (__head) ptr = PTR_DEREF(__head, 0, PTR_ENTRY);			\
+		if (__head)								\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
 	} while (0)
 
 #define DO_FINISH(ptr, __head, __list, __nr)						\
