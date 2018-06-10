@@ -37,6 +37,44 @@ int ptr_list_size(struct ptr_list *head)
 }
 
 ///
+// get the first element of a ptrlist
+// @head: the head of the list
+// @return: the first element of the list or ``NULL`` if the list is empty
+void *first_ptr_list(struct ptr_list *head)
+{
+	struct ptr_list *list = head;
+
+	if (!head)
+		return NULL;
+
+	while (list->nr == 0) {
+		list = list->next;
+		if (list == head)
+			return NULL;
+	}
+	return PTR_ENTRY_NOTAG(list, 0);
+}
+
+///
+// get the last element of a ptrlist
+// @head: the head of the list
+// @return: the last element of the list or ``NULL`` if the list is empty
+void *last_ptr_list(struct ptr_list *head)
+{
+	struct ptr_list *list;
+
+	if (!head)
+		return NULL;
+	list = head->prev;
+	while (list->nr == 0) {
+		if (list == head)
+			return NULL;
+		list = list->prev;
+	}
+	return PTR_ENTRY_NOTAG(list, list->nr-1);
+}
+
+///
 // linearize the entries of a list
 //
 // @head: the list to be linearized

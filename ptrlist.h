@@ -40,6 +40,8 @@ extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
 extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern int linearize_ptr_list(struct ptr_list *, void **, int);
+extern void *first_ptr_list(struct ptr_list *);
+extern void *last_ptr_list(struct ptr_list *);
 
 /*
  * Hey, who said that you can't do overloading in C?
@@ -67,35 +69,6 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 #define PTR_ENTRY_NOTAG(h,i)	((h)->list[i])
 #define PTR_ENTRY_UNTAG(h,i)	PTR_UNTAG((h)->list[i])
 
-static inline void *first_ptr_list(struct ptr_list *list)
-{
-	struct ptr_list *head = list;
-
-	if (!list)
-		return NULL;
-
-	while (list->nr == 0) {
-		list = list->next;
-		if (list == head)
-			return NULL;
-	}
-	return PTR_ENTRY_NOTAG(list, 0);
-}
-
-static inline void *last_ptr_list(struct ptr_list *list)
-{
-	struct ptr_list *head = list;
-
-	if (!list)
-		return NULL;
-	list = list->prev;
-	while (list->nr == 0) {
-		if (list == head)
-			return NULL;
-		list = list->prev;
-	}
-	return PTR_ENTRY_NOTAG(list, list->nr-1);
-}
 
 #define PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)			\
 	do {								\
