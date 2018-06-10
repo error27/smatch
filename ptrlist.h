@@ -56,12 +56,12 @@ extern int linearize_ptr_list(struct ptr_list *, void **, int);
 #define add_ptr_list_tag(list, ptr, tag) ({				\
 		struct ptr_list** head = (struct ptr_list**)(list);	\
 		CHECK_TYPE(*(list),ptr);				\
-		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);	\
+		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);\
 	})
 
-#define free_ptr_list(list)	do {				\
-		VRFY_PTR_LIST(*(list));				\
-		__free_ptr_list((struct ptr_list **)(list));	\
+#define free_ptr_list(list)	do {					\
+		VRFY_PTR_LIST(*(list));					\
+		__free_ptr_list((struct ptr_list **)(list));		\
 	} while (0)
 
 #define PTR_UNTAG(p)		((void*)(~3UL & (unsigned long)(p)))
@@ -98,42 +98,42 @@ static inline void *last_ptr_list(struct ptr_list *list)
 	return PTR_ENTRY_NOTAG(list, list->nr-1);
 }
 
-#define PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
-	do {										\
-		if (__nr < __list->nr) {						\
-			ptr = PTR_ENTRY(__list,__nr);					\
-			__nr++;								\
-			break;								\
-		}									\
-		ptr = NULL;								\
-		__nr = 0;								\
-	} while ((__list = __list->next) != __head)					\
+#define PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)			\
+	do {								\
+		if (__nr < __list->nr) {				\
+			ptr = PTR_ENTRY(__list,__nr);			\
+			__nr++;						\
+			break;						\
+		}							\
+		ptr = NULL;						\
+		__nr = 0;						\
+	} while ((__list = __list->next) != __head)			\
 
-#define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)				\
-	do {										\
-		__typeof__(head) __head = (head);					\
-		__typeof__(head) __list = __head;					\
-		int __nr = 0;								\
-		ptr = NULL;								\
-		if (__head) {								\
-			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
-		}									\
+#define DO_PREPARE(head, ptr, __head, __list, __nr, PTR_ENTRY)		\
+	do {								\
+		__typeof__(head) __head = (head);			\
+		__typeof__(head) __list = __head;			\
+		int __nr = 0;						\
+		ptr = NULL;						\
+		if (__head) {						\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);	\
+		}							\
 
-#define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)					\
-		if (ptr) {								\
-			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
+#define DO_NEXT(ptr, __head, __list, __nr, PTR_ENTRY)			\
+		if (ptr) {						\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);	\
 		}
 
-#define DO_RESET(ptr, __head, __list, __nr, PTR_ENTRY)					\
-	do {										\
-		__nr = 0;								\
-		__list = __head;							\
-		if (__head)								\
-			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);			\
+#define DO_RESET(ptr, __head, __list, __nr, PTR_ENTRY)			\
+	do {								\
+		__nr = 0;						\
+		__list = __head;					\
+		if (__head)						\
+			PTR_NEXT(ptr, __head, __list, __nr, PTR_ENTRY);	\
 	} while (0)
 
-#define DO_FINISH(ptr, __head, __list, __nr)						\
-		(void)(__nr); /* Sanity-check nesting */				\
+#define DO_FINISH(ptr, __head, __list, __nr)				\
+		(void)(__nr); /* Sanity-check nesting */		\
 	} while (0)
 
 #define PREPARE_PTR_LIST(head, ptr) \
@@ -148,58 +148,60 @@ static inline void *last_ptr_list(struct ptr_list *list)
 #define FINISH_PTR_LIST(ptr) \
 	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
-#define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {			\
-	__typeof__(head) __head = (head);						\
-	__typeof__(head) __list = __head;						\
-	if (!__head) break;								\
-	do { int __nr;									\
-		for (__nr = 0; __nr < __list->nr; __nr++) {				\
-			ptr = PTR_ENTRY(__list,__nr);					\
-			if (__list->rm && !ptr)						\
-				continue;						\
+#define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {	\
+	__typeof__(head) __head = (head);				\
+	__typeof__(head) __list = __head;				\
+	if (!__head)							\
+		break;							\
+	do { int __nr;							\
+		for (__nr = 0; __nr < __list->nr; __nr++) {		\
+			ptr = PTR_ENTRY(__list,__nr);			\
+			if (__list->rm && !ptr)				\
+				continue;				\
 
-#define DO_END_FOR_EACH(ptr, __head, __list, __nr)					\
-		}									\
-	} while ((__list = __list->next) != __head);					\
+#define DO_END_FOR_EACH(ptr, __head, __list, __nr)			\
+		}							\
+	} while ((__list = __list->next) != __head);			\
 } while (0)
 
-#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do {		\
-	__typeof__(head) __head = (head);						\
-	__typeof__(head) __list = __head;						\
-	if (!head) break;								\
-	do { int __nr;									\
-		__list = __list->prev;							\
-		__nr = __list->nr;							\
-		while (--__nr >= 0) {							\
-			ptr = PTR_ENTRY(__list,__nr);					\
-			if (__list->rm && !ptr)						\
-				continue;						\
+#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do { \
+	__typeof__(head) __head = (head);				\
+	__typeof__(head) __list = __head;				\
+	if (!head)							\
+		break;							\
+	do { int __nr;							\
+		__list = __list->prev;					\
+		__nr = __list->nr;					\
+		while (--__nr >= 0) {					\
+			ptr = PTR_ENTRY(__list,__nr);			\
+			if (__list->rm && !ptr)				\
+				continue;				\
 
 
-#define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr)				\
-		}									\
-	} while (__list != __head);							\
+#define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr)		\
+		}							\
+	} while (__list != __head);					\
 } while (0)
 
-#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead,				\
-		   __newlist, __newnr, PTR_ENTRY) do { 					\
-	__typeof__(__head) __newhead = __head;						\
-	__typeof__(__head) __newlist = __list;						\
-	int __newnr = __nr;								\
-	new = ptr;									\
-	goto __inside##new;								\
-	do {										\
-		__newlist = __newlist->prev;						\
-		__newnr = __newlist->nr;						\
-	__inside##new:									\
-		while (--__newnr >= 0) {						\
-			new = PTR_ENTRY(__newlist,__newnr);				\
+#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead,		\
+		   __newlist, __newnr, PTR_ENTRY) do {			\
+	__typeof__(__head) __newhead = __head;				\
+	__typeof__(__head) __newlist = __list;				\
+	int __newnr = __nr;						\
+	new = ptr;							\
+	goto __inside##new;						\
+	do {								\
+		__newlist = __newlist->prev;				\
+		__newnr = __newlist->nr;				\
+	__inside##new:							\
+		while (--__newnr >= 0) {				\
+			new = PTR_ENTRY(__newlist,__newnr);		\
 
-#define RECURSE_PTR_REVERSE(ptr, new)							\
-	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,				\
+#define RECURSE_PTR_REVERSE(ptr, new)					\
+	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,		\
 		   new, __head##new, __list##new, __nr##new, PTR_ENTRY_UNTAG)
 
-#define DO_THIS_ADDRESS(ptr, __head, __list, __nr)					\
+#define DO_THIS_ADDRESS(ptr, __head, __list, __nr)			\
 	(&__list->list[__nr])
 
 #define FOR_EACH_PTR(head, ptr) \
@@ -229,51 +231,51 @@ static inline void *last_ptr_list(struct ptr_list *list)
 
 extern void split_ptr_list_head(struct ptr_list *);
 
-#define DO_SPLIT(__head, __list, __nr) do {						\
-	split_ptr_list_head((struct ptr_list*)__list);					\
-	if (__nr >= __list->nr) {							\
-		__nr -= __list->nr;							\
-		__list = __list->next;							\
-	};										\
+#define DO_SPLIT(__head, __list, __nr) do {				\
+	split_ptr_list_head((struct ptr_list*)__list);			\
+	if (__nr >= __list->nr) {					\
+		__nr -= __list->nr;					\
+		__list = __list->next;					\
+	};								\
 } while (0)
 
-#define DO_INSERT_CURRENT(new, __head, __list, __nr) do {				\
-	TYPEOF(__head) __this, __last;							\
-	if (__list->nr == LIST_NODE_NR)							\
-		DO_SPLIT(__head, __list, __nr);						\
-	__this = __list->list + __nr;							\
-	__last = __list->list + __list->nr - 1;						\
-	while (__last >= __this) {							\
-		__last[1] = __last[0];							\
-		__last--;								\
-	}										\
-	*__this = (new);								\
-	__list->nr++;									\
+#define DO_INSERT_CURRENT(new, __head, __list, __nr) do {		\
+	TYPEOF(__head) __this, __last;					\
+	if (__list->nr == LIST_NODE_NR)					\
+		DO_SPLIT(__head, __list, __nr);				\
+	__this = __list->list + __nr;					\
+	__last = __list->list + __list->nr - 1;				\
+	while (__last >= __this) {					\
+		__last[1] = __last[0];					\
+		__last--;						\
+	}								\
+	*__this = (new);						\
+	__list->nr++;							\
 } while (0)
 
 #define INSERT_CURRENT(new, ptr) \
 	DO_INSERT_CURRENT(new, __head##ptr, __list##ptr, __nr##ptr)
 
-#define DO_DELETE_CURRENT(__head, __list, __nr) do {					\
-	TYPEOF(__head) __this = __list->list + __nr;					\
-	TYPEOF(__head) __last = __list->list + __list->nr - 1;				\
-	while (__this < __last) {							\
-		__this[0] = __this[1];							\
-		__this++;								\
-	}										\
-	*__this = (void *)0xf0f0f0f0;							\
-	__list->nr--; __nr--;								\
+#define DO_DELETE_CURRENT(__head, __list, __nr) do {			\
+	TYPEOF(__head) __this = __list->list + __nr;			\
+	TYPEOF(__head) __last = __list->list + __list->nr - 1;		\
+	while (__this < __last) {					\
+		__this[0] = __this[1];					\
+		__this++;						\
+	}								\
+	*__this = (void *)0xf0f0f0f0;					\
+	__list->nr--; __nr--;						\
 } while (0)
 
 #define DELETE_CURRENT_PTR(ptr) \
 	DO_DELETE_CURRENT(__head##ptr, __list##ptr, __nr##ptr)
 
-#define REPLACE_CURRENT_PTR(ptr, new_ptr)						\
+#define REPLACE_CURRENT_PTR(ptr, new_ptr)				\
 	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
 
-#define DO_MARK_CURRENT_DELETED(ptr, __list) do {	\
-		REPLACE_CURRENT_PTR(ptr, NULL);		\
-		__list->rm++;				\
+#define DO_MARK_CURRENT_DELETED(ptr, __list) do {			\
+		REPLACE_CURRENT_PTR(ptr, NULL);				\
+		__list->rm++;						\
 	} while (0)
 
 #define MARK_CURRENT_DELETED(ptr) \
