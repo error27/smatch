@@ -27,7 +27,6 @@
 
 DECLARE_PTR_LIST(ptr_list, void);
 
-#define ptr_list_empty(x) ((x) == NULL)
 
 void * undo_ptr_list_last(struct ptr_list **head);
 void * delete_ptr_list_last(struct ptr_list **head);
