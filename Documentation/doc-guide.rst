@@ -149,3 +149,7 @@ will be displayed like this:
 	It's strongly encouraged to use this
 	function instead of open coding a simple
 	``++``.
+
+Intermediate Representation
+---------------------------
+.. c:autodoc:: Documentation/sphinx/ir.py

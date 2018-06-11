@@ -29,6 +29,7 @@ needs_sphinx = '1.3'
 sys.path.insert(0, os.path.abspath('sphinx'))
 extensions = [
 	'cdoc'
+	, 'ir'
 ]
 
 # support .md with python2 & python3
