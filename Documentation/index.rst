@@ -20,8 +20,8 @@ Developer documentation
 
    test-suite
    dev-options
-   IR
    api
+   IR
    doc-guide
 
 How to contribute
