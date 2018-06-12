@@ -82,7 +82,7 @@ error:
 	return 0;
 }
 
-static int arguments_choose(struct expression *expr)
+static int args_triadic(struct expression *expr)
 {
 	return eval_args(expr, 3);
 }
@@ -195,8 +195,8 @@ static struct symbol_op expect_op = {
 };
 
 static struct symbol_op choose_op = {
+	.args = args_triadic,
 	.evaluate = evaluate_choose,
-	.args = arguments_choose,
 };
 
 /* The argument is constant and valid if the cost is zero */
@@ -251,6 +251,71 @@ static struct symbol_op fp_unop_op = {
 };
 
 
+static int evaluate_overflow_gen(struct expression *expr, int ptr)
+{
+	struct expression *arg;
+	int n = 0;
+
+	/* there will be exactly 3; we'd already verified that */
+	FOR_EACH_PTR(expr->args, arg) {
+		struct symbol *type;
+
+		n++;
+		if (!arg || !(type = arg->ctype))
+			return 0;
+		// 1st & 2nd args must be a basic integer type
+		// 3rd arg must be a pointer to such a type.
+		if (n == 3 && ptr) {
+			if (type->type == SYM_NODE)
+				type = type->ctype.base_type;
+			if (!type)
+				return 0;
+			if (type->type != SYM_PTR)
+				goto err;
+			type = type->ctype.base_type;
+			if (!type)
+				return 0;
+		}
+		if (type->type == SYM_NODE)
+			type = type->ctype.base_type;
+		if (!type)
+			return 0;
+		if (type->ctype.base_type != &int_type || type == &bool_ctype)
+			goto err;
+	} END_FOR_EACH_PTR(arg);
+
+	// the builtin returns a bool
+	expr->ctype = &bool_ctype;
+	return 1;
+
+err:
+	sparse_error(arg->pos, "invalid type for argument %d:", n);
+	info(arg->pos, "        %s", show_typename(arg->ctype));
+	expr->ctype = &bad_ctype;
+	return 0;
+}
+
+static int evaluate_overflow(struct expression *expr)
+{
+	return evaluate_overflow_gen(expr, 1);
+}
+
+static struct symbol_op overflow_op = {
+	.args = args_triadic,
+	.evaluate = evaluate_overflow,
+};
+
+static int evaluate_overflow_p(struct expression *expr)
+{
+	return evaluate_overflow_gen(expr, 0);
+}
+
+static struct symbol_op overflow_p_op = {
+	.args = args_triadic,
+	.evaluate = evaluate_overflow_p,
+};
+
+
 /*
  * Builtin functions
  */
@@ -275,6 +340,12 @@ static struct sym_init {
 	{ "__builtin_isnan", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isnormal", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_signbit", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_add_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_sub_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_mul_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
+	{ "__builtin_add_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
+	{ "__builtin_sub_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
+	{ "__builtin_mul_overflow_p", &builtin_fn_type, MOD_TOPLEVEL, &overflow_p_op },
 	{ NULL,		NULL,		0 }
 };
 
@@ -289,6 +360,7 @@ void init_builtins(int stream)
 		sym->ctype.base_type = ptr->base_type;
 		sym->ctype.modifiers = ptr->modifiers;
 		sym->op = ptr->op;
+		sym->builtin = 1;
 	}
 }
 
@@ -302,6 +374,7 @@ static void declare_builtin(const char *name, struct symbol *rtype, int variadic
 
 	sym->ctype.base_type = fun;
 	sym->ctype.modifiers = MOD_TOPLEVEL;
+	sym->builtin = 1;
 
 	fun->ctype.base_type = rtype;
 	fun->variadic = variadic;
@@ -397,9 +470,18 @@ void declare_builtins(void)
 	declare_builtin("__builtin_realloc", &ptr_ctype, 0, &ptr_ctype, size_t_ctype, NULL);
 	declare_builtin("__builtin_return_address", &ptr_ctype, 0, &uint_ctype, NULL);
 	declare_builtin("__builtin_rindex", &string_ctype, 0, &const_string_ctype, &int_ctype, NULL);
+	declare_builtin("__builtin_sadd_overflow", &bool_ctype, 0, &int_ctype, &int_ctype, &int_ptr_ctype, NULL);
+	declare_builtin("__builtin_saddl_overflow", &bool_ctype, 0, &long_ctype, &long_ctype, &long_ptr_ctype, NULL);
+	declare_builtin("__builtin_saddll_overflow", &bool_ctype, 0, &llong_ctype, &llong_ctype, &llong_ptr_ctype, NULL);
 	declare_builtin("__builtin_signbit", &int_ctype, 1, NULL);
+	declare_builtin("__builtin_smul_overflow", &bool_ctype, 0, &int_ctype, &int_ctype, &int_ptr_ctype, NULL);
+	declare_builtin("__builtin_smull_overflow", &bool_ctype, 0, &long_ctype, &long_ctype, &long_ptr_ctype, NULL);
+	declare_builtin("__builtin_smulll_overflow", &bool_ctype, 0, &llong_ctype, &llong_ctype, &llong_ptr_ctype, NULL);
 	declare_builtin("__builtin_snprintf", &int_ctype, 1, &string_ctype, size_t_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_sprintf", &int_ctype, 1, &string_ctype, &const_string_ctype, NULL);
+	declare_builtin("__builtin_ssub_overflow", &bool_ctype, 0, &int_ctype, &int_ctype, &int_ptr_ctype, NULL);
+	declare_builtin("__builtin_ssubl_overflow", &bool_ctype, 0, &long_ctype, &long_ctype, &long_ptr_ctype, NULL);
+	declare_builtin("__builtin_ssubll_overflow", &bool_ctype, 0, &llong_ctype, &llong_ctype, &llong_ptr_ctype, NULL);
 	declare_builtin("__builtin_stpcpy", &string_ctype, 0, &const_string_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_stpncpy", &string_ctype, 0, &const_string_ctype, &const_string_ctype, size_t_ctype, NULL);
 	declare_builtin("__builtin_strcasecmp", &int_ctype, 0, &const_string_ctype, &const_string_ctype, NULL);
@@ -422,7 +504,16 @@ void declare_builtins(void)
 	declare_builtin("__builtin_strspn", size_t_ctype, 0, &const_string_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_strstr", &string_ctype, 0, &const_string_ctype, &const_string_ctype, NULL);
 	declare_builtin("__builtin_trap", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_uadd_overflow", &bool_ctype, 0, &uint_ctype, &uint_ctype, &uint_ptr_ctype, NULL);
+	declare_builtin("__builtin_uaddl_overflow", &bool_ctype, 0, &ulong_ctype, &ulong_ctype, &ulong_ptr_ctype, NULL);
+	declare_builtin("__builtin_uaddll_overflow", &bool_ctype, 0, &ullong_ctype, &ullong_ctype, &ullong_ptr_ctype, NULL);
+	declare_builtin("__builtin_umul_overflow", &bool_ctype, 0, &uint_ctype, &uint_ctype, &uint_ptr_ctype, NULL);
+	declare_builtin("__builtin_umull_overflow", &bool_ctype, 0, &ulong_ctype, &ulong_ctype, &ulong_ptr_ctype, NULL);
+	declare_builtin("__builtin_umulll_overflow", &bool_ctype, 0, &ullong_ctype, &ullong_ctype, &ullong_ptr_ctype, NULL);
 	declare_builtin("__builtin_unreachable", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_usub_overflow", &bool_ctype, 0, &uint_ctype, &uint_ctype, &uint_ptr_ctype, NULL);
+	declare_builtin("__builtin_usubl_overflow", &bool_ctype, 0, &ulong_ctype, &ulong_ctype, &ulong_ptr_ctype, NULL);
+	declare_builtin("__builtin_usubll_overflow", &bool_ctype, 0, &ullong_ctype, &ullong_ctype, &ullong_ptr_ctype, NULL);
 	declare_builtin("__builtin_va_arg_pack_len", size_t_ctype, 0, NULL);
 	declare_builtin("__builtin_vprintf", &int_ctype, 0, &const_string_ctype, va_list_ctype, NULL);
 	declare_builtin("__builtin_vsnprintf", &int_ctype, 0, &string_ctype, size_t_ctype, &const_string_ctype, va_list_ctype, NULL);
@@ -459,4 +550,9 @@ void declare_builtins(void)
 	declare_builtin("__sync_synchronize", &void_ctype, 0, NULL);
 	declare_builtin("__sync_val_compare_and_swap", &int_ctype, 1, &ptr_ctype, NULL);
 	declare_builtin("__sync_xor_and_fetch", &int_ctype, 1, &ptr_ctype, NULL);
+
+	// Blackfin-specific stuff
+	declare_builtin("__builtin_bfin_csync", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_bfin_ssync", &void_ctype, 0, NULL);
+	declare_builtin("__builtin_bfin_norm_fr1x32", &int_ctype, 0, &int_ctype, NULL);
 }

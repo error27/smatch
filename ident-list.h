@@ -59,16 +59,12 @@ IDENT_RESERVED(__label__);
  * sparse. */
 IDENT(defined);
 IDENT(once);
+IDENT(__has_builtin);
 __IDENT(pragma_ident, "__pragma__", 0);
 __IDENT(__VA_ARGS___ident, "__VA_ARGS__", 0);
-__IDENT(__LINE___ident, "__LINE__", 0);
-__IDENT(__FILE___ident, "__FILE__", 0);
-__IDENT(__DATE___ident, "__DATE__", 0);
-__IDENT(__TIME___ident, "__TIME__", 0);
 __IDENT(__func___ident, "__func__", 0);
 __IDENT(__FUNCTION___ident, "__FUNCTION__", 0);
 __IDENT(__PRETTY_FUNCTION___ident, "__PRETTY_FUNCTION__", 0);
-__IDENT(__COUNTER___ident, "__COUNTER__", 0);
 
 /* Sparse commands */
 IDENT_RESERVED(__context__);

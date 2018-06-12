@@ -155,6 +155,7 @@ struct symbol {
 			struct token *expansion;
 			struct token *arglist;
 			struct scope *used_in;
+			void (*expander)(struct token *);
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
@@ -173,6 +174,7 @@ struct symbol {
 					designated_init:1,
 					forced_arg:1,
 					accessed:1,
+					builtin:1,
 					transparent_union:1;
 			struct expression *array_size;
 			struct ctype ctype;
@@ -267,6 +269,9 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
+extern struct symbol	int_ptr_ctype, uint_ptr_ctype;
+extern struct symbol	long_ptr_ctype, ulong_ptr_ctype;
+extern struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
 extern struct symbol	float32_ctype, float32x_ctype;
 extern struct symbol	float64_ctype, float64x_ctype;
 extern struct symbol	float128_ctype;

@@ -33,6 +33,7 @@
 
 #include "compat.h"
 #include "ptrlist.h"
+#include "utils.h"
 
 #define DO_STRINGIFY(x) #x
 #define STRINGIFY(x) DO_STRINGIFY(x)
@@ -45,6 +46,8 @@ extern int verbose, optimize_level, optimize_size, preprocessing;
 extern int die_if_error;
 extern int repeat_phase;
 extern int gcc_major, gcc_minor, gcc_patchlevel;
+
+extern const char *base_filename;
 
 extern unsigned int hexval(unsigned int c);
 
@@ -127,6 +130,7 @@ enum phase {
 
 
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
+extern void predefine(const char *name, int weak, const char *fmt, ...) FORMAT_ATTR(3);
 
 extern int preprocess_only;
 

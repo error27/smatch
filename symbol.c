@@ -697,6 +697,9 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
+struct symbol	int_ptr_ctype, uint_ptr_ctype;
+struct symbol	long_ptr_ctype, ulong_ptr_ctype;
+struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
 struct symbol	float32_ctype, float32x_ctype;
 struct symbol	float64_ctype, float64x_ctype;
 struct symbol	float128_ctype;
@@ -779,6 +782,12 @@ static const struct ctype_declare {
 	{ &null_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &label_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
 	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
+	{ &int_ptr_ctype,   SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &int_ctype },
+	{ &uint_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &uint_ctype },
+	{ &long_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &long_ctype },
+	{ &ulong_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &ulong_ctype },
+	{ &llong_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &llong_ctype },
+	{ &ullong_ptr_ctype,SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &ullong_ctype },
 
 	{ &const_void_ctype, SYM_NODE,	  MOD_CONST,		    NULL, NULL, &void_ctype },
 	{ &const_char_ctype, SYM_NODE,	  MOD_CONST,		    &bits_in_char, &max_int_alignment, &char_ctype },

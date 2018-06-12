@@ -9,6 +9,7 @@ Utilities
 ~~~~~~~~~
 
 .. c:autodoc:: ptrlist.c
+.. c:autodoc:: utils.h
 
 Parsing
 ~~~~~~~
