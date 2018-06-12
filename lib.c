@@ -454,7 +454,7 @@ static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "m64")) {
 		arch_m64 = ARCH_LP64;
-	} else if (!strcmp(arg, "m32")) {
+	} else if (!strcmp(arg, "m32") || !strcmp(arg, "m16")) {
 		arch_m64 = ARCH_LP32;
 	} else if (!strcmp(arg, "mx32")) {
 		arch_m64 = ARCH_X32;
