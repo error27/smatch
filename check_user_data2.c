@@ -612,6 +612,8 @@ static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 
 	/* handle ntohl(foo[i]) where "i" is trusted */
 	parent = expr_get_parent_expr(expr);
+	while (parent && parent->type != EXPR_BINOP)
+		parent = expr_get_parent_expr(parent);
 	if (parent && parent->type == EXPR_BINOP) {
 		char *parent_macro = get_macro_name(parent->pos);
 
