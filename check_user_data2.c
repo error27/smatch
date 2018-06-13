@@ -758,15 +758,13 @@ found:
 
 int get_user_rl(struct expression *expr, struct range_list **rl)
 {
-
 	user_data_flag = 0;
 	no_user_data_flag = 0;
 	custom_get_absolute_rl(expr, &var_user_rl, rl);
-	if (!user_data_flag || no_user_data_flag || !*rl) {
+	if (!user_data_flag || no_user_data_flag)
 		*rl = NULL;
-		return 0;
-	}
-	return 1;
+
+	return !!*rl;
 }
 
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl)
