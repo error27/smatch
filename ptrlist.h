@@ -124,9 +124,10 @@ extern void __free_ptr_list(struct ptr_list **);
 #define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {	\
 	__typeof__(head) __head = (head);				\
 	__typeof__(head) __list = __head;				\
+	int __nr;							\
 	if (!__head)							\
 		break;							\
-	do { int __nr;							\
+	do {								\
 		for (__nr = 0; __nr < __list->nr; __nr++) {		\
 			ptr = PTR_ENTRY(__list,__nr);			\
 			if (__list->rm && !ptr)				\
@@ -140,9 +141,10 @@ extern void __free_ptr_list(struct ptr_list **);
 #define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do { \
 	__typeof__(head) __head = (head);				\
 	__typeof__(head) __list = __head;				\
+	int __nr;							\
 	if (!head)							\
 		break;							\
-	do { int __nr;							\
+	do {								\
 		__list = __list->prev;					\
 		__nr = __list->nr;					\
 		while (--__nr >= 0) {					\
