@@ -106,7 +106,7 @@ extern void __free_ptr_list(struct ptr_list **);
 	} while (0)
 
 #define DO_FINISH(ptr, __head, __list, __nr)				\
-		(void)(__nr); /* Sanity-check nesting */		\
+		VRFY_PTR_LIST(__head); /* Sanity-check nesting */	\
 	} while (0)
 
 #define PREPARE_PTR_LIST(head, ptr) \
