@@ -34,10 +34,7 @@ int delete_ptr_list_entry(struct ptr_list **, void *, int);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
-extern void **__add_ptr_list(struct ptr_list **, void *);
-extern void **__add_ptr_list_tag(struct ptr_list **, void *, unsigned long);
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
-extern void __free_ptr_list(struct ptr_list **);
 extern int ptr_list_size(struct ptr_list *);
 extern int linearize_ptr_list(struct ptr_list *, void **, int);
 extern void *first_ptr_list(struct ptr_list *);
@@ -49,6 +46,9 @@ extern void *last_ptr_list(struct ptr_list *);
  * You just have to be creative, and use some gcc
  * extensions..
  */
+extern void **__add_ptr_list(struct ptr_list **, void *);
+extern void **__add_ptr_list_tag(struct ptr_list **, void *, unsigned long);
+
 #define add_ptr_list(list, ptr) ({					\
 		struct ptr_list** head = (struct ptr_list**)(list);	\
 		CHECK_TYPE(*(list),ptr);				\
@@ -60,6 +60,7 @@ extern void *last_ptr_list(struct ptr_list *);
 		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);\
 	})
 
+extern void __free_ptr_list(struct ptr_list **);
 #define free_ptr_list(list)	do {					\
 		VRFY_PTR_LIST(*(list));					\
 		__free_ptr_list((struct ptr_list **)(list));		\
