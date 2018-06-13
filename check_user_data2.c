@@ -695,7 +695,7 @@ static struct range_list *var_user_rl(struct expression *expr)
 		goto found;
 	}
 
-	if (expr->type == EXPR_BINOP && expr->op == '/') {
+	if (!option_spammy && expr->type == EXPR_BINOP && expr->op == '/') {
 		struct range_list *left = NULL;
 		struct range_list *right = NULL;
 		struct range_list *abs_right;
@@ -765,6 +765,24 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 		*rl = NULL;
 
 	return !!*rl;
+}
+
+int get_user_rl_spammy(struct expression *expr, struct range_list **rl)
+{
+	int ret;
+
+	option_spammy++;
+	ret = get_user_rl(expr, rl);
+	option_spammy--;
+
+	return ret;
+}
+
+int is_user_rl(struct expression *expr)
+{
+	struct range_list *tmp;
+
+	return get_user_rl_spammy(expr, &tmp);
 }
 
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl)
