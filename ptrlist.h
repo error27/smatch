@@ -39,6 +39,7 @@ extern int ptr_list_size(struct ptr_list *);
 extern int linearize_ptr_list(struct ptr_list *, void **, int);
 extern void *first_ptr_list(struct ptr_list *);
 extern void *last_ptr_list(struct ptr_list *);
+extern void pack_ptr_list(struct ptr_list **);
 
 /*
  * Hey, who said that you can't do overloading in C?
@@ -66,6 +67,74 @@ extern void __free_ptr_list(struct ptr_list **);
 		__free_ptr_list((struct ptr_list **)(list));		\
 	} while (0)
 
+
+////////////////////////////////////////////////////////////////////////
+// API
+#define PREPARE_PTR_LIST(head, ptr) \
+	DO_PREPARE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define NEXT_PTR_LIST(ptr) \
+	DO_NEXT(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define RESET_PTR_LIST(ptr) \
+	DO_RESET(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define FINISH_PTR_LIST(ptr) \
+	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define RECURSE_PTR_REVERSE(ptr, new)					\
+	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,		\
+		   new, __head##new, __list##new, __nr##new, PTR_ENTRY_UNTAG)
+
+
+#define FOR_EACH_PTR(head, ptr) \
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+
+#define FOR_EACH_PTR_TAG(head, ptr) \
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define END_FOR_EACH_PTR(ptr) \
+	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define FOR_EACH_PTR_REVERSE(head, ptr) \
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+
+#define FOR_EACH_PTR_REVERSE_TAG(head, ptr) \
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+
+#define END_FOR_EACH_PTR_REVERSE(ptr) \
+	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define THIS_ADDRESS(ptr) \
+	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
+
+#define INSERT_CURRENT(new, ptr) \
+	DO_INSERT_CURRENT(new, __head##ptr, __list##ptr, __nr##ptr)
+
+#define DELETE_CURRENT_PTR(ptr) \
+	DO_DELETE_CURRENT(__head##ptr, __list##ptr, __nr##ptr)
+
+#define REPLACE_CURRENT_PTR(ptr, new_ptr)				\
+	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
+
+// This replace the current element by a null-pointer.
+// It's used when an element of the list must be removed
+// but the address of the other elements must not be changed.
+#define MARK_CURRENT_DELETED(ptr) \
+	DO_MARK_CURRENT_DELETED(ptr, __list##ptr)
+
+#define PACK_PTR_LIST(x) \
+	pack_ptr_list((struct ptr_list **)(x))
+
+#define CURRENT_TAG(ptr)	(3 & (unsigned long)*THIS_ADDRESS(ptr))
+#define TAG_CURRENT(ptr,val)	update_tag(THIS_ADDRESS(ptr),val)
+
+// backward compatibility for smatch
+#define FOR_EACH_PTR_NOTAG(list, ptr)	FOR_EACH_PTR(list, ptr)
+#define END_FOR_EACH_PTR_NOTAG(ptr)	END_FOR_EACH_PTR(ptr)
+
+////////////////////////////////////////////////////////////////////////
+// Implementation
 #define PTR_UNTAG(p)		((void*)(~3UL & (unsigned long)(p)))
 #define PTR_ENTRY_NOTAG(h,i)	((h)->list[i])
 #define PTR_ENTRY_UNTAG(h,i)	PTR_UNTAG((h)->list[i])
@@ -108,18 +177,6 @@ extern void __free_ptr_list(struct ptr_list **);
 #define DO_FINISH(ptr, __head, __list, __nr)				\
 		VRFY_PTR_LIST(__head); /* Sanity-check nesting */	\
 	} while (0)
-
-#define PREPARE_PTR_LIST(head, ptr) \
-	DO_PREPARE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
-
-#define NEXT_PTR_LIST(ptr) \
-	DO_NEXT(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
-
-#define RESET_PTR_LIST(ptr) \
-	DO_RESET(ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
-
-#define FINISH_PTR_LIST(ptr) \
-	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {	\
 	__typeof__(head) __head = (head);				\
@@ -172,37 +229,9 @@ extern void __free_ptr_list(struct ptr_list **);
 		while (--__newnr >= 0) {				\
 			new = PTR_ENTRY(__newlist,__newnr);		\
 
-#define RECURSE_PTR_REVERSE(ptr, new)					\
-	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,		\
-		   new, __head##new, __list##new, __nr##new, PTR_ENTRY_UNTAG)
-
 #define DO_THIS_ADDRESS(ptr, __head, __list, __nr)			\
 	(&__list->list[__nr])
 
-#define FOR_EACH_PTR(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
-
-#define FOR_EACH_PTR_TAG(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
-
-#define END_FOR_EACH_PTR(ptr) \
-	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
-
-// backward compatibility for smatch
-#define FOR_EACH_PTR_NOTAG(list, ptr)	FOR_EACH_PTR(list, ptr)
-#define END_FOR_EACH_PTR_NOTAG(ptr)	END_FOR_EACH_PTR(ptr)
-
-#define FOR_EACH_PTR_REVERSE(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
-
-#define FOR_EACH_PTR_REVERSE_TAG(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
-
-#define END_FOR_EACH_PTR_REVERSE(ptr) \
-	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr)
-
-#define THIS_ADDRESS(ptr) \
-	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 extern void split_ptr_list_head(struct ptr_list *);
 
@@ -228,9 +257,6 @@ extern void split_ptr_list_head(struct ptr_list *);
 	__list->nr++;							\
 } while (0)
 
-#define INSERT_CURRENT(new, ptr) \
-	DO_INSERT_CURRENT(new, __head##ptr, __list##ptr, __nr##ptr)
-
 #define DO_DELETE_CURRENT(__head, __list, __nr) do {			\
 	TYPEOF(__head) __this = __list->list + __nr;			\
 	TYPEOF(__head) __last = __list->list + __list->nr - 1;		\
@@ -242,23 +268,12 @@ extern void split_ptr_list_head(struct ptr_list *);
 	__list->nr--; __nr--;						\
 } while (0)
 
-#define DELETE_CURRENT_PTR(ptr) \
-	DO_DELETE_CURRENT(__head##ptr, __list##ptr, __nr##ptr)
-
-#define REPLACE_CURRENT_PTR(ptr, new_ptr)				\
-	do { *THIS_ADDRESS(ptr) = (new_ptr); } while (0)
 
 #define DO_MARK_CURRENT_DELETED(ptr, __list) do {			\
 		REPLACE_CURRENT_PTR(ptr, NULL);				\
 		__list->rm++;						\
 	} while (0)
 
-#define MARK_CURRENT_DELETED(ptr) \
-	DO_MARK_CURRENT_DELETED(ptr, __list##ptr)
-
-extern void pack_ptr_list(struct ptr_list **);
-
-#define PACK_PTR_LIST(x) pack_ptr_list((struct ptr_list **)(x))
 
 static inline void update_tag(void *p, unsigned long tag)
 {
@@ -270,8 +285,5 @@ static inline void *tag_ptr(void *ptr, unsigned long tag)
 {
 	return (void *)(tag | (unsigned long)ptr);
 }
-
-#define CURRENT_TAG(ptr) (3 & (unsigned long)*THIS_ADDRESS(ptr))
-#define TAG_CURRENT(ptr,val)	update_tag(THIS_ADDRESS(ptr),val)
 
 #endif /* PTR_LIST_H */
