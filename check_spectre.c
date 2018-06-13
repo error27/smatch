@@ -95,7 +95,6 @@ static void array_check(struct expression *expr)
 {
 	struct expression_list *conditions;
 	struct expression *array_expr, *offset;
-	struct range_list *user_rl;
 //	struct bit_info *binfo;
 	int array_size;
 	char *name;
@@ -116,7 +115,7 @@ static void array_check(struct expression *expr)
 		return;
 
 	offset = get_array_offset(expr);
-	if (!get_user_rl(offset, &user_rl))
+	if (!is_user_rl(offset))
 		return;
 	if (is_nospec(offset))
 		return;
