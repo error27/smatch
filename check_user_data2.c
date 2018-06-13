@@ -244,17 +244,62 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_para
 	tag_as_user_data(dest);
 }
 
+static int is_dev_attr_name(struct expression *expr)
+{
+	char *name;
+	int ret = 0;
+
+	name = expr_to_str(expr);
+	if (!name)
+		return 0;
+	if (strstr(name, "->attr.name"))
+		ret = 1;
+	free_string(name);
+	return ret;
+}
+
+static int ends_in_n(struct expression *expr)
+{
+	struct string *str;
+
+	if (!expr)
+		return 0;
+	if (expr->type != EXPR_STRING || !expr->string)
+		return 0;
+
+	str = expr->string;
+	if (str->length < 3)
+		return 0;
+
+	if (str->data[str->length - 3] == '%' &&
+	    str->data[str->length - 2] == 'n')
+		return 1;
+	return 0;
+}
+
 static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 {
-	struct expression *arg;
-	int i;
+	struct expression *str, *format, *arg;
+	int i, last;
 
 	func_gets_user_data = true;
+
+	str = get_argument_from_call_expr(expr->args, 0);
+	if (is_dev_attr_name(str))
+		return;
+
+	format = get_argument_from_call_expr(expr->args, 1);
+	if (is_dev_attr_name(format))
+		return;
+
+	last = ptr_list_size((struct ptr_list *)expr->args) - 1;
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
 		if (i < 2)
+			continue;
+		if (i == last && ends_in_n(format))
 			continue;
 		tag_as_user_data(arg);
 	} END_FOR_EACH_PTR(arg);
