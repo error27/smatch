@@ -91,11 +91,37 @@ static unsigned long long get_max_by_type(struct expression *expr)
 	return max.uvalue;
 }
 
+static unsigned long long get_mask(struct expression *expr)
+{
+	struct expression *tmp;
+	sval_t mask;
+	int cnt = 0;
+
+	expr = strip_expr(expr);
+
+	tmp = get_assigned_expr(expr);
+	while (tmp) {
+		expr = tmp;
+		if (++cnt > 3)
+			break;
+		tmp = get_assigned_expr(expr);
+	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '&') {
+		if (get_value(expr->right, &mask))  /* right is the common case */
+			return mask.uvalue;
+		if (get_value(expr->left, &mask))
+			return mask.uvalue;
+	}
+
+	return ULLONG_MAX;
+}
+
 static void array_check(struct expression *expr)
 {
 	struct expression_list *conditions;
 	struct expression *array_expr, *offset;
-//	struct bit_info *binfo;
+	unsigned long long mask;
 	int array_size;
 	char *name;
 
@@ -126,6 +152,10 @@ static void array_check(struct expression *expr)
 //	binfo = get_bit_info(offset);
 //	if (array_size > 0 && binfo && binfo->possible < array_size)
 //		return;
+
+	mask = get_mask(offset);
+	if (mask <= array_size)
+		return;
 
 	conditions = get_conditions(offset);
 
