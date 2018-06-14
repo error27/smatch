@@ -1133,6 +1133,14 @@ static void predefined_sizeof(const char *name, unsigned bits)
 	predefine(buf, 1, "%d", bits/8);
 }
 
+static void predefined_width(const char *name, unsigned bits)
+{
+	char buf[32];
+
+	snprintf(buf, sizeof(buf), "__%s_WIDTH__", name);
+	predefine(buf, 1, "%d", bits);
+}
+
 static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
 	unsigned long long max = (1ULL << (bits - 1 )) - 1;
@@ -1146,6 +1154,7 @@ static void predefined_type_size(const char *name, const char *suffix, unsigned 
 {
 	predefined_max(name, suffix, bits);
 	predefined_sizeof(name, bits);
+	predefined_width(name, bits);
 }
 
 static void predefined_macros(void)
@@ -1191,8 +1200,12 @@ static void predefined_macros(void)
 
 	predefined_sizeof("SHORT", bits_in_short);
 	predefined_max("SHRT", "", bits_in_short);
+	predefined_width("SHRT",   bits_in_short);
 	predefined_max("SCHAR", "", bits_in_char);
+	predefined_width("SCHAR",   bits_in_char);
+	predefined_sizeof("WCHAR_T",bits_in_wchar);
 	predefined_max("WCHAR", "", bits_in_wchar);
+	predefined_width("WCHAR",   bits_in_wchar);
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 
 	predefined_type_size("INT", "", bits_in_int);
@@ -1202,7 +1215,9 @@ static void predefined_macros(void)
 	predefined_sizeof("INT128", 128);
 
 	predefined_sizeof("SIZE_T", bits_in_pointer);
+	predefined_width( "SIZE",   bits_in_pointer);
 	predefined_sizeof("PTRDIFF_T", bits_in_pointer);
+	predefined_width( "PTRDIFF",   bits_in_pointer);
 	predefined_sizeof("POINTER", bits_in_pointer);
 
 	predefined_sizeof("FLOAT", bits_in_float);
