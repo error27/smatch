@@ -2962,9 +2962,6 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (ttype == &void_ctype)
 		goto out;
 
-	if (tclass & (TYPE_COMPOUND | TYPE_FN))
-		warning(expr->pos, "cast to non-scalar");
-
 	stype = source->ctype;
 	if (!stype) {
 		expression_error(expr, "cast from unknown type");
@@ -2972,11 +2969,14 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 	sclass = classify_type(stype, &stype);
 
-	if (sclass & TYPE_COMPOUND)
-		warning(expr->pos, "cast from non-scalar");
-
 	if (expr->type == EXPR_FORCE_CAST)
 		goto out;
+
+	if (tclass & (TYPE_COMPOUND | TYPE_FN))
+		warning(expr->pos, "cast to non-scalar");
+
+	if (sclass & TYPE_COMPOUND)
+		warning(expr->pos, "cast from non-scalar");
 
 	/* allowed cast unfouls */
 	if (sclass & TYPE_FOULED)
