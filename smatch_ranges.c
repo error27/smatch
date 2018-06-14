@@ -295,10 +295,7 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 			ret_rl = remove_range(left_orig, add_one(rl_max(right_orig)), max);
 		break;
 	case SPECIAL_EQUAL:
-		if (!sval_is_max(rl_max(right_orig)))
-			ret_rl = remove_range(ret_rl, add_one(rl_max(right_orig)), max);
-		if (!sval_is_min(rl_min(right_orig)))
-			ret_rl = remove_range(ret_rl, min, sub_one(rl_min(right_orig)));
+		ret_rl = rl_intersection(left_orig, right_orig);
 		break;
 	case SPECIAL_GTE:
 	case SPECIAL_UNSIGNED_GTE:
