@@ -235,18 +235,15 @@ extern void __free_ptr_list(struct ptr_list **);
 
 extern void split_ptr_list_head(struct ptr_list *);
 
-#define DO_SPLIT(__head, __list, __nr) do {				\
-	split_ptr_list_head((struct ptr_list*)__list);			\
-	if (__nr >= __list->nr) {					\
-		__nr -= __list->nr;					\
-		__list = __list->next;					\
-	};								\
-} while (0)
-
 #define DO_INSERT_CURRENT(new, __head, __list, __nr) do {		\
 	TYPEOF(__head) __this, __last;					\
-	if (__list->nr == LIST_NODE_NR)					\
-		DO_SPLIT(__head, __list, __nr);				\
+	if (__list->nr == LIST_NODE_NR) {				\
+		split_ptr_list_head((struct ptr_list*)__list);		\
+		if (__nr >= __list->nr) {				\
+			__nr -= __list->nr;				\
+			__list = __list->next;				\
+		}							\
+	}								\
 	__this = __list->list + __nr;					\
 	__last = __list->list + __list->nr - 1;				\
 	while (__last >= __this) {					\
