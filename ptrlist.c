@@ -278,7 +278,11 @@ out:
 }
 
 ///
-// remove the last entry but doesn't pack the ptr list
+// remove the last entry of a ptrlist
+// @head: a pointer to the list
+// @return: the last elemant of the list or NULL if the list is empty.
+//
+// :note: this doesn't repack the list
 void * undo_ptr_list_last(struct ptr_list **head)
 {
 	struct ptr_list *last, *first = *head;
@@ -301,6 +305,8 @@ void * undo_ptr_list_last(struct ptr_list **head)
 
 ///
 // remove the last entry and repack the list
+// @head: a pointer to the list
+// @return: the last elemant of the list or NULL if the list is empty.
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;
