@@ -36,6 +36,10 @@ OPTIONS
     * ``mem2reg``
     * ``optim``
 
+.. option:: -vcompound
+
+  Print all compound global data symbols with their sizes and alignment.
+
 .. option:: -vdead
 
   Add ``OP_DEATHNOTE`` annotations to dead pseudos.
