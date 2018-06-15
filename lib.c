@@ -283,9 +283,9 @@ int Wvla = 1;
 
 int dump_macro_defs = 0;
 
-int dbg_entry = 0;
-int dbg_dead = 0;
 int dbg_compound = 0;
+int dbg_dead = 0;
+int dbg_entry = 0;
 
 unsigned long fdump_ir;
 int fmem_report = 0;
@@ -759,9 +759,9 @@ static char **handle_switch_W(char *arg, char **next)
 }
 
 static struct flag debugs[] = {
-	{ "entry", &dbg_entry},
-	{ "dead", &dbg_dead},
 	{ "compound", &dbg_compound},
+	{ "dead", &dbg_dead},
+	{ "entry", &dbg_entry},
 };
 
 
