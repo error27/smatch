@@ -958,17 +958,6 @@ static int simplify_cast(struct instruction *insn)
 		return REPEAT_CSE;
 
 	orig_type = insn->orig_type;
-	if (!orig_type)
-		return 0;
-
-	/* Keep casts with pointer on either side (not only case of OP_PTRCAST) */
-	if (is_ptr_type(orig_type) || is_ptr_type(insn->type))
-		return 0;
-
-	/* Keep float-to-int and int-to-float casts */
-	if (is_float_type(orig_type) != is_float_type(insn->type))
-		return 0;
-
 	orig_size = orig_type->bit_size;
 	size = insn->size;
 	src = insn->src;
@@ -991,17 +980,6 @@ static int simplify_cast(struct instruction *insn)
 				if (!(value >> (size-1)))
 					goto simplify;
 			}
-		}
-	}
-
-	if (size == orig_size) {
-		switch (insn->opcode) {
-		//case OP_NOPCAST:	// FIXME: what to do?
-		//case OP_PTRCAST:	// FIXME: what to do?
-		case OP_FCVTF:
-			goto simplify;
-		default:
-			break;
 		}
 	}
 
@@ -1227,13 +1205,16 @@ int simplify_instruction(struct instruction *insn)
 		return replace_with_pseudo(insn, insn->symbol);
 	case OP_SEXT: case OP_ZEXT:
 	case OP_TRUNC:
+		return simplify_cast(insn);
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
 	case OP_UTPTR:
 	case OP_PTRTU:
 	case OP_PTRCAST:
-		return simplify_cast(insn);
+		if (dead_insn(insn, &insn->src, NULL, NULL))
+			return REPEAT_CSE;
+		break;
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL, NULL)) {
 			kill_use_list(insn->phi_list);
