@@ -1,0 +1,14 @@
+static double foo(double a, int p)
+{
+	return a * ((p & 0) + 2);
+}
+
+/*
+ * check-name: fpcast-constant
+ * check-command: test-linearize $file
+ * check-known-to-fail
+ *
+ * check-output-ignore
+ * check-output-contains: fpcast\\.
+ * check-output-excludes: fmul\\..*\\$2
+ */
