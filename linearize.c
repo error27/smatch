@@ -26,6 +26,7 @@
 static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stmt);
 static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr);
 
+static pseudo_t add_cast(struct entrypoint *ep, struct symbol *to, struct symbol *from, int op, pseudo_t src);
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
 static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
@@ -991,8 +992,9 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		pseudo_t orig = add_load(ep, ad);
 		unsigned long long mask = (1ULL << size) - 1;
 
+		store = add_cast(ep, btype, ctype, OP_ZEXT, store);
 		if (shift) {
-			store = add_binary_op(ep, btype, OP_SHL, value, value_pseudo(shift));
+			store = add_binary_op(ep, btype, OP_SHL, store, value_pseudo(shift));
 			mask <<= shift;
 		}
 		orig = add_binary_op(ep, btype, OP_AND, orig, value_pseudo(~mask));
@@ -1105,6 +1107,14 @@ static pseudo_t add_unop(struct entrypoint *ep, struct symbol *ctype, int op, ps
 	insn->target = new;
 	use_pseudo(insn, src, &insn->src1);
 	add_one_insn(ep, insn);
+	return new;
+}
+
+static pseudo_t add_cast(struct entrypoint *ep, struct symbol *to,
+			 struct symbol *from, int op, pseudo_t src)
+{
+	pseudo_t new = add_unop(ep, to, op, src);
+	new->def->orig_type = from;
 	return new;
 }
 
