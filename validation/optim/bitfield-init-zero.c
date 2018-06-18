@@ -57,8 +57,7 @@ int bfs_get0(void)
 bfuu_init:
 .L0:
 	<entry-point>
-	trunc.9     %r2 <- (32) %arg1
-	zext.32     %r4 <- (9) %r2
+	and.32      %r4 <- %arg1, $511
 	shl.32      %r5 <- %r4, $11
 	ret.32      %r5
 
@@ -66,8 +65,7 @@ bfuu_init:
 bfus_init:
 .L2:
 	<entry-point>
-	trunc.9     %r11 <- (32) %arg1
-	zext.32     %r13 <- (9) %r11
+	and.32      %r13 <- %arg1, $511
 	shl.32      %r14 <- %r13, $11
 	ret.32      %r14
 
@@ -81,8 +79,7 @@ bfu_get0:
 bfsu_init:
 .L6:
 	<entry-point>
-	trunc.9     %r25 <- (32) %arg1
-	zext.32     %r27 <- (9) %r25
+	and.32      %r27 <- %arg1, $511
 	shl.32      %r28 <- %r27, $11
 	ret.32      %r28
 
@@ -90,8 +87,7 @@ bfsu_init:
 bfss_init:
 .L8:
 	<entry-point>
-	trunc.9     %r34 <- (32) %arg1
-	zext.32     %r36 <- (9) %r34
+	and.32      %r36 <- %arg1, $511
 	shl.32      %r37 <- %r36, $11
 	ret.32      %r37
 

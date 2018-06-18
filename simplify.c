@@ -948,6 +948,7 @@ static int simplify_cast(struct instruction *insn)
 {
 	struct instruction *def;
 	pseudo_t src;
+	int osize;
 	int size;
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
@@ -971,6 +972,14 @@ static int simplify_cast(struct instruction *insn)
 				if (!(val->value >> (size-1)))
 					goto simplify;
 			}
+		}
+		break;
+	case OP_TRUNC:
+		osize = def->orig_type->bit_size;
+		if (insn->opcode == OP_ZEXT && size == osize) {
+			insn->opcode = OP_AND;
+			insn->src2 = value_pseudo((1ULL << def->size) - 1);
+			return replace_pseudo(insn, &insn->src1, def->src);
 		}
 		break;
 	}
