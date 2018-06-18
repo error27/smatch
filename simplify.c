@@ -946,30 +946,33 @@ static int simplify_memop(struct instruction *insn)
 
 static int simplify_cast(struct instruction *insn)
 {
+	struct instruction *def;
 	pseudo_t src;
 	int size;
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
 
-	size = insn->size;
 	src = insn->src;
 
 	/* A cast of a constant? */
 	if (constant(src))
 		return simplify_constant_unop(insn);
 
-	/* A cast of a "and" might be a no-op.. */
-	if (src->type == PSEUDO_REG) {
-		struct instruction *def = src->def;
-		if (def->opcode == OP_AND && def->size >= size) {
+	// can merge with the previous instruction?
+	size = insn->size;
+	def = src->def;
+	switch (def_opcode(src)) {
+	case OP_AND:
+		/* A cast of a AND might be a no-op.. */
+		if (def->size >= size) {
 			pseudo_t val = def->src2;
 			if (val->type == PSEUDO_VAL) {
-				unsigned long long value = val->value;
-				if (!(value >> (size-1)))
+				if (!(val->value >> (size-1)))
 					goto simplify;
 			}
 		}
+		break;
 	}
 
 	return 0;
