@@ -835,6 +835,15 @@ static int simplify_constant_unop(struct instruction *insn)
 	case OP_NEG:
 		res = -val;
 		break;
+	case OP_SEXT:
+		mask = 1ULL << (insn->orig_type->bit_size-1);
+		if (val & mask)
+			val |= ~(mask | (mask-1));
+		/* fall through */
+	case OP_ZEXT:
+	case OP_TRUNC:
+		res = val;
+		break;
 	default:
 		return 0;
 	}
@@ -935,40 +944,20 @@ static int simplify_memop(struct instruction *insn)
 	return ret;
 }
 
-static long long get_cast_value(long long val, int old_size, int new_size, int sign)
-{
-	long long mask;
-
-	if (sign && new_size > old_size) {
-		mask = 1 << (old_size-1);
-		if (val & mask)
-			val |= ~(mask | (mask-1));
-	}
-	mask = 1 << (new_size-1);
-	return val & (mask | (mask-1));
-}
-
 static int simplify_cast(struct instruction *insn)
 {
-	struct symbol *orig_type;
-	int orig_size, size;
 	pseudo_t src;
+	int size;
 
 	if (dead_insn(insn, &insn->src, NULL, NULL))
 		return REPEAT_CSE;
 
-	orig_type = insn->orig_type;
-	orig_size = orig_type->bit_size;
 	size = insn->size;
 	src = insn->src;
 
 	/* A cast of a constant? */
-	if (constant(src)) {
-		int sign = orig_type->ctype.modifiers & MOD_SIGNED;
-		long long val = get_cast_value(src->value, orig_size, size, sign);
-		src = value_pseudo(val);
-		goto simplify;
-	}
+	if (constant(src))
+		return simplify_constant_unop(insn);
 
 	/* A cast of a "and" might be a no-op.. */
 	if (src->type == PSEUDO_REG) {
