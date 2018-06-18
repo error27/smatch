@@ -720,8 +720,8 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 
 	/* handled by match_inc_dec() */
 	if (mod_expr &&
-	    (mod_expr->type == EXPR_PREOP || mod_expr->type == EXPR_POSTOP) &&
-	    (mod_expr->op == SPECIAL_INCREMENT || mod_expr->op == SPECIAL_DECREMENT))
+	    ((mod_expr->type == EXPR_PREOP || mod_expr->type == EXPR_POSTOP) &&
+	     (mod_expr->op == SPECIAL_INCREMENT || mod_expr->op == SPECIAL_DECREMENT)))
 		return;
 
 	links = sm->state->data;
