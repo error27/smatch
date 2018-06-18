@@ -955,8 +955,8 @@ static int simplify_cast(struct instruction *insn)
 	if (is_ptr_type(orig_type) || is_ptr_type(insn->type))
 		return 0;
 
-	/* Keep float-to-int casts */
-	if (is_float_type(orig_type) && !is_float_type(insn->type))
+	/* Keep float-to-int and int-to-float casts */
+	if (is_float_type(orig_type) != is_float_type(insn->type))
 		return 0;
 
 	orig_size = orig_type->bit_size;

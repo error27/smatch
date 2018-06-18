@@ -6,7 +6,6 @@ static double foo(double a, int p)
 /*
  * check-name: fpcast-constant
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: fpcast\\.
