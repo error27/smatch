@@ -20,6 +20,6 @@ void test(void)
  * check-output-start
 sm_math2.c:11 test() implied: a = '0-255'
 sm_math2.c:12 test() implied: b = '0,256-65280'
-sm_math2.c:13 test() implied: c = '0-65535'
+sm_math2.c:13 test() implied: c = '0-u16max'
  * check-output-end
  */
