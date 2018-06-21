@@ -1493,6 +1493,9 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 			vsl = data->left_vsl;
 			comparison = flip_comparison(comparison);
 		}
+		/* n = copy_from_user(dest, src, n); leads to n <= n which is nonsense */
+		if (strcmp(left_var, var) == 0)
+			continue;
 		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
 	} END_FOR_EACH_PTR(tmp);
 
