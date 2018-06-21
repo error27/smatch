@@ -11,6 +11,7 @@
 #include "liveness.h"
 #include "flow.h"
 #include "cse.h"
+#include "ir.h"
 
 int repeat_phase;
 
@@ -50,12 +51,14 @@ void optimize(struct entrypoint *ep)
 	 * branches, kill dead basicblocks etc
 	 */
 	kill_unreachable_bbs(ep);
+	ir_validate(ep);
 
 	/*
 	 * Turn symbols into pseudos
 	 */
 	if (fpasses & PASS_MEM2REG)
 		simplify_symbol_usage(ep);
+	ir_validate(ep);
 	if (fdump_ir & PASS_MEM2REG)
 		show_entry(ep);
 
@@ -68,6 +71,7 @@ repeat:
 	 */
 	do {
 		simplify_memops(ep);
+		//ir_validate(ep);
 		do {
 			repeat_phase = 0;
 			clean_up_insns(ep);
@@ -78,11 +82,15 @@ repeat:
 
 			if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
 				simplify_memops(ep);
+			//ir_validate(ep);
 		} while (repeat_phase);
 		pack_basic_blocks(ep);
+		//ir_validate(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
 			kill_unreachable_bbs(ep);
+		//ir_validate(ep);
 	} while (repeat_phase);
+	//ir_validate(ep);
 
 	vrfy_flow(ep);
 
@@ -99,11 +107,13 @@ repeat:
 	 * again
 	 */
 	if (simplify_flow(ep)) {
+		//ir_validate(ep);
 		clear_liveness(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
 			kill_unreachable_bbs(ep);
 		goto repeat;
 	}
+	//ir_validate(ep);
 
 	/* Finally, add deathnotes to pseudos now that we have them */
 	if (dbg_dead)
