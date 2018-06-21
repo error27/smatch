@@ -317,6 +317,7 @@ static enum { STANDARD_C89,
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_msize_long = 0;
 int arch_big_endian = ARCH_BIG_ENDIAN;
+int arch_mach = MACH_NATIVE;
 
 
 #define CMDLINE_INCLUDE 20
@@ -1224,14 +1225,12 @@ static void predefined_macros(void)
 		break;
 	}
 
-	predefined_sizeof("WCHAR", "_T", bits_in_wchar);
-	predefined_max("WCHAR", "", bits_in_wchar);
-	predefined_width("WCHAR",   bits_in_wchar);
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 
 	predefined_ctype("SHORT",     &short_ctype, PTYPE_SIZEOF);
 	predefined_ctype("SHRT",      &short_ctype, PTYPE_MAX|PTYPE_WIDTH);
 	predefined_ctype("SCHAR",     &schar_ctype, PTYPE_MAX|PTYPE_WIDTH);
+	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 
 	predefined_ctype("INT",         &int_ctype, PTYPE_ALL);
 	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
@@ -1408,6 +1407,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	list = NULL;
 	if (filelist) {
 		// Initialize type system
+		init_target();
 		init_ctype();
 
 		predefined_macros();

@@ -2,9 +2,11 @@
 
 #include "symbol.h"
 #include "target.h"
+#include "machine.h"
 
 struct symbol *size_t_ctype = &uint_ctype;
 struct symbol *ssize_t_ctype = &int_ctype;
+struct symbol *wchar_ctype = &int_ctype;
 
 /*
  * For "__attribute__((aligned))"
@@ -21,8 +23,6 @@ int bits_in_int = 32;
 int bits_in_long = 32;
 int bits_in_longlong = 64;
 int bits_in_longlonglong = 128;
-
-int bits_in_wchar = 32;
 
 int max_int_alignment = 4;
 
@@ -46,3 +46,30 @@ int pointer_alignment = 4;
  */
 int bits_in_enum = 32;
 int enum_alignment = 4;
+
+
+void init_target(void)
+{
+	switch (arch_mach) {
+	case MACH_X86_64:
+		if (arch_m64 == ARCH_LP64)
+			break;
+		/* fall through */
+	case MACH_I386:
+	case MACH_M68K:
+	case MACH_SPARC32:
+	case MACH_PPC32:
+		wchar_ctype = &long_ctype;
+		break;
+	case MACH_ARM:
+	case MACH_ARM64:
+		wchar_ctype = &uint_ctype;
+		break;
+	default:
+		break;
+	}
+
+#if defined(__CYGWIN__)
+	wchar_ctype = &ushort_ctype;
+#endif
+}
