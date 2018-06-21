@@ -1385,7 +1385,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 			args = handle_switch(arg+1, args);
 			continue;
 		}
-		add_ptr_list_notag(filelist, arg);
+		add_ptr_list(filelist, arg);
 	}
 	handle_switch_W_finalize();
 	handle_switch_v_finalize();
@@ -1395,7 +1395,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		fdump_ir = PASS_FINAL;
 
 	list = NULL;
-	if (!ptr_list_empty(filelist)) {
+	if (filelist) {
 		// Initialize type system
 		init_ctype();
 

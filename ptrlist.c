@@ -37,6 +37,44 @@ int ptr_list_size(struct ptr_list *head)
 }
 
 ///
+// get the first element of a ptrlist
+// @head: the head of the list
+// @return: the first element of the list or ``NULL`` if the list is empty
+void *first_ptr_list(struct ptr_list *head)
+{
+	struct ptr_list *list = head;
+
+	if (!head)
+		return NULL;
+
+	while (list->nr == 0) {
+		list = list->next;
+		if (list == head)
+			return NULL;
+	}
+	return PTR_ENTRY_NOTAG(list, 0);
+}
+
+///
+// get the last element of a ptrlist
+// @head: the head of the list
+// @return: the last element of the list or ``NULL`` if the list is empty
+void *last_ptr_list(struct ptr_list *head)
+{
+	struct ptr_list *list;
+
+	if (!head)
+		return NULL;
+	list = head->prev;
+	while (list->nr == 0) {
+		if (list == head)
+			return NULL;
+		list = list->prev;
+	}
+	return PTR_ENTRY_NOTAG(list, list->nr-1);
+}
+
+///
 // linearize the entries of a list
 //
 // @head: the list to be linearized
@@ -141,23 +179,16 @@ void split_ptr_list_head(struct ptr_list *head)
 // add an entry to a ptrlist
 // @listp: a pointer to the list
 // @ptr: the entry to add to the list
-// @tag: the tag to add to **ptr**, usually ``0``.
 // @return: the address where the new entry is stored.
 //
-// :note: code must not use this function and should use one of
-//	:func:`add_ptr_list`, :func:`add_ptr_list_notag` or
-//	:func:`add_ptr_list_tag` instead.
-void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
+// :note: code must not use this function and should use
+//	:func:`add_ptr_list` instead.
+void **__add_ptr_list(struct ptr_list **listp, void *ptr)
 {
 	struct ptr_list *list = *listp;
 	struct ptr_list *last = NULL; /* gcc complains needlessly */
 	void **ret;
 	int nr;
-
-	/* The low two bits are reserved for tags */
-	assert((3 & (unsigned long)ptr) == 0);
-	assert((~3 & tag) == 0);
-	ptr = (void *)(tag | (unsigned long)ptr);
 
 	if (!list || (nr = (last = list->prev)->nr) >= LIST_NODE_NR) {
 		struct ptr_list *newlist = __alloc_ptrlist(0);
@@ -179,6 +210,26 @@ void **__add_ptr_list(struct ptr_list **listp, void *ptr, unsigned long tag)
 	nr++;
 	last->nr = nr;
 	return ret;
+}
+
+///
+// add a tagged entry to a ptrlist
+// @listp: a pointer to the list
+// @ptr: the entry to add to the list
+// @tag: the tag to add to @ptr
+// @return: the address where the new entry is stored.
+//
+// :note: code must not use this function and should use
+//	:func:`add_ptr_list_tag` instead.
+void **__add_ptr_list_tag(struct ptr_list **listp, void *ptr, unsigned long tag)
+{
+	/* The low two bits are reserved for tags */
+	assert((3 & (unsigned long)ptr) == 0);
+	assert((~3 & tag) == 0);
+
+	ptr = (void *)(tag | (unsigned long)ptr);
+
+	return __add_ptr_list(listp, ptr);
 }
 
 ///
@@ -227,7 +278,11 @@ out:
 }
 
 ///
-// remove the last entry but doesn't pack the ptr list
+// remove the last entry of a ptrlist
+// @head: a pointer to the list
+// @return: the last elemant of the list or NULL if the list is empty.
+//
+// :note: this doesn't repack the list
 void * undo_ptr_list_last(struct ptr_list **head)
 {
 	struct ptr_list *last, *first = *head;
@@ -250,6 +305,8 @@ void * undo_ptr_list_last(struct ptr_list **head)
 
 ///
 // remove the last entry and repack the list
+// @head: a pointer to the list
+// @return: the last elemant of the list or NULL if the list is empty.
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;

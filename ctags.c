@@ -216,10 +216,10 @@ int main(int argc, char **argv)
 	char *file;
 
 	examine_symbol_list(sparse_initialize(argc, argv, &filelist));
-	FOR_EACH_PTR_NOTAG(filelist, file) {
+	FOR_EACH_PTR(filelist, file) {
 		sparse(file);
 		examine_symbol_list(file_scope->symbols);
-	} END_FOR_EACH_PTR_NOTAG(file);
+	} END_FOR_EACH_PTR(file);
 	examine_symbol_list(global_scope->symbols);
 	sort_list((struct ptr_list **)&taglist, cmp_sym);
 	show_tags(taglist);
