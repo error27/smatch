@@ -155,6 +155,10 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 			return;
 	}
 
+	/* Only save links to variables, not fixed sizes */
+	if (get_value(size, &sval))
+		return;
+
 	db_save_type_links(pointer, size);
 	sm = set_state_expr(size_id, pointer, alloc_expr_state(size));
 	if (!sm)
