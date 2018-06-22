@@ -855,8 +855,7 @@ static void print_returned_allocations(int return_id, char *return_ranges, struc
 
 static void record_global_size(struct symbol *sym)
 {
-	struct symbol *type;
-	int elements, bpe, bytes;
+	int bytes;
 	char buf[16];
 
 	if (!sym->ident)
@@ -866,13 +865,10 @@ static void record_global_size(struct symbol *sym)
 	    sym->ctype.modifiers & MOD_STATIC)
 		return;
 
-	type = get_real_base_type(sym);
-	elements = get_real_array_size_from_type(type);
-	if (elements <= 0)
+	bytes = get_array_size_bytes(symbol_expression(sym));
+	if (bytes <= 1)
 		return;
-	type = get_real_base_type(type);
-	bpe = type_bytes(type);
-	bytes = elements * bpe;
+
 	snprintf(buf, sizeof(buf), "%d", bytes);
 	sql_insert_data_info_var_sym(sym->ident->name, sym, BUF_SIZE, buf);
 }
