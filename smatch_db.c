@@ -29,6 +29,7 @@ struct sqlite3 *cache_db;
 
 static int return_id;
 
+#define SQLITE_CACHE_PAGES 1000
 
 struct def_callback {
 	int hook_type;
@@ -2068,6 +2069,8 @@ void open_smatch_db(void)
 		option_no_db = 1;
 		return;
 	}
+	run_sql(NULL, NULL,
+		"PRAGMA cache_size = %d;", SQLITE_CACHE_PAGES);
 	return;
 }
 
