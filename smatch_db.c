@@ -1468,6 +1468,21 @@ static int split_positive_from_negative(struct expression *expr)
 	return 1;
 }
 
+static bool has_possible_null(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	sval_t sval;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_get_single_value(tmp->state, &sval))
+			continue;
+		if (sval.value == 0)
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1498,7 +1513,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 		return 0;
 	if (estate_min(state).value == 0 && estate_max(state).value == 0)
 		return 0;
-	if (!rl_has_sval(estate_rl(state), sval_type_val(estate_type(state), 0)))
+	if (!has_possible_null(sm))
 		return 0;
 
 	nr_states = get_db_state_count();
