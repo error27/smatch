@@ -759,6 +759,7 @@ enum info_type {
 
 extern struct sqlite3 *smatch_db;
 extern struct sqlite3 *mem_db;
+extern struct sqlite3 *cache_db;
 
 void debug_sql(struct sqlite3 *db, const char *sql);
 void db_ignore_states(int id);
@@ -802,6 +803,8 @@ do {										\
 #define mem_sql(call_back, data, sql...)					\
 	sql_helper(mem_db, call_back, data, sql)
 
+#define cache_sql(call_back, data, sql...)					\
+	sql_helper(cache_db, call_back, data, sql)
 
 #define sql_insert_helper(table, db, ignore, late, values...)			\
 do {										\
@@ -843,6 +846,8 @@ do {										\
 #define sql_insert(table, values...) sql_insert_helper(table, 0, 0, 0, values);
 #define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 0, 1, 0, values);
 #define sql_insert_late(table, values...) sql_insert_helper(table, 0, 0, 1, values);
+#define sql_insert_cache(table, values...) sql_insert_helper(table, cache_db, 1, 0, values);
+
 char *get_static_filter(struct symbol *sym);
 
 void sql_insert_return_states(int return_id, const char *return_ranges,

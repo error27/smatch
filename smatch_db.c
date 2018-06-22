@@ -25,6 +25,7 @@
 
 struct sqlite3 *smatch_db;
 struct sqlite3 *mem_db;
+struct sqlite3 *cache_db;
 
 static int return_id;
 
@@ -1973,6 +1974,82 @@ static void init_memdb(void)
 	}
 }
 
+static void init_cachedb(void)
+{
+	char *err = NULL;
+	int rc;
+	const char *schema_files[] = {
+		"db/call_implies.schema",
+		"db/type_info.schema",
+	};
+	static char buf[4096];
+	int fd;
+	int ret;
+	int i;
+
+	rc = sqlite3_open(":memory:", &cache_db);
+	if (rc != SQLITE_OK) {
+		printf("Error starting In-Memory database.");
+		return;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
+		fd = open_data_file(schema_files[i]);
+		if (fd < 0) {
+			printf("failed to open: %s\n", schema_files[i]);
+			continue;
+		}
+		ret = read(fd, buf, sizeof(buf));
+		if (ret < 0) {
+			printf("failed to read: %s\n", schema_files[i]);
+			continue;
+		}
+		close(fd);
+		if (ret == sizeof(buf)) {
+			printf("Schema file too large:  %s (limit %zd bytes)",
+			       schema_files[i], sizeof(buf));
+			continue;
+		}
+		buf[ret] = '\0';
+		rc = sqlite3_exec(cache_db, buf, NULL, NULL, &err);
+		if (rc != SQLITE_OK) {
+			fprintf(stderr, "SQL error #2: %s\n", err);
+			fprintf(stderr, "%s\n", buf);
+		}
+	}
+}
+
+static int save_cache_data(void *_table, int argc, char **argv, char **azColName)
+{
+	static char buf[4096];
+	char *p = buf;
+	char *table = _table;
+	int i;
+
+
+	p += snprintf(p, 4096 - (p - buf), "insert or ignore into %s values (", table);
+	for (i = 0; i < argc; i++) {
+		if (i)
+			p += snprintf(p, 4096 - (p - buf), ", ");
+		p += snprintf(p, 4096 - (p - buf), "'%s'", argv[i]);
+
+	}
+	p += snprintf(p, 4096 - (p - buf), ");");
+	if (p - buf > 4096)
+		return 0;
+
+	sm_msg("SQL: %s", buf);
+	return 0;
+}
+
+static void dump_cache(struct symbol_list *sym_list)
+{
+	if (!option_info)
+		return;
+	cache_sql(&save_cache_data, (char *)"type_info", "select * from type_info;");
+	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
+}
+
 void open_smatch_db(void)
 {
 	int rc;
@@ -1984,6 +2061,7 @@ void open_smatch_db(void)
 	memset(use_states, 0xff, num_checks + 1);
 
 	init_memdb();
+	init_cachedb();
 
 	rc = sqlite3_open_v2("smatch_db.sqlite", &smatch_db, SQLITE_OPEN_READONLY, NULL);
 	if (rc != SQLITE_OK) {
@@ -2113,6 +2191,8 @@ void register_definition_db_callbacks(int id)
 
 	register_common_funcs();
 	register_return_replacements();
+
+	add_hook(&dump_cache, END_FILE_HOOK);
 }
 
 void register_db_call_marker(int id)
