@@ -256,7 +256,7 @@ int kill_insn(struct instruction *insn, int force)
 	case OP_FPCAST:
 	case OP_PTRCAST:
 	case OP_SETVAL:
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: case OP_NEG: case OP_FNEG:
 	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;

@@ -100,7 +100,7 @@ static int validate_insn(struct instruction *insn)
 	case OP_SCAST:
 	case OP_FPCAST:
 	case OP_PTRCAST:
-	case OP_NOT: case OP_NEG:
+	case OP_NOT: case OP_NEG: case OP_FNEG:
 	case OP_SLICE:
 	case OP_SYMADDR:
 	case OP_PHISOURCE:
