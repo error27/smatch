@@ -379,34 +379,34 @@ static void match_strlen(const char *fn, struct expression *expr, void *info)
 
 static void match_buf_size(const char *fn, struct expression *expr, void *info)
 {
-	struct expression *arg;
-	int elements, bytes;
-	char *name;
-
-	arg = get_argument_from_call_expr(expr->args, 0);
-	elements = get_array_size(arg);
-	bytes = get_array_size_bytes_max(arg);
-
-	name = expr_to_str(arg);
-	sm_msg("buf size: '%s' %d elements, %d bytes", name, elements, bytes);
-	free_string(name);
-}
-
-static void match_buf_size_rl(const char *fn, struct expression *expr, void *info)
-{
-	struct expression *arg;
+	struct expression *arg, *comp;
 	struct range_list *rl;
 	int elements, bytes;
 	char *name;
+	char buf[256] = "";
+	int n;
+	sval_t sval;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	rl = get_array_size_bytes_rl(arg);
+
 	elements = get_array_size(arg);
-	bytes = get_array_size_bytes(arg);
+	bytes = get_array_size_bytes_max(arg);
+	rl = get_array_size_bytes_rl(arg);
+	comp = get_size_variable(arg);
 
 	name = expr_to_str(arg);
-	sm_msg("buf size: '%s' %s %d elements, %d bytes", name, show_rl(rl), elements, bytes);
+	n = snprintf(buf, sizeof(buf), "buf size: '%s' %d elements, %d bytes", name, elements, bytes);
 	free_string(name);
+
+	if (!rl_to_sval(rl, &sval))
+		n += snprintf(buf + n, sizeof(buf) - n, " (rl = %s)", show_rl(rl));
+
+	if (comp) {
+		name = expr_to_str(comp);
+		snprintf(buf + n, sizeof(buf) - n, "[size_var=%s]", name);
+		free_string(name);
+	}
+	sm_msg("%s", buf);
 }
 
 static void match_note(const char *fn, struct expression *expr, void *info)
@@ -737,7 +737,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_cur_stree", &match_cur_stree, NULL);
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
-	add_function_hook("__smatch_buf_size_rl", &match_buf_size_rl, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
 	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_compare", &match_compare, NULL);
