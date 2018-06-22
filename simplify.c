@@ -251,12 +251,8 @@ int kill_insn(struct instruction *insn, int force)
 		kill_use(&insn->src2);
 		/* fall through */
 
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
+	case OP_UNOP ... OP_UNOP_END:
 	case OP_SETVAL:
-	case OP_NOT: case OP_NEG: case OP_FNEG:
 	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;
@@ -348,14 +344,8 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 		kill_use(&insn->src3);
 	case OP_BINARY ... OP_BINCMP_END:
 		kill_use(&insn->src2);
-	case OP_NOT:
-	case OP_NEG:
-	case OP_FNEG:
+	case OP_UNOP ... OP_UNOP_END:
 	case OP_SYMADDR:
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
 		kill_use(&insn->src1);
 		break;
 
