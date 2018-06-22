@@ -2316,6 +2316,26 @@ static int basically_the_same(struct range_list *orig, struct range_list *new)
 	return 0;
 }
 
+static void db_param_limit_binops(struct expression *arg, char *key, struct range_list *rl)
+{
+	struct range_list *left_rl;
+	sval_t zero = {	.type = rl_type(rl), };
+	sval_t sval;
+
+	if (arg->op != '*')
+		return;
+	if (!get_implied_value(arg->right, &sval))
+		return;
+	if (can_integer_overflow(get_type(arg), arg))
+		return;
+
+	left_rl = rl_binop(rl, '/', alloc_rl(sval, sval));
+	if (!rl_has_sval(rl, zero))
+		left_rl = remove_range(left_rl, zero, zero);
+
+	set_extra_expr_nomod(arg->left, alloc_estate_rl(left_rl));
+}
+
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
@@ -2379,6 +2399,9 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(new));
 	else
 		set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
+
+	if (op == PARAM_LIMIT && arg->type == EXPR_BINOP)
+		db_param_limit_binops(arg, key, new);
 free:
 	free_string(name);
 }
