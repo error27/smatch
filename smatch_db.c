@@ -17,57 +17,17 @@
 
 #include <string.h>
 #include <errno.h>
-#include <sqlite3.h>
 #include <unistd.h>
 #include <ctype.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-static sqlite3 *db;
-static sqlite3 *mem_db;
+struct sqlite3 *smatch_db;
+struct sqlite3 *mem_db;
 
 static int return_id;
 
-#define sql_insert_helper(table, ignore, late, values...)			\
-do {										\
-	if (__inline_fn) {							\
-		char buf[1024];							\
-		char *err, *p = buf;						\
-		int rc;								\
-										\
-		if (!mem_db)							\
-			break;							\
-										\
-		p += snprintf(p, buf + sizeof(buf) - p,				\
-			      "insert %sinto %s values (",			\
-			      ignore ? "or ignore " : "", #table);		\
-		p += snprintf(p, buf + sizeof(buf) - p, values);		\
-		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
-		sm_debug("in-mem: %s\n", buf);					\
-		rc = sqlite3_exec(mem_db, buf, NULL, NULL, &err);		\
-		if (rc != SQLITE_OK) {						\
-			fprintf(stderr, "SQL error #2: %s\n", err);		\
-			fprintf(stderr, "SQL: '%s'\n", buf);			\
-			parse_error = 1;					\
-		}								\
-		break;								\
-	}									\
-	if (option_info) {							\
-		FILE *tmp_fd = sm_outfd;					\
-		sm_outfd = sql_outfd;						\
-		sm_prefix();							\
-	        sm_printf("SQL%s: insert %sinto " #table " values(",		\
-			  late ? "_late" : "", ignore ? "or ignore " : "");	\
-	        sm_printf(values);						\
-	        sm_printf(");\n");						\
-		sm_outfd = tmp_fd;						\
-	}									\
-} while (0)
-
-#define sql_insert(table, values...) sql_insert_helper(table, 0, 0, values);
-#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 1, 0, values);
-#define sql_insert_late(table, values...) sql_insert_helper(table, 0, 1, values);
 
 struct def_callback {
 	int hook_type;
@@ -108,6 +68,22 @@ ALLOCATOR(call_implies_callback, "call_implies callbacks");
 DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
 static struct call_implies_cb_list *call_implies_cb_list;
 
+void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
+{
+	char *err = NULL;
+	int rc;
+
+	if (!db)
+		return;
+
+	rc = sqlite3_exec(db, sql, callback, data, &err);
+	if (rc != SQLITE_OK && !parse_error) {
+		fprintf(stderr, "SQL error #2: %s\n", err);
+		fprintf(stderr, "SQL: '%s'\n", sql);
+		parse_error = 1;
+	}
+}
+
 static int print_sql_output(void *unused, int argc, char **argv, char **azColName)
 {
 	int i;
@@ -121,52 +97,12 @@ static int print_sql_output(void *unused, int argc, char **argv, char **azColNam
 	return 0;
 }
 
-void debug_sql(const char *sql)
+void debug_sql(struct sqlite3 *db, const char *sql)
 {
 	if (!option_debug)
 		return;
 	sm_msg("%s", sql);
-	sql_exec(print_sql_output, NULL, sql);
-}
-
-void debug_mem_sql(const char *sql)
-{
-	if (!option_debug)
-		return;
-	sm_msg("%s", sql);
-	sql_mem_exec(print_sql_output, NULL, sql);
-}
-
-void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql)
-{
-	char *err = NULL;
-	int rc;
-
-	if (option_no_db || !db)
-		return;
-
-	rc = sqlite3_exec(db, sql, callback, data, &err);
-	if (rc != SQLITE_OK && !parse_error) {
-		fprintf(stderr, "SQL error #2: %s\n", err);
-		fprintf(stderr, "SQL: '%s'\n", sql);
-		parse_error = 1;
-	}
-}
-
-void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql)
-{
-	char *err = NULL;
-	int rc;
-
-	if (!mem_db)
-		return;
-
-	rc = sqlite3_exec(mem_db, sql, callback, data, &err);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error #2: %s\n", err);
-		fprintf(stderr, "SQL: '%s'\n", sql);
-		parse_error = 1;
-	}
+	sql_exec(db, print_sql_output, NULL, sql);
 }
 
 static int replace_count;
@@ -2049,7 +1985,7 @@ void open_smatch_db(void)
 
 	init_memdb();
 
-	rc = sqlite3_open_v2("smatch_db.sqlite", &db, SQLITE_OPEN_READONLY, NULL);
+	rc = sqlite3_open_v2("smatch_db.sqlite", &smatch_db, SQLITE_OPEN_READONLY, NULL);
 	if (rc != SQLITE_OK) {
 		option_no_db = 1;
 		return;

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <limits.h>
 #include <sys/time.h>
+#include <sqlite3.h>
 #include "lib.h"
 #include "allocate.h"
 #include "scope.h"
@@ -756,8 +757,10 @@ enum info_type {
 	MTAG_ASSIGN	= 8035,
 };
 
-void debug_sql(const char *sql);
-void debug_mem_sql(const char *sql);
+extern struct sqlite3 *smatch_db;
+extern struct sqlite3 *mem_db;
+
+void debug_sql(struct sqlite3 *db, const char *sql);
 void db_ignore_states(int id);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
@@ -776,27 +779,70 @@ const char *get_mtag_name_var_sym(const char *state_name, struct symbol *sym);
 const char *get_mtag_name_expr(struct expression *expr);
 char *get_data_info_name(struct expression *expr);
 
-#define run_sql(call_back, data, sql...)    \
-do {                                  \
-	char sql_txt[1024];           \
-	if (option_no_db)             \
-		break;                \
-	snprintf(sql_txt, 1024, sql); \
-	debug_sql(sql_txt);  	      \
-	sql_exec(call_back, data, sql_txt); \
-} while (0)
+void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql);
 
-/* like run_sql() but for the in-memory database */
-#define mem_sql(call_back, data, sql...)						\
+#define sql_helper(db, call_back, data, sql...)					\
 do {										\
 	char sql_txt[1024];							\
 										\
 	snprintf(sql_txt, sizeof(sql_txt), sql);				\
-	sm_debug("in-mem: %s\n", sql_txt);					\
-	debug_mem_sql(sql_txt);  	      					\
-	sql_mem_exec(call_back, data, sql_txt);					\
+	sm_debug("debug: %s\n", sql_txt);					\
+	debug_sql(db, sql_txt);  	      					\
+	sql_exec(db, call_back, data, sql_txt);					\
 } while (0)
 
+
+#define run_sql(call_back, data, sql...)					\
+do {										\
+	if (option_no_db)							\
+		break;								\
+	sql_helper(smatch_db, call_back, data, sql);				\
+} while (0)
+
+#define mem_sql(call_back, data, sql...)					\
+	sql_helper(mem_db, call_back, data, sql)
+
+
+#define sql_insert_helper(table, db, ignore, late, values...)			\
+do {										\
+	struct sqlite3 *_db = db;						\
+										\
+	if (__inline_fn && !_db)						\
+		_db = mem_db;							\
+	if (_db) {								\
+		char buf[1024];							\
+		char *err, *p = buf;						\
+		int rc;								\
+										\
+		p += snprintf(p, buf + sizeof(buf) - p,				\
+			      "insert %sinto %s values (",			\
+			      ignore ? "or ignore " : "", #table);		\
+		p += snprintf(p, buf + sizeof(buf) - p, values);		\
+		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
+		sm_debug("mem-db: %s\n", buf);					\
+		rc = sqlite3_exec(_db, buf, NULL, NULL, &err);			\
+		if (rc != SQLITE_OK) {						\
+			fprintf(stderr, "SQL error #2: %s\n", err);		\
+			fprintf(stderr, "SQL: '%s'\n", buf);			\
+			parse_error = 1;					\
+		}								\
+		break;								\
+	}									\
+	if (option_info) {							\
+		FILE *tmp_fd = sm_outfd;					\
+		sm_outfd = sql_outfd;						\
+		sm_prefix();							\
+	        sm_printf("SQL%s: insert %sinto " #table " values(",		\
+			  late ? "_late" : "", ignore ? "or ignore " : "");	\
+	        sm_printf(values);						\
+	        sm_printf(");\n");						\
+		sm_outfd = tmp_fd;						\
+	}									\
+} while (0)
+
+#define sql_insert(table, values...) sql_insert_helper(table, 0, 0, 0, values);
+#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 0, 1, 0, values);
+#define sql_insert_late(table, values...) sql_insert_helper(table, 0, 0, 1, values);
 char *get_static_filter(struct symbol *sym);
 
 void sql_insert_return_states(int return_id, const char *return_ranges,
@@ -829,9 +875,6 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
 void sql_select_call_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
-
-void sql_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql);
-void sql_mem_exec(int (*callback)(void*, int, char**, char**), void *data, const char *sql);
 
 void open_smatch_db(void);
 
