@@ -88,8 +88,7 @@ vptr_2_int:
 iptr_2_int:
 .L8:
 	<entry-point>
-	ptrtu.64    %r13 <- (64) %arg1
-	trunc.32    %r14 <- (64) %r13
+	trunc.32    %r14 <- (64) %arg1
 	ret.32      %r14
 
 
@@ -137,8 +136,7 @@ vptr_2_uint:
 iptr_2_uint:
 .L22:
 	<entry-point>
-	ptrtu.64    %r34 <- (64) %arg1
-	trunc.32    %r35 <- (64) %r34
+	trunc.32    %r35 <- (64) %arg1
 	ret.32      %r35
 
 
@@ -185,8 +183,7 @@ vptr_2_long:
 iptr_2_long:
 .L36:
 	<entry-point>
-	ptrtu.64    %r54 <- (64) %arg1
-	ret.64      %r54
+	ret.64      %arg1
 
 
 float_2_long:
@@ -232,8 +229,7 @@ vptr_2_ulong:
 iptr_2_ulong:
 .L50:
 	<entry-point>
-	ptrtu.64    %r73 <- (64) %arg1
-	ret.64      %r73
+	ret.64      %arg1
 
 
 float_2_ulong:
@@ -286,30 +282,26 @@ int_2_iptr:
 .L66:
 	<entry-point>
 	sext.64     %r94 <- (32) %arg1
-	utptr.64    %r95 <- (64) %r94
-	ret.64      %r95
+	ret.64      %r94
 
 
 uint_2_iptr:
 .L68:
 	<entry-point>
 	zext.64     %r98 <- (32) %arg1
-	utptr.64    %r99 <- (64) %r98
-	ret.64      %r99
+	ret.64      %r98
 
 
 long_2_iptr:
 .L70:
 	<entry-point>
-	utptr.64    %r102 <- (64) %arg1
-	ret.64      %r102
+	ret.64      %arg1
 
 
 ulong_2_iptr:
 .L72:
 	<entry-point>
-	utptr.64    %r105 <- (64) %arg1
-	ret.64      %r105
+	ret.64      %arg1
 
 
 vptr_2_iptr:
