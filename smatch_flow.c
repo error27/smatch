@@ -175,6 +175,8 @@ static int is_noreturn_func(struct expression *expr)
 	return 0;
 }
 
+static int inline_budget = 20;
+
 int inlinable(struct expression *expr)
 {
 	struct symbol *sym;
@@ -207,7 +209,7 @@ int inlinable(struct expression *expr)
 		return 0;
 
 	/* the magic numbers in this function are pulled out of my bum. */
-	if (last_stmt->pos.line > sym->pos.line + 20)
+	if (last_stmt->pos.line > sym->pos.line + inline_budget)
 		return 0;
 
 	return 1;
@@ -1586,12 +1588,16 @@ static void parse_inline(struct expression *call)
 	struct symbol *base_type;
 	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
 	struct timeval time_backup = fn_start_time;
+	struct expression *orig_inline = __inline_fn;
+	int orig_budget;
 
 	save_flow_state();
 
 	__pass_to_client(call, INLINE_FN_START);
 	final_pass = 0;  /* don't print anything */
 	__inline_fn = call;
+	orig_budget = inline_budget;
+	inline_budget = inline_budget - 5;
 
 	base_type = get_base_type(call->fn->symbol);
 	cur_func_sym = call->fn->symbol;
@@ -1628,7 +1634,8 @@ static void parse_inline(struct expression *call)
 
 	restore_all_states();
 	set_position(call->pos);
-	__inline_fn = NULL;
+	__inline_fn = orig_inline;
+	inline_budget = orig_budget;
 	__pass_to_client(call, INLINE_FN_END);
 }
 
