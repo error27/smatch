@@ -1088,7 +1088,7 @@ static int simplify_range(struct instruction *insn)
 /*
  * Simplify "set_ne/eq $0 + br"
  */
-static int simplify_cond_branch(struct instruction *br, pseudo_t cond, struct instruction *def, pseudo_t newcond)
+static int simplify_cond_branch(struct instruction *br, struct instruction *def, pseudo_t newcond)
 {
 	replace_pseudo(br, &br->cond, newcond);
 	if (def->opcode == OP_SET_EQ) {
@@ -1128,9 +1128,9 @@ static int simplify_branch(struct instruction *insn)
 
 		if (def->opcode == OP_SET_NE || def->opcode == OP_SET_EQ) {
 			if (constant(def->src1) && !def->src1->value)
-				return simplify_cond_branch(insn, cond, def, def->src2);
+				return simplify_cond_branch(insn, def, def->src2);
 			if (constant(def->src2) && !def->src2->value)
-				return simplify_cond_branch(insn, cond, def, def->src1);
+				return simplify_cond_branch(insn, def, def->src1);
 		}
 		if (def->opcode == OP_SEL) {
 			if (constant(def->src2) && constant(def->src3)) {
