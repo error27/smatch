@@ -52,7 +52,8 @@ static void match_assign(struct expression *expr)
 	if (!get_implied_value(expr->right, &sval))
 		return;
 	max = sval_type_max(sym);
-	if (sym != &bool_ctype && sval_cmp(max, sval) < 0 &&
+	if (sym != &bool_ctype && sym != &uchar_ctype &&
+	    sval_cmp(max, sval) < 0 &&
 	    !(sval.value < 256 && max.value == 127)) {
 		left_name = expr_to_str(expr->left);
 		right_name = expr_to_str(expr->right);
