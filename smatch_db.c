@@ -754,7 +754,7 @@ static void print_container_struct_members(struct expression *call, struct expre
 	int holder_offset;
 	char *p;
 
-	if (!call->fn || call->fn->type != EXPR_SYMBOL)
+	if (!call->fn || call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return;
 
 	/*
