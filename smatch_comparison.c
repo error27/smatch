@@ -2561,5 +2561,8 @@ struct sm_state *comparison_implication_hook(struct expression *expr,
 	if (!*true_stack && !*false_stack)
 		return NULL;
 
+	if (option_debug)
+		sm_msg("implications from comparison: (%s)", show_sm(sm));
+
 	return sm;
 }
