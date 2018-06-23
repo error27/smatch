@@ -215,9 +215,17 @@ enum opcode {
 	OP_BINCMP_END = OP_SET_AE,
 
 	/* Uni */
-	OP_NOT,
+	OP_UNOP,
+	OP_NOT = OP_UNOP,
 	OP_NEG,
 	OP_FNEG,
+
+	/* Casts */
+	OP_CAST,
+	OP_SCAST,
+	OP_FPCAST,
+	OP_PTRCAST,
+	OP_UNOP_END = OP_PTRCAST,
 
 	/* Select - three input values */
 	OP_SEL,
@@ -232,10 +240,6 @@ enum opcode {
 	/* Other */
 	OP_PHI,
 	OP_PHISOURCE,
-	OP_CAST,
-	OP_SCAST,
-	OP_FPCAST,
-	OP_PTRCAST,
 	OP_INLINED_CALL,
 	OP_CALL,
 	OP_SLICE,

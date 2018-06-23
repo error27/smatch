@@ -251,12 +251,8 @@ int kill_insn(struct instruction *insn, int force)
 		kill_use(&insn->src2);
 		/* fall through */
 
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
+	case OP_UNOP ... OP_UNOP_END:
 	case OP_SETVAL:
-	case OP_NOT: case OP_NEG:
 	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;
@@ -338,6 +334,20 @@ static inline int constant(pseudo_t pseudo)
 	return pseudo->type == PSEUDO_VAL;
 }
 
+///
+// replace one operand by a new value
+// @insn: the instruction
+// @pp: the address of the instruction's operand
+// @new: the new value for the operand
+// @return: REPEAT_CSE.
+static inline int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_t new)
+{
+	pseudo_t old = *pp;
+	use_pseudo(insn, new, pp);
+	remove_usage(old, pp);
+	return REPEAT_CSE;
+}
+
 static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
 	convert_instruction_target(insn, pseudo);
@@ -348,14 +358,8 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 		kill_use(&insn->src3);
 	case OP_BINARY ... OP_BINCMP_END:
 		kill_use(&insn->src2);
-	case OP_NOT:
-	case OP_NEG:
-	case OP_FNEG:
+	case OP_UNOP ... OP_UNOP_END:
 	case OP_SYMADDR:
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
 		kill_use(&insn->src1);
 		break;
 
@@ -904,8 +908,7 @@ offset:
 		warning(insn->pos, "crazy programmer");
 	}
 	insn->offset += off->value;
-	use_pseudo(insn, new, &insn->src);
-	remove_usage(addr, &insn->src);
+	replace_pseudo(insn, &insn->src, new);
 	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 }
 
@@ -1075,10 +1078,9 @@ static int simplify_range(struct instruction *insn)
 /*
  * Simplify "set_ne/eq $0 + br"
  */
-static int simplify_cond_branch(struct instruction *br, pseudo_t cond, struct instruction *def, pseudo_t *pp)
+static int simplify_cond_branch(struct instruction *br, struct instruction *def, pseudo_t newcond)
 {
-	use_pseudo(br, *pp, &br->cond);
-	remove_usage(cond, &br->cond);
+	replace_pseudo(br, &br->cond, newcond);
 	if (def->opcode == OP_SET_EQ) {
 		struct basic_block *tmp = br->bb_true;
 		br->bb_true = br->bb_false;
@@ -1116,9 +1118,9 @@ static int simplify_branch(struct instruction *insn)
 
 		if (def->opcode == OP_SET_NE || def->opcode == OP_SET_EQ) {
 			if (constant(def->src1) && !def->src1->value)
-				return simplify_cond_branch(insn, cond, def, &def->src2);
+				return simplify_cond_branch(insn, def, def->src2);
 			if (constant(def->src2) && !def->src2->value)
-				return simplify_cond_branch(insn, cond, def, &def->src1);
+				return simplify_cond_branch(insn, def, def->src1);
 		}
 		if (def->opcode == OP_SEL) {
 			if (constant(def->src2) && constant(def->src3)) {
@@ -1137,18 +1139,13 @@ static int simplify_branch(struct instruction *insn)
 					insn->bb_true = insn->bb_false;
 					insn->bb_false = tmp;
 				}
-				use_pseudo(insn, def->src1, &insn->cond);
-				remove_usage(cond, &insn->cond);
-				return REPEAT_CSE;
+				return replace_pseudo(insn, &insn->cond, def->src1);
 			}
 		}
 		if (def->opcode == OP_CAST || def->opcode == OP_SCAST) {
 			int orig_size = def->orig_type ? def->orig_type->bit_size : 0;
-			if (def->size > orig_size) {
-				use_pseudo(insn, def->src, &insn->cond);
-				remove_usage(cond, &insn->cond);
-				return REPEAT_CSE;
-			}
+			if (def->size > orig_size)
+				return replace_pseudo(insn, &insn->cond, def->src);
 		}
 	}
 	return 0;

@@ -1086,9 +1086,9 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 	return postop ? old : new;
 }
 
-static pseudo_t add_uniop(struct entrypoint *ep, struct expression *expr, int op, pseudo_t src)
+static pseudo_t add_unop(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t src)
 {
-	struct instruction *insn = alloc_typed_instruction(op, expr->ctype);
+	struct instruction *insn = alloc_typed_instruction(op, ctype);
 	pseudo_t new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -1114,17 +1114,18 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression *expr)
 {
 	pseudo_t pre = linearize_expression(ep, expr->unop);
+	struct symbol *ctype = expr->ctype;
 	switch (expr->op) {
 	case '+':
 		return pre;
 	case '!': {
 		pseudo_t zero = value_pseudo(0);
-		return add_binary_op(ep, expr->ctype, OP_SET_EQ, pre, zero);
+		return add_binary_op(ep, ctype, OP_SET_EQ, pre, zero);
 	}
 	case '~':
-		return add_uniop(ep, expr, OP_NOT, pre);
+		return add_unop(ep, ctype, OP_NOT, pre);
 	case '-':
-		return add_uniop(ep, expr, opcode_float(OP_NEG, expr->ctype), pre);
+		return add_unop(ep, ctype, opcode_float(OP_NEG, ctype), pre);
 	}
 	return VOID;
 }

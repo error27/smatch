@@ -96,11 +96,7 @@ static int validate_insn(struct instruction *insn)
 		err += check_user(insn, insn->src2);
 		/* fall through */
 
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
-	case OP_NOT: case OP_NEG:
+	case OP_UNOP ... OP_UNOP_END:
 	case OP_SLICE:
 	case OP_SYMADDR:
 	case OP_PHISOURCE:

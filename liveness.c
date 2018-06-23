@@ -71,7 +71,7 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		break;
 
 	/* Uni */
-	case OP_NOT: case OP_NEG: case OP_FNEG:
+	case OP_UNOP ... OP_UNOP_END:
 		USES(src1); DEFINES(target);
 		break;
 
@@ -109,13 +109,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 		 * up and expanded by the OP_PHI
 		 */
 		USES(phi_src);
-		break;
-
-	case OP_CAST:
-	case OP_SCAST:
-	case OP_FPCAST:
-	case OP_PTRCAST:
-		USES(src); DEFINES(target);
 		break;
 
 	case OP_CALL:
