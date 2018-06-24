@@ -987,7 +987,7 @@ static int show_fvalue(struct expression *expr)
 	int new = new_pseudo();
 	long double value = expr->fvalue;
 
-	printf("\tmovf.%d\t\tv%d,$%Lf\n", expr->ctype->bit_size, new, value);
+	printf("\tmovf.%d\t\tv%d,$%Le\n", expr->ctype->bit_size, new, value);
 	return new;
 }
 

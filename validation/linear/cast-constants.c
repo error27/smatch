@@ -286,70 +286,70 @@ vptr_2_iptr:
 int_2_float:
 .L76:
 	<entry-point>
-	setfval.32  %r39 <- 123.000000
+	setfval.32  %r39 <- 1.230000e+02
 	ret.32      %r39
 
 
 uint_2_float:
 .L78:
 	<entry-point>
-	setfval.32  %r41 <- 123.000000
+	setfval.32  %r41 <- 1.230000e+02
 	ret.32      %r41
 
 
 long_2_float:
 .L80:
 	<entry-point>
-	setfval.32  %r43 <- 123.000000
+	setfval.32  %r43 <- 1.230000e+02
 	ret.32      %r43
 
 
 ulong_2_float:
 .L82:
 	<entry-point>
-	setfval.32  %r45 <- 123.000000
+	setfval.32  %r45 <- 1.230000e+02
 	ret.32      %r45
 
 
 double_2_float:
 .L84:
 	<entry-point>
-	setfval.32  %r47 <- 1.123000
+	setfval.32  %r47 <- 1.123000e+00
 	ret.32      %r47
 
 
 int_2_double:
 .L86:
 	<entry-point>
-	setfval.64  %r49 <- 123.000000
+	setfval.64  %r49 <- 1.230000e+02
 	ret.64      %r49
 
 
 uint_2_double:
 .L88:
 	<entry-point>
-	setfval.64  %r51 <- 123.000000
+	setfval.64  %r51 <- 1.230000e+02
 	ret.64      %r51
 
 
 long_2_double:
 .L90:
 	<entry-point>
-	setfval.64  %r53 <- 123.000000
+	setfval.64  %r53 <- 1.230000e+02
 	ret.64      %r53
 
 
 ulong_2_double:
 .L92:
 	<entry-point>
-	setfval.64  %r55 <- 123.000000
+	setfval.64  %r55 <- 1.230000e+02
 	ret.64      %r55
 
 
 float_2_double:
 .L94:
 	<entry-point>
-	setfval.64  %r57 <- 1.123000
+	setfval.64  %r57 <- 1.123000e+00
 	ret.64      %r57
 
 

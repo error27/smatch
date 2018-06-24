@@ -368,7 +368,7 @@ const char *show_instruction(struct instruction *insn)
 			buf += sprintf(buf, "%lld", expr->value);
 			break;
 		case EXPR_FVALUE:
-			buf += sprintf(buf, "%Lf", expr->fvalue);
+			buf += sprintf(buf, "%Le", expr->fvalue);
 			break;
 		case EXPR_STRING:
 			buf += sprintf(buf, "%.40s", show_string(expr->string));
@@ -386,7 +386,7 @@ const char *show_instruction(struct instruction *insn)
 	}
 	case OP_SETFVAL:
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
-		buf += sprintf(buf, "%Lf", insn->fvalue);
+		buf += sprintf(buf, "%Le", insn->fvalue);
 		break;
 
 	case OP_SWITCH: {

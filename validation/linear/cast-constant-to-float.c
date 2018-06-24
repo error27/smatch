@@ -13,21 +13,21 @@ double f3(void) { return -1.0; }
 f1:
 .L0:
 	<entry-point>
-	setfval.64  %r1 <- -1.000000
+	setfval.64  %r1 <- -1.000000e+00
 	ret.64      %r1
 
 
 f2:
 .L2:
 	<entry-point>
-	setfval.64  %r3 <- -1.000000
+	setfval.64  %r3 <- -1.000000e+00
 	ret.64      %r3
 
 
 f3:
 .L4:
 	<entry-point>
-	setfval.64  %r5 <- -1.000000
+	setfval.64  %r5 <- -1.000000e+00
 	ret.64      %r5
 
 

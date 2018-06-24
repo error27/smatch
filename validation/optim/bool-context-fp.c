@@ -18,7 +18,7 @@ int  ifand(float a, float b) { return a && b; }
 bfimp:
 .L0:
 	<entry-point>
-	setfval.32  %r2 <- 0.000000
+	setfval.32  %r2 <- 0.000000e+00
 	fcmpune.1   %r3 <- %arg1, %r2
 	ret.1       %r3
 
@@ -26,7 +26,7 @@ bfimp:
 bfexp:
 .L2:
 	<entry-point>
-	setfval.32  %r6 <- 0.000000
+	setfval.32  %r6 <- 0.000000e+00
 	fcmpune.1   %r7 <- %arg1, %r6
 	ret.1       %r7
 
@@ -34,7 +34,7 @@ bfexp:
 bfnot:
 .L4:
 	<entry-point>
-	setfval.32  %r10 <- 0.000000
+	setfval.32  %r10 <- 0.000000e+00
 	fcmpoeq.1   %r12 <- %arg1, %r10
 	ret.1       %r12
 
@@ -42,7 +42,7 @@ bfnot:
 ifnot:
 .L6:
 	<entry-point>
-	setfval.32  %r15 <- 0.000000
+	setfval.32  %r15 <- 0.000000e+00
 	fcmpoeq.32  %r16 <- %arg1, %r15
 	ret.32      %r16
 
@@ -50,7 +50,7 @@ ifnot:
 bfior:
 .L8:
 	<entry-point>
-	setfval.32  %r19 <- 0.000000
+	setfval.32  %r19 <- 0.000000e+00
 	fcmpune.1   %r20 <- %arg1, %r19
 	fcmpune.1   %r23 <- %arg2, %r19
 	or.1        %r24 <- %r20, %r23
@@ -61,7 +61,7 @@ bfior:
 ifior:
 .L10:
 	<entry-point>
-	setfval.32  %r29 <- 0.000000
+	setfval.32  %r29 <- 0.000000e+00
 	fcmpune.1   %r30 <- %arg1, %r29
 	fcmpune.1   %r33 <- %arg2, %r29
 	or.1        %r34 <- %r30, %r33
@@ -72,7 +72,7 @@ ifior:
 bfand:
 .L12:
 	<entry-point>
-	setfval.32  %r38 <- 0.000000
+	setfval.32  %r38 <- 0.000000e+00
 	fcmpune.1   %r39 <- %arg1, %r38
 	fcmpune.1   %r42 <- %arg2, %r38
 	and.1       %r43 <- %r39, %r42
@@ -83,7 +83,7 @@ bfand:
 ifand:
 .L14:
 	<entry-point>
-	setfval.32  %r48 <- 0.000000
+	setfval.32  %r48 <- 0.000000e+00
 	fcmpune.1   %r49 <- %arg1, %r48
 	fcmpune.1   %r52 <- %arg2, %r48
 	and.1       %r53 <- %r49, %r52

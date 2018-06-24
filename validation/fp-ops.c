@@ -48,7 +48,7 @@ fneg:
 ftst:
 .L10:
 	<entry-point>
-	setfval.64  %r21 <- 0.000000
+	setfval.64  %r21 <- 0.000000e+00
 	fcmpoeq.1   %r23 <- %arg1, %r21
 	ret.1       %r23
 
