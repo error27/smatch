@@ -516,12 +516,11 @@ static unsigned int operand_size(struct instruction *insn, pseudo_t pseudo)
 	return size;
 }
 
-static pseudo_t eval_insn(struct instruction *insn)
+static pseudo_t eval_op(int op, unsigned size, pseudo_t src1, pseudo_t src2)
 {
 	/* FIXME! Verify signs and sizes!! */
-	unsigned int size = insn->size;
-	long long left = insn->src1->value;
-	long long right = insn->src2->value;
+	long long left = src1->value;
+	long long right = src2->value;
 	unsigned long long ul, ur;
 	long long res, mask, bits;
 
@@ -535,7 +534,7 @@ static pseudo_t eval_insn(struct instruction *insn)
 	ul = left & bits;
 	ur = right & bits;
 
-	switch (insn->opcode) {
+	switch (op) {
 	case OP_ADD:
 		res = left + right;
 		break;
@@ -752,6 +751,11 @@ static int simplify_mask_shift(struct instruction *sh, unsigned long long mask)
 		break;
 	}
 	return 0;
+}
+
+static pseudo_t eval_insn(struct instruction *insn)
+{
+	return eval_op(insn->opcode, insn->size, insn->src1, insn->src2);
 }
 
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
