@@ -2169,14 +2169,14 @@ static int filter_unused_kzalloc_info(struct expression *call, int param, char *
 		return 0;
 
 	run_sql(&param_used_callback, &found,
-		"select * from call_implies where %s and type = %d and parameter = %d and key = '%s';",
+		"select * from return_implies where %s and type = %d and parameter = %d and key = '%s';",
 		get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
 	if (found)
 		return 0;
 
 	/* If the database is not built yet, then assume everything is used */
 	run_sql(&param_used_callback, &found,
-		"select * from call_implies where %s and type = %d;",
+		"select * from return_implies where %s and type = %d;",
 		get_static_filter(call->fn->symbol), PARAM_USED);
 	if (!found)
 		return 0;
@@ -2647,7 +2647,7 @@ void register_smatch_extra_late(int id)
 	add_modification_hook(link_id, &match_link_modify);
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_assign, GLOBAL_ASSIGNMENT_HOOK);
@@ -2658,5 +2658,5 @@ void register_smatch_extra_late(int id)
 	add_member_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_struct_members);
 
-	add_hook(&assume_indexes_are_valid, OP_HOOK);
+//	add_hook(&assume_indexes_are_valid, OP_HOOK);
 }

@@ -190,7 +190,7 @@ static int member_is_used(struct expression *call, int param, char *printed_name
 
 	found = 0;
 	run_sql(&param_used_callback, &found,
-		"select * from call_implies where %s and type = %d and parameter = %d and key = '%s';",
+		"select * from return_implies where %s and type = %d and parameter = %d and key = '%s';",
 		get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
 	return found;
 }

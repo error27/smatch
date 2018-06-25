@@ -44,7 +44,7 @@ static int assigns_parameters(struct expression *fn, struct expression *arg)
 		return 0;
 
 	snprintf(buf, sizeof(buf), "%d", arg_param);
-	sql_insert_call_implies(FN_ARG_LINK, fn_param, "$", buf);
+	sql_insert_return_implies(FN_ARG_LINK, fn_param, "$", buf);
 	return 1;
 }
 
@@ -227,6 +227,6 @@ void register_about_fn_ptr_arg(int id)
 		return;
 	add_hook(match_assign_param, ASSIGNMENT_HOOK);
 	add_hook(match_assign_function, ASSIGNMENT_HOOK);
-	select_call_implies_hook(FN_ARG_LINK, &check_passes_fn_and_data);
+	select_return_implies_hook(FN_ARG_LINK, &check_passes_fn_and_data);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }

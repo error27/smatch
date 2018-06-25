@@ -76,7 +76,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 
 static void set_param_freed(struct expression *call, struct expression *arg, char *key, char *unused)
 {
-	/* XXX FIXME: call_implies has been updated with more information */
+	/* XXX FIXME: return_implies has been updated with more information */
 	if (strcmp(key, "$") != 0)
 		return;
 	freed_variable(arg);
@@ -97,7 +97,7 @@ static void process_states(void)
 		param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
-		sql_insert_call_implies(PARAM_FREED, param, param_name, "1");
+		sql_insert_return_implies(PARAM_FREED, param, param_name, "1");
 	} END_FOR_EACH_SM(sm);
 
 }
@@ -115,7 +115,7 @@ void check_frees_param(int id)
 
 	add_function_hook("free", &match_free, INT_PTR(0));
 
-	select_call_implies_hook(PARAM_FREED, &set_param_freed);
+	select_return_implies_hook(PARAM_FREED, &set_param_freed);
 	add_modification_hook(my_id, &set_ignore);
 
 	all_return_states_hook(&process_states);

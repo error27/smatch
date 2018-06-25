@@ -106,7 +106,7 @@ static void process_states(void)
 		name = get_param_name(tmp);
 		if (!name)
 			continue;
-		sql_insert_call_implies(DEREFERENCE, arg, name, "1");
+		sql_insert_return_implies(DEREFERENCE, arg, name, "1");
 	} END_FOR_EACH_SM(tmp);
 }
 
@@ -125,7 +125,7 @@ void check_dereferences_param(int id)
 
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &set_ignore);
 
 	all_return_states_hook(&process_states);

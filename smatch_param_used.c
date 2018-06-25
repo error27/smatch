@@ -70,7 +70,7 @@ static void process_states(void)
 		if (!name)
 			continue;
 
-		sql_insert_call_implies(PARAM_USED, arg, name, "");
+		sql_insert_return_implies(PARAM_USED, arg, name, "");
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&used_stree);
@@ -104,6 +104,6 @@ void register_param_used(int id)
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
 
-	select_call_implies_hook(PARAM_USED, &set_param_used);
+	select_return_implies_hook(PARAM_USED, &set_param_used);
 	all_return_states_hook(&process_states);
 }

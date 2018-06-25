@@ -176,7 +176,7 @@ static void process_states(void)
 		name = get_container_name(tmp, offset);
 		if (!name)
 			continue;
-		sql_insert_call_implies(CONTAINER, arg, name, "");
+		sql_insert_return_implies(CONTAINER, arg, name, "");
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&used_stree);
@@ -216,7 +216,7 @@ static void print_returns_container_of(int return_id, char *return_ranges, struc
 	snprintf(key, sizeof(key), "%d", param);
 	snprintf(value, sizeof(value), "-%d", offset);
 
-	/* no need to add it to call_implies because it's not really param_used */
+	/* no need to add it to return_implies because it's not really param_used */
 	sql_insert_return_states(return_id, return_ranges, CONTAINER, -1,
 			key, value);
 }
@@ -246,7 +246,7 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 	if (param < 0)
 		return;
 	snprintf(buf, sizeof(buf), "$(%d)", offset);
-	sql_insert_call_implies(CONTAINER, param, buf, "");
+	sql_insert_return_implies(CONTAINER, param, buf, "");
 }
 
 static struct expression *get_outer_struct(struct expression *expr)
@@ -587,7 +587,7 @@ void register_container_of(int id)
 	add_hook(&match_save_states, INLINE_FN_START);
 	add_hook(&match_restore_states, INLINE_FN_END);
 
-	select_call_implies_hook(CONTAINER, &set_param_used);
+	select_return_implies_hook(CONTAINER, &set_param_used);
 	all_return_states_hook(&process_states);
 
 	add_split_return_callback(&print_returns_container_of);

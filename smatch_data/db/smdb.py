@@ -440,9 +440,9 @@ def print_return_states(func):
         print "| %13s |" %(type_to_str(txt[6])),
         print " %2d | %20s | %20s |" %(txt[7], txt[8], txt[9])
 
-def print_call_implies(func):
+def print_return_implies(func):
     cur = con.cursor()
-    cur.execute("select * from call_implies where function = '%s';" %(func))
+    cur.execute("select * from return_implies where function = '%s';" %(func))
     count = 0
     for txt in cur:
         if not count:
@@ -602,10 +602,10 @@ elif sys.argv[1] == "return_states":
     func = sys.argv[2]
     print_return_states(func)
     print "================================================"
-    print_call_implies(func)
-elif sys.argv[1] == "call_implies":
+    print_return_implies(func)
+elif sys.argv[1] == "return_implies":
     func = sys.argv[2]
-    print_call_implies(func)
+    print_return_implies(func)
 elif sys.argv[1] == "type_size" or sys.argv[1] == "buf_size":
     struct_type = sys.argv[2]
     member = sys.argv[3]

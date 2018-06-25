@@ -21,6 +21,7 @@ for c_file in $files; do
     echo "delete from caller_info where file = '$c_file';" | sqlite3 $db_file
     echo "delete from return_states where file = '$c_file';" | sqlite3 $db_file
     echo "delete from call_implies where file = '$c_file';" | sqlite3 $db_file
+    echo "delete from return_implies where file = '$c_file';" | sqlite3 $db_file
 done
 
 tmp_file=$(mktemp)
@@ -32,6 +33,9 @@ grep "insert into return_states" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
 grep "insert into call_implies" $info_file > $tmp_file
+${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
+
+grep "insert into return_implies" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
 rm $tmp_file

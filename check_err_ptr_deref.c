@@ -236,6 +236,6 @@ void check_err_ptr_deref(int id)
 
 	err_ptr_rl = clone_rl_permanent(alloc_rl(err_ptr_min, err_ptr_max));
 
-	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 }
 

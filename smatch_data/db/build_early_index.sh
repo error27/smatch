@@ -17,6 +17,8 @@ CREATE INDEX common_fn_idx on common_caller_info (function, call_id);
 CREATE INDEX common_ff_idx on common_caller_info (file, function, call_id);
 CREATE INDEX call_implies_fn_idx on call_implies (function);
 CREATE INDEX call_implies_ff_idx on call_implies (file, function);
+CREATE INDEX return_implies_fn_idx on return_implies (function);
+CREATE INDEX return_implies_ff_idx on return_implies (file, function);
 CREATE INDEX data_file_info_idx on data_info (file, data);
 CREATE INDEX data_info_idx on data_info (data);
 CREATE INDEX fn_ptr_idx_file on function_ptr (file, function);

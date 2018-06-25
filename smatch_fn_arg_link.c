@@ -92,7 +92,7 @@ static int print_calls_parameter(struct expression *call)
 		return 0;
 
 	snprintf(buf, sizeof(buf), "%d", arg_param);
-	sql_insert_call_implies(FN_ARG_LINK, fn_param, "$", buf);
+	sql_insert_return_implies(FN_ARG_LINK, fn_param, "$", buf);
 	return 0;
 }
 
@@ -178,7 +178,7 @@ static void check_passes_fn_and_data(struct expression *call, struct expression 
 		char buf[32];
 
 		snprintf(buf, sizeof(buf), "%d", arg_param);
-		sql_insert_call_implies(FN_ARG_LINK, fn_param, "$", buf);
+		sql_insert_return_implies(FN_ARG_LINK, fn_param, "$", buf);
 		return;
 	}
 
@@ -207,6 +207,6 @@ void register_fn_arg_link(int id)
 		return;
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	select_call_implies_hook(FN_ARG_LINK, &check_passes_fn_and_data);
+	select_return_implies_hook(FN_ARG_LINK, &check_passes_fn_and_data);
 }
 

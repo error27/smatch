@@ -290,6 +290,6 @@ void check_free(int id)
 	add_hook(&match_return, RETURN_HOOK);
 
 	add_modification_hook(my_id, &ok_to_use);
-	select_call_implies_hook(PARAM_FREED, &set_param_freed);
+	select_return_implies_hook(PARAM_FREED, &set_param_freed);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 }

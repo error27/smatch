@@ -767,7 +767,7 @@ void select_caller_info_hook(void (*callback)(const char *name, struct symbol *s
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state));
-void select_call_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));
+void select_return_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 struct range_list *db_return_vals_from_str(const char *fn_name);
 char *return_state_to_var_sym(struct expression *expr, int param, const char *key, struct symbol **sym);
@@ -856,7 +856,7 @@ void sql_insert_caller_info(struct expression *call, int type, int param,
 		const char *key, const char *value);
 void sql_insert_function_ptr(const char *fn, const char *struct_name);
 void sql_insert_return_values(const char *return_values);
-void sql_insert_call_implies(int type, int param, const char *key, const char *value);
+void sql_insert_return_implies(int type, int param, const char *key, const char *value);
 void sql_insert_function_type_size(const char *member, const char *ranges);
 void sql_insert_local_values(const char *name, const char *value);
 void sql_insert_function_type_value(const char *type, const char *value);

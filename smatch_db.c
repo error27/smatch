@@ -62,13 +62,13 @@ ALLOCATOR(returned_member_callback, "returned member callbacks");
 DECLARE_PTR_LIST(returned_member_cb_list, struct returned_member_callback);
 static struct returned_member_cb_list *returned_member_callbacks;
 
-struct call_implies_callback {
+struct db_return_implies_callback {
 	int type;
 	void (*callback)(struct expression *call, struct expression *arg, char *key, char *value);
 };
-ALLOCATOR(call_implies_callback, "call_implies callbacks");
-DECLARE_PTR_LIST(call_implies_cb_list, struct call_implies_callback);
-static struct call_implies_cb_list *call_implies_cb_list;
+ALLOCATOR(db_return_implies_callback, "return_implies callbacks");
+DECLARE_PTR_LIST(return_implies_cb_list, struct db_return_implies_callback);
+static struct return_implies_cb_list *return_implies_cb_list;
 
 void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
 {
@@ -227,9 +227,9 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 		   struct_name);
 }
 
-void sql_insert_call_implies(int type, int param, const char *key, const char *value)
+void sql_insert_return_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert_or_ignore(call_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'",
+	sql_insert_or_ignore(return_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'",
 		get_base_file(), get_function(), (unsigned long)__inline_fn,
 		fn_static(), type, param, key, value);
 }
@@ -493,7 +493,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		cols, get_static_filter(call->fn->symbol));
 }
 
-void sql_select_call_implies(const char *cols, struct expression *call,
+void sql_select_return_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**))
 {
 	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
@@ -501,12 +501,12 @@ void sql_select_call_implies(const char *cols, struct expression *call,
 
 	if (inlinable(call->fn)) {
 		mem_sql(callback, call,
-			"select %s from call_implies where call_id = '%lu';",
+			"select %s from return_implies where call_id = '%lu';",
 			cols, (unsigned long)call);
 		return;
 	}
 
-	run_sql(callback, call, "select %s from call_implies where %s;",
+	run_sql(callback, call, "select %s from return_implies where %s;",
 		cols, get_static_filter(call->fn->symbol));
 }
 
@@ -583,13 +583,13 @@ void add_returned_member_callback(int owner, void (*callback)(int return_id, cha
 	add_ptr_list(&returned_member_callbacks, member_callback);
 }
 
-void select_call_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value))
+void select_return_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value))
 {
-	struct call_implies_callback *cb = __alloc_call_implies_callback(0);
+	struct db_return_implies_callback *cb = __alloc_db_return_implies_callback(0);
 
 	cb->type = type;
 	cb->callback = callback;
-	add_ptr_list(&call_implies_cb_list, cb);
+	add_ptr_list(&return_implies_cb_list, cb);
 }
 
 struct return_info {
@@ -764,7 +764,7 @@ static void print_container_struct_members(struct expression *call, struct expre
 	 *
 	 */
 	run_sql(&param_used_callback, &container,
-		"select key from call_implies where %s and type = %d and key like '%%$(%%' and parameter = %d limit 1;",
+		"select key from return_implies where %s and type = %d and key like '%%$(%%' and parameter = %d limit 1;",
 		get_static_filter(call->fn->symbol), CONTAINER, param);
 	if (!container)
 		return;
@@ -1065,10 +1065,10 @@ free_ptr_names:
 	free_stree(&data.final_states);
 }
 
-static int call_implies_callbacks(void *_call, int argc, char **argv, char **azColName)
+static int return_implies_callbacks(void *_call, int argc, char **argv, char **azColName)
 {
 	struct expression *call_expr = _call;
-	struct call_implies_callback *cb;
+	struct db_return_implies_callback *cb;
 	struct expression *arg = NULL;
 	int type;
 	int param;
@@ -1079,7 +1079,7 @@ static int call_implies_callbacks(void *_call, int argc, char **argv, char **azC
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 
-	FOR_EACH_PTR(call_implies_cb_list, cb) {
+	FOR_EACH_PTR(return_implies_cb_list, cb) {
 		if (cb->type != type)
 			continue;
 		if (param != -1) {
@@ -1093,10 +1093,10 @@ static int call_implies_callbacks(void *_call, int argc, char **argv, char **azC
 	return 0;
 }
 
-static void match_call_implies(struct expression *expr)
+static void match_return_implies(struct expression *expr)
 {
-	sql_select_call_implies("function, type, parameter, key, value", expr,
-				call_implies_callbacks);
+	sql_select_return_implies("function, type, parameter, key, value", expr,
+				  return_implies_callbacks);
 }
 
 static void print_initializer_list(struct expression_list *expr_list,
@@ -1911,6 +1911,7 @@ static void reset_memdb(struct symbol *sym)
 	mem_sql(NULL, NULL, "delete from caller_info;");
 	mem_sql(NULL, NULL, "delete from return_states;");
 	mem_sql(NULL, NULL, "delete from call_implies;");
+	mem_sql(NULL, NULL, "delete from return_implies;");
 }
 
 static void match_end_func_info(struct symbol *sym)
@@ -1937,6 +1938,7 @@ static void init_memdb(void)
 		"db/function_type_size.schema",
 		"db/type_size.schema",
 		"db/call_implies.schema",
+		"db/return_implies.schema",
 		"db/function_ptr.schema",
 		"db/local_values.schema",
 		"db/function_type_value.schema",
@@ -1995,7 +1997,7 @@ static void init_cachedb(void)
 	char *err = NULL;
 	int rc;
 	const char *schema_files[] = {
-		"db/call_implies.schema",
+		"db/return_implies.schema",
 		"db/type_info.schema",
 	};
 	static char buf[4096];
@@ -2063,7 +2065,7 @@ static void dump_cache(struct symbol_list *sym_list)
 	if (!option_info)
 		return;
 	cache_sql(&save_cache_data, (char *)"type_info", "select * from type_info;");
-	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
+	cache_sql(&save_cache_data, (char *)"return_implies", "select * from return_implies;");
 }
 
 void open_smatch_db(void)
@@ -2205,7 +2207,7 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
-	add_hook(&match_call_implies, CALL_HOOK_AFTER_INLINE);
+	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
 
 	register_common_funcs();
 	register_return_replacements();

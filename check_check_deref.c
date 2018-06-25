@@ -154,6 +154,6 @@ void check_check_deref(int id)
 	add_modification_hook(my_id, &is_ok);
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_call_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_condition, CONDITION_HOOK);
 }
