@@ -270,6 +270,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_CBR:
+	case OP_SWITCH:
 	case OP_COMPUTEDGOTO:
 		kill_use(&insn->cond);
 		break;
