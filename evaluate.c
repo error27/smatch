@@ -3003,14 +3003,14 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		}
 	}
 
-	if (ttype == &ulong_ctype)
+	if (ttype == &ulong_ctype && !Wcast_from_as)
 		tas = -1;
 	else if (tclass == TYPE_PTR) {
 		examine_pointer_target(ttype);
 		tas = ttype->ctype.as;
 	}
 
-	if (stype == &ulong_ctype)
+	if (stype == &ulong_ctype && !Wcast_from_as)
 		sas = -1;
 	else if (sclass == TYPE_PTR) {
 		examine_pointer_target(stype);

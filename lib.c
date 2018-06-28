@@ -248,6 +248,7 @@ static struct token *pre_buffer_end = NULL;
 int Waddress = 0;
 int Waddress_space = 1;
 int Wbitwise = 1;
+int Wcast_from_as = 0;
 int Wcast_to_as = 0;
 int Wcast_truncate = 1;
 int Wconstexpr_not_const = 0;
@@ -682,6 +683,7 @@ static const struct flag warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
+	{ "cast-from-as", &Wcast_from_as },
 	{ "cast-to-as", &Wcast_to_as },
 	{ "cast-truncate", &Wcast_truncate },
 	{ "constexpr-not-const", &Wconstexpr_not_const},

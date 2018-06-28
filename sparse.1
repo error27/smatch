@@ -77,6 +77,15 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-bitwise\fR.
 .
 .TP
+.B \-Wcast\-from\-as
+Warn about which remove an address space to a pointer type.
+
+This is similar to \fB\-Waddress\-space\fR but will also warn
+on casts to \fBunsigned long\fR.
+
+Sparse does not issues these warnings by default.
+.
+.TP
 .B \-Wcast\-to\-as
 Warn about casts which add an address space to a pointer type.
 
