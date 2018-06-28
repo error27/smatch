@@ -25,6 +25,15 @@ static int my_id;
 
 STATE(nospec);
 
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	struct range_list *rl;
+
+	if (__in_function_def && !get_user_rl_var_sym(sm->name, sm->sym, &rl))
+		return &nospec;
+	return &undefined;
+}
+
 bool is_nospec(struct expression *expr)
 {
 	char *macro;
@@ -108,7 +117,7 @@ void check_nospec(int id)
 	add_hook(&nospec_assign, ASSIGNMENT_HOOK);
 
 	select_caller_info_hook(set_param_nospec, NOSPEC);
-
+	add_unmatched_state_hook(my_id, &unmatched_state);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
