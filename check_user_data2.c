@@ -88,7 +88,7 @@ static void pre_merge_hook(struct sm_state *sm)
 	user = get_state(my_id, sm->name, sm->sym);
 	if (!user)
 		return;
-	if (!estate_rl(sm->state)) {
+	if (!__in_function_def && !estate_rl(sm->state)) {
 		/*
 		 * If the one side is capped and the other side is empty then
 		 * let's just mark it as not-user data because the information
