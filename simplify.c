@@ -582,7 +582,7 @@ static int simplify_mul_div(struct instruction *insn, long long value)
 static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
-	struct instruction *def = old->def;
+	struct instruction *def;
 	pseudo_t src1, src2;
 	int inverse;
 	int opcode;
@@ -590,6 +590,9 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	if (value != 0 && value != 1)
 		return 0;
 
+	if (old->type != PSEUDO_REG)
+		return 0;
+	def = old->def;
 	if (!def)
 		return 0;
 
