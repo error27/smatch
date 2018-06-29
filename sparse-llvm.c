@@ -636,6 +636,10 @@ static void output_op_compare(struct function *fn, struct instruction *insn)
 	case LLVMIntegerTypeKind: {
 		LLVMIntPredicate op = translate_op(insn->opcode);
 
+		if (LLVMGetTypeKind(LLVMTypeOf(rhs)) == LLVMPointerTypeKind) {
+			LLVMTypeRef ltype = LLVMTypeOf(lhs);
+			rhs = LLVMBuildPtrToInt(fn->builder, rhs, ltype, "");
+		}
 		target = LLVMBuildICmp(fn->builder, op, lhs, rhs, target_name);
 		break;
 	}

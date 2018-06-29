@@ -1215,12 +1215,13 @@ int simplify_instruction(struct instruction *insn)
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
-	case OP_UTPTR:
-	case OP_PTRTU:
 	case OP_PTRCAST:
 		if (dead_insn(insn, &insn->src, NULL, NULL))
 			return REPEAT_CSE;
 		break;
+	case OP_UTPTR:
+	case OP_PTRTU:
+		return replace_with_pseudo(insn, insn->src);
 	case OP_PHI:
 		if (dead_insn(insn, NULL, NULL, NULL)) {
 			kill_use_list(insn->phi_list);
