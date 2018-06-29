@@ -1176,11 +1176,31 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_SET_B:
 		if (!value) {			// (x < 0) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
+		} else if (value == 1) {	// (x < 1) --> (x == 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
 		}
 		break;
 	case OP_SET_AE:
 		if (!value) {			// (x >= 0) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
+		} else if (value == 1) {	// (x >= 1) --> (x != 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_BE:
+		if (!value) {			// (x <= 0) --> (x == 0)
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_A:
+		if (!value) {			// (x > 0) --> (x != 0)
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
 		}
 		break;
 	}
