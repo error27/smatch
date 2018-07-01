@@ -995,7 +995,8 @@ static int simplify_cast(struct instruction *insn)
 		if (def->size >= size) {
 			pseudo_t val = def->src2;
 			if (val->type == PSEUDO_VAL) {
-				if (!(val->value >> (size-1)))
+				unsigned long long value = val->value;
+				if (!(value >> (size-1)))
 					goto simplify;
 			}
 		}
