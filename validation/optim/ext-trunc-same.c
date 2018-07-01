@@ -11,7 +11,6 @@ short ueq(unsigned short x)
 /*
  * check-name: ext-trunc-same
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: trunc\\.

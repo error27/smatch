@@ -1008,6 +1008,16 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src);
 		}
 		break;
+	case OP_ZEXT:
+	case OP_SEXT:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			osize = def->orig_type->bit_size;
+			if (size == osize)
+				return replace_with_pseudo(insn, def->src);
+			break;
+		}
+		break;
 	}
 
 	return 0;
