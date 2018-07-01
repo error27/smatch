@@ -992,7 +992,7 @@ static int simplify_cast(struct instruction *insn)
 	switch (def_opcode(src)) {
 	case OP_AND:
 		/* A cast of a AND might be a no-op.. */
-		if (def->size >= size) {
+		if (insn->opcode == OP_TRUNC) {
 			pseudo_t val = def->src2;
 			if (val->type == PSEUDO_VAL) {
 				unsigned long long value = val->value;
