@@ -575,12 +575,25 @@ static long long check_shift_count(struct instruction *insn, unsigned long long 
 	return sval;
 }
 
+static int simplify_or_lsr(struct instruction *insn, pseudo_t src, pseudo_t other, unsigned shift)
+{
+	// src->def->opcode == OP_AND
+	pseudo_t src2 = src->def->src2;
+
+	if (!constant(src2))
+		return 0;
+	if (((unsigned long long) src2->value) >> shift)
+		return 0;
+	return replace_pseudo(insn, &insn->src1, other);
+}
+
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
 	struct instruction *def;
 	unsigned long long nval;
 	unsigned int size;
 	pseudo_t src2;
+	pseudo_t src;
 
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
@@ -632,6 +645,17 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		switch(DEF_OPCODE(def, pseudo)) {
 		case OP_LSR:
 			goto case_shift_shift;
+		case OP_OR:
+			// replace ((A & M) | B) >> S
+			// by      (B >> S)
+			// when	(M >> S) == 0
+			src = def->src1;
+			if (def_opcode(src) == OP_AND)
+				return simplify_or_lsr(insn, src, def->src2, value);
+			src = def->src2;
+			if (def_opcode(src) == OP_AND)
+				return simplify_or_lsr(insn, src, def->src1, value);
+			break;
 		}
 		break;
 	case OP_SHL:
