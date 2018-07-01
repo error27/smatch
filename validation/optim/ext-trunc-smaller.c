@@ -11,7 +11,6 @@ char  ult(unsigned short x)
 /*
  * check-name: ext-trunc-smaller
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: sext\\.

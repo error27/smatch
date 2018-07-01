@@ -1015,7 +1015,10 @@ static int simplify_cast(struct instruction *insn)
 			osize = def->orig_type->bit_size;
 			if (size == osize)
 				return replace_with_pseudo(insn, def->src);
-			break;
+			if (size > osize)
+				insn->opcode = def->opcode;
+			insn->orig_type = def->orig_type;
+			return replace_pseudo(insn, &insn->src, def->src);
 		}
 		break;
 	}
