@@ -999,10 +999,18 @@ static int simplify_cast(struct instruction *insn)
 		/* A cast of a AND might be a no-op.. */
 		switch (insn->opcode) {
 		case OP_TRUNC:
+			if (nbr_users(src) > 1)
+				break;
+			def->opcode = OP_TRUNC;
+			def->orig_type = def->type;
+			def->type = insn->type;
+			def->size = size;
+
+			insn->opcode = OP_AND;
 			mask = val->value;
-			if (!(mask >> (size-1)))
-				goto simplify;
-			break;
+			mask &= (1ULL << size) - 1;
+			insn->src2 = value_pseudo(mask);
+			return REPEAT_CSE;
 		}
 		break;
 	case OP_TRUNC:
@@ -1029,9 +1037,6 @@ static int simplify_cast(struct instruction *insn)
 	}
 
 	return 0;
-
-simplify:
-	return replace_with_pseudo(insn, src);
 }
 
 static int simplify_select(struct instruction *insn)
