@@ -6,7 +6,6 @@ unsigned long long foo(unsigned long long x)
 /*
  * check-name: trunc-mask-zext
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: trunc\\.

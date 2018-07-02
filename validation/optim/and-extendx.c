@@ -18,7 +18,6 @@ u64 sfoo(int x)
 /*
  * check-name: and-extend
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: and\\.64.*0x7fff

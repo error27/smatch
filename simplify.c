@@ -1011,6 +1011,30 @@ static int simplify_cast(struct instruction *insn)
 			mask &= (1ULL << size) - 1;
 			insn->src2 = value_pseudo(mask);
 			return REPEAT_CSE;
+
+		case OP_SEXT:
+			if (val->value & (1 << (def->size - 1)))
+				break;
+			// OK, sign bit is 0
+		case OP_ZEXT:
+			if (nbr_users(src) > 1)
+				break;
+			// transform:
+			//	and.n	%b <- %a, M
+			//	*ext.m	%c <- (n) %b
+			// into:
+			//	zext.m	%b <- %a
+			//	and.m	%c <- %b, M
+			// For ZEXT, the mask will always be small
+			// enough. For SEXT, it can only be done if
+			// the mask force the sign bit to 0.
+			def->opcode = OP_ZEXT;
+			def->orig_type = insn->orig_type;
+			def->type = insn->type;
+			def->size = insn->size;
+			insn->opcode = OP_AND;
+			insn->src2 = val;
+			return REPEAT_CSE;
 		}
 		break;
 	case OP_TRUNC:

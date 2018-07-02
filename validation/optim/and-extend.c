@@ -18,7 +18,6 @@ u32 sfoo(u32 x)
 /*
  * check-name: and-extend
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: trunc\\.
