@@ -972,8 +972,10 @@ static int simplify_memop(struct instruction *insn)
 
 static int simplify_cast(struct instruction *insn)
 {
+	unsigned long long mask;
 	struct instruction *def;
 	pseudo_t src;
+	pseudo_t val;
 	int osize;
 	int size;
 
@@ -991,14 +993,16 @@ static int simplify_cast(struct instruction *insn)
 	def = src->def;
 	switch (def_opcode(src)) {
 	case OP_AND:
+		val = def->src2;
+		if (val->type != PSEUDO_VAL)
+			break;
 		/* A cast of a AND might be a no-op.. */
-		if (insn->opcode == OP_TRUNC) {
-			pseudo_t val = def->src2;
-			if (val->type == PSEUDO_VAL) {
-				unsigned long long value = val->value;
-				if (!(value >> (size-1)))
-					goto simplify;
-			}
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			mask = val->value;
+			if (!(mask >> (size-1)))
+				goto simplify;
+			break;
 		}
 		break;
 	case OP_TRUNC:
