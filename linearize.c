@@ -973,6 +973,24 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	add_one_insn(ep, store);
 }
 
+static pseudo_t linearize_bitfield_insert(struct entrypoint *ep,
+	pseudo_t ori, pseudo_t val, struct symbol *ctype, struct symbol *btype)
+{
+	unsigned int shift = ctype->bit_offset;
+	unsigned int size = ctype->bit_size;
+	unsigned long long mask = ((1ULL << size) - 1);
+
+	val = add_cast(ep, btype, ctype, OP_ZEXT, val);
+	if (shift) {
+		val = add_binary_op(ep, btype, OP_SHL, val, value_pseudo(shift));
+		mask <<= shift;
+	}
+	ori = add_binary_op(ep, btype, OP_AND, ori, value_pseudo(~mask));
+	val = add_binary_op(ep, btype, OP_OR, ori, val);
+
+	return val;
+}
+
 static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		pseudo_t value,
 		struct access_data *ad)
@@ -985,18 +1003,8 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		return VOID;
 
 	if (type_size(btype) != type_size(ctype)) {
-		unsigned int shift = ctype->bit_offset;
-		unsigned int size = ctype->bit_size;
 		pseudo_t orig = add_load(ep, ad);
-		unsigned long long mask = (1ULL << size) - 1;
-
-		store = add_cast(ep, btype, ctype, OP_ZEXT, store);
-		if (shift) {
-			store = add_binary_op(ep, btype, OP_SHL, store, value_pseudo(shift));
-			mask <<= shift;
-		}
-		orig = add_binary_op(ep, btype, OP_AND, orig, value_pseudo(~mask));
-		store = add_binary_op(ep, btype, OP_OR, orig, store);
+		store = linearize_bitfield_insert(ep, orig, value, ctype, btype);
 	}
 	add_store(ep, ad, store);
 	return value;
