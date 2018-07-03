@@ -591,11 +591,17 @@ static void match_user_assign_function(const char *fn, struct expression *expr, 
 	set_points_to_user_data(expr->left);
 }
 
-static void match_simple_strtoul(const char *fn, struct expression *expr, void *unused)
+static void match_returns_user_rl(const char *fn, struct expression *expr, void *unused)
 {
+	struct smatch_state *estate;
+	struct range_list *rl;
+
 	func_gets_user_data = true;
 
-	set_state_expr(my_id, expr->left, alloc_estate_whole(get_type(expr->left)));
+	rl = alloc_whole_rl(get_type(expr->right));
+	rl = cast_rl(get_type(expr->left), rl);
+	estate = alloc_estate_rl(rl);
+	set_state_expr(my_id, expr->left, estate);
 }
 
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
@@ -1157,10 +1163,11 @@ void check_user_data2(int id)
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 
-	add_function_assign_hook("simple_strtol", &match_simple_strtoul, NULL);
-	add_function_assign_hook("simple_strtoll", &match_simple_strtoul, NULL);
-	add_function_assign_hook("simple_strtoul", &match_simple_strtoul, NULL);
-	add_function_assign_hook("simple_strtoull", &match_simple_strtoul, NULL);
+	add_function_assign_hook("simple_strtol", &match_returns_user_rl, NULL);
+	add_function_assign_hook("simple_strtoll", &match_returns_user_rl, NULL);
+	add_function_assign_hook("simple_strtoul", &match_returns_user_rl, NULL);
+	add_function_assign_hook("simple_strtoull", &match_returns_user_rl, NULL);
+	add_function_assign_hook("kvm_register_read", &match_returns_user_rl, NULL);
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
