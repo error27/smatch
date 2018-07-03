@@ -1061,6 +1061,19 @@ static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
 	return target;
 }
 
+static pseudo_t linearize_bitfield_extract(struct entrypoint *ep,
+		pseudo_t val, struct symbol *ctype, struct symbol *btype)
+{
+	unsigned int off = ctype->bit_offset;
+
+	if (off) {
+		pseudo_t shift = value_pseudo(off);
+		val = add_binary_op(ep, btype, OP_LSR, val, shift);
+	}
+	val = cast_pseudo(ep, val, btype, ctype);
+	return val;
+}
+
 static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad)
 {
 	struct symbol *ctype = ad->type;
@@ -1071,13 +1084,8 @@ static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad
 		return VOID;
 
 	new = add_load(ep, ad);
-	if (ctype->bit_offset) {
-		pseudo_t shift = value_pseudo(ctype->bit_offset);
-		pseudo_t newval = add_binary_op(ep, btype, OP_LSR, new, shift);
-		new = newval;
-	}
 	if (ctype->bit_size != type_size(btype))
-		new = cast_pseudo(ep, new, btype, ctype);
+		new = linearize_bitfield_extract(ep, new, ctype, btype);
 	return new;
 }
 
