@@ -33,6 +33,7 @@ void * undo_ptr_list_last(struct ptr_list **head);
 void * delete_ptr_list_last(struct ptr_list **head);
 int delete_ptr_list_entry(struct ptr_list **, void *, int);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
+bool lookup_ptr_list_entry(const struct ptr_list *head, const void *entry);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);

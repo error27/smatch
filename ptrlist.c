@@ -273,6 +273,27 @@ void **__add_ptr_list_tag(struct ptr_list **listp, void *ptr, unsigned long tag)
 }
 
 ///
+// test if some entry is already present in a ptrlist
+// @list: the head of the list
+// @entry: the entry to test
+// @return: ``true`` if the entry is already present, ``false`` otherwise.
+bool lookup_ptr_list_entry(const struct ptr_list *head, const void *entry)
+{
+	const struct ptr_list *list = head;
+
+	if (!head)
+		return false;
+	do {
+		int nr = list->nr;
+		int i;
+		for (i = 0; i < nr; i++)
+			if (list->list[i] == entry)
+				return true;
+	} while ((list = list->next) != head);
+	return false;
+}
+
+///
 // delete an entry from a ptrlist
 // @list: a pointer to the list
 // @entry: the item to be deleted

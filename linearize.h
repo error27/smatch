@@ -303,6 +303,11 @@ static inline int remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
 	return delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0) != 0;
 }
 
+static inline int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
+{
+	return lookup_ptr_list_entry((struct ptr_list *)list, pseudo);
+}
+
 static inline int bb_terminated(struct basic_block *bb)
 {
 	struct instruction *insn;
