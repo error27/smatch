@@ -333,9 +333,14 @@ static inline int pseudo_user_list_size(struct pseudo_user_list *list)
 	return ptr_list_size((struct ptr_list *)list);
 }
 
+static inline bool pseudo_user_list_empty(struct pseudo_user_list *list)
+{
+	return ptr_list_empty((struct ptr_list *)list);
+}
+
 static inline int has_users(pseudo_t p)
 {
-	return pseudo_user_list_size(p->users) != 0;
+	return !pseudo_user_list_empty(p->users);
 }
 
 static inline struct pseudo_user *alloc_pseudo_user(struct instruction *insn, pseudo_t *pp)

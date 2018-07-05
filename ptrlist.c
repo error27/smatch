@@ -37,6 +37,25 @@ int ptr_list_size(struct ptr_list *head)
 }
 
 ///
+// test if a list is empty
+// @head: the head of the list
+// @return: ``true`` if the list is empty, ``false`` otherwise.
+bool ptr_list_empty(const struct ptr_list *head)
+{
+	const struct ptr_list *list = head;
+
+	if (!head)
+		return true;
+
+	do {
+		if (list->nr - list->rm)
+			return false;
+	} while ((list = list->next) != head);
+
+	return true;
+}
+
+///
 // get the first element of a ptrlist
 // @head: the head of the list
 // @return: the first element of the list or ``NULL`` if the list is empty

@@ -179,7 +179,7 @@ static int delete_pseudo_user_list_entry(struct pseudo_user_list **list, pseudo_
 	} END_FOR_EACH_PTR(pu);
 	assert(count <= 0);
 out:
-	if (pseudo_user_list_size(*list) == 0)
+	if (pseudo_user_list_empty(*list))
 		*list = NULL;
 	return count;
 }
