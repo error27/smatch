@@ -341,6 +341,55 @@ void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 }
 
 ///
+// copy the elements of a list at the end of another list.
+// @listp: a pointer to the destination list.
+// @src: the head of the source list.
+void copy_ptr_list(struct ptr_list **listp, struct ptr_list *src)
+{
+	struct ptr_list *head, *tail;
+	struct ptr_list *cur = src;
+	int idx;
+
+	if (!src)
+		return;
+	head = *listp;
+	if (!head) {
+		*listp = src;
+		return;
+	}
+
+	tail = head->prev;
+	idx = tail->nr;
+	do {
+		struct ptr_list *next;
+		int nr = cur->nr;
+		int i;
+		for (i = 0; i < nr;) {
+			void *ptr = cur->list[i++];
+			if (!ptr)
+				continue;
+			if (idx >= LIST_NODE_NR) {
+				struct ptr_list *prev = tail;
+				tail = __alloc_ptrlist(0);
+				prev->next = tail;
+				tail->prev = prev;
+				prev->nr = idx;
+				idx = 0;
+			}
+			tail->list[idx++] = ptr;
+		}
+
+		next = cur->next;
+		__free_ptrlist(cur);
+		cur = next;
+	} while (cur != src);
+
+	tail->nr = idx;
+	head->prev = tail;
+	tail->next = head;
+}
+
+///
 // free a ptrlist
 // @listp: a pointer to the list
 // Each blocks of the list are freed (but the entries
