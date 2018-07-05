@@ -20,6 +20,8 @@
 
 static int my_id;
 
+static int suppress_multiple = 1;
+
 static int is_write(struct expression *expr)
 {
 	return 0;
@@ -137,7 +139,7 @@ static void array_check(struct expression *expr)
 		return;
 
 	array_expr = get_array_base(expr);
-	if (is_ignored_expr(my_id, array_expr))
+	if (suppress_multiple && is_ignored_expr(my_id, array_expr))
 		return;
 
 	offset = get_array_offset(expr);
@@ -162,13 +164,16 @@ static void array_check(struct expression *expr)
 	name = expr_to_str(array_expr);
 	sm_msg("warn: potential spectre issue '%s'%s",
 	       name, conditions ? " (local cap)" : "");
-	add_ignore_expr(my_id, array_expr);
+	if (suppress_multiple)
+		add_ignore_expr(my_id, array_expr);
 	free_string(name);
 }
 
 void check_spectre(int id)
 {
 	my_id = id;
+
+	suppress_multiple = getenv("FULL_SPECTRE") == NULL;
 
 	if (option_project != PROJ_KERNEL)
 		return;
