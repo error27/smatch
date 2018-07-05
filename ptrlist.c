@@ -56,6 +56,27 @@ bool ptr_list_empty(const struct ptr_list *head)
 }
 
 ///
+// test is a list contains more than one element
+// @head: the head of the list
+// @return: ``true`` if the list has more than 1 element, ``false`` otherwise.
+bool ptr_list_multiple(const struct ptr_list *head)
+{
+	const struct ptr_list *list = head;
+	int nr = 0;
+
+	if (!head)
+		return false;
+
+	do {
+		nr += list->nr - list->rm;
+		if (nr > 1)
+			return true;
+	} while ((list = list->next) != head);
+
+	return false;
+}
+
+///
 // get the first element of a ptrlist
 // @head: the head of the list
 // @return: the first element of the list or ``NULL`` if the list is empty
