@@ -1080,6 +1080,9 @@ static int simplify_cast(struct instruction *insn)
 		break;
 	case OP_ZEXT:
 		switch (insn->opcode) {
+		case OP_SEXT:
+			insn->opcode = OP_ZEXT;
+			/* fall through */
 		case OP_ZEXT:
 			insn->orig_type = def->orig_type;
 			return replace_pseudo(insn, &insn->src, def->src);
