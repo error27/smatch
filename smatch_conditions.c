@@ -609,17 +609,6 @@ static int is_select_assign(struct expression *expr)
 	return 0;
 }
 
-static void set_fake_assign(struct expression *new,
-			struct expression *left, int op, struct expression *right)
-{
-
-	new->pos = left->pos;
-	new->op = op;
-	new->type = EXPR_ASSIGNMENT;
-	new->left = left;
-	new->right = right;
-}
-
 int __handle_select_assigns(struct expression *expr)
 {
 	struct expression *right;
