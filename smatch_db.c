@@ -134,7 +134,9 @@ static int get_db_state_count(void)
 	int count = 0;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (sm->owner >= 0 && use_states[sm->owner])
+		if (sm->owner == USHRT_MAX)
+			continue;
+		if (use_states[sm->owner])
 			count++;
 	} END_FOR_EACH_SM(sm);
 	return count;
