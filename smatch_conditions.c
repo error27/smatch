@@ -77,12 +77,17 @@ static int handle_zero_comparisons(struct expression *expr)
 	struct expression *tmp = NULL;
 
 	// if left is zero or right is zero
-	if (is_zero(expr->left))
+	if (is_zero(expr->left)) {
+		if (expr->left->type != EXPR_VALUE)
+			__split_expr(expr->left);
 		tmp = expr->right;
-	else if (is_zero(expr->right))
+	} else if (is_zero(expr->right)) {
+		if (expr->right->type != EXPR_VALUE)
+			__split_expr(expr->right);
 		tmp = expr->left;
-	else
+	} else {
 		return 0;
+	}
 
 	// "if (foo != 0)" is the same as "if (foo)"
 	if (expr->op == SPECIAL_NOTEQUAL) {
