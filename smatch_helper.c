@@ -446,8 +446,6 @@ struct symbol *expr_to_sym(struct expression *expr)
 
 int get_complication_score(struct expression *expr)
 {
-	int score = 0;
-
 	expr = strip_expr(expr);
 
 	/*
@@ -464,17 +462,16 @@ int get_complication_score(struct expression *expr)
 		return 991;
 	case EXPR_COMPARE:
 	case EXPR_BINOP:
-		score += get_complication_score(expr->left);
-		score += get_complication_score(expr->right);
-		return score;
+		return get_complication_score(expr->left) +
+		       get_complication_score(expr->right);
 	case EXPR_SYMBOL:
 		return 1;
 	case EXPR_PREOP:
-		if (expr->op == '*')
-			return score + get_complication_score(expr->unop);
+		if (expr->op == '*' || expr->op == '(')
+			return get_complication_score(expr->unop);
 		return 993;
 	case EXPR_DEREF:
-		return score + get_complication_score(expr->deref);
+		return get_complication_score(expr->deref);
 	case EXPR_VALUE:
 	case EXPR_SIZEOF:
 		return 0;
