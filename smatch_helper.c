@@ -476,6 +476,7 @@ int get_complication_score(struct expression *expr)
 	case EXPR_DEREF:
 		return score + get_complication_score(expr->deref);
 	case EXPR_VALUE:
+	case EXPR_SIZEOF:
 		return 0;
 	default:
 		return 994;
