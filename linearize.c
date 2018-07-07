@@ -776,7 +776,6 @@ static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t 
 	}
 }
 
-/* Dummy pseudo allocator */
 pseudo_t alloc_pseudo(struct instruction *def)
 {
 	static int nr = 0;
