@@ -884,10 +884,6 @@ struct access_data {
 	struct position pos;
 };
 
-static void finish_address_gen(struct entrypoint *ep, struct access_data *ad)
-{
-}
-
 static int linearize_simple_address(struct entrypoint *ep,
 	struct expression *addr,
 	struct access_data *ad)
@@ -1072,7 +1068,6 @@ static pseudo_t linearize_access(struct entrypoint *ep, struct expression *expr)
 	if (!linearize_address_gen(ep, expr, &ad))
 		return VOID;
 	value = linearize_load_gen(ep, &ad);
-	finish_address_gen(ep, &ad);
 	return value;
 }
 
@@ -1093,7 +1088,6 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 		one = value_pseudo(expr->op_value);
 	new = add_binary_op(ep, expr->ctype, op, old, one);
 	linearize_store_gen(ep, new, &ad);
-	finish_address_gen(ep, &ad);
 	return postop ? old : new;
 }
 
@@ -1410,7 +1404,6 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 		value = cast_pseudo(ep, dst, ctype, expr->ctype);
 	}
 	value = linearize_store_gen(ep, value, &ad);
-	finish_address_gen(ep, &ad);
 	return value;
 }
 
@@ -1755,7 +1748,6 @@ static void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr
 	ad.type = arg;
 	ad.address = symbol_pseudo(ep, arg);
 	linearize_store_gen(ep, argument_pseudo(ep, nr), &ad);
-	finish_address_gen(ep, &ad);
 }
 
 static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
@@ -1867,7 +1859,6 @@ static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 	}
 
 	value = linearize_initializer(ep, sym->initializer, &ad);
-	finish_address_gen(ep, &ad);
 	return value;
 }
 
@@ -1967,7 +1958,6 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 	if (!expr || !linearize_address_gen(ep, expr, &ad))
 		return;
 	linearize_store_gen(ep, pseudo, &ad);
-	finish_address_gen(ep, &ad);
 	rule = __alloc_asm_constraint(0);
 	rule->ident = ident;
 	rule->constraint = constraint;
