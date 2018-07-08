@@ -1119,7 +1119,11 @@ static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr
 		one = add_setfval(ep, expr->ctype, expr->op_value);
 	else
 		one = value_pseudo(expr->op_value);
-	new = add_binary_op(ep, expr->ctype, op, old, one);
+	if (ad.btype != ad.type)
+		old = cast_pseudo(ep, old, ad.type, ad.btype);
+	new = add_binary_op(ep, ad.btype, op, old, one);
+	if (ad.btype != ad.type)
+		new = cast_pseudo(ep, new, ad.btype, ad.type);
 	linearize_store_gen(ep, new, &ad);
 	return postop ? old : new;
 }
