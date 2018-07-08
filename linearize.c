@@ -881,7 +881,6 @@ struct access_data {
 	struct symbol *type;		// ctype
 	pseudo_t address;		// pseudo containing address ..
 	unsigned int offset;		// byte offset
-	struct position pos;
 };
 
 static int linearize_simple_address(struct entrypoint *ep,
@@ -926,7 +925,6 @@ static int linearize_address_gen(struct entrypoint *ep,
 
 	if (!ctype)
 		return 0;
-	ad->pos = expr->pos;
 	ad->type = ctype;
 	if (expr->type == EXPR_PREOP && expr->op == '*')
 		return linearize_simple_address(ep, expr->unop, ad);
@@ -1851,8 +1849,6 @@ static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym)
 		// only the existing fields need to be initialized.
 		// FIXME: this init the whole aggregate even if
 		// all fields arelater  explicitely initialized.
-		struct expression *expr = sym->initializer;
-		ad.pos = expr->pos;
 		ad.type = sym;
 		ad.address = symbol_pseudo(ep, sym);
 		linearize_store_gen(ep, value_pseudo(0), &ad);
