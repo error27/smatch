@@ -1711,7 +1711,6 @@ static pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos
 	struct expression *init_expr = pos->init_expr;
 
 	ad->offset = pos->init_offset;
-	ad->type = init_expr->ctype;
 	return linearize_initializer(ep, init_expr, ad);
 }
 
