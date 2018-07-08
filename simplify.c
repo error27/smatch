@@ -607,9 +607,13 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		remove_usage(old, &insn->src1);
 		return REPEAT_CSE;
 
+	case OP_SEXT:
+		if (value && (def->orig_type->bit_size == 1))
+			break;
+		/* Fall through */
 	case OP_ZEXT:
 		// Convert:
-		//	zext.m	%s <- (1) %a
+		//	*ext.m	%s <- (1) %a
 		//	setne.1 %r <- %s, $0
 		// into:
 		//	setne.1 %s <- %a, $0
