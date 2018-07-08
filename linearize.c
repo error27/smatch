@@ -878,6 +878,7 @@ pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *t
  */
 struct access_data {
 	struct symbol *type;		// ctype
+	struct symbol *btype;		// base type of bitfields
 	pseudo_t address;		// pseudo containing address ..
 	unsigned int offset;		// byte offset
 };
@@ -934,14 +935,13 @@ static int linearize_address_gen(struct entrypoint *ep,
 
 static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 {
-	struct symbol *btype = bitfield_base_type(ad->type);
 	struct instruction *insn;
 	pseudo_t new;
 
 	if (!ep->active)
 		return VOID;
 
-	insn = alloc_typed_instruction(OP_LOAD, btype);
+	insn = alloc_typed_instruction(OP_LOAD, ad->btype);
 	new = alloc_pseudo(insn);
 
 	insn->target = new;
@@ -959,7 +959,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 	if (!bb)
 		return;
 
-	store = alloc_typed_instruction(OP_STORE, bitfield_base_type(ad->type));
+	store = alloc_typed_instruction(OP_STORE, ad->btype);
 	store->offset = ad->offset;
 	use_pseudo(store, value, &store->target);
 	use_pseudo(store, ad->address, &store->src);
@@ -990,12 +990,13 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 		struct access_data *ad)
 {
 	struct symbol *ctype = ad->type;
-	struct symbol *btype = bitfield_base_type(ctype);
+	struct symbol *btype;
 	pseudo_t store = value;
 
 	if (!ep->active)
 		return VOID;
 
+	btype = ad->btype = bitfield_base_type(ctype);
 	if (type_size(btype) != type_size(ctype)) {
 		pseudo_t orig = add_load(ep, ad);
 		store = linearize_bitfield_insert(ep, orig, value, ctype, btype);
@@ -1079,12 +1080,13 @@ static pseudo_t linearize_bitfield_extract(struct entrypoint *ep,
 static pseudo_t linearize_load_gen(struct entrypoint *ep, struct access_data *ad)
 {
 	struct symbol *ctype = ad->type;
-	struct symbol *btype = bitfield_base_type(ctype);
+	struct symbol *btype;
 	pseudo_t new;
 
 	if (!ep->active)
 		return VOID;
 
+	btype = ad->btype = bitfield_base_type(ctype);
 	new = add_load(ep, ad);
 	if (ctype->bit_size != type_size(btype))
 		new = linearize_bitfield_extract(ep, new, ctype, btype);
