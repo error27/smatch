@@ -1772,14 +1772,6 @@ static pseudo_t linearize_cast(struct entrypoint *ep, struct expression *expr)
 	return cast_pseudo(ep, src, orig->ctype, expr->ctype);
 }
 
-static pseudo_t linearize_position(struct entrypoint *ep, struct expression *pos, struct access_data *ad)
-{
-	struct expression *init_expr = pos->init_expr;
-
-	ad->offset = pos->init_offset;
-	return linearize_initializer(ep, init_expr, ad);
-}
-
 static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *ad)
 {
 	switch (initializer->type) {
@@ -1791,7 +1783,8 @@ static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *
 		break;
 	}
 	case EXPR_POS:
-		linearize_position(ep, initializer, ad);
+		ad->offset = initializer->init_offset;
+		linearize_initializer(ep, initializer->init_expr, ad);
 		break;
 	default: {
 		pseudo_t value = linearize_expression(ep, initializer);
