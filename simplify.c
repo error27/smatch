@@ -606,6 +606,16 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			else if (value >= size)
 				value = size - 1;
 			goto new_value;
+
+		case OP_ZEXT:
+			// transform:
+			//	zext.N	%t <- (O) %a
+			//	asr.N	%r <- %t, C
+			// into
+			//	zext.N	%t <- (O) %a
+			//	lsr.N	%r <- %t, C
+			insn->opcode = OP_LSR;
+			return REPEAT_CSE;
 		}
 		break;
 	case OP_LSR:
