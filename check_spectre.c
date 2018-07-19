@@ -60,6 +60,34 @@ static int is_read(struct expression *expr)
 	return 0;
 }
 
+static int is_harmless(struct expression *expr)
+{
+	struct expression *tmp, *parent;
+	struct statement *stmt;
+	int count = 0;
+
+	parent = expr;
+	while ((tmp = expr_get_parent_expr(parent))) {
+		if (tmp->type == EXPR_ASSIGNMENT || tmp->type == EXPR_CALL)
+			return 0;
+		parent = tmp;
+		if (count++ > 4)
+			break;
+	}
+
+	stmt = expr_get_parent_stmt(parent);
+	if (!stmt)
+		return 0;
+	if (stmt->type == STMT_IF && stmt->if_conditional == parent)
+		return 1;
+	if (stmt->type == STMT_ITERATOR &&
+	    (stmt->iterator_pre_condition == parent ||
+	     stmt->iterator_post_condition == parent))
+		return 1;
+
+	return 0;
+}
+
 static unsigned long long get_max_by_type(struct expression *expr)
 {
 	sval_t max = {
@@ -132,6 +160,8 @@ static void array_check(struct expression *expr)
 		return;
 
 	if (is_impossible_path())
+		return;
+	if (is_harmless(expr))
 		return;
 
 	array_expr = get_array_base(expr);
