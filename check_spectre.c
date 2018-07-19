@@ -133,10 +133,6 @@ static void array_check(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
-	if (is_write(expr))
-		return;
-	if (!is_read(expr))
-		return;
 
 	array_expr = get_array_base(expr);
 	if (suppress_multiple && is_ignored_expr(my_id, array_expr))
