@@ -158,8 +158,10 @@ static void array_check(struct expression *expr)
 	conditions = get_conditions(offset);
 
 	name = expr_to_str(array_expr);
-	sm_msg("warn: potential spectre issue '%s'%s",
-	       name, conditions ? " (local cap)" : "");
+	sm_msg("warn: potential spectre issue '%s' [%s]%s",
+	       name,
+	       is_read(expr) ? "r" : "w",
+	       conditions ? " (local cap)" : "");
 	if (suppress_multiple)
 		add_ignore_expr(my_id, array_expr);
 	free_string(name);
