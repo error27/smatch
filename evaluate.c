@@ -1325,6 +1325,11 @@ static int evaluate_assign_op(struct expression *expr)
 				goto Cast;
 			if (!restricted_value(expr->right, t))
 				return 1;
+		} else if (op == SPECIAL_SHR_ASSIGN || op == SPECIAL_SHL_ASSIGN) {
+			// shifts do integer promotions, but that's it.
+			unrestrict(expr->right, sclass, &s);
+			target = integer_promotion(s);
+			goto Cast;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto usual;
 		/* source and target would better be identical restricted */
