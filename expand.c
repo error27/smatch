@@ -164,6 +164,8 @@ static void check_shift_count(struct expression *expr, struct expression *right)
 	long long count = get_longlong(right);
 
 	if (count < 0) {
+		if (!Wshift_count_negative)
+			return;
 		warning(expr->pos, "shift count is negative (%lld)", count);
 		return;
 	}
@@ -171,6 +173,9 @@ static void check_shift_count(struct expression *expr, struct expression *right)
 		return;
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
+
+	if (!Wshift_count_overflow)
+		return;
 	warning(expr->pos, "shift too big (%llu) for type %s", count, show_typename(ctype));
 }
 

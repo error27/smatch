@@ -549,7 +549,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 
 	size = insn->size;
 	if (value >= size && !insn->tainted) {
-		warning(insn->pos, "shift by bigger than operand's width");
+		if (Wshift_count_overflow)
+			warning(insn->pos, "shift by bigger than operand's width");
 		insn->tainted = 1;
 	}
 	switch (insn->opcode) {

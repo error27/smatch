@@ -163,6 +163,8 @@ extern int Wpointer_to_int_cast;
 extern int Wptr_subtraction_blows;
 extern int Wreturn_void;
 extern int Wshadow;
+extern int Wshift_count_negative;
+extern int Wshift_count_overflow;
 extern int Wsizeof_bool;
 extern int Wtautological_compare;
 extern int Wtransparent_union;

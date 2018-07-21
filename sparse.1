@@ -339,6 +339,18 @@ Such declarations can lead to error-prone code.
 Sparse does not issue these warnings by default.
 .
 .TP
+.B \-Wshift-count-negative
+Warn if a shift count is negative.
+
+Sparse issues these warnings by default.
+.
+.TP
+.B \-Wshift-count-overflow
+Warn if a shift count is bigger than the operand's width.
+
+Sparse issues these warnings by default.
+.
+.TP
 .B \-Wsizeof-bool
 Warn when checking the sizeof a _Bool.
 

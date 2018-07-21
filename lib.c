@@ -274,6 +274,8 @@ int Wpointer_to_int_cast = 1;
 int Wptr_subtraction_blows = 0;
 int Wreturn_void = 0;
 int Wshadow = 0;
+int Wshift_count_negative = 1;
+int Wshift_count_overflow = 1;
 int Wsizeof_bool = 0;
 int Wtautological_compare = 0;
 int Wtransparent_union = 0;
@@ -701,6 +703,8 @@ static const struct flag warnings[] = {
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
 	{ "return-void", &Wreturn_void },
 	{ "shadow", &Wshadow },
+	{ "shift-count-negative", &Wshift_count_negative },
+	{ "shift-count-overflow", &Wshift_count_overflow },
 	{ "sizeof-bool", &Wsizeof_bool },
 	{ "pointer-arith", &Wpointer_arith },
 	{ "sparse-error", &Wsparse_error },
