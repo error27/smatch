@@ -570,7 +570,10 @@ static long long check_shift_count(struct instruction *insn, unsigned long long 
 
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
+	struct instruction *def;
+	unsigned long long nval;
 	unsigned int size;
+	pseudo_t src2;
 
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
@@ -583,15 +586,57 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 	case OP_ASR:
 		if (value >= size)
 			return 0;
+		if (pseudo->type != PSEUDO_REG)
+			break;
+		def = pseudo->def;
+		switch (def->opcode) {
+		case OP_ASR:
+			if (def == insn)	// cyclic DAG!
+				break;
+			src2 = def->src2;
+			if (src2->type != PSEUDO_VAL)
+				break;
+			nval = src2->value;
+			if (nval > insn->size)
+				break;
+			value += nval;
+			if (value >= size)
+				value = size - 1;
+			goto new_value;
+		}
 		break;
 	case OP_LSR:
 		size = operand_size(insn, pseudo);
 		/* fall through */
 	case OP_SHL:
 		if (value >= size)
-			return replace_with_pseudo(insn, value_pseudo(0));
+			goto zero;
+		if (pseudo->type != PSEUDO_REG)
+			break;
+		def = pseudo->def;
+		if (def->opcode == insn->opcode) {
+			if (def == insn)	// cyclic DAG!
+				break;
+			src2 = def->src2;
+			if (src2->type != PSEUDO_VAL)
+				break;
+			nval = src2->value;
+			if (nval > insn->size)
+				break;
+			value += nval;
+			goto new_value;
+		}
+		break;
 	}
 	return 0;
+
+new_value:
+	if (value < size) {
+		insn->src2 = value_pseudo(value);
+		return replace_pseudo(insn, &insn->src1, pseudo->def->src1);
+	}
+zero:
+	return replace_with_pseudo(insn, value_pseudo(0));
 }
 
 static int simplify_mul_div(struct instruction *insn, long long value)
