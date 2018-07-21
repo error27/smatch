@@ -11,7 +11,6 @@ static unsigned very_big_shift(unsigned int a)
 /*
  * check-name: shift-undef-long
  * check-command: sparse -m64 $file
- * check-known-to-fail
  *
  * check-error-start
 shift-undef-long.c:4:16: warning: shift too big (4294967295) for type unsigned int
