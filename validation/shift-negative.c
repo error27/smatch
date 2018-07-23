@@ -7,7 +7,6 @@ unsigned int fo2(unsigned int a) { return a >> ((a & 0) ^ ~0); }
 /*
  * check-name: shift-negative
  * check-command: sparse -Wno-decl $file
- * check-known-to-fail
  *
  * check-error-start
 shift-negative.c:1:45: warning: shift count is negative (-1)
