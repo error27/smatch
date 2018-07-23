@@ -581,6 +581,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 	size = insn->size;
 	switch (insn->opcode) {
 	case OP_ASR:
+		if (value >= size)
+			return 0;
 		break;
 	case OP_LSR:
 		size = operand_size(insn, pseudo);
