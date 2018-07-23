@@ -590,6 +590,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			break;
 		def = pseudo->def;
 		switch (def->opcode) {
+		case OP_LSR:
 		case OP_ASR:
 			if (def == insn)	// cyclic DAG!
 				break;
@@ -600,7 +601,9 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			if (nval > insn->size)
 				break;
 			value += nval;
-			if (value >= size)
+			if (def->opcode == OP_LSR)
+				insn->opcode = OP_LSR;
+			else if (value >= size)
 				value = size - 1;
 			goto new_value;
 		}
