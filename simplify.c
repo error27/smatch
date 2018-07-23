@@ -575,6 +575,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
 	value = check_shift_count(insn, value);
+	if (value < 0)
+		return 0;
 
 	size = insn->size;
 	switch (insn->opcode) {
