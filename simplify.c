@@ -539,6 +539,21 @@ undef:
 	return NULL;
 }
 
+static long long check_shift_count(struct instruction *insn, unsigned long long uval)
+{
+	unsigned int size = insn->size;
+
+	if (uval < size)
+		return uval;
+	if (insn->tainted)
+		return uval;
+
+	if (Wshift_count_overflow) {
+		warning(insn->pos, "shift by bigger than operand's width");
+	}
+	insn->tainted = 1;
+	return uval;
+}
 
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
@@ -546,13 +561,9 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
+	value = check_shift_count(insn, value);
 
 	size = insn->size;
-	if (value >= size && !insn->tainted) {
-		if (Wshift_count_overflow)
-			warning(insn->pos, "shift by bigger than operand's width");
-		insn->tainted = 1;
-	}
 	switch (insn->opcode) {
 	case OP_ASR:
 		break;
