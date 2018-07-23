@@ -1250,6 +1250,13 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_switch(insn);
 	case OP_RANGE:
 		return simplify_range(insn);
+	case OP_FADD:
+	case OP_FSUB:
+	case OP_FMUL:
+	case OP_FDIV:
+		if (dead_insn(insn, &insn->src1, &insn->src2, NULL))
+			return REPEAT_CSE;
+		break;
 	}
 	return 0;
 }
