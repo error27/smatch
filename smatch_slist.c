@@ -662,7 +662,7 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 
 	__swap_cur_stree(*one);
 	FOR_EACH_SM(*two, sm) {
-		other = get_sm_state_stree(*one, sm->owner, sm->name, sm->sym);
+		other = get_sm_state(sm->owner, sm->name, sm->sym);
 		if (other == sm)
 			continue;
 		call_pre_merge_hook(sm);
@@ -671,7 +671,7 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 
 	__swap_cur_stree(*two);
 	FOR_EACH_SM(*one, sm) {
-		other = get_sm_state_stree(*two, sm->owner, sm->name, sm->sym);
+		other = get_sm_state(sm->owner, sm->name, sm->sym);
 		if (other == sm)
 			continue;
 		call_pre_merge_hook(sm);
