@@ -85,6 +85,13 @@ sval_t sval_from_val(struct expression *expr, long long val)
 	return ret;
 }
 
+int sval_is_ptr(sval_t sval)
+{
+	if (!sval.type)
+		return 0;
+	return (sval.type->type == SYM_PTR || sval.type->type == SYM_ARRAY);
+}
+
 int sval_unsigned(sval_t sval)
 {
 	return type_unsigned(sval.type);
