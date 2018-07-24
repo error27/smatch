@@ -116,7 +116,9 @@ static struct expression *remove_addr(struct expression *expr)
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		return strip_expr(expr->unop);
 	type = get_type(expr);
-	if (!type || type->type != SYM_PTR)
+	if (!type)
+		return expr;
+	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
 		return expr;
 
 	return deref_expression(expr);
