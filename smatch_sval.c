@@ -423,6 +423,41 @@ static sval_t sval_binop_signed(struct symbol *type, sval_t left, int op, sval_t
 	return ret;
 }
 
+static sval_t ptr_binop(struct symbol *type, sval_t left, int op, sval_t right)
+{
+	sval_t ret;
+	int align;
+
+	if (op != '+' && op != '-')
+		return sval_binop_unsigned(type, left, op, right);
+
+	ret.type = type;
+	if (type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	align = type->ctype.alignment;
+	if (align <= 0)
+		align = 1;
+
+	if (op == '+') {
+		if (type_is_ptr(left.type))
+			ret.value = left.value + right.value * align;
+		else
+			ret.value = left.value * align + right.value;
+	} else {
+		if (!type_is_ptr(left.type)) {
+			left.value = -left.value;
+			ret = ptr_binop(type, left, '+', right);
+		} else if (!type_is_ptr(right.type)) {
+			right.value = -right.value;
+			ret = ptr_binop(type, left, '+', right);
+		} else {
+			ret.value = (left.value - right.value) / align;
+		}
+	}
+
+	return ret;
+}
+
 sval_t sval_binop(sval_t left, int op, sval_t right)
 {
 	struct symbol *type;
@@ -430,7 +465,9 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 
 	type = get_promoted_type(left.type, right.type);
 
-	if (type_unsigned(type))
+	if (type_is_ptr(type))
+		ret = ptr_binop(type, left, op, right);
+	else if (type_unsigned(type))
 		ret = sval_binop_unsigned(type, left, op, right);
 	else
 		ret = sval_binop_signed(type, left, op, right);
