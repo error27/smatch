@@ -1505,6 +1505,7 @@ static void start_function_definition(struct symbol *sym)
 static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
+	struct timeval stop;
 
 	if (!base_type->stmt && !base_type->inline_stmt)
 		return;
@@ -1539,6 +1540,13 @@ static void split_function(struct symbol *sym)
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 
 	clear_all_states();
+
+	gettimeofday(&stop, NULL);
+	if (option_time && stop.tv_sec - fn_start_time.tv_sec > 2) {
+		final_pass++;
+		sm_msg("func_time: %lu", stop.tv_sec - fn_start_time.tv_sec);
+		final_pass--;
+	}
 	cur_func_sym = NULL;
 	cur_func = NULL;
 	free_data_info_allocs();
