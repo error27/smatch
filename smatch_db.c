@@ -249,6 +249,16 @@ void sql_insert_function_type_size(const char *member, const char *ranges)
 	sql_insert(function_type_size, "'%s', '%s', '%s', '%s'", get_base_file(), get_function(), member, ranges);
 }
 
+void sql_insert_function_type_info(int type, const char *struct_type, const char *member, const char *value)
+{
+	sql_insert(function_type_info, "'%s', '%s', %d, '%s', '%s', '%s'", get_base_file(), get_function(), type, struct_type, member, value);
+}
+
+void sql_insert_type_info(int type, const char *member, const char *value)
+{
+	sql_insert_cache(type_info, "'%s', %d, '%s', '%s'", get_base_file(), type, member, value);
+}
+
 void sql_insert_local_values(const char *name, const char *value)
 {
 	sql_insert(local_values, "'%s', '%s', '%s'", get_base_file(), name, value);
@@ -2048,9 +2058,12 @@ static void init_memdb(void)
 	const char *schema_files[] = {
 		"db/db.schema",
 		"db/caller_info.schema",
+		"db/common_caller_info.schema",
 		"db/return_states.schema",
 		"db/function_type_size.schema",
 		"db/type_size.schema",
+		"db/function_type_info.schema",
+		"db/type_info.schema",
 		"db/call_implies.schema",
 		"db/return_implies.schema",
 		"db/function_ptr.schema",
