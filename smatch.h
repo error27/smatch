@@ -769,6 +769,7 @@ void select_caller_info_hook(void (*callback)(const char *name, struct symbol *s
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state));
+void select_call_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));
 void select_return_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 struct range_list *db_return_vals_from_str(const char *fn_name);
