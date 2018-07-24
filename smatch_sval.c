@@ -156,6 +156,8 @@ int sval_is_max(sval_t sval)
 
 int sval_is_a_min(sval_t sval)
 {
+	if (sval_is_min(sval))
+		return 1;
 	if (sval_signed(sval) && sval.value == SHRT_MIN)
 		return 1;
 	if (sval_signed(sval) && sval.value == INT_MIN)
@@ -167,6 +169,8 @@ int sval_is_a_min(sval_t sval)
 
 int sval_is_a_max(sval_t sval)
 {
+	if (sval_is_max(sval))
+		return 1;
 	if (sval.uvalue == SHRT_MAX)
 		return 1;
 	if (sval.uvalue == INT_MAX)
