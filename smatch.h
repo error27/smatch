@@ -436,6 +436,7 @@ int in_condition(void);
 
 extern int __in_fake_assign;
 extern int __in_fake_struct_assign;
+extern int in_fake_env;
 void smatch (int argc, char **argv);
 int inside_loop(void);
 int definitely_inside_loop(void);

@@ -27,7 +27,7 @@
 
 int __in_fake_assign;
 int __in_fake_struct_assign;
-static int in_fake_env;
+int in_fake_env;
 int final_pass;
 int __inline_call;
 struct expression  *__inline_fn;

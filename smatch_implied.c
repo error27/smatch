@@ -1068,11 +1068,13 @@ int assume(struct expression *expr)
 {
 	int orig_final_pass = final_pass;
 
+	in_fake_env++;
 	final_pass = 0;
 	__push_fake_cur_stree();
 	found_implications = 0;
 	__split_whole_condition(expr);
 	final_pass = orig_final_pass;
+	in_fake_env--;
 
 	return 1;
 }
