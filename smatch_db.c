@@ -1407,8 +1407,39 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	return return_ranges;
 }
 
+static bool has_possible_negative(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_rl(tmp->state))
+			continue;
+		if (sval_is_negative(estate_min(tmp->state)) &&
+		    sval_is_negative(estate_max(tmp->state)))
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
+static bool has_possible_zero_null(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	sval_t sval;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_get_single_value(tmp->state, &sval))
+			continue;
+		if (sval.value == 0)
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 static int split_positive_from_negative(struct expression *expr)
 {
+	struct sm_state *sm;
 	struct returned_state_callback *cb;
 	struct range_list *rl;
 	const char *return_ranges;
@@ -1427,6 +1458,12 @@ static int split_positive_from_negative(struct expression *expr)
 	if (rl_max(rl).value <= 0)
 		return 0;
 	if (!sval_is_negative(rl_min(rl)))
+		return 0;
+
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
+		return 0;
+	if (!has_possible_negative(sm))
 		return 0;
 
 	if (!assume(compare_expression(expr, '>', zero_expr())))
@@ -1470,21 +1507,6 @@ static int split_positive_from_negative(struct expression *expr)
 	return 1;
 }
 
-static bool has_possible_null(struct sm_state *sm)
-{
-	struct sm_state *tmp;
-	sval_t sval;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (!estate_get_single_value(tmp->state, &sval))
-			continue;
-		if (sval.value == 0)
-			return true;
-	} END_FOR_EACH_PTR(tmp);
-
-	return false;
-}
-
 static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -1515,7 +1537,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 		return 0;
 	if (estate_min(state).value == 0 && estate_max(state).value == 0)
 		return 0;
-	if (!has_possible_null(sm))
+	if (!has_possible_zero_null(sm))
 		return 0;
 
 	nr_states = get_db_state_count();
@@ -1559,6 +1581,7 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 
 static int call_return_state_hooks_split_success_fail(struct expression *expr)
 {
+	struct sm_state *sm;
 	struct range_list *rl;
 	struct range_list *nonzero_rl;
 	sval_t zero_sval;
@@ -1567,7 +1590,6 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	struct returned_state_callback *cb;
 	char *return_ranges;
 	int final_pass_orig = final_pass;
-	sval_t val;
 
 	if (option_project != PROJ_KERNEL)
 		return 0;
@@ -1576,13 +1598,21 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (nr_states > 1500)
 		return 0;
 
-	if (get_value(expr, &val))
+	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm)
 		return 0;
-	if (!get_implied_rl(expr, &rl))
+	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
 		return 0;
+
+	rl = estate_rl(sm->state);
+	if (!rl)
+		return 0;
+
 	if (rl_min(rl).value < -4095 || rl_min(rl).value >= 0)
 		return 0;
 	if (rl_max(rl).value != 0)
+		return 0;
+	if (!has_possible_zero_null(sm))
 		return 0;
 
 	__push_fake_cur_stree();
