@@ -84,6 +84,7 @@ sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
 	{.value = LONG_MAX - 100000},
 };
+struct range_list *valid_ptr_rl;
 
 static void set_valid_ptr_max(void)
 {
@@ -93,6 +94,13 @@ static void set_valid_ptr_max(void)
 		valid_ptr_max = 2117777777777777777LL;
 
 	valid_ptr_max_sval.value = valid_ptr_max;
+}
+
+static void alloc_valid_ptr_rl(void)
+{
+	valid_ptr_rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+	valid_ptr_rl = cast_rl(&ptr_ctype, valid_ptr_rl);
+	valid_ptr_rl = clone_rl_permanent(valid_ptr_rl);
 }
 
 int outside_of_function(void)
@@ -1849,6 +1857,7 @@ void smatch(int argc, char **argv)
 	}
 	sparse_initialize(argc, argv, &filelist);
 	set_valid_ptr_max();
+	alloc_valid_ptr_rl();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
 		if (option_file_output)
 			open_output_files(base_file);

@@ -1227,15 +1227,9 @@ static void check_dereference(struct expression *expr)
 		return;
 	state = get_extra_state(expr);
 	if (state) {
-		static struct range_list *valid_rl;
 		struct range_list *rl;
 
-		if (!valid_rl) {
-			valid_rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
-			valid_rl = clone_rl_permanent(valid_rl);
-		}
-
-		rl = rl_intersection(estate_rl(state), valid_rl);
+		rl = rl_intersection(estate_rl(state), valid_ptr_rl);
 		if (rl_equiv(rl, estate_rl(state)))
 			return;
 		set_extra_expr_nomod(expr, alloc_estate_rl(rl));
