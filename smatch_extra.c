@@ -2579,24 +2579,34 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	estate_set_fuzzy_max(state, max);
 }
 
-struct smatch_state *get_extra_state(struct expression *expr)
+struct sm_state *get_extra_sm_state(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
-	struct smatch_state *ret = NULL;
-	struct range_list *rl;
-
-	if (is_pointer(expr) && get_address_rl(expr, &rl))
-		return alloc_estate_rl(rl);
+	struct sm_state *ret = NULL;
 
 	name = expr_to_known_chunk_sym(expr, &sym);
 	if (!name)
 		goto free;
 
-	ret = get_state(SMATCH_EXTRA, name, sym);
+	ret = get_sm_state(SMATCH_EXTRA, name, sym);
 free:
 	free_string(name);
 	return ret;
+}
+
+struct smatch_state *get_extra_state(struct expression *expr)
+{
+	struct range_list *rl;
+	struct sm_state *sm;
+
+	if (is_pointer(expr) && get_address_rl(expr, &rl))
+		return alloc_estate_rl(rl);
+
+	sm = get_extra_sm_state(expr);
+	if (!sm)
+		return NULL;
+	return sm->state;
 }
 
 void register_smatch_extra(int id)
