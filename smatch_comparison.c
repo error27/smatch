@@ -394,7 +394,7 @@ int combine_comparisons(int left_compare, int right_compare)
 	return 0;
 }
 
-static int filter_comparison(int orig, int op)
+int filter_comparison(int orig, int op)
 {
 	if (orig == op)
 		return orig;
