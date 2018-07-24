@@ -194,6 +194,9 @@ update return_states set value = '0-u64max' where function = '_parse_integer' an
 /* delete some function pointers which are sometimes byte units */
 delete from caller_info where function = '(struct i2c_algorithm)->master_xfer' and type = 1027;
 
+/* this if from READ_ONCE().  We can't know anything about the data.  */
+delete from type_info where key = '(union anonymous)->__val';
+
 EOF
 
 # fixme: this is totally broken
