@@ -27,3 +27,8 @@ __bitmap_weight s32min-s32max 0-s32max[<=$1]
 __bitmap_weight 0-s32max 0-s32max[<=$1]
 __ffs 0-u64max 0-63
 __ffs 0-u32max 0-31
+__spi_sync (-524),(-115),(-108),(-22) (-4095)-0
+tpm_tis_spi_read_bytes s32min-s32max (-4095)-0
+__irq_domain_activate_irq s32min-s32max (-4095)-0
+get_user_pages_fast s32min-s32max 1-s32max[<$1]
+__nci_request s32min-s32max (-4095)-0
