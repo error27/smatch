@@ -24,6 +24,7 @@ def usage():
     print "data_info <struct_type> <member> - information about a given data type"
     print "function_ptr <function> - which function pointers point to this"
     print "trace_param <function> <param> - trace where a parameter came from"
+    print "locals <file> - print the local values in a file."
     sys.exit(1)
 
 function_ptrs = []
@@ -476,13 +477,7 @@ def print_fn_ptrs(func):
     if not ptrs:
         return
     print "%s = " %(func),
-    i = 0
-    for p in ptrs:
-        if i > 0:
-            print ",",
-        i = i + 1
-        print "'%s'" %(p),
-    print ""
+    print(ptrs)
 
 def print_functions(member):
     cur = con.cursor()
@@ -576,6 +571,18 @@ def trace_param(func, param):
     print "tracing %s %d" %(func, param)
     trace_param_helper(func, param)
 
+def print_locals(filename):
+    cur = con.cursor()
+    cur.execute("select file,data,value from data_info where file = '%s' and type = 8029 and value != 0;" %(filename))
+    for txt in cur:
+        print "%s | %s | %s" %(txt[0], txt[1], txt[2])
+
+def constraint(struct_type, member):
+    cur = con.cursor()
+    cur.execute("select * from constraints_required where data like '(struct %s)->%s' or bound like '(struct %s)->%s';" %(struct_type, member, struct_type, member))
+    for txt in cur:
+        print "%-30s | %-30s | %s | %s" %(txt[0], txt[1], txt[2], txt[3])
+
 if len(sys.argv) < 2:
     usage()
 
@@ -640,5 +647,22 @@ elif sys.argv[1] == "trace_param":
     func = sys.argv[2]
     param = int(sys.argv[3])
     trace_param(func, param)
+elif sys.argv[1] == "locals":
+    if len(sys.argv) != 3:
+        usage()
+    filename = sys.argv[2]
+    print_locals(filename);
+elif sys.argv[1] == "constraint":
+    if len(sys.argv) == 3:
+        struct_type = "%"
+        member = sys.argv[2]
+    elif len(sys.argv) == 4:
+        struct_type = sys.argv[2]
+        member = sys.argv[3]
+    constraint(struct_type, member)
+elif sys.argv[1] == "test":
+    filename = sys.argv[2]
+    func = sys.argv[3]
+    caller_info_values(filename, func)
 else:
     usage()
