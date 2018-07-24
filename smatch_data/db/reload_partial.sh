@@ -32,10 +32,10 @@ ${bin_dir}/fill_db_caller_info.pl "$PROJ" $tmp_file $db_file
 grep "insert into return_states" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
-grep "insert into call_implies" $info_file > $tmp_file
+grep "into call_implies" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
-grep "insert into return_implies" $info_file > $tmp_file
+grep "into return_implies" $info_file > $tmp_file
 ${bin_dir}/fill_db_sql.pl "$PROJ" $tmp_file $db_file
 
 rm $tmp_file
