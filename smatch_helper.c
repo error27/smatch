@@ -678,7 +678,7 @@ struct expression *strip_parens(struct expression *expr)
 	return expr;
 }
 
-struct expression *strip_expr(struct expression *expr)
+static struct expression *strip_expr_helper(struct expression *expr, bool set_parent)
 {
 	if (!expr)
 		return NULL;
@@ -686,20 +686,26 @@ struct expression *strip_expr(struct expression *expr)
 	switch (expr->type) {
 	case EXPR_FORCE_CAST:
 	case EXPR_CAST:
+		if (set_parent)
+			expr_set_parent_expr(expr->cast_expression, expr);
+
 		if (!expr->cast_expression)
 			return expr;
-		return strip_expr(expr->cast_expression);
+		return strip_expr_helper(expr->cast_expression, set_parent);
 	case EXPR_PREOP: {
 		struct expression *unop;
 
 		if (!expr->unop)  /* parsing invalid code */
 			return expr;
+		if (set_parent)
+			expr_set_parent_expr(expr->unop, expr);
+
 
 		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
 			expr->unop->statement->type == STMT_COMPOUND)
 			return expr;
 
-		unop = strip_expr(expr->unop);
+		unop = strip_expr_helper(expr->unop, set_parent);
 
 		if (expr->op == '*' && unop &&
 		    unop->type == EXPR_PREOP && unop->op == '&') {
@@ -707,7 +713,7 @@ struct expression *strip_expr(struct expression *expr)
 
 			if (type && type->type == SYM_ARRAY)
 				return expr;
-			return strip_expr(unop->unop);
+			return strip_expr_helper(unop->unop, set_parent);
 		}
 
 		if (expr->op == '(')
@@ -717,12 +723,20 @@ struct expression *strip_expr(struct expression *expr)
 	}
 	case EXPR_CONDITIONAL:
 		if (known_condition_true(expr->conditional)) {
-			if (expr->cond_true)
-				return strip_expr(expr->cond_true);
-			return strip_expr(expr->conditional);
+			if (expr->cond_true) {
+				if (set_parent)
+					expr_set_parent_expr(expr->cond_true, expr);
+				return strip_expr_helper(expr->cond_true, set_parent);
+			}
+			if (set_parent)
+				expr_set_parent_expr(expr->conditional, expr);
+			return strip_expr_helper(expr->conditional, set_parent);
 		}
-		if (known_condition_false(expr->conditional))
-			return strip_expr(expr->cond_false);
+		if (known_condition_false(expr->conditional)) {
+			if (set_parent)
+				expr_set_parent_expr(expr->cond_false, expr);
+			return strip_expr_helper(expr->cond_false, set_parent);
+		}
 		return expr;
 	case EXPR_CALL:
 		if (sym_name_is("__builtin_expect", expr->fn) ||
@@ -730,11 +744,21 @@ struct expression *strip_expr(struct expression *expr)
 		    sym_name_is("__builtin_bswap32", expr->fn) ||
 		    sym_name_is("__builtin_bswap64", expr->fn)) {
 			expr = get_argument_from_call_expr(expr->args, 0);
-			return strip_expr(expr);
+			return strip_expr_helper(expr, set_parent);
 		}
 		return expr;
 	}
 	return expr;
+}
+
+struct expression *strip_expr(struct expression *expr)
+{
+	return strip_expr_helper(expr, false);
+}
+
+struct expression *strip_expr_set_parent(struct expression *expr)
+{
+	return strip_expr_helper(expr, true);
 }
 
 static void delete_state_tracker(struct tracker *t)

@@ -353,8 +353,6 @@ static void handle_select(struct expression *expr)
 
 static void handle_comma(struct expression *expr)
 {
-	expr_set_parent_expr(expr->left, expr);
-	expr_set_parent_expr(expr->right, expr);
 	__split_expr(expr->left);
 	split_conditions(expr->right);
 }
@@ -400,7 +398,7 @@ static void split_conditions(struct expression *expr)
 		free_string(cond);
 	}
 
-	expr = strip_expr(expr);
+	expr = strip_expr_set_parent(expr);
 	if (!expr) {
 		__fold_in_set_states();
 		return;
@@ -425,10 +423,14 @@ static void split_conditions(struct expression *expr)
 
 	switch (expr->type) {
 	case EXPR_LOGICAL:
+		expr_set_parent_expr(expr->left, expr);
+		expr_set_parent_expr(expr->right, expr);
 		__pass_to_client(expr, LOGIC_HOOK);
 		handle_logical(expr);
 		return;
 	case EXPR_COMPARE:
+		expr_set_parent_expr(expr->left, expr);
+		expr_set_parent_expr(expr->right, expr);
 		hackup_unsigned_compares(expr);
 		if (handle_zero_comparisons(expr))
 			return;
@@ -438,14 +440,20 @@ static void split_conditions(struct expression *expr)
 			return;
 		break;
 	case EXPR_PREOP:
+		expr_set_parent_expr(expr->unop, expr);
 		if (handle_preop(expr))
 			return;
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
+		expr_set_parent_expr(expr->conditional, expr);
+		expr_set_parent_expr(expr->cond_true, expr);
+		expr_set_parent_expr(expr->cond_false, expr);
 		handle_select(expr);
 		return;
 	case EXPR_COMMA:
+		expr_set_parent_expr(expr->left, expr);
+		expr_set_parent_expr(expr->right, expr);
 		handle_comma(expr);
 		return;
 	}
@@ -459,9 +467,6 @@ static void split_conditions(struct expression *expr)
 	push_expression(&big_condition_stack, expr);
 
 	if (expr->type == EXPR_COMPARE) {
-		expr_set_parent_expr(expr->left, expr);
-		expr_set_parent_expr(expr->right, expr);
-
 		if (expr->left->type != EXPR_POSTOP)
 			__split_expr(expr->left);
 		if (expr->right->type != EXPR_POSTOP)
