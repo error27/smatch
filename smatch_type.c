@@ -285,6 +285,23 @@ struct symbol *get_type(struct expression *expr)
 	return ret;
 }
 
+struct symbol *get_promoted_type(struct symbol *left, struct symbol *right)
+{
+	struct symbol *ret = &int_ctype;
+
+	if (type_positive_bits(left) > type_positive_bits(ret))
+		ret = left;
+	if (type_positive_bits(right) > type_positive_bits(ret))
+		ret = right;
+
+	if (type_is_ptr(left))
+		ret = left;
+	if (type_is_ptr(right))
+		ret = right;
+
+	return ret;
+}
+
 int type_signed(struct symbol *base_type)
 {
 	if (!base_type)

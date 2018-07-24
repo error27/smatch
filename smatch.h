@@ -375,6 +375,7 @@ int type_bytes(struct symbol *type);
 int array_bytes(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
+struct symbol *get_promoted_type(struct symbol *left, struct symbol *right);
 int type_signed(struct symbol *base_type);
 int expr_unsigned(struct expression *expr);
 int expr_signed(struct expression *expr);
@@ -1138,6 +1139,11 @@ static inline int type_bits(struct symbol *type)
 	if (!type->examined)
 		examine_symbol_type(type);
 	return type->bit_size;
+}
+
+static inline bool type_is_ptr(struct symbol *type)
+{
+	return type && (type->type == SYM_PTR || type->type == SYM_ARRAY);
 }
 
 static inline int type_unsigned(struct symbol *base_type)

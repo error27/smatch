@@ -428,11 +428,7 @@ sval_t sval_binop(sval_t left, int op, sval_t right)
 	struct symbol *type;
 	sval_t ret;
 
-	type = left.type;
-	if (sval_positive_bits(right) > sval_positive_bits(left))
-		type = right.type;
-	if (type_positive_bits(type) < 31)
-		type = &int_ctype;
+	type = get_promoted_type(left.type, right.type);
 
 	if (type_unsigned(type))
 		ret = sval_binop_unsigned(type, left, op, right);
