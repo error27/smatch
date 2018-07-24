@@ -75,11 +75,6 @@ static struct symbol *get_binop_type(struct expression *expr)
 	if (!right)
 		return NULL;
 
-	if (expr->op == '-' &&
-	    (left->type == SYM_PTR || left->type == SYM_ARRAY) &&
-	    (right->type == SYM_PTR || right->type == SYM_ARRAY))
-		return ssize_t_ctype;
-
 	if (left->type == SYM_PTR || left->type == SYM_ARRAY)
 		return left;
 	if (right->type == SYM_PTR || right->type == SYM_ARRAY)
@@ -216,7 +211,7 @@ static struct symbol *fake_pointer_sym(struct expression *expr)
 	return sym;
 }
 
-struct symbol *get_type(struct expression *expr)
+static struct symbol *get_type_helper(struct expression *expr)
 {
 	struct symbol *ret;
 
@@ -283,6 +278,61 @@ struct symbol *get_type(struct expression *expr)
 
 	expr->ctype = ret;
 	return ret;
+}
+
+static struct symbol *get_final_type_helper(struct expression *expr)
+{
+	/*
+	 * I'm not totally positive I understand types...
+	 *
+	 * So, when you're doing pointer math, and you do a subtraction, then
+	 * the sval_binop() and whatever need to know the type of the pointer
+	 * so they can figure out the alignment.  But the result is going to be
+	 * and ssize_t.  So get_operation_type() gives you the pointer type
+	 * and get_type() gives you ssize_t.
+	 *
+	 * Most of the time the operation type and the final type are the same
+	 * but this just handles the few places where they are different.
+	 *
+	 */
+
+	return NULL;
+
+	if (!expr)
+		return NULL;
+
+	switch (expr->type) {
+	case EXPR_COMPARE:
+		return &int_ctype;
+	case EXPR_BINOP: {
+		struct symbol *left, *right;
+
+		if (expr->op != '-')
+			return NULL;
+
+		left = get_type(expr->left);
+		right = get_type(expr->right);
+		if (type_is_ptr(left) && type_is_ptr(right))
+			return ssize_t_ctype;
+		}
+	}
+
+	return NULL;
+}
+
+struct symbol *get_type(struct expression *expr)
+{
+	return get_type_helper(expr);
+}
+
+struct symbol *get_final_type(struct expression *expr)
+{
+	struct symbol *ret;
+
+	ret = get_final_type_helper(expr);
+	if (ret)
+		return ret;
+	return get_type_helper(expr);
 }
 
 struct symbol *get_promoted_type(struct symbol *left, struct symbol *right)
