@@ -598,7 +598,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			if (src2->type != PSEUDO_VAL)
 				break;
 			nval = src2->value;
-			if (nval > insn->size)
+			if (nval > insn->size || nval == 0)
 				break;
 			value += nval;
 			if (def->opcode == OP_LSR)
