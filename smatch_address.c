@@ -127,7 +127,7 @@ static struct range_list *filter_unknown_negatives(struct range_list *rl)
 
 static void add_offset_to_pointer(struct range_list **rl, int offset)
 {
-	sval_t min, remove, max;
+	sval_t min, max, remove, sval;
 	struct range_list *orig = *rl;
 
 	/*
@@ -151,31 +151,41 @@ static void add_offset_to_pointer(struct range_list **rl, int offset)
 	 *
 	 */
 
-	if (!orig || is_whole_rl(orig)) {
-		min = sval_type_min(&ptr_ctype);
-		max = sval_type_max(&ptr_ctype);
+	/* We do the math on void pointer type, because this isn't "&v + 16" it
+	 * is &v->sixteenth_byte.
+	 */
+	orig = cast_rl(&ptr_ctype, orig);
+	min = sval_type_min(&ptr_ctype);
+	min.value = offset;
+	max = sval_type_max(&ptr_ctype);
 
-		min.value = offset;
+	if (!orig || is_whole_rl(orig)) {
 		*rl = alloc_rl(min, max);
 		return;
 	}
 
 	orig = filter_unknown_negatives(orig);
-
-	min = rl_min(orig);
-
 	/*
 	 * FIXME:  This is not really accurate but we're a bit screwed anyway
 	 * when we start doing pointer math with error pointers so it's probably
 	 * not important.
 	 *
 	 */
-	if (sval_is_negative(min))
+	if (sval_is_negative(rl_min(orig)))
 		return;
 
-	remove = min;
-	remove.value += (offset - 1);
-	*rl = remove_range(orig, min, remove);
+	/* no wrap around */
+	max.uvalue = rl_max(orig).uvalue;
+	if (max.uvalue > sval_type_max(&ptr_ctype).uvalue - offset) {
+		remove = sval_type_max(&ptr_ctype);
+		remove.uvalue -= offset;
+		orig = remove_range(orig, remove, max);
+	}
+
+	sval.type = &int_ctype;
+	sval.value = offset;
+
+	*rl = rl_binop(orig, '+', alloc_rl(sval, sval));
 }
 
 static struct range_list *where_allocated_rl(struct symbol *sym)
