@@ -249,31 +249,66 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 	sql_insert_return_implies(CONTAINER, param, buf, "");
 }
 
-static struct expression *get_outer_struct(struct expression *expr)
+static int get_shared_cnt(const char *one, const char *two)
 {
-	expr = strip_expr(expr);
+	int i;
 
-	if (expr->type != EXPR_DEREF)
-		return NULL;
-	expr = strip_expr(expr->deref);
-	if (expr->type == EXPR_SYMBOL)
-		return expr;
-	if (expr->type == EXPR_PREOP && expr->op == '*')
-		return strip_expr(expr->unop);
-	return expr;
+	i = 0;
+	while (true) {
+		if (!one[i] || !two[i])
+			break;
+		if (one[i] != two[i])
+			break;
+		i++;
+	}
+	if (i == 0)
+		return 0;
+	i--;
+	while (i > 0 && (one[i] == '>' || one[i] == '-' || one[i] == '.'))
+		i--;
+
+	return i + 1;
+}
+
+static int build_offset_str(struct expression *expr, const char *name,
+			    int shared, char *buf, int size, int op)
+{
+	int chop = 0;
+	int offset;
+	int i;
+
+	i = shared;
+	while (name[i]) {
+		if (name[i] == '.' || name[i] == '-')
+			chop++;
+		i++;
+	}
+
+	// FIXME:  Handle more chops
+	if (chop > 1)
+		return 0;
+
+	if (chop == 0) {
+		offset = 0;
+	} else {
+		offset = get_member_offset_from_deref(expr);
+		if (offset < 0)
+			return 0;
+	}
+
+	snprintf(buf, size, "%c%d", (op == '+') ? '+' : '-', offset);
+	return 1;
 }
 
 static void match_call(struct expression *call)
 {
-	struct expression *fn_ptr, *fn_parent, *arg, *arg_parent;
-	struct symbol *fn_sym, *arg_sym;
-	struct symbol *type;
-	int i, offset;
-	int arg_offset = 0;
-	char parent_str[64];
+	struct expression *fn, *arg;
+	char *fn_name, *arg_name;
+	int param, shared;
+	char minus_str[64];
+	char plus_str[64];
 	char offset_str[64];
-	char *p;
-	bool star = 0;
+	bool star;
 
 	/*
 	 * We're trying to link the function with the parameter.  There are a
@@ -284,93 +319,47 @@ static void match_call(struct expression *call)
 	 * foo->bar->baz->func(foo, ...);
 	 *
 	 * So the method is basically to subtract the offsets until we get to
-	 * the common bit, then the member offsets for the parameter.
+	 * the common bit, then add the member offsets to get the parameter.
 	 *
-	 * If the argument is not a pointer then we star it.  This is perhaps
-	 * not right.  We should probably be treating addresses of a pointer
-	 * different from the pointer value.
-	 *
+	 * If we're taking an address then the offset math is not stared,
+	 * otherwise it is.  Starred means dereferenced.
 	 */
-	fn_ptr = strip_expr(call->fn);
-	fn_parent = get_outer_struct(fn_ptr);
-	if (!fn_parent)
-		return;
-	fn_sym = expr_to_sym(fn_parent);
-	if (!fn_sym)
+	fn = strip_expr(call->fn);
+	fn_name = expr_to_var(fn);
+	if (!fn_name)
 		return;
 
-	type = get_type(fn_parent);
-	if (type && type->type == SYM_PTR)
-		type = get_real_base_type(type);
-	offset = get_member_offset(type, fn_ptr->member->name);
-	if (offset < 0)
-		return;
-
-	i = -1;
+	param = -1;
 	FOR_EACH_PTR(call->args, arg) {
-		i++;
+		param++;
 
-#if 0
-		/*
-		 * This doesn't work because of things like:
-		 * foo = bar;
-		 * foo->func(foo, ...);
-		 * We don't want to use "bar" here.  But also perhaps I should
-		 * be changing the short names to long names or something?
-		 *
-		 */
-		count = 0;
-		while ((tmp = get_assigned_expr(arg))) {
-			arg = strip_expr(tmp);
-			if (count++ > 4)
-				break;
-		}
-#endif
-		arg_sym = expr_to_sym(arg);
-		if (!arg_sym)
-			continue;
-		if (arg_sym != fn_sym)
-			continue;
-
-		/*
-		 * We know these are related because arg_sym == fn_sym.
-		 * If we don't record something in the DB, that is a failure.
-		 *
-		 */
-
-		if (arg->type == EXPR_PREOP && arg->op == '&')
+		arg = strip_expr(arg);
+		star = true;
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
 			arg = strip_expr(arg->unop);
-
-		if (expr_equiv(arg, fn_parent)) {
-			snprintf(parent_str, sizeof(parent_str), "-%d", offset);
-			goto found;
+			star = false;
 		}
 
-		p = parent_str;
-		while ((arg_parent = get_outer_struct(arg))) {
-			arg = arg_parent;
-
-			p += snprintf(p, parent_str + sizeof(parent_str) - p, "-%d", offset);
-
-			if (!expr_equiv(arg, fn_parent))
-				continue;
-			arg_offset = get_member_offset_from_deref(arg);
-			if (arg_offset < 0)
-				continue;
-			if (!is_pointer(arg))
-				star = 1;
-			goto found;
-		}
+		arg_name = expr_to_var(arg);
+		if (!arg_name)
+			continue;
+		shared = get_shared_cnt(fn_name, arg_name);
+		if (!shared)
+			goto free_arg_name;
+		if (!build_offset_str(fn, fn_name, shared, minus_str, sizeof(minus_str), '-'))
+			goto free_arg_name;
+		if (!build_offset_str(arg, arg_name, shared, plus_str, sizeof(plus_str), '+'))
+			goto free_arg_name;
+		if (star)
+			snprintf(offset_str, sizeof(offset_str), "*(%s%s)", minus_str, plus_str);
+		else
+			snprintf(offset_str, sizeof(offset_str), "%s%s", minus_str, plus_str);
+		sql_insert_caller_info(call, CONTAINER, param, offset_str, "$(-1)");
+free_arg_name:
+		free_string(arg_name);
 	} END_FOR_EACH_PTR(arg);
 
-	return;
-
-found:
-	if (star)
-		snprintf(offset_str, sizeof(offset_str), "*(%s+%d)", parent_str, arg_offset);
-	else
-		snprintf(offset_str, sizeof(offset_str), "%s+%d", parent_str, arg_offset);
-	sql_insert_caller_info(call, CONTAINER, i, offset_str, "$(-1)");
+	free_string(fn_name);
 }
 
 static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)
