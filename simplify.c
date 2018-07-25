@@ -378,6 +378,13 @@ static inline int def_opcode(pseudo_t p)
 	return p->def->opcode;
 }
 
+//
+// return the opcode of the instruction defining ``SRC`` if existing
+// and OP_BADOP if not. It also assigns the defining instruction
+// to ``DEF``.
+#define DEF_OPCODE(DEF, SRC)	\
+	(((SRC)->type == PSEUDO_REG && (DEF = (SRC)->def)) ? DEF->opcode : OP_BADOP)
+
 static unsigned int value_size(long long value)
 {
 	value >>= 8;
@@ -730,6 +737,32 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
+{
+	pseudo_t old = insn->src1;
+	unsigned long long omask;
+	unsigned long long nmask;
+	struct instruction *def;
+	int osize;
+
+	switch (DEF_OPCODE(def, old)) {
+	case OP_ZEXT:
+		osize = def->orig_type->bit_size;
+		omask = (1ULL << osize) - 1;
+		nmask = mask & omask;
+		if (nmask == omask)
+			// the AND mask is redundant
+			return replace_with_pseudo(insn, old);
+		if (nmask != mask) {
+			// can use a smaller mask
+			insn->src2 = value_pseudo(nmask);
+			return REPEAT_CSE;
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
@@ -780,7 +813,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 			return replace_with_pseudo(insn, insn->src2);
 		if ((value & bits) == bits)
 			return replace_with_pseudo(insn, insn->src1);
-		return 0;
+		return simplify_constant_mask(insn, value);
 
 	case OP_SET_NE:
 	case OP_SET_EQ:
@@ -929,7 +962,7 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (!simple_pseudo(def->src2))
 		return 0;
-	if (pseudo_user_list_size(def->target->users) != 1)
+	if (nbr_users(def->target) != 1)
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
@@ -1058,8 +1091,10 @@ static int simplify_memop(struct instruction *insn)
 
 static int simplify_cast(struct instruction *insn)
 {
+	unsigned long long mask;
 	struct instruction *def;
 	pseudo_t src;
+	pseudo_t val;
 	int osize;
 	int size;
 
@@ -1077,13 +1112,48 @@ static int simplify_cast(struct instruction *insn)
 	def = src->def;
 	switch (def_opcode(src)) {
 	case OP_AND:
+		val = def->src2;
+		if (val->type != PSEUDO_VAL)
+			break;
 		/* A cast of a AND might be a no-op.. */
-		if (def->size >= size) {
-			pseudo_t val = def->src2;
-			if (val->type == PSEUDO_VAL) {
-				if (!(val->value >> (size-1)))
-					goto simplify;
-			}
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			if (nbr_users(src) > 1)
+				break;
+			def->opcode = OP_TRUNC;
+			def->orig_type = def->type;
+			def->type = insn->type;
+			def->size = size;
+
+			insn->opcode = OP_AND;
+			mask = val->value;
+			mask &= (1ULL << size) - 1;
+			insn->src2 = value_pseudo(mask);
+			return REPEAT_CSE;
+
+		case OP_SEXT:
+			if (val->value & (1 << (def->size - 1)))
+				break;
+			// OK, sign bit is 0
+		case OP_ZEXT:
+			if (nbr_users(src) > 1)
+				break;
+			// transform:
+			//	and.n	%b <- %a, M
+			//	*ext.m	%c <- (n) %b
+			// into:
+			//	zext.m	%b <- %a
+			//	and.m	%c <- %b, M
+			// For ZEXT, the mask will always be small
+			// enough. For SEXT, it can only be done if
+			// the mask force the sign bit to 0.
+			def->opcode = OP_ZEXT;
+			def->orig_type = insn->orig_type;
+			def->type = insn->type;
+			def->size = insn->size;
+			insn->opcode = OP_AND;
+			insn->src2 = val;
+			return REPEAT_CSE;
 		}
 		break;
 	case OP_TRUNC:
@@ -1094,12 +1164,36 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src);
 		}
 		break;
+	case OP_ZEXT:
+		switch (insn->opcode) {
+		case OP_SEXT:
+			insn->opcode = OP_ZEXT;
+			/* fall through */
+		case OP_ZEXT:
+			insn->orig_type = def->orig_type;
+			return replace_pseudo(insn, &insn->src, def->src);
+		}
+		/* fall through */
+	case OP_SEXT:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			osize = def->orig_type->bit_size;
+			if (size == osize)
+				return replace_with_pseudo(insn, def->src);
+			if (size > osize)
+				insn->opcode = def->opcode;
+			insn->orig_type = def->orig_type;
+			return replace_pseudo(insn, &insn->src, def->src);
+		}
+		switch (insn->opcode) {
+		case OP_SEXT:
+			insn->orig_type = def->orig_type;
+			return replace_pseudo(insn, &insn->src, def->src);
+		}
+		break;
 	}
 
 	return 0;
-
-simplify:
-	return replace_with_pseudo(insn, src);
 }
 
 static int simplify_select(struct instruction *insn)
