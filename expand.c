@@ -158,11 +158,25 @@ Float:
 	expr->type = EXPR_FVALUE;
 }
 
-static int check_shift_count(struct expression *expr, struct symbol *ctype, unsigned int count)
+static void check_shift_count(struct expression *expr, struct expression *right)
 {
-	warning(expr->pos, "shift too big (%u) for type %s", count, show_typename(ctype));
-	count &= ctype->bit_size-1;
-	return count;
+	struct symbol *ctype = expr->ctype;
+	long long count = get_longlong(right);
+
+	if (count < 0) {
+		if (!Wshift_count_negative)
+			return;
+		warning(expr->pos, "shift count is negative (%lld)", count);
+		return;
+	}
+	if (count < ctype->bit_size)
+		return;
+	if (ctype->type == SYM_NODE)
+		ctype = ctype->ctype.base_type;
+
+	if (!Wshift_count_overflow)
+		return;
+	warning(expr->pos, "shift too big (%llu) for type %s", count, show_typename(ctype));
 }
 
 /*
@@ -183,12 +197,9 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 		return 0;
 	r = right->value;
 	if (expr->op == SPECIAL_LEFTSHIFT || expr->op == SPECIAL_RIGHTSHIFT) {
-		if (r >= ctype->bit_size) {
-			if (conservative)
-				return 0;
-			r = check_shift_count(expr, ctype, r);
-			right->value = r;
-		}
+		if (conservative)
+			return 0;
+		check_shift_count(expr, right);
 	}
 	if (left->type != EXPR_VALUE)
 		return 0;
@@ -559,11 +570,30 @@ static int expand_conditional(struct expression *expr)
 
 	return cost + cond_cost + BRANCH_COST;
 }
-		
+
+static void check_assignment(struct expression *expr)
+{
+	struct expression *right;
+
+	switch (expr->op) {
+	case SPECIAL_SHL_ASSIGN:
+	case SPECIAL_SHR_ASSIGN:
+		right = expr->right;
+		if (right->type != EXPR_VALUE)
+			break;
+		check_shift_count(expr, right);
+		break;
+	}
+	return;
+}
+
 static int expand_assignment(struct expression *expr)
 {
 	expand_expression(expr->left);
 	expand_expression(expr->right);
+
+	if (!conservative)
+		check_assignment(expr);
 	return SIDE_EFFECTS;
 }
 

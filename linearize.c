@@ -995,6 +995,23 @@ static pseudo_t linearize_store_gen(struct entrypoint *ep,
 	return value;
 }
 
+static void taint_undefined_behaviour(struct instruction *insn)
+{
+	pseudo_t src2;
+
+	switch (insn->opcode) {
+	case OP_LSR:
+	case OP_ASR:
+	case OP_SHL:
+		src2 = insn->src2;
+		if (src2->type != PSEUDO_VAL)
+			break;
+		if ((unsigned long long)src2->value >= insn->size)
+			insn->tainted = 1;
+		break;
+	}
+}
+
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right)
 {
 	struct instruction *insn = alloc_typed_instruction(op, ctype);
@@ -1398,6 +1415,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 		oldvalue = cast_pseudo(ep, oldvalue, target->ctype, ctype);
 		opcode = map_opcode(op_trans[expr->op - SPECIAL_BASE], ctype);
 		dst = add_binary_op(ep, ctype, opcode, oldvalue, value);
+		taint_undefined_behaviour(dst->def);
 		value = cast_pseudo(ep, dst, ctype, expr->ctype);
 	}
 	value = linearize_store_gen(ep, value, &ad);
@@ -1502,6 +1520,7 @@ static pseudo_t linearize_binop(struct entrypoint *ep, struct expression *expr)
 	src2 = linearize_expression(ep, expr->right);
 	op = map_opcode(opcode[expr->op], expr->ctype);
 	dst = add_binary_op(ep, expr->ctype, op, src1, src2);
+	taint_undefined_behaviour(dst->def);
 	return dst;
 }
 

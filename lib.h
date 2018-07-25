@@ -34,6 +34,7 @@
 #include "compat.h"
 #include "ptrlist.h"
 #include "utils.h"
+#include "bits.h"
 
 #define DO_STRINGIFY(x) #x
 #define STRINGIFY(x) DO_STRINGIFY(x)
@@ -163,6 +164,8 @@ extern int Wpointer_to_int_cast;
 extern int Wptr_subtraction_blows;
 extern int Wreturn_void;
 extern int Wshadow;
+extern int Wshift_count_negative;
+extern int Wshift_count_overflow;
 extern int Wsizeof_bool;
 extern int Wtautological_compare;
 extern int Wtransparent_union;

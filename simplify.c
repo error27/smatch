@@ -472,12 +472,18 @@ static pseudo_t eval_insn(struct instruction *insn)
 		res = left % right;
 		break;
 	case OP_SHL:
+		if (ur >= size)
+			goto undef;
 		res = left << right;
 		break;
 	case OP_LSR:
+		if (ur >= size)
+			goto undef;
 		res = ul >> ur;
 		break;
 	case OP_ASR:
+		if (ur >= size)
+			goto undef;
 		res = left >> right;
 		break;
        /* Logical */
@@ -533,18 +539,117 @@ undef:
 	return NULL;
 }
 
-
-static int simplify_asr(struct instruction *insn, pseudo_t pseudo, long long value)
+static long long check_shift_count(struct instruction *insn, unsigned long long uval)
 {
-	unsigned int size = operand_size(insn, pseudo);
+	unsigned int size = insn->size;
+	long long sval = uval;
 
-	if (value >= size) {
-		warning(insn->pos, "right shift by bigger than source value");
-		return replace_with_pseudo(insn, value_pseudo(0));
+	if (uval < size)
+		return uval;
+
+	sval = sign_extend_safe(sval, size);
+	sval = sign_extend_safe(sval, bits_in_int);
+	if (sval < 0)
+		insn->src2 = value_pseudo(sval);
+	if (insn->tainted)
+		return sval;
+
+	if (sval < 0 && Wshift_count_negative)
+		warning(insn->pos, "shift count is negative (%lld)", sval);
+	if (sval > 0 && Wshift_count_overflow) {
+		struct symbol *ctype = insn->type;
+		const char *tname;
+		if (ctype->type == SYM_NODE)
+			ctype = ctype->ctype.base_type;
+		tname = show_typename(ctype);
+		warning(insn->pos, "shift too big (%llu) for type %s", sval, tname);
 	}
+	insn->tainted = 1;
+	return sval;
+}
+
+static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
+{
+	struct instruction *def;
+	unsigned long long nval;
+	unsigned int size;
+	pseudo_t src2;
+
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
+	value = check_shift_count(insn, value);
+	if (value < 0)
+		return 0;
+
+	size = insn->size;
+	switch (insn->opcode) {
+	case OP_ASR:
+		if (value >= size)
+			return 0;
+		if (pseudo->type != PSEUDO_REG)
+			break;
+		def = pseudo->def;
+		switch (def->opcode) {
+		case OP_LSR:
+		case OP_ASR:
+			if (def == insn)	// cyclic DAG!
+				break;
+			src2 = def->src2;
+			if (src2->type != PSEUDO_VAL)
+				break;
+			nval = src2->value;
+			if (nval > insn->size || nval == 0)
+				break;
+			value += nval;
+			if (def->opcode == OP_LSR)
+				insn->opcode = OP_LSR;
+			else if (value >= size)
+				value = size - 1;
+			goto new_value;
+
+		case OP_ZEXT:
+			// transform:
+			//	zext.N	%t <- (O) %a
+			//	asr.N	%r <- %t, C
+			// into
+			//	zext.N	%t <- (O) %a
+			//	lsr.N	%r <- %t, C
+			insn->opcode = OP_LSR;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_LSR:
+		size = operand_size(insn, pseudo);
+		/* fall through */
+	case OP_SHL:
+		if (value >= size)
+			goto zero;
+		if (pseudo->type != PSEUDO_REG)
+			break;
+		def = pseudo->def;
+		if (def->opcode == insn->opcode) {
+			if (def == insn)	// cyclic DAG!
+				break;
+			src2 = def->src2;
+			if (src2->type != PSEUDO_VAL)
+				break;
+			nval = src2->value;
+			if (nval > insn->size)
+				break;
+			value += nval;
+			goto new_value;
+		}
+		break;
+	}
 	return 0;
+
+new_value:
+	if (value < size) {
+		insn->src2 = value_pseudo(value);
+		return replace_pseudo(insn, &insn->src1, pseudo->def->src1);
+	}
+zero:
+	return replace_with_pseudo(insn, value_pseudo(0));
 }
 
 static int simplify_mul_div(struct instruction *insn, long long value)
@@ -652,14 +757,14 @@ static int simplify_constant_rightside(struct instruction *insn)
 		}
 	/* Fall through */
 	case OP_ADD:
-	case OP_SHL:
-	case OP_LSR:
 	case_neutral_zero:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
 	case OP_ASR:
-		return simplify_asr(insn, insn->src1, value);
+	case OP_SHL:
+	case OP_LSR:
+		return simplify_shift(insn, insn->src1, value);
 
 	case OP_MODU: case OP_MODS:
 		if (value == 1)
