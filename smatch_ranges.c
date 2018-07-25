@@ -390,10 +390,10 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		c += 8;
 	} else if (!strncmp(start, "ulong_max", 9)) {
 		ret = sval_type_val(type, ULONG_MAX);
-		c += 8;
+		c += 9;
 	} else if (!strncmp(start, "ptr_max", 7)) {
 		ret = sval_type_val(type, valid_ptr_max);
-		c += 8;
+		c += 7;
 	} else if (start[0] == '[') {
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
