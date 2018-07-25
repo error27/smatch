@@ -398,9 +398,9 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
 	} else if (type_positive_bits(type) == 64) {
-		ret = sval_type_val(type, strtoull(start, &c, 10));
+		ret = sval_type_val(type, strtoull(start, &c, 0));
 	} else {
-		ret = sval_type_val(type, strtoll(start, &c, 10));
+		ret = sval_type_val(type, strtoll(start, &c, 0));
 	}
 	*endp = c;
 	return ret;
