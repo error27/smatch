@@ -272,7 +272,6 @@ static void match_call(struct expression *call)
 	int arg_offset = 0;
 	char parent_str[64];
 	char offset_str[64];
-	char param_str[64];
 	char *p;
 	bool star = 0;
 
@@ -371,8 +370,7 @@ found:
 		snprintf(offset_str, sizeof(offset_str), "*(%s+%d)", parent_str, arg_offset);
 	else
 		snprintf(offset_str, sizeof(offset_str), "%s+%d", parent_str, arg_offset);
-	snprintf(param_str, sizeof(param_str), "$%d", i);
-	sql_insert_caller_info(call, CONTAINER, -1, offset_str, param_str);
+	sql_insert_caller_info(call, CONTAINER, i, offset_str, "$(-1)");
 }
 
 static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)
@@ -381,14 +379,9 @@ static void db_passed_container(const char *name, struct symbol *sym, char *key,
 		.type = &int_ctype,
 	};
 	const char *arg_offset;
-	struct symbol *arg;
 	int star = 0;
-	int param;
 	int val;
-	int i;
 
-	if (name || sym)
-		return;
 	if (key[0] == '*') {
 		star = 1;
 		key += 2;
@@ -408,17 +401,7 @@ static void db_passed_container(const char *name, struct symbol *sym, char *key,
 	if (star)
 		offset.value |= 1ULL << 31;
 
-	if (value[0] != '$')
-		return;
-
-	param = atoi(value + 1);
-
-	i = -1;
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		i++;
-		if (param == i)
-			set_state(param_id, arg->ident->name, arg, alloc_estate_sval(offset));
-	} END_FOR_EACH_PTR(arg);
+	set_state(param_id, name, sym, alloc_estate_sval(offset));
 }
 
 struct db_info {
