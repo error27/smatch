@@ -273,7 +273,24 @@ static int get_array_mtag_offset(struct expression *expr, mtag_t *tag, int *offs
 		return 0;
 	*offset = sval.value * type_bytes(type);
 
+	return 1;
+}
 
+static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
+{
+	struct smatch_state *state;
+	struct symbol *type;
+	sval_t sval;
+
+	type = get_type(expr);
+	if (!type_is_ptr(type))
+		return 0;
+	state = get_extra_state(expr);
+	if (!state || !estate_get_single_value(state, &sval))
+		return 0;
+
+	*tag = sval.uvalue & ~MTAG_OFFSET_MASK;
+	*offset = sval.uvalue & MTAG_OFFSET_MASK;
 	return 1;
 }
 
@@ -335,6 +352,10 @@ int get_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 
 	if (!expr)
 		return 0;
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		return get_mtag_offset(expr->unop, tag, offset);
+	if (get_implied_mtag_offset(expr, tag, offset))
+		return 1;
 	if (!get_mtag(expr, tag))
 		return 0;
 	expr = strip_expr(expr);
