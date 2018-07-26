@@ -182,11 +182,7 @@ int get_db_data_rl(struct expression *expr, struct range_list **rl)
 	int ret;
 	int i;
 
-	if (!get_mtag(expr, &tag))
-		return 0;
-
-	offset = get_mtag_offset(expr);
-	if (offset < 0)
+	if (!get_mtag_offset(expr, &tag, &offset))
 		return 0;
 
 	db_info.type = get_type(expr);

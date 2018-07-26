@@ -1120,7 +1120,7 @@ int get_offset_from_container_of(struct expression *expr);
 /* smatch_mtag.c */
 int get_toplevel_mtag(struct symbol *sym, mtag_t *tag);
 int get_mtag(struct expression *expr, mtag_t *tag);
-int get_mtag_offset(struct expression *expr);
+int get_mtag_offset(struct expression *expr, mtag_t *tag, int *offset);
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, int *offset);
 void update_mtag_data(struct expression *expr);
