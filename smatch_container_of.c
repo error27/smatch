@@ -440,33 +440,42 @@ static struct symbol *get_member_type_from_offset(struct symbol *sym, int offset
 	return get_real_base_type(member);
 }
 
-static void set_param_value(struct stree **stree, struct symbol *sym, int offset, struct range_list *rl)
+static const char *get_name_from_offset(struct symbol *arg, int offset)
 {
-	struct symbol *member, *type, *base_type;
+	struct symbol *member, *type;
 	const char *name;
-	char fullname[256];
+	static char fullname[256];
 
-	if (!sym || !sym->ident)
-		return;
-	name = sym->ident->name;
+	name = arg->ident->name;
 
-	type = get_real_base_type(sym);
-	base_type = get_real_base_type(type);
-	if (type->type == SYM_PTR && base_type->type == SYM_BASETYPE) {
+	type = get_real_base_type(arg);
+	if (!type || type->type != SYM_PTR)
+		return name;
+
+	type = get_real_base_type(type);
+	if (!type)
+		return NULL;
+	if (type->type != SYM_STRUCT) {
 		snprintf(fullname, sizeof(fullname), "*%s", name);
-	} else {
-		member = get_member_from_offset(sym, offset);
-		if (!member) {
-			if (offset == 0)
-				snprintf(fullname, sizeof(fullname), "%s", name);
-			else
-				return;
-		} else {
-			snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
-		}
+		return fullname;
 	}
 
-	set_state_stree(stree, SMATCH_EXTRA, fullname, sym, alloc_estate_rl(rl));
+	member = get_member_from_offset(arg, offset);
+	if (!member)
+		return NULL;
+
+	snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
+	return fullname;
+}
+
+static void set_param_value(struct stree **stree, struct symbol *arg, int offset, struct range_list *rl)
+{
+	const char *name;
+
+	name = get_name_from_offset(arg, offset);
+	if (!name)
+		return;
+	set_state_stree(stree, SMATCH_EXTRA, name, arg, alloc_estate_rl(rl));
 }
 
 static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
@@ -511,19 +520,19 @@ found_type:
 	return 0;
 }
 
-static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, int star)
+static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *arg, int arg_offset, int star)
 {
 	struct db_info db_info = {
-		.arg = sym,
+		.arg = arg,
 		.prev_offset = -1,
 		.star = star,
 	};
 	struct symbol *type;
 
-	if (!tag || !sym->ident)
+	if (!tag || !arg->ident)
 		return NULL;
 
-	type = get_real_base_type(sym);
+	type = get_real_base_type(arg);
 	if (!type)
 		return NULL;
 	if (!star) {
@@ -545,15 +554,15 @@ static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_o
 	}
 
 	if (db_info.prev_offset != -1)
-		set_param_value(&db_info.stree, db_info.arg, db_info.prev_offset, db_info.rl);
+		set_param_value(&db_info.stree, arg, db_info.prev_offset, db_info.rl);
 
 	// FIXME: handle an offset correctly
 	if (!star && !arg_offset) {
 		sval_t sval;
 
-		sval.type = get_real_base_type(sym);
+		sval.type = get_real_base_type(arg);
 		sval.uvalue = tag;
-		set_state_stree(&db_info.stree, SMATCH_EXTRA, sym->ident->name, sym, alloc_estate_sval(sval));
+		set_state_stree(&db_info.stree, SMATCH_EXTRA, arg->ident->name, arg, alloc_estate_sval(sval));
 	}
 	return db_info.stree;
 }
