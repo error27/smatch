@@ -396,6 +396,49 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 	return get_mtag(expr, tag);
 }
 
+static int is_array_symbol(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (expr->type != EXPR_SYMBOL)
+		return 0;
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return 0;
+	return 1;
+}
+
+int get_mtag_sval(struct expression *expr, sval_t *sval)
+{
+	struct symbol *type;
+	mtag_t tag;
+	int offset;
+
+	if (bits_in_pointer != 64)
+		return 0;
+
+	if ((expr->type != EXPR_PREOP || expr->op != '&') &&
+	    !is_array_symbol(expr))
+		return 0;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
+		return 0;
+
+	if (!expr_to_mtag_name_offset(expr, &tag, NULL, &offset))
+		return 0;
+
+	if (offset > MTAG_OFFSET_MASK)
+		offset = MTAG_OFFSET_MASK;
+
+	sval->type = type;
+	sval->uvalue = tag | offset;
+
+	return 1;
+}
+
 static void print_stored_to_mtag(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *sm;

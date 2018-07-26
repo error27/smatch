@@ -88,9 +88,13 @@ static struct range_list *handle_expression_statement_rl(struct expression *expr
 static struct range_list *handle_ampersand_rl(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct range_list *rl;
+	sval_t sval;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return NULL;
+	if (get_mtag_sval(expr, &sval))
+		return alloc_rl(sval, sval);
+	/* FIXME: are these lines still required ? */
 	if (get_address_rl(expr, &rl))
 		return rl;
 	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
@@ -882,6 +886,9 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 
 	if (implied == RL_EXACT)
 		return NULL;
+
+	if (get_mtag_sval(expr, &sval))
+		return alloc_rl(sval, sval);
 
 	type = get_type(expr);
 	if (type && type->type == SYM_FN)
