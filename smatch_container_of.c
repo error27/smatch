@@ -556,14 +556,6 @@ static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *arg, int arg_o
 	if (db_info.prev_offset != -1)
 		set_param_value(&db_info.stree, arg, db_info.prev_offset, db_info.rl);
 
-	// FIXME: handle an offset correctly
-	if (!star && !arg_offset) {
-		sval_t sval;
-
-		sval.type = get_real_base_type(arg);
-		sval.uvalue = tag;
-		set_state_stree(&db_info.stree, SMATCH_EXTRA, arg->ident->name, arg, alloc_estate_sval(sval));
-	}
 	return db_info.stree;
 }
 
