@@ -372,7 +372,8 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 	static char buf[256];
 
 	*offset = 0;
-	*name = 0;
+	if (name)
+		*name = 0;
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -383,12 +384,14 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 		if (*offset < 0)
 			return 0;
 		snprintf(buf, sizeof(buf), "$->%s", expr->member->name);
-		*name = buf;
+		if (name)
+			*name = buf;
 		return get_mtag(expr->deref, tag);
 	}
 
 	snprintf(buf, sizeof(buf), "*$");
-	*name = buf;
+	if (name)
+		*name = buf;
 
 	return get_mtag(expr, tag);
 }
