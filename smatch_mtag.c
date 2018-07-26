@@ -421,6 +421,18 @@ void register_mtag(int id)
 {
 	my_id = id;
 
+
+	/*
+	 * The mtag stuff only works on 64 systems because we store the
+	 * information in the pointer itself.
+	 * bit 63   : set for alias mtags
+	 * bit 62-12: mtag hash
+	 * bit 11-0 : offset
+	 *
+	 */
+	if (bits_in_pointer != 64)
+		return;
+
 	add_hook(&global_variable, BASE_HOOK);
 
 	add_function_assign_hook("kmalloc", &alloc_assign, NULL);
