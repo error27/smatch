@@ -377,7 +377,7 @@ static void db_passed_container(const char *name, struct symbol *sym, char *key,
 	}
 
 	val = atoi(key);
-	if (val < -4095 || val >= 0)
+	if (val < -4095 || val > 0)
 		return;
 	offset.value = -val;
 	arg_offset = strchr(key, '+');
