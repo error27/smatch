@@ -76,7 +76,8 @@ static mtag_t str_to_tag(const char *str)
 	MD5_Update(&mdContext, str, len);
 	MD5_Final(c, &mdContext);
 
-	*tag &= ~(1ULL << 63);
+	*tag &= ~MTAG_ALIAS_BIT;
+	*tag &= ~MTAG_OFFSET_MASK;
 
 	return *tag;
 }

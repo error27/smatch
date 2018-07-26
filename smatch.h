@@ -509,6 +509,9 @@ struct data_range {
 	sval_t max;
 };
 
+#define MTAG_ALIAS_BIT (1ULL << 63)
+#define MTAG_OFFSET_MASK 0xfffULL
+
 extern long long valid_ptr_min, valid_ptr_max;
 extern sval_t valid_ptr_min_sval, valid_ptr_max_sval;
 extern struct range_list *valid_ptr_rl;
