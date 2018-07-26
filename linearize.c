@@ -1313,6 +1313,7 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 
 static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *from, struct symbol *to)
 {
+	const struct position pos = current_pos;
 	pseudo_t result;
 	struct instruction *insn;
 	int opcode;
@@ -1333,7 +1334,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		if (src == value_pseudo(0))
 			break;
 		if (Wint_to_pointer_cast)
-			warning(to->pos, "non size-preserving integer to pointer cast");
+			warning(pos, "non size-preserving integer to pointer cast");
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		from = size_t_ctype;
 		break;
@@ -1341,7 +1342,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		if (from->bit_size == to->bit_size)
 			break;
 		if (Wpointer_to_int_cast)
-			warning(to->pos, "non size-preserving pointer to integer cast");
+			warning(pos, "non size-preserving pointer to integer cast");
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		return cast_pseudo(ep, src, size_t_ctype, to);
 	case OP_BADOP:

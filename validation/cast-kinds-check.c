@@ -13,7 +13,7 @@ optim/cast-kinds.c:12:48: warning: cast drops bits
 optim/cast-kinds.c:13:50: warning: cast drops bits
 optim/cast-kinds.c:14:49: warning: cast drops bits
 optim/cast-kinds.c:15:48: warning: cast drops bits
-optim/cast-kinds.c:37:42: warning: non size-preserving integer to pointer cast
-optim/cast-kinds.c:38:44: warning: non size-preserving integer to pointer cast
+optim/cast-kinds.c:37:48: warning: non size-preserving integer to pointer cast
+optim/cast-kinds.c:38:50: warning: non size-preserving integer to pointer cast
  * check-error-end
  */
