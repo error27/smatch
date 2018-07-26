@@ -398,6 +398,7 @@ struct db_info {
 	int prev_offset;
 	struct range_list *rl;
 	int star;
+	struct stree *stree;
 };
 
 static struct symbol *get_member_from_offset(struct symbol *sym, int offset)
@@ -439,7 +440,7 @@ static struct symbol *get_member_type_from_offset(struct symbol *sym, int offset
 	return get_real_base_type(member);
 }
 
-static void set_param_value(struct symbol *sym, int offset, struct range_list *rl)
+static void set_param_value(struct stree **stree, struct symbol *sym, int offset, struct range_list *rl)
 {
 	struct symbol *member, *type, *base_type;
 	const char *name;
@@ -465,7 +466,7 @@ static void set_param_value(struct symbol *sym, int offset, struct range_list *r
 		}
 	}
 
-	set_state(SMATCH_EXTRA, fullname, sym, alloc_estate_rl(rl));
+	set_state_stree(stree, SMATCH_EXTRA, fullname, sym, alloc_estate_rl(rl));
 }
 
 static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
@@ -485,7 +486,7 @@ static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
 
 	if (db_info->prev_offset != -1 &&
 	    db_info->prev_offset != offset) {
-		set_param_value(db_info->arg, db_info->prev_offset, db_info->rl);
+		set_param_value(&db_info->stree, db_info->arg, db_info->prev_offset, db_info->rl);
 		db_info->rl = NULL;
 	}
 
@@ -510,7 +511,7 @@ found_type:
 	return 0;
 }
 
-static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, int star)
+static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, int star)
 {
 	struct db_info db_info = {
 		.arg = sym,
@@ -520,14 +521,18 @@ static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, in
 	struct symbol *type;
 
 	if (!tag || !sym->ident)
-		return;
+		return NULL;
 
 	type = get_real_base_type(sym);
-	if (!type || type->type != SYM_PTR)
-		return;
-	type = get_real_base_type(type);
 	if (!type)
-		return;
+		return NULL;
+	if (!star) {
+		if (type->type != SYM_PTR)
+			return NULL;
+		type = get_real_base_type(type);
+		if (!type)
+			return NULL;
+	}
 
 	if (star || type->type == SYM_BASETYPE) {
 		run_sql(save_vals, &db_info,
@@ -540,7 +545,7 @@ static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, in
 	}
 
 	if (db_info.prev_offset != -1)
-		set_param_value(db_info.arg, db_info.prev_offset, db_info.rl);
+		set_param_value(&db_info.stree, db_info.arg, db_info.prev_offset, db_info.rl);
 
 	// FIXME: handle an offset correctly
 	if (!star && !arg_offset) {
@@ -548,14 +553,17 @@ static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, in
 
 		sval.type = get_real_base_type(sym);
 		sval.uvalue = tag;
-		set_state(SMATCH_EXTRA, sym->ident->name, sym, alloc_estate_sval(sval));
+		set_state_stree(&db_info.stree, SMATCH_EXTRA, sym->ident->name, sym, alloc_estate_sval(sval));
 	}
+	return db_info.stree;
 }
 
 static void handle_passed_container(struct symbol *sym)
 {
 	struct symbol *arg;
 	struct smatch_state *state;
+	struct sm_state *sm;
+	struct stree *stree;
 	mtag_t fn_tag, container_tag, arg_tag;
 	sval_t offset;
 	int container_offset, arg_offset;
@@ -572,21 +580,25 @@ found:
 	if (!estate_get_single_value(state, &offset))
 		return;
 	container_offset = -(offset.value & 0xffff);
-	arg_offset = -((offset.value & 0xfff0000) >> 16);
+	arg_offset = (offset.value & 0xfff0000) >> 16;
 	star = !!(offset.value & (1ULL << 31));
 
 	if (!get_toplevel_mtag(cur_func_sym, &fn_tag))
 		return;
 	if (!mtag_map_select_container(fn_tag, container_offset, &container_tag))
 		return;
-	if (!arg_offset) {
+	if (!arg_offset || star) {
 		arg_tag = container_tag;
 	} else {
-		if (!mtag_map_select_tag(container_tag, arg_offset, &arg_tag))
+		if (!mtag_map_select_tag(container_tag, -arg_offset, &arg_tag))
 			return;
-
 	}
-	load_tag_info_sym(arg_tag, arg, -arg_offset, star);
+
+	stree = load_tag_info_sym(arg_tag, arg, arg_offset, star);
+	FOR_EACH_SM(stree, sm) {
+		set_state(sm->owner, sm->name, sm->sym, sm->state);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 }
 
 void register_container_of(int id)
