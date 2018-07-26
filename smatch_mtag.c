@@ -246,31 +246,33 @@ static void save_caller_info(const char *name, struct symbol *sym, char *key, ch
 	set_state(my_id, fullname, sym, state);
 }
 
-static int get_array_mtag(struct expression *expr, mtag_t *tag)
+static int get_array_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 {
-	struct expression *base, *offset;
+	struct expression *array, *offset_expr;
+	struct symbol *type;
 	sval_t sval;
-	mtag_t base_tag;
-	char buf[256];
 
 	if (!is_array(expr))
 		return 0;
 
-	base = get_array_base(expr);
-	if (!base)
+	array = get_array_base(expr);
+	if (!array)
 		return 0;
-	offset = get_array_offset(expr);
-	if (!offset)
+	type = get_type(array);
+	if (!type || type->type != SYM_ARRAY)
 		return 0;
-
-	if (!get_implied_value(offset, &sval))
-		return 0;
-
-	if (!get_mtag(base, &base_tag))
+	type = get_real_base_type(type);
+	if (!type_bytes(type))
 		return 0;
 
-	snprintf(buf, sizeof(buf), "%lld + %lld", base_tag, sval.value);
-	*tag = str_to_tag(buf);
+	if (!get_mtag(array, tag))
+		return 0;
+
+	offset_expr = get_array_offset(expr);
+	if (!get_value(offset_expr, &sval))
+		return 0;
+	*offset = sval.value * type_bytes(type);
+
 
 	return 1;
 }
@@ -311,9 +313,6 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 			goto dec_cnt;
 		}
 		break;
-	case EXPR_BINOP:
-		ret = get_array_mtag(expr, tag);
-		goto dec_cnt;
 	}
 
 	state = get_state_expr(my_id, expr);
@@ -389,6 +388,11 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 	if (!expr)
 		return 0;
 
+	if (is_array(expr)) {
+		if (name)  /* i don't know how to return a name for this */
+			return 0;
+		return get_array_mtag_offset(expr, tag, offset);
+	}
 	if (expr->type ==  EXPR_DEREF) {
 		*offset = get_member_offset_from_deref(expr);
 		if (*offset < 0)
@@ -406,43 +410,48 @@ int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, 
 	return get_mtag(expr, tag);
 }
 
-static int is_array_symbol(struct expression *expr)
-{
-	struct symbol *type;
-
-	if (expr->type != EXPR_SYMBOL)
-		return 0;
-	type = get_type(expr);
-	if (!type || type->type != SYM_ARRAY)
-		return 0;
-	return 1;
-}
-
 int get_mtag_sval(struct expression *expr, sval_t *sval)
 {
 	struct symbol *type;
 	mtag_t tag;
-	int offset;
+	int offset = 0;
 
 	if (bits_in_pointer != 64)
 		return 0;
 
-	if ((expr->type != EXPR_PREOP || expr->op != '&') &&
-	    !is_array_symbol(expr))
-		return 0;
+	expr = strip_expr(expr);
 
 	type = get_type(expr);
-	if (!type)
+	if (!type_is_ptr(type))
 		return 0;
-	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
+	/*
+	 * There are only three options:
+	 *
+	 * 1) An array address:
+	 *    p = array;
+	 * 2) An address like so:
+	 *    p = &my_struct->member;
+	 * 3) A pointer:
+	 *    p = pointer;
+	 *
+	 * A pointer assignment would be handled by smatch extra so we don't
+	 * need to worry about case 3 here.
+	 *
+	 */
+
+	if (type->type == SYM_ARRAY && get_toplevel_mtag(expr->symbol, &tag))
+		goto found;
+
+	if (expr->type != EXPR_PREOP || expr->op != '&')
 		return 0;
+	expr = strip_expr(expr->unop);
 
 	if (!expr_to_mtag_name_offset(expr, &tag, NULL, &offset))
 		return 0;
-
 	if (offset > MTAG_OFFSET_MASK)
 		offset = MTAG_OFFSET_MASK;
 
+found:
 	sval->type = type;
 	sval->uvalue = tag | offset;
 
