@@ -394,9 +394,10 @@ static void db_passed_container(const char *name, struct symbol *sym, char *key,
 }
 
 struct db_info {
-	struct symbol *param_sym;
+	struct symbol *arg;
 	int prev_offset;
 	struct range_list *rl;
+	int star;
 };
 
 static struct symbol *get_member_from_offset(struct symbol *sym, int offset)
@@ -423,7 +424,14 @@ static struct symbol *get_member_from_offset(struct symbol *sym, int offset)
 
 static struct symbol *get_member_type_from_offset(struct symbol *sym, int offset)
 {
+	struct symbol *base_type;
 	struct symbol *member;
+
+	base_type = get_real_base_type(sym);
+	if (base_type && base_type->type == SYM_PTR)
+		base_type = get_real_base_type(base_type);
+	if (offset == 0 && base_type && base_type->type == SYM_BASETYPE)
+		return base_type;
 
 	member = get_member_from_offset(sym, offset);
 	if (!member)
@@ -433,7 +441,7 @@ static struct symbol *get_member_type_from_offset(struct symbol *sym, int offset
 
 static void set_param_value(struct symbol *sym, int offset, struct range_list *rl)
 {
-	struct symbol *member;
+	struct symbol *member, *type, *base_type;
 	const char *name;
 	char fullname[256];
 
@@ -441,14 +449,20 @@ static void set_param_value(struct symbol *sym, int offset, struct range_list *r
 		return;
 	name = sym->ident->name;
 
-	member = get_member_from_offset(sym, offset);
-	if (!member) {
-		if (offset == 0)
-			snprintf(fullname, sizeof(fullname), "%s", name);
-		else
-			return;
+	type = get_real_base_type(sym);
+	base_type = get_real_base_type(type);
+	if (type->type == SYM_PTR && base_type->type == SYM_BASETYPE) {
+		snprintf(fullname, sizeof(fullname), "*%s", name);
 	} else {
-		snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
+		member = get_member_from_offset(sym, offset);
+		if (!member) {
+			if (offset == 0)
+				snprintf(fullname, sizeof(fullname), "%s", name);
+			else
+				return;
+		} else {
+			snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
+		}
 	}
 
 	set_state(SMATCH_EXTRA, fullname, sym, alloc_estate_rl(rl));
@@ -471,13 +485,22 @@ static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
 
 	if (db_info->prev_offset != -1 &&
 	    db_info->prev_offset != offset) {
-		set_param_value(db_info->param_sym, db_info->prev_offset, db_info->rl);
+		set_param_value(db_info->arg, db_info->prev_offset, db_info->rl);
 		db_info->rl = NULL;
 	}
 
 	db_info->prev_offset = offset;
 
-	type = get_member_type_from_offset(db_info->param_sym, offset);
+	type = get_real_base_type(db_info->arg);
+	if (db_info->star)
+		goto found_type;
+	if (type->type != SYM_PTR)
+		return 0;
+	type = get_real_base_type(type);
+	if (type->type == SYM_BASETYPE)
+		goto found_type;
+	type = get_member_type_from_offset(db_info->arg, offset);
+found_type:
 	str_to_rl(type, (char *)value, &rl);
 	if (db_info->rl)
 		db_info->rl = rl_union(db_info->rl, rl);
@@ -490,25 +513,43 @@ static int save_vals(void *_db_info, int argc, char **argv, char **azColName)
 static void load_tag_info_sym(mtag_t tag, struct symbol *sym, int arg_offset, int star)
 {
 	struct db_info db_info = {
-		.param_sym = sym,
+		.arg = sym,
 		.prev_offset = -1,
+		.star = star,
 	};
+	struct symbol *type;
 
-	if (!tag)
+	if (!tag || !sym->ident)
 		return;
 
-	if (star) {
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return;
+	type = get_real_base_type(type);
+	if (!type)
+		return;
+
+	if (star || type->type == SYM_BASETYPE) {
 		run_sql(save_vals, &db_info,
 			"select value from mtag_data where tag = %lld and offset = %d and type = %d;",
 			tag, arg_offset, DATA_VALUE);
-	} else {
+	} else {  /* presumably the parameter is a struct pointer */
 		run_sql(save_vals, &db_info,
 			"select offset, value from mtag_data where tag = %lld and type = %d;",
 			tag, DATA_VALUE);
 	}
 
 	if (db_info.prev_offset != -1)
-		set_param_value(db_info.param_sym, db_info.prev_offset, db_info.rl);
+		set_param_value(db_info.arg, db_info.prev_offset, db_info.rl);
+
+	// FIXME: handle an offset correctly
+	if (!star && !arg_offset) {
+		sval_t sval;
+
+		sval.type = get_real_base_type(sym);
+		sval.uvalue = tag;
+		set_state(SMATCH_EXTRA, sym->ident->name, sym, alloc_estate_sval(sval));
+	}
 }
 
 static void handle_passed_container(struct symbol *sym)
@@ -538,7 +579,7 @@ found:
 		return;
 	if (!mtag_map_select_container(fn_tag, container_offset, &container_tag))
 		return;
-	if (!arg_offset || star) {
+	if (!arg_offset) {
 		arg_tag = container_tag;
 	} else {
 		if (!mtag_map_select_tag(container_tag, arg_offset, &arg_tag))
