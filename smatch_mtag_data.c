@@ -172,7 +172,7 @@ struct db_cache_results {
 	struct range_list *rl;
 };
 
-int get_db_data_rl(struct expression *expr, struct range_list **rl)
+int get_mtag_rl(struct expression *expr, struct range_list **rl)
 {
 	static struct db_cache_results cached[8];
 	struct db_info db_info = {};

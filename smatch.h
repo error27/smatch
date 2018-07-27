@@ -599,7 +599,7 @@ int get_local_min_helper(struct expression *expr, sval_t *sval);
 /* smatch_type_value.c */
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
 /* smatch_data_val.c */
-int get_db_data_rl(struct expression *expr, struct range_list **rl);
+int get_mtag_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
 void __swap_cur_stree(struct stree *stree);

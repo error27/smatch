@@ -857,7 +857,7 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 			return clone_rl(estate_rl(state));
 		if (get_local_rl(expr, &rl) && !is_whole_rl(rl))
 			return rl;
-		if (get_db_data_rl(expr, &rl))
+		if (get_mtag_rl(expr, &rl))
 			return rl;
 		if (get_db_type_rl(expr, &rl) && !is_whole_rl(rl))
 			return rl;
@@ -906,7 +906,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 				return NULL;
 			if (get_local_rl(expr, &rl))
 				return rl;
-			if (get_db_data_rl(expr, &rl))
+			if (get_mtag_rl(expr, &rl))
 				return rl;
 			if (get_db_type_rl(expr, &rl))
 				return rl;
@@ -952,7 +952,7 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 
 		if (get_local_rl(expr, &rl))
 			return rl;
-		if (get_db_data_rl(expr, &rl))
+		if (get_mtag_rl(expr, &rl))
 			return rl;
 		if (get_db_type_rl(expr, &rl))
 			return rl;
