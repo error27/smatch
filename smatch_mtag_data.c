@@ -194,6 +194,8 @@ static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_
 
 	tag = sval.uvalue & ~MTAG_OFFSET_MASK;
 	offset = sval.uvalue & MTAG_OFFSET_MASK;
+	if (offset == MTAG_OFFSET_MASK)
+		return 0;
 	db_info.type = type;
 
 	run_sql(get_vals, &db_info,
@@ -216,18 +218,22 @@ update_cache:
 	return ret;
 }
 
+static struct expression *remove_dereference(struct expression *expr)
+{
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		return strip_expr(expr->unop);
+	return preop_expression(expr, '&');
+}
+
 int get_mtag_rl(struct expression *expr, struct range_list **rl)
 {
 	struct symbol *type;
-	mtag_t tag;
-	int offset;
-	sval_t sval = { .type = &ptr_ctype };
+	sval_t sval;
 
-	if (!get_mtag_offset(expr, &tag, &offset))
+	if (!get_mtag_sval(remove_dereference(expr), &sval))
 		return 0;
-	if (offset >= MTAG_OFFSET_MASK)
-		return 0;
-	sval.uvalue = tag | offset;
 
 	type = get_type(expr);
 	if (!type)

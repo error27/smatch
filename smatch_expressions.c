@@ -72,14 +72,19 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 	return expr;
 }
 
-struct expression *deref_expression(struct expression *expr)
+struct expression *preop_expression(struct expression *expr, int op)
 {
 	struct expression *preop;
 
 	preop = alloc_tmp_expression(expr->pos, EXPR_PREOP);
 	preop->unop = expr;
-	preop->op = '*';
+	preop->op = op;
 	return preop;
+}
+
+struct expression *deref_expression(struct expression *expr)
+{
+	return preop_expression(expr, '*');
 }
 
 struct expression *assign_expression(struct expression *left, int op, struct expression *right)

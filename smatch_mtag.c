@@ -455,12 +455,12 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 	 * 3) A pointer:
 	 *    p = pointer;
 	 *
-	 * A pointer assignment would be handled by smatch extra so we don't
-	 * need to worry about case 3 here.
-	 *
 	 */
 
 	if (type->type == SYM_ARRAY && get_toplevel_mtag(expr->symbol, &tag))
+		goto found;
+
+	if (get_implied_mtag_offset(expr, &tag, &offset))
 		goto found;
 
 	if (expr->type != EXPR_PREOP || expr->op != '&')
