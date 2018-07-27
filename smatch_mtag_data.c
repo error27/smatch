@@ -168,11 +168,11 @@ static int get_vals(void *_db_info, int argc, char **argv, char **azColName)
 }
 
 struct db_cache_results {
-	struct expression *expr;
+	sval_t sval;
 	struct range_list *rl;
 };
 
-int get_mtag_rl(struct expression *expr, struct range_list **rl)
+static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_list **rl)
 {
 	static struct db_cache_results cached[8];
 	struct db_info db_info = {};
@@ -182,15 +182,8 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 	int ret;
 	int i;
 
-	if (!get_mtag_offset(expr, &tag, &offset))
-		return 0;
-
-	db_info.type = get_type(expr);
-	if (!db_info.type)
-		return 0;
-
 	for (i = 0; i < ARRAY_SIZE(cached); i++) {
-		if (expr == cached[i].expr) {
+		if (sval.uvalue == cached[i].sval.uvalue) {
 			if (cached[i].rl) {
 				*rl = cached[i].rl;
 				return 1;
@@ -198,6 +191,10 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 			return 0;
 		}
 	}
+
+	tag = sval.uvalue & ~MTAG_OFFSET_MASK;
+	offset = sval.uvalue & MTAG_OFFSET_MASK;
+	db_info.type = type;
 
 	run_sql(get_vals, &db_info,
 		"select value from mtag_data where tag = %lld and offset = %d and type = %d;",
@@ -212,11 +209,31 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 	ret = 1;
 
 update_cache:
-//	cached[idx].expr = expr;
+//	cached[idx].sval = sval;
 //	cached[idx].rl = db_info.rl;
 	idx = (idx + 1) % ARRAY_SIZE(cached);
 
 	return ret;
+}
+
+int get_mtag_rl(struct expression *expr, struct range_list **rl)
+{
+	struct symbol *type;
+	mtag_t tag;
+	int offset;
+	sval_t sval = { .type = &ptr_ctype };
+
+	if (!get_mtag_offset(expr, &tag, &offset))
+		return 0;
+	if (offset >= MTAG_OFFSET_MASK)
+		return 0;
+	sval.uvalue = tag | offset;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+
+	return get_rl_from_mtag_sval(sval, type, rl);
 }
 
 void register_mtag_data(int id)
