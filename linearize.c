@@ -972,13 +972,14 @@ static pseudo_t linearize_bitfield_insert(struct entrypoint *ep,
 	unsigned int shift = ctype->bit_offset;
 	unsigned int size = ctype->bit_size;
 	unsigned long long mask = ((1ULL << size) - 1);
+	unsigned long long smask= bits_mask(btype->bit_size);
 
 	val = add_cast(ep, btype, ctype, OP_ZEXT, val);
 	if (shift) {
 		val = add_binary_op(ep, btype, OP_SHL, val, value_pseudo(shift));
 		mask <<= shift;
 	}
-	ori = add_binary_op(ep, btype, OP_AND, ori, value_pseudo(~mask));
+	ori = add_binary_op(ep, btype, OP_AND, ori, value_pseudo(~mask & smask));
 	val = add_binary_op(ep, btype, OP_OR, ori, val);
 
 	return val;
