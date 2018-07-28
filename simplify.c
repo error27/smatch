@@ -627,14 +627,19 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		break;
 	case OP_LSR:
 		size = operand_size(insn, pseudo);
-		/* fall through */
+		if (value >= size)
+			goto zero;
+		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_LSR:
+			goto case_shift_shift;
+		}
+		break;
 	case OP_SHL:
 		if (value >= size)
 			goto zero;
-		if (pseudo->type != PSEUDO_REG)
-			break;
-		def = pseudo->def;
-		if (def->opcode == insn->opcode) {
+		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_SHL:
+		case_shift_shift:		// also for LSR - LSR
 			if (def == insn)	// cyclic DAG!
 				break;
 			src2 = def->src2;
