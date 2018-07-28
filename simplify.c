@@ -690,7 +690,6 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
 	struct instruction *def;
-	pseudo_t src1, src2;
 	int inverse;
 	int opcode;
 
@@ -704,6 +703,14 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		return 0;
 
 	inverse = (insn->opcode == OP_SET_NE) == value;
+	if (!inverse && def->size == 1) {
+		// Replace:
+		//	setne   %r <- %s, $0
+		// or:
+		//	seteq   %r <- %s, $1
+		// by %s when boolean
+		return replace_with_pseudo(insn, old);
+	}
 	opcode = def->opcode;
 	switch (opcode) {
 	case OP_FPCMP ... OP_BINCMP_END:
@@ -714,25 +721,24 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		//	setcc.n	%t <- %a, %b
 		//	setcc.m %r <- %a, $b
 		// and similar for setne/eq ... 0/1
-		src1 = def->src1;
-		src2 = def->src2;
 		insn->opcode = inverse ? opcode_table[opcode].negate : opcode;
-		use_pseudo(insn, src1, &insn->src1);
-		use_pseudo(insn, src2, &insn->src2);
+		use_pseudo(insn, def->src1, &insn->src1);
+		use_pseudo(insn, def->src2, &insn->src2);
 		remove_usage(old, &insn->src1);
 		return REPEAT_CSE;
 
+	case OP_SEXT:
+		if (value && (def->orig_type->bit_size == 1))
+			break;
+		/* Fall through */
 	case OP_ZEXT:
-		if (def->orig_type->bit_size == 1) {
-			// Convert:
-			//	zext.m	%s <- (1) %a
-			//	setne.1 %r <- %s, $0
-			// into:
-			//	setne.1 %s <- %a, $0
-			// and same for setne/eq ... 0/1
-			return replace_pseudo(insn, &insn->src1, def->src1);
-		}
-		break;
+		// Convert:
+		//	*ext.m	%s <- (1) %a
+		//	setne.1 %r <- %s, $0
+		// into:
+		//	setne.1 %s <- %a, $0
+		// and same for setne/eq ... 0/1
+		return replace_pseudo(insn, &insn->src1, def->src);
 	}
 	return 0;
 }
