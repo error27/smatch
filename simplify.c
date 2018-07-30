@@ -1191,6 +1191,10 @@ static int simplify_cast(struct instruction *insn)
 		break;
 	case OP_FPCMP ... OP_BINCMP_END:
 		switch (insn->opcode) {
+		case OP_SEXT:
+			if (insn->size == 1)
+				break;
+			/* fall through */
 		case OP_ZEXT:
 			// simplify:
 			//	setcc.n	%t <- %a, %b
