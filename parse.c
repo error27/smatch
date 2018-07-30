@@ -554,6 +554,8 @@ static struct init_keyword {
 	{ "__DI__",	NS_KEYWORD,	.op = &mode_DI_op },
 	{ "TI",		NS_KEYWORD,	.op = &mode_TI_op },
 	{ "__TI__",	NS_KEYWORD,	.op = &mode_TI_op },
+	{ "byte",	NS_KEYWORD,	.op = &mode_QI_op },
+	{ "__byte__",	NS_KEYWORD,	.op = &mode_QI_op },
 	{ "pointer",	NS_KEYWORD,	.op = &mode_pointer_op },
 	{ "__pointer__",NS_KEYWORD,	.op = &mode_pointer_op },
 	{ "word",	NS_KEYWORD,	.op = &mode_word_op },
