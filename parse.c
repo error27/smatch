@@ -91,7 +91,8 @@ static attr_t
 typedef struct symbol *to_mode_t(struct symbol *);
 
 static to_mode_t
-	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_TI_mode, to_word_mode;
+	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_TI_mode;
+static to_mode_t to_pointer_mode, to_word_mode;
 
 enum {
 	Set_T = 1,
@@ -410,6 +411,11 @@ static struct symbol_op mode_TI_op = {
 	.to_mode = to_TI_mode
 };
 
+static struct symbol_op mode_pointer_op = {
+	.type = KW_MODE,
+	.to_mode = to_pointer_mode
+};
+
 static struct symbol_op mode_word_op = {
 	.type = KW_MODE,
 	.to_mode = to_word_mode
@@ -548,6 +554,8 @@ static struct init_keyword {
 	{ "__DI__",	NS_KEYWORD,	.op = &mode_DI_op },
 	{ "TI",		NS_KEYWORD,	.op = &mode_TI_op },
 	{ "__TI__",	NS_KEYWORD,	.op = &mode_TI_op },
+	{ "pointer",	NS_KEYWORD,	.op = &mode_pointer_op },
+	{ "__pointer__",NS_KEYWORD,	.op = &mode_pointer_op },
 	{ "word",	NS_KEYWORD,	.op = &mode_word_op },
 	{ "__word__",	NS_KEYWORD,	.op = &mode_word_op },
 };
@@ -1103,6 +1111,14 @@ static struct symbol *to_TI_mode(struct symbol *ctype)
 		return NULL;
 	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ulllong_ctype
 						     : &slllong_ctype;
+}
+
+static struct symbol *to_pointer_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? uintptr_ctype
+						     :  intptr_ctype;
 }
 
 static struct symbol *to_word_mode(struct symbol *ctype)
