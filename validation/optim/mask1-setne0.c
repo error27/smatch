@@ -16,7 +16,6 @@ int foo(struct s x)
 /*
  * check-name: mask1-setne0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 foo:
