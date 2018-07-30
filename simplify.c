@@ -1196,11 +1196,13 @@ static int simplify_cast(struct instruction *insn)
 				break;
 			/* fall through */
 		case OP_ZEXT:
+		case OP_TRUNC:
 			// simplify:
 			//	setcc.n	%t <- %a, %b
 			//	zext.m	%r <- (n) %t
 			// into:
 			//	setcc.m	%r <- %a, %b
+			// and same for s/zext/trunc/
 			insn->opcode = def->opcode;
 			use_pseudo(insn, def->src2, &insn->src2);
 			return replace_pseudo(insn, &insn->src1, def->src1);
