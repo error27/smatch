@@ -690,6 +690,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
 	struct instruction *def;
+	unsigned osize;
 	int inverse;
 	int opcode;
 
@@ -749,6 +750,22 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		//	setne.1 %s <- %a, $0
 		// and same for setne/eq ... 0/1
 		return replace_pseudo(insn, &insn->src1, def->src);
+	case OP_TRUNC:
+		if (nbr_users(old) > 1)
+			break;
+		// convert
+		//	trunc.n	%s <- (o) %a
+		//	setne.m %r <- %s, $0
+		// into:
+		//	and.o	%s <- %a, $((1 << o) - 1)
+		//	setne.m %r <- %s, $0
+		// and same for setne/eq ... 0/1
+		osize = def->size;
+		def->opcode = OP_AND;
+		def->type = def->orig_type;
+		def->size = def->type->bit_size;
+		def->src2 = value_pseudo(bits_mask(osize));
+		return REPEAT_CSE;
 	}
 	return 0;
 }
