@@ -43,16 +43,14 @@ and_0:
 and_1:
 .L2:
 	<entry-point>
-	setne.1     %r8 <- %arg1, $0
-	zext.32     %r11 <- (1) %r8
+	setne.32    %r11 <- %arg1, $0
 	ret.32      %r11
 
 
 or_0:
 .L4:
 	<entry-point>
-	setne.1     %r14 <- %arg1, $0
-	zext.32     %r17 <- (1) %r14
+	setne.32    %r17 <- %arg1, $0
 	ret.32      %r17
 
 
@@ -65,8 +63,7 @@ or_1:
 and_2:
 .L8:
 	<entry-point>
-	setne.1     %r26 <- %arg1, $0
-	zext.32     %r29 <- (1) %r26
+	setne.32    %r29 <- %arg1, $0
 	ret.32      %r29
 
 

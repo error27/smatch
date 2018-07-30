@@ -10,7 +10,6 @@ int ou(int i, struct S *b) { return i || b->u; }
 /*
  * check-name: trunc-seteq0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: trunc\\.

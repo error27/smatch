@@ -1189,6 +1189,19 @@ static int simplify_cast(struct instruction *insn)
 			return REPEAT_CSE;
 		}
 		break;
+	case OP_FPCMP ... OP_BINCMP_END:
+		switch (insn->opcode) {
+		case OP_ZEXT:
+			// simplify:
+			//	setcc.n	%t <- %a, %b
+			//	zext.m	%r <- (n) %t
+			// into:
+			//	setcc.m	%r <- %a, %b
+			insn->opcode = def->opcode;
+			use_pseudo(insn, def->src2, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, def->src1);
+		}
+		break;
 	case OP_TRUNC:
 		osize = def->orig_type->bit_size;
 		if (insn->opcode == OP_ZEXT && size == osize) {
