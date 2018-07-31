@@ -2591,11 +2591,7 @@ free:
 
 struct smatch_state *get_extra_state(struct expression *expr)
 {
-	struct range_list *rl;
 	struct sm_state *sm;
-
-	if (is_pointer(expr) && get_address_rl(expr, &rl))
-		return alloc_estate_rl(rl);
 
 	sm = get_extra_sm_state(expr);
 	if (!sm)
