@@ -171,10 +171,10 @@ struct db_cache_results {
 	sval_t sval;
 	struct range_list *rl;
 };
+static struct db_cache_results cached_results[8];
 
 static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_list **rl)
 {
-	static struct db_cache_results cached[8];
 	struct db_info db_info = {};
 	mtag_t tag;
 	int offset;
@@ -182,10 +182,10 @@ static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_
 	int ret;
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(cached); i++) {
-		if (sval.uvalue == cached[i].sval.uvalue) {
-			if (cached[i].rl) {
-				*rl = cached[i].rl;
+	for (i = 0; i < ARRAY_SIZE(cached_results); i++) {
+		if (sval.uvalue == cached_results[i].sval.uvalue) {
+			if (cached_results[i].rl) {
+				*rl = cached_results[i].rl;
 				return 1;
 			}
 			return 0;
@@ -194,8 +194,10 @@ static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_
 
 	tag = sval.uvalue & ~MTAG_OFFSET_MASK;
 	offset = sval.uvalue & MTAG_OFFSET_MASK;
-	if (offset == MTAG_OFFSET_MASK)
-		return 0;
+	if (offset == MTAG_OFFSET_MASK) {
+		ret = 0;
+		goto update_cache;
+	}
 	db_info.type = type;
 
 	run_sql(get_vals, &db_info,
@@ -211,11 +213,16 @@ static int get_rl_from_mtag_sval(sval_t sval, struct symbol *type, struct range_
 	ret = 1;
 
 update_cache:
-//	cached[idx].sval = sval;
-//	cached[idx].rl = db_info.rl;
-	idx = (idx + 1) % ARRAY_SIZE(cached);
+	cached_results[idx].sval = sval;
+	cached_results[idx].rl = db_info.rl;
+	idx = (idx + 1) % ARRAY_SIZE(cached_results);
 
 	return ret;
+}
+
+static void clear_cache(struct symbol *sym)
+{
+	memset(cached_results, 0, sizeof(cached_results));
 }
 
 static struct expression *remove_dereference(struct expression *expr)
@@ -244,10 +251,12 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 
 void register_mtag_data(int id)
 {
+	my_id = id;
+
+	add_hook(&clear_cache, END_FUNC_HOOK);
+
 //	if (!option_info)
 //		return;
-
-	my_id = id;
 
 	add_hook(&match_global_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&match_end_file, END_FILE_HOOK);
