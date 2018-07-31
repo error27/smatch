@@ -58,13 +58,10 @@ static void match_syscall_definition(struct symbol *sym)
 
 	syscall_name = name;
 	cur_syscall = sym;
-	/*
-	printf("-------------------------\n");
-	printf("\nsyscall found: %s at: ", name); prefix(); printf("\n");
+
 	cur_return_type = cur_func_return_type();
 	if (cur_return_type && cur_return_type->ident)
 		sm_msg("return type: %s\n", cur_return_type->ident->name);
-	*/
 
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
@@ -72,7 +69,8 @@ static void match_syscall_definition(struct symbol *sym)
 		sm_msg("=======check_impl: arguments for call %s=========\n", syscall_name);
 		if (arg->type == SYM_STRUCT)
 			arg = get_real_base_type(arg);
-		sm_msg("arg type: %s\n", cur_return_type->ident->name);
+		if (cur_return_type && cur_return_type->ident)
+			sm_msg("arg type: %s\n", cur_return_type->ident->name);
 		// add_tracker(&arg_list, my_id, member, arg);
 		sm_msg("=================================\n");
 	} END_FOR_EACH_PTR(arg);
