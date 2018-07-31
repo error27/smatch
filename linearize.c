@@ -1376,6 +1376,8 @@ static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, 
 	pseudo_t zero;
 	int op;
 
+	if (!type || src == VOID)
+		return VOID;
 	if (is_bool_type(type))
 		return src;
 	if (is_float_type(type)) {
