@@ -1125,6 +1125,7 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset);
 void update_mtag_data(struct expression *expr);
 int get_mtag_sval(struct expression *expr, sval_t *sval);
+int get_mtag_addr_sval(struct expression *expr, sval_t *sval);
 
 /* smatch_mem_tracker.c */
 extern int option_mem;

@@ -223,21 +223,12 @@ static void clear_cache(struct symbol *sym)
 	memset(cached_results, 0, sizeof(cached_results));
 }
 
-static struct expression *remove_dereference(struct expression *expr)
-{
-	expr = strip_expr(expr);
-
-	if (expr->type == EXPR_PREOP && expr->op == '*')
-		return strip_expr(expr->unop);
-	return preop_expression(expr, '&');
-}
-
 int get_mtag_rl(struct expression *expr, struct range_list **rl)
 {
 	struct symbol *type;
 	sval_t sval;
 
-	if (!get_mtag_sval(remove_dereference(expr), &sval))
+	if (!get_mtag_addr_sval(expr, &sval))
 		return 0;
 
 	type = get_type(expr);

@@ -472,6 +472,20 @@ found:
 	return 1;
 }
 
+static struct expression *remove_dereference(struct expression *expr)
+{
+	expr = strip_expr(expr);
+
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		return strip_expr(expr->unop);
+	return preop_expression(expr, '&');
+}
+
+int get_mtag_addr_sval(struct expression *expr, sval_t *sval)
+{
+	return get_mtag_sval(remove_dereference(expr), sval);
+}
+
 static void print_stored_to_mtag(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *sm;
