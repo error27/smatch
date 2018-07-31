@@ -1380,6 +1380,8 @@ static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, 
 		return VOID;
 	if (is_bool_type(type))
 		return src;
+	if (src->type == PSEUDO_VAL && (src->value == 0 || src->value == 1))
+		return src;
 	if (is_float_type(type)) {
 		zero = add_setfval(ep, type, 0.0);
 		op = map_opcode(OP_SET_NE, type);
