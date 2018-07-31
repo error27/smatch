@@ -172,7 +172,7 @@ static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int 
 	if (!create_mtag_alias(tag, expr, &alias))
 		return;
 
-	insert_mtag_data(alias, offset, rl);
+//	insert_mtag_data(alias, offset, rl);
 
 	if (get_mtag(gen_expr, &arg_tag))
 		sql_insert_mtag_map(arg_tag, -offset, alias);

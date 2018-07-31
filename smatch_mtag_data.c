@@ -36,9 +36,11 @@ static int save_rl(void *_rl, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static struct range_list *select_orig_rl(mtag_t tag, int offset)
+static struct range_list *select_orig_rl(sval_t sval)
 {
 	struct range_list *rl = NULL;
+	mtag_t tag = sval.uvalue & ~MTAG_OFFSET_MASK;
+	int offset = sval.uvalue & MTAG_OFFSET_MASK;
 
 	mem_sql(&save_rl, &rl, "select value from mtag_data where tag = %lld and offset = %d;",
 		tag, offset);
@@ -69,8 +71,11 @@ static int is_kernel_param(const char *name)
 	return 0;
 }
 
-void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
+void insert_mtag_data(sval_t sval, struct range_list *rl)
 {
+	mtag_t tag = sval.uvalue & ~MTAG_OFFSET_MASK;
+	int offset = sval.uvalue & MTAG_OFFSET_MASK;
+
 	rl = clone_rl_permanent(rl);
 
 	mem_sql(NULL, NULL, "insert into mtag_data values (%lld, %d, %d, '%lu');",
@@ -80,9 +85,8 @@ void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 void update_mtag_data(struct expression *expr)
 {
 	struct range_list *orig, *new, *rl;
-	mtag_t tag;
-	int offset;
 	char *name;
+	sval_t sval;
 
 	name = expr_to_var(expr);
 	if (is_kernel_param(name)) {
@@ -91,21 +95,20 @@ void update_mtag_data(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!expr_to_mtag_offset(expr, &tag, &offset))
+	if (!get_mtag_addr_sval(expr, &sval))
 		return;
 
 	get_absolute_rl(expr, &rl);
 
-	orig = select_orig_rl(tag, offset);
+	orig = select_orig_rl(sval);
 	new = rl_union(orig, rl);
-	insert_mtag_data(tag, offset, new);
+	insert_mtag_data(sval, new);
 }
 
 static void match_global_assign(struct expression *expr)
 {
 	struct range_list *rl;
-	mtag_t tag;
-	int offset;
+	sval_t sval;
 	char *name;
 
 	name = expr_to_var(expr->left);
@@ -115,11 +118,11 @@ static void match_global_assign(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!expr_to_mtag_offset(expr->left, &tag, &offset))
+	if (!get_mtag_addr_sval(expr->left, &sval))
 		return;
 
 	get_absolute_rl(expr->right, &rl);
-	insert_mtag_data(tag, offset, rl);
+	insert_mtag_data(sval, rl);
 }
 
 static int save_mtag_data(void *_unused, int argc, char **argv, char **azColName)
@@ -246,7 +249,6 @@ void register_mtag_data(int id)
 
 //	if (!option_info)
 //		return;
-
 	add_hook(&match_global_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&match_end_file, END_FILE_HOOK);
 }
