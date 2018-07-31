@@ -658,12 +658,11 @@ static void match_mtag_data_offset(const char *fn, struct expression *expr, void
 	char *name;
 	mtag_t tag = 0;
 	int offset = -1;
-	char *data_name = (char *)"";
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
-	expr_to_mtag_name_offset(arg, &tag, &data_name, &offset);
-	sm_msg("mtag: '%s' => tag: %lld, offset: %d, name: '%s'", name, tag, offset, data_name);
+	expr_to_mtag_offset(arg, &tag, &offset);
+	sm_msg("mtag: '%s' => tag: %lld, offset: %d", name, tag, offset);
 	free_string(name);
 }
 

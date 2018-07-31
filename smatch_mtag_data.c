@@ -80,7 +80,6 @@ void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 void update_mtag_data(struct expression *expr)
 {
 	struct range_list *orig, *new, *rl;
-	char *data_name;
 	mtag_t tag;
 	int offset;
 	char *name;
@@ -92,7 +91,7 @@ void update_mtag_data(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!expr_to_mtag_name_offset(expr, &tag, &data_name, &offset))
+	if (!expr_to_mtag_offset(expr, &tag, &offset))
 		return;
 
 	get_absolute_rl(expr, &rl);
@@ -105,7 +104,6 @@ void update_mtag_data(struct expression *expr)
 static void match_global_assign(struct expression *expr)
 {
 	struct range_list *rl;
-	char *data_name;
 	mtag_t tag;
 	int offset;
 	char *name;
@@ -117,7 +115,7 @@ static void match_global_assign(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!expr_to_mtag_name_offset(expr->left, &tag, &data_name, &offset))
+	if (!expr_to_mtag_offset(expr->left, &tag, &offset))
 		return;
 
 	get_absolute_rl(expr->right, &rl);

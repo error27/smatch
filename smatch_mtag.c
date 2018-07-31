@@ -397,38 +397,31 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 	return 1;
 }
 
-int expr_to_mtag_name_offset(struct expression *expr, mtag_t *tag, char **name, int *offset)
+int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 {
-	static char buf[256];
-
 	*offset = 0;
-	if (name)
-		*name = 0;
 
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
 
-	if (is_array(expr)) {
-		if (name)  /* i don't know how to return a name for this */
-			return 0;
+	if (get_implied_mtag_offset(expr, tag, offset))
+		return 1;
+
+	if (is_array(expr))
 		return get_array_mtag_offset(expr, tag, offset);
-	}
-	if (expr->type ==  EXPR_DEREF) {
-		*offset = get_member_offset_from_deref(expr);
-		if (*offset < 0)
-			return 0;
-		snprintf(buf, sizeof(buf), "$->%s", expr->member->name);
-		if (name)
-			*name = buf;
-		return get_mtag(expr->deref, tag);
-	}
 
-	snprintf(buf, sizeof(buf), "*$");
-	if (name)
-		*name = buf;
+	if (!get_mtag(expr, tag))
+		return 0;
 
-	return get_mtag(expr, tag);
+	if (expr->type == EXPR_SYMBOL)
+		return 1;
+
+	*offset = get_member_offset_from_deref(expr);
+	if (*offset < 0)
+		return 0;
+
+	return 1;
 }
 
 int get_mtag_sval(struct expression *expr, sval_t *sval)
@@ -467,7 +460,7 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 		return 0;
 	expr = strip_expr(expr->unop);
 
-	if (!expr_to_mtag_name_offset(expr, &tag, NULL, &offset))
+	if (!expr_to_mtag_offset(expr, &tag, &offset))
 		return 0;
 	if (offset > MTAG_OFFSET_MASK)
 		offset = MTAG_OFFSET_MASK;

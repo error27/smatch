@@ -80,7 +80,7 @@ static void match_assign(struct expression *expr)
 {
 	struct expression *left;
 	struct symbol *right_sym;
-	char *data_name;
+	char *name;
 	mtag_t tag;
 	int offset;
 	int param;
@@ -96,9 +96,13 @@ static void match_assign(struct expression *expr)
 	if (param < 0)
 		return;
 	// FIXME:  modify param_has_filter_data() to take a name/sym
-	if (!expr_to_mtag_name_offset(left, &tag, &data_name, &offset))
+	if (!expr_to_mtag_offset(left, &tag, &offset))
 		return;
-	set_state_expr(my_id, expr->right, alloc_tag_data_state(tag, data_name, offset));
+	name = expr_to_str(left);
+	if (!name)
+		return;
+	set_state_expr(my_id, expr->right, alloc_tag_data_state(tag, name, offset));
+	free_string(name);
 }
 
 #if 0
