@@ -19,7 +19,6 @@ int ad(int i, struct S *b) { return i && b->d; }
 /*
  * check-name: logical
  * check-command: test-linearize -m64 -fdump-ir -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 os:

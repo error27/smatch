@@ -1615,7 +1615,8 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *expr,
 				      struct expression *cond,
 				      struct expression *expr_true,
-				      struct expression *expr_false)
+				      struct expression *expr_false,
+				      int logical)
 {
 	pseudo_t src1, src2;
 	pseudo_t phi1, phi2;
@@ -1631,11 +1632,19 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 
 	set_activeblock(ep, bb_true);
 	src1 = linearize_expression(ep, expr_true);
+	if (logical) {
+		src1 = add_convert_to_bool(ep, src1, expr_true->ctype);
+		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
+	}
 	phi1 = alloc_phi(ep->active, src1, expr->ctype);
 	add_goto(ep, merge); 
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
+	if (logical) {
+		src2 = add_convert_to_bool(ep, src2, expr_false->ctype);
+		src2 = cast_pseudo(ep, src2, &bool_ctype, expr->ctype);
+	}
 	phi2 = alloc_phi(ep->active, src2, expr->ctype);
 	set_activeblock(ep, merge);
 
@@ -1649,8 +1658,8 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	shortcut = alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR);
 	shortcut->ctype = expr->ctype;
 	if (expr->op == SPECIAL_LOGICAL_OR)
-		return linearize_conditional(ep, expr, expr->left, shortcut, expr->right);
-	return linearize_conditional(ep, expr, expr->left, expr->right, shortcut);
+		return linearize_conditional(ep, expr, expr->left, shortcut, expr->right, 1);
+	return linearize_conditional(ep, expr, expr->left, expr->right, shortcut, 1);
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
@@ -1829,7 +1838,7 @@ static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *e
 			return linearize_short_conditional(ep, expr, expr->conditional, expr->cond_false);
 
 		return  linearize_conditional(ep, expr, expr->conditional,
-					      expr->cond_true, expr->cond_false);
+					      expr->cond_true, expr->cond_false, 0);
 
 	case EXPR_COMMA:
 		linearize_expression(ep, expr->left);
