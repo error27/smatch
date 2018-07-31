@@ -309,14 +309,6 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 
 	get_mtag_cnt++;
 
-	/* FIXME:  This doesn't feel like the right thing at all */
-	if (expr->type == EXPR_PREOP) {
-		if (expr->op == '&')
-			expr = strip_expr(expr->unop);
-		if (expr->op == '*')
-			expr = strip_expr(expr->unop);
-	}
-
 	switch (expr->type) {
 	case EXPR_SYMBOL:
 		if (get_toplevel_mtag(expr->symbol, tag)) {
