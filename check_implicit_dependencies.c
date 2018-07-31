@@ -286,6 +286,8 @@ void check_implicit_dependencies(int id)
 
     if (option_project != PROJ_KERNEL)
 	return;
+    if (!option_info)
+	    return;
 
     add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
     add_hook(&match_after_syscall, AFTER_FUNC_HOOK);
