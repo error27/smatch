@@ -402,7 +402,7 @@ static int taking_too_long(void)
 	if (time_parsing_function() < 60)
 		return 0;
 
-	if (printed != cur_func_sym) {
+	if (!__inline_fn && printed != cur_func_sym) {
 		sm_msg("internal: turning off implications after 60 seconds");
 		printed = cur_func_sym;
 	}
