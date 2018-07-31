@@ -50,7 +50,7 @@ struct tag_assign_info {
 };
 ALLOCATOR(tag_assign_info, "tag name offset");
 
-static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *data_name, int offset)
+static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *name, int offset)
 {
 	struct smatch_state *state;
 	struct tag_assign_info *data;
@@ -60,7 +60,7 @@ static struct smatch_state *alloc_tag_data_state(mtag_t tag, char *data_name, in
 	data->offset = offset;
 
 	state = __alloc_smatch_state(0);
-	state->name = alloc_sname(data_name);
+	state->name = alloc_sname(name);
 	state->data = data;
 	return state;
 }
