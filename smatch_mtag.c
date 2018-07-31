@@ -411,17 +411,14 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	if (is_array(expr))
 		return get_array_mtag_offset(expr, tag, offset);
 
-	if (!get_mtag(expr, tag))
-		return 0;
+	if (expr->type ==  EXPR_DEREF) {
+		*offset = get_member_offset_from_deref(expr);
+		if (*offset < 0)
+			return 0;
+		return get_mtag(expr->deref, tag);
+	}
 
-	if (expr->type == EXPR_SYMBOL)
-		return 1;
-
-	*offset = get_member_offset_from_deref(expr);
-	if (*offset < 0)
-		return 0;
-
-	return 1;
+	return get_mtag(expr, tag);
 }
 
 int get_mtag_sval(struct expression *expr, sval_t *sval)
