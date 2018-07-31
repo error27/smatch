@@ -1706,7 +1706,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 			return linearize_cond_branch(ep, expr->unop, bb_false, bb_true);
 		/* fall through */
 	default: {
-		cond = linearize_expression(ep, expr);
+		cond = linearize_expression_to_bool(ep, expr);
 		add_branch(ep, expr, cond, bb_true, bb_false);
 
 		return VOID;

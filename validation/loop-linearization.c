@@ -56,8 +56,8 @@ ffor:
 	br          .L7
 
 .L2:
-	add.32      %r7 <- %r1(i), $1
-	phisrc.32   %phi6(i) <- %r7
+	add.32      %r8 <- %r1(i), $1
+	phisrc.32   %phi6(i) <- %r8
 	br          .L4
 
 .L3:
@@ -65,8 +65,8 @@ ffor:
 	br          .L7
 
 .L7:
-	phi.32      %r5 <- %phi1(return), %phi2(return)
-	ret.32      %r5
+	phi.32      %r6 <- %phi1(return), %phi2(return)
+	ret.32      %r6
 
 
 fwhile:
@@ -76,21 +76,21 @@ fwhile:
 	br          .L12
 
 .L12:
-	phi.32      %r8(i) <- %phi11(i), %phi12(i)
-	setlt.32    %r9 <- %r8(i), $10
-	cbr         %r9, .L9, .L11
+	phi.32      %r9(i) <- %phi11(i), %phi12(i)
+	setlt.32    %r10 <- %r9(i), $10
+	cbr         %r10, .L9, .L11
 
 .L9:
-	call.32     %r11 <- p, %r8(i)
-	cbr         %r11, .L14, .L13
+	call.32     %r12 <- p, %r9(i)
+	cbr         %r12, .L14, .L13
 
 .L13:
 	phisrc.32   %phi7(return) <- $0
 	br          .L15
 
 .L14:
-	add.32      %r14 <- %r8(i), $1
-	phisrc.32   %phi12(i) <- %r14
+	add.32      %r16 <- %r9(i), $1
+	phisrc.32   %phi12(i) <- %r16
 	br          .L12
 
 .L11:
@@ -98,8 +98,8 @@ fwhile:
 	br          .L15
 
 .L15:
-	phi.32      %r12 <- %phi7(return), %phi8(return)
-	ret.32      %r12
+	phi.32      %r14 <- %phi7(return), %phi8(return)
+	ret.32      %r14
 
 
 fdo:
@@ -109,27 +109,27 @@ fdo:
 	br          .L17
 
 .L17:
-	phi.32      %r15(i) <- %phi16(i), %phi17(i)
-	call.32     %r16 <- p, %r15(i)
-	cbr         %r16, .L18, .L20
+	phi.32      %r17(i) <- %phi16(i), %phi17(i)
+	call.32     %r18 <- p, %r17(i)
+	cbr         %r18, .L18, .L20
 
 .L20:
 	phisrc.32   %phi13(return) <- $0
 	br          .L22
 
 .L18:
-	add.32      %r19 <- %r15(i), $1
-	setlt.32    %r20 <- %r15(i), $10
-	phisrc.32   %phi17(i) <- %r19
-	cbr         %r20, .L17, .L19
+	add.32      %r22 <- %r17(i), $1
+	setlt.32    %r23 <- %r17(i), $10
+	phisrc.32   %phi17(i) <- %r22
+	cbr         %r23, .L17, .L19
 
 .L19:
 	phisrc.32   %phi14(return) <- $1
 	br          .L22
 
 .L22:
-	phi.32      %r17 <- %phi13(return), %phi14(return)
-	ret.32      %r17
+	phi.32      %r20 <- %phi13(return), %phi14(return)
+	ret.32      %r20
 
 
  * check-output-end
