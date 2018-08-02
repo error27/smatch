@@ -1184,7 +1184,7 @@ static void match_syscall_definition(struct symbol *sym)
 	struct symbol *arg;
 	char *macro;
 	char *name;
-	int is_syscall = 0;
+	int is_syscall = 0, i;
 
 	macro = get_macro_name(sym->pos);
 	if (macro &&
@@ -1193,13 +1193,33 @@ static void match_syscall_definition(struct symbol *sym)
 		is_syscall = 1;
 
 	name = get_function();
+
+	/* Currently only works if there is a name */
+	if (!name)
+		return;
+
 	if (!option_no_db && get_state(my_call_id, "this_function", NULL) != &called) {
-		if (name && strncmp(name, "sys_", 4) == 0)
+		if (strncmp(name, "sys_", 4) == 0)
 			is_syscall = 1;
 	}
 
-	if (name && strncmp(name, "compat_sys_", 11) == 0)
+	if (strncmp(name, "compat_sys_", 11) == 0)
 		is_syscall = 1;
+
+	/* Check whether function heuristically matchs hypercalls */
+	if (ends_with(name, "_op") && (
+		strncmp(name, "do_", 3) == 0 || strncmp(name, "arch_", 5) || strncmp(name, "hvm_", 4)
+		))
+		is_syscall = 1;
+	else if (strncmp(name, "do_", 3) == 0 && ends_with(name, "_op_compat"))
+		is_syscall = 1;
+	else if (strncmp(name, "hvm_", 4) == 0 && ends_with(name, "_op_compat32"))
+		is_syscall = 1;
+
+	/* Check against today's list of hypervalls */
+	for (i = 0; i < ARRAY_SIZE(xen_hypercalls); i++)
+		if(strncmp(xen_hypercalls[i], "hvm_", sizeof(xen_hypercalls[i])))
+			is_syscall = 1;
 
 	if (!is_syscall)
 		return;
