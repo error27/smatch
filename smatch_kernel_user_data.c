@@ -1157,6 +1157,28 @@ static void set_called(const char *name, struct symbol *sym, char *key, char *va
 	set_state(my_call_id, "this_function", NULL, &called);
 }
 
+static int ends_with(const char *symbol, const char *suffix)
+{
+	if(!symbol || !suffix)
+	    return 0;
+
+	int l = strnlen(symbol, 128);
+	int e = strnlen(suffix, 16);
+
+	/* Is the string smaller than the suffix? */
+	if(l < e)
+	    return 0;
+
+	/* Check from the end whether the strings match */
+	for(int i = 0; i <= e; ++ i) {
+		if( symbol[l-i] != suffix[e-i])
+		    return 0;
+	}
+
+	/* The suffix matches */
+	return 1;
+}
+
 static void match_syscall_definition(struct symbol *sym)
 {
 	struct symbol *arg;
