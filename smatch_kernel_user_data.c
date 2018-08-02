@@ -48,6 +48,15 @@ static const char *returns_user_data[] = {
 	"kvm_register_read",
 };
 
+/* In Xen, these functions are called "copy_from_guest" */
+static const char * xen_from_guest_funcs[] = {
+"copy_from_guest", "__copy_from_guest", "copy_from_guest_offset",
+"copy_from_user_hvm", "__raw_copy_from_guest", "__copy_from_user",
+"__hvm_copy", "hvm_copy_from_guest_phys", "hvm_copy_from_guest_virt",
+"hvm_fetch_from_guest_virt", "hvm_copy_from_guest_virt_nofault",
+"hvm_fetch_from_guest_virt_nofault",
+};
+
 static struct stree *start_states;
 static void save_start_states(struct statement *stmt)
 {
@@ -1389,6 +1398,11 @@ void register_kernel_user_data(int id)
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
+
+	/* In Xen, these functions are called "copy_from_guest" */
+	for (i = 0; i < ARRAY_SIZE(xen_from_guest_funcs); i++)
+		add_function_hook(xen_from_guest_funcs[i], &match_user_copy, INT_PTR(0));
+
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook_late(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
