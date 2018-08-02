@@ -1403,6 +1403,9 @@ void register_kernel_user_data(int id)
 	for (i = 0; i < ARRAY_SIZE(xen_from_guest_funcs); i++)
 		add_function_hook(xen_from_guest_funcs[i], &match_user_copy, INT_PTR(0));
 
+	/* Xen equivalent to kvm_register_read */
+	add_function_assign_hook("acpi_hw_register_read", &match_user_copy, NULL);
+
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook_late(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
