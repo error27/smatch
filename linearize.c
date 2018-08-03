@@ -1644,48 +1644,35 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
 {
-	struct basic_block *merge;
+	struct basic_block *other, *merge;
 	pseudo_t phi1, phi2;
 
 	if (!ep->active || !expr->left || !expr->right)
 		return VOID;
 
+	other = alloc_basic_block(ep, expr->right->pos);
+	merge = alloc_basic_block(ep, expr->pos);
+
 	if (expr->op == SPECIAL_LOGICAL_OR) {
-		struct expression *expr_false = expr->right;
-		struct basic_block *bb_true = alloc_basic_block(ep, expr->pos);
-		struct basic_block *bb_false = alloc_basic_block(ep, expr_false->pos);
-		pseudo_t src1, src2;
+		pseudo_t src2;
 
-		merge = alloc_basic_block(ep, expr->pos);
-		linearize_cond_branch(ep, expr->left, bb_true, bb_false);
+		phi1 = alloc_phi(ep->active, value_pseudo(1), expr->ctype);
+		linearize_cond_branch(ep, expr->left, merge, other);
 
-		set_activeblock(ep, bb_true);
-		src1 = value_pseudo(1);
-		phi1 = alloc_phi(ep->active, src1, expr->ctype);
-		add_goto(ep, merge);
-
-		set_activeblock(ep, bb_false);
-		src2 = linearize_expression_to_bool(ep, expr_false);
+		set_activeblock(ep, other);
+		src2 = linearize_expression_to_bool(ep, expr->right);
 		src2 = cast_pseudo(ep, src2, &bool_ctype, expr->ctype);
 		phi2 = alloc_phi(ep->active, src2, expr->ctype);
 	} else {
-		struct expression *expr_true = expr->right;
-		struct basic_block *bb_true = alloc_basic_block(ep, expr_true->pos);
-		struct basic_block *bb_false = alloc_basic_block(ep, expr->pos);
-		pseudo_t src1, src2;
+		pseudo_t src1;
 
-		merge = alloc_basic_block(ep, expr->pos);
-		linearize_cond_branch(ep, expr->left, bb_true, bb_false);
+		phi2 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
+		linearize_cond_branch(ep, expr->left, other, merge);
 
-		set_activeblock(ep, bb_true);
-		src1 = linearize_expression_to_bool(ep, expr_true);
+		set_activeblock(ep, other);
+		src1 = linearize_expression_to_bool(ep, expr->right);
 		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
 		phi1 = alloc_phi(ep->active, src1, expr->ctype);
-		add_goto(ep, merge);
-
-		set_activeblock(ep, bb_false);
-		src2 = value_pseudo(0);
-		phi2 = alloc_phi(ep->active, src2, expr->ctype);
 	}
 
 	set_activeblock(ep, merge);
