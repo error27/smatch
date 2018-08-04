@@ -2,6 +2,7 @@
 #define PTR_LIST_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 /*
  * Generic pointer list manipulation code. 
@@ -32,10 +33,14 @@ void * undo_ptr_list_last(struct ptr_list **head);
 void * delete_ptr_list_last(struct ptr_list **head);
 int delete_ptr_list_entry(struct ptr_list **, void *, int);
 int replace_ptr_list_entry(struct ptr_list **, void *old, void *new, int);
+bool lookup_ptr_list_entry(const struct ptr_list *head, const void *entry);
 extern void sort_list(struct ptr_list **, int (*)(const void *, const void *));
 
 extern void concat_ptr_list(struct ptr_list *a, struct ptr_list **b);
+extern void copy_ptr_list(struct ptr_list **h, struct ptr_list *t);
 extern int ptr_list_size(struct ptr_list *);
+extern bool ptr_list_empty(const struct ptr_list *head);
+extern bool ptr_list_multiple(const struct ptr_list *head);
 extern int linearize_ptr_list(struct ptr_list *, void **, int);
 extern void *first_ptr_list(struct ptr_list *);
 extern void *last_ptr_list(struct ptr_list *);

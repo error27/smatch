@@ -139,15 +139,6 @@ static void track_instruction_usage(struct basic_block *bb, struct instruction *
 	}
 }
 
-int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
-{
-	pseudo_t old;
-	FOR_EACH_PTR(list,old) {
-		if (old == pseudo)
-			return 1;
-	} END_FOR_EACH_PTR(old);   
-	return 0;
-}
 
 static int liveness_changed;
 

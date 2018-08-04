@@ -303,6 +303,11 @@ static inline int remove_pseudo(struct pseudo_list **list, pseudo_t pseudo)
 	return delete_ptr_list_entry((struct ptr_list **)list, pseudo, 0) != 0;
 }
 
+static inline int pseudo_in_list(struct pseudo_list *list, pseudo_t pseudo)
+{
+	return lookup_ptr_list_entry((struct ptr_list *)list, pseudo);
+}
+
 static inline int bb_terminated(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -333,9 +338,19 @@ static inline int pseudo_user_list_size(struct pseudo_user_list *list)
 	return ptr_list_size((struct ptr_list *)list);
 }
 
+static inline bool pseudo_user_list_empty(struct pseudo_user_list *list)
+{
+	return ptr_list_empty((struct ptr_list *)list);
+}
+
 static inline int has_users(pseudo_t p)
 {
-	return pseudo_user_list_size(p->users) != 0;
+	return !pseudo_user_list_empty(p->users);
+}
+
+static inline bool multi_users(pseudo_t p)
+{
+	return ptr_list_multiple((struct ptr_list *)(p->users));
 }
 
 static inline int nbr_users(pseudo_t p)

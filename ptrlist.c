@@ -37,6 +37,46 @@ int ptr_list_size(struct ptr_list *head)
 }
 
 ///
+// test if a list is empty
+// @head: the head of the list
+// @return: ``true`` if the list is empty, ``false`` otherwise.
+bool ptr_list_empty(const struct ptr_list *head)
+{
+	const struct ptr_list *list = head;
+
+	if (!head)
+		return true;
+
+	do {
+		if (list->nr - list->rm)
+			return false;
+	} while ((list = list->next) != head);
+
+	return true;
+}
+
+///
+// test is a list contains more than one element
+// @head: the head of the list
+// @return: ``true`` if the list has more than 1 element, ``false`` otherwise.
+bool ptr_list_multiple(const struct ptr_list *head)
+{
+	const struct ptr_list *list = head;
+	int nr = 0;
+
+	if (!head)
+		return false;
+
+	do {
+		nr += list->nr - list->rm;
+		if (nr > 1)
+			return true;
+	} while ((list = list->next) != head);
+
+	return false;
+}
+
+///
 // get the first element of a ptrlist
 // @head: the head of the list
 // @return: the first element of the list or ``NULL`` if the list is empty
@@ -233,6 +273,27 @@ void **__add_ptr_list_tag(struct ptr_list **listp, void *ptr, unsigned long tag)
 }
 
 ///
+// test if some entry is already present in a ptrlist
+// @list: the head of the list
+// @entry: the entry to test
+// @return: ``true`` if the entry is already present, ``false`` otherwise.
+bool lookup_ptr_list_entry(const struct ptr_list *head, const void *entry)
+{
+	const struct ptr_list *list = head;
+
+	if (!head)
+		return false;
+	do {
+		int nr = list->nr;
+		int i;
+		for (i = 0; i < nr; i++)
+			if (list->list[i] == entry)
+				return true;
+	} while ((list = list->next) != head);
+	return false;
+}
+
+///
 // delete an entry from a ptrlist
 // @list: a pointer to the list
 // @entry: the item to be deleted
@@ -338,6 +399,55 @@ void concat_ptr_list(struct ptr_list *a, struct ptr_list **b)
 	FOR_EACH_PTR(a, entry) {
 		add_ptr_list(b, entry);
 	} END_FOR_EACH_PTR(entry);
+}
+
+///
+// copy the elements of a list at the end of another list.
+// @listp: a pointer to the destination list.
+// @src: the head of the source list.
+void copy_ptr_list(struct ptr_list **listp, struct ptr_list *src)
+{
+	struct ptr_list *head, *tail;
+	struct ptr_list *cur = src;
+	int idx;
+
+	if (!src)
+		return;
+	head = *listp;
+	if (!head) {
+		*listp = src;
+		return;
+	}
+
+	tail = head->prev;
+	idx = tail->nr;
+	do {
+		struct ptr_list *next;
+		int nr = cur->nr;
+		int i;
+		for (i = 0; i < nr;) {
+			void *ptr = cur->list[i++];
+			if (!ptr)
+				continue;
+			if (idx >= LIST_NODE_NR) {
+				struct ptr_list *prev = tail;
+				tail = __alloc_ptrlist(0);
+				prev->next = tail;
+				tail->prev = prev;
+				prev->nr = idx;
+				idx = 0;
+			}
+			tail->list[idx++] = ptr;
+		}
+
+		next = cur->next;
+		__free_ptrlist(cur);
+		cur = next;
+	} while (cur != src);
+
+	tail->nr = idx;
+	head->prev = tail;
+	tail->next = head;
 }
 
 ///

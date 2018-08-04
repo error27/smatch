@@ -278,7 +278,7 @@ int simplify_flow(struct entrypoint *ep)
 
 static inline void concat_user_list(struct pseudo_user_list *src, struct pseudo_user_list **dst)
 {
-	concat_ptr_list((struct ptr_list *)src, (struct ptr_list **)dst);
+	copy_ptr_list((struct ptr_list **)dst, (struct ptr_list *)src);
 }
 
 void convert_instruction_target(struct instruction *insn, pseudo_t src)
