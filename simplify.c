@@ -751,7 +751,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		// and same for setne/eq ... 0/1
 		return replace_pseudo(insn, &insn->src1, def->src);
 	case OP_TRUNC:
-		if (nbr_users(old) > 1)
+		if (multi_users(old))
 			break;
 		// convert
 		//	trunc.n	%s <- (o) %a
@@ -1156,7 +1156,7 @@ static int simplify_cast(struct instruction *insn)
 		/* A cast of a AND might be a no-op.. */
 		switch (insn->opcode) {
 		case OP_TRUNC:
-			if (nbr_users(src) > 1)
+			if (multi_users(src))
 				break;
 			def->opcode = OP_TRUNC;
 			def->orig_type = def->type;
@@ -1174,7 +1174,7 @@ static int simplify_cast(struct instruction *insn)
 				break;
 			// OK, sign bit is 0
 		case OP_ZEXT:
-			if (nbr_users(src) > 1)
+			if (multi_users(src))
 				break;
 			// transform:
 			//	and.n	%b <- %a, M
