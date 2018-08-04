@@ -703,7 +703,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		return 0;
 
 	inverse = (insn->opcode == OP_SET_NE) == value;
-	if (!inverse && def->size == 1) {
+	if (!inverse && def->size == 1 && insn->size == 1) {
 		// Replace:
 		//	setne   %r <- %s, $0
 		// or:
