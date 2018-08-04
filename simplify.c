@@ -779,8 +779,13 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 	int osize;
 
 	switch (DEF_OPCODE(def, old)) {
+	case OP_FPCMP ... OP_BINCMP_END:
+		osize = 1;
+		goto oldsize;
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
+		/* fall through */
+	oldsize:
 		omask = (1ULL << osize) - 1;
 		nmask = mask & omask;
 		if (nmask == omask)
