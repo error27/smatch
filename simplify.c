@@ -690,7 +690,7 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 		// if (M' & M) == 0: ((a & M') | b) -> b
 		return replace_pseudo(insn, &insn->src1, orb);
 	}
-	if (multi_users(insn->src1))
+	if (!one_use(insn->src1))
 		return 0;	// can't modify anything inside the OR
 	if (nmask == mask) {
 		struct instruction *or = insn->src1->def;
@@ -698,7 +698,7 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 		// if (M' & M) == M: ((a & M') | b) -> (a | b)
 		return replace_pseudo(or, arg, and->src1);
 	}
-	if (nmask != omask && !multi_users(ora)) {
+	if (nmask != omask && one_use(ora)) {
 		// if (M' & M) != M': AND(a, M') -> AND(a, (M' & M))
 		and->src2 = value_pseudo(nmask);
 		return REPEAT_CSE;
@@ -738,7 +738,7 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 			// if (C & M) == M: OR(x, C) -> M
 			return replace_pseudo(insn, &insn->src1, value_pseudo(mask));
 		}
-		if (nval != oval && !multi_users(or->target)) {
+		if (nval != oval && one_use(or->target)) {
 			// if (C & M) != C: OR(x, C) -> OR(x, (C & M))
 			return replace_pseudo(or, &or->src2, value_pseudo(nval));
 		}
@@ -772,7 +772,7 @@ static int simplify_mask_shift(struct instruction *sh, unsigned long long mask)
 		return 0;
 	switch (DEF_OPCODE(inner, sh->src1)) {
 	case OP_OR:
-		if (!multi_users(sh->target))
+		if (one_use(sh->target))
 			return simplify_mask_shift_or(sh, inner, mask);
 		break;
 	}
@@ -871,7 +871,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 				return replace_with_value(insn, 0);
 			if (nmask == mask)
 				return replace_pseudo(insn, &insn->src1, def->src1);
-			if (nbr_users(pseudo) > 1)
+			if (!one_use(pseudo))
 				break;
 			def->opcode = OP_LSR;
 			def->src2 = insn->src2;
@@ -1041,7 +1041,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		// and same for setne/eq ... 0/1
 		return replace_pseudo(insn, &insn->src1, def->src);
 	case OP_TRUNC:
-		if (multi_users(old))
+		if (!one_use(old))
 			break;
 		// convert
 		//	trunc.n	%s <- (o) %a
@@ -1352,7 +1352,7 @@ static int simplify_associative_binop(struct instruction *insn)
 		insn->src2 = eval_op(insn->opcode, insn->size, insn->src2, def->src2);
 		return replace_pseudo(insn, &insn->src1, def->src1);
 	}
-	if (multi_users(def->target))
+	if (!one_use(def->target))
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
@@ -1568,7 +1568,7 @@ static int simplify_cast(struct instruction *insn)
 		/* A cast of a AND might be a no-op.. */
 		switch (insn->opcode) {
 		case OP_TRUNC:
-			if (multi_users(src))
+			if (!one_use(src))
 				break;
 			def->opcode = OP_TRUNC;
 			def->orig_type = def->type;
@@ -1586,7 +1586,7 @@ static int simplify_cast(struct instruction *insn)
 				break;
 			// OK, sign bit is 0
 		case OP_ZEXT:
-			if (multi_users(src))
+			if (!one_use(src))
 				break;
 			// transform:
 			//	and.n	%b <- %a, M
