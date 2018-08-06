@@ -1107,7 +1107,7 @@ static pseudo_t linearize_access(struct entrypoint *ep, struct expression *expr)
 static pseudo_t linearize_inc_dec(struct entrypoint *ep, struct expression *expr, int postop)
 {
 	struct access_data ad = { NULL, };
-		pseudo_t old, new, one;
+	pseudo_t old, new, one;
 	int op = expr->op == SPECIAL_INCREMENT ? OP_ADD : OP_SUB;
 
 	if (!linearize_address_gen(ep, expr->unop, &ad))
