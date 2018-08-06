@@ -690,6 +690,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 {
 	pseudo_t old = insn->src1;
 	struct instruction *def;
+	unsigned osize;
 	int inverse;
 	int opcode;
 
@@ -703,7 +704,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		return 0;
 
 	inverse = (insn->opcode == OP_SET_NE) == value;
-	if (!inverse && def->size == 1) {
+	if (!inverse && def->size == 1 && insn->size == 1) {
 		// Replace:
 		//	setne   %r <- %s, $0
 		// or:
@@ -713,6 +714,16 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	}
 	opcode = def->opcode;
 	switch (opcode) {
+	case OP_AND:
+		if (inverse)
+			break;
+		if (def->size != insn->size)
+			break;
+		if (def->src2->type != PSEUDO_VAL)
+			break;
+		if (def->src2->value != 1)
+			break;
+		return replace_with_pseudo(insn, old);
 	case OP_FPCMP ... OP_BINCMP_END:
 		// Convert:
 		//	setcc.n	%t <- %a, %b
@@ -739,6 +750,22 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		//	setne.1 %s <- %a, $0
 		// and same for setne/eq ... 0/1
 		return replace_pseudo(insn, &insn->src1, def->src);
+	case OP_TRUNC:
+		if (nbr_users(old) > 1)
+			break;
+		// convert
+		//	trunc.n	%s <- (o) %a
+		//	setne.m %r <- %s, $0
+		// into:
+		//	and.o	%s <- %a, $((1 << o) - 1)
+		//	setne.m %r <- %s, $0
+		// and same for setne/eq ... 0/1
+		osize = def->size;
+		def->opcode = OP_AND;
+		def->type = def->orig_type;
+		def->size = def->type->bit_size;
+		def->src2 = value_pseudo(bits_mask(osize));
+		return REPEAT_CSE;
 	}
 	return 0;
 }
@@ -752,8 +779,13 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 	int osize;
 
 	switch (DEF_OPCODE(def, old)) {
+	case OP_FPCMP ... OP_BINCMP_END:
+		osize = 1;
+		goto oldsize;
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
+		/* fall through */
+	oldsize:
 		omask = (1ULL << osize) - 1;
 		nmask = mask & omask;
 		if (nmask == omask)
@@ -1160,6 +1192,25 @@ static int simplify_cast(struct instruction *insn)
 			insn->opcode = OP_AND;
 			insn->src2 = val;
 			return REPEAT_CSE;
+		}
+		break;
+	case OP_FPCMP ... OP_BINCMP_END:
+		switch (insn->opcode) {
+		case OP_SEXT:
+			if (insn->size == 1)
+				break;
+			/* fall through */
+		case OP_ZEXT:
+		case OP_TRUNC:
+			// simplify:
+			//	setcc.n	%t <- %a, %b
+			//	zext.m	%r <- (n) %t
+			// into:
+			//	setcc.m	%r <- %a, %b
+			// and same for s/zext/trunc/
+			insn->opcode = def->opcode;
+			use_pseudo(insn, def->src2, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
 		break;
 	case OP_TRUNC:

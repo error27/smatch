@@ -972,13 +972,14 @@ static pseudo_t linearize_bitfield_insert(struct entrypoint *ep,
 	unsigned int shift = ctype->bit_offset;
 	unsigned int size = ctype->bit_size;
 	unsigned long long mask = ((1ULL << size) - 1);
+	unsigned long long smask= bits_mask(btype->bit_size);
 
 	val = add_cast(ep, btype, ctype, OP_ZEXT, val);
 	if (shift) {
 		val = add_binary_op(ep, btype, OP_SHL, val, value_pseudo(shift));
 		mask <<= shift;
 	}
-	ori = add_binary_op(ep, btype, OP_AND, ori, value_pseudo(~mask));
+	ori = add_binary_op(ep, btype, OP_AND, ori, value_pseudo(~mask & smask));
 	val = add_binary_op(ep, btype, OP_OR, ori, val);
 
 	return val;
@@ -1313,6 +1314,7 @@ static int get_cast_opcode(struct symbol *dst, struct symbol *src)
 
 static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *from, struct symbol *to)
 {
+	const struct position pos = current_pos;
 	pseudo_t result;
 	struct instruction *insn;
 	int opcode;
@@ -1333,7 +1335,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		if (src == value_pseudo(0))
 			break;
 		if (Wint_to_pointer_cast)
-			warning(to->pos, "non size-preserving integer to pointer cast");
+			warning(pos, "non size-preserving integer to pointer cast");
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		from = size_t_ctype;
 		break;
@@ -1341,7 +1343,7 @@ static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *
 		if (from->bit_size == to->bit_size)
 			break;
 		if (Wpointer_to_int_cast)
-			warning(to->pos, "non size-preserving pointer to integer cast");
+			warning(pos, "non size-preserving pointer to integer cast");
 		src = cast_pseudo(ep, src, from, size_t_ctype);
 		return cast_pseudo(ep, src, size_t_ctype, to);
 	case OP_BADOP:
@@ -1376,7 +1378,11 @@ static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, 
 	pseudo_t zero;
 	int op;
 
+	if (!type || src == VOID)
+		return VOID;
 	if (is_bool_type(type))
+		return src;
+	if (src->type == PSEUDO_VAL && (src->value == 0 || src->value == 1))
 		return src;
 	if (is_float_type(type)) {
 		zero = add_setfval(ep, type, 0.0);
@@ -1642,13 +1648,39 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
 {
-	struct expression *shortcut;
+	struct basic_block *other, *merge;
+	pseudo_t phi1, phi2;
 
-	shortcut = alloc_const_expression(expr->pos, expr->op == SPECIAL_LOGICAL_OR);
-	shortcut->ctype = expr->ctype;
-	if (expr->op == SPECIAL_LOGICAL_OR)
-		return linearize_conditional(ep, expr, expr->left, shortcut, expr->right);
-	return linearize_conditional(ep, expr, expr->left, expr->right, shortcut);
+	if (!ep->active || !expr->left || !expr->right)
+		return VOID;
+
+	other = alloc_basic_block(ep, expr->right->pos);
+	merge = alloc_basic_block(ep, expr->pos);
+
+	if (expr->op == SPECIAL_LOGICAL_OR) {
+		pseudo_t src2;
+
+		phi1 = alloc_phi(ep->active, value_pseudo(1), expr->ctype);
+		linearize_cond_branch(ep, expr->left, merge, other);
+
+		set_activeblock(ep, other);
+		src2 = linearize_expression_to_bool(ep, expr->right);
+		src2 = cast_pseudo(ep, src2, &bool_ctype, expr->ctype);
+		phi2 = alloc_phi(ep->active, src2, expr->ctype);
+	} else {
+		pseudo_t src1;
+
+		phi2 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
+		linearize_cond_branch(ep, expr->left, other, merge);
+
+		set_activeblock(ep, other);
+		src1 = linearize_expression_to_bool(ep, expr->right);
+		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
+		phi1 = alloc_phi(ep->active, src1, expr->ctype);
+	}
+
+	set_activeblock(ep, merge);
+	return add_join_conditional(ep, expr, phi1, phi2);
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
@@ -1704,7 +1736,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 			return linearize_cond_branch(ep, expr->unop, bb_false, bb_true);
 		/* fall through */
 	default: {
-		cond = linearize_expression(ep, expr);
+		cond = linearize_expression_to_bool(ep, expr);
 		add_branch(ep, expr, cond, bb_true, bb_false);
 
 		return VOID;

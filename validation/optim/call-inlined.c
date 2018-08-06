@@ -22,8 +22,8 @@ int foo(int a, int b, int p)
 foo:
 .L0:
 	<entry-point>
-	select.32   %r9 <- %arg3, %arg3, $0
-	ret.32      %r9
+	select.32   %r10 <- %arg3, %arg3, $0
+	ret.32      %r10
 
 
  * check-output-end

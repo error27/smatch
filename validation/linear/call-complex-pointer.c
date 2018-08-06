@@ -18,14 +18,14 @@ foo:
 	br          .L4
 
 .L3:
-	ptrcast.64  %r5 <- (64) %arg3
-	phisrc.64   %phi2 <- %r5
+	ptrcast.64  %r6 <- (64) %arg3
+	phisrc.64   %phi2 <- %r6
 	br          .L4
 
 .L4:
-	phi.64      %r6 <- %phi1, %phi2
-	call.32     %r7 <- %r6, %arg4
-	ret.32      %r7
+	phi.64      %r7 <- %phi1, %phi2
+	call.32     %r8 <- %r7, %arg4
+	ret.32      %r8
 
 
  * check-output-end
