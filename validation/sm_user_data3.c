@@ -21,7 +21,6 @@ void test(void)
 	__smatch_user_rl(b->y);
 	b = returns_filter(a);
 	__smatch_user_rl(b->y);
-	__smatch_states("check_user_data2");
 }
 
 /*
@@ -29,8 +28,8 @@ void test(void)
  * check-command: smatch -p=kernel -I.. sm_user_data3.c
  *
  * check-output-start
-sm_user_data3.c:19 test() 'b->y' = 'user_data_set'
-sm_user_data3.c:21 test() 'b->y' = 'capped'
-sm_user_data3.c:23 test() 'b->y' = 'user_data_set'
+sm_user_data3.c:19 test() user rl: 'b->y' = 's32min-s32max'
+sm_user_data3.c:21 test() user rl: 'b->y' = ''
+sm_user_data3.c:23 test() user rl: 'b->y' = 's32min-s32max'
  * check-output-end
  */

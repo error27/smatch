@@ -468,7 +468,7 @@ static void match_assign(struct expression *expr)
 	struct range_list *rl;
 
 	if (is_fake_call(expr->right))
-		return;
+		goto clear_old_state;
 	if (handle_get_user(expr))
 		return;
 	if (points_to_user_data(expr->right))
@@ -1059,25 +1059,22 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 {
 	struct sm_state *sm;
 	struct smatch_state *start_state;
-	struct range_list *rl;
 	int param;
 	char *return_str;
 	const char *param_name;
+	struct symbol *ret_sym;
 
 	expr = strip_expr(expr);
 	return_str = expr_to_str(expr);
+	ret_sym = expr_to_sym(expr);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (has_empty_state(sm))
 			continue;
 
 		param = get_param_num_from_sym(sm->sym);
-		if (param < 0) {
-			if (expr_to_sym(expr) == sm->sym)
-				param = -1;
-			else
-				continue;
-		}
+		if (param < 0)
+			continue;
 
 		/* The logic here was that if we were passed in a user data then
 		 * we don't record that.  It's like the difference between
@@ -1090,10 +1087,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (start_state && rl_equiv(estate_rl(sm->state), estate_rl(start_state)))
 			continue;
 
-		if (param == -1)
-			param_name = state_name_to_param_name(sm->name, return_str);
-		else
-			param_name = get_param_name(sm);
+		param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
 		if (strcmp(param_name, "$") == 0)  /* The -1 param is handled after the loop */
@@ -1109,12 +1103,25 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 					 (is_skb_data(expr) || !func_gets_user_data) ?
 					 USER_DATA3_SET : USER_DATA3,
 					 -1, "*$", "");
-	} else if (get_user_rl(expr, &rl)) {
-		sql_insert_return_states(return_id, return_ranges,
-					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
-					 -1, "$", show_rl(rl));
+		goto free_string;
 	}
 
+	if (!ret_sym)
+		goto free_string;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (ret_sym != sm->sym)
+			continue;
+
+		param_name = state_name_to_param_name(sm->name, return_str);
+		if (!param_name)
+			continue;
+		sql_insert_return_states(return_id, return_ranges,
+					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
+					 -1, param_name, show_rl(estate_rl(sm->state)));
+	} END_FOR_EACH_SM(sm);
+
+free_string:
 	free_string(return_str);
 }
 
