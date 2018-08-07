@@ -6,7 +6,6 @@ char foo(int x, int y)
 /*
  * check-name: and-or-trunc2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): and\\.

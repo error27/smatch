@@ -632,6 +632,7 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 //	* if OP(x, K) == AND(x, M), @mask M is K
 //	* if OP(x, K) == LSR(x, S), @mask M is (-1 << S)
 //	* if OP(x, K) == SHL(x, S), @mask M is (-1 >> S)
+//	* if OP(x, K) == TRUNC(x, N), @mask M is $mask(N)
 static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
 {
 	pseudo_t src1 = or->src1;
@@ -1397,6 +1398,13 @@ static int simplify_cast(struct instruction *insn)
 			insn->opcode = def->opcode;
 			use_pseudo(insn, def->src2, &insn->src2);
 			return replace_pseudo(insn, &insn->src1, def->src1);
+		}
+		break;
+	case OP_OR:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			mask = bits_mask(insn->size);
+			return simplify_mask_or(insn, mask, def);
 		}
 		break;
 	case OP_TRUNC:
