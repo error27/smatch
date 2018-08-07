@@ -14,7 +14,6 @@ void foo(struct s *p)
 /*
  * check-name: and-or-bf2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 foo:

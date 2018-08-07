@@ -613,6 +613,11 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 		// if (M' & M) == M: ((a & M') | b) -> (a | b)
 		return replace_pseudo(or, arg, and->src1);
 	}
+	if (nmask != omask && !multi_users(ora)) {
+		// if (M' & M) != M': AND(a, M') -> AND(a, (M' & M))
+		and->src2 = value_pseudo(nmask);
+		return REPEAT_CSE;
+	}
 	return 0;
 }
 
