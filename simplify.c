@@ -585,7 +585,7 @@ undef:
 // try to simplify OP(OR(AND(x, M'), b), K)
 // @insn: the 'masking' instruction
 // @mask: the mask associated to @insn (M)
-// @ora: one of the OR's operands
+// @ora: one of the OR's operands, guaranteed to be PSEUDO_REG
 // @orb: the other OR's operand
 // @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
 static int simplify_mask_or_and(struct instruction *insn, unsigned long long mask,
@@ -595,6 +595,8 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 	struct instruction *and = ora->def;
 	pseudo_t src2 = and->src2;
 
+	if (and->opcode != OP_AND)
+		return 0;
 	if (!constant(src2))
 		return 0;
 	omask = src2->value;
@@ -622,12 +624,14 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 	pseudo_t src2 = or->src2;
 	int rc;
 
-	if (def_opcode(src1) == OP_AND)
+	if (src1->type == PSEUDO_REG) {
 		if ((rc = simplify_mask_or_and(insn, mask, src1, src2)))
 			return rc;
-	if (def_opcode(src2) == OP_AND)
+	}
+	if (src2->type == PSEUDO_REG) {
 		if ((rc = simplify_mask_or_and(insn, mask, src2, src1)))
 			return rc;
+	}
 	return 0;
 }
 
