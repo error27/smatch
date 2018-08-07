@@ -599,12 +599,11 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 		return 0;
 	omask = src2->value;
 	nmask = omask & mask;
-	if (nmask != 0)
-		return 0;
-	// replace OP(((x & M') | b), K)
-	// by      OP(b, K)
-	// when	(M' & M) == 0
-	return replace_pseudo(insn, &insn->src1, orb);
+	if (nmask == 0) {
+		// if (M' & M) == 0: ((a & M') | b) -> b
+		return replace_pseudo(insn, &insn->src1, orb);
+	}
+	return 0;
 }
 
 ///
