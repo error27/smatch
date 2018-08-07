@@ -6,7 +6,6 @@ int foo(int a, int b)
 /*
  * check-name: and-or-shl0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: or\\.

@@ -631,6 +631,7 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 // For the @mask (M):
 //	* if OP(x, K) == AND(x, M), @mask M is K
 //	* if OP(x, K) == LSR(x, S), @mask M is (-1 << S)
+//	* if OP(x, K) == SHL(x, S), @mask M is (-1 >> S)
 static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
 {
 	pseudo_t src1 = or->src1;
@@ -788,6 +789,9 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 				break;
 			mask = bits_mask(insn->size - value) << value;
 			goto replace_mask;
+		case OP_OR:
+			mask = bits_mask(size - value);
+			return simplify_mask_or(insn, mask, def);
 		case OP_SHL:
 		case_shift_shift:		// also for LSR - LSR
 			if (def == insn)	// cyclic DAG!

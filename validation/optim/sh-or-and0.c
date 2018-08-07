@@ -11,7 +11,6 @@ unsigned shl_or_and0(unsigned x, unsigned b)
 /*
  * check-name: sh-or-and0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): lsr\\.
