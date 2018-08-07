@@ -620,11 +620,14 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 {
 	pseudo_t src1 = or->src1;
 	pseudo_t src2 = or->src2;
+	int rc;
 
 	if (def_opcode(src1) == OP_AND)
-		return simplify_mask_or_and(insn, mask, src1, src2);
+		if ((rc = simplify_mask_or_and(insn, mask, src1, src2)))
+			return rc;
 	if (def_opcode(src2) == OP_AND)
-		return simplify_mask_or_and(insn, mask, src2, src1);
+		if ((rc = simplify_mask_or_and(insn, mask, src2, src1)))
+			return rc;
 	return 0;
 }
 

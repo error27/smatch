@@ -11,7 +11,6 @@ void foo(struct s *p, int a, int b)
 /*
  * check-name: and-or-bfx
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(2): and\\.
