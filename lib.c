@@ -890,27 +890,16 @@ static void handle_switch_W_finalize(void)
 	handle_onoff_switch_finalize(warnings, ARRAY_SIZE(warnings));
 
 	/* default Wdeclarationafterstatement based on the C dialect */
-	if (-1 == Wdeclarationafterstatement)
-	{
-		switch (standard)
-		{
+	if (-1 == Wdeclarationafterstatement) {
+		switch (standard) {
 			case STANDARD_C89:
 			case STANDARD_C94:
 				Wdeclarationafterstatement = 1;
 				break;
-
-			case STANDARD_C99:
-			case STANDARD_GNU89:
-			case STANDARD_GNU99:
-			case STANDARD_C11:
-			case STANDARD_GNU11:
+			default:
 				Wdeclarationafterstatement = 0;
 				break;
-
-			default:
-				assert (0);
 		}
-
 	}
 }
 
