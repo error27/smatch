@@ -1419,14 +1419,16 @@ static void predefined_macros(void)
 
 	case STANDARD_C11:
 	case STANDARD_GNU11:
-		predefine("__STDC_NO_ATOMICS__", 1, "1");
-		predefine("__STDC_NO_COMPLEX__", 1, "1");
-		predefine("__STDC_NO_THREADS__", 1, "1");
 		predefine("__STDC_VERSION__", 1, "201112L");
 		break;
 	}
 	if (!(standard & STANDARD_GNU) && (standard != STANDARD_NONE))
 		predefine("__STRICT_ANSI__", 1, "1");
+	if (standard >= STANDARD_C11) {
+		predefine("__STDC_NO_ATOMICS__", 1, "1");
+		predefine("__STDC_NO_COMPLEX__", 1, "1");
+		predefine("__STDC_NO_THREADS__", 1, "1");
+	}
 
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 	if (funsigned_char)
