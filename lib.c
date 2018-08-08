@@ -1079,6 +1079,15 @@ static char **handle_switch_s(const char *arg, char **next)
 		else if (!strcmp(arg, "gnu11"))
 			standard = STANDARD_GNU11;
 
+		else if (!strcmp(arg, "c17") ||
+			 !strcmp(arg, "c18") ||
+			 !strcmp(arg, "iso9899:2017") ||
+			 !strcmp(arg, "iso9899:2018"))
+			standard = STANDARD_C17;
+		else if (!strcmp(arg, "gnu17") ||
+			 !strcmp(arg, "gnu18"))
+			standard = STANDARD_GNU17;
+
 		else
 			die ("Unsupported C dialect");
 	}
@@ -1420,6 +1429,10 @@ static void predefined_macros(void)
 	case STANDARD_C11:
 	case STANDARD_GNU11:
 		predefine("__STDC_VERSION__", 1, "201112L");
+		break;
+	case STANDARD_C17:
+	case STANDARD_GNU17:
+		predefine("__STDC_VERSION__", 1, "201710L");
 		break;
 	}
 	if (!(standard & STANDARD_GNU) && (standard != STANDARD_NONE))
