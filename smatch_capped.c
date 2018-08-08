@@ -221,6 +221,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 	char *return_str;
 	int param;
 	sval_t sval;
+	bool return_found = false;
 
 	expr = strip_expr(expr);
 	return_str = expr_to_str(expr);
@@ -259,10 +260,21 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 		param_name = state_name_to_param_name(sm->name, return_str);
 		if (!param_name)
 			continue;
+		if (strcmp(param_name, "$") == 0)
+			return_found = true;
 		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
 					 -1, param_name, "1");
 	} END_FOR_EACH_SM(sm);
 
+	if (return_found)
+		goto free_string;
+
+	if (option_project == PROJ_KERNEL && get_function() &&
+	    strstr(get_function(), "nla_get_"))
+		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
+					 -1, "$", "1");
+
+free_string:
 	free_string(return_str);
 }
 

@@ -43,6 +43,12 @@ static const char * kstr_funcs[] = {
 	"kstrtos32_from_user",
 };
 
+static const char *returns_user_data[] = {
+	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
+	"kvm_register_read", "nlmsg_data", "nla_data", "memdup_user",
+	"kmap_atomic", "skb_network_header",
+};
+
 static void set_points_to_user_data(struct expression *expr);
 
 static struct stree *start_states;
@@ -341,9 +347,27 @@ static int is_skb_data(struct expression *expr)
 	return 1;
 }
 
-static int points_to_user_data(struct expression *expr)
+static int get_rl_from_function(struct expression *expr, struct range_list **rl)
+{
+	int i;
+
+	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
+	    !expr->fn->symbol_name || !expr->fn->symbol_name->name)
+		return 0;
+
+	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++) {
+		if (strcmp(expr->fn->symbol_name->name, returns_user_data[i]) == 0) {
+			*rl = alloc_whole_rl(get_type(expr));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int points_to_user_data(struct expression *expr)
 {
 	struct smatch_state *state;
+	struct range_list *rl;
 	char buf[256];
 	struct symbol *sym;
 	char *name;
@@ -585,23 +609,13 @@ static void match_condition(struct expression *expr)
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
 {
-	func_gets_user_data = true;
-
 	tag_as_user_data(expr->left);
 	set_points_to_user_data(expr->left);
 }
 
 static void match_returns_user_rl(const char *fn, struct expression *expr, void *unused)
 {
-	struct smatch_state *estate;
-	struct range_list *rl;
-
 	func_gets_user_data = true;
-
-	rl = alloc_whole_rl(get_type(expr->right));
-	rl = cast_rl(get_type(expr->left), rl);
-	estate = alloc_estate_rl(rl);
-	set_state_expr(my_id, expr->left, estate);
 }
 
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
@@ -776,6 +790,9 @@ static struct range_list *var_user_rl(struct expression *expr)
 		return NULL;
 	}
 
+	if (get_rl_from_function(expr, &rl))
+		goto found;
+
 	if (get_user_macro_rl(expr, &rl))
 		goto found;
 
@@ -800,6 +817,12 @@ static struct range_list *var_user_rl(struct expression *expr)
 			no_user_data_flag = 1;
 			return NULL;
 		}
+	}
+
+	if (expr->type == EXPR_PREOP && expr->op == '*' &&
+	    is_user_rl(expr->unop)) {
+		rl = var_to_absolute_rl(expr);
+		goto found;
 	}
 
 	return NULL;
@@ -1059,10 +1082,12 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 {
 	struct sm_state *sm;
 	struct smatch_state *start_state;
+	struct range_list *rl;
 	int param;
 	char *return_str;
 	const char *param_name;
 	struct symbol *ret_sym;
+	bool return_found = false;
 
 	expr = strip_expr(expr);
 	return_str = expr_to_str(expr);
@@ -1106,20 +1131,30 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		goto free_string;
 	}
 
-	if (!ret_sym)
-		goto free_string;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (!ret_sym)
+			break;
 		if (ret_sym != sm->sym)
 			continue;
 
 		param_name = state_name_to_param_name(sm->name, return_str);
 		if (!param_name)
 			continue;
+		if (strcmp(param_name, "$") == 0)
+			return_found = true;
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
 					 -1, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
+
+
+	if (!return_found && get_user_rl(expr, &rl)) {
+		sql_insert_return_states(return_id, return_ranges,
+					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
+					 -1, "$", show_rl(rl));
+		goto free_string;
+	}
 
 free_string:
 	free_string(return_str);
@@ -1169,18 +1204,14 @@ void check_user_data2(int id)
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
+	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
 
-	add_function_assign_hook("simple_strtol", &match_returns_user_rl, NULL);
-	add_function_assign_hook("simple_strtoll", &match_returns_user_rl, NULL);
-	add_function_assign_hook("simple_strtoul", &match_returns_user_rl, NULL);
-	add_function_assign_hook("simple_strtoull", &match_returns_user_rl, NULL);
-	add_function_assign_hook("kvm_register_read", &match_returns_user_rl, NULL);
+	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++) {
+		add_function_assign_hook(returns_user_data[i], &match_user_assign_function, NULL);
+		add_function_hook(returns_user_data[i], &match_returns_user_rl, NULL);
+	}
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
-
-	add_function_assign_hook("memdup_user", &match_user_assign_function, NULL);
-	add_function_assign_hook("kmap_atomic", &match_user_assign_function, NULL);
-	add_function_assign_hook("skb_network_header", &match_user_assign_function, NULL);
 
 	add_hook(&match_syscall_definition, AFTER_DEF_HOOK);
 
