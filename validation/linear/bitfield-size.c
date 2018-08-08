@@ -49,41 +49,45 @@ upostinc:
 	load.64     %r1 <- 0[x]
 	load.32     %r2 <- 0[%r1]
 	trunc.3     %r3 <- (32) %r2
-	add.3       %r4 <- %r3, $1
-	load.32     %r5 <- 0[%r1]
-	zext.32     %r6 <- (3) %r4
-	and.32      %r7 <- %r5, $0xfffffff8
-	or.32       %r8 <- %r7, %r6
-	store.32    %r8 -> 0[%r1]
-	zext.32     %r9 <- (3) %r3
-	phisrc.32   %phi1(return) <- %r9
+	zext.32     %r4 <- (3) %r3
+	add.32      %r5 <- %r4, $1
+	trunc.3     %r6 <- (32) %r5
+	load.32     %r7 <- 0[%r1]
+	zext.32     %r8 <- (3) %r6
+	and.32      %r9 <- %r7, $0xfffffff8
+	or.32       %r10 <- %r9, %r8
+	store.32    %r10 -> 0[%r1]
+	zext.32     %r11 <- (3) %r4
+	phisrc.32   %phi1(return) <- %r11
 	br          .L1
 
 .L1:
-	phi.32      %r10 <- %phi1(return)
-	ret.32      %r10
+	phi.32      %r12 <- %phi1(return)
+	ret.32      %r12
 
 
 upreinc:
 .L2:
 	<entry-point>
 	store.64    %arg1 -> 0[x]
-	load.64     %r11 <- 0[x]
-	load.32     %r12 <- 0[%r11]
-	trunc.3     %r13 <- (32) %r12
-	add.3       %r14 <- %r13, $1
-	load.32     %r15 <- 0[%r11]
-	zext.32     %r16 <- (3) %r14
-	and.32      %r17 <- %r15, $0xfffffff8
-	or.32       %r18 <- %r17, %r16
-	store.32    %r18 -> 0[%r11]
-	zext.32     %r19 <- (3) %r14
-	phisrc.32   %phi2(return) <- %r19
+	load.64     %r13 <- 0[x]
+	load.32     %r14 <- 0[%r13]
+	trunc.3     %r15 <- (32) %r14
+	zext.32     %r16 <- (3) %r15
+	add.32      %r17 <- %r16, $1
+	trunc.3     %r18 <- (32) %r17
+	load.32     %r19 <- 0[%r13]
+	zext.32     %r20 <- (3) %r18
+	and.32      %r21 <- %r19, $0xfffffff8
+	or.32       %r22 <- %r21, %r20
+	store.32    %r22 -> 0[%r13]
+	zext.32     %r23 <- (3) %r18
+	phisrc.32   %phi2(return) <- %r23
 	br          .L3
 
 .L3:
-	phi.32      %r20 <- %phi2(return)
-	ret.32      %r20
+	phi.32      %r24 <- %phi2(return)
+	ret.32      %r24
 
 
 ucpy:
@@ -91,15 +95,15 @@ ucpy:
 	<entry-point>
 	store.64    %arg1 -> 0[d]
 	store.64    %arg2 -> 0[s]
-	load.64     %r21 <- 0[s]
-	load.32     %r22 <- 0[%r21]
-	trunc.3     %r23 <- (32) %r22
-	load.64     %r24 <- 0[d]
-	load.32     %r25 <- 0[%r24]
-	zext.32     %r26 <- (3) %r23
-	and.32      %r27 <- %r25, $0xfffffff8
-	or.32       %r28 <- %r27, %r26
-	store.32    %r28 -> 0[%r24]
+	load.64     %r25 <- 0[s]
+	load.32     %r26 <- 0[%r25]
+	trunc.3     %r27 <- (32) %r26
+	load.64     %r28 <- 0[d]
+	load.32     %r29 <- 0[%r28]
+	zext.32     %r30 <- (3) %r27
+	and.32      %r31 <- %r29, $0xfffffff8
+	or.32       %r32 <- %r31, %r30
+	store.32    %r32 -> 0[%r28]
 	br          .L5
 
 .L5:
@@ -110,44 +114,48 @@ spostinc:
 .L6:
 	<entry-point>
 	store.64    %arg1 -> 0[x]
-	load.64     %r29 <- 0[x]
-	load.32     %r30 <- 0[%r29]
-	trunc.3     %r31 <- (32) %r30
-	add.3       %r32 <- %r31, $1
-	load.32     %r33 <- 0[%r29]
-	zext.32     %r34 <- (3) %r32
-	and.32      %r35 <- %r33, $0xfffffff8
-	or.32       %r36 <- %r35, %r34
-	store.32    %r36 -> 0[%r29]
-	zext.32     %r37 <- (3) %r31
-	phisrc.32   %phi3(return) <- %r37
+	load.64     %r33 <- 0[x]
+	load.32     %r34 <- 0[%r33]
+	trunc.3     %r35 <- (32) %r34
+	zext.32     %r36 <- (3) %r35
+	add.32      %r37 <- %r36, $1
+	trunc.3     %r38 <- (32) %r37
+	load.32     %r39 <- 0[%r33]
+	zext.32     %r40 <- (3) %r38
+	and.32      %r41 <- %r39, $0xfffffff8
+	or.32       %r42 <- %r41, %r40
+	store.32    %r42 -> 0[%r33]
+	zext.32     %r43 <- (3) %r36
+	phisrc.32   %phi3(return) <- %r43
 	br          .L7
 
 .L7:
-	phi.32      %r38 <- %phi3(return)
-	ret.32      %r38
+	phi.32      %r44 <- %phi3(return)
+	ret.32      %r44
 
 
 spreinc:
 .L8:
 	<entry-point>
 	store.64    %arg1 -> 0[x]
-	load.64     %r39 <- 0[x]
-	load.32     %r40 <- 0[%r39]
-	trunc.3     %r41 <- (32) %r40
-	add.3       %r42 <- %r41, $1
-	load.32     %r43 <- 0[%r39]
-	zext.32     %r44 <- (3) %r42
-	and.32      %r45 <- %r43, $0xfffffff8
-	or.32       %r46 <- %r45, %r44
-	store.32    %r46 -> 0[%r39]
-	zext.32     %r47 <- (3) %r42
-	phisrc.32   %phi4(return) <- %r47
+	load.64     %r45 <- 0[x]
+	load.32     %r46 <- 0[%r45]
+	trunc.3     %r47 <- (32) %r46
+	zext.32     %r48 <- (3) %r47
+	add.32      %r49 <- %r48, $1
+	trunc.3     %r50 <- (32) %r49
+	load.32     %r51 <- 0[%r45]
+	zext.32     %r52 <- (3) %r50
+	and.32      %r53 <- %r51, $0xfffffff8
+	or.32       %r54 <- %r53, %r52
+	store.32    %r54 -> 0[%r45]
+	zext.32     %r55 <- (3) %r50
+	phisrc.32   %phi4(return) <- %r55
 	br          .L9
 
 .L9:
-	phi.32      %r48 <- %phi4(return)
-	ret.32      %r48
+	phi.32      %r56 <- %phi4(return)
+	ret.32      %r56
 
 
 scpy:
@@ -155,15 +163,15 @@ scpy:
 	<entry-point>
 	store.64    %arg1 -> 0[d]
 	store.64    %arg2 -> 0[s]
-	load.64     %r49 <- 0[s]
-	load.32     %r50 <- 0[%r49]
-	trunc.3     %r51 <- (32) %r50
-	load.64     %r52 <- 0[d]
-	load.32     %r53 <- 0[%r52]
-	zext.32     %r54 <- (3) %r51
-	and.32      %r55 <- %r53, $0xfffffff8
-	or.32       %r56 <- %r55, %r54
-	store.32    %r56 -> 0[%r52]
+	load.64     %r57 <- 0[s]
+	load.32     %r58 <- 0[%r57]
+	trunc.3     %r59 <- (32) %r58
+	load.64     %r60 <- 0[d]
+	load.32     %r61 <- 0[%r60]
+	zext.32     %r62 <- (3) %r59
+	and.32      %r63 <- %r61, $0xfffffff8
+	or.32       %r64 <- %r63, %r62
+	store.32    %r64 -> 0[%r60]
 	br          .L11
 
 .L11:

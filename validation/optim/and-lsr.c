@@ -8,7 +8,6 @@ unsigned int foo(unsigned int x)
 /*
  * check-name: and-lsr
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: and\\..*\\$15

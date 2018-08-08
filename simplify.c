@@ -575,12 +575,26 @@ static long long check_shift_count(struct instruction *insn, unsigned long long 
 	return sval;
 }
 
+static int simplify_or_lsr(struct instruction *insn, pseudo_t src, pseudo_t other, unsigned shift)
+{
+	// src->def->opcode == OP_AND
+	pseudo_t src2 = src->def->src2;
+
+	if (!constant(src2))
+		return 0;
+	if (((unsigned long long) src2->value) >> shift)
+		return 0;
+	return replace_pseudo(insn, &insn->src1, other);
+}
+
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)
 {
 	struct instruction *def;
+	unsigned long long mask;
 	unsigned long long nval;
 	unsigned int size;
 	pseudo_t src2;
+	pseudo_t src;
 
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
@@ -627,14 +641,54 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		break;
 	case OP_LSR:
 		size = operand_size(insn, pseudo);
-		/* fall through */
+		if (value >= size)
+			goto zero;
+		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_AND:
+			// replace (A & M) >> S
+			// by      (A >> S) & (M >> S)
+			if (!constant(def->src2))
+				break;
+			if (nbr_users(pseudo) > 1)
+				break;
+			mask = def->src2->value;
+			def->opcode = OP_LSR;
+			def->src2 = insn->src2;
+			insn->opcode = OP_AND;
+			insn->src2 = value_pseudo(mask >> value);
+			return REPEAT_CSE;
+		case OP_LSR:
+			goto case_shift_shift;
+		case OP_OR:
+			// replace ((A & M) | B) >> S
+			// by      (B >> S)
+			// when	(M >> S) == 0
+			src = def->src1;
+			if (def_opcode(src) == OP_AND)
+				return simplify_or_lsr(insn, src, def->src2, value);
+			src = def->src2;
+			if (def_opcode(src) == OP_AND)
+				return simplify_or_lsr(insn, src, def->src1, value);
+			break;
+		case OP_SHL:
+			// replace (A << S) >> S
+			// by      A & (Mask(size) >> S)
+			if (!constant(def->src2))
+				break;
+			if (def->src2->value != value)
+				break;
+			size = insn->size - value;
+			insn->opcode = OP_AND;
+			insn->src2 = value_pseudo((1ULL << size) - 1);
+			return replace_pseudo(insn, &insn->src1, def->src1);
+		}
+		break;
 	case OP_SHL:
 		if (value >= size)
 			goto zero;
-		if (pseudo->type != PSEUDO_REG)
-			break;
-		def = pseudo->def;
-		if (def->opcode == insn->opcode) {
+		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_SHL:
+		case_shift_shift:		// also for LSR - LSR
 			if (def == insn)	// cyclic DAG!
 				break;
 			src2 = def->src2;
@@ -770,18 +824,41 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int simplify_and_or_mask(struct instruction *insn, pseudo_t and, pseudo_t other, unsigned long long mask)
+{
+	struct instruction *def = and->def;
+
+	if (!constant(def->src2))
+		return 0;
+	if (def->src2->value & mask)
+		return 0;
+	return replace_pseudo(insn, &insn->src1, other);
+}
+
 static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
 {
 	pseudo_t old = insn->src1;
 	unsigned long long omask;
 	unsigned long long nmask;
 	struct instruction *def;
+	pseudo_t src1, src2;
 	int osize;
 
 	switch (DEF_OPCODE(def, old)) {
 	case OP_FPCMP ... OP_BINCMP_END:
 		osize = 1;
 		goto oldsize;
+	case OP_OR:
+		// Let's handle ((A & M') | B ) & M
+		// or           (B | (A & M')) & M
+		// when M' & M == 0
+		src1 = def->src1;
+		src2 = def->src2;
+		if (def_opcode(src1) == OP_AND)
+			return simplify_and_or_mask(insn, src1, src2, mask);
+		if (def_opcode(src2) == OP_AND)
+			return simplify_and_or_mask(insn, src2, src1, mask);
+		break;
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
 		/* fall through */
@@ -1091,7 +1168,7 @@ static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 
 offset:
 	/* Invalid code */
-	if (new == orig) {
+	if (new == orig || new == addr) {
 		if (new == VOID)
 			return 0;
 		/*
@@ -1103,8 +1180,9 @@ offset:
 		 */
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
 			return 0;
-		new = VOID;
 		warning(insn->pos, "crazy programmer");
+		replace_pseudo(insn, &insn->src, VOID);
+		return 0;
 	}
 	insn->offset += off->value;
 	replace_pseudo(insn, &insn->src, new);
