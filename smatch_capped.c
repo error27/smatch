@@ -216,9 +216,15 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 {
 	struct smatch_state *orig, *estate;
 	struct sm_state *sm;
+	struct symbol *ret_sym;
 	const char *param_name;
+	char *return_str;
 	int param;
 	sval_t sval;
+
+	expr = strip_expr(expr);
+	return_str = expr_to_str(expr);
+	ret_sym = expr_to_sym(expr);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (sm->state != &capped)
@@ -243,6 +249,21 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
 					 param, param_name, "1");
 	} END_FOR_EACH_SM(sm);
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (!ret_sym)
+			break;
+		if (ret_sym != sm->sym)
+			continue;
+
+		param_name = state_name_to_param_name(sm->name, return_str);
+		if (!param_name)
+			continue;
+		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
+					 -1, param_name, "1");
+	} END_FOR_EACH_SM(sm);
+
+	free_string(return_str);
 }
 
 static void db_return_states_capped(struct expression *expr, int param, char *key, char *value)
