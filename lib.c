@@ -1408,24 +1408,16 @@ static void predefined_macros(void)
 	default:
 		break;
 
-	case STANDARD_C89:
-		predefine("__STRICT_ANSI__", 1, "1");
-	case STANDARD_GNU89:
-		break;
-
 	case STANDARD_C94:
-		predefine("__STRICT_ANSI__", 1, "1");
 		predefine("__STDC_VERSION__", 1, "199409L");
 		break;
 
 	case STANDARD_C99:
-		predefine("__STRICT_ANSI__", 1, "1");
 	case STANDARD_GNU99:
 		predefine("__STDC_VERSION__", 1, "199901L");
 		break;
 
 	case STANDARD_C11:
-		predefine("__STRICT_ANSI__", 1, "1");
 	case STANDARD_GNU11:
 		predefine("__STDC_NO_ATOMICS__", 1, "1");
 		predefine("__STDC_NO_COMPLEX__", 1, "1");
@@ -1433,6 +1425,8 @@ static void predefined_macros(void)
 		predefine("__STDC_VERSION__", 1, "201112L");
 		break;
 	}
+	if (!(standard & STANDARD_GNU) && (standard != STANDARD_NONE))
+		predefine("__STRICT_ANSI__", 1, "1");
 
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
 	if (funsigned_char)
