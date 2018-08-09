@@ -99,7 +99,7 @@ static void simplify_loads(struct basic_block *bb)
 			/* Check for illegal offsets.. */
 			check_access(insn);
 
-			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+			if (insn->is_volatile)
 				continue;
 
 			RECURSE_PTR_REVERSE(insn, dom) {
@@ -160,7 +160,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 
 			if (!insn->type)
 				continue;
-			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+			if (insn->is_volatile)
 				continue;
 
 			local = local_pseudo(pseudo);
