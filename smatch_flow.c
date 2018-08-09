@@ -38,6 +38,7 @@ static char *base_file;
 static const char *filename;
 static char *pathname;
 static char *full_filename;
+static char *full_base_file;
 static char *cur_func;
 static unsigned int loop_count;
 static int last_goto_statement_handled;
@@ -110,6 +111,8 @@ int outside_of_function(void)
 
 const char *get_filename(void)
 {
+	if (option_info && option_full_path)
+		return full_base_file;
 	if (option_info)
 		return base_file;
 	if (option_full_path)
@@ -119,6 +122,8 @@ const char *get_filename(void)
 
 const char *get_base_file(void)
 {
+	if (option_full_path)
+		return full_base_file;
 	return base_file;
 }
 
@@ -1856,6 +1861,8 @@ void smatch(int argc, char **argv)
 	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
 	struct timeval stop, start;
+	char *path;
+	int len;
 
 	gettimeofday(&start, NULL);
 
@@ -1867,6 +1874,15 @@ void smatch(int argc, char **argv)
 	set_valid_ptr_max();
 	alloc_valid_ptr_rl();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
+		path = getcwd(NULL, 0);
+		free(full_base_file);
+		if (path) {
+			len = strlen(path) + 1 + strlen(base_file) + 1;
+			full_base_file = malloc(len);
+			snprintf(full_base_file, len, "%s/%s", path, base_file);
+		} else {
+			full_base_file = alloc_string(base_file);
+		}
 		if (option_file_output)
 			open_output_files(base_file);
 		sym_list = sparse_keep_tokens(base_file);
