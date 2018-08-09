@@ -991,7 +991,7 @@ static pseudo_t add_load(struct entrypoint *ep, struct access_data *ad)
 
 	insn->target = new;
 	insn->offset = ad->offset;
-	insn->is_volatile = insn->type && (insn->type->ctype.modifiers & MOD_VOLATILE);
+	insn->is_volatile = ad->type && (ad->type->ctype.modifiers & MOD_VOLATILE);
 	use_pseudo(insn, ad->address, &insn->src);
 	add_one_insn(ep, insn);
 	return new;
@@ -1007,7 +1007,7 @@ static void add_store(struct entrypoint *ep, struct access_data *ad, pseudo_t va
 
 	store = alloc_typed_instruction(OP_STORE, ad->btype);
 	store->offset = ad->offset;
-	store->is_volatile = store->type && (store->type->ctype.modifiers & MOD_VOLATILE);
+	store->is_volatile = ad->type && (ad->type->ctype.modifiers & MOD_VOLATILE);
 	use_pseudo(store, value, &store->target);
 	use_pseudo(store, ad->address, &store->src);
 	add_one_insn(ep, store);
