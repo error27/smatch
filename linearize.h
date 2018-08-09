@@ -113,7 +113,10 @@ struct instruction {
 		struct /* unops */ {
 			pseudo_t src;
 			struct symbol *orig_type;	/* casts */
-			unsigned int offset;		/* memops */
+		};
+		struct /* memops */ {
+			pseudo_t addr;			/* alias .src */
+			unsigned int offset;
 		};
 		struct /* binops and sel */ {
 			pseudo_t src1, src2, src3;
