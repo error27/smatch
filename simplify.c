@@ -605,6 +605,14 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 		// if (M' & M) == 0: ((a & M') | b) -> b
 		return replace_pseudo(insn, &insn->src1, orb);
 	}
+	if (multi_users(insn->src1))
+		return 0;	// can't modify anything inside the OR
+	if (nmask == mask) {
+		struct instruction *or = insn->src1->def;
+		pseudo_t *arg = (ora == or->src1) ? &or->src1 : &or->src2;
+		// if (M' & M) == M: ((a & M') | b) -> (a | b)
+		return replace_pseudo(or, arg, and->src1);
+	}
 	return 0;
 }
 
