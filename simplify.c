@@ -644,6 +644,15 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 	if (src2->type == PSEUDO_REG) {
 		if ((rc = simplify_mask_or_and(insn, mask, src2, src1)))
 			return rc;
+	} else if (src2->type == PSEUDO_VAL) {
+		unsigned long long oval = src2->value;
+		unsigned long long nval = oval & mask;
+		// Try to simplify:
+		//	OP(OR(x, C), K)
+		if (nval == 0) {
+			// if (C & M) == 0: OR(x, C) -> x
+			return replace_pseudo(insn, &insn->src1, src1);
+		}
 	}
 	return 0;
 }
