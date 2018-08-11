@@ -578,10 +578,11 @@ undef:
 }
 
 static int simplify_mask_or_and(struct instruction *insn, unsigned long long mask,
-	pseudo_t src, pseudo_t other)
+	pseudo_t ora, pseudo_t orb)
 {
 	unsigned long long omask, nmask;
-	pseudo_t src2 = src->def->src2;
+	struct instruction *and = ora->def;
+	pseudo_t src2 = and->src2;
 
 	if (!constant(src2))
 		return 0;
@@ -592,7 +593,7 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 	// replace OP(((x & M') | b), K)
 	// by      OP(b, K)
 	// when	(M' & M) == 0
-	return replace_pseudo(insn, &insn->src1, other);
+	return replace_pseudo(insn, &insn->src1, orb);
 }
 
 static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
