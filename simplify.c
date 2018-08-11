@@ -577,6 +577,17 @@ undef:
 	return NULL;
 }
 
+///
+// Simplifications
+// ^^^^^^^^^^^^^^^
+
+///
+// try to simplify OP(OR(AND(x, M'), b), K)
+// @insn: the 'masking' instruction
+// @mask: the mask associated to @insn (M)
+// @ora: one of the OR's operands
+// @orb: the other OR's operand
+// @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
 static int simplify_mask_or_and(struct instruction *insn, unsigned long long mask,
 	pseudo_t ora, pseudo_t orb)
 {
@@ -596,6 +607,16 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 	return replace_pseudo(insn, &insn->src1, orb);
 }
 
+///
+// try to simplify OP(OR(a, b), K)
+// @insn: the 'masking' instruction
+// @mask: the mask associated to @insn (M):
+// @or: the OR instruction
+// @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
+//
+// For the @mask (M):
+//	* if OP(x, K) == AND(x, M), @mask M is K
+//	* if OP(x, K) == LSR(x, S), @mask M is (-1 << S)
 static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
 {
 	pseudo_t src1 = or->src1;
