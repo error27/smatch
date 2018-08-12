@@ -6,7 +6,6 @@ int foo(int x)
 /*
  * check-name: or-and-constant1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\..*\\$0xfff
