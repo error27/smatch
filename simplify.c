@@ -657,6 +657,10 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 			// if (C & M) == M: OR(x, C) -> M
 			return replace_pseudo(insn, &insn->src1, value_pseudo(mask));
 		}
+		if (nval != oval && !multi_users(or->target)) {
+			// if (C & M) != C: OR(x, C) -> OR(x, (C & M))
+			return replace_pseudo(or, &or->src2, value_pseudo(nval));
+		}
 	}
 	return 0;
 }
