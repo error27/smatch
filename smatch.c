@@ -24,6 +24,7 @@
 char *option_debug_check = (char *)"";
 char *option_project_str = (char *)"smatch_generic";
 enum project_type option_project = PROJ_NONE;
+char *bin_dir;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
@@ -252,10 +253,18 @@ static char *read_bin_filename(void)
 	return alloc_string(filename);
 }
 
+static char *get_bin_dir(char *arg0)
+{
+	char *orig;
+
+	orig = read_bin_filename();
+	if (!orig)
+		orig = alloc_string(arg0);
+	return dirname(orig);
+}
+
 static char *get_data_dir(char *arg0)
 {
-	char *bin_dir;
-	char *orig;
 	char buf[256];
 	char *dir;
 
@@ -275,12 +284,7 @@ static char *get_data_dir(char *arg0)
 	if (!access(dir, R_OK))
 		return dir;
 
-	orig = read_bin_filename();
-	if (!orig)
-		orig = alloc_string(arg0);
-	bin_dir = dirname(orig);
 	strncpy(buf, bin_dir, 254);
-	free_string(orig);
 
 	buf[255] = '\0';
 	strncat(buf, "/smatch_data/", 254 - strlen(buf));
@@ -311,6 +315,7 @@ int main(int argc, char **argv)
 	/* this gets set back to zero when we parse the first function */
 	final_pass = 1;
 
+	bin_dir = get_bin_dir(argv[0]);
 	data_dir = get_data_dir(argv[0]);
 
 	allocate_hook_memory();
