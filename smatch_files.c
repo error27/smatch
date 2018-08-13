@@ -23,18 +23,28 @@
 
 int open_data_file(const char *filename)
 {
-	int fd;
 	char buf[256];
+	int fd;
 
 	fd = open(filename, O_RDONLY);
 	if (fd >= 0)
-		goto exit;
+		return fd;
 	if (!data_dir)
-		goto exit;
+		return -1;
 	snprintf(buf, 256, "%s/%s", data_dir, filename);
-	fd = open(buf, O_RDONLY);
-exit:
-	return fd;
+	return open(buf, O_RDONLY);
+}
+
+int open_schema_file(const char *schema)
+{
+	char buf[256];
+	int fd;
+
+	fd = open_data_file(schema);
+	if (fd >= 0)
+		return fd;
+	snprintf(buf, 256, "%s/smatch_data/%s", bin_dir, schema);
+	return open(buf, O_RDONLY);
 }
 
 struct token *get_tokens_file(const char *filename)

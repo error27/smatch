@@ -2094,7 +2094,7 @@ static void init_memdb(void)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
-		fd = open_data_file(schema_files[i]);
+		fd = open_schema_file(schema_files[i]);
 		if (fd < 0) {
 			printf("failed to open: %s\n", schema_files[i]);
 			continue;
@@ -2140,7 +2140,7 @@ static void init_cachedb(void)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
-		fd = open_data_file(schema_files[i]);
+		fd = open_schema_file(schema_files[i]);
 		if (fd < 0) {
 			printf("failed to open: %s\n", schema_files[i]);
 			continue;
@@ -2286,7 +2286,7 @@ static void register_return_replacements(void)
 	char *p;
 
 	snprintf(filename, 256, "db/%s.return_fixes", option_project_str);
-	fd = open_data_file(filename);
+	fd = open_schema_file(filename);
 	if (fd < 0)
 		return;
 	ret = read(fd, buf, sizeof(buf));

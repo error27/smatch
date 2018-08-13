@@ -896,6 +896,7 @@ void open_smatch_db(void);
 
 /* smatch_files.c */
 int open_data_file(const char *filename);
+int open_schema_file(const char *schema);
 struct token *get_tokens_file(const char *filename);
 
 /* smatch.c */
