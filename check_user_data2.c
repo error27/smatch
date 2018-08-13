@@ -378,6 +378,8 @@ int points_to_user_data(struct expression *expr)
 		return 0;
 	if (is_skb_data(expr))
 		return 1;
+	if (get_rl_from_function(expr, &rl))
+		return 1;
 
 	if (expr->type == EXPR_BINOP && expr->op == '+') {
 		if (points_to_user_data(expr->left))
