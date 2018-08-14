@@ -595,6 +595,18 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 	return replace_pseudo(insn, &insn->src1, other);
 }
 
+static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
+{
+	pseudo_t src1 = or->src1;
+	pseudo_t src2 = or->src2;
+
+	if (def_opcode(src1) == OP_AND)
+		return simplify_mask_or_and(insn, mask, src1, src2);
+	if (def_opcode(src2) == OP_AND)
+		return simplify_mask_or_and(insn, mask, src2, src1);
+	return 0;
+}
+
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
 {
 	unsigned int size = insn->size;
@@ -631,7 +643,6 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 	unsigned long long nval;
 	unsigned int size;
 	pseudo_t src2;
-	pseudo_t src;
 
 	if (!value)
 		return replace_with_pseudo(insn, pseudo);
@@ -698,13 +709,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			goto case_shift_shift;
 		case OP_OR:
 			mask = bits_mask(size - value) << value;
-			src = def->src1;
-			if (def_opcode(src) == OP_AND)
-				return simplify_mask_or_and(insn, mask, src, def->src2);
-			src = def->src2;
-			if (def_opcode(src) == OP_AND)
-				return simplify_mask_or_and(insn, mask, src, def->src1);
-			break;
+			return simplify_mask_or(insn, mask, def);
 		case OP_SHL:
 			// replace ((x << S) >> S)
 			// by      (x & (-1 >> S))
@@ -872,7 +877,6 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 	unsigned long long omask;
 	unsigned long long nmask;
 	struct instruction *def;
-	pseudo_t src1, src2;
 	int osize;
 
 	switch (DEF_OPCODE(def, old)) {
@@ -880,13 +884,7 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 		osize = 1;
 		goto oldsize;
 	case OP_OR:
-		src1 = def->src1;
-		src2 = def->src2;
-		if (def_opcode(src1) == OP_AND)
-			return simplify_mask_or_and(insn, mask, src1, src2);
-		if (def_opcode(src2) == OP_AND)
-			return simplify_mask_or_and(insn, mask, src2, src1);
-		break;
+		return simplify_mask_or(insn, mask, def);
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
 		/* fall through */
