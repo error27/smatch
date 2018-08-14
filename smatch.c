@@ -23,6 +23,7 @@
 
 char *option_debug_check = (char *)"";
 char *option_project_str = (char *)"smatch_generic";
+static char *option_db_file = (char *)"smatch_db.sqlite";
 enum project_type option_project = PROJ_NONE;
 char *bin_dir;
 char *data_dir;
@@ -190,6 +191,11 @@ void parse_args(int *argcp, char ***argvp)
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
+		if (!found && !strncmp((*argvp)[1], "--db-file=", 10)) {
+			option_db_file = (*argvp)[1] + 10;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
 		if (!found && !strncmp((*argvp)[1], "--data=", 7)) {
 			option_datadir_str = (*argvp)[1] + 7;
 			(*argvp)[1] = (*argvp)[0];
@@ -320,7 +326,7 @@ int main(int argc, char **argv)
 
 	allocate_hook_memory();
 	create_function_hook_hash();
-	open_smatch_db();
+	open_smatch_db(option_db_file);
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.

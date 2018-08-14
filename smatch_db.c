@@ -2197,7 +2197,7 @@ static void dump_cache(struct symbol_list *sym_list)
 	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
 }
 
-void open_smatch_db(void)
+void open_smatch_db(char *db_file)
 {
 	int rc;
 
@@ -2210,7 +2210,7 @@ void open_smatch_db(void)
 	init_memdb();
 	init_cachedb();
 
-	rc = sqlite3_open_v2("smatch_db.sqlite", &smatch_db, SQLITE_OPEN_READONLY, NULL);
+	rc = sqlite3_open_v2(db_file, &smatch_db, SQLITE_OPEN_READONLY, NULL);
 	if (rc != SQLITE_OK) {
 		option_no_db = 1;
 		return;

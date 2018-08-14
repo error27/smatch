@@ -892,7 +892,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 void sql_select_call_implies(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**));
 
-void open_smatch_db(void);
+void open_smatch_db(char *db_file);
 
 /* smatch_files.c */
 int open_data_file(const char *filename);
