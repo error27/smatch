@@ -25,6 +25,8 @@ static int my_id;
 
 STATE(nospec);
 
+static int in_nospec_asm;
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct range_list *rl;
@@ -38,6 +40,8 @@ bool is_nospec(struct expression *expr)
 {
 	char *macro;
 
+	if (in_nospec_asm)
+		return true;
 	if (get_state_expr(my_id, expr) == &nospec)
 		return true;
 	macro = get_macro_name(expr->pos);
@@ -110,6 +114,30 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	} END_FOR_EACH_SM(sm);
 }
 
+static int is_nospec_asm(struct statement *stmt)
+{
+	char *macro;
+
+	if (!stmt || stmt->type != STMT_ASM)
+		return 0;
+	macro = get_macro_name(stmt->asm_string->pos);
+	if (!macro || strcmp(macro, "CALL_NOSPEC") != 0)
+		return 0;
+	return 1;
+}
+
+static void match_asm(struct statement *stmt)
+{
+	if (is_nospec_asm(stmt))
+		in_nospec_asm++;
+}
+
+static void match_after_nospec_asm(struct statement *stmt)
+{
+	if (is_nospec_asm(stmt))
+		in_nospec_asm--;
+}
+
 void check_nospec(int id)
 {
 	my_id = id;
@@ -122,4 +150,7 @@ void check_nospec(int id)
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_struct_members);
+
+	add_hook(&match_asm, ASM_HOOK);
+	add_hook(&match_after_nospec_asm, STMT_HOOK_AFTER);
 }
