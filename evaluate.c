@@ -3018,7 +3018,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	if (!tas && sas > 0)
-		warning(expr->pos, "cast removes address space of expression");
+		warning(expr->pos, "cast removes address space of expression (<asn:%d>)", sas);
 	if (tas > 0 && sas > 0 && tas != sas)
 		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", sas, tas);
 	if (tas > 0 && !sas &&
