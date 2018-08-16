@@ -671,14 +671,12 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 				return simplify_or_lsr(insn, src, def->src1, value);
 			break;
 		case OP_SHL:
-			// replace (A << S) >> S
-			// by      A & (Mask(size) >> S)
+			// replace ((x << S) >> S)
+			// by      (x & (-1 >> S))
 			if (def->src2 != insn->src2)
 				break;
-			size = insn->size - value;
-			insn->opcode = OP_AND;
-			insn->src2 = value_pseudo((1ULL << size) - 1);
-			return replace_pseudo(insn, &insn->src1, def->src1);
+			mask = bits_mask(insn->size - value);
+			goto replace_mask;
 		}
 		break;
 	case OP_SHL:
@@ -709,6 +707,10 @@ new_value:
 	}
 zero:
 	return replace_with_pseudo(insn, value_pseudo(0));
+replace_mask:
+	insn->opcode = OP_AND;
+	insn->src2 = value_pseudo(mask);
+	return replace_pseudo(insn, &insn->src1, def->src1);
 }
 
 static int simplify_mul_div(struct instruction *insn, long long value)
