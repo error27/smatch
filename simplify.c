@@ -673,9 +673,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		case OP_SHL:
 			// replace (A << S) >> S
 			// by      A & (Mask(size) >> S)
-			if (!constant(def->src2))
-				break;
-			if (def->src2->value != value)
+			if (def->src2 != insn->src2)
 				break;
 			size = insn->size - value;
 			insn->opcode = OP_AND;
