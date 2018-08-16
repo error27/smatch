@@ -1293,6 +1293,9 @@ static int simplify_cast(struct instruction *insn)
 		break;
 	case OP_TRUNC:
 		switch (insn->opcode) {
+		case OP_TRUNC:
+			insn->orig_type = def->orig_type;
+			return replace_pseudo(insn, &insn->src1, def->src);
 		case OP_ZEXT:
 			if (size != def->orig_type->bit_size)
 				break;
