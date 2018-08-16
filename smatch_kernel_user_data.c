@@ -45,7 +45,10 @@ static const char *kstr_funcs[] = {
 
 static const char *returns_user_data[] = {
 	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read",
+	"kvm_register_read", "nlmsg_data", "nla_data", "memdup_user",
+	"kmap_atomic", "skb_network_header",
+	/* Xen */
+	"hvmemul_get_seg_reg", "guest_cpu_user_regs",
 };
 
 /* In Xen, these functions are called "copy_from_guest" */
