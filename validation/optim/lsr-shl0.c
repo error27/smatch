@@ -4,7 +4,7 @@ unsigned mask(unsigned x)
 }
 
 /*
- * check-name: shl-lsr
+ * check-name: lsr-shl0
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
