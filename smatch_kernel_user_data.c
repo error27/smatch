@@ -1414,6 +1414,13 @@ void register_kernel_user_data(int id)
 	for (i = 0; i < ARRAY_SIZE(xen_from_guest_funcs); i++)
 		add_function_hook(xen_from_guest_funcs[i], &match_user_copy, INT_PTR(0));
 
+	/* Xen hvm read functions */
+	add_function_hook("hvmemul_do_mmio", &match_user_copy, INT_PTR(5));
+	add_function_hook("hvmemul_do_direct_read", &match_user_copy, INT_PTR(4));
+	add_function_hook("hvmemul_do_io", &match_user_copy, INT_PTR(8));
+	add_function_hook("hvmemul_read_cr", &match_user_copy, INT_PTR(2));
+	add_function_hook("hvm_msr_read_intercept", &match_user_copy, INT_PTR(2));
+
 	/* Extra functions where we know tainted data is passed */
 	for (i = 0; i < ARRAY_SIZE(xen_hypercalls); i++)
 		add_function_hook(xen_hypercalls[i], &match_user_copy, INT_PTR(1));
