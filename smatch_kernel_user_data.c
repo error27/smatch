@@ -57,6 +57,17 @@ static const char * xen_from_guest_funcs[] = {
 "hvm_fetch_from_guest_virt_nofault",
 };
 
+// in Xen, these functions have user data in their first argument
+static const char * xen_hypercalls[] = {
+"hvm_memory_op_compat32", "hvm_grant_table_op_compat32", "hvm_vcpu_op_compat32",
+"hvm_physdev_op_compat32", "do_event_channel_op", "do_xen_version",
+"compat_xen_version", "do_sched_op", "compat_sched_op",
+"do_set_timer_op", "compat_set_timer_op", "do_hvm_op", "do_sysctl_op",
+"do_tmem_op", "hvm_physdev_op", "hvm_vcpu_op", "hvm_grant_table_op",
+"hvm_memory_op", "do_domctl", "arch_do_domctl", "do_sysctl", "arch_do_sysctl",
+"do_multicall"
+};
+
 static struct stree *start_states;
 static void save_start_states(struct statement *stmt)
 {
@@ -1402,6 +1413,10 @@ void register_kernel_user_data(int id)
 	/* In Xen, these functions are called "copy_from_guest" */
 	for (i = 0; i < ARRAY_SIZE(xen_from_guest_funcs); i++)
 		add_function_hook(xen_from_guest_funcs[i], &match_user_copy, INT_PTR(0));
+
+	/* Extra functions where we know tainted data is passed */
+	for (i = 0; i < ARRAY_SIZE(xen_hypercalls); i++)
+		add_function_hook(xen_hypercalls[i], &match_user_copy, INT_PTR(1));
 
 	/* Xen equivalent to kvm_register_read */
 	add_function_assign_hook("acpi_hw_register_read", &match_user_copy, NULL);
