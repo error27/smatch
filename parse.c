@@ -1139,7 +1139,7 @@ static struct token *attribute_mode(struct token *token, struct symbol *attr, st
 		if (mode && mode->op->type == KW_MODE)
 			ctx->mode = mode->op;
 		else
-			sparse_error(token->pos, "unknown mode attribute %s\n", show_ident(token->ident));
+			sparse_error(token->pos, "unknown mode attribute %s", show_ident(token->ident));
 		token = token->next;
 	} else
 		sparse_error(token->pos, "expect attribute mode symbol\n");
