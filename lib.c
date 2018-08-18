@@ -1405,24 +1405,21 @@ static void predefined_macros(void)
 
 	predefine("__STDC__", 1, "1");
 	switch (standard) {
-	case STANDARD_C89:
-		predefine("__STRICT_ANSI__", 1, "1");
-		break;
-
-	case STANDARD_C94:
-		predefine("__STDC_VERSION__", 1, "199409L");
-		predefine("__STRICT_ANSI__", 1, "1");
-		break;
-
-	case STANDARD_C99:
-		predefine("__STDC_VERSION__", 1, "199901L");
-		predefine("__STRICT_ANSI__", 1, "1");
-		break;
-
-	case STANDARD_GNU89:
 	default:
 		break;
 
+	case STANDARD_C89:
+		predefine("__STRICT_ANSI__", 1, "1");
+	case STANDARD_GNU89:
+		break;
+
+	case STANDARD_C94:
+		predefine("__STRICT_ANSI__", 1, "1");
+		predefine("__STDC_VERSION__", 1, "199409L");
+		break;
+
+	case STANDARD_C99:
+		predefine("__STRICT_ANSI__", 1, "1");
 	case STANDARD_GNU99:
 		predefine("__STDC_VERSION__", 1, "199901L");
 		break;
