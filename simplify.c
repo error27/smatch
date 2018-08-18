@@ -685,6 +685,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			nmask = omask & mask;
 			if (nmask == 0)
 				return replace_with_pseudo(insn, value_pseudo(0));
+			if (nmask == mask)
+				return replace_pseudo(insn, &insn->src1, def->src1);
 			if (nbr_users(pseudo) > 1)
 				break;
 			def->opcode = OP_LSR;
