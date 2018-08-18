@@ -25,7 +25,7 @@ static int my_id;
 
 STATE(nospec);
 
-static int in_nospec_asm;
+static bool in_nospec_stmt;
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
@@ -40,8 +40,10 @@ bool is_nospec(struct expression *expr)
 {
 	char *macro;
 
-	if (in_nospec_asm)
+	if (in_nospec_stmt)
 		return true;
+	if (!expr)
+		return false;
 	if (get_state_expr(my_id, expr) == &nospec)
 		return true;
 	macro = get_macro_name(expr->pos);
@@ -112,6 +114,47 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 
 		sql_insert_return_states(return_id, return_ranges, NOSPEC, param, param_name, "");
 	} END_FOR_EACH_SM(sm);
+
+	if (is_nospec(expr))
+		sql_insert_return_states(return_id, return_ranges, NOSPEC, -1, "$", "");
+}
+
+static int is_return_statement(void)
+{
+	if (__cur_stmt && __cur_stmt->type == STMT_RETURN)
+		return 1;
+	return 0;
+}
+
+static void db_returns_nospec(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *call;
+	struct expression *arg;
+	char *name;
+	struct symbol *sym;
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return;
+
+	if (param == -1 && expr->type == EXPR_ASSIGNMENT) {
+		name = get_variable_from_key(expr->left, key, &sym);
+	} else if (param == -1 && is_return_statement()) {
+		in_nospec_stmt = true;
+	} else {
+		arg = get_argument_from_call_expr(call->args, param);
+		if (!arg)
+			return;
+		name = get_variable_from_key(arg, key, &sym);
+	}
+	if (!name || !sym)
+		goto free;
+
+	set_state(my_id, name, sym, &nospec);
+free:
+	free_string(name);
 }
 
 static int is_nospec_asm(struct statement *stmt)
@@ -129,13 +172,12 @@ static int is_nospec_asm(struct statement *stmt)
 static void match_asm(struct statement *stmt)
 {
 	if (is_nospec_asm(stmt))
-		in_nospec_asm++;
+		in_nospec_stmt = true;
 }
 
 static void match_after_nospec_asm(struct statement *stmt)
 {
-	if (is_nospec_asm(stmt))
-		in_nospec_asm--;
+	in_nospec_stmt = false;
 }
 
 void check_nospec(int id)
@@ -150,6 +192,7 @@ void check_nospec(int id)
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_struct_members);
+	select_return_states_hook(NOSPEC, &db_returns_nospec);
 
 	add_hook(&match_asm, ASM_HOOK);
 	add_hook(&match_after_nospec_asm, STMT_HOOK_AFTER);
