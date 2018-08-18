@@ -12,7 +12,6 @@ unsigned shl_and1(unsigned x)
 /*
  * check-name: shl-and1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\..*\\$0$
