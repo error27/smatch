@@ -7,7 +7,6 @@ unsigned shl_and0(unsigned x)
 /*
  * check-name: shl-and0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\..*\\$0$

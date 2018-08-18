@@ -720,6 +720,17 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		if (value >= size)
 			goto zero;
 		switch(DEF_OPCODE(def, pseudo)) {
+		case OP_AND:
+			// simplify (A & M) << S
+			if (!constant(def->src2))
+				break;
+			mask = bits_mask(insn->size) >> value;
+			omask = def->src2->value;
+			nmask = omask & mask;
+			if (nmask == 0)
+				return replace_with_pseudo(insn, value_pseudo(0));
+			// do not simplify into ((A << S) & (M << S))
+			break;
 		case OP_LSR:
 			// replace ((x >> S) << S)
 			// by      (x & (-1 << S))
