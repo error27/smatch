@@ -7,6 +7,30 @@
 ///
 // Instruction simplification
 // --------------------------
+//
+// Notation
+// ^^^^^^^^
+// The following conventions are used to describe the simplications:
+// * Uppercase letters are reserved for constants:
+//   * `M` for a constant mask,
+//   * `S` for a constant shift,
+//   * `N` for a constant number of bits (usually other than a shift),
+//   * `C` or 'K' for others constants.
+// * Lowercase letters `a`, `b`, `x`, `y`, ... are used for non-constants
+//   or when it doesn't matter if the pseudo is a constant or not.
+// * Primes are used if needed to distinguish symbols (`M`, `M'`, ...).
+// * Expressions or sub-expressions involving only constants are
+//   understood to be evaluated.
+// * `$mask(N)` is used for `((1 << N) -1)`
+// * `$trunc(x, N)` is used for `(x & $mask(N))`
+// * Expressions like `(-1 << S)`, `(-1 >> S)` and others formulae are
+//   understood to be truncated to the size of the current instruction
+//   (needed, since in general this size is not the same as the one used
+//   by sparse for the evaluation of arithmetic operations).
+// * `TRUNC(x, N)` is used for a truncation *to* a size of `N` bits
+// * `ZEXT(x, N)` is used for a zero-extension *from* a size of `N` bits
+// * `OP(x, C)` is used to represent some generic operation using a constant,
+//   including `TRUNC(x, N)` and `ZEXT(x, N)`.
 
 #include <assert.h>
 

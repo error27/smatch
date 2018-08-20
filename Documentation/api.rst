@@ -20,3 +20,8 @@ Typing
 ~~~~~~
 
 .. c:autodoc:: evaluate.h
+
+Optimization
+~~~~~~~~~~~~
+
+.. c:autodoc:: simplify.c
