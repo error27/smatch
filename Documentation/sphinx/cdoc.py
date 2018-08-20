@@ -212,12 +212,11 @@ def convert_to_rst(info):
 			lst.append((n, l))
 		if 'desc' in info:
 			desc = info['desc']
-			n = desc[0]
-			r = ''
-			for l in desc[1:]:
-				r += l + '\n'
-			lst.append((n, r))
-		lst.append((n+1, '\n'))
+			n = desc[0] - 1
+			desc.append('')
+			for i in range(1, len(desc)):
+				l = desc[i]
+				lst.append((n+i, l))
 
 	elif typ == 'func':
 		(n, l) = info['func']
