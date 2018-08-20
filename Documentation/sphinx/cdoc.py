@@ -217,6 +217,9 @@ def convert_to_rst(info):
 			for i in range(1, len(desc)):
 				l = desc[i]
 				lst.append((n+i, l))
+				# auto add a blank line for a list
+				if re.search(r":$", desc[i]) and re.search(r"\S", desc[i+1]):
+					lst.append((n+i, ''))
 
 	elif typ == 'func':
 		(n, l) = info['func']
