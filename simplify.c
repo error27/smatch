@@ -344,7 +344,7 @@ static inline int constant(pseudo_t pseudo)
 }
 
 ///
-// replace one operand by a new value
+// replace the operand of an instruction
 // @insn: the instruction
 // @pp: the address of the instruction's operand
 // @new: the new value for the operand
