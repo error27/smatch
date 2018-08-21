@@ -4,6 +4,10 @@
  * Copyright (C) 2004 Linus Torvalds
  */
 
+///
+// Instruction simplification
+// --------------------------
+
 #include <assert.h>
 
 #include "parse.h"
@@ -12,7 +16,12 @@
 #include "flow.h"
 #include "symbol.h"
 
-/* Find the trivial parent for a phi-source */
+///
+// Utilities
+// ^^^^^^^^^
+
+///
+// find the trivial parent for a phi-source
 static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseudo)
 {
 	/* Can't go upwards if the pseudo is defined in the bb it came from.. */
@@ -26,16 +35,15 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 	return first_basic_block(source->parents);
 }
 
-/*
- * Copy the phi-node's phisrcs into to given array.
- * Returns 0 if the the list contained the expected
- * number of element, a positive number if there was
- * more than expected and a negative one if less.
- *
- * Note: we can't reuse a function like linearize_ptr_list()
- * because any VOIDs in the phi-list must be ignored here
- * as in this context they mean 'entry has been removed'.
- */
+///
+// copy the phi-node's phisrcs into to given array
+// @return: 0 if the the list contained the expected
+//	number of element, a positive number if there was
+//	more than expected and a negative one if less.
+//
+// :note: we can't reuse a function like linearize_ptr_list()
+//	because any VOIDs in the phi-list must be ignored here
+//	as in this context they mean 'entry has been removed'.
 static int get_phisources(struct instruction *sources[], int nbr, struct instruction *insn)
 {
 	pseudo_t phi;
@@ -227,15 +235,16 @@ static void kill_use_list(struct pseudo_list *list)
 	} END_FOR_EACH_PTR(p);
 }
 
-/*
- * kill an instruction:
- * - remove it from its bb
- * - remove the usage of all its operands
- * If forse is zero, the normal case, the function only for
- * instructions free of (possible) side-effects. Otherwise
- * the function does that unconditionally (must only be used
- * for unreachable instructions.
- */
+///
+// kill an instruction
+// @insn: the instruction to be killed
+// @force: if unset, the normal case, the instruction is not killed
+//	if not free of possible side-effect; if set the instruction
+//	is unconditionally killed.
+//
+// The killed instruction is removed from its BB and the usage
+// of all its operands are removed. The instruction is also
+// marked as killed by setting its ->bb to NULL.
 int kill_insn(struct instruction *insn, int force)
 {
 	if (!insn || !insn->bb)
@@ -315,9 +324,8 @@ int kill_insn(struct instruction *insn, int force)
 	return repeat_phase |= REPEAT_CSE;
 }
 
-/*
- * Kill trivially dead instructions
- */
+///
+// kill trivially dead instructions
 static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, pseudo_t *src3)
 {
 	if (has_users(insn->target))
@@ -399,12 +407,11 @@ static unsigned int value_size(long long value)
 	return 64;
 }
 
-/*
- * Try to determine the maximum size of bits in a pseudo.
- *
- * Right now this only follow casts and constant values, but we
- * could look at things like logical 'and' instructions etc.
- */
+///
+// try to determine the maximum size of bits in a pseudo
+//
+// Right now this only follow casts and constant values, but we
+// could look at things like AND instructions, etc.
 static unsigned int operand_size(struct instruction *insn, pseudo_t pseudo)
 {
 	unsigned int size = insn->size;
@@ -1196,10 +1203,11 @@ offset:
 	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 }
 
-/*
- * We walk the whole chain of adds/subs backwards. That's not
- * only more efficient, but it allows us to find loops.
- */
+///
+// simplify memops instructions
+//
+// :note: We walk the whole chain of adds/subs backwards.
+//	That's not only more efficient, but it allows us to find loops.
 static int simplify_memop(struct instruction *insn)
 {
 	int one, ret = 0;
@@ -1417,9 +1425,8 @@ static int simplify_range(struct instruction *insn)
 	return 0;
 }
 
-/*
- * Simplify "set_ne/eq $0 + br"
- */
+///
+// simplify SET_NE/EQ $0 + BR
 static int simplify_cond_branch(struct instruction *br, struct instruction *def, pseudo_t newcond)
 {
 	replace_pseudo(br, &br->cond, newcond);
