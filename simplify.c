@@ -1437,6 +1437,12 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
 		break;
+	case OP_LSR:
+	case OP_SHL:
+		if (insn->opcode != OP_TRUNC)
+			break;
+		mask = bits_mask(insn->size);
+		return simplify_mask_shift(def, mask);
 	case OP_TRUNC:
 		switch (insn->opcode) {
 		case OP_TRUNC:
