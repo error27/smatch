@@ -12,7 +12,6 @@ int foo(struct s s, int a)
 /*
  * check-name: bitfield-store-load unsigned
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: shl\\.

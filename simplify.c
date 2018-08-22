@@ -686,6 +686,21 @@ static int simplify_mask_shift_or(struct instruction *sh, struct instruction *or
 	return simplify_mask_or(sh, smask & mask, or);
 }
 
+static int simplify_mask_shift(struct instruction *sh, unsigned long long mask)
+{
+	struct instruction *inner;
+
+	if (!constant(sh->src2) || sh->tainted)
+		return 0;
+	switch (DEF_OPCODE(inner, sh->src1)) {
+	case OP_OR:
+		if (!multi_users(sh->target))
+			return simplify_mask_shift_or(sh, inner, mask);
+		break;
+	}
+	return 0;
+}
+
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
 {
 	unsigned int size = insn->size;
@@ -986,6 +1001,9 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 		goto oldsize;
 	case OP_OR:
 		return simplify_mask_or(insn, mask, def);
+	case OP_LSR:
+	case OP_SHL:
+		return simplify_mask_shift(def, mask);
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
 		/* fall through */
