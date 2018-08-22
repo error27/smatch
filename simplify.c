@@ -668,6 +668,24 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 	return 0;
 }
 
+///
+// try to simplify MASK(SHIFT(OR(a, b), S), M)
+// @sh: the shift instruction
+// @or: the OR instruction
+// @mask: the mask associated to MASK (M):
+// @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
+static int simplify_mask_shift_or(struct instruction *sh, struct instruction *or, unsigned long long mask)
+{
+	unsigned long long smask = bits_mask(sh->size);
+	int shift = sh->src2->value;
+
+	if (sh->opcode == OP_LSR)
+		mask <<= shift;
+	else
+		mask >>= shift;
+	return simplify_mask_or(sh, smask & mask, or);
+}
+
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
 {
 	unsigned int size = insn->size;
@@ -775,8 +793,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 		case OP_LSR:
 			goto case_shift_shift;
 		case OP_OR:
-			mask = bits_mask(size - value) << value;
-			return simplify_mask_or(insn, mask, def);
+			mask = bits_mask(size);
+			return simplify_mask_shift_or(insn, def, mask);
 		case OP_SHL:
 			// replace ((x << S) >> S)
 			// by      (x & (-1 >> S))
@@ -811,8 +829,8 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			mask = bits_mask(insn->size - value) << value;
 			goto replace_mask;
 		case OP_OR:
-			mask = bits_mask(size - value);
-			return simplify_mask_or(insn, mask, def);
+			mask = bits_mask(size);
+			return simplify_mask_shift_or(insn, def, mask);
 		case OP_SHL:
 		case_shift_shift:		// also for LSR - LSR
 			if (def == insn)	// cyclic DAG!
