@@ -30,7 +30,14 @@
 // * `TRUNC(x, N)` is used for a truncation *to* a size of `N` bits
 // * `ZEXT(x, N)` is used for a zero-extension *from* a size of `N` bits
 // * `OP(x, C)` is used to represent some generic operation using a constant,
-//   including `TRUNC(x, N)` and `ZEXT(x, N)`.
+//   including when the constant is implicit (e.g. `TRUNC(x, N)`).
+// * `MASK(x, M)` is used to respresent a 'masking' instruction:
+//   - `AND(x, M)`
+//   - `LSR(x, S)`, with `M` = (-1 << S)
+//   - `SHL(x, S)`, with `M` = (-1 >> S)
+//   - `TRUNC(x, N)`, with `M` = $mask(N)
+//   - `ZEXT(x, N)`, with `M` = $mask(N)
+// * `SHIFT(x, S)` is used for `LSR(x, S)` or `SHL(x, S)`.
 
 #include <assert.h>
 
@@ -582,9 +589,9 @@ undef:
 // ^^^^^^^^^^^^^^^
 
 ///
-// try to simplify OP(OR(AND(x, M'), b), K)
-// @insn: the 'masking' instruction
-// @mask: the mask associated to @insn (M)
+// try to simplify MASK(OR(AND(x, M'), b), M)
+// @insn: the masking instruction
+// @mask: the associated mask (M)
 // @ora: one of the OR's operands, guaranteed to be PSEUDO_REG
 // @orb: the other OR's operand
 // @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
@@ -622,16 +629,11 @@ static int simplify_mask_or_and(struct instruction *insn, unsigned long long mas
 }
 
 ///
-// try to simplify OP(OR(a, b), K)
-// @insn: the 'masking' instruction
-// @mask: the mask associated to @insn (M):
+// try to simplify MASK(OR(a, b), M)
+// @insn: the masking instruction
+// @mask: the associated mask (M)
 // @or: the OR instruction
 // @return: 0 if no changes have been made, one or more REPEAT_* flags otherwise.
-//
-// For the @mask (M):
-//	* if OP(x, K) == AND(x, M), @mask M is K
-//	* if OP(x, K) == LSR(x, S), @mask M is (-1 << S)
-//	* if OP(x, K) == SHL(x, S), @mask M is (-1 >> S)
 static int simplify_mask_or(struct instruction *insn, unsigned long long mask, struct instruction *or)
 {
 	pseudo_t src1 = or->src1;
@@ -649,7 +651,7 @@ static int simplify_mask_or(struct instruction *insn, unsigned long long mask, s
 		unsigned long long oval = src2->value;
 		unsigned long long nval = oval & mask;
 		// Try to simplify:
-		//	OP(OR(x, C), K)
+		//	MASK(OR(x, C), M)
 		if (nval == 0) {
 			// if (C & M) == 0: OR(x, C) -> x
 			return replace_pseudo(insn, &insn->src1, src1);
