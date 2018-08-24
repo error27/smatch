@@ -78,6 +78,8 @@ void insert_mtag_data(sval_t sval, struct range_list *rl)
 
 	rl = clone_rl_permanent(rl);
 
+	mem_sql(NULL, NULL, "delete from mtag_data where tag = %lld and offset = %d and type = %d",
+		tag, offset, DATA_VALUE);
 	mem_sql(NULL, NULL, "insert into mtag_data values (%lld, %d, %d, '%lu');",
 		tag, offset, DATA_VALUE, (unsigned long)rl);
 }
@@ -133,20 +135,20 @@ static int save_mtag_data(void *_unused, int argc, char **argv, char **azColName
 		sm_msg("Error saving mtag data");
 		return 0;
 	}
+	if (!option_info)
+		return 0;
 
 	rl = (struct range_list *)strtoul(argv[3], NULL, 10);
-
-	if (option_info) {
-		sm_msg("SQL: insert into mtag_data values ('%s', '%s', '%s', '%s');",
-		       argv[0], argv[1], argv[2], show_rl(rl));
-	}
+	sm_msg("SQL: insert into mtag_data values ('%s', '%s', '%s', '%s');",
+	       argv[0], argv[1], argv[2], show_rl(rl));
 
 	return 0;
 }
 
 static void match_end_file(struct symbol_list *sym_list)
 {
-	mem_sql(&save_mtag_data, NULL, "select * from mtag_data;");
+	mem_sql(&save_mtag_data, NULL, "select * from mtag_data where type = %d;",
+		DATA_VALUE);
 }
 
 struct db_info {
