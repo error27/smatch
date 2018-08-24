@@ -524,6 +524,23 @@ int filter_comparison(int orig, int op)
 	return 0;
 }
 
+static void pre_merge_hook(struct sm_state *sm)
+{
+	struct compare_data *data = sm->state->data;
+	int other;
+
+	if (!data)
+		return;
+	other = get_comparison(data->left, data->right);
+	if (!other)
+		return;
+
+	set_state(compare_id, sm->name, NULL,
+		  alloc_compare_state(data->left, data->left_var, data->left_vsl,
+				      other,
+				      data->right, data->right_var, data->right_vsl));
+}
+
 struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct compare_data *data = s1->data;
@@ -725,10 +742,20 @@ static void match_inc_dec(struct sm_state *sm, struct expression *mod_expr)
 		match_dec(sm);
 }
 
+static int is_self_assign(struct expression *expr)
+{
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return 0;
+	return expr_equiv(expr->left, expr->right);
+}
+
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct string_list *links;
 	char *tmp;
+
+	if (mod_expr && is_self_assign(mod_expr))
+		return;
 
 	/* handled by match_inc_dec() */
 	if (mod_expr &&
@@ -1232,7 +1259,6 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 free:
 	free_string(left);
 	free_string(right);
-
 }
 
 void __comparison_match_condition(struct expression *expr)
@@ -1527,6 +1553,9 @@ static void match_assign(struct expression *expr)
 	if (is_struct(expr->left))
 		return;
 
+	if (is_self_assign(expr))
+		return;
+
 	copy_comparisons(expr->left, expr->right);
 	add_comparison(expr->left, SPECIAL_EQUAL, expr->right);
 
@@ -1572,6 +1601,9 @@ int get_comparison(struct expression *a, struct expression *b)
 	char *one = NULL;
 	char *two = NULL;
 	int ret = 0;
+
+	if (!a || !b)
+		return 0;
 
 	a = strip_parens(a);
 	b = strip_parens(b);
@@ -2458,6 +2490,7 @@ void register_comparison(int id)
 	compare_id = id;
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(compare_id, unmatched_comparison);
+	add_pre_merge_hook(compare_id, &pre_merge_hook);
 	add_merge_hook(compare_id, &merge_compare_states);
 	add_hook(&free_data, AFTER_FUNC_HOOK);
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);

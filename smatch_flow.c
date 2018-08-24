@@ -322,6 +322,29 @@ static int handle__builtin_choose_expr(struct expression *expr)
 	return 1;
 }
 
+static int handle__builtin_choose_expr_assigns(struct expression *expr)
+{
+	struct expression *const_expr, *right, *expr1, *expr2, *fake;
+	sval_t sval;
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_CALL)
+		return 0;
+	if (!sym_name_is("__builtin_choose_expr", right->fn))
+		return 0;
+
+	const_expr = get_argument_from_call_expr(right->args, 0);
+	expr1 = get_argument_from_call_expr(right->args, 1);
+	expr2 = get_argument_from_call_expr(right->args, 2);
+
+	if (!get_value(const_expr, &sval) || !expr1 || !expr2)
+		return 0;
+
+	fake = assign_expression(expr->left, '=', sval.value ? expr1 : expr2);
+	__split_expr(fake);
+	return 1;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -409,6 +432,8 @@ void __split_expr(struct expression *expr)
 		if (handle_comma_assigns(expr))
 			break;
 		if (handle_postop_assigns(expr))
+			break;
+		if (handle__builtin_choose_expr_assigns(expr))
 			break;
 
 		__split_expr(expr->right);
