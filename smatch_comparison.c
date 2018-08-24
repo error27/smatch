@@ -1182,8 +1182,16 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	struct stree *pre_stree;
 	sval_t sval;
 
+	if (!left_expr || !right_expr)
+		return;
+
 	left_expr = strip_parens(left_expr);
 	right_expr = strip_parens(right_expr);
+
+	while (left_expr->type == EXPR_ASSIGNMENT)
+		left_expr = strip_parens(left_expr->left);
+	while (right_expr->type == EXPR_ASSIGNMENT)
+		right_expr = strip_parens(right_expr->left);
 
 	false_op = negate_comparison(op);
 
