@@ -156,9 +156,18 @@ int negate_comparison(int op)
 static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl)
 {
 	sval_t left_min, left_max, right_min, right_max;
+	struct symbol *type = &int_ctype;
 
 	if (!left_rl || !right_rl)
 		return 0;
+
+	if (type_positive_bits(rl_type(left_rl)) > type_positive_bits(type))
+		type = rl_type(left_rl);
+	if (type_positive_bits(rl_type(right_rl)) > type_positive_bits(type))
+		type = rl_type(right_rl);
+
+	left_rl = cast_rl(type, left_rl);
+	right_rl = cast_rl(type, right_rl);
 
 	left_min = rl_min(left_rl);
 	left_max = rl_max(left_rl);
@@ -398,6 +407,9 @@ int filter_comparison(int orig, int op)
 {
 	if (orig == op)
 		return orig;
+
+	orig = remove_unsigned_from_comparison(orig);
+	op = remove_unsigned_from_comparison(op);
 
 	switch (orig) {
 	case 0:
