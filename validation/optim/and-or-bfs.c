@@ -12,7 +12,6 @@ int bfs(struct s s, int a)
 /*
  * check-name: and-or-bfs
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): trunc\\.
