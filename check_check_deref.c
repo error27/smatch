@@ -134,6 +134,8 @@ free:
 
 static void match_condition(struct expression *expr)
 {
+	struct smatch_state *true_state = NULL;
+
 	if (get_macro_name(expr->pos))
 		return;
 
@@ -144,7 +146,14 @@ static void match_condition(struct expression *expr)
 		match_condition(expr->right);
 		match_condition(expr->left);
 	}
-	set_true_false_states_expr(my_id, expr, &ok, &null);
+
+	if (implied_not_equal(expr, 0))
+		return;
+
+	if (get_state_expr(my_id, expr))
+		true_state = &ok;
+
+	set_true_false_states_expr(my_id, expr, true_state, &null);
 }
 
 void check_check_deref(int id)
