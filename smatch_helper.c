@@ -1066,6 +1066,8 @@ int expr_equiv(struct expression *one, struct expression *two)
 		return 0;
 	if (one->type != two->type)
 		return 0;
+	if (is_fake_call(one) || is_fake_call(two))
+		return 0;
 
 	one_name = expr_to_str_sym(one, &one_sym);
 	if (!one_name)
