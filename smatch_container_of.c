@@ -252,11 +252,14 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 static int get_shared_cnt(const char *one, const char *two)
 {
 	int i;
+	int on_end = false;
 
 	i = 0;
 	while (true) {
-		if (!one[i] || !two[i])
+		if (!one[i] || !two[i]) {
+			on_end = true;
 			break;
+		}
 		if (one[i] != two[i])
 			break;
 		i++;
@@ -264,8 +267,12 @@ static int get_shared_cnt(const char *one, const char *two)
 	if (i == 0)
 		return 0;
 	i--;
-	while (i > 0 && (one[i] == '>' || one[i] == '-' || one[i] == '.'))
+	while (i > 0 && (one[i] == '>' || one[i] == '-' || one[i] == '.')) {
+		on_end = true;
 		i--;
+	}
+	if (!on_end)
+		return 0;
 
 	return i + 1;
 }
