@@ -247,7 +247,7 @@ void register_mtag_data(int id)
 {
 	my_id = id;
 
-	add_hook(&clear_cache, END_FUNC_HOOK);
+	add_hook(&clear_cache, FUNC_DEF_HOOK);
 
 //	if (!option_info)
 //		return;
