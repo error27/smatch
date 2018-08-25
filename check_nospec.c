@@ -143,6 +143,7 @@ static void db_returns_nospec(struct expression *expr, int param, char *key, cha
 		name = get_variable_from_key(expr->left, key, &sym);
 	} else if (param == -1 && is_return_statement()) {
 		in_nospec_stmt = true;
+		return;
 	} else {
 		arg = get_argument_from_call_expr(call->args, param);
 		if (!arg)
