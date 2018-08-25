@@ -289,8 +289,10 @@ int dump_macro_defs = 0;
 
 int dbg_compound = 0;
 int dbg_dead = 0;
+int dbg_domtree = 0;
 int dbg_entry = 0;
 int dbg_ir = 0;
+int dbg_postorder = 0;
 
 unsigned long fdump_ir;
 int fmem_report = 0;
@@ -770,8 +772,10 @@ static char **handle_switch_W(char *arg, char **next)
 static struct flag debugs[] = {
 	{ "compound", &dbg_compound},
 	{ "dead", &dbg_dead},
+	{ "domtree", &dbg_domtree},
 	{ "entry", &dbg_entry},
 	{ "ir", &dbg_ir},
+	{ "postorder", &dbg_postorder},
 };
 
 

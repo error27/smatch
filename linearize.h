@@ -7,6 +7,7 @@
 #include "opcode.h"
 #include "parse.h"
 #include "symbol.h"
+#include "ptrmap.h"
 
 struct instruction;
 
@@ -17,10 +18,12 @@ struct pseudo_user {
 
 DECLARE_ALLOCATOR(pseudo_user);
 DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
+DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
 
 
 enum pseudo_type {
 	PSEUDO_VOID,
+	PSEUDO_UNDEF,
 	PSEUDO_REG,
 	PSEUDO_SYM,
 	PSEUDO_VAL,
@@ -99,7 +102,9 @@ struct instruction {
 			struct multijmp_list *multijmp_list;
 		};
 		struct /* phi_node */ {
+			pseudo_t phi_var;		// used for SSA conversion
 			struct pseudo_list *phi_list;
+			unsigned int used:1;
 		};
 		struct /* phi source */ {
 			pseudo_t phi_src;
@@ -265,11 +270,18 @@ struct instruction_list;
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	int context;
+	union {
+		int context;
+		int postorder_nr;	/* postorder number */
+		int dom_level;		/* level in the dominance tree */
+	};
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
+	struct basic_block *idom;	/* link to the immediate dominator */
+	struct basic_block_list *doms;	/* list of BB idominated by this one */
+	struct phi_map *phi_map;
 	struct pseudo_list *needs, *defines;
 	union {
 		unsigned int nr;	/* unique id for label's names */
@@ -330,7 +342,7 @@ static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_u
 
 static inline int has_use_list(pseudo_t p)
 {
-	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_VAL);
+	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_UNDEF && p->type != PSEUDO_VAL);
 }
 
 static inline int pseudo_user_list_size(struct pseudo_user_list *list)
@@ -391,16 +403,21 @@ struct entrypoint {
 	struct basic_block_list *bbs;
 	struct basic_block *active;
 	struct instruction *entry;
+	unsigned int dom_levels;	/* max levels in the dom tree */
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);
 extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
 struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
+struct instruction *alloc_phi_node(struct basic_block *bb, struct symbol *type, struct ident *ident);
+struct instruction *insert_phi_node(struct basic_block *bb, struct symbol *var);
+void add_phi_node(struct basic_block *bb, struct instruction *phi_node);
 
 pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *type);
 pseudo_t alloc_pseudo(struct instruction *def);
 pseudo_t value_pseudo(long long val);
+pseudo_t undef_pseudo(void);
 
 struct entrypoint *linearize_symbol(struct symbol *sym);
 int unssa(struct entrypoint *ep);

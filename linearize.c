@@ -172,6 +172,8 @@ const char *show_pseudo(pseudo_t pseudo)
 		if (pseudo->ident)
 			sprintf(buf+i, "(%s)", show_ident(pseudo->ident));
 		break;
+	case PSEUDO_UNDEF:
+		return "UNDEF";
 	default:
 		snprintf(buf, 64, "<bad pseudo type %d>", pseudo->type);
 	}
@@ -829,6 +831,13 @@ pseudo_t value_pseudo(long long val)
 	return pseudo;
 }
 
+pseudo_t undef_pseudo(void)
+{
+	pseudo_t pseudo = __alloc_pseudo(0);
+	pseudo->type = PSEUDO_UNDEF;
+	return pseudo;
+}
+
 static pseudo_t argument_pseudo(struct entrypoint *ep, int nr)
 {
 	pseudo_t pseudo = __alloc_pseudo(0);
@@ -869,6 +878,42 @@ pseudo_t alloc_phi(struct basic_block *source, pseudo_t pseudo, struct symbol *t
 	insn->bb = source;
 	add_instruction(&source->insns, insn);
 	return insn->target;
+}
+
+struct instruction *alloc_phi_node(struct basic_block *bb, struct symbol *type, struct ident *ident)
+{
+	struct instruction *phi_node = alloc_typed_instruction(OP_PHI, type);
+	pseudo_t phi;
+
+	phi = alloc_pseudo(phi_node);
+	phi->ident = ident;
+	phi->def = phi_node;
+	phi_node->target = phi;
+	phi_node->bb = bb;
+	return phi_node;
+}
+
+void add_phi_node(struct basic_block *bb, struct instruction *phi_node)
+{
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		enum opcode op = insn->opcode;
+		if (op == OP_PHI)
+			continue;
+		INSERT_CURRENT(phi_node, insn);
+		return;
+	} END_FOR_EACH_PTR(insn);
+
+	// FIXME
+	add_instruction(&bb->insns, phi_node);
+}
+
+struct instruction *insert_phi_node(struct basic_block *bb, struct symbol *var)
+{
+	struct instruction *phi_node = alloc_phi_node(bb, var, var->ident);
+	add_phi_node(bb, phi_node);
+	return phi_node;
 }
 
 /*

@@ -7,11 +7,13 @@
 
 #include <assert.h>
 #include "optimize.h"
+#include "flowgraph.h"
 #include "linearize.h"
 #include "liveness.h"
 #include "flow.h"
 #include "cse.h"
 #include "ir.h"
+#include "ssa.h"
 
 int repeat_phase;
 
@@ -53,11 +55,13 @@ void optimize(struct entrypoint *ep)
 	kill_unreachable_bbs(ep);
 	ir_validate(ep);
 
+	domtree_build(ep);
+
 	/*
 	 * Turn symbols into pseudos
 	 */
 	if (fpasses & PASS_MEM2REG)
-		simplify_symbol_usage(ep);
+		ssa_convert(ep);
 	ir_validate(ep);
 	if (fdump_ir & PASS_MEM2REG)
 		show_entry(ep);

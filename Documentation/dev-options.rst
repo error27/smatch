@@ -44,6 +44,14 @@ OPTIONS
 
   Add ``OP_DEATHNOTE`` annotations to dead pseudos.
 
+.. option:: -vdomtree
+
+  Dump the dominance tree after its calculation.
+
 .. option:: -ventry
 
   Dump the IR after all optimization passes.
+
+.. option:: -vpostorder
+
+  Dump the reverse postorder traversal of the CFG.
