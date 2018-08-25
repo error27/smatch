@@ -190,6 +190,7 @@ next_store:
 void simplify_memops(struct entrypoint *ep)
 {
 	struct basic_block *bb;
+	pseudo_t pseudo;
 
 	FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
 		simplify_loads(bb);
@@ -198,4 +199,15 @@ void simplify_memops(struct entrypoint *ep)
 	FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
 		kill_dominated_stores(bb);
 	} END_FOR_EACH_PTR_REVERSE(bb);
+
+	FOR_EACH_PTR(ep->accesses, pseudo) {
+		struct symbol *var = pseudo->sym;
+		unsigned long mod;
+		if (!var)
+			continue;
+		mod = var->ctype.modifiers;
+		if (mod & (MOD_VOLATILE | MOD_NONLOCAL | MOD_STATIC))
+			continue;
+		kill_dead_stores(ep, pseudo, local_pseudo(pseudo));
+	} END_FOR_EACH_PTR(pseudo);
 }

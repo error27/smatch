@@ -14,6 +14,7 @@ struct instruction;
 
 extern int simplify_flow(struct entrypoint *ep);
 
+extern void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local);
 extern void simplify_symbol_usage(struct entrypoint *ep);
 extern void simplify_memops(struct entrypoint *ep);
 extern void pack_basic_blocks(struct entrypoint *ep);

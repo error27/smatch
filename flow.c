@@ -547,7 +547,21 @@ found:
 }
 
 /* Kill a pseudo that is dead on exit from the bb */
-static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
+// The context is:
+// * the variable is not global but may have its address used (local/non-local)
+// * the stores are only needed by others functions which would do some
+//   loads via the escaped address
+// We start by the terminating BB (normal exit BB + no-return/unreachable)
+// We walkup the BB' intruction backward
+// * we're only concerned by loads, stores & calls
+// * if we reach a call			-> we have to stop if var is non-local
+// * if we reach a load of our var	-> we have to stop
+// * if we reach a store of our var	-> we can kill it, it's dead
+// * we can ignore other stores & loads if the var is local
+// * if we reach another store or load done via non-symbol access
+//   (so done via some address calculation) -> we have to stop
+// If we reach the top of the BB we can recurse into the parents BBs.
+static void kill_dead_stores_bb(pseudo_t pseudo, unsigned long generation, struct basic_block *bb, int local)
 {
 	struct instruction *insn;
 	struct basic_block *parent;
@@ -556,36 +570,33 @@ static void kill_dead_stores(pseudo_t pseudo, unsigned long generation, struct b
 		return;
 	bb->generation = generation;
 	FOR_EACH_PTR_REVERSE(bb->insns, insn) {
-		int opcode = insn->opcode;
-
 		if (!insn->bb)
 			continue;
-		if (opcode != OP_LOAD && opcode != OP_STORE) {
-			if (local)
+		switch (insn->opcode) {
+		case OP_LOAD:
+			if (insn->src == pseudo)
+				return;
+			break;
+		case OP_STORE:
+			if (insn->src == pseudo) {
+				kill_instruction_force(insn);
 				continue;
-			if (opcode == OP_CALL)
+			}
+			break;
+		case OP_CALL:
+			if (!local)
 				return;
+		default:
 			continue;
 		}
-		if (insn->src == pseudo) {
-			if (opcode == OP_LOAD)
-				return;
-			kill_instruction_force(insn);
-			continue;
-		}
-		if (local)
-			continue;
-		if (insn->src->type != PSEUDO_SYM)
+		if (!local && insn->src->type != PSEUDO_SYM)
 			return;
 	} END_FOR_EACH_PTR_REVERSE(insn);
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct basic_block *child;
-		FOR_EACH_PTR(parent->children, child) {
-			if (child && child != bb)
-				return;
-		} END_FOR_EACH_PTR(child);
-		kill_dead_stores(pseudo, generation, parent, local);
+		if (bb_list_size(parent->children) > 1)
+			continue;
+		kill_dead_stores_bb(pseudo, generation, parent, local);
 	} END_FOR_EACH_PTR(parent);
 }
 
@@ -735,7 +746,7 @@ external_visibility:
 			struct basic_block *bb;
 			FOR_EACH_PTR(ep->bbs, bb) {
 				if (!bb->children)
-					kill_dead_stores(pseudo, ++bb_generation, bb, !mod);
+					kill_dead_stores_bb(pseudo, ++bb_generation, bb, !mod);
 			} END_FOR_EACH_PTR(bb);
 		}
 	}
@@ -750,6 +761,46 @@ void simplify_symbol_usage(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->accesses, pseudo) {
 		simplify_one_symbol(ep, pseudo->sym);
 	} END_FOR_EACH_PTR(pseudo);
+}
+
+static struct pseudo_user *first_user(pseudo_t p)
+{
+	struct pseudo_user *pu;
+	FOR_EACH_PTR(p->users, pu) {
+		if (!pu)
+			continue;
+		return pu;
+	} END_FOR_EACH_PTR(pu);
+	return NULL;
+}
+
+void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local)
+{
+	unsigned long generation;
+	struct basic_block *bb;
+
+	switch (pseudo_user_list_size(addr->users)) {
+	case 0:
+		return;
+	case 1:
+		if (local) {
+			struct pseudo_user *pu = first_user(addr);
+			struct instruction *insn = pu->insn;
+			if (insn->opcode == OP_STORE) {
+				kill_instruction_force(insn);
+				return;
+			}
+		}
+	default:
+		break;
+	}
+
+	generation = ++bb_generation;
+	FOR_EACH_PTR(ep->bbs, bb) {
+		if (bb->children)
+			continue;
+		kill_dead_stores_bb(addr, generation, bb, local);
+	} END_FOR_EACH_PTR(bb);
 }
 
 static void mark_bb_reachable(struct basic_block *bb, unsigned long generation)
