@@ -2177,13 +2177,14 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 	struct multijmp *jmp;
 	pseudo_t pseudo;
 
-	pseudo = linearize_expression(ep, expr);
-	if (pseudo == VOID)
-		return pseudo;
-
-	active = ep->active;
-	if (!bb_reachable(active))
+	if (!expr || !expr->ctype)
 		return VOID;
+	pseudo = linearize_expression(ep, expr);
+	active = ep->active;
+	if (!active) {
+		active = alloc_basic_block(ep, stmt->pos);
+		set_activeblock(ep, active);
+	}
 
 	switch_ins = alloc_typed_instruction(OP_SWITCH, expr->ctype);
 	use_pseudo(switch_ins, pseudo, &switch_ins->cond);
