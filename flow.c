@@ -174,7 +174,7 @@ static int bb_has_side_effects(struct basic_block *bb)
 		case OP_LOAD:
 			if (!insn->type)
 				return 1;
-			if (insn->type->ctype.modifiers & MOD_VOLATILE)
+			if (insn->is_volatile)
 				return 1;
 			continue;
 

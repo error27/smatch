@@ -329,7 +329,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_LOAD:
-		if (!force && insn->type->ctype.modifiers & MOD_VOLATILE)
+		if (!force && insn->is_volatile)
 			return 0;
 		kill_use(&insn->src);
 		break;

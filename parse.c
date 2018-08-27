@@ -91,7 +91,8 @@ static attr_t
 typedef struct symbol *to_mode_t(struct symbol *);
 
 static to_mode_t
-	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_TI_mode, to_word_mode;
+	to_QI_mode, to_HI_mode, to_SI_mode, to_DI_mode, to_TI_mode;
+static to_mode_t to_pointer_mode, to_word_mode;
 
 enum {
 	Set_T = 1,
@@ -410,6 +411,11 @@ static struct symbol_op mode_TI_op = {
 	.to_mode = to_TI_mode
 };
 
+static struct symbol_op mode_pointer_op = {
+	.type = KW_MODE,
+	.to_mode = to_pointer_mode
+};
+
 static struct symbol_op mode_word_op = {
 	.type = KW_MODE,
 	.to_mode = to_word_mode
@@ -538,18 +544,22 @@ static struct init_keyword {
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
-	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
-	{ "__QI__",	NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
-	{ "HI",		NS_KEYWORD,	MOD_SHORT,	.op = &mode_HI_op },
-	{ "__HI__",	NS_KEYWORD,	MOD_SHORT,	.op = &mode_HI_op },
-	{ "SI",		NS_KEYWORD,			.op = &mode_SI_op },
-	{ "__SI__",	NS_KEYWORD,			.op = &mode_SI_op },
-	{ "DI",		NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
-	{ "__DI__",	NS_KEYWORD,	MOD_LONGLONG,	.op = &mode_DI_op },
-	{ "TI",		NS_KEYWORD,	MOD_LONGLONGLONG,	.op = &mode_TI_op },
-	{ "__TI__",	NS_KEYWORD,	MOD_LONGLONGLONG,	.op = &mode_TI_op },
-	{ "word",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
-	{ "__word__",	NS_KEYWORD,	MOD_LONG,	.op = &mode_word_op },
+	{ "QI",		NS_KEYWORD,	.op = &mode_QI_op },
+	{ "__QI__",	NS_KEYWORD,	.op = &mode_QI_op },
+	{ "HI",		NS_KEYWORD,	.op = &mode_HI_op },
+	{ "__HI__",	NS_KEYWORD,	.op = &mode_HI_op },
+	{ "SI",		NS_KEYWORD,	.op = &mode_SI_op },
+	{ "__SI__",	NS_KEYWORD,	.op = &mode_SI_op },
+	{ "DI",		NS_KEYWORD,	.op = &mode_DI_op },
+	{ "__DI__",	NS_KEYWORD,	.op = &mode_DI_op },
+	{ "TI",		NS_KEYWORD,	.op = &mode_TI_op },
+	{ "__TI__",	NS_KEYWORD,	.op = &mode_TI_op },
+	{ "byte",	NS_KEYWORD,	.op = &mode_QI_op },
+	{ "__byte__",	NS_KEYWORD,	.op = &mode_QI_op },
+	{ "pointer",	NS_KEYWORD,	.op = &mode_pointer_op },
+	{ "__pointer__",NS_KEYWORD,	.op = &mode_pointer_op },
+	{ "word",	NS_KEYWORD,	.op = &mode_word_op },
+	{ "__word__",	NS_KEYWORD,	.op = &mode_word_op },
 };
 
 
@@ -1105,6 +1115,14 @@ static struct symbol *to_TI_mode(struct symbol *ctype)
 						     : &slllong_ctype;
 }
 
+static struct symbol *to_pointer_mode(struct symbol *ctype)
+{
+	if (ctype->ctype.base_type != &int_type)
+		return NULL;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? uintptr_ctype
+						     :  intptr_ctype;
+}
+
 static struct symbol *to_word_mode(struct symbol *ctype)
 {
 	if (ctype->ctype.base_type != &int_type)
@@ -1121,7 +1139,7 @@ static struct token *attribute_mode(struct token *token, struct symbol *attr, st
 		if (mode && mode->op->type == KW_MODE)
 			ctx->mode = mode->op;
 		else
-			sparse_error(token->pos, "unknown mode attribute %s\n", show_ident(token->ident));
+			sparse_error(token->pos, "unknown mode attribute %s", show_ident(token->ident));
 		token = token->next;
 	} else
 		sparse_error(token->pos, "expect attribute mode symbol\n");
