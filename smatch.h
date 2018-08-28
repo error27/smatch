@@ -942,6 +942,7 @@ int is_user_macro(struct expression *expr);
 int is_user_data(struct expression *expr);
 int is_capped_user_data(struct expression *expr);
 int implied_user_data(struct expression *expr, struct range_list **rl);
+struct stree *get_user_stree(void);
 int get_user_rl(struct expression *expr, struct range_list **rl);
 int get_user_rl_spammy(struct expression *expr, struct range_list **rl);
 int is_user_rl(struct expression *expr);

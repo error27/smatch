@@ -181,6 +181,28 @@ static void match_after_nospec_asm(struct statement *stmt)
 	in_nospec_stmt = false;
 }
 
+static void match_barrier(struct statement *stmt)
+{
+	struct stree *stree;
+	struct sm_state *sm;
+	char *macro;
+
+	macro = get_macro_name(stmt->pos);
+	if (!macro)
+		return;
+	if (strcmp(macro, "rmb") != 0 &&
+	    strcmp(macro, "smp_rmb") != 0 &&
+	    strcmp(macro, "barrier_nospec") != 0)
+		return;
+
+	stree = get_user_stree();
+	FOR_EACH_SM(stree, sm) {
+		if (!is_whole_rl(estate_rl(sm->state)) ||
+		    is_capped_var_sym(sm->name, sm->sym))
+			set_state(my_id, sm->name, sm->sym, &nospec);
+	} END_FOR_EACH_SM(sm);
+}
+
 void check_nospec(int id)
 {
 	my_id = id;
@@ -197,4 +219,5 @@ void check_nospec(int id)
 
 	add_hook(&match_asm, ASM_HOOK);
 	add_hook(&match_after_nospec_asm, STMT_HOOK_AFTER);
+	add_hook(&match_barrier, ASM_HOOK);
 }

@@ -746,6 +746,11 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 	return 0;
 }
 
+struct stree *get_user_stree(void)
+{
+	return get_all_states_stree(my_id);
+}
+
 static int user_data_flag;
 static int no_user_data_flag;
 static struct range_list *var_user_rl(struct expression *expr)
