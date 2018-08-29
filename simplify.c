@@ -202,7 +202,7 @@ static int trivial_phi(pseudo_t *pseudo, struct instruction *insn)
 		}
 		if (last->phi_src == def->phi_src)
 			continue;
-		same = 0;
+		return 0;
 	} END_FOR_EACH_PTR(phi);
 
 	if (same)
