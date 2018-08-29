@@ -187,12 +187,13 @@ static int clean_up_phi(struct instruction *insn)
 		def = phi->def;
 		if (def->phi_src == VOID || !def->bb)
 			continue;
-		if (last) {
-			if (last->phi_src != def->phi_src)
-				same = 0;
+		if (!last) {
+			last = def;
 			continue;
 		}
-		last = def;
+		if (last->phi_src == def->phi_src)
+			continue;
+		same = 0;
 	} END_FOR_EACH_PTR(phi);
 
 	if (same) {
