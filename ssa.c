@@ -5,6 +5,7 @@
 //
 
 #include <assert.h>
+#include "ssa.h"
 #include "lib.h"
 #include "sset.h"
 #include "dominate.h"

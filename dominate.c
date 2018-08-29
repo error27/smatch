@@ -23,7 +23,7 @@ struct piggy {
 	struct basic_block_list *lists[0];
 };
 
-struct piggy *bank_init(unsigned levels)
+static struct piggy *bank_init(unsigned levels)
 {
 	struct piggy *bank;
 	bank = calloc(1, sizeof(*bank) + levels * sizeof(bank->lists[0]));
