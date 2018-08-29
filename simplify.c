@@ -172,7 +172,16 @@ static int if_convert_phi(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
-static int clean_up_phi(struct instruction *insn)
+///
+// detect trivial phi-nodes
+// @insn: the phi-node
+// @pseudo: a pointer to the resulting pseudo
+// @return: 1 if the phi-node is trivial, 0 otherwise
+//
+// A phi-node is trivial if it has a single possible result:
+//	# all operands are the same
+// Since the result is unique, these phi-nodes can be removed.
+static int trivial_phi(pseudo_t *pseudo, struct instruction *insn)
 {
 	pseudo_t phi;
 	struct instruction *last;
@@ -196,8 +205,18 @@ static int clean_up_phi(struct instruction *insn)
 		same = 0;
 	} END_FOR_EACH_PTR(phi);
 
-	if (same) {
-		pseudo_t pseudo = last ? last->phi_src : VOID;
+	if (same)
+		*pseudo = last ? last->phi_src : NULL;
+	return same;
+}
+
+static int clean_up_phi(struct instruction *insn)
+{
+	pseudo_t pseudo;
+
+	if (trivial_phi(&pseudo, insn)) {
+		if (!pseudo)
+			pseudo = VOID;
 		convert_instruction_target(insn, pseudo);
 		kill_instruction(insn);
 		return REPEAT_CSE;
