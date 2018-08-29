@@ -191,16 +191,21 @@ static int trivial_phi(pseudo_t *pseudo, struct instruction *insn)
 	same = 1;
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		struct instruction *def;
+		pseudo_t src;
+
 		if (phi == VOID)
 			continue;
 		def = phi->def;
-		if (def->phi_src == VOID || !def->bb)
+		if (!def->bb)
+			continue;
+		src = def->phi_src; // bypass OP_PHISRC & get the real source
+		if (src == VOID)
 			continue;
 		if (!last) {
 			last = def;
 			continue;
 		}
-		if (last->phi_src == def->phi_src)
+		if (last->phi_src == src)
 			continue;
 		return 0;
 	} END_FOR_EACH_PTR(phi);
