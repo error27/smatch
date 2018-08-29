@@ -417,13 +417,6 @@ static inline int def_opcode(pseudo_t p)
 	return p->def->opcode;
 }
 
-//
-// return the opcode of the instruction defining ``SRC`` if existing
-// and OP_BADOP if not. It also assigns the defining instruction
-// to ``DEF``.
-#define DEF_OPCODE(DEF, SRC)	\
-	(((SRC)->type == PSEUDO_REG && (DEF = (SRC)->def)) ? DEF->opcode : OP_BADOP)
-
 static unsigned int value_size(long long value)
 {
 	value >>= 8;
