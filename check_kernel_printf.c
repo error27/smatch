@@ -972,7 +972,7 @@ check_cast_from_pointer(const char *fmt, int len, struct expression *arg, int va
 		return;
 	while (is_cast_expr(arg))
 		arg = arg->cast_expression;
-	if (is_ptr_type(get_type(arg)))
+	if (is_ptr_type(get_final_type(arg)))
 		sm_msg("warn: argument %d to %.*s specifier is cast from pointer",
 			va_idx, len, fmt);
 }

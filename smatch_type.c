@@ -296,8 +296,7 @@ static struct symbol *get_final_type_helper(struct expression *expr)
 	 *
 	 */
 
-	return NULL;
-
+	expr = strip_parens(expr);
 	if (!expr)
 		return NULL;
 
@@ -312,7 +311,7 @@ static struct symbol *get_final_type_helper(struct expression *expr)
 
 		left = get_type(expr->left);
 		right = get_type(expr->right);
-		if (type_is_ptr(left) && type_is_ptr(right))
+		if (type_is_ptr(left) || type_is_ptr(right))
 			return ssize_t_ctype;
 		}
 	}
