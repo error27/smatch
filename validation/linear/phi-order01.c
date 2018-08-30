@@ -13,5 +13,4 @@ static int bar(int a)
 /*
  * check-name: phi-order01
  * check-command: sparse -vir -flinearize=last $file
- * check-known-to-fail
  */

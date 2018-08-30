@@ -1721,13 +1721,13 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	} else {
 		pseudo_t src1;
 
-		phi2 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
+		phi1 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
 		linearize_cond_branch(ep, expr->left, other, merge);
 
 		set_activeblock(ep, other);
 		src1 = linearize_expression_to_bool(ep, expr->right);
 		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
-		phi1 = alloc_phi(ep->active, src1, expr->ctype);
+		phi2 = alloc_phi(ep->active, src1, expr->ctype);
 	}
 
 	set_activeblock(ep, merge);

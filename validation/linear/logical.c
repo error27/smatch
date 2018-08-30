@@ -159,7 +159,7 @@ as:
 	br          .L19
 
 .L19:
-	phi.32      %r46 <- %phi14, %phi13
+	phi.32      %r46 <- %phi13, %phi14
 	phisrc.32   %phi15(return) <- %r46
 	br          .L17
 
@@ -189,7 +189,7 @@ au:
 	br          .L23
 
 .L23:
-	phi.32      %r56 <- %phi17, %phi16
+	phi.32      %r56 <- %phi16, %phi17
 	phisrc.32   %phi18(return) <- %r56
 	br          .L21
 
@@ -217,7 +217,7 @@ al:
 	br          .L27
 
 .L27:
-	phi.32      %r64 <- %phi20, %phi19
+	phi.32      %r64 <- %phi19, %phi20
 	phisrc.32   %phi21(return) <- %r64
 	br          .L25
 
@@ -246,7 +246,7 @@ ad:
 	br          .L31
 
 .L31:
-	phi.32      %r73 <- %phi23, %phi22
+	phi.32      %r73 <- %phi22, %phi23
 	phisrc.32   %phi24(return) <- %r73
 	br          .L29
 
