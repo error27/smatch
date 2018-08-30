@@ -82,7 +82,29 @@ static int check_user(struct instruction *insn, pseudo_t pseudo)
 	return 0;
 }
 
-static int validate_insn(struct instruction *insn)
+static int check_branch(struct entrypoint *ep, struct instruction *insn, struct basic_block *bb)
+{
+	if (bb->ep && lookup_bb(ep->bbs, bb))
+		return 0;
+	sparse_error(insn->pos, "branch to dead BB: %s", show_instruction(insn));
+	return 1;
+}
+
+static int check_switch(struct entrypoint *ep, struct instruction *insn)
+{
+	struct multijmp *jmp;
+	int err = 0;
+
+	FOR_EACH_PTR(insn->multijmp_list, jmp) {
+		err = check_branch(ep, insn, jmp->target);
+		if (err)
+			return err;
+	} END_FOR_EACH_PTR(jmp);
+
+	return err;
+}
+
+static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 {
 	int err = 0;
 
@@ -104,6 +126,9 @@ static int validate_insn(struct instruction *insn)
 		break;
 
 	case OP_CBR:
+		err += check_branch(ep, insn, insn->bb_true);
+		err += check_branch(ep, insn, insn->bb_false);
+		/* fall through */
 	case OP_COMPUTEDGOTO:
 		err += check_user(insn, insn->cond);
 		break;
@@ -124,8 +149,14 @@ static int validate_insn(struct instruction *insn)
 		err += check_user(insn, insn->src);
 		break;
 
-	case OP_ENTRY:
 	case OP_BR:
+		err += check_branch(ep, insn, insn->bb_true);
+		break;
+	case OP_SWITCH:
+		err += check_switch(ep, insn);
+		break;
+
+	case OP_ENTRY:
 	case OP_SETVAL:
 	default:
 		break;
@@ -147,7 +178,7 @@ int ir_validate(struct entrypoint *ep)
 		FOR_EACH_PTR(bb->insns, insn) {
 			if (!insn->bb)
 				continue;
-			err += validate_insn(insn);
+			err += validate_insn(ep, insn);
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
 
