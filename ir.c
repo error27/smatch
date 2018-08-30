@@ -29,6 +29,9 @@ static int check_phi_node(struct instruction *insn)
 	pseudo_t phi;
 	int err = 0;
 
+	if (!has_users(insn->target))
+		return err;
+
 	if (bb_list_size(insn->bb->parents) != nbr_phi_operands(insn)) {
 		sparse_error(insn->pos, "bad number of phi operands in:\n\t%s",
 			show_instruction(insn));
