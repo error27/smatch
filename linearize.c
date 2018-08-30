@@ -1697,41 +1697,54 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	return add_join_conditional(ep, expr, phi1, phi2);
 }
 
+static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *ctype,
+	struct instruction *node)
+{
+	struct basic_block *parent;
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct instruction *br = delete_last_instruction(&parent->insns);
+		pseudo_t phi = alloc_phi(parent, src, ctype);
+		add_instruction(&parent->insns, br);
+		use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+	} END_FOR_EACH_PTR(parent);
+}
+
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
 {
+	struct symbol *ctype = expr->ctype;
 	struct basic_block *other, *merge;
-	pseudo_t phi1, phi2;
+	struct instruction *node;
+	pseudo_t src1, src2, phi2;
 
 	if (!ep->active || !expr->left || !expr->right)
 		return VOID;
 
 	other = alloc_basic_block(ep, expr->right->pos);
 	merge = alloc_basic_block(ep, expr->pos);
+	node = alloc_phi_node(merge, ctype, NULL);
 
+	// LHS and its shortcut
 	if (expr->op == SPECIAL_LOGICAL_OR) {
-		pseudo_t src2;
-
-		phi1 = alloc_phi(ep->active, value_pseudo(1), expr->ctype);
 		linearize_cond_branch(ep, expr->left, merge, other);
-
-		set_activeblock(ep, other);
-		src2 = linearize_expression_to_bool(ep, expr->right);
-		src2 = cast_pseudo(ep, src2, &bool_ctype, expr->ctype);
-		phi2 = alloc_phi(ep->active, src2, expr->ctype);
+		src1 = value_pseudo(1);
 	} else {
-		pseudo_t src1;
-
-		phi1 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
 		linearize_cond_branch(ep, expr->left, other, merge);
-
-		set_activeblock(ep, other);
-		src1 = linearize_expression_to_bool(ep, expr->right);
-		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
-		phi2 = alloc_phi(ep->active, src1, expr->ctype);
+		src1 = value_pseudo(0);
 	}
+	insert_phis(merge, src1, ctype, node);
 
+	// RHS
+	set_activeblock(ep, other);
+	src2 = linearize_expression_to_bool(ep, expr->right);
+	src2 = cast_pseudo(ep, src2, &bool_ctype, ctype);
+	phi2 = alloc_phi(ep->active, src2, ctype);
+	use_pseudo(node, phi2, add_pseudo(&node->phi_list, phi2));
+
+	// join
 	set_activeblock(ep, merge);
-	return add_join_conditional(ep, expr, phi1, phi2);
+	add_instruction(&merge->insns, node);
+	return node->target;
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)

@@ -45,5 +45,4 @@ static int roo(void)
 /*
  * check-name: bad-logical-phi0
  * check-command: sparse -vir -flinearize=last $file
- * check-known-to-fail
  */

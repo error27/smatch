@@ -13,5 +13,4 @@ static int xuq(int a) { return fun() && 0; }
 /*
  * check-name: phi-order02
  * check-command: sparse -vir -flinearize=last $file
- * check-known-to-fail
  */
