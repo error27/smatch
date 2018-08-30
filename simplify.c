@@ -305,7 +305,7 @@ int kill_insn(struct instruction *insn, int force)
 		break;
 
 	case OP_SYMADDR:
-		kill_use(&insn->symbol);
+		kill_use(&insn->src);
 		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		break;
 
@@ -367,6 +367,28 @@ static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, p
 	kill_use(src2);
 	kill_use(src3);
 	return REPEAT_CSE;
+}
+
+static inline bool has_target(struct instruction *insn)
+{
+	return opcode_table[insn->opcode].flags & OPF_TARGET;
+}
+
+void remove_dead_insns(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+
+	FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR_REVERSE(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			if (!has_target(insn))
+				continue;
+			if (!has_users(insn->target))
+				kill_instruction(insn);
+		} END_FOR_EACH_PTR_REVERSE(insn);
+	} END_FOR_EACH_PTR_REVERSE(bb);
 }
 
 static inline int constant(pseudo_t pseudo)
@@ -1704,9 +1726,9 @@ int simplify_instruction(struct instruction *insn)
 	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
-		if (dead_insn(insn, &insn->symbol, NULL, NULL))
+		if (dead_insn(insn, &insn->src, NULL, NULL))
 			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
-		return replace_with_pseudo(insn, insn->symbol);
+		return replace_with_pseudo(insn, insn->src);
 	case OP_SEXT: case OP_ZEXT:
 	case OP_TRUNC:
 		return simplify_cast(insn);

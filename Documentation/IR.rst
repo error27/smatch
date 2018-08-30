@@ -241,6 +241,12 @@ Unary ops
 	* .target: result of the operation (must be a floating-point type)
 	* .type: type of .target
 
+.. op:: OP_SYMADDR
+	Create a pseudo corresponding to the address of a symbol.
+
+	* .src: input symbol (must be a PSEUDO_SYM)
+	* .target: symbol's address
+
 .. op:: OP_COPY
 	Copy (only needed after out-of-SSA).
 
@@ -327,12 +333,6 @@ Memory ops
 
 Others
 ------
-.. op:: OP_SYMADDR
-	Create a pseudo corresponding to the address of a symbol.
-
-	* .symbol: (pseudo_t) input symbol (alias .src)
-	* .target: symbol's address
-
 .. op:: OP_SETFVAL
 	Create a pseudo corresponding to a floating-point literal.
 

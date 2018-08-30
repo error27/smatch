@@ -76,6 +76,7 @@ void cse_collect(struct instruction *insn)
 	/* Unary */
 	case OP_NOT: case OP_NEG:
 	case OP_FNEG:
+	case OP_SYMADDR:
 		hash += hashval(insn->src1);
 		break;
 
@@ -85,10 +86,6 @@ void cse_collect(struct instruction *insn)
 
 	case OP_SETFVAL:
 		hash += hashval(insn->fvalue);
-		break;
-
-	case OP_SYMADDR:
-		hash += hashval(insn->symbol);
 		break;
 
 	case OP_SEXT: case OP_ZEXT:
@@ -213,13 +210,9 @@ static int insn_compare(const void *_i1, const void *_i2)
 	/* Unary */
 	case OP_NOT: case OP_NEG:
 	case OP_FNEG:
+	case OP_SYMADDR:
 		if (i1->src1 != i2->src1)
 			return i1->src1 < i2->src1 ? -1 : 1;
-		break;
-
-	case OP_SYMADDR:
-		if (i1->symbol != i2->symbol)
-			return i1->symbol < i2->symbol ? -1 : 1;
 		break;
 
 	case OP_SETVAL:

@@ -351,11 +351,6 @@ const char *show_instruction(struct instruction *insn)
 		buf += sprintf(buf, "%s", show_label(insn->bb_true));
 		break;
 
-	case OP_SYMADDR:
-		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
-		buf += sprintf(buf, "%s", show_pseudo(insn->symbol));
-		break;
-
 	case OP_SETVAL: {
 		struct expression *expr = insn->val;
 		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
@@ -481,6 +476,7 @@ const char *show_instruction(struct instruction *insn)
 
 	case OP_NOT: case OP_NEG:
 	case OP_FNEG:
+	case OP_SYMADDR:
 		buf += sprintf(buf, "%s <- %s", show_pseudo(insn->target), show_pseudo(insn->src1));
 		break;
 
@@ -1106,7 +1102,7 @@ static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
 	pseudo_t target = alloc_pseudo(insn);
 
 	insn->target = target;
-	use_pseudo(insn, symbol_pseudo(ep, sym), &insn->symbol);
+	use_pseudo(insn, symbol_pseudo(ep, sym), &insn->src);
 	add_one_insn(ep, insn);
 	return target;
 }
