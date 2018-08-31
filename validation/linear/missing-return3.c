@@ -11,7 +11,6 @@ static void ref(void)
 /*
  * check-name: missing-return3
  * check-command: sparse -vir -flinearize=last $file
- * check-known-to-fail
  *
  * check-error-start
 linear/missing-return3.c:4:17: error: return with no return value

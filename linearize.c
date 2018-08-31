@@ -2002,7 +2002,7 @@ static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *
 	pseudo_t pseudo;
 
 	pseudo = linearize_compound_statement(ep, stmt);
-	if (type_size(stmt->ret) > 0) {			// non-void function
+	if (!is_void_type(stmt->ret)) {			// non-void function
 		struct basic_block *active = ep->active;
 		if (active && !bb_terminated(active)) {	// missing return
 			struct basic_block *bb_ret;
@@ -2180,8 +2180,8 @@ static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
 	struct basic_block *active;
 	pseudo_t src = linearize_expression(ep, expr);
 	active = ep->active;
-	if (active && src != VOID) {
-		add_return(ep, bb_return, expr->ctype, src);
+	if (active && !is_void_type(ret)) {
+		add_return(ep, bb_return, ret, src);
 	}
 	add_goto(ep, bb_return);
 	return VOID;
