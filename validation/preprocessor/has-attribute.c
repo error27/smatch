@@ -44,7 +44,6 @@ __has_attribute()??? Quesako?
 /*
  * check-name: has-attribute
  * check-command: sparse -E $file
- * check-known-to-fail
  *
  * check-output-start
 
