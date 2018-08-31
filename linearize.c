@@ -2175,7 +2175,8 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
-	struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
+	struct symbol *ret = stmt->ret_target;
+	struct basic_block *bb_return = get_bound_block(ep, ret);
 	struct basic_block *active;
 	pseudo_t src = linearize_expression(ep, expr);
 	active = ep->active;
