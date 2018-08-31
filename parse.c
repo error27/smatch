@@ -527,6 +527,8 @@ static struct init_keyword {
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
 	{ "designated_init",	NS_KEYWORD,	.op = &designated_init_op },
+	{ "__designated_init__",	NS_KEYWORD,	.op = &designated_init_op },
+	{ "transparent_union",	NS_KEYWORD,	.op = &transparent_union_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
 	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
 	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
