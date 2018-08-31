@@ -17,8 +17,46 @@
 
 #include "smatch.h"
 #include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
+
+static int get_str(void *_ret, int argc, char **argv, char **azColName)
+{
+	char **ret = _ret;
+
+	if (*ret)
+		*ret = (void *)-1UL;
+	else
+		*ret = alloc_sname(argv[0]);
+
+	return 0;
+}
+
+static char *get_string_from_mtag(mtag_t tag)
+{
+	char *str = NULL;
+
+	run_sql(get_str, &str,
+		"select value from mtag_data where tag = %lld and offset = 0 and type = %d;",
+		tag, STRING_VALUE);
+
+	if ((unsigned long)str == -1UL)
+		return NULL;
+	return str;
+}
+
+struct expression *fake_string_from_mtag(mtag_t tag)
+{
+	char *str;
+
+	if (!tag)
+		return NULL;
+	str = get_string_from_mtag(tag);
+	if (!str)
+		return NULL;
+	return string_expression(str);
+}
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
@@ -88,6 +126,20 @@ static void match_assignment(struct expression *expr)
 	}
 }
 
+static void match_string(struct expression *expr)
+{
+	mtag_t tag;
+
+	if (expr->type != EXPR_STRING || !expr->string->data)
+		return;
+
+	if (!get_string_mtag(expr, &tag))
+		return;
+
+	cache_sql(NULL, NULL, "insert into mtag_data values (%lld, %d, %d, '%q');",
+		  tag, 0, STRING_VALUE, escape_newlines(expr->string->data));
+}
+
 void register_strings(int id)
 {
 	my_id = id;
@@ -97,5 +149,6 @@ void register_strings(int id)
 	add_function_hook("strncpy", &match_strcpy, NULL);
 
 	add_hook(&match_assignment, ASSIGNMENT_HOOK);
+	add_hook(&match_string, STRING_HOOK);
 
 }

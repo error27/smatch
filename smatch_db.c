@@ -71,6 +71,32 @@ DECLARE_PTR_LIST(db_implies_cb_list, struct db_implies_callback);
 static struct db_implies_cb_list *return_implies_cb_list;
 static struct db_implies_cb_list *call_implies_cb_list;
 
+char *escape_newlines(char *str)
+{
+	char buf[1024];
+	bool found = false;
+	int i;
+
+	for (i = 0; i < sizeof(buf); i++) {
+		if (str[i] == '\n') {
+			found = true;
+			buf[i++] = '\\';
+			buf[i] = 'n';
+			continue;
+		}
+		buf[i] = str[i];
+		if (!str[i])
+			break;
+	}
+
+	if (!found)
+		return str;
+
+	if (buf[i] == sizeof(buf))
+		buf[i - 1] = '\0';
+	return alloc_sname(buf);
+}
+
 void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
 {
 	char *err = NULL;
@@ -2127,6 +2153,7 @@ static void init_cachedb(void)
 		"db/call_implies.schema",
 		"db/return_implies.schema",
 		"db/type_info.schema",
+		"db/mtag_data.schema",
 	};
 	static char buf[4096];
 	int fd;
@@ -2168,6 +2195,7 @@ static void init_cachedb(void)
 static int save_cache_data(void *_table, int argc, char **argv, char **azColName)
 {
 	static char buf[4096];
+	char tmp[256];
 	char *p = buf;
 	char *table = _table;
 	int i;
@@ -2177,7 +2205,8 @@ static int save_cache_data(void *_table, int argc, char **argv, char **azColName
 	for (i = 0; i < argc; i++) {
 		if (i)
 			p += snprintf(p, 4096 - (p - buf), ", ");
-		p += snprintf(p, 4096 - (p - buf), "'%s'", argv[i]);
+		sqlite3_snprintf(sizeof(tmp), tmp, "%q", argv[i]);
+		p += snprintf(p, 4096 - (p - buf), "'%s'", tmp);
 
 	}
 	p += snprintf(p, 4096 - (p - buf), ");");
@@ -2195,6 +2224,7 @@ static void dump_cache(struct symbol_list *sym_list)
 	cache_sql(&save_cache_data, (char *)"type_info", "select * from type_info;");
 	cache_sql(&save_cache_data, (char *)"return_implies", "select * from return_implies;");
 	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
+	cache_sql(&save_cache_data, (char *)"mtag_data", "select * from mtag_data;");
 }
 
 void open_smatch_db(char *db_file)

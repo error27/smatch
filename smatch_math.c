@@ -1020,8 +1020,9 @@ static sval_t handle_sizeof(struct expression *expr)
 static struct range_list *handle_strlen(struct expression *expr, int implied, int *recurse_cnt)
 {
 	struct range_list *rl;
-	struct expression *arg;
-	sval_t sval = { .type = &ulong_ctype };
+	struct expression *arg, *tmp;
+	sval_t tag;
+	sval_t ret = { .type = &ulong_ctype };
 
 	if (implied == RL_EXACT)
 		return NULL;
@@ -1030,8 +1031,13 @@ static struct range_list *handle_strlen(struct expression *expr, int implied, in
 	if (!arg)
 		return NULL;
 	if (arg->type == EXPR_STRING) {
-		sval.value = arg->string->length - 1;
-		return alloc_rl(sval, sval);
+		ret.value = arg->string->length - 1;
+		return alloc_rl(ret, ret);
+	}
+	if (get_implied_value(arg, &tag) &&
+	    (tmp = fake_string_from_mtag(tag.uvalue))) {
+		ret.value = tmp->string->length - 1;
+		return alloc_rl(ret, ret);
 	}
 
 	if (implied == RL_HARD || implied == RL_FUZZY)
@@ -1183,6 +1189,11 @@ static struct range_list *_get_rl(struct expression *expr, int implied, int *rec
 		break;
 	case EXPR_CALL:
 		rl = handle_call_rl(expr, implied, recurse_cnt);
+		break;
+	case EXPR_STRING:
+		rl = NULL;
+		if (get_mtag_sval(expr, &sval))
+			rl = alloc_rl(sval, sval);
 		break;
 	default:
 		rl = handle_variable(expr, implied, recurse_cnt);

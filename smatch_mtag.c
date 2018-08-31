@@ -113,6 +113,21 @@ static void alloc_assign(const char *fn, struct expression *expr, void *unused)
 	free_string(right_name);
 }
 
+int get_string_mtag(struct expression *expr, mtag_t *tag)
+{
+	mtag_t xor;
+
+	if (expr->type != EXPR_STRING || !expr->string)
+		return 0;
+
+	/* I was worried about collisions so I added a xor */
+	xor = str_to_tag("__smatch string");
+	*tag = str_to_tag(expr->string->data);
+	*tag = *tag ^ xor;
+
+	return 1;
+}
+
 int get_toplevel_mtag(struct symbol *sym, mtag_t *tag)
 {
 	char buf[256];
@@ -310,6 +325,12 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 	get_mtag_cnt++;
 
 	switch (expr->type) {
+	case EXPR_STRING:
+		if (get_string_mtag(expr, tag)) {
+			ret = 1;
+			goto dec_cnt;
+		}
+		break;
 	case EXPR_SYMBOL:
 		if (get_toplevel_mtag(expr->symbol, tag)) {
 			ret = 1;
@@ -397,9 +418,6 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	if (!expr)
 		return 0;
 
-	if (get_implied_mtag_offset(expr, tag, offset))
-		return 1;
-
 	if (is_array(expr))
 		return get_array_mtag_offset(expr, tag, offset);
 
@@ -409,6 +427,9 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 			return 0;
 		return get_mtag(expr->deref, tag);
 	}
+
+	if (get_implied_mtag_offset(expr, tag, offset))
+		return 1;
 
 	return get_mtag(expr, tag);
 }
@@ -438,6 +459,9 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 	 *    p = pointer;
 	 *
 	 */
+
+	if (expr->type == EXPR_STRING && get_string_mtag(expr, &tag))
+		goto found;
 
 	if (type->type == SYM_ARRAY && get_toplevel_mtag(expr->symbol, &tag))
 		goto found;

@@ -763,6 +763,7 @@ enum info_type {
 	SIZEOF_ARG	= 8034,
 	MEMORY_TAG	= 8036,
 	MTAG_ASSIGN	= 8035,
+	STRING_VALUE	= 8041,
 };
 
 extern struct sqlite3 *smatch_db;
@@ -789,13 +790,14 @@ const char *get_mtag_name_var_sym(const char *state_name, struct symbol *sym);
 const char *get_mtag_name_expr(struct expression *expr);
 char *get_data_info_name(struct expression *expr);
 
+char *escape_newlines(char *str);
 void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql);
 
 #define sql_helper(db, call_back, data, sql...)					\
 do {										\
 	char sql_txt[1024];							\
 										\
-	snprintf(sql_txt, sizeof(sql_txt), sql);				\
+	sqlite3_snprintf(sizeof(sql_txt), sql_txt, sql);			\
 	sm_debug("debug: %s\n", sql_txt);					\
 	debug_sql(db, sql_txt);  	      					\
 	sql_exec(db, call_back, data, sql_txt);					\
@@ -1090,6 +1092,7 @@ void mark_all_params_untracked(int return_id, char *return_ranges, struct expres
 
 /* smatch_strings.c */
 struct state_list *get_strings(struct expression *expr);
+struct expression *fake_string_from_mtag(mtag_t tag);
 
 /* smatch_estate.c */
 int estate_get_single_value(struct smatch_state *state, sval_t *sval);
@@ -1121,6 +1124,7 @@ int get_param_from_container_of(struct expression *expr);
 int get_offset_from_container_of(struct expression *expr);
 
 /* smatch_mtag.c */
+int get_string_mtag(struct expression *expr, mtag_t *tag);
 int get_toplevel_mtag(struct symbol *sym, mtag_t *tag);
 int get_mtag(struct expression *expr, mtag_t *tag);
 int get_mtag_offset(struct expression *expr, mtag_t *tag, int *offset);

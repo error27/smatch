@@ -1,6 +1,7 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
+DECLARE_ALLOCATOR(sname);
 __ALLOCATOR(struct expression, "temporary expr", tmp_expression);
 
 static struct position get_cur_pos(void)
@@ -137,6 +138,25 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 	expr->left = left;
 	expr->right = right;
 	return expr;
+}
+
+struct expression *string_expression(char *str)
+{
+	struct expression *ret;
+	struct string *string;
+	int len;
+
+	len = strlen(str) + 1;
+	string = (void *)__alloc_sname(4 + len);
+	string->length = len;
+	string->immutable = 0;
+	memcpy(string->data, str, len);
+
+	ret = alloc_tmp_expression(get_cur_pos(), EXPR_STRING);
+	ret->wide = 0;
+	ret->string = string;
+
+	return ret;
 }
 
 struct expression *gen_expression_from_key(struct expression *arg, const char *key)
