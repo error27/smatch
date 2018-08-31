@@ -2016,7 +2016,7 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 
 	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
 	bb = ep->active;
-	if (bb && !bb->insns)
+	if (!bb->insns)
 		bb->pos = stmt->pos;
 	add_one_insn(ep, insn);
 	return pseudo;
@@ -2458,7 +2458,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	} END_FOR_EACH_PTR(arg);
 
 	result = linearize_fn_statement(ep, stmt);
-	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
+	if (!bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
 		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
 
