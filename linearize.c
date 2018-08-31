@@ -1971,22 +1971,26 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 {
 	pseudo_t pseudo;
 	struct statement *s;
-	struct symbol *ret = stmt->ret;
 
 	pseudo = VOID;
 	FOR_EACH_PTR(stmt->stmts, s) {
 		pseudo = linearize_statement(ep, s);
 	} END_FOR_EACH_PTR(s);
 
-	if (ret) {
-		struct basic_block *bb = add_label(ep, ret);
-		struct instruction *phi_node = first_instruction(bb->insns);
+	return pseudo;
+}
 
-		if (!phi_node)
-			return pseudo;
-		return phi_node->target;
-	}
+static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)
+{
+	struct instruction *phi_node;
+	struct basic_block *bb;
+	pseudo_t pseudo;
 
+	pseudo = linearize_compound_statement(ep, stmt);
+	bb = add_label(ep, stmt->ret);
+	phi_node = first_instruction(bb->insns);
+	if (phi_node)
+		pseudo = phi_node->target;
 	return pseudo;
 }
 
@@ -2007,7 +2011,9 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 		} END_FOR_EACH_PTR(sym);
 	}
 
-	insn->target = pseudo = linearize_compound_statement(ep, stmt);
+	pseudo = linearize_fn_statement(ep, stmt);
+	insn->target = pseudo;
+
 	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
 	bb = ep->active;
 	if (bb && !bb->insns)
@@ -2451,7 +2457,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		linearize_argument(ep, arg, ++i);
 	} END_FOR_EACH_PTR(arg);
 
-	result = linearize_statement(ep, stmt);
+	result = linearize_fn_statement(ep, stmt);
 	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
 		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
