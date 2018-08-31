@@ -301,6 +301,28 @@ next:
 	} while (1);
 }
 
+static void handle_builtin_overflow_func(struct expression *expr)
+{
+	struct expression *a, *b, *res, *assign;
+	int op;
+
+	if (sym_name_is("__builtin_add_overflow", expr->fn))
+		op = '+';
+	else if (sym_name_is("__builtin_sub_overflow", expr->fn))
+		op = '-';
+	else if (sym_name_is("__builtin_mul_overflow", expr->fn))
+		op = '*';
+	else
+		return;
+
+	a = get_argument_from_call_expr(expr->args, 0);
+	b = get_argument_from_call_expr(expr->args, 1);
+	res = get_argument_from_call_expr(expr->args, 2);
+
+	assign = assign_expression(deref_expression(res), '=', binop_expression(a, op, b));
+	__split_expr(assign);
+}
+
 static int handle__builtin_choose_expr(struct expression *expr)
 {
 	struct expression *const_expr, *expr1, *expr2;
@@ -528,6 +550,7 @@ void __split_expr(struct expression *expr)
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
+		handle_builtin_overflow_func(expr);
 		break;
 	case EXPR_INITIALIZER:
 		split_expr_list(expr->expr_list, expr);
