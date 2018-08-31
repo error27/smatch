@@ -2417,6 +2417,7 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 
 static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_type)
 {
+	struct statement *stmt = base_type->stmt;
 	struct entrypoint *ep;
 	struct basic_block *bb;
 	struct symbol *arg;
@@ -2424,7 +2425,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	pseudo_t result;
 	int i;
 
-	if (!base_type->stmt)
+	if (!stmt)
 		return NULL;
 
 	ep = alloc_entrypoint();
@@ -2446,7 +2447,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		linearize_argument(ep, arg, ++i);
 	} END_FOR_EACH_PTR(arg);
 
-	result = linearize_statement(ep, base_type->stmt);
+	result = linearize_statement(ep, stmt);
 	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
 		struct symbol *ret_type = base_type->ctype.base_type;
 		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
