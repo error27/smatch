@@ -525,7 +525,6 @@ static struct init_keyword {
 	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
 	{ "__bitwise__",NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
 	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
-	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "context",	NS_KEYWORD,	.op = &context_op },
 	{ "designated_init",	NS_KEYWORD,	.op = &designated_init_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
@@ -537,6 +536,7 @@ static struct init_keyword {
 	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 
+	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
 	{ "QI",		NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
 	{ "__QI__",	NS_KEYWORD,	MOD_CHAR,	.op = &mode_QI_op },
