@@ -14,7 +14,6 @@ int bar(int p)
 /*
  * check-name: missing/undef return
  * check-command: test-linearize -Wno-decl -fdump-ir=linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(2): phi\\..*,.*

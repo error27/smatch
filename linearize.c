@@ -2002,6 +2002,14 @@ static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *
 	pseudo_t pseudo;
 
 	pseudo = linearize_compound_statement(ep, stmt);
+	if (type_size(stmt->ret) > 0) {			// non-void function
+		struct basic_block *active = ep->active;
+		if (active && !bb_terminated(active)) {	// missing return
+			struct basic_block *bb_ret;
+			bb_ret = get_bound_block(ep, stmt->ret);
+			add_return(ep, bb_ret, stmt->ret, undef_pseudo());
+		}
+	}
 	bb = add_label(ep, stmt->ret);
 	phi_node = first_instruction(bb->insns);
 	if (phi_node)
