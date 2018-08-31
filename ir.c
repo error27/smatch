@@ -107,6 +107,17 @@ static int check_switch(struct entrypoint *ep, struct instruction *insn)
 	return err;
 }
 
+static int check_return(struct instruction *insn)
+{
+	struct symbol *ctype = insn->type;
+
+	if (ctype && ctype->bit_size > 0 && insn->src == VOID) {
+		sparse_error(insn->pos, "return without value");
+		return 1;
+	}
+	return 0;
+}
+
 static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 {
 	int err = 0;
@@ -150,6 +161,10 @@ static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 
 	case OP_LOAD:
 		err += check_user(insn, insn->src);
+		break;
+
+	case OP_RET:
+		err += check_return(insn);
 		break;
 
 	case OP_BR:
