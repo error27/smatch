@@ -1980,6 +1980,21 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 	return pseudo;
 }
 
+static void add_return(struct entrypoint *ep, struct basic_block *bb, struct symbol *ctype, pseudo_t src)
+{
+	struct instruction *phi_node = first_instruction(bb->insns);
+	pseudo_t phi;
+	if (!phi_node) {
+		phi_node = alloc_typed_instruction(OP_PHI, ctype);
+		phi_node->target = alloc_pseudo(phi_node);
+		phi_node->bb = bb;
+		add_instruction(&bb->insns, phi_node);
+	}
+	phi = alloc_phi(ep->active, src, ctype);
+	phi->ident = &return_ident;
+	use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+}
+
 static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *phi_node;
@@ -2157,17 +2172,7 @@ static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
 	pseudo_t src = linearize_expression(ep, expr);
 	active = ep->active;
 	if (active && src != VOID) {
-		struct instruction *phi_node = first_instruction(bb_return->insns);
-		pseudo_t phi;
-		if (!phi_node) {
-			phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-			phi_node->target = alloc_pseudo(phi_node);
-			phi_node->bb = bb_return;
-			add_instruction(&bb_return->insns, phi_node);
-		}
-		phi = alloc_phi(active, src, expr->ctype);
-		phi->ident = &return_ident;
-		use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+		add_return(ep, bb_return, expr->ctype, src);
 	}
 	add_goto(ep, bb_return);
 	return VOID;
