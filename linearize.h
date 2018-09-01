@@ -220,6 +220,12 @@ static inline int bb_reachable(struct basic_block *bb)
 	return bb != NULL;
 }
 
+static inline int lookup_bb(struct basic_block_list *list, struct basic_block *bb)
+{
+	return lookup_ptr_list_entry((struct ptr_list *)list, bb);
+}
+
+
 static inline void add_pseudo_user_ptr(struct pseudo_user *user, struct pseudo_user_list **list)
 {
 	add_ptr_list(list, user);
