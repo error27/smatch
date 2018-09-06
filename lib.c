@@ -958,6 +958,7 @@ static int handle_fmax_warnings(const char *arg, const char *opt, const struct f
 static struct flag fflags[] = {
 	{ "diagnostic-prefix",	NULL,	handle_fdiagnostic_prefix },
 	{ "dump-ir",		NULL,	handle_fdump_ir },
+	{ "linearize",		NULL,	handle_fpasses,	PASS_LINEARIZE },
 	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },

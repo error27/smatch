@@ -33,6 +33,7 @@ OPTIONS
 
   The passes currently understood are:
 
+    * ``linearize`` (can't be disabled)
     * ``mem2reg``
     * ``optim``
 

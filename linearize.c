@@ -1695,41 +1695,54 @@ static pseudo_t linearize_conditional(struct entrypoint *ep, struct expression *
 	return add_join_conditional(ep, expr, phi1, phi2);
 }
 
+static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *ctype,
+	struct instruction *node)
+{
+	struct basic_block *parent;
+
+	FOR_EACH_PTR(bb->parents, parent) {
+		struct instruction *br = delete_last_instruction(&parent->insns);
+		pseudo_t phi = alloc_phi(parent, src, ctype);
+		add_instruction(&parent->insns, br);
+		use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+	} END_FOR_EACH_PTR(parent);
+}
+
 static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr)
 {
+	struct symbol *ctype = expr->ctype;
 	struct basic_block *other, *merge;
-	pseudo_t phi1, phi2;
+	struct instruction *node;
+	pseudo_t src1, src2, phi2;
 
 	if (!ep->active || !expr->left || !expr->right)
 		return VOID;
 
 	other = alloc_basic_block(ep, expr->right->pos);
 	merge = alloc_basic_block(ep, expr->pos);
+	node = alloc_phi_node(merge, ctype, NULL);
 
+	// LHS and its shortcut
 	if (expr->op == SPECIAL_LOGICAL_OR) {
-		pseudo_t src2;
-
-		phi1 = alloc_phi(ep->active, value_pseudo(1), expr->ctype);
 		linearize_cond_branch(ep, expr->left, merge, other);
-
-		set_activeblock(ep, other);
-		src2 = linearize_expression_to_bool(ep, expr->right);
-		src2 = cast_pseudo(ep, src2, &bool_ctype, expr->ctype);
-		phi2 = alloc_phi(ep->active, src2, expr->ctype);
+		src1 = value_pseudo(1);
 	} else {
-		pseudo_t src1;
-
-		phi2 = alloc_phi(ep->active, value_pseudo(0), expr->ctype);
 		linearize_cond_branch(ep, expr->left, other, merge);
-
-		set_activeblock(ep, other);
-		src1 = linearize_expression_to_bool(ep, expr->right);
-		src1 = cast_pseudo(ep, src1, &bool_ctype, expr->ctype);
-		phi1 = alloc_phi(ep->active, src1, expr->ctype);
+		src1 = value_pseudo(0);
 	}
+	insert_phis(merge, src1, ctype, node);
 
+	// RHS
+	set_activeblock(ep, other);
+	src2 = linearize_expression_to_bool(ep, expr->right);
+	src2 = cast_pseudo(ep, src2, &bool_ctype, ctype);
+	phi2 = alloc_phi(ep->active, src2, ctype);
+	use_pseudo(node, phi2, add_pseudo(&node->phi_list, phi2));
+
+	// join
 	set_activeblock(ep, merge);
-	return add_join_conditional(ep, expr, phi1, phi2);
+	add_instruction(&merge->insns, node);
+	return node->target;
 }
 
 static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr)
@@ -1969,22 +1982,49 @@ static pseudo_t linearize_compound_statement(struct entrypoint *ep, struct state
 {
 	pseudo_t pseudo;
 	struct statement *s;
-	struct symbol *ret = stmt->ret;
 
 	pseudo = VOID;
 	FOR_EACH_PTR(stmt->stmts, s) {
 		pseudo = linearize_statement(ep, s);
 	} END_FOR_EACH_PTR(s);
 
-	if (ret) {
-		struct basic_block *bb = add_label(ep, ret);
-		struct instruction *phi_node = first_instruction(bb->insns);
+	return pseudo;
+}
 
-		if (!phi_node)
-			return pseudo;
-		return phi_node->target;
+static void add_return(struct entrypoint *ep, struct basic_block *bb, struct symbol *ctype, pseudo_t src)
+{
+	struct instruction *phi_node = first_instruction(bb->insns);
+	pseudo_t phi;
+	if (!phi_node) {
+		phi_node = alloc_typed_instruction(OP_PHI, ctype);
+		phi_node->target = alloc_pseudo(phi_node);
+		phi_node->bb = bb;
+		add_instruction(&bb->insns, phi_node);
 	}
+	phi = alloc_phi(ep->active, src, ctype);
+	phi->ident = &return_ident;
+	use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+}
 
+static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)
+{
+	struct instruction *phi_node;
+	struct basic_block *bb;
+	pseudo_t pseudo;
+
+	pseudo = linearize_compound_statement(ep, stmt);
+	if (!is_void_type(stmt->ret)) {			// non-void function
+		struct basic_block *active = ep->active;
+		if (active && !bb_terminated(active)) {	// missing return
+			struct basic_block *bb_ret;
+			bb_ret = get_bound_block(ep, stmt->ret);
+			add_return(ep, bb_ret, stmt->ret, undef_pseudo());
+		}
+	}
+	bb = add_label(ep, stmt->ret);
+	phi_node = first_instruction(bb->insns);
+	if (phi_node)
+		pseudo = phi_node->target;
 	return pseudo;
 }
 
@@ -2005,10 +2045,12 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 		} END_FOR_EACH_PTR(sym);
 	}
 
-	insn->target = pseudo = linearize_compound_statement(ep, stmt);
+	pseudo = linearize_fn_statement(ep, stmt);
+	insn->target = pseudo;
+
 	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
 	bb = ep->active;
-	if (bb && !bb->insns)
+	if (!bb->insns)
 		bb->pos = stmt->pos;
 	add_one_insn(ep, insn);
 	return pseudo;
@@ -2144,22 +2186,13 @@ static pseudo_t linearize_declaration(struct entrypoint *ep, struct statement *s
 static pseudo_t linearize_return(struct entrypoint *ep, struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
-	struct basic_block *bb_return = get_bound_block(ep, stmt->ret_target);
+	struct symbol *ret = stmt->ret_target;
+	struct basic_block *bb_return = get_bound_block(ep, ret);
 	struct basic_block *active;
 	pseudo_t src = linearize_expression(ep, expr);
 	active = ep->active;
-	if (active && src != VOID) {
-		struct instruction *phi_node = first_instruction(bb_return->insns);
-		pseudo_t phi;
-		if (!phi_node) {
-			phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-			phi_node->target = alloc_pseudo(phi_node);
-			phi_node->bb = bb_return;
-			add_instruction(&bb_return->insns, phi_node);
-		}
-		phi = alloc_phi(active, src, expr->ctype);
-		phi->ident = &return_ident;
-		use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+	if (active && !is_void_type(ret)) {
+		add_return(ep, bb_return, ret, src);
 	}
 	add_goto(ep, bb_return);
 	return VOID;
@@ -2416,22 +2449,29 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 
 static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_type)
 {
+	struct statement *stmt = base_type->stmt;
 	struct entrypoint *ep;
 	struct basic_block *bb;
+	struct symbol *ret_type;
 	struct symbol *arg;
 	struct instruction *entry;
+	struct instruction *ret;
 	pseudo_t result;
 	int i;
 
-	if (!base_type->stmt)
+	if (!stmt)
 		return NULL;
 
 	ep = alloc_entrypoint();
-	bb = alloc_basic_block(ep, sym->pos);
-	
 	ep->name = sym;
 	sym->ep = ep;
+	bb = alloc_basic_block(ep, sym->pos);
 	set_activeblock(ep, bb);
+
+	if (stmt->type == STMT_ASM) {	// top-level asm
+		linearize_asm_statement(ep, stmt);
+		return ep;
+	}
 
 	entry = alloc_instruction(OP_ENTRY, 0);
 	add_one_insn(ep, entry);
@@ -2445,15 +2485,12 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 		linearize_argument(ep, arg, ++i);
 	} END_FOR_EACH_PTR(arg);
 
-	result = linearize_statement(ep, base_type->stmt);
-	if (bb_reachable(ep->active) && !bb_terminated(ep->active)) {
-		struct symbol *ret_type = base_type->ctype.base_type;
-		struct instruction *insn = alloc_typed_instruction(OP_RET, ret_type);
-
-		if (type_size(ret_type) > 0)
-			use_pseudo(insn, result, &insn->src);
-		add_one_insn(ep, insn);
-	}
+	result = linearize_fn_statement(ep, stmt);
+	ret_type = base_type->ctype.base_type;
+	ret = alloc_typed_instruction(OP_RET, ret_type);
+	if (type_size(ret_type) > 0)
+		use_pseudo(ret, result, &ret->src);
+	add_one_insn(ep, ret);
 
 	optimize(ep);
 	return ep;
