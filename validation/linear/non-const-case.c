@@ -30,7 +30,6 @@ label:
 /*
  * check-name: non-const-case
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-error-ignore
  * check-output-ignore
