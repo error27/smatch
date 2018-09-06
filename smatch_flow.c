@@ -57,6 +57,7 @@ struct statement *__next_stmt;
 int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
 static struct timeval fn_start_time;
+static struct timeval outer_fn_start_time;
 char *get_function(void) { return cur_func; }
 int get_lineno(void) { return __smatch_lineno; }
 int inside_loop(void) { return !!loop_count; }
@@ -879,7 +880,7 @@ int time_parsing_function(void)
 
 static int taking_too_long(void)
 {
-	if (time_parsing_function() > 60 * 5)  /* five minutes */
+	if ((ms_since(&outer_fn_start_time) / 1000) > 60 * 5) /* five minutes */
 		return 1;
 	return 0;
 }
@@ -1563,6 +1564,7 @@ static void split_function(struct symbol *sym)
 	if (!base_type->stmt && !base_type->inline_stmt)
 		return;
 
+	gettimeofday(&outer_fn_start_time, NULL);
 	gettimeofday(&fn_start_time, NULL);
 	cur_func_sym = sym;
 	if (sym->ident)
