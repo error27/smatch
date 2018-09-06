@@ -301,7 +301,7 @@ static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *of
 	if (!type_is_ptr(type))
 		return 0;
 	state = get_extra_state(expr);
-	if (!state || !estate_get_single_value(state, &sval))
+	if (!state || !estate_get_single_value(state, &sval) || sval.value == 0)
 		return 0;
 
 	*tag = sval.uvalue & ~MTAG_OFFSET_MASK;
