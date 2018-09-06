@@ -1539,10 +1539,12 @@ static void fake_global_assign(struct symbol *sym)
 		}
 	} else {
 		symbol = symbol_expression(sym);
-		if (sym->initializer)
+		if (sym->initializer) {
 			assign = assign_expression(symbol, '=', sym->initializer);
-		else
+			__split_expr(assign);
+		} else {
 			assign = assign_expression(symbol, '=', zero_expr());
+		}
 		__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 	}
 }
