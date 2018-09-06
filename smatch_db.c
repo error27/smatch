@@ -1740,6 +1740,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	final_pass = final_pass_orig;
 
 	nonzero_rl = rl_filter(rl, rl_zero());
+	nonzero_rl = cast_rl(cur_func_return_type(), nonzero_rl);
 	return_ranges = show_rl(nonzero_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(nonzero_rl));
 
