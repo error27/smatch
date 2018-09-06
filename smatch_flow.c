@@ -1660,6 +1660,9 @@ static void parse_inline(struct expression *call)
 	struct expression *orig_inline = __inline_fn;
 	int orig_budget;
 
+	if (out_of_memory() || taking_too_long())
+		return;
+
 	save_flow_state();
 
 	__pass_to_client(call, INLINE_FN_START);
