@@ -172,31 +172,63 @@ static int if_convert_phi(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
-static int clean_up_phi(struct instruction *insn)
+///
+// detect trivial phi-nodes
+// @insn: the phi-node
+// @pseudo: the candidate resulting pseudo (NULL when starting)
+// @return: the unique result if the phi-node is trivial, NULL otherwise
+//
+// A phi-node is trivial if it has a single possible result:
+//	# all operands are the same
+//	# the operands are themselves defined by a chain or cycle of phi-nodes
+//		and the set of all operands involved contains a single value
+//		not defined by these phi-nodes
+// Since the result is unique, these phi-nodes can be removed.
+static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn, struct pseudo_list **list)
 {
+	pseudo_t target = insn->target;
 	pseudo_t phi;
-	struct instruction *last;
-	int same;
 
-	last = NULL;
-	same = 1;
+	add_pseudo(list, target);
+
 	FOR_EACH_PTR(insn->phi_list, phi) {
 		struct instruction *def;
+		pseudo_t src;
+
 		if (phi == VOID)
 			continue;
 		def = phi->def;
-		if (def->phi_src == VOID || !def->bb)
+		if (!def->bb)
 			continue;
-		if (last) {
-			if (last->phi_src != def->phi_src)
-				same = 0;
+		src = def->phi_src; // bypass OP_PHISRC & get the real source
+		if (src == VOID)
+			continue;
+		if (!pseudo) {
+			pseudo = src;
 			continue;
 		}
-		last = def;
+		if (src == pseudo)
+			continue;
+		if (src == target)
+			continue;
+		if (DEF_OPCODE(def, src) == OP_PHI) {
+			if (pseudo_in_list(*list, src))
+				continue;
+			if ((pseudo = trivial_phi(pseudo, def, list)))
+				continue;
+		}
+		return NULL;
 	} END_FOR_EACH_PTR(phi);
 
-	if (same) {
-		pseudo_t pseudo = last ? last->phi_src : VOID;
+	return pseudo ? pseudo : VOID;
+}
+
+static int clean_up_phi(struct instruction *insn)
+{
+	struct pseudo_list *list = NULL;
+	pseudo_t pseudo;
+
+	if ((pseudo = trivial_phi(NULL, insn, &list))) {
 		convert_instruction_target(insn, pseudo);
 		kill_instruction(insn);
 		return REPEAT_CSE;
@@ -438,13 +470,6 @@ static inline int def_opcode(pseudo_t p)
 		return OP_BADOP;
 	return p->def->opcode;
 }
-
-//
-// return the opcode of the instruction defining ``SRC`` if existing
-// and OP_BADOP if not. It also assigns the defining instruction
-// to ``DEF``.
-#define DEF_OPCODE(DEF, SRC)	\
-	(((SRC)->type == PSEUDO_REG && (DEF = (SRC)->def)) ? DEF->opcode : OP_BADOP)
 
 static unsigned int value_size(long long value)
 {
