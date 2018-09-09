@@ -1,7 +1,7 @@
 static void foo(void)
 {
-	unsigned p = 0;
-	long x;
+	unsigned short p = 0;
+	int x;
 
 	for (;;)
 		if (p)
