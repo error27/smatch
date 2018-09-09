@@ -19,8 +19,8 @@ double sdouble(void)
 }
 
 /*
- * check-name: init-local
- * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
+ * check-name: init-local64
+ * check-command: test-linearize -Wno-decl -m64 -fdump-ir=mem2reg $file
  * check-output-ignore
  * check-output-excludes: load\\.
  * check-output-excludes: store\\.
