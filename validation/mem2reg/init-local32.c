@@ -21,8 +21,6 @@ double sdouble(void)
 /*
  * check-name: init-local32
  * check-command: test-linearize -Wno-decl -m32 -fdump-ir=mem2reg $file
- * check-known-to-fail
- *
  * check-output-ignore
  * check-output-excludes: load\\.
  * check-output-excludes: store\\.

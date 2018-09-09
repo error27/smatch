@@ -30,8 +30,6 @@ static inline bool is_promotable(struct symbol *type)
 	case SYM_RESTRICT:	// OK, always integer types
 		return 1;
 	case SYM_STRUCT:
-		if (type->bit_size > long_ctype.bit_size)
-			return 0;
 		// we allow a single scalar field
 		// but a run of bitfields count for 1
 		nbr = 0;
@@ -49,6 +47,8 @@ static inline bool is_promotable(struct symbol *type)
 			if (nbr++)
 				return 0;
 		} END_FOR_EACH_PTR(member);
+		if (bf_seen && (type->bit_size > long_ctype.bit_size))
+			return 0;
 		return 1;
 	case SYM_UNION:
 		// FIXME: should be like struct but has problem
