@@ -2155,6 +2155,7 @@ static void init_cachedb(void)
 		"db/return_implies.schema",
 		"db/type_info.schema",
 		"db/mtag_data.schema",
+		"db/sink_info.schema",
 	};
 	static char buf[4096];
 	int fd;
@@ -2226,6 +2227,7 @@ static void dump_cache(struct symbol_list *sym_list)
 	cache_sql(&save_cache_data, (char *)"return_implies", "select * from return_implies;");
 	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
 	cache_sql(&save_cache_data, (char *)"mtag_data", "select * from mtag_data;");
+	cache_sql(&save_cache_data, (char *)"sink_info", "select * from sink_info;");
 }
 
 void open_smatch_db(char *db_file)

@@ -66,6 +66,7 @@ CK(register_mtag)
 CK(register_mtag_map)
 CK(register_mtag_data)
 CK(register_param_to_mtag_data)
+CK(register_array_values)
 
 CK(check_debug)
 

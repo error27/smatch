@@ -600,6 +600,8 @@ int get_local_min_helper(struct expression *expr, sval_t *sval);
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
 /* smatch_data_val.c */
 int get_mtag_rl(struct expression *expr, struct range_list **rl);
+/* smatch_array_values.c */
+int get_array_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
 void __swap_cur_stree(struct stree *stree);

@@ -909,6 +909,8 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 				return rl;
 			if (get_db_type_rl(expr, &rl))
 				return rl;
+			if (is_array(expr) && get_array_rl(expr, &rl))
+				return rl;
 			return NULL;
 		}
 		if (implied == RL_HARD && !estate_has_hard_max(state))
@@ -954,6 +956,8 @@ static struct range_list *handle_variable(struct expression *expr, int implied, 
 		if (get_mtag_rl(expr, &rl))
 			return rl;
 		if (get_db_type_rl(expr, &rl))
+			return rl;
+		if (is_array(expr) && get_array_rl(expr, &rl))
 			return rl;
 		return NULL;
 	}

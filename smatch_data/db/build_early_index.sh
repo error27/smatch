@@ -39,6 +39,7 @@ CREATE INDEX mtag_about_idx on mtag_about (tag);
 CREATE INDEX mtag_data_idx on mtag_data (tag);
 CREATE INDEX mtag_map_idx1 on mtag_map (tag);
 CREATE INDEX mtag_map_idx2 on mtag_map (container);
+CREATE INDEX sink_index on sink_info (file, sink_name);
 
 EOF
 
