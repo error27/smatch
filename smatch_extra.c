@@ -1361,6 +1361,16 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	return 1;
 }
 
+static bool is_impossible_variable(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_extra_state(expr);
+	if (state && !estate_rl(state))
+		return true;
+	return false;
+}
+
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
 	struct range_list *left_orig;
@@ -1396,6 +1406,9 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 		}
 		right = strip_parens(right->unop);
 	}
+
+	if (is_impossible_variable(left) || is_impossible_variable(right))
+		return;
 
 	get_real_absolute_rl(left, &left_orig);
 	left_orig = cast_rl(type, left_orig);
