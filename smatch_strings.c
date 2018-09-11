@@ -132,6 +132,8 @@ static void match_string(struct expression *expr)
 
 	if (expr->type != EXPR_STRING || !expr->string->data)
 		return;
+	if (expr->string->length > 255)
+		return;
 
 	if (!get_string_mtag(expr, &tag))
 		return;
