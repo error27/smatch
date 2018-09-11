@@ -100,6 +100,11 @@ void check_signed_integer_overflow_check(int id)
 {
 	my_id = id;
 
+	if (option_project == PROJ_KERNEL) {
+		/* The kernel uses -fno-strict-overflow so it's fine */
+		return;
+	}
+
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_binop, BINOP_HOOK);
 }
