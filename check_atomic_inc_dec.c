@@ -231,6 +231,7 @@ void check_atomic_inc_dec(int id)
 	add_function_hook("atomic_sub_return", &match_atomic_sub, NULL);
 	add_function_hook("atomic_sub_and_test", &match_atomic_sub, NULL);
 	add_function_hook("atomic_dec_and_test", &match_atomic_dec, NULL);
+	add_function_hook("_atomic_dec_and_lock", &match_atomic_dec, NULL);
 	add_function_hook("atomic_dec", &match_atomic_dec, NULL);
 	add_function_hook("atomic_long_inc", &match_atomic_inc, NULL);
 	add_function_hook("atomic_long_dec", &match_atomic_dec, NULL);
@@ -241,6 +242,7 @@ void check_atomic_inc_dec(int id)
 	add_function_hook("refcount_add_not_zero", &refcount_inc, INT_PTR(1));
 	add_function_hook("refcount_inc_not_zero", &refcount_inc, INT_PTR(0));
 	add_function_hook("refcount_sub_and_test", &refcount_dec, INT_PTR(1));
+	add_function_hook("refcount_dec_and_test", &refcount_dec, INT_PTR(1));
 
 	add_hook(&match_check_missed, END_FUNC_HOOK);
 }
