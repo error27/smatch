@@ -28,7 +28,7 @@ static struct expression *get_returned_expr(struct expression *expr)
 	struct statement *stmt;
 
 	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
-	if (!stmt || stmt->type != STMT_EXPRESSION)
+	if (!stmt || stmt->type != STMT_EXPRESSION || !stmt->expression)
 		return NULL;
 	if (stmt->expression->type != EXPR_ASSIGNMENT)
 		return NULL;
