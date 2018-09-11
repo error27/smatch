@@ -86,6 +86,10 @@ static void match_call_info(struct expression *expr)
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
+	struct range_list *rl;
+
+	if (!get_user_rl_var_sym(sm->name, sm->sym, &rl))
+		return;
 	sql_insert_caller_info(call, NOSPEC, param, printed_name, "");
 }
 
@@ -94,6 +98,7 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	struct symbol *returned_sym;
 	struct sm_state *sm;
 	const char *param_name;
+	struct range_list *rl;
 	int param;
 
 	returned_sym = expr_to_sym(expr);
@@ -112,10 +117,13 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 		if (param != -1 && strcmp(param_name, "$") == 0)
 			continue;
 
+		if (!get_user_rl_var_sym(sm->name, sm->sym, &rl))
+			continue;
+
 		sql_insert_return_states(return_id, return_ranges, NOSPEC, param, param_name, "");
 	} END_FOR_EACH_SM(sm);
 
-	if (is_nospec(expr))
+	if (is_nospec(expr) && get_user_rl(expr, &rl))
 		sql_insert_return_states(return_id, return_ranges, NOSPEC, -1, "$", "");
 }
 
@@ -184,6 +192,7 @@ static void match_after_nospec_asm(struct statement *stmt)
 static void match_barrier(struct statement *stmt)
 {
 	struct stree *stree;
+	struct symbol *type;
 	struct sm_state *sm;
 	char *macro;
 
@@ -197,10 +206,16 @@ static void match_barrier(struct statement *stmt)
 
 	stree = get_user_stree();
 	FOR_EACH_SM(stree, sm) {
-		if (!is_whole_rl(estate_rl(sm->state)) ||
-		    is_capped_var_sym(sm->name, sm->sym))
-			set_state(my_id, sm->name, sm->sym, &nospec);
+		if (is_whole_rl(estate_rl(sm->state)))
+			continue;
+		type = estate_type(sm->state);
+		if (!type || type->type != SYM_BASETYPE)
+			continue;
+		if (!is_capped_var_sym(sm->name, sm->sym))
+			continue;
+		set_state(my_id, sm->name, sm->sym, &nospec);
 	} END_FOR_EACH_SM(sm);
+	free_stree(&stree);
 }
 
 void check_nospec(int id)
