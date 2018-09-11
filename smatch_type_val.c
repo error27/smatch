@@ -392,6 +392,9 @@ static void match_assign_value(struct expression *expr)
 	struct range_list *rl;
 	struct symbol *type;
 
+	if (!cur_func_sym)
+		return;
+
 	type = get_type(expr->left);
 	if (type && type->type == SYM_STRUCT)
 		return;
