@@ -44,8 +44,40 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_estate_empty();
 }
 
+static int parent_is_set(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct expression *faked;
+	char *left_name;
+	int ret = 0;
+	int len;
+
+	if (!__in_fake_assign)
+		return 0;
+	if (!is_whole_rl(estate_rl(state)))
+		return 0;
+	if (get_state(my_id, name, sym))
+		return 0;
+
+	faked = get_faked_expression();
+	if (!faked || faked->type != EXPR_ASSIGNMENT)
+		return 0;
+
+	left_name = expr_to_var(faked->left);
+	if (!left_name)
+		return 0;
+
+	len = strlen(left_name);
+	if (strncmp(name, left_name, len) == 0 && name[len] == '-')
+		ret = 1;
+	free_string(left_name);
+
+	return ret;
+}
+
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
+	if (parent_is_set(name, sym, state))
+		return;
 	if (get_param_num_from_sym(sym) < 0)
 		return;
 	set_state(my_id, name, sym, state);
