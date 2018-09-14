@@ -397,6 +397,7 @@ const char *global_static();
 struct symbol *cur_func_return_type(void);
 struct symbol *get_arg_type(struct expression *fn, int arg);
 struct symbol *get_member_type_from_key(struct expression *expr, const char *key);
+struct symbol *get_arg_type_from_key(struct expression *fn, int param, struct expression *arg, const char *key);
 int is_struct(struct expression *expr);
 char *type_to_str(struct symbol *type);
 

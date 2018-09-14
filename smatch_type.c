@@ -658,6 +658,23 @@ struct symbol *get_member_type_from_key(struct expression *expr, const char *key
 	return get_real_base_type(sym);
 }
 
+struct symbol *get_arg_type_from_key(struct expression *fn, int param, struct expression *arg, const char *key)
+{
+	struct symbol *type;
+
+	if (!key)
+		return NULL;
+	if (strcmp(key, "$") == 0)
+		return get_arg_type(fn, param);
+	if (strcmp(key, "*$") == 0) {
+		type = get_arg_type(fn, param);
+		if (!type || type->type != SYM_PTR)
+			return NULL;
+		return get_real_base_type(type);
+	}
+	return get_member_type_from_key(arg, key);
+}
+
 int is_struct(struct expression *expr)
 {
 	struct symbol *type;
