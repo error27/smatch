@@ -100,10 +100,39 @@ struct smatch_state *get_orig_estate_type(const char *name, struct symbol *sym, 
 	return alloc_estate_rl(alloc_whole_rl(type));
 }
 
+static struct range_list *generify_mtag_range(struct smatch_state *state)
+{
+	struct range_list *rl;
+	struct data_range *drange;
+
+	/*
+	 * The problem is that we get too specific on our param limits when we
+	 * know exactly what pointers are passed to a function.  It gets to the
+	 * point where we say "pointer x will succeed, but everything else will
+	 * fail."  And then we introduce a new caller which passes a different
+	 * pointer and it's like, "Sorry bro, that's not possible."
+	 *
+	 */
+	rl = rl_intersection(estate_rl(state), valid_ptr_rl);
+	if (!rl)
+		return estate_rl(state);
+
+	FOR_EACH_PTR(rl, drange) {
+		if (drange->min.value != drange->max.value)
+			continue;
+		if (drange->min.value > -4096 && drange->min.value <= 0)
+			continue;
+		return rl_union(valid_ptr_rl, rl);
+	} END_FOR_EACH_PTR(drange);
+
+	return estate_rl(state);
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state, *old;
 	struct sm_state *tmp;
+	struct range_list *rl;
 	const char *param_name;
 	int param;
 
@@ -126,8 +155,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (old && rl_equiv(estate_rl(old), estate_rl(state)))
 			continue;
 
+		rl = generify_mtag_range(state);
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
-					 param, param_name, state->name);
+					 param, param_name, show_rl(rl));
 	} END_FOR_EACH_SM(tmp);
 }
 
