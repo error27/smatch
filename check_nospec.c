@@ -22,6 +22,7 @@
 #include "smatch_extra.h"
 
 static int my_id;
+static int barrier_id;
 
 STATE(nospec);
 
@@ -125,6 +126,9 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 
 	if (is_nospec(expr) && get_user_rl(expr, &rl))
 		sql_insert_return_states(return_id, return_ranges, NOSPEC, -1, "$", "");
+
+	if (get_state(barrier_id, "barrier", NULL) == &nospec)
+		sql_insert_return_states(return_id, return_ranges, NOSPEC_WB, -1, "", "");
 }
 
 static int is_return_statement(void)
@@ -189,20 +193,11 @@ static void match_after_nospec_asm(struct statement *stmt)
 	in_nospec_stmt = false;
 }
 
-static void match_barrier(struct statement *stmt)
+static void mark_user_data_as_nospec(void)
 {
 	struct stree *stree;
 	struct symbol *type;
 	struct sm_state *sm;
-	char *macro;
-
-	macro = get_macro_name(stmt->pos);
-	if (!macro)
-		return;
-	if (strcmp(macro, "rmb") != 0 &&
-	    strcmp(macro, "smp_rmb") != 0 &&
-	    strcmp(macro, "barrier_nospec") != 0)
-		return;
 
 	stree = get_user_stree();
 	FOR_EACH_SM(stree, sm) {
@@ -218,6 +213,27 @@ static void match_barrier(struct statement *stmt)
 	free_stree(&stree);
 }
 
+static void match_barrier(struct statement *stmt)
+{
+	char *macro;
+
+	macro = get_macro_name(stmt->pos);
+	if (!macro)
+		return;
+	if (strcmp(macro, "rmb") != 0 &&
+	    strcmp(macro, "smp_rmb") != 0 &&
+	    strcmp(macro, "barrier_nospec") != 0)
+		return;
+
+	set_state(barrier_id, "barrier", NULL, &nospec);
+	mark_user_data_as_nospec();
+}
+
+static void db_returns_barrier(struct expression *expr, int param, char *key, char *value)
+{
+	mark_user_data_as_nospec();
+}
+
 void check_nospec(int id)
 {
 	my_id = id;
@@ -231,8 +247,15 @@ void check_nospec(int id)
 	add_member_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_struct_members);
 	select_return_states_hook(NOSPEC, &db_returns_nospec);
+	select_return_states_hook(NOSPEC_WB, &db_returns_barrier);
 
 	add_hook(&match_asm, ASM_HOOK);
 	add_hook(&match_after_nospec_asm, STMT_HOOK_AFTER);
+}
+
+void check_nospec_barrier(int id)
+{
+	barrier_id = id;
+
 	add_hook(&match_barrier, ASM_HOOK);
 }
