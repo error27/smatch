@@ -2122,10 +2122,8 @@ static void init_memdb(void)
 
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
 		fd = open_schema_file(schema_files[i]);
-		if (fd < 0) {
-			printf("failed to open: %s\n", schema_files[i]);
+		if (fd < 0)
 			continue;
-		}
 		ret = read(fd, buf, sizeof(buf));
 		if (ret < 0) {
 			printf("failed to read: %s\n", schema_files[i]);
@@ -2170,10 +2168,8 @@ static void init_cachedb(void)
 
 	for (i = 0; i < ARRAY_SIZE(schema_files); i++) {
 		fd = open_schema_file(schema_files[i]);
-		if (fd < 0) {
-			printf("failed to open: %s\n", schema_files[i]);
+		if (fd < 0)
 			continue;
-		}
 		ret = read(fd, buf, sizeof(buf));
 		if (ret < 0) {
 			printf("failed to read: %s\n", schema_files[i]);
