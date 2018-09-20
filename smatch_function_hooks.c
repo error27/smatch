@@ -346,14 +346,75 @@ struct db_callback_info {
 	int prev_return_id;
 	int cull;
 	int has_states;
+	char *ret_str;
 	struct smatch_state *ret_state;
 	struct expression *var_expr;
 	int handled;
 };
 
-static void store_return_state(struct db_callback_info *db_info, struct smatch_state *state)
+static void store_return_state(struct db_callback_info *db_info, const char *ret_str, struct smatch_state *state)
 {
+	db_info->ret_str = alloc_sname(ret_str),
 	db_info->ret_state = state;
+}
+
+static bool fake_a_param_assignment(struct expression *expr, const char *return_str)
+{
+	struct expression *arg, *left, *right, *fake_assign;
+	char *p;
+	int param;
+	char buf[256];
+	char *str;
+
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return false;
+	left = expr->left;
+	right = expr->right;
+
+	while (right->type == EXPR_ASSIGNMENT)
+		right = strip_expr(right->right);
+	if (!right || right->type != EXPR_CALL)
+		return false;
+
+	p = strchr(return_str, '[');
+	if (!p)
+		return false;
+
+	p++;
+	if (p[0] == '=' && p[1] == '=')
+		p += 2;
+	if (p[0] != '$')
+		return false;
+
+	snprintf(buf, sizeof(buf), "%s", p);
+
+	p = buf;
+	p += 1;
+	param = strtol(p, &p, 10);
+
+	p = strchr(p, ']');
+	if (!p || *p != ']')
+		return false;
+	*p = '\0';
+
+	arg = get_argument_from_call_expr(right->args, param);
+	if (!arg)
+		return false;
+	/*
+	 * This is a sanity check to prevent side effects from evaluating stuff
+	 * twice.
+	 */
+	str = expr_to_chunk_sym_vsl(arg, NULL, NULL);
+	if (!str)
+		return false;
+	free_string(str);
+
+	right = gen_expression_from_key(arg, buf);
+	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
+		return false;
+	fake_assign = assign_expression(left, '=', right);
+	__split_expr(fake_assign);
+	return true;
 }
 
 static void set_return_state(struct expression *expr, struct db_callback_info *db_info)
@@ -366,6 +427,8 @@ static void set_return_state(struct expression *expr, struct db_callback_info *d
 	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
 	set_extra_expr_mod(expr, state);
 	db_info->ret_state = NULL;
+	fake_a_param_assignment(db_info->expr, db_info->ret_str);
+	db_info->ret_str = NULL;
 }
 
 static void handle_ret_equals_param(char *ret_string, struct range_list *rl, struct expression *call)
@@ -567,6 +630,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		set_state(-1, "unnull_path", NULL, &true_state);
 		__add_return_comparison(strip_expr(db_info->expr), argv[1]);
 		__add_return_to_param_mapping(db_info->expr, argv[1]);
+		store_return_state(db_info, argv[1], alloc_estate_rl(clone_rl(var_rl)));
 	}
 
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
@@ -574,7 +638,6 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
-	store_return_state(db_info, alloc_estate_rl(clone_rl(var_rl)));
 	return 0;
 }
 
@@ -754,66 +817,6 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void fake_a_param_assignment(struct expression *expr, const char *return_str)
-{
-	struct expression *arg, *left, *right, *fake_assign;
-	char *p;
-	int param;
-	char buf[256];
-	char *str;
-
-	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
-		return;
-	left = expr->left;
-	right = expr->right;
-
-	while (right->type == EXPR_ASSIGNMENT)
-		right = strip_expr(right->right);
-	if (!right || right->type != EXPR_CALL)
-		return;
-
-	p = strchr(return_str, '[');
-	if (!p)
-		return;
-
-	p++;
-	if (p[0] == '=' && p[1] == '=')
-		p += 2;
-	if (p[0] != '$')
-		return;
-
-	snprintf(buf, sizeof(buf), "%s", p);
-
-	p = buf;
-	p += 1;
-	param = strtol(p, &p, 10);
-
-	p = strchr(p, ']');
-	if (!p || *p != ']')
-		return;
-	*p = '\0';
-
-	arg = get_argument_from_call_expr(right->args, param);
-	if (!arg)
-		return;
-	/*
-	 * This is a sanity check to prevent side effects from evaluating stuff
-	 * twice.
-	 */
-	str = expr_to_chunk_sym_vsl(arg, NULL, NULL);
-	if (!str)
-		return;
-	free_string(str);
-
-	right = gen_expression_from_key(arg, buf);
-	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
-		return;
-	fake_assign = assign_expression(left, '=', right);
-	__in_fake_assign++;
-	__split_expr(fake_assign);
-	__in_fake_assign--;
-}
-
 static int db_assign_return_states_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -871,15 +874,14 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		set_state(-1, "unnull_path", NULL, &true_state);
 		__add_return_comparison(strip_expr(db_info->expr->right), argv[1]);
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
-		fake_a_param_assignment(db_info->expr, argv[1]);
 		__add_return_to_param_mapping(db_info->expr, argv[1]);
+		store_return_state(db_info, argv[1], alloc_estate_rl(ret_range));
 	}
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
-	store_return_state(db_info, alloc_estate_rl(ret_range));
 
 	return 0;
 }
