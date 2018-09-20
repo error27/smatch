@@ -268,6 +268,9 @@ sval_t sval_cast(struct symbol *type, sval_t sval)
 
 	ret.type = type;
 	switch (sval_bits(ret)) {
+	case 1:
+		ret.value = !!sval.value;
+		break;
 	case 8:
 		if (sval_unsigned(ret))
 			ret.value = (long long)(unsigned char)sval.value;
