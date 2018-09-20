@@ -92,6 +92,9 @@ struct expression *assign_expression(struct expression *left, int op, struct exp
 {
 	struct expression *expr;
 
+	if (!right)
+		return NULL;
+
 	/* FIXME: make this a tmp expression. */
 	expr = alloc_expression(right->pos, EXPR_ASSIGNMENT);
 	expr->op = op;
