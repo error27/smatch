@@ -57,10 +57,10 @@ static void hack_ERR_PTR(struct symbol *sym)
 		return;
 
 	arg = first_ptr_list((struct ptr_list *)sym->ctype.base_type->arguments);
-	if (!arg || !arg->ident || strcmp(arg->ident->name, "error") != 0)
+	if (!arg || !arg->ident)
 		return;
 
-	estate = get_state(SMATCH_EXTRA, "error", arg);
+	estate = get_state(SMATCH_EXTRA, arg->ident->name, arg);
 	if (!estate) {
 		after = alloc_rl(low_error, minus_one);
 	} else {
