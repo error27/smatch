@@ -37,7 +37,7 @@ int get_array_rl(struct expression *expr, struct range_list **rl)
 	char *name;
 
 	array = get_array_base(expr);
-	if (!array || array->type != EXPR_SYMBOL)
+	if (!array || array->type != EXPR_SYMBOL || !array->symbol)
 		return 0;
 	if (!(array->symbol->ctype.modifiers & MOD_TOPLEVEL) ||
 	    !(array->symbol->ctype.modifiers & MOD_STATIC))
@@ -98,7 +98,7 @@ static void match_assign(struct expression *expr)
 	if (!is_array(left))
 		return;
 	array = get_array_base(left);
-	if (!array || array->type != EXPR_SYMBOL)
+	if (!array || array->type != EXPR_SYMBOL || !array->symbol)
 		return;
 	if (!(array->symbol->ctype.modifiers & MOD_TOPLEVEL) ||
 	    !(array->symbol->ctype.modifiers & MOD_STATIC))
