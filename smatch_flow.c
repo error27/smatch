@@ -887,9 +887,12 @@ static int taking_too_long(void)
 
 static int is_last_stmt(struct statement *cur_stmt)
 {
-	struct symbol *fn = get_base_type(cur_func_sym);
+	struct symbol *fn;
 	struct statement *stmt;
 
+	if (!cur_func_sym)
+		return 0;
+	fn = get_base_type(cur_func_sym);
 	if (!fn)
 		return 0;
 	stmt = fn->stmt;
