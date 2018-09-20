@@ -105,6 +105,9 @@ static struct range_list *generify_mtag_range(struct smatch_state *state)
 	struct range_list *rl;
 	struct data_range *drange;
 
+	if (!estate_type(state) || estate_type(state)->type != SYM_PTR)
+		return estate_rl(state);
+
 	/*
 	 * The problem is that we get too specific on our param limits when we
 	 * know exactly what pointers are passed to a function.  It gets to the
