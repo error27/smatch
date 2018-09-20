@@ -2226,12 +2226,14 @@ struct range_list *intersect_with_real_abs_var_sym(const char *name, struct symb
 struct range_list *intersect_with_real_abs_expr(struct expression *expr, struct range_list *start)
 {
 	struct smatch_state *state;
+	struct range_list *abs_rl;
 
 	state = get_real_absolute_state(expr);
 	if (!state || !estate_rl(state))
 		return start;
 
-	return rl_intersection(estate_rl(state), start);
+	abs_rl = cast_rl(rl_type(start), estate_rl(state));
+	return rl_intersection(abs_rl, start);
 }
 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
