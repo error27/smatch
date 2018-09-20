@@ -328,6 +328,8 @@ static int format_variable_helper(char *buf, int remaining, struct expression *e
 	struct symbol *sym;
 
 	name = expr_to_var_sym(expr, &sym);
+	if (param_was_set_var_sym(name, sym))
+		return 0;
 	return format_name_sym_helper(buf, remaining, name, sym);
 }
 
@@ -337,6 +339,8 @@ static int format_call_to_param_mapping(char *buf, int remaining, struct express
 	struct symbol *sym;
 
 	name = map_call_to_param_name_sym(expr, &sym);
+	if (param_was_set_var_sym(name, sym))
+		return 0;
 	return format_name_sym_helper(buf, remaining, name, sym);
 }
 
@@ -412,6 +416,8 @@ char *get_value_in_terms_of_parameter_math(struct expression *expr)
 	tmp = get_assigned_expr(expr);
 	if (tmp)
 		expr = tmp;
+	if (param_was_set(expr))
+		return NULL;
 
 	if (get_implied_value(expr, &dummy))
 		return NULL;
