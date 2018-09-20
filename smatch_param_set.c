@@ -59,7 +59,16 @@ static int parent_is_set(const char *name, struct symbol *sym, struct smatch_sta
 		return 0;
 
 	faked = get_faked_expression();
-	if (!faked || faked->type != EXPR_ASSIGNMENT)
+	if (!faked)
+		return 0;
+	if ((faked->type == EXPR_PREOP || faked->type == EXPR_POSTOP) &&
+	    (faked->op == SPECIAL_INCREMENT || faked->op == SPECIAL_DECREMENT)) {
+		faked = strip_expr(faked->unop);
+		if (faked->type == EXPR_SYMBOL)
+			return 1;
+		return 0;
+	}
+	if (faked->type != EXPR_ASSIGNMENT)
 		return 0;
 
 	left_name = expr_to_var(faked->left);
@@ -175,8 +184,10 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
-		if (strcmp(param_name, "$") == 0)
+		if (strcmp(param_name, "$") == 0) {
+			insert_string(&set_list, (char *)sm->name);
 			continue;
+		}
 
 		if (rl_to_sval(rl, &sval)) {
 			insert_string(&set_list, (char *)sm->name);
