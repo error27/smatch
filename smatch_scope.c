@@ -58,8 +58,11 @@ static void match_end_of_block(struct statement *stmt)
 
 static int is_outer_stmt(struct statement *stmt)
 {
-	struct symbol *fn = get_base_type(cur_func_sym);
+	struct symbol *fn;
 
+	if (!cur_func_sym)
+		return 0;
+	fn = get_base_type(cur_func_sym);
 	if (!fn)
 		return 0;
 	/*
