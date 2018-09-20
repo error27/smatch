@@ -1361,7 +1361,7 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	return 1;
 }
 
-static bool is_impossible_variable(struct expression *expr)
+bool is_impossible_variable(struct expression *expr)
 {
 	struct smatch_state *state;
 
