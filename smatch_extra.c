@@ -1156,14 +1156,14 @@ static void clear_pointed_at_state(struct expression *expr)
 	 * or something.  So if you have p++ where p is a pointer to a standard
 	 * c type then we handle that here.  What a mess.
 	 */
-
+	expr = strip_expr(expr);
 	type = get_type(expr);
 	if (!type || type->type != SYM_PTR)
 		return;
 	type = get_real_base_type(type);
 	if (!type || type->type != SYM_BASETYPE)
 		return;
-	set_extra_expr_mod(deref_expression(expr), alloc_estate_whole(type));
+	set_extra_expr_nomod(deref_expression(expr), alloc_estate_whole(type));
 }
 
 static void unop_expr(struct expression *expr)
