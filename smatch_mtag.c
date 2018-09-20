@@ -90,6 +90,11 @@ static void alloc_assign(const char *fn, struct expression *expr, void *unused)
 	char buf[256];
 	mtag_t tag;
 
+
+	// FIXME:  This should only happen when the size is not a paramter of
+	// the caller
+	return;
+
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
 	left = strip_expr(expr->left);
