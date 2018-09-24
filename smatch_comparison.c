@@ -1891,8 +1891,7 @@ static char *get_mask_comparison(struct expression *expr, int ignore)
 
 	right = strip_expr(expr->right);
 	param = get_param_num(right);
-
-	if (param == ignore)
+	if (param < 0 || param == ignore)
 		return NULL;
 
 	snprintf(buf, sizeof(buf), "[<=$%d]", param);
