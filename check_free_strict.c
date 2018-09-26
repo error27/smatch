@@ -59,6 +59,8 @@ static void match_symbol(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
+	if (__in_fake_assign)
+		return;
 
 	parent = expr_get_parent_expr(expr);
 	while (parent && parent->type == EXPR_PREOP && parent->op == '(')

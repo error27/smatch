@@ -413,7 +413,9 @@ static bool fake_a_param_assignment(struct expression *expr, const char *return_
 	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
 		return false;
 	fake_assign = assign_expression(left, '=', right);
+	__in_fake_assign++;
 	__split_expr(fake_assign);
+	__in_fake_assign--;
 	return true;
 }
 

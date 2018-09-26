@@ -1555,7 +1555,15 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
-	if (__in_fake_assign || outside_of_function())
+	if (outside_of_function())
+		return;
+	/*
+	 * This is a hack.  We want the faked expression in smatch_function_hooks.c
+	 * to be handled.  But we want to ingore the stuff in
+	 * smatch_struct_assignment.c.
+	 *
+	 */
+	if (__in_fake_assign && get_faked_expression())
 		return;
 
 	if (is_struct(expr->left))
