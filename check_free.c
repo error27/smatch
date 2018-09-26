@@ -59,7 +59,7 @@ static void match_symbol(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
-	if (__in_fake_assign)
+	if (__in_fake_parameter_assign)
 		return;
 
 	parent = expr_get_parent_expr(expr);
@@ -79,7 +79,7 @@ static void match_dereferences(struct expression *expr)
 {
 	char *name;
 
-	if (__in_fake_assign)
+	if (__in_fake_parameter_assign)
 		return;
 
 	if (expr->type != EXPR_PREOP)
@@ -190,7 +190,7 @@ static void match_return(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
-	if (__in_fake_assign)
+	if (__in_fake_parameter_assign)
 		return;
 
 	if (!expr)

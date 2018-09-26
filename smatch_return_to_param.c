@@ -44,6 +44,8 @@ static struct smatch_state *alloc_my_state(const char *name, struct symbol *sym)
 
 static void undef(struct sm_state *sm, struct expression *mod_expr)
 {
+	if (__in_fake_parameter_assign)
+		return;
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 

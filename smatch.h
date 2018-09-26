@@ -439,6 +439,7 @@ int in_condition(void);
 /* smatch_flow.c */
 
 extern int __in_fake_assign;
+extern int __in_fake_parameter_assign;
 extern int __in_fake_struct_assign;
 extern int in_fake_env;
 void smatch (int argc, char **argv);
