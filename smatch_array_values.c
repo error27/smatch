@@ -40,8 +40,16 @@ static int get_vals(void *_db_info, int argc, char **argv, char **azColName)
 
 static int is_file_local(struct expression *array)
 {
-	if ((array->symbol->ctype.modifiers & MOD_TOPLEVEL) &&
-	    (array->symbol->ctype.modifiers & MOD_STATIC))
+	struct symbol *sym = NULL;
+	char *name;
+
+	name = expr_to_str_sym(array, &sym);
+	free_string(name);
+	if (!sym)
+		return 0;
+
+	if ((sym->ctype.modifiers & MOD_TOPLEVEL) &&
+	    (sym->ctype.modifiers & MOD_STATIC))
 		return 1;
 	return 0;
 }
@@ -51,6 +59,11 @@ static char *get_toplevel_name(struct expression *array)
 	char *name;
 	char buf[128];
 
+	if (is_array(array))
+		array = get_array_base(array);
+
+	if (!array || array->type != EXPR_SYMBOL)
+		return NULL;
 	if (!is_file_local(array))
 		return NULL;
 
@@ -79,13 +92,8 @@ static char *get_array_name(struct expression *array)
 	struct symbol *type;
 	char *name;
 
-	if (!array || array->type != EXPR_SYMBOL || !array->symbol)
-		return NULL;
 	type = get_type(array);
 	if (!type || type->type != SYM_ARRAY)
-		return NULL;
-	type = get_real_base_type(type);
-	if (!type || type->type != SYM_BASETYPE)
 		return NULL;
 
 	name = get_toplevel_name(array);
@@ -121,7 +129,7 @@ int get_array_rl(struct expression *expr, struct range_list **rl)
 			get_filename(), name, DATA_VALUE);
 	} else {
 		run_sql(&get_vals, &db_info,
-			"select value from sink_info sink_name = '%s' and type = %d limit 10;",
+			"select value from sink_info where sink_name = '%s' and type = %d limit 10;",
 			name, DATA_VALUE);
 	}
 	if (!db_info.rl || db_info.count >= 10)
@@ -136,14 +144,14 @@ static struct range_list *get_saved_rl(struct symbol *type, char *name)
 	struct db_info db_info = {.type = type};
 
 	cache_sql(&get_vals, &db_info, "select value from sink_info where sink_name = '%s' and type = %d;",
-		  get_filename(), name, DATA_VALUE);
+		  name, DATA_VALUE);
 	return db_info.rl;
 }
 
 static void update_cache(char *name, int is_static, struct range_list *rl)
 {
 	cache_sql(NULL, NULL, "delete from sink_info where sink_name = '%s' and type = %d;",
-		  get_filename(), name, DATA_VALUE);
+		  name, DATA_VALUE);
 	cache_sql(NULL, NULL, "insert into sink_info values ('%s', %d, '%s', %d, '', '%s');",
 		  get_filename(), is_static, name, DATA_VALUE, show_rl(rl));
 }
@@ -155,16 +163,16 @@ static void match_assign(struct expression *expr)
 	struct symbol *type;
 	char *name;
 
+	type = get_type(expr->right);
+	if (!type || type->type != SYM_BASETYPE)
+		return;
+
 	left = strip_expr(expr->left);
 	if (!is_array(left))
 		return;
 	array = get_array_base(left);
 	name = get_array_name(array);
 	if (!name)
-		return;
-
-	type = get_type(expr->right);
-	if (!type)
 		return;
 
 	if (expr->op != '=') {
