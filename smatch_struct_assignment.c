@@ -469,7 +469,9 @@ static void unop_expr(struct expression *expr)
 
 	if (!is_pointer(expr))
 		return;
+	faked_expression = expr;
 	__struct_members_copy(COPY_MEMCPY, expr, expr->unop, NULL);
+	faked_expression = NULL;
 }
 
 static void register_clears_param(void)

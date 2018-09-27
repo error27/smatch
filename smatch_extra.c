@@ -1179,7 +1179,7 @@ static void unop_expr(struct expression *expr)
 		state = increment_state(state);
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
-		set_extra_expr_mod(expr->unop, state);
+		set_extra_expr_nomod(expr->unop, state);
 		clear_pointed_at_state(expr->unop);
 		break;
 	case SPECIAL_DECREMENT:
@@ -1187,7 +1187,7 @@ static void unop_expr(struct expression *expr)
 		state = decrement_state(state);
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
-		set_extra_expr_mod(expr->unop, state);
+		set_extra_expr_nomod(expr->unop, state);
 		clear_pointed_at_state(expr->unop);
 		break;
 	default:
