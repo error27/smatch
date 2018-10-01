@@ -1972,6 +1972,7 @@ static struct token *handle_bitfield(struct token *token, struct decl_state *ctx
 	}
 	bitfield->bit_size = width;
 	bitfield->endpos = token->pos;
+	bitfield->ident = *ctx->ident;
 	return token;
 }
 
