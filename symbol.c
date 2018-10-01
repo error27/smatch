@@ -258,8 +258,10 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 
 	if (!base_type)
 		return sym;
-	if (sym->bit_size > base_type->bit_size)
-		warning(sym->pos, "impossible field-width, %d, for this type",  sym->bit_size);
+	if (sym->bit_size > base_type->bit_size) {
+		sparse_error(sym->pos, "impossible field-width, %d, for this type",  sym->bit_size);
+		sym->bit_size = -1;
+	}
 
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)

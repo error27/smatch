@@ -19,7 +19,6 @@ static struct b b;
 /*
  * check-name: bitfield-sizes
  * check-command: sparse -m64 $file
- * check-known-to-fail
  *
  * check-error-start
 bitfield-sizes.c:12:18: error: invalid bitfield width, -1.
