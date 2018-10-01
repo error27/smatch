@@ -1946,12 +1946,9 @@ static struct token *handle_bitfield(struct token *token, struct decl_state *ctx
 	width = const_expression_value(expr);
 	bitfield->bit_size = width;
 
-	if (width < 0 || width > INT_MAX) {
-		sparse_error(token->pos, "invalid bitfield width, %lld.", width);
-		width = -1;
-	} else if (*ctx->ident && width == 0) {
-		sparse_error(token->pos, "invalid named zero-width bitfield `%s'",
-		     show_ident(*ctx->ident));
+	if (width < 0 || width > INT_MAX || (*ctx->ident && width == 0)) {
+		sparse_error(token->pos, "bitfield '%s' has invalid width (%lld)",
+			show_ident(*ctx->ident), width);
 		width = -1;
 	} else if (*ctx->ident) {
 		struct symbol *base_type = bitfield->ctype.base_type;

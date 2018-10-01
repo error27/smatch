@@ -259,7 +259,8 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 	if (!base_type)
 		return sym;
 	if (sym->bit_size > base_type->bit_size) {
-		sparse_error(sym->pos, "impossible field-width, %d, for this type",  sym->bit_size);
+		sparse_error(sym->pos, "bitfield '%s' is wider (%d) than its type (%s)",
+			show_ident(sym->ident), sym->bit_size, show_typename(base_type));
 		sym->bit_size = -1;
 	}
 

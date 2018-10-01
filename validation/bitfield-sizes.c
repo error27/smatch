@@ -21,10 +21,10 @@ static struct b b;
  * check-command: sparse -m64 $file
  *
  * check-error-start
-bitfield-sizes.c:12:18: error: invalid bitfield width, -1.
-bitfield-sizes.c:13:26: error: invalid bitfield width, 2147483648.
-bitfield-sizes.c:15:17: error: invalid named zero-width bitfield `a0'
-bitfield-sizes.c:6:15: error: impossible field-width, 33, for this type
-bitfield-sizes.c:7:15: error: impossible field-width, 65, for this type
+bitfield-sizes.c:12:18: error: bitfield 'm1' has invalid width (-1)
+bitfield-sizes.c:13:26: error: bitfield 'x1' has invalid width (2147483648)
+bitfield-sizes.c:15:17: error: bitfield 'a0' has invalid width (0)
+bitfield-sizes.c:6:15: error: bitfield 'x' is wider (33) than its type (int)
+bitfield-sizes.c:7:15: error: bitfield 'y' is wider (65) than its type (long)
  * check-error-end
  */
