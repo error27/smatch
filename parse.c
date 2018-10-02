@@ -824,16 +824,53 @@ static int type_is_ok(struct symbol *type, struct range range)
 	return 1;
 }
 
+static struct range type_range(struct symbol *type)
+{
+	struct range range;
+	unsigned int size = type->bit_size;
+	unsigned long long max;
+	long long min;
+
+	if (is_signed_type(type)) {
+		min = sign_bit(size);
+		max = min - 1;
+	} else {
+		min = 0;
+		max = bits_mask(size);
+	}
+
+	range.pos = max;
+	range.neg = min;
+	return range;
+}
+
+static int val_in_range(struct range *range, long long sval, struct symbol *vtype)
+{
+	unsigned long long uval = sval;
+
+	if (is_signed_type(vtype) && (sval < 0))
+		return range->neg <= sval;
+	else
+		return uval <= range->pos;
+}
+
 static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
 {
+	struct range irange = type_range(&int_ctype);
 	struct symbol *sym;
 
 	FOR_EACH_PTR(list, sym) {
 		struct expression *expr = sym->initializer;
 		struct symbol *ctype;
+		long long val;
 		if (expr->type != EXPR_VALUE)
 			continue;
 		ctype = expr->ctype;
+		val = get_expression_value(expr);
+		if (is_int_type(ctype) && val_in_range(&irange, val, ctype)) {
+			expr->ctype = &int_ctype;
+			continue;
+		}
 		expr->ctype = base_type;
 		if (ctype->bit_size == base_type->bit_size)
 			continue;
