@@ -972,7 +972,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		token = token->next;
 	}
 	if (!base_type) {
-		sparse_error(token->pos, "bad enum definition");
+		sparse_error(token->pos, "empty enum definition");
 		base_type = &bad_ctype;
 	}
 	else if (!is_int_type(base_type))
