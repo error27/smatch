@@ -335,6 +335,11 @@ static inline struct symbol *get_base_type(const struct symbol *sym)
 	return examine_symbol_type(sym->ctype.base_type);
 }
 
+///
+// test if type is an integer type
+//
+// @return: ``1`` for plain integer type, enums & bitfields
+//	but ``0`` for bitwise types!
 static inline int is_int_type(const struct symbol *type)
 {
 	if (type->type == SYM_NODE)

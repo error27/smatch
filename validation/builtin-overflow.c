@@ -1,4 +1,4 @@
-enum e { OK };
+enum e { OK, KO = -1 };
 typedef _Bool bool;
 
 static int test(int i, long l, long long ll, enum e e, bool b, void *p)
