@@ -916,6 +916,18 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 {
 	struct smatch_state *state;
 	struct range_list *rl;
+	struct symbol *type;
+
+	/*
+	 * Smatch uses a hack where if we get an unsigned long we say it's
+	 * both user data and it points to user data.  But if we pass it to a
+	 * function which takes an int, then it's just user data.  There's not
+	 * enough bytes for it to be a pointer.
+	 *
+	 */
+	type = get_arg_type(call->fn, param);
+	if (type && type_bits(type) < type_bits(&ptr_ctype))
+		return;
 
 	if (strcmp(sm->state->name, "") == 0)
 		return;
