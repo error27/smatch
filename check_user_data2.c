@@ -884,15 +884,18 @@ static void match_call_info(struct expression *expr)
 {
 	struct range_list *rl;
 	struct expression *arg;
+	struct symbol *type;
 	int i = 0;
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
+		type = get_arg_type(expr->fn, i);
 
 		if (!get_user_rl(arg, &rl))
 			continue;
 
+		rl = cast_rl(type, rl);
 		sql_insert_caller_info(expr, USER_DATA3, i, "$", show_rl(rl));
 	} END_FOR_EACH_PTR(arg);
 }
