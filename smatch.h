@@ -1042,6 +1042,7 @@ sval_t sval_cast(struct symbol *type, sval_t sval);
 sval_t sval_preop(sval_t sval, int op);
 sval_t sval_binop(sval_t left, int op, sval_t right);
 int sval_binop_overflows(sval_t left, int op, sval_t right);
+int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right);
 unsigned long long fls_mask(unsigned long long uvalue);
 unsigned long long sval_fls_mask(sval_t sval);
 const char *sval_to_str(sval_t sval);

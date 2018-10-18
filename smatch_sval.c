@@ -565,6 +565,24 @@ int sval_binop_overflows(sval_t left, int op, sval_t right)
 	return 0;
 }
 
+int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right)
+{
+
+	struct symbol *type;
+
+	type = left.type;
+	if (type_positive_bits(right.type) > type_positive_bits(left.type))
+		type = right.type;
+	if (type_positive_bits(type) <= 31)
+		type = &uint_ctype;
+	else
+		type = &ullong_ctype;
+
+	left = sval_cast(type, left);
+	right = sval_cast(type, right);
+	return sval_binop_overflows(left, op, right);
+}
+
 unsigned long long fls_mask(unsigned long long uvalue)
 {
 	unsigned long long high_bit = 0;
