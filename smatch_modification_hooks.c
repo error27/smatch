@@ -211,11 +211,15 @@ static void match_call(struct expression *expr)
 {
 	struct expression *arg, *tmp;
 
+	/* If we have the DB then trust the DB */
+	if (!option_no_db)
+		return;
+
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			call_modification_hooks(tmp->unop, expr, BOTH);
-		else if (option_no_db)
+		else
 			call_modification_hooks(deref_expression(tmp), expr, BOTH);
 	} END_FOR_EACH_PTR(arg);
 }
