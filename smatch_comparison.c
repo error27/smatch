@@ -2212,7 +2212,7 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 	int left_param, right_param;
 	char left_buf[256];
 	char right_buf[256];
-	char info_buf[256];
+	char info_buf[258];
 	const char *tmp_name;
 
 	print_return_value_comparison(return_id, return_ranges, expr);
