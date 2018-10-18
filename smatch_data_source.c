@@ -23,11 +23,20 @@ static int my_id;
 
 static char *get_source_parameter(struct expression *expr)
 {
+	struct expression *tmp;
 	struct symbol *sym;
 	char *name;
 	int param;
 	char *ret = NULL;
 	char buf[32];
+	int cnt = 0;
+
+	tmp = expr;
+	while ((tmp = get_assigned_expr(tmp))) {
+		expr = tmp;
+		if (cnt++ > 3)
+			break;
+	}
 
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_SYMBOL)
