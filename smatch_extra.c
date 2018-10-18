@@ -1614,7 +1614,7 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 
 			if (!get_value(right->right, &divisor))
 				return;
-			if (divisor.value == 0 && sval.value % divisor.value)
+			if (divisor.value == 0)
 				return;
 			*left_p = binop_expression(left, invert_op(right->op), right->right);
 			*right_p = right->left;
@@ -1642,7 +1642,7 @@ static void move_known_values(struct expression **left_p, struct expression **ri
 
 			if (!get_value(left->right, &divisor))
 				return;
-			if (divisor.value == 0 && sval.value % divisor.value)
+			if (divisor.value == 0)
 				return;
 			*right_p = binop_expression(right, invert_op(left->op), left->right);
 			*left_p = left->left;
