@@ -124,7 +124,7 @@ const char *show_string(const struct string *string)
 	char *ptr;
 	int i;
 
-	if (!string->length)
+	if (!string || !string->length)
 		return "<bad_string>";
 	ptr = buffer;
 	*ptr++ = '"';
