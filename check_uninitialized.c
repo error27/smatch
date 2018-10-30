@@ -244,8 +244,11 @@ static int is_being_modified(struct expression *expr)
 	parent = expr_get_parent_expr(expr);
 	if (!parent)
 		return 0;
-	while (parent->type == EXPR_PREOP && parent->op == '(')
+	while (parent->type == EXPR_PREOP && parent->op == '(') {
 		parent = expr_get_parent_expr(parent);
+		if (!parent)
+			return 0;
+	}
 	if (parent->type == EXPR_PREOP && parent->op == '&')
 		return 1;
 	if (parent->type == EXPR_ASSIGNMENT && expr_equiv(parent->left, expr))
