@@ -750,6 +750,7 @@ enum info_type {
 	CONSTRAINT_REQUIRED = 1033,
 	NOSPEC		= 1035,
 	NOSPEC_WB	= 1036,
+	TERMINATED	= 1038,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA3	= 8017,
