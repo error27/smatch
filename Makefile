@@ -271,7 +271,7 @@ check_list_local.h:
 	touch check_list_local.h
 
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
-	$(CC) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
+	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
 DEP_FILES := $(wildcard .*.o.d)
 
