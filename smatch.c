@@ -35,6 +35,7 @@ int option_param_mapper = 0;
 int option_call_tree = 0;
 int option_no_db = 0;
 int option_enable = 0;
+int option_disable = 0;
 int option_debug_related;
 int option_file_output;
 int option_time;
@@ -88,40 +89,39 @@ static void show_checks(void)
 	}
 	exit(1);
 }
-static void enable_check(int i)
-{
-	if (1 <= i && i < ARRAY_SIZE(reg_funcs))
-		reg_funcs[i].enabled = 1;
-}
 
-static void enable_checks(const char *s)
+static void enable_disable_checks(char *s, bool enable)
 {
-	int n = 0, lo = -1, i;
+	char buf[128];
+	char *next;
+	int i;
 
 	do {
-		switch (*s) {
-		case ',':
-		case '\0':
-			if (lo < 0)
-				enable_check(n);
-			else
-				for (i = lo; i <= n; ++i)
-					enable_check(i);
-			lo = -1;
-			n = 0;
-			break;
-		case '-':
-			lo = n;
-			n = 0;
-			break;
-		case '0' ... '9':
-			n = 10*n + (*s - '0');
-			break;
-		default:
-			fprintf(stderr, "invalid character '%c'\n", *s);
+		next = strchr(s, ',');
+		if (next) {
+			*next = '\0';
+			next++;
+		}
+		if (*s == '\0')
+			return;
+		if (strncmp(s, "check_", 6) == 0)
+			snprintf(buf, sizeof(buf), "%s", s);
+		else
+			snprintf(buf, sizeof(buf), "check_%s", s);
+
+
+		for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
+			if (strcmp(reg_funcs[i].name, buf) == 0) {
+				reg_funcs[i].enabled = (enable == true) ? 1 : -1;
+				break;
+			}
+		}
+
+		if (i == ARRAY_SIZE(reg_funcs)) {
+			printf("error: '%s' not found", s);
 			exit(1);
 		}
-	} while (*s++);
+	} while ((s = next));
 }
 
 static void help(void)
@@ -212,8 +212,15 @@ void parse_args(int *argcp, char ***argvp)
 			found = 1;
 		}
 		if (!found && strncmp((*argvp)[1], "--enable=", 9) == 0) {
-			enable_checks((*argvp)[1] + 9);
+			enable_disable_checks((*argvp)[1] + 9, 1);
 			option_enable = 1;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--disable=", 10) == 0) {
+			enable_disable_checks((*argvp)[1] + 10, 0);
+			option_enable = 1;
+			option_disable = 1;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
@@ -331,7 +338,9 @@ int main(int argc, char **argv)
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
 		   0 is used for internal stuff. */
-		if (!option_enable || reg_funcs[i].enabled || !strncmp(reg_funcs[i].name, "register_", 9))
+		if (!option_enable || reg_funcs[i].enabled == 1 ||
+		    (option_disable && reg_funcs[i].enabled != -1) ||
+		    strncmp(reg_funcs[i].name, "register_", 9) == 0)
 			func(i);
 	}
 
