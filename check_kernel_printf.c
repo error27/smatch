@@ -521,7 +521,7 @@ static void dentry_file(const char *fmt, struct symbol *type, struct symbol *bas
 			fmt[0], tag, vaidx, type_to_str(type));
 }
 
-static void clock(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+static void check_clock(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
 	assert(fmt[0] == 'C');
 	if (isalnum(fmt[1])) {
@@ -757,7 +757,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		dentry_file(fmt, type, basetype, vaidx);
 		break;
 	case 'C':
-		clock(fmt, type, basetype, vaidx);
+		check_clock(fmt, type, basetype, vaidx);
 		break;
 	case 'g':
 		block_device(fmt, type, basetype, vaidx);
