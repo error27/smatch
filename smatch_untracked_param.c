@@ -99,7 +99,7 @@ static int lost_in_va_args(struct expression *expr)
 
 	is_lost = 1;
 	name = expr_to_var(expr->fn);
-	if (strstr(name, "print"))
+	if (name && strstr(name, "print"))
 		is_lost = 0;
 	free_string(name);
 
