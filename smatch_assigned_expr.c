@@ -123,7 +123,7 @@ free:
 	free_string(name);
 }
 
-void check_assigned_expr(int id)
+void register_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
@@ -131,7 +131,7 @@ void check_assigned_expr(int id)
 	select_return_states_hook(PARAM_SET, &record_param_assignment);
 }
 
-void check_assigned_expr_links(int id)
+void register_assigned_expr_links(int id)
 {
 	link_id = id;
 	db_ignore_states(link_id);

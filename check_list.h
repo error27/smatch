@@ -198,8 +198,8 @@ CK(register_stored_conditions_links)
 CK(register_sval)
 CK(register_buf_size_late)
 CK(register_smatch_extra_late)
-CK(check_assigned_expr) /* This is used by smatch_extra.c so it has to come really late */
-CK(check_assigned_expr_links)
+CK(register_assigned_expr) /* This is used by smatch_extra.c so it has to come really late */
+CK(register_assigned_expr_links)
 CK(register_modification_hooks_late)  /* has to come after smatch_extra */
 CK(register_comparison_late) /* has to come after modification_hooks_late */
 CK(register_function_hooks)
