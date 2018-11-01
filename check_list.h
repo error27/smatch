@@ -70,10 +70,10 @@ CK(register_array_values)
 CK(register_nul_terminator)
 CK(register_nul_terminator_param_set)
 
-CK(check_debug)
+CK(register_kernel_user_data2)
+CK(register_kernel_user_data3)
 
-CK(check_user_data2)
-CK(check_user_data3)
+CK(check_debug)
 
 CK(check_bogus_loop)
 

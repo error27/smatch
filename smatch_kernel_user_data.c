@@ -1198,7 +1198,7 @@ static void match_inline_end(struct expression *expr)
 	func_gets_user_data = pop_int(&gets_data_stack);
 }
 
-void check_user_data2(int id)
+void register_kernel_user_data2(int id)
 {
 	int i;
 
@@ -1248,7 +1248,7 @@ void check_user_data2(int id)
 	add_split_return_callback(&param_set_to_user_data);
 }
 
-void check_user_data3(int id)
+void register_kernel_user_data3(int id)
 {
 	my_call_id = id;
 
