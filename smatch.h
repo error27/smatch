@@ -1141,6 +1141,9 @@ void update_mtag_data(struct expression *expr);
 int get_mtag_sval(struct expression *expr, sval_t *sval);
 int get_mtag_addr_sval(struct expression *expr, sval_t *sval);
 
+/* Trinity fuzzer stuff */
+const char *get_syscall_arg_type(struct symbol *sym);
+
 /* smatch_mem_tracker.c */
 extern int option_mem;
 unsigned long get_max_memory(void);
