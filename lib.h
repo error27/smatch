@@ -141,6 +141,7 @@ extern int Wbitwise;
 extern int Wcast_from_as;
 extern int Wcast_to_as;
 extern int Wcast_truncate;
+extern int Wconstant_suffix;
 extern int Wconstexpr_not_const;
 extern int Wcontext;
 extern int Wdecl;

@@ -101,6 +101,18 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-cast\-truncate\fR.
 .
 .TP
+.B \-Wconstant\-suffix
+Warn if an integer constant is larger than the maximum representable value
+of the type indicated by its type suffix (if any). For example, on a
+system where ints are 32-bit and longs 64-bit, the constant \fB0x100000000U\fR
+is larger than can be represented by an \fBunsigned int\fR but fits in an
+\fBunsigned long\fR. So its type is \fBunsigned long\fR but this is not
+indicated by its suffix. In this case, the warning could be suppressed by
+using the suffix \fBUL\fR: \fB0x100000000UL\fR.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wconstexpr-not-const
 Warn if a non-constant expression is encountered when really expecting a
 constant expression instead.

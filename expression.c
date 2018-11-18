@@ -324,7 +324,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 			show_token(token));
 	want_unsigned = 1;
 got_it:
-	if (do_warn)
+	if (do_warn && Wconstant_suffix)
 		warning(expr->pos, "constant %s is so big it is%s%s%s",
 			show_token(token),
 			want_unsigned ? " unsigned":"",
