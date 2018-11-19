@@ -34,7 +34,17 @@ TMPFILE=`mktemp -t tmp.XXXXXX`
 
 LLC=`"${LLVM_CONFIG:-llvm-config}" --bindir`/llc
 
-$DIRNAME/sparse-llvm $SPARSEOPTS | $LLC | as -o $TMPFILE
+LLC_ARCH_OPTS=
+case "$(uname -s)" in
+*CYGWIN*)
+	# cygwin uses the sjlj (setjmp-longjmp) exception model
+	LLC_ARCH_OPTS="-exception-model=sjlj"
+	;;
+*)
+	;;
+esac
+
+$DIRNAME/sparse-llvm $SPARSEOPTS | $LLC ${LLC_ARCH_OPTS} | as -o $TMPFILE
 
 if [ $NEED_LINK -eq 1 ]; then
 	if [ -z $OUTFILE ]; then
