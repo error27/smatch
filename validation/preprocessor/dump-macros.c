@@ -19,5 +19,5 @@ check-output-contains: #define IJK ijk
 check-output-contains: #define DEF xyz
 check-output-contains: #define NYDEF ydef
 check-output-contains: #define STRING(x) #x
-check-output-contains: #define CONCAT(x, y) x ## y
+check-output-contains: #define CONCAT(x,y) x ## y
  */

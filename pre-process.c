@@ -2184,7 +2184,7 @@ static void dump_macro(struct symbol *sym)
 				continue;
 			printf("%s%s", sep, show_token(token));
 			args[narg++] = token;
-			sep = ", ";
+			sep = ",";
 		}
 		putchar(')');
 	}
