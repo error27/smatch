@@ -2201,6 +2201,8 @@ static void dump_macro(struct symbol *sym)
 			/* fall-through */
 		default:
 			printf("%s", show_token(token));
+			if (token_type(next) == TOKEN_UNTAINT)
+				break;
 			if (next->pos.whitespace)
 				putchar(' ');
 		}
