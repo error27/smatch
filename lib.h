@@ -178,6 +178,7 @@ extern int Wunknown_attribute;
 extern int Wvla;
 
 extern int dump_macro_defs;
+extern int dump_macros_only;
 
 extern int dbg_compound;
 extern int dbg_dead;

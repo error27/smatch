@@ -288,6 +288,7 @@ int Wunknown_attribute = 0;
 int Wvla = 1;
 
 int dump_macro_defs = 0;
+int dump_macros_only = 0;
 
 int dbg_compound = 0;
 int dbg_dead = 0;
@@ -796,16 +797,34 @@ static char **handle_switch_v(char *arg, char **next)
 	return next;
 }
 
-static struct flag dumps[] = {
-	{ "D", &dump_macro_defs},
-};
-
 static char **handle_switch_d(char *arg, char **next)
 {
-	char ** ret = handle_onoff_switch(arg, next, dumps, ARRAY_SIZE(dumps));
-	if (ret)
-		return ret;
+	char *arg_char = arg + 1;
 
+	/*
+	 * -d<CHARS>, where <CHARS> is a sequence of characters, not preceded
+	 * by a space. If you specify characters whose behaviour conflicts,
+	 * the result is undefined.
+	 */
+	while (*arg_char) {
+		switch (*arg_char) {
+		case 'M': /* dump just the macro definitions */
+			dump_macros_only = 1;
+			dump_macro_defs = 0;
+			break;
+		case 'D': /* like 'M', but also output pre-processed text */
+			dump_macro_defs = 1;
+			dump_macros_only = 0;
+			break;
+		case 'N': /* like 'D', but only output macro names not bodies */
+			break;
+		case 'I': /* like 'D', but also output #include directives */
+			break;
+		case 'U': /* like 'D', but only output expanded macros */
+			break;
+		}
+		arg_char++;
+	}
 	return next;
 }
 
@@ -1313,8 +1332,12 @@ static struct symbol_list *sparse_tokenstream(struct token *token)
 	// Preprocess the stream
 	token = preprocess(token);
 
-	if (dump_macro_defs && !builtin)
-		dump_macro_definitions();
+	if (dump_macro_defs || dump_macros_only) {
+		if (!builtin)
+			dump_macro_definitions();
+		if (dump_macros_only)
+			return NULL;
+	}
 
 	if (preprocess_only) {
 		while (!eof_token(token)) {
