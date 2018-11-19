@@ -16,7 +16,6 @@ static void tst(struct s *s)
 /*
  * check-name: function-pointer
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: add\\.32.*\\$1, \\$0

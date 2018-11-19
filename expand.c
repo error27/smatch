@@ -821,6 +821,8 @@ static int expand_symbol_call(struct expression *expr, int cost)
 	struct expression *fn = expr->fn;
 	struct symbol *ctype = fn->ctype;
 
+	expand_expression(fn);
+
 	if (fn->type != EXPR_PREOP)
 		return SIDE_EFFECTS;
 
