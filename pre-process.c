@@ -2196,6 +2196,13 @@ static void dump_macro(struct symbol *sym)
 		switch (token_type(token)) {
 		case TOKEN_UNTAINT:
 			break;
+		case TOKEN_CONCAT:
+			printf("## ");
+			break;
+		case TOKEN_STR_ARGUMENT:
+			printf("#");
+			/* fall-through */
+		case TOKEN_QUOTED_ARGUMENT:
 		case TOKEN_MACRO_ARGUMENT:
 			token = args[token->argnum];
 			/* fall-through */
