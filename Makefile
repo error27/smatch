@@ -14,7 +14,7 @@ ifeq ($(CC),"")
 CC = gcc
 endif
 
-CFLAGS = -O2 -finline-functions -fno-strict-aliasing -g
+CFLAGS += -O2 -finline-functions -fno-strict-aliasing -g
 CFLAGS += -Wall -Wwrite-strings -Wno-switch
 LDFLAGS += -g -lm -lsqlite3 -lssl -lcrypto
 LD = gcc
