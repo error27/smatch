@@ -461,6 +461,7 @@ static void handle_arch_m64_finalize(void)
 		pointer_alignment = 8;
 #ifdef __x86_64__
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
+ 		add_pre_buffer("#weak_define __x86_64 1\n");
 #endif
 		break;
 	}
