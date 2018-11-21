@@ -440,6 +440,10 @@ static void handle_arch_m64_finalize(void)
 	switch (arch_m64) {
 	case ARCH_LP32:
 		/* default values */
+#if defined(__x86_64__) || defined (__i386)
+		add_pre_buffer("#weak_define __i386__ 1\n");
+ 		add_pre_buffer("#weak_define __i386 1\n");
+#endif
 		return;
 	case ARCH_LP64:
 		bits_in_long = 64;
@@ -459,7 +463,7 @@ static void handle_arch_m64_finalize(void)
 	case_64bit_common:
 		bits_in_pointer = 64;
 		pointer_alignment = 8;
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined (__i386)
 		add_pre_buffer("#weak_define __x86_64__ 1\n");
  		add_pre_buffer("#weak_define __x86_64 1\n");
 #endif
