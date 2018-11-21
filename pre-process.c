@@ -2200,11 +2200,9 @@ static void dump_macro(struct symbol *sym)
 	putchar(' ');
 
 	token = sym->expansion;
-	while (!eof_token(token)) {
+	while (token_type(token) != TOKEN_UNTAINT) {
 		struct token *next = token->next;
 		switch (token_type(token)) {
-		case TOKEN_UNTAINT:
-			break;
 		case TOKEN_CONCAT:
 			printf("## ");
 			break;
