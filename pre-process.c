@@ -2197,14 +2197,15 @@ static void dump_macro(struct symbol *sym)
 		}
 		putchar(')');
 	}
-	putchar(' ');
 
 	token = sym->expansion;
 	while (token_type(token) != TOKEN_UNTAINT) {
 		struct token *next = token->next;
+		if (token->pos.whitespace)
+			putchar(' ');
 		switch (token_type(token)) {
 		case TOKEN_CONCAT:
-			printf("## ");
+			printf("##");
 			break;
 		case TOKEN_STR_ARGUMENT:
 			printf("#");
@@ -2215,10 +2216,6 @@ static void dump_macro(struct symbol *sym)
 			/* fall-through */
 		default:
 			printf("%s", show_token(token));
-			if (token_type(next) == TOKEN_UNTAINT)
-				break;
-			if (next->pos.whitespace)
-				putchar(' ');
 		}
 		token = next;
 	}
