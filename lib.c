@@ -1067,6 +1067,13 @@ static char **handle_switch_g(char *arg, char **next)
 	return next;
 }
 
+static char **handle_switch_x(char *arg, char **next)
+{
+	if (!*++next)
+		die("missing argument for -x option");
+	return next;
+}
+
 
 static char **handle_version(char *arg, char **next)
 {
@@ -1136,6 +1143,7 @@ static char **handle_switch(char *arg, char **next)
 	case 'U': return handle_switch_U(arg, next);
 	case 'v': return handle_switch_v(arg, next);
 	case 'W': return handle_switch_W(arg, next);
+	case 'x': return handle_switch_x(arg, next);
 	case '-': return handle_long_options(arg + 1, next);
 	default:
 		break;
