@@ -31,6 +31,14 @@ while (@ARGV) {
     # Ditto for stdin.
     $do_check = 1 if $_ eq '-';
 
+    if ($_ eq '-o') {
+	# Need to be checked explicitly since '-o -' is
+	# sometimes used and the '-' would otherwise be
+	# processed as an option.
+	die ("$0: missing argument for $_") if !@ARGV;
+	$nargs = 1;
+    }
+
     $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
     $gendeps = 1 if /^-M$/;
