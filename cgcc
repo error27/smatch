@@ -14,12 +14,18 @@ my $do_compile = 1;
 my $gcc_base_dir;
 my $multiarch_dir;
 my $verbose = 0;
+my $nargs = 0;
 
 while (@ARGV) {
     $_ = shift(@ARGV);
+
+    if ($nargs) {
+	$nargs--;
+	goto add_option;
+    }
+
     # Look for a .c file.  We don't want to run the checker on .o or .so files
-    # in the link run.  (This simplistic check knows nothing about options
-    # with arguments, but it seems to do the job.)
+    # in the link run.
     $do_check = 1 if /^[^-].*\.c$/;
 
     # Ditto for stdin.
@@ -57,6 +63,7 @@ while (@ARGV) {
 
     $verbose = 1 if $_ eq '-v';
 
+add_option:
     my $this_arg = ' ' . &quote_arg ($_);
     $cc .= $this_arg unless &check_only_option ($_);
     $check .= $this_arg;
