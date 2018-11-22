@@ -71,30 +71,32 @@ DECLARE_PTR_LIST(db_implies_cb_list, struct db_implies_callback);
 static struct db_implies_cb_list *return_implies_cb_list;
 static struct db_implies_cb_list *call_implies_cb_list;
 
+/* silently truncates if needed. */
 char *escape_newlines(char *str)
 {
-	char buf[1024];
+	char buf[1024] = "";
 	bool found = false;
-	int i;
+	int i, j;
 
-	for (i = 0; i < sizeof(buf); i++) {
-		if (str[i] == '\n') {
-			found = true;
-			buf[i++] = '\\';
-			buf[i] = 'n';
+	for (i = 0, j = 0; str[i] != '\0' && j != sizeof(buf); i++, j++) {
+		if (str[i] != '\n') {
+			buf[j] = str[i];
 			continue;
 		}
-		buf[i] = str[i];
-		if (!str[i])
-			break;
+
+		found = true;
+		buf[j++] = '\\';
+		if (j == sizeof(buf))
+			 break;
+		buf[j] = 'n';
 	}
 
 	if (!found)
 		return str;
 
-	if (buf[i] == sizeof(buf))
-		buf[i - 1] = '\0';
-	return alloc_sname(buf);
+	if (j == sizeof(buf))
+		buf[j - 1] = '\0';
+	return (alloc_sname(buf));
 }
 
 void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
