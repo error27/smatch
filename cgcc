@@ -39,6 +39,14 @@ while (@ARGV) {
 	$nargs = 1;
     }
 
+    # Ignore the extension if '-x c' is given.
+    if ($_ eq '-x') {
+	die ("$0: missing argument for $_") if !@ARGV;
+	die ("$0: invalid argument for $_") if $ARGV[0] ne 'c';
+	$do_check = 1;
+	$nargs = 1;
+    }
+
     $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
     $gendeps = 1 if /^-M$/;
