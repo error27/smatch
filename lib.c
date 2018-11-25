@@ -1241,6 +1241,11 @@ static void predefined_macros(void)
 	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
 	predefined_ctype("LONG_LONG", &llong_ctype, PTYPE_ALL);
 
+	predefined_ctype("INT8",      &schar_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT8",     &uchar_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT16",     &short_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT16",   &ushort_ctype, PTYPE_MAX|PTYPE_TYPE);
+
 	predefined_sizeof("INT128", "", 128);
 
 	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
