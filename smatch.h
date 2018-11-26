@@ -202,6 +202,7 @@ extern int option_info;
 extern int option_spammy;
 extern char *trace_variable;
 extern struct stree *global_states;
+int is_skipped_function(void);
 int is_silenced_function(void);
 
 /* smatch_impossible.c */

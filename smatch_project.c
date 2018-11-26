@@ -28,12 +28,32 @@
 
 static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
+static struct hashtable *skipped_funcs;
 static struct hashtable *silenced_funcs;
 static struct hashtable *no_inline_funcs;
 
+int is_skipped_function(void)
+{
+	char *func;
+
+	func = get_function();
+	if (!func)
+		return 0;
+	if (search_func(skipped_funcs, func))
+		return 1;
+	return 0;
+}
+
+/*
+ * A silenced function will still be processed and potentially appear in info
+ * output, but not regular checks.
+ */
 int is_silenced_function(void)
 {
 	char *func;
+
+	if (is_skipped_function())
+		return 1;
 
 	func = get_function();
 	if (!func)
@@ -101,6 +121,35 @@ static void register_ignored_macros(void)
 	clear_token_alloc();
 }
 
+static void register_skipped_functions(void)
+{
+	struct token *token;
+	char *func;
+	char name[256];
+
+	skipped_funcs = create_function_hashtable(500);
+
+	if (option_project == PROJ_NONE)
+		return;
+
+	snprintf(name, 256, "%s.skipped_functions", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = alloc_string(show_ident(token->ident));
+		insert_func(skipped_funcs, func, INT_PTR(1));
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 static void register_silenced_functions(void)
 {
 	struct token *token;
@@ -163,6 +212,7 @@ void register_project(int id)
 {
 	register_no_return_funcs();
 	register_ignored_macros();
+	register_skipped_functions();
 	register_silenced_functions();
 	register_no_inline_functions();
 }

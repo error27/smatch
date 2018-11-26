@@ -1062,7 +1062,7 @@ void __split_stmt(struct statement *stmt)
 	if (!__in_fake_assign)
 		__silence_warnings_for_stmt = false;
 
-	if (__bail_on_rest_of_function)
+	if (__bail_on_rest_of_function || is_skipped_function())
 		return;
 
 	if (out_of_memory() || taking_too_long()) {
