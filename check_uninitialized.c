@@ -125,7 +125,7 @@ static void match_dereferences(struct expression *expr)
 		return;
 
 	name = expr_to_str(expr->unop);
-	sm_msg("error: potentially dereferencing uninitialized '%s'.", name);
+	sm_error("potentially dereferencing uninitialized '%s'.", name);
 	free_string(name);
 
 	set_state_expr(my_id, expr->unop, &initialized);
@@ -145,7 +145,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	name = expr_to_str(expr);
-	sm_msg("error: potentially using uninitialized '%s'.", name);
+	sm_error("potentially using uninitialized '%s'.", name);
 	free_string(name);
 
 	set_state_expr(my_id, expr, &initialized);
@@ -167,7 +167,7 @@ static void match_call(struct expression *expr)
 			continue;
 
 		name = expr_to_str(arg);
-		sm_msg("warn: passing uninitialized '%s'", name);
+		sm_warning("warn: passing uninitialized '%s'", name);
 		free_string(name);
 
 		set_state_expr(my_id, arg, &initialized);
@@ -228,7 +228,7 @@ static void match_call_struct_members(struct expression *expr)
 			snprintf(buf, sizeof(buf), "$->%s", sm->name + strlen(arg_name) + 1);
 			if (!member_is_used(expr, param, buf))
 				goto free;
-			sm_msg("warn: struct member %s is uninitialized", sm->name);
+			sm_warning("struct member %s is uninitialized", sm->name);
 		} END_FOR_EACH_SM(sm);
 
 free:
@@ -278,7 +278,7 @@ static void match_symbol(struct expression *expr)
 		return;
 
 	name = expr_to_str(expr);
-	sm_msg("error: uninitialized symbol '%s'.", name);
+	sm_error("uninitialized symbol '%s'.", name);
 	free_string(name);
 
 	set_state_expr(my_id, expr, &initialized);

@@ -762,7 +762,7 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 		if (!one_iter.sm || !two_iter.sm)
 			break;
 		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
-			sm_msg("error:  Internal smatch error.");
+			sm_perror(" in %s", __func__);
 			avl_iter_next(&one_iter);
 		} else if (cmp_tracker(one_iter.sm, two_iter.sm) == 0) {
 			if (add_pool && one_iter.sm != two_iter.sm) {
@@ -780,7 +780,7 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
 		} else {
-			sm_msg("error:  Internal smatch error.");
+			sm_perror(" in %s", __func__);
 			avl_iter_next(&two_iter);
 		}
 	}

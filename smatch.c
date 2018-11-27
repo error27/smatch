@@ -41,9 +41,14 @@ int option_file_output;
 int option_time;
 int option_mem;
 char *option_datadir_str;
+int option_fatal_checks;
+
 FILE *sm_outfd;
 FILE *sql_outfd;
 FILE *caller_info_fd;
+
+int sm_nr_errors;
+int sm_nr_checks;
 
 bool __silence_warnings_for_stmt;
 
@@ -87,7 +92,7 @@ static void show_checks(void)
 		if (!strncmp(reg_funcs[i].name, "check_", 6))
 			printf("%3d. %s\n", i, reg_funcs[i].name);
 	}
-	exit(1);
+	exit(0);
 }
 
 static void enable_disable_checks(char *s, bool enable)
@@ -117,10 +122,9 @@ static void enable_disable_checks(char *s, bool enable)
 			}
 		}
 
-		if (i == ARRAY_SIZE(reg_funcs)) {
-			printf("error: '%s' not found", s);
-			exit(1);
-		}
+		if (i == ARRAY_SIZE(reg_funcs))
+			sm_fatal("'%s' not found", s);
+
 	} while ((s = next));
 }
 
@@ -139,6 +143,7 @@ static void help(void)
 	printf("--assume-loops:  assume loops always go through at least once.\n");
 	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
+	printf("--fatal-checks: check output is treated as an error.\n");
 	printf("--help:  print this helpful message.\n");
 	exit(1);
 }
@@ -225,6 +230,7 @@ void parse_args(int *argcp, char ***argvp)
 			found = 1;
 		}
 
+		OPTION(fatal_checks);
 		OPTION(spammy);
 		OPTION(info);
 		OPTION(debug);
@@ -286,7 +292,7 @@ static char *get_data_dir(char *arg0)
 
 	if (option_datadir_str) {
 		if (access(option_datadir_str, R_OK))
-			printf("Warning: %s is not accessible -- ignore.\n",
+			sm_warning("%s is not accessible -- ignored.",
 					option_datadir_str);
 		else
 			return alloc_string(option_datadir_str);
@@ -310,8 +316,8 @@ static char *get_data_dir(char *arg0)
 	if (!access(dir, R_OK))
 		return dir;
 
-	printf("Warning: %s is not accessible.\n", dir);
-	printf("Use --no-data or --data to suppress this message.\n");
+	sm_warning("%s is not accessible.", dir);
+	sm_warning("Use --no-data or --data to suppress this message.");
 	return NULL;
 }
 
@@ -323,7 +329,11 @@ int main(int argc, char **argv)
 	sm_outfd = stdout;
 	sql_outfd = stdout;
 	caller_info_fd = stdout;
+
 	parse_args(&argc, &argv);
+
+	if (argc < 2)
+		help();
 
 	/* this gets set back to zero when we parse the first function */
 	final_pass = 1;
@@ -346,5 +356,10 @@ int main(int argc, char **argv)
 
 	smatch(argc, argv);
 	free_string(data_dir);
+
+	if (sm_nr_errors > 0)
+		return 1;
+	if (sm_nr_checks > 0 && option_fatal_checks)
+		return 1;
 	return 0;
 }

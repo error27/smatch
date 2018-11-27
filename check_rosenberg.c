@@ -75,7 +75,7 @@ static int check_struct(struct expression *expr, struct symbol *type)
 		}
 
 		if (!tmp->ctype.alignment) {
-			sm_msg("warn: cannot determine the alignment here\n");
+			sm_perror("cannot determine the alignment here");
 		} else if (align % tmp->ctype.alignment) {
 			print_holey_warning(expr, prev);
 			return 1;

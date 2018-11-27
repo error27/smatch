@@ -1072,7 +1072,7 @@ void __split_stmt(struct statement *stmt)
 
 		__bail_on_rest_of_function = 1;
 		final_pass = 1;
-		sm_msg("Function too hairy.  Giving up. %lu seconds",
+		sm_perror("Function too hairy.  Giving up. %lu seconds",
 		       stop.tv_sec - fn_start_time.tv_sec);
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
@@ -1891,27 +1891,21 @@ static void open_output_files(char *base_file)
 
 	snprintf(buf, sizeof(buf), "%s.smatch", base_file);
 	sm_outfd = fopen(buf, "w");
-	if (!sm_outfd) {
-		printf("Error:  Cannot open %s\n", buf);
-		exit(1);
-	}
+	if (!sm_outfd)
+		sm_fatal("Cannot open %s", buf);
 
 	if (!option_info)
 		return;
 
 	snprintf(buf, sizeof(buf), "%s.smatch.sql", base_file);
 	sql_outfd = fopen(buf, "w");
-	if (!sql_outfd) {
-		printf("Error:  Cannot open %s\n", buf);
-		exit(1);
-	}
+	if (!sql_outfd)
+		sm_fatal("Error:  Cannot open %s", buf);
 
 	snprintf(buf, sizeof(buf), "%s.smatch.caller_info", base_file);
 	caller_info_fd = fopen(buf, "w");
-	if (!caller_info_fd) {
-		printf("Error:  Cannot open %s\n", buf);
-		exit(1);
-	}
+	if (!caller_info_fd)
+		sm_fatal("Error:  Cannot open %s", buf);
 }
 
 void smatch(int argc, char **argv)
@@ -1924,10 +1918,6 @@ void smatch(int argc, char **argv)
 
 	gettimeofday(&start, NULL);
 
-	if (argc < 2) {
-		printf("Usage:  smatch [--debug] <filename.c>\n");
-		exit(1);
-	}
 	sparse_initialize(argc, argv, &filelist);
 	set_valid_ptr_max();
 	alloc_valid_ptr_rl();

@@ -212,6 +212,22 @@ void set_path_impossible(void);
 extern FILE *sm_outfd;
 extern FILE *sql_outfd;
 extern FILE *caller_info_fd;
+extern int sm_nr_checks;
+extern int sm_nr_errors;
+
+/*
+ * How to use these routines:
+ *
+ * sm_fatal(): an internal error of some kind that should immediately exit
+ * sm_ierror(): an internal error
+ * sm_perror(): an internal error from parsing input source
+ * sm_error(): an error from input source
+ * sm_warning(): a warning from input source
+ * sm_info(): info message (from option_info)
+ * sm_debug(): debug message
+ * sm_msg(): other message (please avoid using this)
+ */
+
 #define sm_printf(msg...) do { if (final_pass || option_debug || local_debug) fprintf(sm_outfd, msg); } while (0)
 
 static inline void sm_prefix(void)
@@ -223,7 +239,7 @@ static inline void print_implied_debug_msg();
 
 extern bool __silence_warnings_for_stmt;
 
-#define sm_msg(msg...) \
+#define sm_print_msg(type, msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
 	if (!final_pass && !option_debug && !local_debug)      \
@@ -233,9 +249,21 @@ do {                                                           \
 	if (!option_info && is_silenced_function())	       \
 		break;					       \
 	sm_prefix();					       \
+	if (type == 1) {				       \
+		sm_printf("warn: ");			       \
+		sm_nr_checks++;			    	       \
+	} else if (type == 2) {				       \
+		sm_printf("error: ");			       \
+		sm_nr_checks++;				       \
+	} else if (type == 3) {				       \
+		sm_printf("parse error: ");		       \
+		sm_nr_errors++;				       \
+	}						       \
         sm_printf(msg);                                        \
         sm_printf("\n");                                       \
 } while (0)
+
+#define sm_msg(msg...) do { sm_print_msg(0, msg); } while (0)
 
 #define local_debug(msg...)					\
 do {								\
@@ -267,6 +295,37 @@ static inline void print_implied_debug_msg(void)
 	}							\
 } while(0)
 
+#define sm_warning(msg...) do { sm_print_msg(1, msg); } while (0)
+#define sm_error(msg...) do { sm_print_msg(2, msg); } while (0)
+#define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
+
+static inline void sm_fatal(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	vfprintf(sm_outfd, fmt, args);
+	va_end(args);
+
+	fprintf(sm_outfd, "\n");
+
+	exit(1);
+}
+
+static inline void sm_ierror(const char *fmt, ...)
+{
+	va_list args;
+
+	sm_nr_errors++;
+
+	fprintf(sm_outfd, "internal error: ");
+
+	va_start(args, fmt);
+	vfprintf(sm_outfd, fmt, args);
+	va_end(args);
+
+	fprintf(sm_outfd, "\n");
+}
 #define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 
 struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym);
@@ -842,8 +901,8 @@ do {										\
 		sm_debug("mem-db: %s\n", buf);					\
 		rc = sqlite3_exec(_db, buf, NULL, NULL, &err);			\
 		if (rc != SQLITE_OK) {						\
-			fprintf(stderr, "SQL error #2: %s\n", err);		\
-			fprintf(stderr, "SQL: '%s'\n", buf);			\
+			sm_ierror("SQL error #2: %s", err);			\
+			sm_ierror("SQL: '%s'", buf);				\
 			parse_error = 1;					\
 		}								\
 		break;								\

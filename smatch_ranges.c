@@ -311,7 +311,7 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 			ret_rl = remove_range(left_orig, rl_min(right_orig), rl_min(right_orig));
 		break;
 	default:
-		sm_msg("internal error: unhandled comparison %s", show_special(comparison));
+		sm_perror("unhandled comparison %s", show_special(comparison));
 		return;
 	}
 
@@ -949,7 +949,7 @@ int true_comparison_range(struct data_range *left, int comparison, struct data_r
 			return 1;
 		return 0;
 	default:
-		sm_msg("unhandled comparison %d\n", comparison);
+		sm_perror("unhandled comparison %d", comparison);
 		return 0;
 	}
 	return 0;
@@ -1001,7 +1001,7 @@ static int false_comparison_range_sval(struct data_range *left, int comparison, 
 			return 0;
 		return 1;
 	default:
-		sm_msg("unhandled comparison %d\n", comparison);
+		sm_perror("unhandled comparison %d", comparison);
 		return 0;
 	}
 	return 0;
@@ -1829,7 +1829,7 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	default:
-		sm_msg("internal error: unhandled comparison %d", op);
+		sm_perror(" unhandled comparison %d", op);
 		return;
 	}
 

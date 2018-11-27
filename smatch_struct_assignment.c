@@ -290,7 +290,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 			break;
 		}
 		if (!right_member) {
-			sm_msg("internal.  No right member");
+			sm_perror("No right member");
 			continue;
 		}
 		assign = assign_expression(left_member, '=', right_member);

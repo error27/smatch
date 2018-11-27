@@ -325,7 +325,7 @@ static void register_funcs_from_file(void)
 		token = token->next;
 	}
 	if (token_type(token) != TOKEN_STREAMEND)
-		printf("internal: error parsing '%s'\n", name);
+		sm_perror("parsing '%s'", name);
 	clear_token_alloc();
 }
 

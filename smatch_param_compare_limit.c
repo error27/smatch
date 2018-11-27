@@ -268,7 +268,7 @@ static int parse_comparison(char **value, int *op)
 	}
 
 	if (**value != ' ') {
-		sm_msg("internal error parsing comparison.  %s", *value);
+		sm_perror("parsing comparison.  %s", *value);
 		return 0;
 	}
 

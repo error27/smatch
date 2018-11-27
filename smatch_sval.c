@@ -339,7 +339,7 @@ static sval_t sval_binop_unsigned(struct symbol *type, sval_t left, int op, sval
 		break;
 	case '%':
 		if (right.uvalue == 0) {
-			sm_msg("internal error: %s: MOD by zero", __func__);
+			sm_perror(" %s: MOD by zero", __func__);
 			ret.uvalue = 123456789;
 		} else {
 			ret.uvalue = left.uvalue % right.uvalue;
@@ -361,7 +361,7 @@ static sval_t sval_binop_unsigned(struct symbol *type, sval_t left, int op, sval
 		ret.uvalue = left.uvalue ^ right.uvalue;
 		break;
 	default:
-		sm_msg("internal error: %s: unhandled binop %s", __func__,
+		sm_perror(" %s: unhandled binop %s", __func__,
 		       show_special(op));
 		ret.uvalue = 1234567;
 	}
@@ -397,7 +397,7 @@ static sval_t sval_binop_signed(struct symbol *type, sval_t left, int op, sval_t
 		break;
 	case '%':
 		if (right.value == 0) {
-			sm_msg("internal error: %s: MOD by zero", __func__);
+			sm_perror(" %s: MOD by zero", __func__);
 			ret.value = 123456789;
 		} else {
 			ret.value = left.value % right.value;
@@ -419,7 +419,7 @@ static sval_t sval_binop_signed(struct symbol *type, sval_t left, int op, sval_t
 		ret.value = left.value ^ right.value;
 		break;
 	default:
-		sm_msg("internal error: %s: unhandled binop %s", __func__,
+		sm_perror(" %s: unhandled binop %s", __func__,
 		       show_special(op));
 		ret.value = 1234567;
 	}

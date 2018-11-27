@@ -25,7 +25,7 @@ static int *auto_copy;
 void set_auto_copy(int owner)
 {
 	if (owner <= 1 || owner > num_checks) {
-		printf("bogus set_auto_copy()\n");
+		sm_ierror("bogus set_auto_copy()");
 		return;
 	}
 	auto_copy[owner] = 1;

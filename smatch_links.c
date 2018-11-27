@@ -99,10 +99,8 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 
 void set_up_link_functions(int id, int link_id)
 {
-	if (id + 1 != link_id) {
-		printf("FATAL ERROR: links need to be registered directly after the check");
-		exit(1);
-	}
+	if (id + 1 != link_id)
+		sm_fatal("FATAL ERROR: links need to be registered directly after the check");
 
 	add_merge_hook(link_id, &merge_link_states);
 	add_modification_hook(link_id, &match_link_modify);

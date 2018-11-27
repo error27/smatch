@@ -88,7 +88,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 		return NULL;
 
 	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *s;
@@ -145,7 +145,7 @@ void __push_fake_cur_stree(void)
 struct stree *__pop_fake_cur_stree(void)
 {
 	if (!fake_cur_stree_stack)
-		sm_msg("INTERNAL error: popping too many fake cur strees.");
+		sm_perror("popping too many fake cur strees.");
 	__use_pre_cond_states();
 	return pop_stree(&fake_cur_stree_stack);
 }
@@ -190,7 +190,7 @@ void __merge_stree_into_cur(struct stree *stree)
 void __set_sm(struct sm_state *sm)
 {
 	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
@@ -216,7 +216,7 @@ void __set_sm(struct sm_state *sm)
 void __set_sm_cur_stree(struct sm_state *sm)
 {
 	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
@@ -239,7 +239,7 @@ void __set_sm_cur_stree(struct sm_state *sm)
 void __set_sm_fake_stree(struct sm_state *sm)
 {
 	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
@@ -472,7 +472,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *false_state)
 {
 	if (read_only)
-		sm_msg("Smatch Internal Error: cur_stree is read only.");
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *tmp;
@@ -487,7 +487,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		return;
 
 	if (!cond_false_stack || !cond_true_stack) {
-		printf("Error:  missing true/false stacks\n");
+		sm_perror("missing true/false stacks");
 		return;
 	}
 
@@ -539,7 +539,7 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 	}
 
 	if (!cond_false_stack || !cond_true_stack) {
-		printf("Error:  missing true/false stacks\n");
+		sm_perror("missing true/false stacks");
 		return;
 	}
 
@@ -586,7 +586,7 @@ int __path_is_null(void)
 static void check_stree_stack_free(struct stree_stack **stack)
 {
 	if (*stack) {
-		sm_msg("smatch internal error:  stack not empty");
+		sm_perror("stack not empty");
 		free_stack_and_strees(stack);
 	}
 }

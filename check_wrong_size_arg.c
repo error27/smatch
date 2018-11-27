@@ -83,7 +83,7 @@ static void register_funcs_from_file(void)
 
 	}
 	if (token_type(token) != TOKEN_STREAMEND)
-		sm_msg("internal: problem parsing '%s'\n", name);
+		sm_perror("problem parsing '%s'", name);
 	clear_token_alloc();
 }
 

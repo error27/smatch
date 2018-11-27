@@ -117,7 +117,7 @@ int flip_comparison(int op)
 	case SPECIAL_UNSIGNED_GT:
 		return SPECIAL_UNSIGNED_LT;
 	default:
-		sm_msg("internal smatch bug.  unhandled comparison %d", op);
+		sm_perror("unhandled comparison %d", op);
 		return op;
 	}
 }
@@ -148,7 +148,7 @@ int negate_comparison(int op)
 	case SPECIAL_UNSIGNED_GT:
 		return SPECIAL_UNSIGNED_LTE;
 	default:
-		sm_msg("internal smatch bug.  unhandled comparison %d", op);
+		sm_perror("unhandled comparison %d", op);
 		return op;
 	}
 }
@@ -2311,7 +2311,7 @@ static int parse_comparison(char **value, int *op)
 	}
 
 	if (**value != ' ') {
-		sm_msg("internal error parsing comparison.  %s", *value);
+		sm_perror("parsing comparison.  %s", *value);
 		return 0;
 	}
 

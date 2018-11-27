@@ -134,7 +134,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 		return 0;
 
 	if (rl_intersection(true_rl, false_rl)) {
-		sm_msg("internal error parsing (%s (%s) %s %s)",
+		sm_perror("parsing (%s (%s) %s %s)",
 			sm->name, sm->state->name, show_special(comparison), show_rl(rl));
 		sm_msg("true_rl = %s false_rl = %s intersection = %s",
 		       show_rl(true_rl), show_rl(false_rl), show_rl(rl_intersection(true_rl, false_rl)));
@@ -142,7 +142,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 	}
 
 	if (option_debug)
-		sm_msg("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
+		sm_info("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
 		       sm->name, show_rl(rl), sm->state->name, show_special(comparison), show_rl(rl),
 		       show_rl(true_rl), show_rl(false_rl));
 
@@ -401,7 +401,7 @@ static int taking_too_long(void)
 		return 0;
 
 	if (!__inline_fn && printed != cur_func_sym) {
-		sm_msg("internal: turning off implications after 60 seconds");
+		sm_perror("turning off implications after 60 seconds");
 		printed = cur_func_sym;
 	}
 	return 1;
@@ -594,7 +594,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	sec = time_after.tv_sec - time_before.tv_sec;
 	if (sec > 20) {
 		sm->nr_children = 4000;
-		sm_msg("Function too hairy.  Ignoring implications after %d seconds.", sec);
+		sm_perror("Function too hairy.  Ignoring implications after %d seconds.", sec);
 	}
 }
 

@@ -68,19 +68,15 @@ static struct smatch_state *alloc_my_state(struct expression *expr, struct smatc
 
 void add_modification_hook(int owner, modification_hook *call_back)
 {
-	if (hooks[owner]) {
-		printf("multiple modification hooks for %s\n", check_name(owner));
-		exit(1);
-	}
+	if (hooks[owner])
+		sm_fatal("multiple modification hooks for %s", check_name(owner));
 	hooks[owner] = call_back;
 }
 
 void add_modification_hook_late(int owner, modification_hook *call_back)
 {
-	if (hooks_late[owner]) {
-		printf("multiple late modification hooks for %s\n", check_name(owner));
-		exit(1);
-	}
+	if (hooks_late[owner])
+		sm_fatal("multiple late modification hooks for %s", check_name(owner));
 	hooks_late[owner] = call_back;
 }
 

@@ -51,7 +51,7 @@ static char pop_op(void)
 	char c;
 
 	if (!op_list) {
-		sm_msg("internal smatch error %s", __func__);
+		sm_perror("%s: no op_list", __func__);
 		return '\0';
 	}
 

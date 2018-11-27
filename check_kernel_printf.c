@@ -345,7 +345,7 @@ static void typedef_lookup(struct typedef_lookup *tl)
 		return;
 	tl->sym = _typedef_lookup(tl->name);
 	if (!tl->sym) {
-		sm_msg("internal error: could not find typedef '%s'", tl->name);
+		sm_perror(" could not find typedef '%s'", tl->name);
 		tl->failed = 1;
 	}
 }

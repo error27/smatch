@@ -128,8 +128,8 @@ void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), v
 
 	rc = sqlite3_exec(db, sql, callback, data, &err);
 	if (rc != SQLITE_OK && !parse_error) {
-		fprintf(stderr, "%s:%d SQL error #2: %s\n", get_filename(), get_lineno(), err);
-		fprintf(stderr, "%s:%d SQL: '%s'\n", get_filename(), get_lineno(), sql);
+		sm_ierror("%s:%d SQL error #2: %s\n", get_filename(), get_lineno(), err);
+		sm_ierror("%s:%d SQL: '%s'\n", get_filename(), get_lineno(), sql);
 		parse_error = 1;
 	}
 }
@@ -2121,7 +2121,7 @@ static void init_memdb(void)
 
 	rc = sqlite3_open(":memory:", &mem_db);
 	if (rc != SQLITE_OK) {
-		printf("Error starting In-Memory database.");
+		sm_ierror("starting In-Memory database.");
 		return;
 	}
 
@@ -2131,20 +2131,20 @@ static void init_memdb(void)
 			continue;
 		ret = read(fd, buf, sizeof(buf));
 		if (ret < 0) {
-			printf("failed to read: %s\n", schema_files[i]);
+			sm_ierror("failed to read: %s", schema_files[i]);
 			continue;
 		}
 		close(fd);
 		if (ret == sizeof(buf)) {
-			printf("Schema file too large:  %s (limit %zd bytes)",
+			sm_ierror("Schema file too large:  %s (limit %zd bytes)",
 			       schema_files[i], sizeof(buf));
 			continue;
 		}
 		buf[ret] = '\0';
 		rc = sqlite3_exec(mem_db, buf, NULL, NULL, &err);
 		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error #2: %s\n", err);
-			fprintf(stderr, "%s\n", buf);
+			sm_ierror("SQL error #2: %s", err);
+			sm_ierror("%s", buf);
 		}
 	}
 }
@@ -2167,7 +2167,7 @@ static void init_cachedb(void)
 
 	rc = sqlite3_open(":memory:", &cache_db);
 	if (rc != SQLITE_OK) {
-		printf("Error starting In-Memory database.");
+		sm_ierror("starting In-Memory database.");
 		return;
 	}
 
@@ -2177,20 +2177,20 @@ static void init_cachedb(void)
 			continue;
 		ret = read(fd, buf, sizeof(buf));
 		if (ret < 0) {
-			printf("failed to read: %s\n", schema_files[i]);
+			sm_ierror("failed to read: %s", schema_files[i]);
 			continue;
 		}
 		close(fd);
 		if (ret == sizeof(buf)) {
-			printf("Schema file too large:  %s (limit %zd bytes)",
+			sm_ierror("Schema file too large:  %s (limit %zd bytes)",
 			       schema_files[i], sizeof(buf));
 			continue;
 		}
 		buf[ret] = '\0';
 		rc = sqlite3_exec(cache_db, buf, NULL, NULL, &err);
 		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error #2: %s\n", err);
-			fprintf(stderr, "%s\n", buf);
+			sm_ierror("SQL error #2: %s", err);
+			sm_ierror("%s", buf);
 		}
 	}
 }
@@ -2299,7 +2299,7 @@ static char *get_next_string(char **str)
 	if (len > 256) {
 		memcpy(string, start, 255);
 		string[255] = '\0';
-		printf("return_fix: '%s' too long", string);
+		sm_ierror("return_fix: '%s' too long", string);
 		**str = '\0';
 		return NULL;
 	}
@@ -2328,7 +2328,7 @@ static void register_return_replacements(void)
 	if (ret < 0)
 		return;
 	if (ret == sizeof(buf)) {
-		printf("file too large:  %s (limit %zd bytes)",
+		sm_ierror("file too large:  %s (limit %zd bytes)",
 		       filename, sizeof(buf));
 		return;
 	}
