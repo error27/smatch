@@ -237,6 +237,7 @@ int Winit_cstring = 0;
 int Wenum_mismatch = 1;
 int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
+int Wnon_ansi_function_declaration = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wone_bit_signed_bitfield = 1;
@@ -539,6 +540,7 @@ static const struct warning {
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "init-cstring", &Winit_cstring },
 	{ "memcpy-max-count", &Wmemcpy_max_count },
+	{ "non-ansi-function-declaration", &Wnon_ansi_function_declaration },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
