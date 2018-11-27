@@ -118,7 +118,7 @@ static void match_unop(struct expression *raw_expr)
 		return;
 
 	name = expr_to_str(raw_expr);
-	sm_msg("warn: side effect in macro '%s' doing '%s'",
+	sm_warning("side effect in macro '%s' doing '%s'",
 		macro, name);
 	free_string(name);
 }

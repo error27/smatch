@@ -26,7 +26,7 @@ static void must_check(const char *fn, struct expression *expr, void *data)
 
 	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
 	if (stmt->type == STMT_EXPRESSION && stmt->expression == expr)
-		sm_msg("warn: unchecked '%s'", fn);
+		sm_warning("unchecked '%s'", fn);
 }
 
 static void register_must_check_funcs(void)

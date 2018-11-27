@@ -84,7 +84,7 @@ static void match_condition(struct expression *expr)
 	}
 
 	if (print) {
-		sm_msg("warn: add some parenthesis here?");
+		sm_warning("add some parenthesis here?");
 		return;
 	}
 
@@ -96,7 +96,7 @@ static void match_condition(struct expression *expr)
 		if (is_bool_op(expr->right))
 			i++;
 		if (i == 1)
-			sm_msg("warn: maybe use && instead of &");
+			sm_warning("maybe use && instead of &");
 	}
 }
 
@@ -105,7 +105,7 @@ static void match_binop(struct expression *expr)
 	if (expr->op != '&')
 		return;
 	if (expr->left->op == '!')
-		sm_msg("warn: add some parenthesis here?");
+		sm_warning("add some parenthesis here?");
 }
 
 static void match_mask(struct expression *expr)
@@ -117,7 +117,7 @@ static void match_mask(struct expression *expr)
 	if (expr->right->op != SPECIAL_RIGHTSHIFT)
 		return;
 
-	sm_msg("warn: shift has higher precedence than mask");
+	sm_warning("shift has higher precedence than mask");
 }
 
 static void match_subtract_shift(struct expression *expr)
@@ -128,7 +128,7 @@ static void match_subtract_shift(struct expression *expr)
 		return;
 	if (expr->right->op != '-')
 		return;
-	sm_msg("warn: subtract is higher precedence than shift");
+	sm_warning("subtract is higher precedence than shift");
 }
 
 void check_precedence(int id)

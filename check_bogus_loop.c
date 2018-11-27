@@ -81,7 +81,7 @@ static void match_loop(struct statement *stmt)
 		goto free;
 
 	if (implied_condition_false(stmt->iterator_pre_condition))
-		sm_msg("warn: we never enter this loop");
+		sm_warning("we never enter this loop");
 
 free:
 	free_string(iter_set);

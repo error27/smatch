@@ -203,7 +203,7 @@ static void warn_if_allocated(struct expression *expr)
 		return;
 
 	name = expr_to_var(expr);
-	sm_msg("warn: overwrite may leak '%s'", name);
+	sm_warning("overwrite may leak '%s'", name);
 	free_string(name);
 
 	/* silence further warnings */
@@ -232,7 +232,7 @@ static void check_for_allocated(void)
 	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (!slist_has_state(tmp->possible, &allocated))
 			continue;
-		sm_msg("warn: possible memory leak of '%s'", tmp->name);
+		sm_warning("possible memory leak of '%s'", tmp->name);
 	} END_FOR_EACH_SM(tmp);
 }
 

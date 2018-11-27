@@ -111,14 +111,14 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 			continue;
 		if (is_valid_ptr(estate_min(tmp->state)) &&
 		    is_valid_ptr(estate_max(tmp->state))) {
-			sm_msg("warn: passing a valid pointer to '%s'", fn);
+			sm_warning("passing a valid pointer to '%s'", fn);
 			return;
 		}
 		if (!rl_to_sval(estate_rl(tmp->state), &sval))
 			continue;
 		if (sval.value != 0)
 			continue;
-		sm_msg("warn: passing zero to '%s'", fn);
+		sm_warning("passing zero to '%s'", fn);
 		return;
 	} END_FOR_EACH_PTR(tmp);
 }

@@ -31,7 +31,7 @@ static void match_if_stmt(struct statement *stmt)
 		return;
 	if (stmt->pos.pos != stmt->if_true->pos.pos)
 		return;
-	sm_msg("warn: if statement not indented");
+	sm_warning("if statement not indented");
 }
 
 static void match_for_stmt(struct statement *stmt)
@@ -46,7 +46,7 @@ static void match_for_stmt(struct statement *stmt)
 		return;
 	if (stmt->pos.pos != stmt->iterator_statement->pos.pos)
 		return;
-	sm_msg("warn: for statement not indented");
+	sm_warning("for statement not indented");
 }
 
 void check_no_if_block(int id)

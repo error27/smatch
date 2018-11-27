@@ -54,7 +54,7 @@ static void match_declarations(struct symbol *sym)
 	}
 	if (type_bytes(base) >= MAX_ALLOWED) {
 		complained = 1;
-		sm_msg("warn: '%s' puts %d bytes on stack", name, type_bytes(base));
+		sm_warning("'%s' puts %d bytes on stack", name, type_bytes(base));
 	}
 	add_scope_hook(&scope_end, INT_PTR(type_bytes(base))); 
 }

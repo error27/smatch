@@ -49,7 +49,7 @@ static void match_condition(struct expression *expr)
 		char *name;
 
 		name = expr_to_var(expr);
-		sm_msg("warn: can '%s' even be NULL?", name);
+		sm_warning("can '%s' even be NULL?", name);
 		set_state_expr(my_id, expr, &undefined);
 		free_string(name);
 	}

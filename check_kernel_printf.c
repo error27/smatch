@@ -191,7 +191,7 @@ qualifier:
 				qualifier = 'H';
 				++fmt;
 			} else {
-				sm_msg("warn: invalid repeated qualifier '%c'", *fmt);
+				sm_warning("invalid repeated qualifier '%c'", *fmt);
 			}
 		}
 	}
@@ -201,14 +201,14 @@ qualifier:
 	switch (*fmt) {
 	case 'c':
 		if (qualifier)
-			sm_msg("warn: qualifier '%c' ignored for %%c specifier", qualifier);
+			sm_warning("qualifier '%c' ignored for %%c specifier", qualifier);
 
 		spec->type = FORMAT_TYPE_CHAR;
 		return ++fmt - start;
 
 	case 's':
 		if (qualifier)
-			sm_msg("warn: qualifier '%c' ignored for %%s specifier", qualifier);
+			sm_warning("qualifier '%c' ignored for %%s specifier", qualifier);
 
 		spec->type = FORMAT_TYPE_STR;
 		return ++fmt - start;
@@ -371,10 +371,10 @@ static void ip4(const char *fmt, struct symbol *type, struct symbol *basetype, i
 			endian = ENDIAN_BIG;
 			break;
 		default:
-			sm_msg("warn: '%%p%c4' can only be followed by one of [hnbl], not '%c'", fmt[0], fmt[2]);
+			sm_warning("'%%p%c4' can only be followed by one of [hnbl], not '%c'", fmt[0], fmt[2]);
 		}
 		if (isalnum(fmt[3]))
-			sm_msg("warn: '%%p%c4' can only be followed by precisely one of [hnbl]", fmt[0]);
+			sm_warning("'%%p%c4' can only be followed by precisely one of [hnbl]", fmt[0]);
 	}
 
 
@@ -395,7 +395,7 @@ static void ip4(const char *fmt, struct symbol *type, struct symbol *basetype, i
 		return;
 
 	if (is_struct_tag(basetype, "in_addr") && endian != ENDIAN_BIG)
-		sm_msg("warn: passing struct in_addr* to '%%p%c4%c', is the endianness ok?", fmt[0], fmt[2]);
+		sm_warning("passing struct in_addr* to '%%p%c4%c', is the endianness ok?", fmt[0], fmt[2]);
 
 	/* ... */
 }
@@ -407,11 +407,11 @@ static void ip6(const char *fmt, struct symbol *type, struct symbol *basetype, i
 
 	if (isalnum(fmt[2])) {
 		if (fmt[2] != 'c')
-			sm_msg("warn: '%%p%c6' can only be followed by c", fmt[0]);
+			sm_warning("'%%p%c6' can only be followed by c", fmt[0]);
 		else if (fmt[0] == 'i')
-			sm_msg("warn: '%%pi6' does not allow flag c");
+			sm_warning("'%%pi6' does not allow flag c");
 		if (isalnum(fmt[3]))
-			sm_msg("warn: '%%p%c6%c' cannot be followed by other alphanumerics", fmt[0], fmt[2]);
+			sm_warning("'%%p%c6%c' cannot be followed by other alphanumerics", fmt[0], fmt[2]);
 	}
 
 	if (type->ctype.modifiers & MOD_NODEREF)
@@ -428,7 +428,7 @@ static void ipS(const char *fmt, struct symbol *type, struct symbol *basetype, i
 	for (f = fmt+2; isalnum(*f); ++f) {
 		/* It's probably too anal checking for duplicate flags. */
 		if (!strchr("pfschnbl", *f))
-			sm_msg("warn: '%%p%cS' cannot be followed by '%c'", fmt[0], *f);
+			sm_warning("'%%p%cS' cannot be followed by '%c'", fmt[0], *f);
 	}
 
 	/*
@@ -452,9 +452,9 @@ static void hex_string(const char *fmt, struct symbol *type, struct symbol *base
 	assert(fmt[0] == 'h');
 	if (isalnum(fmt[1])) {
 		if (!strchr("CDN", fmt[1]))
-			sm_msg("warn: '%%ph' cannot be followed by '%c'", fmt[1]);
+			sm_warning("'%%ph' cannot be followed by '%c'", fmt[1]);
 		if (isalnum(fmt[2]))
-			sm_msg("warn: '%%ph' can be followed by at most one of [CDN], and no other alphanumerics");
+			sm_warning("'%%ph' can be followed by at most one of [CDN], and no other alphanumerics");
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
 		sm_msg("error: passing __user pointer to %%ph");
@@ -465,7 +465,7 @@ static void escaped_string(const char *fmt, struct symbol *type, struct symbol *
 	assert(fmt[0] == 'E');
 	while (isalnum(*++fmt)) {
 		if (!strchr("achnops", *fmt))
-			sm_msg("warn: %%pE can only be followed by a combination of [achnops]");
+			sm_warning("%%pE can only be followed by a combination of [achnops]");
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
 		sm_msg("error: passing __user pointer to %%pE");
@@ -479,7 +479,7 @@ static void resource_string(const char *fmt, struct symbol *type, struct symbol 
 			"but argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
 	}
 	if (isalnum(fmt[1]))
-		sm_msg("warn: '%%p%c' cannot be followed by '%c'", fmt[0], fmt[1]);
+		sm_warning("'%%p%c' cannot be followed by '%c'", fmt[0], fmt[1]);
 }
 
 static void mac_address_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
@@ -487,15 +487,15 @@ static void mac_address_string(const char *fmt, struct symbol *type, struct symb
 	assert(tolower(fmt[0]) == 'm');
 	if (isalnum(fmt[1])) {
 		if (!(fmt[1] == 'F' || fmt[1] == 'R'))
-			sm_msg("warn: '%%p%c' cannot be followed by '%c'", fmt[0], fmt[1]);
+			sm_warning("'%%p%c' cannot be followed by '%c'", fmt[0], fmt[1]);
 		if (fmt[0] == 'm' && fmt[1] == 'F')
-			sm_msg("warn: it is pointless to pass flag F to %%pm");
+			sm_warning("it is pointless to pass flag F to %%pm");
 		if (isalnum(fmt[2]))
-			sm_msg("warn: '%%p%c%c' cannot be followed by other alphanumeric", fmt[0], fmt[1]);
+			sm_warning("'%%p%c%c' cannot be followed by other alphanumeric", fmt[0], fmt[1]);
 	}
 	/* Technically, bdaddr_t is a typedef for an anonymous struct, but this still seems to work. */
 	if (!is_char_type(basetype) && !is_struct_tag(basetype, "bdaddr_t") && basetype != &void_ctype) {
-		sm_msg("warn: '%%p%c' expects argument of type u8 * or bdaddr_t *, argument %d has type '%s'",
+		sm_warning("'%%p%c' expects argument of type u8 * or bdaddr_t *, argument %d has type '%s'",
 			fmt[0], vaidx, type_to_str(type));
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
@@ -511,9 +511,9 @@ static void dentry_file(const char *fmt, struct symbol *type, struct symbol *bas
 
 	if (isalnum(fmt[1])) {
 		if (!strchr("234", fmt[1]))
-			sm_msg("warn: '%%p%c' can only be followed by one of [234]", fmt[0]);
+			sm_warning("'%%p%c' can only be followed by one of [234]", fmt[0]);
 		if (isalnum(fmt[2]))
-			sm_msg("warn: '%%p%c%c' cannot be followed by '%c'", fmt[0], fmt[1], fmt[2]);
+			sm_warning("'%%p%c%c' cannot be followed by '%c'", fmt[0], fmt[1], fmt[2]);
 	}
 
 	if (!is_struct_tag(basetype, tag))
@@ -526,9 +526,9 @@ static void check_clock(const char *fmt, struct symbol *type, struct symbol *bas
 	assert(fmt[0] == 'C');
 	if (isalnum(fmt[1])) {
 		if (!strchr("nr", fmt[1]))
-			sm_msg("warn: '%%pC' can only be followed by one of [nr]");
+			sm_warning("'%%pC' can only be followed by one of [nr]");
 		if (isalnum(fmt[2]))
-			sm_msg("warn: '%%pC%c' cannot be followed by '%c'", fmt[1], fmt[2]);
+			sm_warning("'%%pC%c' cannot be followed by '%c'", fmt[1], fmt[2]);
 	}
 	if (!is_struct_tag(basetype, "clk"))
 		sm_msg("error: '%%pC' expects argument of type 'struct clk*', argument %d has type '%s'",
@@ -539,7 +539,7 @@ static void va_format(const char *fmt, struct symbol *type, struct symbol *baset
 {
 	assert(fmt[0] == 'V');
 	if (isalnum(fmt[1]))
-		sm_msg("warn: %%pV cannot be followed by any alphanumerics");
+		sm_warning("%%pV cannot be followed by any alphanumerics");
 	if (!is_struct_tag(basetype, "va_format"))
 		sm_msg("error: %%pV expects argument of type struct va_format*, argument %d has type '%s'", vaidx, type_to_str(type));
 }
@@ -554,7 +554,7 @@ static void netdev_feature(const char *fmt, struct symbol *type, struct symbol *
 		return;
 	}
 	if (isalnum(fmt[2]))
-		sm_msg("warn: %%pNF cannot be followed by '%c'", fmt[2]);
+		sm_warning("%%pNF cannot be followed by '%c'", fmt[2]);
 
 	typedef_lookup(&netdev);
 	if (!netdev.sym)
@@ -603,7 +603,7 @@ static void block_device(const char *fmt, struct symbol *type, struct symbol *ba
 
 	assert(fmt[0] == 'g');
 	if (isalnum(fmt[1])) {
-		sm_msg("warn: %%pg cannot be followed by '%c'", fmt[1]);
+		sm_warning("%%pg cannot be followed by '%c'", fmt[1]);
 	}
 	if (!is_struct_tag(basetype, tag))
 		sm_msg("error: '%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
@@ -655,7 +655,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 
 	type = get_type(arg);
 	if (!type) {
-		sm_msg("warn: could not determine type of argument %d", vaidx);
+		sm_warning("could not determine type of argument %d", vaidx);
 		return;
 	}
 	if (!is_ptr_type(type)) {
@@ -724,7 +724,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 			ipS(fmt, type, basetype, vaidx);
 			break;
 		default:
-			sm_msg("warn: '%%p%c' must be followed by one of [46S]", fmt[0]);
+			sm_warning("'%%p%c' must be followed by one of [46S]", fmt[0]);
 			break;
 		}
 		break;
@@ -800,11 +800,11 @@ hexbyte(const char *fmt, int fmt_len, struct expression *arg, int vaidx, struct 
 
 	type = get_type(arg);
 	if (!type) {
-		sm_msg("warn: could not determine type of argument %d", vaidx);
+		sm_warning("could not determine type of argument %d", vaidx);
 		return;
 	}
 	if (type == &char_ctype || type == &schar_ctype)
-		sm_msg("warn: argument %d to %.*s specifier has type '%s'",
+		sm_warning("argument %d to %.*s specifier has type '%s'",
 		       vaidx, fmt_len, fmt, type_to_str(type));
 }
 
@@ -822,7 +822,7 @@ check_format_string(const char *fmt, const char *caller)
 			 * to pr_*, e.g. pr_warn(KERN_WARNING "something").
 			 */
 			if (f != fmt)
-				sm_msg("warn: KERN_* level not at start of string");
+				sm_warning("KERN_* level not at start of string");
 			/*
 			 * In a very few cases, the level is actually
 			 * computed and passed via %c, as in KERN_SOH
@@ -833,7 +833,7 @@ check_format_string(const char *fmt, const char *caller)
 			      f[1] == 'd' || /* KERN_DEFAULT */
 			      f[1] == 'c' || /* KERN_CONT */
 			      (f[1] == '%' && f[2] == 'c')))
-				sm_msg("warn: invalid KERN_* level: KERN_SOH_ASCII followed by '\\x%02x'", (unsigned char)f[1]);
+				sm_warning("invalid KERN_* level: KERN_SOH_ASCII followed by '\\x%02x'", (unsigned char)f[1]);
 			break;
 		case '\t':
 		case '\n':
@@ -841,14 +841,14 @@ check_format_string(const char *fmt, const char *caller)
 		case 0x20 ... 0x7e:
 			break;
 		case 0x80 ... 0xff:
-			sm_msg("warn: format string contains non-ascii character '\\x%02x'", c);
+			sm_warning("format string contains non-ascii character '\\x%02x'", c);
 			break;
 		case 0x08:
 			if (f == fmt)
 				break;
 			/* fall through */
 		default:
-			sm_msg("warn: format string contains unusual character '\\x%02x'", c);
+			sm_warning("format string contains unusual character '\\x%02x'", c);
 			break;
 		}
 	}
@@ -973,7 +973,7 @@ check_cast_from_pointer(const char *fmt, int len, struct expression *arg, int va
 	while (is_cast_expr(arg))
 		arg = arg->cast_expression;
 	if (is_ptr_type(get_final_type(arg)))
-		sm_msg("warn: argument %d to %.*s specifier is cast from pointer",
+		sm_warning("argument %d to %.*s specifier is cast from pointer",
 			va_idx, len, fmt);
 }
 
@@ -1047,10 +1047,10 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		arg = get_argument_from_call_expr(callexpr->args, vaidx++);
 
 		if (spec.flags & SPECIAL && has_hex_prefix(orig_fmt, old_fmt))
-			sm_msg("warn: '%.2s' prefix is redundant when # flag is used", old_fmt-2);
+			sm_warning("'%.2s' prefix is redundant when # flag is used", old_fmt-2);
 		if (is_integer_specifier(spec.type)) {
 			if (spec.base != 16 && has_hex_prefix(orig_fmt, old_fmt))
-				sm_msg("warn: '%.2s' prefix is confusing together with '%.*s' specifier",
+				sm_warning("'%.2s' prefix is confusing together with '%.*s' specifier",
 				       old_fmt-2, (int)(fmt-old_fmt), old_fmt);
 
 			check_cast_from_pointer(old_fmt, read, arg, vaidx);
@@ -1098,7 +1098,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 					spam("warn: passing __func__ while the format string already contains the name of the function '%s'",
 					     caller);
 				else if (arg_contains_caller(arg, caller))
-					sm_msg("warn: passing string constant '%s' containing '%s' which is already part of the format string",
+					sm_warning("passing string constant '%s' containing '%s' which is already part of the format string",
 					       arg->string->data, caller);
 			}
 			break;
@@ -1134,7 +1134,7 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 	}
 
 	if (get_argument_from_call_expr(callexpr->args, vaidx))
-		sm_msg("warn: excess argument passed to '%s'", name);
+		sm_warning("excess argument passed to '%s'", name);
 
 
 }

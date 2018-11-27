@@ -71,7 +71,7 @@ static void check_for_held(void)
 	stree = __get_cur_stree();
 	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (slist_has_state(tmp->possible, &held)) {
-			sm_msg("warn: '%s' held on error path.",
+			sm_warning("'%s' held on error path.",
 				tmp->name);
 		}
 	} END_FOR_EACH_SM(tmp);

@@ -215,7 +215,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	name = expr_to_str(expr);
-	sm_msg("warn: we tested '%s' before and it was '%s'", name, state->name);
+	sm_warning("we tested '%s' before and it was '%s'", name, state->name);
 	free_string(name);
 }
 

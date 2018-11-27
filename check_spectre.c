@@ -188,7 +188,7 @@ static void array_check(struct expression *expr)
 	conditions = get_conditions(offset);
 
 	name = expr_to_str(array_expr);
-	sm_msg("warn: potential spectre issue '%s' [%s]%s",
+	sm_warning("potential spectre issue '%s' [%s]%s",
 	       name,
 	       is_read(expr) ? "r" : "w",
 	       conditions ? " (local cap)" : "");

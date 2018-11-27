@@ -76,7 +76,7 @@ static void match_return_var(struct expression *ret_value)
 		return;
 	if (min.value == 0)
 		return;
-	sm_msg("warn: maybe return -EFAULT instead of the bytes remaining?");
+	sm_warning("maybe return -EFAULT instead of the bytes remaining?");
 }
 
 static void match_return_call(struct expression *ret_value)
@@ -111,7 +111,7 @@ static void match_return_call(struct expression *ret_value)
 
 	if (!sval_is_negative(rl_min(rl)))
 		return;
-	sm_msg("warn: maybe return -EFAULT instead of the bytes remaining?");
+	sm_warning("maybe return -EFAULT instead of the bytes remaining?");
 }
 
 void check_return_efault(int id)

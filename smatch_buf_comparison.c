@@ -239,7 +239,7 @@ static void array_check(struct expression *expr)
 
 	array_str = expr_to_str(array);
 	offset_str = expr_to_str(offset);
-	sm_msg("warn: potentially one past the end of array '%s[%s]'", array_str, offset_str);
+	sm_warning("potentially one past the end of array '%s[%s]'", array_str, offset_str);
 	free_string(array_str);
 	free_string(offset_str);
 }
@@ -402,7 +402,7 @@ static void array_check_data_info(struct expression *expr)
 	if (equal_name) {
 		char *array_name = expr_to_str(array);
 
-		sm_msg("warn: potential off by one '%s[]' limit '%s'", array_name, equal_name);
+		sm_warning("potential off by one '%s[]' limit '%s'", array_name, equal_name);
 		free_string(array_name);
 	}
 

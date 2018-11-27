@@ -91,7 +91,7 @@ static void match_binop(struct expression *expr)
 	}
 
 	name = expr_to_str(expr->left);
-	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
+	sm_warning("potential pointer math issue ('%s' is a %d bit pointer)",
 	       name, type_bits(type));
 	free_string(name);
 }
@@ -122,7 +122,7 @@ static void check_assign(struct expression *expr)
 	if (!is_size_in_bytes(expr->right))
 		return;
 	name = expr_to_var(expr->left);
-	sm_msg("warn: potential pointer math issue ('%s' is a %d bit pointer)",
+	sm_warning("potential pointer math issue ('%s' is a %d bit pointer)",
 	       name, type_bits(type));
 	free_string(name);
 }

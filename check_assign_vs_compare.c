@@ -25,7 +25,7 @@ static void check_constant(struct expression *expr)
 
 	if (!get_value(expr->right, &val))
 		return;
-	sm_msg("warn: was '== %s' instead of '='", sval_to_str(val));
+	sm_warning("was '== %s' instead of '='", sval_to_str(val));
 }
 
 static void check_address(struct expression *expr)
@@ -44,7 +44,7 @@ static void check_address(struct expression *expr)
 		return;
 
 	str = expr_to_str(right);
-	sm_msg("warn: was '== %s' instead of '='", str);
+	sm_warning("was '== %s' instead of '='", str);
 	free_string(str);
 }
 

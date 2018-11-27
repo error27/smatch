@@ -58,7 +58,7 @@ static void match_condition(struct expression *expr)
 	if (has_variable(left, right) == 1) {
 		left_name = expr_to_str(left);
 		right_name = expr_to_str(right);
-		sm_msg("warn: signed overflow undefined. '%s %s %s'", left_name, show_special(expr->op), right_name);
+		sm_warning("signed overflow undefined. '%s %s %s'", left_name, show_special(expr->op), right_name);
 		free_string(left_name);
 		free_string(right_name);
 	}
@@ -92,7 +92,7 @@ static void match_binop(struct expression *expr)
 		return;
 
 	str = expr_to_str(expr);
-	sm_msg("warn: potential negative subtraction from max '%s'", str);
+	sm_warning("potential negative subtraction from max '%s'", str);
 	free_string(str);
 }
 

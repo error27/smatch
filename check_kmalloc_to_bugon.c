@@ -52,7 +52,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	name = expr_to_var(expr);
-	sm_msg("warn: bug on allocation failure '%s'", name);
+	sm_warning("bug on allocation failure '%s'", name);
 	free_string(name);
 }
 

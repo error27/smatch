@@ -167,7 +167,7 @@ static void match_call(struct expression *expr)
 			continue;
 
 		name = expr_to_str(arg);
-		sm_warning("warn: passing uninitialized '%s'", name);
+		sm_warning("passing uninitialized '%s'", name);
 		free_string(name);
 
 		set_state_expr(my_id, arg, &initialized);

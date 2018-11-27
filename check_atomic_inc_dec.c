@@ -186,7 +186,7 @@ static void check_counter(const char *name, struct symbol *sym)
 
 	if (inc_buckets[NEGATIVE] &&
 	    inc_buckets[ZERO]) {
-		// sm_msg("warn: XXX '%s' not decremented on lines: %s.", name, show_rl(inc_lines));
+		// sm_warning("XXX '%s' not decremented on lines: %s.", name, show_rl(inc_lines));
 	}
 
 }

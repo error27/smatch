@@ -66,7 +66,7 @@ static void match_call(struct expression *expr)
 		if (!old_buflen)
 			return;
 		if (get_absolute_max(arg, &max) && sval_cmp_val(max, old_buflen) > 0)
-			sm_msg("warn: '%s' returned from snprintf() might be larger than %d",
+			sm_warning("'%s' returned from snprintf() might be larger than %d",
 				sm->name, old_buflen);
 	} END_FOR_EACH_PTR(arg);
 }

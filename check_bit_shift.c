@@ -63,7 +63,7 @@ static void match_assign(struct expression *expr)
 	if (!name)
 		return;
 
-	sm_msg("warn: '%s' is a shifter (not for '%s').",
+	sm_warning("'%s' is a shifter (not for '%s').",
 			name, show_special(expr->op));
 }
 
@@ -79,7 +79,7 @@ static void match_binop(struct expression *expr)
 	if (!name)
 		return;
 
-	sm_msg("warn: bit shifter '%s' used for logical '%s'",
+	sm_warning("bit shifter '%s' used for logical '%s'",
 			name, show_special(expr->op));
 }
 

@@ -71,7 +71,7 @@ static void match_symbol(struct expression *expr)
 	if (!is_freed(expr))
 		return;
 	name = expr_to_var(expr);
-	sm_msg("warn: '%s' was already freed.", name);
+	sm_warning("'%s' was already freed.", name);
 	free_string(name);
 }
 
@@ -177,7 +177,7 @@ static void match_call(struct expression *expr)
 		if (is_free_func(expr->fn))
 			sm_msg("error: double free of '%s'", name);
 		else
-			sm_msg("warn: passing freed memory '%s'", name);
+			sm_warning("passing freed memory '%s'", name);
 		set_state_expr(my_id, arg, &ok);
 		free_string(name);
 	} END_FOR_EACH_PTR(arg);
@@ -196,7 +196,7 @@ static void match_return(struct expression *expr)
 		return;
 
 	name = expr_to_var(expr);
-	sm_msg("warn: returning freed memory '%s'", name);
+	sm_warning("returning freed memory '%s'", name);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
 }
@@ -242,7 +242,7 @@ static void set_param_freed(struct expression *expr, int param, char *key, char 
 	if (!is_impossible_path()) {
 		sm = get_sm_state(my_id, name, sym);
 		if (sm && slist_has_state(sm->possible, &freed)) {
-			sm_msg("warn: '%s' double freed", name);
+			sm_warning("'%s' double freed", name);
 			set_state(my_id, name, sym, &ok);  /* fixme: doesn't silence anything.  I know */
 		}
 	}

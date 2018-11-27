@@ -61,7 +61,7 @@ static void match_return(struct expression *ret_value)
 		return;
 	if (min.value == 0)
 		return;
-	sm_msg("warn: warn: dma_mapping_error() doesn't return an error code");
+	sm_warning("dma_mapping_error() doesn't return an error code");
 }
 
 void check_dma_mapping_error(int id)

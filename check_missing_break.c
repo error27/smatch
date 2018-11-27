@@ -73,7 +73,7 @@ static void print_missing_break(struct expression *expr)
 	last_print_expr = get_switch_expr();
 
 	name = expr_to_var(expr);
-	sm_msg("warn: missing break? reassigning '%s'", name);
+	sm_warning("missing break? reassigning '%s'", name);
 	free_string(name);
 }
 

@@ -145,7 +145,7 @@ static void after_loop(struct statement *stmt)
 		return;
 	if (get_state(my_id, "depends on", NULL) != &readl_00)
 		return;
-	sm_msg("warn: this loop depends on readl() succeeding");
+	sm_warning("this loop depends on readl() succeeding");
 }
 
 void check_readl_infinite_loops(int id)

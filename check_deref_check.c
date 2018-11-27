@@ -80,7 +80,7 @@ static void match_condition(struct expression *expr)
 	if (!sm || sm->state != &derefed)
 		return;
 
-	sm_msg("warn: variable dereferenced before check '%s' (see line %d)", sm->name, sm->line);
+	sm_warning("variable dereferenced before check '%s' (see line %d)", sm->name, sm->line);
 	set_state_expr(my_id, expr, &undefined);
 }
 

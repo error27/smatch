@@ -27,7 +27,7 @@ static void match_select(struct expression *expr)
 	expr = strip_expr(expr->conditional);
 	if (expr->type != EXPR_COMPARE)
 		return;
-	sm_msg("warn: boolean comparison inside select");
+	sm_warning("boolean comparison inside select");
 }
 
 void check_select(int id)

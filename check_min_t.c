@@ -43,7 +43,7 @@ static void match_assign(struct expression *expr)
 		return;
 
 	name = expr_to_str(expr->right);
-	sm_msg("warn: min_t truncates here '%s' (%s vs %s)", name, sval_to_str(max_left), sval_to_str(max_right));
+	sm_warning("min_t truncates here '%s' (%s vs %s)", name, sval_to_str(max_left), sval_to_str(max_right));
 	free_string(name);
 }
 

@@ -113,7 +113,7 @@ static void match_continue(struct statement *stmt)
 		return;
 	if (loop_is_macro())
 		return;
-	sm_msg("warn: continue to end of do { ... } while(0); loop");
+	sm_warning("continue to end of do { ... } while(0); loop");
 }
 
 void check_continue_vs_break(int id)

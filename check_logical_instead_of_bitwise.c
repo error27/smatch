@@ -49,7 +49,7 @@ static void match_logic(struct expression *expr)
 	if (sval.value == 0 || sval.value == 1)
 		return;
 
-	sm_msg("warn: should this be a bitwise op?");
+	sm_warning("should this be a bitwise op?");
 }
 
 static void match_assign(struct expression *expr)
@@ -60,7 +60,7 @@ static void match_assign(struct expression *expr)
 	if (right->type != EXPR_LOGICAL)
 		return;
 	if (is_bitshift(right->left) || is_bitshift(right->right))
-		sm_msg("warn: should this be a bitwise op?");
+		sm_warning("should this be a bitwise op?");
 }
 
 void check_logical_instead_of_bitwise(int id)

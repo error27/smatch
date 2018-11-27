@@ -75,7 +75,7 @@ static void check_or(struct expression *expr)
 	if (!inconsistent_check(left, right))
 		return;
 
-	sm_msg("warn: was && intended here instead of ||?");
+	sm_warning("was && intended here instead of ||?");
 }
 
 static int is_kernel_min_macro(struct expression *expr)
@@ -112,7 +112,7 @@ static void check_and(struct expression *expr)
 	if (!inconsistent_check(left, right))
 		return;
 
-	sm_msg("warn: was || intended here instead of &&?");
+	sm_warning("was || intended here instead of &&?");
 }
 
 static void match_logic(struct expression *expr)
@@ -146,7 +146,7 @@ static void match_condition(struct expression *expr)
 		return;
 	if (expr->op == '|') {
 		if (get_value(expr->left, &sval) || get_value(expr->right, &sval))
-			sm_msg("warn: suspicious bitop condition");
+			sm_warning("suspicious bitop condition");
 		return;
 	}
 
@@ -160,7 +160,7 @@ static void match_condition(struct expression *expr)
 
 	if ((get_value(expr->left, &sval) && sval.value == 0) ||
 	    (get_value(expr->right, &sval) && sval.value == 0))
-		sm_msg("warn: bitwise AND condition is false here");
+		sm_warning("bitwise AND condition is false here");
 }
 
 static void match_binop(struct expression *expr)
@@ -175,7 +175,7 @@ static void match_binop(struct expression *expr)
 		return;
 	if (!get_value(expr->left, &left) || !get_value(expr->right, &right))
 		return;
-	sm_msg("warn: odd binop '0x%llx & 0x%llx'", left.uvalue, right.uvalue);
+	sm_warning("odd binop '0x%llx & 0x%llx'", left.uvalue, right.uvalue);
 }
 
 void check_or_vs_and(int id)

@@ -41,7 +41,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	str = expr_to_str(expr);
-	sm_msg("warn: this array is probably non-NULL. '%s'", str);
+	sm_warning("this array is probably non-NULL. '%s'", str);
 	free_string(str);
 }
 

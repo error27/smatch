@@ -35,7 +35,7 @@ static void match_binop(struct expression *expr)
 		return;
 	if (type_bits(type) == -1 || type_bits(type) > bits.value)
 		return;
-	sm_msg("warn: right shifting more than type allows %d vs %lld", type_bits(type), bits.value);
+	sm_warning("right shifting more than type allows %d vs %lld", type_bits(type), bits.value);
 }
 
 static void match_binop2(struct expression *expr)
@@ -62,7 +62,7 @@ static void match_binop2(struct expression *expr)
 	if (mask.uvalue >> shift.uvalue)
 		return;
 
-	sm_msg("warn: mask and shift to zero");
+	sm_warning("mask and shift to zero");
 }
 
 static void match_assign(struct expression *expr)
@@ -80,7 +80,7 @@ static void match_assign(struct expression *expr)
 		return;
 	if (type_bits(type) > bits.value)
 		return;
-	sm_msg("warn: right shift assign to zero");
+	sm_warning("right shift assign to zero");
 }
 
 void check_shift_to_zero(int id)

@@ -48,10 +48,10 @@ static void print_holey_warning(struct expression *data, const char *member)
 
 	name = expr_to_str(data);
 	if (member) {
-		sm_msg("warn: check that '%s' doesn't leak information (struct has a hole after '%s')",
+		sm_warning("check that '%s' doesn't leak information (struct has a hole after '%s')",
 		       name, member);
 	} else {
-		sm_msg("warn: check that '%s' doesn't leak information (struct has holes)",
+		sm_warning("check that '%s' doesn't leak information (struct has holes)",
 		       name);
 	}
 	free_string(name);
@@ -198,7 +198,7 @@ static int member_uninitialized(char *name, struct symbol *outer, struct symbol 
 	if (sm && !slist_has_state(sm->possible, &undefined))
 		return FALSE;
 
-	sm_msg("warn: check that '%s' doesn't leak information", buf);
+	sm_warning("check that '%s' doesn't leak information", buf);
 	return TRUE;
 }
 

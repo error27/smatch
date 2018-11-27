@@ -63,7 +63,7 @@ static void match_release(const char *fn, struct expression *expr, void *_arg_no
 		goto free;
 	if (in_tracker_list(resource_list, my_id, name, sym))
 		goto free;
-	sm_msg("warn: '%s' was not one of the resources you requested", name);
+	sm_warning("'%s' was not one of the resources you requested", name);
 free:
 	free_string(name);
 }

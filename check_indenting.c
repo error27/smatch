@@ -61,7 +61,7 @@ static int missing_curly_braces(struct statement *stmt)
 	if (stmt->pos.pos != inside_pos)
 		return 0;
 
-	sm_msg("warn: curly braces intended?");
+	sm_warning("curly braces intended?");
 	return 1;
 }
 
@@ -193,7 +193,7 @@ static void match_stmt(struct statement *stmt)
 		orig_pos = 0;
 		return;
 	}
-	sm_msg("warn: inconsistent indenting");
+	sm_warning("inconsistent indenting");
 	orig_pos = __prev_stmt->pos.pos;
 }
 

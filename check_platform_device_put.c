@@ -55,7 +55,7 @@ static void match_platform_device_del(const char *fn, struct expression *expr, v
 		return;
 	if (!slist_has_state(sm->possible, &not_added))
 		return;
-	sm_msg("warn: perhaps platform_device_put() was intended here?");
+	sm_warning("perhaps platform_device_put() was intended here?");
 }
 
 void check_platform_device_put(int id)

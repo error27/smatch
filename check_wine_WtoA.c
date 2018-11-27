@@ -73,7 +73,7 @@ static void match_call(struct expression *expr)
 		goto free;
 	len = strlen(fn_name);
 	if (fn_name[len - 1] == 'A' && !allowed_func(fn_name)) {
-		sm_msg("warn: WtoA call '%s()'", fn_name);
+		sm_warning("WtoA call '%s()'", fn_name);
 	}
 free:
 	free_string(fn_name);

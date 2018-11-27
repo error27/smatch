@@ -42,7 +42,7 @@ static void check_size_matches(int data_size, struct expression *size_expr)
 	if (!get_implied_value(size_expr, &sval))
 		return;
 	if (sval_cmp_val(sval, data_size) != 0)
-		sm_msg("warn: double check that we're allocating correct size: %d vs %s", data_size, sval_to_str(sval));
+		sm_warning("double check that we're allocating correct size: %d vs %s", data_size, sval_to_str(sval));
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *unused)

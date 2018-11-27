@@ -47,7 +47,7 @@ static void match_stmt(struct statement *stmt)
 	}
 	if (in_expression_statement())
 		return;
-	sm_msg("warn: statement has no effect %d", expr->type);
+	sm_warning("statement has no effect %d", expr->type);
 }
 
 void check_no_effect(int id)

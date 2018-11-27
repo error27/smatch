@@ -35,7 +35,7 @@ static void match_test_bit(const char *fn, struct expression *expr, void *data)
 	macro = get_macro_name(arg->pos);
 	if (macro && strstr(macro, "cpu_has"))
 		return;
-	sm_msg("warn: test_bit() takes a bit number");
+	sm_warning("test_bit() takes a bit number");
 }
 
 void check_test_bit(int id)

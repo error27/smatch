@@ -33,7 +33,7 @@ static void match_parameter(const char *fn, struct expression *expr, void *_para
 		return;
 
 	name = expr_to_str_sym(arg, NULL);
-	sm_msg("warn: expected a buffer size but got a comparison '%s'", name);
+	sm_warning("expected a buffer size but got a comparison '%s'", name);
 	free_string(name);
 }
 

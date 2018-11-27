@@ -59,7 +59,7 @@ static void match_assign(struct expression *expr)
 	    !(sval.value < 256 && max.value == 127)) {
 		left_name = expr_to_str(expr->left);
 		right_name = expr_to_str(expr->right);
-		sm_msg("warn: '%s' %s can't fit into %s '%s'",
+		sm_warning("'%s' %s can't fit into %s '%s'",
 		       right_name, sval_to_numstr(sval), sval_to_numstr(max), left_name);
 		free_string(left_name);
 	}
@@ -75,10 +75,10 @@ static void match_assign(struct expression *expr)
 			return;
 		left_name = expr_to_str(expr->left);
 		if (min.value == 0) {
-			sm_msg("warn: assigning %s to unsigned variable '%s'",
+			sm_warning("assigning %s to unsigned variable '%s'",
 			       sval_to_str(sval), left_name);
 		} else {
-			sm_msg("warn: value %s can't fit into %s '%s'",
+			sm_warning("value %s can't fit into %s '%s'",
 			       sval_to_str(sval), sval_to_str(min), left_name);
 		}
 		free_string(left_name);
@@ -222,7 +222,7 @@ static int print_unsigned_never_less_than_zero(struct expression *expr)
 		return 0;
 
 	name = expr_to_str(expr->left);
-	sm_msg("warn: unsigned '%s' is never less than zero.", name);
+	sm_warning("unsigned '%s' is never less than zero.", name);
 	free_string(name);
 	return 1;
 }
@@ -286,7 +286,7 @@ static void match_condition(struct expression *expr)
 	if (!possibly_true_rl(rl_left, expr->op, rl_right)) {
 		char *name = expr_to_str(expr);
 
-		sm_msg("warn: impossible condition '(%s) => (%s %s %s)'", name,
+		sm_warning("impossible condition '(%s) => (%s %s %s)'", name,
 		       show_rl(rl_left), show_special(expr->op),
 		       show_rl(rl_right));
 		free_string(name);
@@ -295,7 +295,7 @@ static void match_condition(struct expression *expr)
 	if (!possibly_false_rl(rl_left, expr->op, rl_right)) {
 		char *name = expr_to_str(expr);
 
-		sm_msg("warn: always true condition '(%s) => (%s %s %s)'", name,
+		sm_warning("always true condition '(%s) => (%s %s %s)'", name,
 		       show_rl(rl_left_orig), show_special(expr->op),
 		       show_rl(rl_right_orig));
 		free_string(name);

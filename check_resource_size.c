@@ -42,7 +42,7 @@ static void verify_size_expr(struct expression *expr)
 		return;
 	if (is_probably_ok(expr->right))
 		return;
-	sm_msg("warn: consider using resource_size() here");
+	sm_warning("consider using resource_size() here");
 }
 
 static void handle_assigned_expr(struct expression *expr)

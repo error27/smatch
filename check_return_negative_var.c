@@ -33,7 +33,7 @@ static void match_return(struct expression *ret_value)
 
 	macro = get_macro_name(expr->unop->pos);
 	if (macro && !strcmp(macro, "PTR_ERR")) {
-		sm_msg("warn: returning -%s()", macro);
+		sm_warning("returning -%s()", macro);
 		return;
 	}
 
@@ -46,7 +46,7 @@ static void match_return(struct expression *ret_value)
 	if (expr->type != EXPR_CALL)
 		return;
 
-	sm_msg("warn: should this return really be negated?");
+	sm_warning("should this return really be negated?");
 }
 
 void check_return_negative_var(int id)

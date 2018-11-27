@@ -48,7 +48,7 @@ static void match_assign(const char *fn, struct expression *expr, void *_size_ar
 		return;
 	if (strcmp(left_type->ident->name, size_type->ident->name) == 0)
 		return;
-	sm_msg("warn: struct type mismatch '%s vs %s'", left_type->ident->name,
+	sm_warning("struct type mismatch '%s vs %s'", left_type->ident->name,
 	       size_type->ident->name);
 
 }

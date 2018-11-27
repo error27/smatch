@@ -88,7 +88,7 @@ static void match_dereferences(struct expression *expr)
 		return;
 
 	name = expr_to_str(right);
-	sm_msg("warn: is '%s' large enough for 'struct %s'? %s", name, left_type->ident ? left_type->ident->name : "<anon>", sval_to_str(min_size));
+	sm_warning("is '%s' large enough for 'struct %s'? %s", name, left_type->ident ? left_type->ident->name : "<anon>", sval_to_str(min_size));
 	free_string(name);
 	set_state_expr(my_id, expr, &undefined);
 }

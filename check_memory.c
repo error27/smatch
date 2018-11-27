@@ -346,7 +346,7 @@ static void set_new_true_false_paths(const char *name, struct symbol *sym)
 	}
 
 	if (tmp == &isfree) {
-		sm_msg("warn: why do you care about freed memory? '%s'", name);
+		sm_warning("why do you care about freed memory? '%s'", name);
 	}
 
 	if (tmp == &assigned) {

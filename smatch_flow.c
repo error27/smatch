@@ -1123,7 +1123,7 @@ void __split_stmt(struct statement *stmt)
 		if (empty_statement(stmt->if_true) &&
 			last_stmt_on_same_line() &&
 			!get_macro_name(stmt->if_true->pos))
-			sm_msg("warn: if();");
+			sm_warning("if();");
 		__push_true_states();
 		__use_false_states();
 		__split_stmt(stmt->if_false);

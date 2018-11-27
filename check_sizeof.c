@@ -35,7 +35,7 @@ static void check_pointer(struct expression *expr, char *ptr_name)
 		return;
 
 	if (strcmp(ptr_name, name) == 0)
-		sm_msg("warn: was 'sizeof(*%s)' intended?", ptr_name);
+		sm_warning("was 'sizeof(*%s)' intended?", ptr_name);
 	free_string(name);
 }
 
@@ -69,7 +69,7 @@ static void check_passes_pointer(char *name, struct expression *call)
 		if (!ptr_name)
 			continue;
 		if (strcmp(name, ptr_name) == 0)
-			sm_msg("warn: was 'sizeof(*%s)' intended?", name);
+			sm_warning("was 'sizeof(*%s)' intended?", name);
 		free_string(ptr_name);
 	} END_FOR_EACH_PTR(arg);
 }
@@ -107,19 +107,19 @@ static void check_sizeof_number(struct expression *expr)
 			return;
 	} END_FOR_EACH_PTR(tmp);
 
-	sm_msg("warn: sizeof(NUMBER)?");
+	sm_warning("sizeof(NUMBER)?");
 }
 
 static void match_sizeof(struct expression *expr)
 {
 	check_sizeof_number(expr);
 	if (expr->type == EXPR_PREOP && expr->op == '&')
-		sm_msg("warn: sizeof(&pointer)?");
+		sm_warning("sizeof(&pointer)?");
 	if (expr->type == EXPR_SIZEOF)
-		sm_msg("warn: sizeof(sizeof())?");
+		sm_warning("sizeof(sizeof())?");
 	/* the ilog2() macro is a valid place to check the size of a binop */
 	if (expr->type == EXPR_BINOP && !get_macro_name(expr->pos))
-		sm_msg("warn: taking sizeof binop");
+		sm_warning("taking sizeof binop");
 }
 
 static void register_macro_takes_sizeof_argument(void)

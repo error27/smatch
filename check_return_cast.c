@@ -39,7 +39,7 @@ static void match_return(struct expression *ret_value)
 	if (sval_is_positive(sval) || sval_cmp_val(sval, -1) == 0)
 		return;
 
-	sm_msg("warn: signedness bug returning '%s'", sval_to_str(sval));
+	sm_warning("signedness bug returning '%s'", sval_to_str(sval));
 }
 
 void check_return_cast(int id)

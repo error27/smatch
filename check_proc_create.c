@@ -43,7 +43,7 @@ static void match_create(const char *fn, struct expression *expr, void *_param_t
 		return;
 	arg_expr = get_argument_from_call_expr(expr->args, param_index[idx].name_param);
 	name = expr_to_var(arg_expr);
-	sm_msg("warn: proc file '%s' is world writable", name);
+	sm_warning("proc file '%s' is world writable", name);
 	free_string(name);
 }
 

@@ -109,7 +109,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	str = expr_to_str(expr);
-	sm_msg("warn: masked condition '%s' is always %s.", str,
+	sm_warning("masked condition '%s' is always %s.", str,
 	       expr->op == SPECIAL_EQUAL ? "false" : "true");
 	free_string(str);
 }

@@ -143,11 +143,11 @@ static void check_expr(struct expression *expr)
 
 	name = expr_to_var_sym(expr, NULL);
 	if (overflow && underflow)
-		sm_msg("warn: check for integer over/underflow '%s'", name);
+		sm_warning("check for integer over/underflow '%s'", name);
 	else if (underflow)
-		sm_msg("warn: check for integer underflow '%s'", name);
+		sm_warning("check for integer underflow '%s'", name);
 	else
-		sm_msg("warn: check for integer overflow '%s'", name);
+		sm_warning("check for integer overflow '%s'", name);
 	free_string(name);
 
 	set_state_expr(my_max_id, expr, &capped);

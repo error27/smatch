@@ -617,7 +617,7 @@ static int check_possible(struct sm_state *sm)
 			undef = 1;  // i don't think this is possible any more.
 	} END_FOR_EACH_PTR(tmp);
 	if ((islocked && isunlocked) || undef) {
-		sm_msg("warn: '%s' is sometimes locked here and sometimes unlocked.", sm->name);
+		sm_warning("'%s' is sometimes locked here and sometimes unlocked.", sm->name);
 		return 1;
 	}
 	return 0;
@@ -693,7 +693,7 @@ static void print_inconsistent_returns(struct tracker *lock,
 	struct range_list *printed = NULL;
 	int i;
 
-	sm_msg("warn: inconsistent returns '%s'.", lock->name);
+	sm_warning("inconsistent returns '%s'.", lock->name);
 	sm_printf("  Locked on:   ");
 
 	i = 0;

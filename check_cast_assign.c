@@ -49,7 +49,7 @@ static void match_overflow(struct expression *expr)
 		return;
 	if (data_size >= cast_size)
 		return;
-	sm_msg("warn: potential memory corrupting cast %d vs %d bytes",
+	sm_warning("potential memory corrupting cast %d vs %d bytes",
 	       cast_size, data_size);
 }
 

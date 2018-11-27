@@ -64,7 +64,7 @@ static void match_return(struct expression *ret_value)
 		    strcmp(expr->fn->symbol_name->name, "kzalloc") != 0)
 			continue;
 
-		sm_msg("warn: returning -1 instead of -ENOMEM is sloppy");
+		sm_warning("returning -1 instead of -ENOMEM is sloppy");
 		return;
 
 	} END_FOR_EACH_SM(sm);

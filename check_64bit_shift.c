@@ -54,7 +54,7 @@ static void match_shift_assignment(struct expression *expr)
 	}
 
 	name = expr_to_str_sym(right, NULL);
-	sm_msg("warn: should '%s' be a 64 bit type?", name);
+	sm_warning("should '%s' be a 64 bit type?", name);
 	free_string(name);
 }
 

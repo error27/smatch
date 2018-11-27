@@ -149,7 +149,7 @@ static void match_return(struct expression *ret_value)
 	stree = __get_cur_stree();
 	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (slist_has_state(tmp->possible, &allocated))
-			sm_msg("warn: '%s' was not released on error", tmp->name);
+			sm_warning("'%s' was not released on error", tmp->name);
 	} END_FOR_EACH_SM(tmp);
 }
 

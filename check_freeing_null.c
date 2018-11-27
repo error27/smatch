@@ -31,7 +31,7 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	if (sval.value != 0)
 		return;
 	name = expr_to_var(arg_expr);
-	sm_msg("warn: calling %s() when '%s' is always NULL.", fn, name);
+	sm_warning("calling %s() when '%s' is always NULL.", fn, name);
 	free_string(name);
 }
 

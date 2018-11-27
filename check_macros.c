@@ -33,7 +33,7 @@ static void match_inside(struct expression *expr, struct position pos)
 	name = get_macro_name(pos);
 	if (!name)
 		return;
-	sm_msg("warn: the '%s' macro might need parens", name);
+	sm_warning("the '%s' macro might need parens", name);
 }
 
 static void match_one_side(struct expression *expr, struct position pos, int op)
@@ -54,7 +54,7 @@ static void match_one_side(struct expression *expr, struct position pos, int op)
 		return;
 	if (option_project == PROJ_WINE && !strcmp("BEGIN", name))
 		return;
-	sm_msg("warn: the '%s' macro might need parens", name);
+	sm_warning("the '%s' macro might need parens", name);
 }
 
 static void match_join(struct expression *expr)
