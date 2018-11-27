@@ -254,10 +254,15 @@ void parse_args(int *argcp, char ***argvp)
 
 	if (strcmp(option_project_str, "smatch_generic") != 0)
 		option_project = PROJ_UNKNOWN;
+
 	if (strcmp(option_project_str, "kernel") == 0)
 		option_project = PROJ_KERNEL;
-	if (strcmp(option_project_str, "wine") == 0)
+	else if (strcmp(option_project_str, "wine") == 0)
 		option_project = PROJ_WINE;
+	else if (strcmp(option_project_str, "illumos_kernel") == 0)
+		option_project = PROJ_ILLUMOS_KERNEL;
+	else if (strcmp(option_project_str, "illumos_user") == 0)
+		option_project = PROJ_ILLUMOS_USER;
 }
 
 static char *read_bin_filename(void)

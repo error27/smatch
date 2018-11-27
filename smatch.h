@@ -981,6 +981,8 @@ enum project_type {
 	PROJ_NONE,
 	PROJ_KERNEL,
 	PROJ_WINE,
+	PROJ_ILLUMOS_KERNEL,
+	PROJ_ILLUMOS_USER,
 	PROJ_UNKNOWN,
 };
 extern enum project_type option_project;
