@@ -32,7 +32,7 @@ static void match_memset(const char *fn, struct expression *expr, void *data)
 		return;
 	if (sval.value != 0)
 		return;
-	sm_msg("error: calling memset(x, y, 0);");
+	sm_error("calling memset(x, y, 0);");
 }
 
 void check_memset(int id)

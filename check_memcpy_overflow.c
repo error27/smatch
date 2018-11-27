@@ -271,7 +271,7 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 		return;
 
 	dest_name = expr_to_str(dest);
-	sm_msg("error: %s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
+	sm_error("%s() '%s' too small (%d vs %s)", fn, dest_name, has, sval_to_str(needed));
 	free_string(dest_name);
 }
 

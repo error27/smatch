@@ -45,12 +45,12 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 
 	check_arg = get_argument_from_call_expr(expr->args, 0);
 	if (check_arg->type != EXPR_STRING) {
-		sm_msg("error:  the check_name argument to %s is supposed to be a string literal", fn);
+		sm_error("the check_name argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 	state_arg = get_argument_from_call_expr(expr->args, 1);
 	if (!state_arg || state_arg->type != EXPR_STRING) {
-		sm_msg("error:  the state_name argument to %s is supposed to be a string literal", fn);
+		sm_error("the state_name argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 
@@ -75,7 +75,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 
 	check_arg = get_argument_from_call_expr(expr->args, 0);
 	if (check_arg->type != EXPR_STRING) {
-		sm_msg("error:  the check_name argument to %s is supposed to be a string literal", fn);
+		sm_error("the check_name argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 
@@ -103,7 +103,7 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	if (arg_expr->type != EXPR_STRING) {
-		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
+		sm_error("the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 
@@ -352,7 +352,7 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	if (arg_expr->type != EXPR_STRING) {
-		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
+		sm_error("the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 
@@ -415,7 +415,7 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	if (arg_expr->type != EXPR_STRING) {
-		sm_msg("error:  the argument to %s is supposed to be a string literal", fn);
+		sm_error("the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 	sm_msg("%s", arg_expr->string->data);

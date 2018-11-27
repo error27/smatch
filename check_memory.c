@@ -201,7 +201,7 @@ static void match_assign(struct expression *expr)
 
 	if (right_name && (state = get_state(my_id, right_name, right_sym))) {
 		if (state == &isfree && !is_complex(right))
-			sm_msg("error: assigning freed pointer '%s'", right_name);
+			sm_error("assigning freed pointer '%s'", right_name);
 		set_state(my_id, right_name, right_sym, &assigned);
 	}
 
@@ -275,7 +275,7 @@ static void check_sm_is_leaked(struct sm_state *sm)
 		!is_null(sm->name, sm->sym) &&
 		!is_argument(sm->sym) && 
 		!parent_is_assigned(sm->sym))
-		sm_msg("error: memory leak of '%s'", sm->name);
+		sm_error("memory leak of '%s'", sm->name);
 }
 
 static void check_tracker_is_leaked(struct tracker *t)

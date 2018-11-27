@@ -44,13 +44,13 @@ static void match_free(const char *fn, struct expression *expr, void *data)
 	name = expr_to_str(arg_expr);
 
 	if (!strcmp("sk_buff", type->ident->name)) {
-		sm_msg("error: use kfree_skb() here instead of kfree(%s)", name);
+		sm_error("use kfree_skb() here instead of kfree(%s)", name);
 	} else if (!strcmp("net_device", type->ident->name)) {
 		if (in_function("alloc_netdev"))
 			return;
 		if (in_function("alloc_netdev_mqs"))
 			return;
-		sm_msg("error: use free_netdev() here instead of kfree(%s)", name);
+		sm_error("use free_netdev() here instead of kfree(%s)", name);
 	}
 
 	free_string(name);

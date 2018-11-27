@@ -68,7 +68,7 @@ static void match_symbol(struct expression *expr)
 	if (valid_use())
 		return;
 	name = expr_to_var(expr);
-	sm_msg("error: '%s' was already used up by dev_queue_xmit()", name);
+	sm_error("'%s' was already used up by dev_queue_xmit()", name);
 	free_string(name);
 }
 

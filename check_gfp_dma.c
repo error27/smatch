@@ -38,7 +38,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	if (sval.uvalue == 0) /* GFP_NOWAIT */
 		return;
 	if (!(sval.uvalue & ~GFP_ZONEMASK))
-		sm_msg("error: no modifiers for allocation.");
+		sm_error("no modifiers for allocation.");
 }
 
 void check_gfp_dma(int id)

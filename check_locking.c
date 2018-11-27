@@ -459,7 +459,7 @@ static void do_lock(const char *name)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &locked) &&
 			strcmp(name, "bottom_half:") != 0)
-		sm_msg("error: double lock '%s'", name);
+		sm_error("double lock '%s'", name);
 	if (sm)
 		func_has_transition = TRUE;
 	set_state(my_id, name, NULL, &locked);
@@ -491,7 +491,7 @@ static void do_unlock(const char *name)
 		add_tracker(&starts_locked, my_id, name, NULL);
 	if (sm && slist_has_state(sm->possible, &unlocked) &&
 			strcmp(name, "bottom_half:") != 0)
-		sm_msg("error: double unlock '%s'", name);
+		sm_error("double unlock '%s'", name);
 	if (sm)
 		func_has_transition = TRUE;
 	set_state(my_id, name, NULL, &unlocked);
@@ -852,7 +852,7 @@ static void check_consistency(struct symbol *sym)
 	FOR_EACH_PTR(starts_locked, tmp) {
 		if (in_tracker_list(starts_unlocked, tmp->owner, tmp->name,
 					tmp->sym))
-			sm_msg("error:  locking inconsistency.  We assume "
+			sm_error("locking inconsistency.  We assume "
 				   "'%s' is both locked and unlocked at the "
 				   "start.",
 				tmp->name);

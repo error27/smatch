@@ -379,7 +379,7 @@ static void ip4(const char *fmt, struct symbol *type, struct symbol *basetype, i
 
 
 	if (type->ctype.modifiers & MOD_NODEREF)
-		sm_msg("error: passing __user pointer to '%%p%c4'", fmt[0]);
+		sm_error("passing __user pointer to '%%p%c4'", fmt[0]);
 
 	/*
 	 * If we have a pointer to char/u8/s8, we expect the caller to
@@ -415,7 +415,7 @@ static void ip6(const char *fmt, struct symbol *type, struct symbol *basetype, i
 	}
 
 	if (type->ctype.modifiers & MOD_NODEREF)
-		sm_msg("error: passing __user pointer to '%%p%c6'", fmt[0]);
+		sm_error("passing __user pointer to '%%p%c6'", fmt[0]);
 }
 
 static void ipS(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
@@ -443,7 +443,7 @@ static void ipS(const char *fmt, struct symbol *type, struct symbol *basetype, i
 	    !has_struct_tag(basetype, "sockaddr_in") &&
 	    !has_struct_tag(basetype, "sockaddr_in6") &&
 	    !has_struct_tag(basetype, "__kernel_sockaddr_storage"))
-		sm_msg("error: '%%p%cS' expects argument of type struct sockaddr *, "
+		sm_error("'%%p%cS' expects argument of type struct sockaddr *, "
 			"argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
 }
 
@@ -457,7 +457,7 @@ static void hex_string(const char *fmt, struct symbol *type, struct symbol *base
 			sm_warning("'%%ph' can be followed by at most one of [CDN], and no other alphanumerics");
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
-		sm_msg("error: passing __user pointer to %%ph");
+		sm_error("passing __user pointer to %%ph");
 }
 
 static void escaped_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
@@ -468,14 +468,14 @@ static void escaped_string(const char *fmt, struct symbol *type, struct symbol *
 			sm_warning("%%pE can only be followed by a combination of [achnops]");
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
-		sm_msg("error: passing __user pointer to %%pE");
+		sm_error("passing __user pointer to %%pE");
 }
 
 static void resource_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
 	assert(tolower(fmt[0]) == 'r');
 	if (!is_struct_tag(basetype, "resource")) {
-		sm_msg("error: '%%p%c' expects argument of type struct resource *, "
+		sm_error("'%%p%c' expects argument of type struct resource *, "
 			"but argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
 	}
 	if (isalnum(fmt[1]))
@@ -499,7 +499,7 @@ static void mac_address_string(const char *fmt, struct symbol *type, struct symb
 			fmt[0], vaidx, type_to_str(type));
 	}
 	if (type->ctype.modifiers & MOD_NODEREF)
-		sm_msg("error: passing __user pointer to '%%p%c'", fmt[0]);
+		sm_error("passing __user pointer to '%%p%c'", fmt[0]);
 }
 
 static void dentry_file(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
@@ -517,7 +517,7 @@ static void dentry_file(const char *fmt, struct symbol *type, struct symbol *bas
 	}
 
 	if (!is_struct_tag(basetype, tag))
-		sm_msg("error: '%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
+		sm_error("'%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
 			fmt[0], tag, vaidx, type_to_str(type));
 }
 
@@ -531,7 +531,7 @@ static void check_clock(const char *fmt, struct symbol *type, struct symbol *bas
 			sm_warning("'%%pC%c' cannot be followed by '%c'", fmt[1], fmt[2]);
 	}
 	if (!is_struct_tag(basetype, "clk"))
-		sm_msg("error: '%%pC' expects argument of type 'struct clk*', argument %d has type '%s'",
+		sm_error("'%%pC' expects argument of type 'struct clk*', argument %d has type '%s'",
 		       vaidx, type_to_str(type));
 }
 
@@ -541,7 +541,7 @@ static void va_format(const char *fmt, struct symbol *type, struct symbol *baset
 	if (isalnum(fmt[1]))
 		sm_warning("%%pV cannot be followed by any alphanumerics");
 	if (!is_struct_tag(basetype, "va_format"))
-		sm_msg("error: %%pV expects argument of type struct va_format*, argument %d has type '%s'", vaidx, type_to_str(type));
+		sm_error("%%pV expects argument of type struct va_format*, argument %d has type '%s'", vaidx, type_to_str(type));
 }
 
 static void netdev_feature(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
@@ -550,7 +550,7 @@ static void netdev_feature(const char *fmt, struct symbol *type, struct symbol *
 
 	assert(fmt[0] == 'N');
 	if (fmt[1] != 'F') {
-		sm_msg("error: %%pN must be followed by 'F'");
+		sm_error("%%pN must be followed by 'F'");
 		return;
 	}
 	if (isalnum(fmt[2]))
@@ -560,7 +560,7 @@ static void netdev_feature(const char *fmt, struct symbol *type, struct symbol *
 	if (!netdev.sym)
 		return;
 	if (basetype != netdev.sym)
-		sm_msg("error: %%pNF expects argument of type netdev_features_t*, argument %d has type '%s'",
+		sm_error("%%pNF expects argument of type netdev_features_t*, argument %d has type '%s'",
 			vaidx, type_to_str(type));
 
 }
@@ -582,17 +582,17 @@ static void address_val(const char *fmt, struct symbol *type, struct symbol *bas
 			suf = "p";
 			break;
 		default:
-			sm_msg("error: '%%pa' can only be followed by one of [dp]");
+			sm_error("'%%pa' can only be followed by one of [dp]");
 		}
 		if (isalnum(fmt[2]))
-			sm_msg("error: '%%pa%c' cannot be followed by '%c'", fmt[1], fmt[2]);
+			sm_error("'%%pa%c' cannot be followed by '%c'", fmt[1], fmt[2]);
 	}
 
 	typedef_lookup(which);
 	if (!which->sym)
 		return;
 	if (basetype != which->sym) {
-		sm_msg("error: '%%pa%s' expects argument of type '%s*', argument %d has type '%s'",
+		sm_error("'%%pa%s' expects argument of type '%s*', argument %d has type '%s'",
 			suf, which->name, vaidx, type_to_str(type));
 	}
 }
@@ -606,7 +606,7 @@ static void block_device(const char *fmt, struct symbol *type, struct symbol *ba
 		sm_warning("%%pg cannot be followed by '%c'", fmt[1]);
 	}
 	if (!is_struct_tag(basetype, tag))
-		sm_msg("error: '%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
+		sm_error("'%%p%c' expects argument of type struct '%s*', argument %d has type '%s'",
 			fmt[0], tag, vaidx, type_to_str(type));
 }
 
@@ -616,35 +616,35 @@ static void flag_string(const char *fmt, struct symbol *type, struct symbol *bas
 
 	assert(fmt[0] == 'G');
 	if (!isalnum(fmt[1])) {
-		sm_msg("error: %%pG must be followed by one of [gpv]");
+		sm_error("%%pG must be followed by one of [gpv]");
 		return;
 	}
 	switch (fmt[1]) {
 	case 'p':
 	case 'v':
 		if (basetype != &ulong_ctype)
-			sm_msg("error: '%%pG%c' expects argument of type 'unsigned long *', argument %d has type '%s'",
+			sm_error("'%%pG%c' expects argument of type 'unsigned long *', argument %d has type '%s'",
 				fmt[1], vaidx, type_to_str(type));
 		break;
 	case 'g':
 		typedef_lookup(&gfp);
 		if (basetype != gfp.sym)
-			sm_msg("error: '%%pGg' expects argument of type 'gfp_t *', argument %d has type '%s'",
+			sm_error("'%%pGg' expects argument of type 'gfp_t *', argument %d has type '%s'",
 				vaidx, type_to_str(type));
 		break;
 	default:
-		sm_msg("error: '%%pG' must be followed by one of [gpv]");
+		sm_error("'%%pG' must be followed by one of [gpv]");
 	}
 }
 
 static void device_node_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
 	if (fmt[1] != 'F') {
-		sm_msg("error: %%pO can only be followed by 'F'");
+		sm_error("%%pO can only be followed by 'F'");
 		return;
 	}
 	if (!is_struct_tag(basetype, "device_node"))
-		sm_msg("error: '%%pOF' expects argument of type 'struct device_node*', argument %d has type '%s'",
+		sm_error("'%%pOF' expects argument of type 'struct device_node*', argument %d has type '%s'",
 		       vaidx, type_to_str(type));
 }
 
@@ -659,7 +659,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		return;
 	}
 	if (!is_ptr_type(type)) {
-		sm_msg("error: %%p expects pointer argument, but argument %d has type '%s'",
+		sm_error("%%p expects pointer argument, but argument %d has type '%s'",
 			vaidx, type_to_str(type));
 		return;
 	}
@@ -772,7 +772,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		/* 'x' is for an unhashed pointer */
 		break;
 	default:
-		sm_msg("error: unrecognized %%p extension '%c', treated as normal %%p", *fmt);
+		sm_error("unrecognized %%p extension '%c', treated as normal %%p", *fmt);
 	}
 }
 
@@ -1062,15 +1062,15 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 		/* 	break; */
 
 		case FORMAT_TYPE_INVALID:
-			sm_msg("error: format specifier '%.*s' invalid", read, old_fmt);
+			sm_error("format specifier '%.*s' invalid", read, old_fmt);
 			return;
 
 		case FORMAT_TYPE_FLOAT:
-			sm_msg("error: no floats in the kernel; invalid format specifier '%.*s'", read, old_fmt);
+			sm_error("no floats in the kernel; invalid format specifier '%.*s'", read, old_fmt);
 			return;
 
 		case FORMAT_TYPE_NRCHARS:
-			sm_msg("error: %%n not supported in kernel");
+			sm_error("%%n not supported in kernel");
 			return;
 
 		case FORMAT_TYPE_WIDTH:
@@ -1177,7 +1177,7 @@ check_printf_call(const char *name, struct expression *callexpr, void *_info)
 	/* Lack of format argument is a bug. */
 	fmtexpr = get_argument_from_call_expr(callexpr->args, fmtidx);
 	if (!fmtexpr) {
-		sm_msg("error: call of '%s' with no format argument", name);
+		sm_error("call of '%s' with no format argument", name);
 		return;
 	}
 

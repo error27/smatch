@@ -73,7 +73,7 @@ static void match_condition(struct expression *expr)
 		char *name;
 
 		name = expr_to_var(expr);
-		sm_msg("error: comparing a filehandle against zero '%s'", name);
+		sm_error("comparing a filehandle against zero '%s'", name);
 		set_state_expr(my_id, expr, &oktocheck);
 		free_string(name);
 	}

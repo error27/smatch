@@ -315,14 +315,14 @@ static void array_check(struct expression *expr)
 		return;
 
 	if (no_break) {
-		sm_msg("error: buffer overflow '%s' %d <= %s (assuming for loop doesn't break)",
+		sm_error("buffer overflow '%s' %d <= %s (assuming for loop doesn't break)",
 			name, array_size, sval_to_str(max));
 	} else if (user_rl) {
-		sm_msg("error: buffer overflow '%s' %d <= %s user_rl='%s'%s",
+		sm_error("buffer overflow '%s' %d <= %s user_rl='%s'%s",
 			name, array_size, sval_to_str(max), show_rl(user_rl),
 			is_subtract(offset) ? " subtract" : "");
 	} else {
-		sm_msg("error: buffer overflow '%s' %d <= %s%s",
+		sm_error("buffer overflow '%s' %d <= %s%s",
 			name, array_size, sval_to_str(max),
 			is_subtract(offset) ? " subtract" : "");
 	}

@@ -49,11 +49,11 @@ static void db_inc_dec(struct expression *expr, int param, const char *key, cons
 
 	if (inc_dec == ATOMIC_INC) {
 //		if (start_state == &inc)
-//			sm_msg("error: XXX double increment '%s'", name);
+//			sm_error("XXX double increment '%s'", name);
 		set_state(my_id, name, sym, &inc);
 	} else {
 //		if (start_state == &dec)
-//			sm_msg("error: XXX double decrement '%s'", name);
+//			sm_error("XXX double decrement '%s'", name);
 		if (start_state == &inc)
 			set_state(my_id, name, sym, &orig);
 		else

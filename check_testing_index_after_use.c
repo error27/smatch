@@ -112,7 +112,7 @@ static void match_condition(struct expression *expr)
 			char *name;
 
 			name = expr_to_var(left ? expr->right : expr->left);
-			sm_msg("error: testing array offset '%s' after use.", name);
+			sm_error("testing array offset '%s' after use.", name);
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);

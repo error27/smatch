@@ -33,7 +33,7 @@ static void match_dma_func(const char *fn, struct expression *expr, void *param)
 		if (arg->unop->type != EXPR_SYMBOL)
 			return;
 		name = expr_to_str(arg);
-		sm_msg("error: doing dma on the stack (%s)", name);
+		sm_error("doing dma on the stack (%s)", name);
 		free_string(name);
 		return;
 	}
@@ -45,7 +45,7 @@ static void match_dma_func(const char *fn, struct expression *expr, void *param)
 	if (get_param_num(arg) >= 0)
 		return;
 	name = expr_to_var(arg);
-	sm_msg("error: doing dma on the stack (%s)", name);
+	sm_error("doing dma on the stack (%s)", name);
 	free_string(name);
 }
 

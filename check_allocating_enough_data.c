@@ -42,7 +42,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 		return;
 	if (sval.uvalue >= bytes)
 		return;
-	sm_msg("error: not allocating enough data %d vs %s", bytes, sval_to_str(sval));
+	sm_error("not allocating enough data %d vs %s", bytes, sval_to_str(sval));
 }
 
 void check_allocating_enough_data(int id)

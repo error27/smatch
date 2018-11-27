@@ -55,7 +55,7 @@ static void match_input_free(const char *fn, struct expression *expr, void *data
 		return;
 	if (!slist_has_state(sm->possible, &no_free))
 		return;
-	sm_msg("error: don't call input_free_device() after input_unregister_device()");
+	sm_error("don't call input_free_device() after input_unregister_device()");
 }
 
 void check_input_free_device(int id)

@@ -44,7 +44,7 @@ static void match_sprintf(const char *fn, struct expression *expr, void *unused)
 	if (!data_size)
 		data_size = get_array_size_bytes(data);
 	if (dest_size < data_size)
-		sm_msg("error: sprintf() copies too much data from '%s': %d vs %d",
+		sm_error("sprintf() copies too much data from '%s': %d vs %d",
 		       data_name, data_size, dest_size);
 free:
 	free_string(data_name);

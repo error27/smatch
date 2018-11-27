@@ -87,15 +87,15 @@ static void check_dereference(struct expression *expr)
 		add_ignore(my_id, sm->name, sm->sym);
 		if (tmp->state == &null) {
 			if (option_spammy)
-				sm_msg("error: potential NULL dereference '%s'.", tmp->name);
+				sm_error("potential NULL dereference '%s'.", tmp->name);
 			return;
 		}
 		if (tmp->state == &uninitialized) {
 			if (option_spammy)
-				sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
+				sm_error("potentially dereferencing uninitialized '%s'.", tmp->name);
 			return;
 		}
-		sm_msg("error: potential null dereference '%s'.  (%s returns null)",
+		sm_error("potential null dereference '%s'.  (%s returns null)",
 			tmp->name, tmp->state->name);
 		return;
 	} END_FOR_EACH_PTR(tmp);
@@ -124,15 +124,15 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 		add_ignore(my_id, sm->name, sm->sym);
 		if (tmp->state == &null) {
 			if (option_spammy)
-				sm_msg("error: potential NULL dereference '%s'.", tmp->name);
+				sm_error("potential NULL dereference '%s'.", tmp->name);
 			return;
 		}
 		if (tmp->state == &uninitialized) {
 			if (option_spammy)
-				sm_msg("error: potentially dereferencing uninitialized '%s'.", tmp->name);
+				sm_error("potentially dereferencing uninitialized '%s'.", tmp->name);
 			return;
 		}
-		sm_msg("error: potential null dereference '%s'.  (%s returns null)",
+		sm_error("potential null dereference '%s'.  (%s returns null)",
 			tmp->name, tmp->state->name);
 		return;
 	} END_FOR_EACH_PTR(tmp);

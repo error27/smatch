@@ -58,7 +58,7 @@ static void check_is_err_ptr(struct expression *expr)
 	if (!possibly_true_rl(rl, SPECIAL_EQUAL, err_ptr_rl))
 		return;
 
-	sm_msg("error: '%s' dereferencing possible ERR_PTR()", sm->name);
+	sm_error("'%s' dereferencing possible ERR_PTR()", sm->name);
 	set_state(my_id, sm->name, sm->sym, &checked);
 }
 
@@ -90,7 +90,7 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	if (!estate || !possibly_true_rl(estate_rl(estate), SPECIAL_EQUAL, err_ptr_rl))
 		goto free;
 
-	sm_msg("error: '%s' dereferencing possible ERR_PTR()", sm->name);
+	sm_error("'%s' dereferencing possible ERR_PTR()", sm->name);
 	set_state(my_id, sm->name, sm->sym, &checked);
 
 free:
@@ -180,7 +180,7 @@ static void match_err_ptr_positive_const(const char *fn, struct expression *expr
 	if (!get_value(arg, &sval))
 		return;
 	if (sval_is_positive(sval) && sval_cmp_val(sval, 0) != 0)
-		sm_msg("error: passing non negative %s to ERR_PTR", sval_to_str(sval));
+		sm_error("passing non negative %s to ERR_PTR", sval_to_str(sval));
 }
 
 static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
@@ -206,9 +206,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 			max = tmp_max;
 	} END_FOR_EACH_PTR(tmp);
 	if (sval_is_negative(min) && sval_cmp_val(min, -4095) < 0)
-		sm_msg("error: %s too low for ERR_PTR", sval_to_str(min));
+		sm_error("%s too low for ERR_PTR", sval_to_str(min));
 	if (sval_is_positive(max) && sval_cmp_val(max, 0) != 0)
-		sm_msg("error: passing non negative %s to ERR_PTR", sval_to_str(max));
+		sm_error("passing non negative %s to ERR_PTR", sval_to_str(max));
 }
 
 void check_err_ptr_deref(int id)

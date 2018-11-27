@@ -239,7 +239,7 @@ static void match_not_limited(const char *fn, struct expression *call, void *inf
 			user = 1;
 	} END_FOR_EACH_PTR(arg);
 
-	sm_msg("error: format string overflow. buf_size: %d length: %d%s",
+	sm_error("format string overflow. buf_size: %d length: %d%s",
 	       buf_size, size, user ? " [user data]": "");
 }
 
