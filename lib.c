@@ -223,6 +223,7 @@ static struct token *pre_buffer_end = NULL;
 
 int Waddress = 0;
 int Waddress_space = 1;
+int Wbig_constants = 1;
 int Wbitwise = 1;
 int Wcast_to_as = 0;
 int Wcast_truncate = 1;
@@ -527,6 +528,7 @@ static const struct warning {
 } warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
+	{ "big-constants", &Wbig_constants },
 	{ "bitwise", &Wbitwise },
 	{ "cast-to-as", &Wcast_to_as },
 	{ "cast-truncate", &Wcast_truncate },
