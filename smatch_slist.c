@@ -384,7 +384,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		return one;
 	if (out_of_memory()) {
 		if (!warned)
-			sm_msg("Function too hairy.  No more merges.");
+			sm_warning("Function too hairy.  No more merges.");
 		warned = 1;
 		return one;
 	}

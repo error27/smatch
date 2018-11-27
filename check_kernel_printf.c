@@ -855,7 +855,7 @@ check_format_string(const char *fmt, const char *caller)
 
 	f = strstr(fmt, caller);
 	if (f && strstr(f+1, caller))
-		sm_msg("note: format string contains name of enclosing function '%s' twice", caller);
+		sm_warning("format string contains name of enclosing function '%s' twice", caller);
 
 	return f != NULL;
 }
