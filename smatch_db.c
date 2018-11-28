@@ -761,6 +761,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	int len;
 	char printed_name[256];
 	int is_address = 0;
+	struct symbol *type;
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -769,6 +770,10 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		expr = strip_expr(expr->unop);
 		is_address = 1;
 	}
+
+	type = get_type(expr);
+	if (type && type_bits(type) < type_bits(&ulong_ctype))
+		return;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
