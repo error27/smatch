@@ -174,6 +174,9 @@ void check_missing_break(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_hook);
 
