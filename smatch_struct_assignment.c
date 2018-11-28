@@ -73,9 +73,14 @@ static struct symbol *get_struct_type(struct expression *expr)
 	type = get_type(expr);
 	if (!type)
 		return NULL;
-	if (type->type == SYM_PTR)
+	if (type->type == SYM_PTR) {
 		type = get_real_base_type(type);
-	if (type && type->type == SYM_STRUCT)
+		if (!type)
+			return NULL;
+	}
+	if (type->type == SYM_STRUCT)
+		return type;
+	if (type->type == SYM_UNION)
 		return type;
 	return NULL;
 }
