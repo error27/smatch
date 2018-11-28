@@ -254,10 +254,8 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 	}
 
 	if (mixed && !*mixed && !is_merged(sm) && !istrue && !isfalse) {
-		if (!create_fake_history(sm, comparison, rl)) {
-			if (mixed)
-				*mixed = 1;
-		}
+		if (!create_fake_history(sm, comparison, rl))
+			*mixed = 1;
 	}
 
 	if (istrue)
