@@ -1,5 +1,7 @@
 struct stree;
 
+extern int unfree_stree;
+
 DECLARE_PTR_LIST(state_list, struct sm_state);
 DECLARE_PTR_LIST(state_list_stack, struct state_list);
 
@@ -60,6 +62,7 @@ struct stree *top_stree(struct stree_stack *stack);
 void free_slist(struct state_list **slist);
 void free_stree_stack(struct stree_stack **stack);
 void free_stack_and_strees(struct stree_stack **stree_stack);
+unsigned long get_pool_count(void);
 
 struct sm_state *set_state_stree_stack(struct stree_stack **stack, int owner, const char *name,
 				struct symbol *sym, struct smatch_state *state);

@@ -73,4 +73,5 @@ static inline void __smatch_mtag_data(long long arg){}
 static inline void __smatch_exit(void){}
 
 static inline void __smatch_state_count(void){}
+static inline void __smatch_mem(void){}
 #endif

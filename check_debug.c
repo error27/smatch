@@ -671,6 +671,16 @@ static void match_state_count(const char *fn, struct expression *expr, void *inf
 	sm_msg("state_count = %d\n", sm_state_counter);
 }
 
+static void match_mem(const char *fn, struct expression *expr, void *info)
+{
+	show_sname_alloc();
+	show_ptrlist_alloc();
+	sm_msg("%lu pools", get_pool_count());
+	sm_msg("%d strees", unfree_stree);
+	show_smatch_state_alloc();
+	show_sm_state_alloc();
+}
+
 static void match_exit(const char *fn, struct expression *expr, void *info)
 {
 	exit(0);
@@ -754,6 +764,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_mtag", &match_mtag, NULL);
 	add_function_hook("__smatch_mtag_data", &match_mtag_data_offset, NULL);
 	add_function_hook("__smatch_state_count", &match_state_count, NULL);
+	add_function_hook("__smatch_mem", &match_mem, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);

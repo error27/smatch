@@ -299,6 +299,11 @@ void free_every_single_sm_state(void)
 	sm_state_counter = 0;
 }
 
+unsigned long get_pool_count(void)
+{
+	return ptr_list_size((struct ptr_list *)all_pools);
+}
+
 struct sm_state *clone_sm(struct sm_state *s)
 {
 	struct sm_state *ret;
