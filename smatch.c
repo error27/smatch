@@ -164,49 +164,65 @@ static int match_option(const char *arg, const char *option)
 }
 
 #define OPTION(_x) do {					\
-	if (match_option((*argvp)[1], #_x)) { 		\
-		option_##_x = 1;			\
+	if (!found && match_option((*argvp)[1], #_x)) { \
+		found = 1;				\
+		option_##_x = 1;					\
+		(*argvp)[1] = (*argvp)[0];		\
 	}                                               \
 } while (0)
 
 void parse_args(int *argcp, char ***argvp)
 {
-	int i;
-
-	for (i = 1 ; i < *argcp; i++) {
-		if (!strcmp((*argvp)[i], "--help"))
+	while (*argcp >= 2) {
+		int found = 0;
+		if (!strcmp((*argvp)[1], "--help"))
 			help();
 
-		if (!strcmp((*argvp)[i], "--show-checks"))
+		if (!strcmp((*argvp)[1], "--show-checks"))
 			show_checks();
 
-		if (!strncmp((*argvp)[i], "--project=", 10))
-			option_project_str = (*argvp)[i] + 10;
-
-		if (!strncmp((*argvp)[i], "-p=", 3))
-			option_project_str = (*argvp)[i] + 3;
-
-		if (!strncmp((*argvp)[i], "--db-file=", 10))
-			option_db_file = (*argvp)[i] + 10;
-
-		if (!strncmp((*argvp)[i], "--data=", 7))
-			option_datadir_str = (*argvp)[i] + 7;
-
-		if (!strncmp((*argvp)[i], "--debug=", 8))
-			option_debug_check = (*argvp)[i] + 8;
-
-		if (strncmp((*argvp)[i], "--trace=", 8) == 0)
-			trace_variable = (*argvp)[i] + 8;
-
-		if (strncmp((*argvp)[i], "--enable=", 9) == 0) {
-			enable_disable_checks((*argvp)[i] + 9, 1);
-			option_enable = 1;
+		if (!found && !strncmp((*argvp)[1], "--project=", 10)) {
+			option_project_str = (*argvp)[1] + 10;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
 		}
-
-		if (strncmp((*argvp)[i], "--disable=", 10) == 0) {
-			enable_disable_checks((*argvp)[i] + 10, 0);
+		if (!found && !strncmp((*argvp)[1], "-p=", 3)) {
+			option_project_str = (*argvp)[1] + 3;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "--db-file=", 10)) {
+			option_db_file = (*argvp)[1] + 10;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "--data=", 7)) {
+			option_datadir_str = (*argvp)[1] + 7;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "--debug=", 8)) {
+			option_debug_check = (*argvp)[1] + 8;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--trace=", 8) == 0) {
+			trace_variable = (*argvp)[1] + 8;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--enable=", 9) == 0) {
+			enable_disable_checks((*argvp)[1] + 9, 1);
+			option_enable = 1;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--disable=", 10) == 0) {
+			enable_disable_checks((*argvp)[1] + 10, 0);
 			option_enable = 1;
 			option_disable = 1;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
 		}
 
 		OPTION(spammy);
@@ -224,6 +240,10 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(time);
 		OPTION(mem);
 		OPTION(no_db);
+		if (!found)
+			break;
+		(*argcp)--;
+		(*argvp)++;
 	}
 
 	if (strcmp(option_project_str, "smatch_generic") != 0)
