@@ -50,5 +50,5 @@ void check_test_bit(int id)
 	add_function_hook("set_bit", &match_test_bit, NULL);
 	add_function_hook("clear_bit", &match_test_bit, NULL);
 	add_function_hook("test_and_clear_bit", &match_test_bit, NULL);
-
+	add_function_hook("test_and_set_bit", &match_test_bit, NULL);
 }
