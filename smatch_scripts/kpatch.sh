@@ -4,23 +4,14 @@ TMP_DIR=/tmp
 
 help()
 {
-    echo "Usage: $0 <filename>"
+    echo "Usage: $0 [--no-compile|--ammend] <filename>"
     echo "You must be at the base of the kernel tree to run this."
     exit 1
 }
 
-signoff()
-{
-    name=$(mutt -Q realname | cut -d '"' -f 2)
-    [ "$name" = "" ] && name="Your Name"
-    email=$(mutt -Q from | cut -d '"' -f 2)
-    [ "$email" = "" ] && email="address@example.com"
-    echo "Signed-off-by: $name <${email}>"
-}
-
 continue_yn()
 {
-    echo -n "Do you want to fix these check patch errors now? "
+    echo -n "Do you want to fix these issues now? "
     read ans
     if ! echo $ans | grep -iq ^n ; then
 	exit 1;
@@ -39,16 +30,29 @@ qc()
     fi
 }
 
+NO_COMPILE=false
+AMEND=""
+
+while true ; do
+    if [[ "$1" == "--no-compile" ]] ; then
+        NO_COMPILE=true
+        shift
+    elif [[ "$1" == "--ammend" ]] ; then
+        AMEND="--amend"
+        shift
+    else
+        break
+    fi
+done
+
 if [ ! -f $1 ] ; then
     help
 fi
 
-MY_SIGNOFF=$(signoff)
-
 fullname=$1
 filename=$(basename $fullname)
+oname=$(echo ${fullname/.c/.o})
 
-DIFF_FILE=$TMP_DIR/${filename}.diff
 MAIL_FILE=$TMP_DIR/${filename}.msg
 
 echo "QC checklist"
@@ -60,13 +64,25 @@ if git diff $fullname | grep ^+ | grep -qi alloc ; then
     qc "Have you check all your mallocs for NULL returns?"
 fi
 
-kchecker --spammy $fullname
-kchecker --sparse $fullname
-echo "Press ENTER to continue"
+if [ "$NO_COMPILE" != "true" ] ; then
+    kchecker --spammy $fullname
+    kchecker --sparse --endian $fullname
+#    rm $oname
+#    make C=1 CHECK="scripts/coccicheck" $oname
+fi
+
+grepmail $fullname ~/var/mail/sent* | grep -i ^subject || echo -n ""
+qc "Looks OK?"
+
+git log --oneline $fullname | head -n 10
+echo "Copy and paste one of these subjects?"
 read unused
 
-to_addr=$(./scripts/get_maintainer.pl -f $fullname | head -n 1)
-cc_addr=$(./scripts/get_maintainer.pl -f $fullname | tail -n +2 | \
+git add $fullname
+git commit --signoff $AMEND
+
+to_addr=$(./scripts/get_maintainer.pl -f --noroles --norolestats $fullname | head -n 1)
+cc_addr=$(./scripts/get_maintainer.pl -f --noroles --norolestats $fullname | tail -n +2 | \
     perl -ne 's/\n$/, /; print')
 cc_addr="$cc_addr, kernel-janitors@vger.kernel.org"
 
@@ -74,18 +90,13 @@ echo -n "To:  "  > $MAIL_FILE
 echo "$to_addr" >> $MAIL_FILE
 echo -n "CC:  " >> $MAIL_FILE
 echo "$cc_addr" >> $MAIL_FILE
+echo "X-Mailer: git-send-email haha only kidding" >> $MAIL_FILE
 
-echo "" > $DIFF_FILE
-echo "$MY_SIGNOFF" >> $DIFF_FILE
-echo "" >> $DIFF_FILE
+git format-patch HEAD^ --stdout >> $MAIL_FILE
 
-git diff $fullname | tee -a $DIFF_FILE
-
-./scripts/checkpatch.pl $DIFF_FILE || continue_yn
+./scripts/checkpatch.pl $MAIL_FILE || continue_yn
 
 echo "Press ENTER to continue"
 read unused
-
-cat $DIFF_FILE >> $MAIL_FILE
 
 mutt -H $MAIL_FILE
