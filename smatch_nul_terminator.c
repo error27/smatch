@@ -240,6 +240,13 @@ free:
 	free_string(name);
 }
 
+bool is_nul_terminated(struct expression *expr)
+{
+	if (get_terminated_state(expr) == &terminated)
+		return 1;
+	return 0;
+}
+
 void register_nul_terminator(int id)
 {
 	my_id = id;

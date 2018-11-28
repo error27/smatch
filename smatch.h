@@ -1152,6 +1152,9 @@ unsigned long get_max_memory(void);
 /* check_is_nospec.c */
 bool is_nospec(struct expression *expr);
 
+/* smatch_nul_terminator.c */
+bool is_nul_terminated(struct expression *expr);
+
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)
