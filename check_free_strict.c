@@ -84,6 +84,8 @@ static void match_dereferences(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
+	if (__in_fake_parameter_assign)
+		return;
 
 	expr = strip_expr(expr->unop);
 	if (!is_freed(expr))
