@@ -1977,6 +1977,11 @@ static int handle_line(struct stream *stream, struct token **line, struct token 
 	return 1;
 }
 
+static int handle_ident(struct stream *stream, struct token **line, struct token *token)
+{
+	return 1;
+}
+
 static int handle_nondirective(struct stream *stream, struct token **line, struct token *token)
 {
 	sparse_error(token->pos, "unrecognized preprocessor line '%s'", show_token_sequence(token, 0));
@@ -2003,6 +2008,7 @@ static void init_preprocessor(void)
 		{ "include_next",	handle_include_next },
 		{ "pragma",		handle_pragma },
 		{ "line",		handle_line },
+		{ "ident",		handle_ident },
 
 		// our internal preprocessor tokens
 		{ "nostdinc",	   handle_nostdinc },
