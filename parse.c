@@ -118,6 +118,23 @@ enum {
 	SNone = 0, STypedef, SAuto, SRegister, SExtern, SStatic, SForced, SMax,
 };
 
+static void asm_modifier(struct token *token, unsigned long *mods, unsigned long mod)
+{
+	if (*mods & mod)
+		warning(token->pos, "duplicated asm modifier");
+	*mods |= mod;
+}
+
+static void asm_modifier_volatile(struct token *token, unsigned long *mods)
+{
+	asm_modifier(token, mods, MOD_VOLATILE);
+}
+
+static void asm_modifier_inline(struct token *token, unsigned long *mods)
+{
+	asm_modifier(token, mods, MOD_INLINE);
+}
+
 static struct symbol_op typedef_op = {
 	.type = KW_MODIFIER,
 	.declarator = typedef_specifier,
@@ -126,6 +143,7 @@ static struct symbol_op typedef_op = {
 static struct symbol_op inline_op = {
 	.type = KW_MODIFIER,
 	.declarator = inline_specifier,
+	.asm_modifier = asm_modifier_inline,
 };
 
 static declarator_t noreturn_specifier;
@@ -173,6 +191,7 @@ static struct symbol_op const_op = {
 static struct symbol_op volatile_op = {
 	.type = KW_QUALIFIER,
 	.declarator = volatile_qualifier,
+	.asm_modifier = asm_modifier_volatile,
 };
 
 static struct symbol_op restrict_op = {
@@ -2069,15 +2088,16 @@ static struct token *parse_asm_labels(struct token *token, struct statement *stm
 
 static struct token *parse_asm_statement(struct token *token, struct statement *stmt)
 {
-	int is_goto = 0;
+	unsigned long mods = 0;
 
 	token = token->next;
 	stmt->type = STMT_ASM;
-	if (match_idents(token, &__volatile___ident, &__volatile_ident, &volatile_ident, NULL)) {
-		token = token->next;
-	}
-	if (token_type(token) == TOKEN_IDENT && token->ident == &goto_ident) {
-		is_goto = 1;
+	while (token_type(token) == TOKEN_IDENT) {
+		struct symbol *s = lookup_keyword(token->ident, NS_TYPEDEF);
+		if (s && s->op  && s->op->asm_modifier)
+			s->op->asm_modifier(token, &mods);
+		else if (token->ident == &goto_ident)
+			asm_modifier(token, &mods, MOD_ASM_GOTO);
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
@@ -2088,7 +2108,7 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 		token = parse_asm_operands(token, stmt, &stmt->asm_inputs);
 	if (match_op(token, ':'))
 		token = parse_asm_clobbers(token, stmt, &stmt->asm_clobbers);
-	if (is_goto && match_op(token, ':'))
+	if (match_op(token, ':') && (mods & MOD_ASM_GOTO))
 		token = parse_asm_labels(token, stmt, &stmt->asm_labels);
 	token = expect(token, ')', "after asm");
 	return expect(token, ';', "at end of asm-statement");

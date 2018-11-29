@@ -124,6 +124,7 @@ struct symbol_op {
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
 	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
 	struct symbol *(*to_mode)(struct symbol *);
+	void          (*asm_modifier)(struct token *token, unsigned long *mods);
 
 	int test, set, class;
 };
@@ -207,6 +208,7 @@ struct symbol {
 #define MOD_EXTERN		0x00000008
 #define MOD_TOPLEVEL		0x00000010	// scoping..
 #define MOD_TLS			0x00000020
+#define MOD_ASM_GOTO		MOD_TLS		// never used together
 #define MOD_INLINE		0x00000040
 
 #define MOD_ASSIGNED		0x00000080
