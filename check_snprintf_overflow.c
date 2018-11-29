@@ -37,7 +37,7 @@ static void match_snprintf(const char *fn, struct expression *expr, void *unused
 	dest_size = get_array_size_bytes(dest);
 	if (!get_implied_value(dest_size_expr, &limit_size))
 		return;
-	if (dest_size && dest_size < limit_size.value)
+	if (dest_size > 1 && dest_size < limit_size.value)
 		sm_msg("error: snprintf() is printing too much %s vs %d",
 		       sval_to_str(limit_size), dest_size);
 	format = expr_to_var(format_string);

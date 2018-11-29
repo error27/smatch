@@ -292,10 +292,6 @@ static int get_real_array_size_from_type(struct symbol *type)
 	if (!get_implied_value(type->array_size, &sval))
 		return 0;
 
-	/* People put one element arrays on the end of structs */
-	if (sval.value == 1)
-		return 0;
-
 	return sval.value;
 }
 
