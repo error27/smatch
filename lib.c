@@ -270,6 +270,7 @@ int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
+int Wold_style_definition = 1;
 int Wone_bit_signed_bitfield = 1;
 int Woverride_init = 1;
 int Woverride_init_all = 0;
@@ -283,6 +284,7 @@ int Wshadow = 0;
 int Wshift_count_negative = 1;
 int Wshift_count_overflow = 1;
 int Wsizeof_bool = 0;
+int Wstrict_prototypes = 1;
 int Wtautological_compare = 0;
 int Wtransparent_union = 0;
 int Wtypesign = 0;
@@ -707,6 +709,7 @@ static const struct flag warnings[] = {
 	{ "memcpy-max-count", &Wmemcpy_max_count },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
+	{ "old-style-definition", &Wold_style_definition },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
 	{ "override-init", &Woverride_init },
 	{ "override-init-all", &Woverride_init_all },
@@ -718,6 +721,7 @@ static const struct flag warnings[] = {
 	{ "shift-count-negative", &Wshift_count_negative },
 	{ "shift-count-overflow", &Wshift_count_overflow },
 	{ "sizeof-bool", &Wsizeof_bool },
+	{ "strict-prototypes", &Wstrict_prototypes },
 	{ "pointer-arith", &Wpointer_arith },
 	{ "sparse-error", &Wsparse_error },
 	{ "tautological-compare", &Wtautological_compare },
