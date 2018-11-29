@@ -777,7 +777,6 @@ extern struct sqlite3 *smatch_db;
 extern struct sqlite3 *mem_db;
 extern struct sqlite3 *cache_db;
 
-void debug_sql(struct sqlite3 *db, const char *sql);
 void db_ignore_states(int id);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
@@ -806,7 +805,6 @@ do {										\
 										\
 	sqlite3_snprintf(sizeof(sql_txt), sql_txt, sql);			\
 	sm_debug("debug: %s\n", sql_txt);					\
-	debug_sql(db, sql_txt);  	      					\
 	sql_exec(db, call_back, data, sql_txt);					\
 } while (0)
 

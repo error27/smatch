@@ -99,22 +99,6 @@ char *escape_newlines(char *str)
 	return (alloc_sname(buf));
 }
 
-void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
-{
-	char *err = NULL;
-	int rc;
-
-	if (!db)
-		return;
-
-	rc = sqlite3_exec(db, sql, callback, data, &err);
-	if (rc != SQLITE_OK && !parse_error) {
-		fprintf(stderr, "SQL error #2: %s\n", err);
-		fprintf(stderr, "SQL: '%s'\n", sql);
-		parse_error = 1;
-	}
-}
-
 static int print_sql_output(void *unused, int argc, char **argv, char **azColName)
 {
 	int i;
@@ -128,12 +112,26 @@ static int print_sql_output(void *unused, int argc, char **argv, char **azColNam
 	return 0;
 }
 
-void debug_sql(struct sqlite3 *db, const char *sql)
+void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql)
 {
-	if (!option_debug)
+	char *err = NULL;
+	int rc;
+
+	if (!db)
 		return;
-	sm_msg("%s", sql);
-	sql_exec(db, print_sql_output, NULL, sql);
+
+	if (option_debug) {
+		sm_msg("%s", sql);
+		if (strncasecmp(sql, "select", strlen("select")) == 0)
+			sqlite3_exec(db, sql, print_sql_output, NULL, NULL);
+	}
+
+	rc = sqlite3_exec(db, sql, callback, data, &err);
+	if (rc != SQLITE_OK && !parse_error) {
+		fprintf(stderr, "%s:%d SQL error #2: %s\n", get_filename(), get_lineno(), err);
+		fprintf(stderr, "%s:%d SQL: '%s'\n", get_filename(), get_lineno(), sql);
+		parse_error = 1;
+	}
 }
 
 static int replace_count;
