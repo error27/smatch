@@ -2771,7 +2771,9 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 				goto match;
 		} END_FOR_EACH_PTR(type);
 		sparse_error(arg->pos, "missing type declaration for parameter '%s'", show_ident(arg->ident));
-		continue;
+		type = alloc_symbol(arg->pos, SYM_NODE);
+		type->ident = arg->ident;
+		type->ctype.base_type = &int_ctype;
 match:
 		type->used = 1;
 		/* "char" and "short" promote to "int" */
