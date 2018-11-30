@@ -2164,6 +2164,14 @@ static int filter_unused_kzalloc_info(struct expression *call, int param, char *
 		return 0;
 
 	/*
+	 * This is to handle __builtin_mul_overflow().  In an ideal world we
+	 * would only need this for invalid code.
+	 *
+	 */
+	if (!call->fn->symbol)
+		return 0;
+
+	/*
 	 * kzalloc() information is treated as special because so there is just
 	 * a lot of stuff initialized to zero and it makes building the database
 	 * take hours and hours.
