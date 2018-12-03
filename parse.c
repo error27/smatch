@@ -1098,6 +1098,8 @@ static struct ident *numerical_address_space(int asn)
 {
 	char buff[32];
 
+	if (!asn)
+		return NULL;
 	sprintf(buff, "<asn:%d>", asn);
 	return built_in_ident(buff);
 }
@@ -1105,15 +1107,31 @@ static struct ident *numerical_address_space(int asn)
 static struct token *attribute_address_space(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	struct expression *expr = NULL;
-	int as;
+	struct ident *as = NULL;
+	struct token *next;
+
 	token = expect(token, '(', "after address_space attribute");
-	token = conditional_expression(token, &expr);
-	if (expr) {
-		as = const_expression_value(expr);
-		if (Waddress_space && as)
-			ctx->ctype.as = numerical_address_space(as);
+	switch (token_type(token)) {
+	case TOKEN_NUMBER:
+		next = primary_expression(token, &expr);
+		if (expr->type != EXPR_VALUE)
+			goto invalid;
+		as = numerical_address_space(expr->value);
+		break;
+	case TOKEN_IDENT:
+		next = token->next;
+		as = token->ident;
+		break;
+	default:
+		next = token->next;
+	invalid:
+		as = NULL;
+		warning(token->pos, "invalid address space name");
 	}
-	token = expect(token, ')', "after address_space attribute");
+
+	if (Waddress_space && as)
+		ctx->ctype.as = as;
+	token = expect(next, ')', "after address_space attribute");
 	return token;
 }
 
