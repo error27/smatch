@@ -3018,13 +3018,13 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	if (!tas && sas > 0)
-		warning(expr->pos, "cast removes address space of expression (<asn:%d>)", sas);
+		warning(expr->pos, "cast removes address space '%s' of expression", show_as(sas));
 	if (tas > 0 && sas > 0 && tas != sas)
-		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", sas, tas);
+		warning(expr->pos, "cast between address spaces (%s -> %s)", show_as(sas), show_as(tas));
 	if (tas > 0 && !sas &&
 	    !is_null_pointer_constant(source) && Wcast_to_as)
 		warning(expr->pos,
-			"cast adds address space to expression (<asn:%d>)", tas);
+			"cast adds address space '%s' to expression", show_as(tas));
 
 	if (!(ttype->ctype.modifiers & MOD_PTRINHERIT) && tclass == TYPE_PTR &&
 	    !tas && (source->flags & CEF_ICE)) {

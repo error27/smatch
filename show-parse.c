@@ -182,6 +182,17 @@ void show_symbol_list(struct symbol_list *list, const char *sep)
 	} END_FOR_EACH_PTR(sym);
 }
 
+const char *show_as(unsigned int as)
+{
+	static char buffer[4][32];
+	static int n;
+	char *buff;
+
+	buff = buffer[3 & ++n];
+	sprintf(buff, "<asn:%u>", as);
+	return buff;
+}
+
 struct type_name {
 	char *start;
 	char *end;
@@ -288,7 +299,7 @@ deeper:
 		size_t len;
 
 		if (as)
-			prepend(name, "<asn:%d>", as);
+			prepend(name, "%s ", show_as(as));
 
 		s = modifier_string(mod);
 		len = strlen(s);

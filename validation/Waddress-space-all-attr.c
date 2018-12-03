@@ -44,17 +44,17 @@ static void expl(obj_t __kernel *k, obj_t __iomem *o,
  * check-command: sparse -Wcast-from-as -Wcast-to-as $file
  *
  * check-error-start
-Waddress-space-all-attr.c:21:10: warning: cast removes address space of expression (<asn:2>)
-Waddress-space-all-attr.c:22:10: warning: cast removes address space of expression (<asn:2>)
-Waddress-space-all-attr.c:23:10: warning: cast removes address space of expression (<asn:2>)
-Waddress-space-all-attr.c:26:10: warning: cast removes address space of expression (<asn:1>)
-Waddress-space-all-attr.c:27:10: warning: cast removes address space of expression (<asn:1>)
-Waddress-space-all-attr.c:28:10: warning: cast removes address space of expression (<asn:1>)
-Waddress-space-all-attr.c:31:10: warning: cast removes address space of expression (<asn:3>)
-Waddress-space-all-attr.c:32:10: warning: cast removes address space of expression (<asn:3>)
-Waddress-space-all-attr.c:33:10: warning: cast removes address space of expression (<asn:3>)
-Waddress-space-all-attr.c:36:10: warning: cast removes address space of expression (<asn:4>)
-Waddress-space-all-attr.c:37:10: warning: cast removes address space of expression (<asn:4>)
-Waddress-space-all-attr.c:38:10: warning: cast removes address space of expression (<asn:4>)
+Waddress-space-all-attr.c:21:10: warning: cast removes address space '<asn:2>' of expression
+Waddress-space-all-attr.c:22:10: warning: cast removes address space '<asn:2>' of expression
+Waddress-space-all-attr.c:23:10: warning: cast removes address space '<asn:2>' of expression
+Waddress-space-all-attr.c:26:10: warning: cast removes address space '<asn:1>' of expression
+Waddress-space-all-attr.c:27:10: warning: cast removes address space '<asn:1>' of expression
+Waddress-space-all-attr.c:28:10: warning: cast removes address space '<asn:1>' of expression
+Waddress-space-all-attr.c:31:10: warning: cast removes address space '<asn:3>' of expression
+Waddress-space-all-attr.c:32:10: warning: cast removes address space '<asn:3>' of expression
+Waddress-space-all-attr.c:33:10: warning: cast removes address space '<asn:3>' of expression
+Waddress-space-all-attr.c:36:10: warning: cast removes address space '<asn:4>' of expression
+Waddress-space-all-attr.c:37:10: warning: cast removes address space '<asn:4>' of expression
+Waddress-space-all-attr.c:38:10: warning: cast removes address space '<asn:4>' of expression
  * check-error-end
  */

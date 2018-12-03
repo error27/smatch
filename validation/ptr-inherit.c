@@ -75,6 +75,6 @@ ptr-inherit.c:30:19:    expected int *p
 ptr-inherit.c:30:19:    got restricted int *<noident>
 ptr-inherit.c:36:19: warning: incorrect type in initializer (different address spaces)
 ptr-inherit.c:36:19:    expected int *p
-ptr-inherit.c:36:19:    got int <asn:1>*<noident>
+ptr-inherit.c:36:19:    got int <asn:1> *<noident>
  * check-error-end
  */
