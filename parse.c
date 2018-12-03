@@ -1094,6 +1094,14 @@ static struct token *attribute_bitwise(struct token *token, struct symbol *attr,
 	return token;
 }
 
+static struct ident *numerical_address_space(int asn)
+{
+	char buff[32];
+
+	sprintf(buff, "<asn:%d>", asn);
+	return built_in_ident(buff);
+}
+
 static struct token *attribute_address_space(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	struct expression *expr = NULL;
@@ -1103,7 +1111,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	if (expr) {
 		as = const_expression_value(expr);
 		if (Waddress_space && as)
-			ctx->ctype.as = as;
+			ctx->ctype.as = numerical_address_space(as);
 	}
 	token = expect(token, ')', "after address_space attribute");
 	return token;
@@ -1825,7 +1833,7 @@ static struct token *pointer(struct token *token, struct decl_state *ctx)
 		ptr->ctype.contexts = ctx->ctype.contexts;
 		ctx->ctype.modifiers = 0;
 		ctx->ctype.base_type = ptr;
-		ctx->ctype.as = 0;
+		ctx->ctype.as = NULL;
 		ctx->ctype.contexts = NULL;
 		ctx->ctype.alignment = 0;
 

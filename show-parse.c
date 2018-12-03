@@ -72,10 +72,11 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %d) %p (%s:%d:%d) %s\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %s) %p (%s:%d:%d) %s\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
-		modifier_string(sym->ctype.modifiers), show_ident(sym->ident), sym->ctype.as,
+		modifier_string(sym->ctype.modifiers), show_ident(sym->ident),
+		show_as(sym->ctype.as),
 		sym, stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos,
 		builtin_typename(sym) ?: "");
 	i = 0;
@@ -182,15 +183,11 @@ void show_symbol_list(struct symbol_list *list, const char *sep)
 	} END_FOR_EACH_PTR(sym);
 }
 
-const char *show_as(unsigned int as)
+const char *show_as(struct ident *as)
 {
-	static char buffer[4][32];
-	static int n;
-	char *buff;
-
-	buff = buffer[3 & ++n];
-	sprintf(buff, "<asn:%u>", as);
-	return buff;
+	if (!as)
+		return "";
+	return show_ident(as);
 }
 
 struct type_name {
@@ -287,7 +284,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 {
 	const char *typename;
 	unsigned long mod = 0;
-	int as = 0;
+	struct ident *as = NULL;
 	int was_ptr = 0;
 	int restr = 0;
 	int fouled = 0;
@@ -306,7 +303,7 @@ deeper:
 		name->start -= len;    
 		memcpy(name->start, s, len);  
 		mod = 0;
-		as = 0;
+		as = NULL;
 	}
 
 	if (!sym)
@@ -358,12 +355,12 @@ deeper:
 	case SYM_NODE:
 		append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		combine_address_space(&as, sym->ctype.as);
 		break;
 
 	case SYM_BITFIELD:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		combine_address_space(&as, sym->ctype.as);
 		append(name, ":%d", sym->bit_size);
 		break;
 
@@ -373,7 +370,7 @@ deeper:
 
 	case SYM_ARRAY:
 		mod |= sym->ctype.modifiers;
-		as |= sym->ctype.as;
+		combine_address_space(&as, sym->ctype.as);
 		if (was_ptr) {
 			prepend(name, "( ");
 			append(name, " )");
