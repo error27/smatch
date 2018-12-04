@@ -221,7 +221,7 @@ static int constraint_str_to_id(const char *str)
 	int id = -1;
 
 	run_sql(save_int_callback, &id,
-		"select id from constraints where str = '%s'", str);
+		"select id from constraints where str = '%q'", str);
 
 	return id;
 }
@@ -275,7 +275,7 @@ char *get_required_constraint(const char *data_str)
 	char *required = NULL;
 
 	run_sql(save_str_callback, &required,
-		"select bound from constraints_required where data = '%s'", data_str);
+		"select bound from constraints_required where data = '%q'", data_str);
 
 	return required;
 }
@@ -285,7 +285,7 @@ static int get_required_op(char *data_str, char *con_str)
 	int op = 0;
 
 	run_sql(save_op_callback, &op,
-		"select op from constraints_required where data = '%s' and bound = '%s'", data_str, con_str);
+		"select op from constraints_required where data = '%q' and bound = '%q'", data_str, con_str);
 
 	return op;
 }

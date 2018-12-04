@@ -419,8 +419,8 @@ static int has_constraint(struct expression *expr, const char *constraint)
 		return 1;
 
 	run_sql(constraint_found, &found,
-		"select data from constraints_required where bound = '%s' limit 1",
-		constraint);
+		"select data from constraints_required where bound = '%q' limit 1",
+		escape_newlines(constraint));
 
 	return found;
 }
