@@ -147,4 +147,9 @@ static inline void stmt_set_parent_stmt(struct statement *stmt, struct statement
 	stmt->parent = parent;
 }
 
+static inline struct statement *stmt_get_parent_stmt(struct statement *stmt)
+{
+	return stmt->parent;
+}
+
 #endif /* PARSE_H */
