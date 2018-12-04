@@ -91,6 +91,7 @@ insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 103,   0, '\$', '0');
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0,    0, -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 103,  0, '\$', '1-4000000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 1037,  -1, '', 400);
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0, '\$', '4000000-long_max');
 
