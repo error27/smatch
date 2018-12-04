@@ -72,7 +72,7 @@ static struct db_implies_cb_list *return_implies_cb_list;
 static struct db_implies_cb_list *call_implies_cb_list;
 
 /* silently truncates if needed. */
-char *escape_newlines(char *str)
+char *escape_newlines(const char *str)
 {
 	char buf[1024] = "";
 	bool found = false;
@@ -92,11 +92,11 @@ char *escape_newlines(char *str)
 	}
 
 	if (!found)
-		return str;
+		return alloc_sname(str);
 
 	if (j == sizeof(buf))
 		buf[j - 1] = '\0';
-	return (alloc_sname(buf));
+	return alloc_sname(buf);
 }
 
 static int print_sql_output(void *unused, int argc, char **argv, char **azColName)
