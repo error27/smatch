@@ -236,7 +236,6 @@ int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Winit_cstring = 0;
 int Wenum_mismatch = 1;
-int Wempty_character_constant = 1;
 int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
 int Wnon_ansi_function_declaration = 1;
@@ -540,7 +539,6 @@ static const struct warning {
 	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
-	{ "empty-character-constant", &Wempty_character_constant },
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "init-cstring", &Winit_cstring },
 	{ "memcpy-max-count", &Wmemcpy_max_count },

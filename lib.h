@@ -126,7 +126,6 @@ extern int Wdefault_bitfield_sign;
 extern int Wdesignated_init;
 extern int Wdo_while;
 extern int Wenum_mismatch;
-extern int Wempty_character_constant;
 extern int Wsparse_error;
 extern int Winit_cstring;
 extern int Wmemcpy_max_count;

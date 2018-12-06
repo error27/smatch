@@ -630,9 +630,8 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 	}
 	if (delim == '\'' && len <= 4) {
 		if (len == 0) {
-			if (Wempty_character_constant)
-				sparse_error(stream_pos(stream),
-					"empty character constant");
+			sparse_error(stream_pos(stream),
+				"empty character constant");
 			return nextchar(stream);
 		}
 		token_type(token) = type + len;
