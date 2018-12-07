@@ -42,6 +42,7 @@ int option_time;
 int option_mem;
 char *option_datadir_str;
 int option_fatal_checks;
+int option_succeed;
 
 FILE *sm_outfd;
 FILE *sql_outfd;
@@ -132,6 +133,7 @@ static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");
 	printf("--project=<name> or -p=<name>: project specific tests\n");
+	printf("--succeed: don't exit with an error\n");
 	printf("--spammy:  print superfluous crap.\n");
 	printf("--info:  print info used to fill smatch_data/.\n");
 	printf("--debug:  print lots of debug output.\n");
@@ -246,6 +248,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(time);
 		OPTION(mem);
 		OPTION(no_db);
+		OPTION(succeed);
 		if (!found)
 			break;
 		(*argcp)--;
@@ -362,6 +365,8 @@ int main(int argc, char **argv)
 	smatch(argc, argv);
 	free_string(data_dir);
 
+	if (option_succeed)
+		return 0;
 	if (sm_nr_errors > 0)
 		return 1;
 	if (sm_nr_checks > 0 && option_fatal_checks)

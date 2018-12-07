@@ -50,7 +50,7 @@ while true ; do
     fi
 done
 if echo $CMD | grep -q smatch ; then
-    POST="--project=kernel $POST"
+    POST="--project=kernel --succeed $POST"
 fi
 
 cname=$1
