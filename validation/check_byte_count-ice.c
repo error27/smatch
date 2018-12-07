@@ -8,7 +8,7 @@ static void foo(void *a)
  * check-name: Segfault in check_byte_count after syntax error
  *
  * check-error-start
-check_byte_count-ice.c:6:0: warning: Newline in string or character constant
+check_byte_count-ice.c:6:0: warning: missing terminating ' character
 check_byte_count-ice.c:5:23: warning: multi-character character constant
 check_byte_count-ice.c:6:1: error: Expected ) in function call
 check_byte_count-ice.c:6:1: error: got }

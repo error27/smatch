@@ -580,9 +580,9 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 		len++;
 		if (next == '\n') {
 			warning(stream_pos(stream),
-				"Newline in string or character constant");
-			if (delim == '\'') /* assume it's lost ' */
-				break;
+				"missing terminating %c character", delim);
+			/* assume delimiter is lost */
+			break;
 		}
 		if (next == EOF) {
 			warning(stream_pos(stream),
