@@ -76,6 +76,11 @@ void get_char_constant(struct token *token, unsigned long long *val)
 	case TOKEN_WIDE_CHAR:
 		p = token->string->data;
 		end = p + token->string->length - 1;
+		if (end == p) {
+			sparse_error(token->pos, "empty character constant");
+			*val = 0;
+			return;
+		}
 		break;
 	case TOKEN_CHAR_EMBEDDED_0 ... TOKEN_CHAR_EMBEDDED_3:
 		end = p + type - TOKEN_CHAR;
