@@ -88,9 +88,13 @@ const char *show_special(int val)
 
 const char *show_ident(const struct ident *ident)
 {
-	static char buffer[256];
+	static char buff[2][256];
+	static int n;
+	char *buffer;
+
 	if (!ident)
 		return "<noident>";
+	buffer = buff[2 & ++n];
 	sprintf(buffer, "%.*s", ident->len, ident->name);
 	return buffer;
 }
