@@ -508,7 +508,8 @@ static inline bool valid_as(struct ident *as)
 	return as && as != &bad_address_space;
 }
 
-static inline void combine_address_space(struct ident **tas, struct ident *sas)
+static inline void combine_address_space(struct position pos,
+	struct ident **tas, struct ident *sas)
 {
 	struct ident *as;
 	if (!sas)
@@ -516,8 +517,10 @@ static inline void combine_address_space(struct ident **tas, struct ident *sas)
 	as = *tas;
 	if (!as)
 		*tas = sas;
-	else if (as != sas)
+	else if (as != sas) {
 		*tas = &bad_address_space;
+		sparse_error(pos, "multiple address spaces given");
+	}
 }
 
 #endif /* SYMBOL_H */

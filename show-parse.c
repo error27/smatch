@@ -355,12 +355,12 @@ deeper:
 	case SYM_NODE:
 		append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
-		combine_address_space(&as, sym->ctype.as);
+		combine_address_space(sym->pos, &as, sym->ctype.as);
 		break;
 
 	case SYM_BITFIELD:
 		mod |= sym->ctype.modifiers;
-		combine_address_space(&as, sym->ctype.as);
+		combine_address_space(sym->pos, &as, sym->ctype.as);
 		append(name, ":%d", sym->bit_size);
 		break;
 
@@ -370,7 +370,7 @@ deeper:
 
 	case SYM_ARRAY:
 		mod |= sym->ctype.modifiers;
-		combine_address_space(&as, sym->ctype.as);
+		combine_address_space(sym->pos, &as, sym->ctype.as);
 		if (was_ptr) {
 			prepend(name, "( ");
 			append(name, " )");

@@ -217,7 +217,7 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, struct
 
 	while (node) {
 		mod |= node->ctype.modifiers;
-		combine_address_space(&as, node->ctype.as);
+		combine_address_space(node->pos, &as, node->ctype.as);
 		if (node->type == SYM_NODE) {
 			node = node->ctype.base_type;
 			continue;
@@ -681,7 +681,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		if (move1) {
 			if (t1 && t1->type != SYM_PTR) {
 				mod1 |= t1->ctype.modifiers;
-				combine_address_space(&as1, t1->ctype.as);
+				combine_address_space(t1->pos, &as1, t1->ctype.as);
 			}
 			move1 = 0;
 		}
@@ -689,7 +689,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		if (move2) {
 			if (t2 && t2->type != SYM_PTR) {
 				mod2 |= t2->ctype.modifiers;
-				combine_address_space(&as2, t2->ctype.as);
+				combine_address_space(t2->pos, &as2, t2->ctype.as);
 			}
 			move2 = 0;
 		}
@@ -1612,7 +1612,7 @@ static void examine_fn_arguments(struct symbol *fn)
 					ptr->ctype = arg->ctype;
 				else
 					ptr->ctype.base_type = arg;
-				combine_address_space(&ptr->ctype.as, s->ctype.as);
+				combine_address_space(s->pos, &ptr->ctype.as, s->ctype.as);
 				ptr->ctype.modifiers |= s->ctype.modifiers & MOD_PTRINHERIT;
 
 				s->ctype.base_type = ptr;
@@ -1662,12 +1662,12 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 		sym->ctype.modifiers &= ~MOD_REGISTER;
 	}
 	if (sym->type == SYM_NODE) {
-		combine_address_space(&ptr->ctype.as, sym->ctype.as);
+		combine_address_space(sym->pos, &ptr->ctype.as, sym->ctype.as);
 		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
 	if (degenerate && sym->type == SYM_ARRAY) {
-		combine_address_space(&ptr->ctype.as, sym->ctype.as);
+		combine_address_space(sym->pos, &ptr->ctype.as, sym->ctype.as);
 		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
@@ -2070,7 +2070,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	mod = ctype->ctype.modifiers;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
-		combine_address_space(&address_space, ctype->ctype.as);
+		combine_address_space(deref->pos, &address_space, ctype->ctype.as);
 		mod |= ctype->ctype.modifiers;
 	}
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {

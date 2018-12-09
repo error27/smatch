@@ -214,7 +214,7 @@ static struct symbol *examine_base_type(struct symbol *sym)
 	base_type = examine_symbol_type(sym->ctype.base_type);
 	if (!base_type || base_type->type == SYM_PTR)
 		return base_type;
-	combine_address_space(&sym->ctype.as, base_type->ctype.as);
+	combine_address_space(sym->pos, &sym->ctype.as, base_type->ctype.as);
 	sym->ctype.modifiers |= base_type->ctype.modifiers & MOD_PTRINHERIT;
 	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
 			(struct ptr_list **)&sym->ctype.contexts);
@@ -278,7 +278,7 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
  */
 void merge_type(struct symbol *sym, struct symbol *base_type)
 {
-	combine_address_space(&sym->ctype.as, base_type->ctype.as);
+	combine_address_space(sym->pos, &sym->ctype.as, base_type->ctype.as);
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & ~MOD_STORAGE);
 	concat_ptr_list((struct ptr_list *)base_type->ctype.contexts,
 	                (struct ptr_list **)&sym->ctype.contexts);
