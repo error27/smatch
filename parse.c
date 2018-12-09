@@ -1129,8 +1129,13 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 		warning(token->pos, "invalid address space name");
 	}
 
-	if (Waddress_space && as)
+	if (Waddress_space && as) {
+		if (ctx->ctype.as)
+			sparse_error(token->pos,
+				     "multiple address space given: %s & %s",
+				     show_as(ctx->ctype.as), show_as(as));
 		ctx->ctype.as = as;
+	}
 	token = expect(next, ')', "after address_space attribute");
 	return token;
 }
