@@ -2173,6 +2173,12 @@ struct token * preprocess(struct token *token)
 	return token;
 }
 
+static int is_VA_ARGS_token(struct token *token)
+{
+	return (token_type(token) == TOKEN_IDENT) &&
+		(token->ident == &__VA_ARGS___ident);
+}
+
 static void dump_macro(struct symbol *sym)
 {
 	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
@@ -2188,27 +2194,34 @@ static void dump_macro(struct symbol *sym)
 		for (; !eof_token(token); token = token->next) {
 			if (token_type(token) == TOKEN_ARG_COUNT)
 				continue;
-			printf("%s%s", sep, show_token(token));
+			if (is_VA_ARGS_token(token))
+				printf("%s...", sep);
+			else
+				printf("%s%s", sep, show_token(token));
 			args[narg++] = token;
-			sep = ", ";
+			sep = ",";
 		}
 		putchar(')');
 	}
-	putchar(' ');
 
 	token = sym->expansion;
-	while (!eof_token(token)) {
+	while (token_type(token) != TOKEN_UNTAINT) {
 		struct token *next = token->next;
+		if (token->pos.whitespace)
+			putchar(' ');
 		switch (token_type(token)) {
-		case TOKEN_UNTAINT:
+		case TOKEN_CONCAT:
+			printf("##");
 			break;
+		case TOKEN_STR_ARGUMENT:
+			printf("#");
+			/* fall-through */
+		case TOKEN_QUOTED_ARGUMENT:
 		case TOKEN_MACRO_ARGUMENT:
 			token = args[token->argnum];
 			/* fall-through */
 		default:
 			printf("%s", show_token(token));
-			if (next->pos.whitespace)
-				putchar(' ');
 		}
 		token = next;
 	}
