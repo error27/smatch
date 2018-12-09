@@ -5,6 +5,8 @@ extern struct symbol *size_t_ctype;
 extern struct symbol *ssize_t_ctype;
 extern struct symbol *intmax_ctype;
 extern struct symbol *uintmax_ctype;
+extern struct symbol *int64_ctype;
+extern struct symbol *uint64_ctype;
 extern struct symbol *wchar_ctype;
 extern struct symbol *wint_ctype;
 

@@ -8,6 +8,8 @@ struct symbol *size_t_ctype = &uint_ctype;
 struct symbol *ssize_t_ctype = &int_ctype;
 struct symbol *intmax_ctype = &llong_ctype;
 struct symbol *uintmax_ctype = &ullong_ctype;
+struct symbol *int64_ctype = &long_ctype;
+struct symbol *uint64_ctype = &ulong_ctype;
 struct symbol *wchar_ctype = &int_ctype;
 struct symbol *wint_ctype = &uint_ctype;
 
@@ -77,5 +79,9 @@ void init_target(void)
 #endif
 #if defined(__FreeBSD__) || defined(__APPLE__)
 	wint_ctype = &int_ctype;
+#endif
+#if defined(__APPLE__)
+	int64_ctype = &llong_ctype;
+	uint64_ctype = &ullong_ctype;
 #endif
 }
