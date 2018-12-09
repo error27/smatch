@@ -21,6 +21,8 @@ int test(void)
 	TEST_MAX(UINT8,  0xffU);
 	TEST_MAX( INT16, 0x7fff);
 	TEST_MAX(UINT16, 0xffffU);
+	TEST_MAX( INT32, 0x7fffffff);
+	TEST_MAX(UINT32, 0xffffffffU);
 	TEST_MAX( INT64, 0x7fffffffffffffffLL);
 	TEST_MAX(UINT64, 0xffffffffffffffffULL);
 	TEST_SMAX(INTMAX, __INTMAX_TYPE__);

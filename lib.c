@@ -1251,6 +1251,8 @@ static void predefined_macros(void)
 	predefined_ctype("UINT8",     &uchar_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INT16",     &short_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("UINT16",   &ushort_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT32",      int32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT32",    uint32_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INT64",      int64_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("UINT64",    uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 

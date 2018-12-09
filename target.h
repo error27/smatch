@@ -7,6 +7,8 @@ extern struct symbol *intmax_ctype;
 extern struct symbol *uintmax_ctype;
 extern struct symbol *int64_ctype;
 extern struct symbol *uint64_ctype;
+extern struct symbol *int32_ctype;
+extern struct symbol *uint32_ctype;
 extern struct symbol *wchar_ctype;
 extern struct symbol *wint_ctype;
 

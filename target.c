@@ -10,6 +10,8 @@ struct symbol *intmax_ctype = &llong_ctype;
 struct symbol *uintmax_ctype = &ullong_ctype;
 struct symbol *int64_ctype = &long_ctype;
 struct symbol *uint64_ctype = &ulong_ctype;
+struct symbol *int32_ctype = &int_ctype;
+struct symbol *uint32_ctype = &uint_ctype;
 struct symbol *wchar_ctype = &int_ctype;
 struct symbol *wint_ctype = &uint_ctype;
 
@@ -69,6 +71,23 @@ void init_target(void)
 	case MACH_ARM:
 	case MACH_ARM64:
 		wchar_ctype = &uint_ctype;
+		break;
+	default:
+		break;
+	}
+
+	switch (arch_mach) {
+	case MACH_MIPS64:
+		if (arch_m64 == ARCH_LP64)
+			break;
+		/* fall through */
+	case MACH_M68K:
+	case MACH_SPARC32:
+	case MACH_PPC32:
+	case MACH_MIPS32:
+	case MACH_RISCV32:
+		int32_ctype = &long_ctype;
+		uint32_ctype = &ulong_ctype;
 		break;
 	default:
 		break;
