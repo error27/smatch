@@ -2230,12 +2230,15 @@ static pseudo_t linearize_switch(struct entrypoint *ep, struct statement *stmt)
 		if (!case_stmt->case_expression) {
 			default_case = bb_case;
 			continue;
+		} else if (case_stmt->case_expression->type != EXPR_VALUE) {
+			continue;
 		} else {
+			struct expression *case_to = case_stmt->case_to;
 			long long begin, end;
 
 			begin = end = case_stmt->case_expression->value;
-			if (case_stmt->case_to)
-				end = case_stmt->case_to->value;
+			if (case_to && case_to->type == EXPR_VALUE)
+				end = case_to->value;
 			if (begin > end)
 				jmp = alloc_multijmp(bb_case, end, begin);
 			else
