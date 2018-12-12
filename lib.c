@@ -1242,6 +1242,8 @@ static void predefined_macros(void)
 	predefined_ctype("SCHAR",     &schar_ctype, PTYPE_MAX|PTYPE_WIDTH);
 	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("WINT",        wint_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("CHAR16",   &ushort_ctype, PTYPE_TYPE);
+	predefined_ctype("CHAR32",     &uint_ctype, PTYPE_TYPE);
 
 	predefined_ctype("INT",         &int_ctype, PTYPE_ALL);
 	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
