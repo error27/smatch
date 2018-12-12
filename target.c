@@ -7,6 +7,7 @@
 struct symbol *size_t_ctype = &uint_ctype;
 struct symbol *ssize_t_ctype = &int_ctype;
 struct symbol *wchar_ctype = &int_ctype;
+struct symbol *wint_ctype = &uint_ctype;
 
 /*
  * For "__attribute__((aligned))"
@@ -71,5 +72,8 @@ void init_target(void)
 
 #if defined(__CYGWIN__)
 	wchar_ctype = &ushort_ctype;
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__)
+	wint_ctype = &int_ctype;
 #endif
 }
