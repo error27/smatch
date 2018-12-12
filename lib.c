@@ -46,6 +46,7 @@
 #include "target.h"
 #include "machine.h"
 #include "version.h"
+#include "bits.h"
 
 int verbose, optimize_level, optimize_size, preprocessing;
 int die_if_error = 0;
@@ -1142,7 +1143,7 @@ static void predefined_width(const char *name, unsigned bits)
 
 static void predefined_max(const char *name, const char *suffix, unsigned bits)
 {
-	unsigned long long max = (1ULL << (bits - 1 )) - 1;
+	unsigned long long max = bits_mask(bits - 1);
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "__%s_MAX__", name);
