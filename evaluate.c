@@ -45,6 +45,8 @@
 
 struct symbol *current_fn;
 
+struct ident bad_address_space = { .len = 6, .name = "bad AS", };
+
 static struct symbol *degenerate(struct expression *expr);
 static struct symbol *evaluate_symbol(struct symbol *sym);
 
@@ -208,14 +210,14 @@ static int same_cast_type(struct symbol *orig, struct symbol *new)
 	       orig->bit_offset == new->bit_offset;
 }
 
-static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsigned long *asp)
+static struct symbol *base_type(struct symbol *node, unsigned long *modp, struct ident **asp)
 {
-	unsigned long mod, as;
+	unsigned long mod = 0;
+	struct ident *as = NULL;
 
-	mod = 0; as = 0;
 	while (node) {
 		mod |= node->ctype.modifiers;
-		as |= node->ctype.as;
+		combine_address_space(node->pos, &as, node->ctype.as);
 		if (node->type == SYM_NODE) {
 			node = node->ctype.base_type;
 			continue;
@@ -230,7 +232,8 @@ static struct symbol *base_type(struct symbol *node, unsigned long *modp, unsign
 static int is_same_type(struct expression *expr, struct symbol *new)
 {
 	struct symbol *old = expr->ctype;
-	unsigned long oldmod, newmod, oldas, newas;
+	unsigned long oldmod, newmod;
+	struct ident *oldas, *newas;
 
 	old = base_type(old, &oldmod, &oldas);
 	new = base_type(new, &newmod, &newas);
@@ -660,7 +663,7 @@ static void examine_fn_arguments(struct symbol *fn);
 const char *type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2)
 {
-	unsigned long as1 = c1->as, as2 = c2->as;
+	struct ident *as1 = c1->as, *as2 = c2->as;
 	struct symbol *t1 = c1->base_type;
 	struct symbol *t2 = c2->base_type;
 	int move1 = 1, move2 = 1;
@@ -678,7 +681,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		if (move1) {
 			if (t1 && t1->type != SYM_PTR) {
 				mod1 |= t1->ctype.modifiers;
-				as1 |= t1->ctype.as;
+				combine_address_space(t1->pos, &as1, t1->ctype.as);
 			}
 			move1 = 0;
 		}
@@ -686,7 +689,7 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 		if (move2) {
 			if (t2 && t2->type != SYM_PTR) {
 				mod2 |= t2->ctype.modifiers;
-				as2 |= t2->ctype.as;
+				combine_address_space(t2->pos, &as2, t2->ctype.as);
 			}
 			move2 = 0;
 		}
@@ -1609,11 +1612,11 @@ static void examine_fn_arguments(struct symbol *fn)
 					ptr->ctype = arg->ctype;
 				else
 					ptr->ctype.base_type = arg;
-				ptr->ctype.as |= s->ctype.as;
+				combine_address_space(s->pos, &ptr->ctype.as, s->ctype.as);
 				ptr->ctype.modifiers |= s->ctype.modifiers & MOD_PTRINHERIT;
 
 				s->ctype.base_type = ptr;
-				s->ctype.as = 0;
+				s->ctype.as = NULL;
 				s->ctype.modifiers &= ~MOD_PTRINHERIT;
 				s->bit_size = 0;
 				s->examined = 0;
@@ -1627,7 +1630,7 @@ static void examine_fn_arguments(struct symbol *fn)
 	} END_FOR_EACH_PTR(s);
 }
 
-static struct symbol *convert_to_as_mod(struct symbol *sym, int as, int mod)
+static struct symbol *convert_to_as_mod(struct symbol *sym, struct ident *as, int mod)
 {
 	/* Take the modifiers of the pointer, and apply them to the member */
 	mod |= sym->ctype.modifiers;
@@ -1659,12 +1662,12 @@ static struct symbol *create_pointer(struct expression *expr, struct symbol *sym
 		sym->ctype.modifiers &= ~MOD_REGISTER;
 	}
 	if (sym->type == SYM_NODE) {
-		ptr->ctype.as |= sym->ctype.as;
+		combine_address_space(sym->pos, &ptr->ctype.as, sym->ctype.as);
 		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
 	if (degenerate && sym->type == SYM_ARRAY) {
-		ptr->ctype.as |= sym->ctype.as;
+		combine_address_space(sym->pos, &ptr->ctype.as, sym->ctype.as);
 		ptr->ctype.modifiers |= sym->ctype.modifiers & MOD_PTRINHERIT;
 		sym = sym->ctype.base_type;
 	}
@@ -2051,8 +2054,8 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	struct symbol *ctype, *member;
 	struct expression *deref = expr->deref, *add;
 	struct ident *ident = expr->member;
+	struct ident *address_space;
 	unsigned int mod;
-	int address_space;
 
 	if (!evaluate_expression(deref))
 		return NULL;
@@ -2067,7 +2070,7 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 	mod = ctype->ctype.modifiers;
 	if (ctype->type == SYM_NODE) {
 		ctype = ctype->ctype.base_type;
-		address_space |= ctype->ctype.as;
+		combine_address_space(deref->pos, &address_space, ctype->ctype.as);
 		mod |= ctype->ctype.modifiers;
 	}
 	if (!ctype || (ctype->type != SYM_STRUCT && ctype->type != SYM_UNION)) {
@@ -2913,7 +2916,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	struct symbol *ctype;
 	struct symbol *ttype, *stype;
 	int tclass, sclass;
-	int tas = 0, sas = 0;
+	struct ident *tas = NULL, *sas = NULL;
 
 	if (!source)
 		return NULL;
@@ -3004,27 +3007,27 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	}
 
 	if (ttype == &ulong_ctype && !Wcast_from_as)
-		tas = -1;
+		tas = &bad_address_space;
 	else if (tclass == TYPE_PTR) {
 		examine_pointer_target(ttype);
 		tas = ttype->ctype.as;
 	}
 
 	if (stype == &ulong_ctype && !Wcast_from_as)
-		sas = -1;
+		sas = &bad_address_space;
 	else if (sclass == TYPE_PTR) {
 		examine_pointer_target(stype);
 		sas = stype->ctype.as;
 	}
 
-	if (!tas && sas > 0)
-		warning(expr->pos, "cast removes address space of expression (<asn:%d>)", sas);
-	if (tas > 0 && sas > 0 && tas != sas)
-		warning(expr->pos, "cast between address spaces (<asn:%d>-><asn:%d>)", sas, tas);
-	if (tas > 0 && !sas &&
+	if (!tas && valid_as(sas))
+		warning(expr->pos, "cast removes address space '%s' of expression", show_as(sas));
+	if (valid_as(tas) && valid_as(sas) && tas != sas)
+		warning(expr->pos, "cast between address spaces (%s -> %s)", show_as(sas), show_as(tas));
+	if (valid_as(tas) && !sas &&
 	    !is_null_pointer_constant(source) && Wcast_to_as)
 		warning(expr->pos,
-			"cast adds address space to expression (<asn:%d>)", tas);
+			"cast adds address space '%s' to expression", show_as(tas));
 
 	if (!(ttype->ctype.modifiers & MOD_PTRINHERIT) && tclass == TYPE_PTR &&
 	    !tas && (source->flags & CEF_ICE)) {

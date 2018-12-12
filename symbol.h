@@ -101,7 +101,7 @@ struct ctype {
 	unsigned long modifiers;
 	unsigned long alignment;
 	struct context_list *contexts;
-	unsigned int as;
+	struct ident *as;
 	struct symbol *base_type;
 };
 
@@ -315,6 +315,7 @@ extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
+extern const char *show_as(struct ident *as);
 extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
@@ -498,5 +499,28 @@ static inline struct symbol *lookup_keyword(struct ident *ident, enum namespace 
 
 void create_fouled(struct symbol *type);
 struct symbol *befoul(struct symbol *type);
+
+
+extern struct ident bad_address_space;
+
+static inline bool valid_as(struct ident *as)
+{
+	return as && as != &bad_address_space;
+}
+
+static inline void combine_address_space(struct position pos,
+	struct ident **tas, struct ident *sas)
+{
+	struct ident *as;
+	if (!sas)
+		return;
+	as = *tas;
+	if (!as)
+		*tas = sas;
+	else if (as != sas) {
+		*tas = &bad_address_space;
+		sparse_error(pos, "multiple address spaces given");
+	}
+}
 
 #endif /* SYMBOL_H */
