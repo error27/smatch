@@ -44,6 +44,7 @@
 #include "scope.h"
 #include "linearize.h"
 #include "target.h"
+#include "machine.h"
 #include "version.h"
 
 int verbose, optimize_level, optimize_size, preprocessing;
@@ -312,29 +313,8 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
-enum {
-	ARCH_LP32,
-	ARCH_X32,
-	ARCH_LP64,
-	ARCH_LLP64,
-};
-
-#ifdef __LP64__
-#define ARCH_M64_DEFAULT ARCH_LP64
-#elif defined(__x86_64__) || defined(__x86_64)
-#define ARCH_M64_DEFAULT ARCH_X32
-#else
-#define ARCH_M64_DEFAULT ARCH_LP32
-#endif
-
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_msize_long = 0;
-
-#ifdef __BIG_ENDIAN__
-#define ARCH_BIG_ENDIAN 1
-#else
-#define ARCH_BIG_ENDIAN 0
-#endif
 int arch_big_endian = ARCH_BIG_ENDIAN;
 
 

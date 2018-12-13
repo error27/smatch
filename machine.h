@@ -1,6 +1,29 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 
+#ifdef __BIG_ENDIAN__
+#define ARCH_BIG_ENDIAN 1
+#else
+#define ARCH_BIG_ENDIAN 0
+#endif
+
+
+enum {
+	ARCH_LP32,
+	ARCH_X32,
+	ARCH_LP64,
+	ARCH_LLP64,
+};
+
+#ifdef __LP64__
+#define ARCH_M64_DEFAULT ARCH_LP64
+#elif defined(__x86_64__) || defined(__x86_64)
+#define ARCH_M64_DEFAULT ARCH_X32
+#else
+#define ARCH_M64_DEFAULT ARCH_LP32
+#endif
+
+
 enum machine {
 	MACH_ARM,
 	MACH_ARM64,
