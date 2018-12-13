@@ -38,9 +38,9 @@ int max_int_alignment = 4;
  */
 int bits_in_float = 32;
 int bits_in_double = 64;
-int bits_in_longdouble = 80;
+int bits_in_longdouble = 128;
 
-int max_fp_alignment = 8;
+int max_fp_alignment = 16;
 
 /*
  * Pointer data type
@@ -88,6 +88,27 @@ void init_target(void)
 	case MACH_RISCV32:
 		int32_ctype = &long_ctype;
 		uint32_ctype = &ulong_ctype;
+		break;
+	default:
+		break;
+	}
+
+	switch (arch_mach) {
+	case MACH_ARM:
+	case MACH_MIPS32:
+	case MACH_S390X:
+	case MACH_SPARC32:
+		bits_in_longdouble = 64;
+		max_fp_alignment = 8;
+		break;
+	case MACH_X86_64:
+		if (arch_m64 == ARCH_LP64 || arch_m64 == ARCH_X32)
+			break;
+		/* fall through */
+	case MACH_I386:
+	case MACH_M68K:
+		bits_in_longdouble = 96;
+		max_fp_alignment = 4;
 		break;
 	default:
 		break;
