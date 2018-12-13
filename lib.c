@@ -1151,8 +1151,10 @@ static void predefined_width(const char *name, unsigned bits)
 	predefine(buf, 1, "%d", bits);
 }
 
-static void predefined_max(const char *name, const char *suffix, unsigned bits)
+static void predefined_max(const char *name, struct symbol *type)
 {
+	const char *suffix = builtin_type_suffix(type);
+	unsigned bits = type->bit_size - is_signed_type(type);
 	unsigned long long max = bits_mask(bits);
 	char buf[32];
 
@@ -1174,10 +1176,8 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 		const char *suffix = (flags & PTYPE_T) ? "_T" : "";
 		predefined_sizeof(name, suffix, bits);
 	}
-	if (flags & PTYPE_MAX) {
-		const char *suffix = builtin_type_suffix(type);
-		predefined_max(name, suffix, bits - is_signed_type(type));
-	}
+	if (flags & PTYPE_MAX)
+		predefined_max(name, type);
 	if (flags & PTYPE_TYPE)
 		predefined_type(name, type);
 	if (flags & PTYPE_WIDTH)
