@@ -1,7 +1,7 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 
-#ifdef __BIG_ENDIAN__
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define ARCH_BIG_ENDIAN 1
 #else
 #define ARCH_BIG_ENDIAN 0
