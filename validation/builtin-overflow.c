@@ -143,13 +143,13 @@ builtin-overflow.c:62:38:         int enum e [signed] e
 builtin-overflow.c:63:41: error: invalid type for argument 2:
 builtin-overflow.c:63:41:         int enum e [signed] e
 builtin-overflow.c:64:45: error: invalid type for argument 3:
-builtin-overflow.c:64:45:         int enum e *<noident>
+builtin-overflow.c:64:45:         int enum e *
 builtin-overflow.c:65:38: error: invalid type for argument 1:
 builtin-overflow.c:65:38:         bool [unsigned] [usertype] b
 builtin-overflow.c:66:41: error: invalid type for argument 2:
 builtin-overflow.c:66:41:         bool [unsigned] [usertype] b
 builtin-overflow.c:67:45: error: invalid type for argument 3:
-builtin-overflow.c:67:45:         bool *<noident>
+builtin-overflow.c:67:45:         bool *
 builtin-overflow.c:68:44: error: invalid type for argument 3:
 builtin-overflow.c:68:44:         void *p
 builtin-overflow.c:70:39: error: not enough arguments for __builtin_add_overflow_p
@@ -179,13 +179,13 @@ builtin-overflow.c:86:38:         int enum e [signed] [addressable] e
 builtin-overflow.c:87:41: error: invalid type for argument 2:
 builtin-overflow.c:87:41:         int enum e [signed] [addressable] e
 builtin-overflow.c:88:45: error: invalid type for argument 3:
-builtin-overflow.c:88:45:         int enum e *<noident>
+builtin-overflow.c:88:45:         int enum e *
 builtin-overflow.c:89:38: error: invalid type for argument 1:
 builtin-overflow.c:89:38:         bool [unsigned] [addressable] [usertype] b
 builtin-overflow.c:90:41: error: invalid type for argument 2:
 builtin-overflow.c:90:41:         bool [unsigned] [addressable] [usertype] b
 builtin-overflow.c:91:45: error: invalid type for argument 3:
-builtin-overflow.c:91:45:         bool *<noident>
+builtin-overflow.c:91:45:         bool *
 builtin-overflow.c:92:44: error: invalid type for argument 3:
 builtin-overflow.c:92:44:         void *p
 builtin-overflow.c:94:39: error: not enough arguments for __builtin_sub_overflow_p
@@ -215,13 +215,13 @@ builtin-overflow.c:110:38:         int enum e [signed] [addressable] e
 builtin-overflow.c:111:41: error: invalid type for argument 2:
 builtin-overflow.c:111:41:         int enum e [signed] [addressable] e
 builtin-overflow.c:112:45: error: invalid type for argument 3:
-builtin-overflow.c:112:45:         int enum e *<noident>
+builtin-overflow.c:112:45:         int enum e *
 builtin-overflow.c:113:38: error: invalid type for argument 1:
 builtin-overflow.c:113:38:         bool [unsigned] [addressable] [usertype] b
 builtin-overflow.c:114:41: error: invalid type for argument 2:
 builtin-overflow.c:114:41:         bool [unsigned] [addressable] [usertype] b
 builtin-overflow.c:115:45: error: invalid type for argument 3:
-builtin-overflow.c:115:45:         bool *<noident>
+builtin-overflow.c:115:45:         bool *
 builtin-overflow.c:116:44: error: invalid type for argument 3:
 builtin-overflow.c:116:44:         void *p
 builtin-overflow.c:118:39: error: not enough arguments for __builtin_mul_overflow_p

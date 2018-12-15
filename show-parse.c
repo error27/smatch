@@ -353,7 +353,8 @@ deeper:
 		break;
 
 	case SYM_NODE:
-		append(name, "%s", show_ident(sym->ident));
+		if (sym->ident)
+			append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
 		combine_address_space(sym->pos, &as, sym->ctype.as);
 		break;
