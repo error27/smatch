@@ -251,6 +251,7 @@ static struct token *pre_buffer_end = NULL;
 int Waddress = 0;
 int Waddress_space = 1;
 int Wbitwise = 1;
+int Wbitwise_pointer = 0;
 int Wcast_from_as = 0;
 int Wcast_to_as = 0;
 int Wcast_truncate = 1;
@@ -692,6 +693,7 @@ static const struct flag warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
 	{ "bitwise", &Wbitwise },
+	{ "bitwise-pointer", &Wbitwise_pointer},
 	{ "cast-from-as", &Wcast_from_as },
 	{ "cast-to-as", &Wcast_to_as },
 	{ "cast-truncate", &Wcast_truncate },

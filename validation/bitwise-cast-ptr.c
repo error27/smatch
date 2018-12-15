@@ -22,8 +22,7 @@ static __be32* tobf(u32 *x)
 
 /*
  * check-name: cast of bitwise pointers
- * check-command: sparse -Wbitwise $file
- * check-known-to-fail
+ * check-command: sparse -Wbitwise -Wbitwise-pointer $file
  *
  * check-error-start
 bitwise-cast-ptr.c:9:16: warning: incorrect type in return expression (different base types)
