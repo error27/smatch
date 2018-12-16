@@ -1172,6 +1172,19 @@ static void predefined_max(const char *name, struct symbol *type)
 	predefine(buf, 1, "%#llx%s", max, suffix);
 }
 
+static void predefined_min(const char *name, struct symbol *type)
+{
+	const char *suffix = builtin_type_suffix(type);
+	char buf[32];
+
+	snprintf(buf, sizeof(buf), "__%s_MIN__", name);
+
+	if (is_signed_type(type))
+		predefine(buf, 1, "(-__%s_MAX__ - 1)", name);
+	else
+		predefine(buf, 1, "0%s", suffix);
+}
+
 static void predefined_type(const char *name, struct symbol *type)
 {
 	const char *typename = builtin_typename(type);
@@ -1188,6 +1201,8 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 	}
 	if (flags & PTYPE_MAX)
 		predefined_max(name, type);
+	if (flags & PTYPE_MIN)
+		predefined_min(name, type);
 	if (flags & PTYPE_TYPE)
 		predefined_type(name, type);
 	if (flags & PTYPE_WIDTH)
@@ -1242,8 +1257,8 @@ static void predefined_macros(void)
 	predefined_ctype("SHORT",     &short_ctype, PTYPE_SIZEOF);
 	predefined_ctype("SHRT",      &short_ctype, PTYPE_MAX|PTYPE_WIDTH);
 	predefined_ctype("SCHAR",     &schar_ctype, PTYPE_MAX|PTYPE_WIDTH);
-	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_TYPE);
-	predefined_ctype("WINT",        wint_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
+	predefined_ctype("WINT",        wint_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
 	predefined_ctype("CHAR16",   &ushort_ctype, PTYPE_TYPE);
 	predefined_ctype("CHAR32",     &uint_ctype, PTYPE_TYPE);
 
