@@ -248,7 +248,6 @@ static struct ctype_name {
 
 	{ &void_ctype,   "void" },
 	{ &bool_ctype,   "bool" },
-	{ &string_ctype, "string" },
 
 	{ &float_ctype,  "float" },
 	{ &double_ctype, "double" },
