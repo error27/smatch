@@ -298,6 +298,8 @@ deeper:
 		if (as)
 			prepend(name, "%s ", show_as(as));
 
+		if (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM)
+			mod &= ~MOD_SPECIFIER;
 		s = modifier_string(mod);
 		len = strlen(s);
 		name->start -= len;    

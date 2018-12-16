@@ -10,7 +10,7 @@ static unsigned long foo(unsigned long val, void *ref)
  *
  * check-error-start
 bad-type-twice1.c:3:17: error: incompatible types for operation (>=)
-bad-type-twice1.c:3:17:    left side has type unsigned long [unsigned] val
+bad-type-twice1.c:3:17:    left side has type unsigned long val
 bad-type-twice1.c:3:17:    right side has type void *ref
  * check-error-end
  */
