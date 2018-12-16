@@ -74,4 +74,10 @@ enum machine {
 #define MACH_NATIVE	MACH_UNKNOWN
 #endif
 
+#if defined(__CHAR_UNSIGNED__)
+#define	UNSIGNED_CHAR	1
+#else
+#define UNSIGNED_CHAR	0
+#endif
+
 #endif

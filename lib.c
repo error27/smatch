@@ -302,7 +302,7 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
-int funsigned_char = 0;
+int funsigned_char = UNSIGNED_CHAR;
 
 int preprocess_only;
 
@@ -1236,6 +1236,8 @@ static void predefined_macros(void)
 	}
 
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
+	if (funsigned_char)
+		predefine("__CHAR_UNSIGNED__", 1, "1");
 
 	predefined_ctype("SHORT",     &short_ctype, PTYPE_SIZEOF);
 	predefined_ctype("SHRT",      &short_ctype, PTYPE_MAX|PTYPE_WIDTH);
