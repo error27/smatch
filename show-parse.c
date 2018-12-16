@@ -408,6 +408,10 @@ out:
 		prepend(name, "restricted ");
 	if (fouled)
 		prepend(name, "fouled ");
+
+	// strip trailing space
+	if (name->end > name->start && name->end[-1] == ' ')
+		name->end--;
 }
 
 void show_type(struct symbol *sym)
