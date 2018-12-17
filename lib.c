@@ -535,14 +535,6 @@ static char **handle_onoff_switch(char *arg, char **next, const struct flag warn
 	char *p = arg + 1;
 	unsigned i;
 
-	if (!strcmp(p, "sparse-all")) {
-		for (i = 0; warnings[i].name; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
-				*warnings[i].flag = WARNING_ON;
-		}
-		return NULL;
-	}
-
 	// Prefixes "no" and "no-" mean to turn warning off.
 	if (p[0] == 'n' && p[1] == 'o') {
 		p += 2;
@@ -797,6 +789,14 @@ static char **handle_switch_W(char *arg, char **next)
 	char ** ret = handle_onoff_switch(arg, next, warnings);
 	if (ret)
 		return ret;
+
+	if (!strcmp(arg, "Wsparse-all")) {
+		int i;
+		for (i = 0; warnings[i].name; i++) {
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
+				*warnings[i].flag = WARNING_ON;
+		}
+	}
 
 	// Unknown.
 	return next;
