@@ -250,10 +250,10 @@ void die(const char *fmt, ...)
 static struct token *pre_buffer_begin = NULL;
 static struct token *pre_buffer_end = NULL;
 
-enum warning_type {
-	WARNING_OFF,
-	WARNING_ON,
-	WARNING_FORCE_OFF
+enum flag_type {
+	FLAG_OFF,
+	FLAG_ON,
+	FLAG_FORCE_OFF
 };
 
 int Waddress = 0;
@@ -295,7 +295,7 @@ int Wshadow = 0;
 int Wshift_count_negative = 1;
 int Wshift_count_overflow = 1;
 int Wsizeof_bool = 0;
-int Wsparse_error = WARNING_FORCE_OFF;
+int Wsparse_error = FLAG_FORCE_OFF;
 int Wstrict_prototypes = 1;
 int Wtautological_compare = 0;
 int Wtransparent_union = 0;
@@ -529,9 +529,9 @@ static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
 OPT_NUMERIC(ullong, unsigned long long, strtoull)
 OPT_NUMERIC(uint, unsigned int, strtoul)
 
-static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[])
+static char **handle_onoff_switch(char *arg, char **next, const struct flag flags[])
 {
-	int flag = WARNING_ON;
+	int flag = FLAG_ON;
 	char *p = arg + 1;
 	unsigned i;
 
@@ -540,12 +540,12 @@ static char **handle_onoff_switch(char *arg, char **next, const struct flag warn
 		p += 2;
 		if (p[0] == '-')
 			p++;
-		flag = WARNING_FORCE_OFF;
+		flag = FLAG_FORCE_OFF;
 	}
 
-	for (i = 0; warnings[i].name; i++) {
-		if (!strcmp(p,warnings[i].name)) {
-			*warnings[i].flag = flag;
+	for (i = 0; flags[i].name; i++) {
+		if (!strcmp(p,flags[i].name)) {
+			*flags[i].flag = flag;
 			return next;
 		}
 	}
@@ -722,7 +722,7 @@ static char **handle_switch_o(char *arg, char **next)
 }
 
 static const struct flag pflags[] = {
-	{ "pedantic", &Wpedantic, NULL, OPT_VAL, WARNING_ON },
+	{ "pedantic", &Wpedantic, NULL, OPT_VAL, FLAG_ON },
 	{ }
 };
 
@@ -793,8 +793,8 @@ static char **handle_switch_W(char *arg, char **next)
 	if (!strcmp(arg, "Wsparse-all")) {
 		int i;
 		for (i = 0; warnings[i].name; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF)
-				*warnings[i].flag = WARNING_ON;
+			if (*warnings[i].flag != FLAG_FORCE_OFF)
+				*warnings[i].flag = FLAG_ON;
 		}
 	}
 
@@ -858,13 +858,13 @@ static char **handle_switch_d(char *arg, char **next)
 }
 
 
-static void handle_onoff_switch_finalize(const struct flag warnings[])
+static void handle_onoff_switch_finalize(const struct flag flags[])
 {
 	unsigned i;
 
-	for (i = 0; warnings[i].name; i++) {
-		if (*warnings[i].flag == WARNING_FORCE_OFF)
-			*warnings[i].flag = WARNING_OFF;
+	for (i = 0; flags[i].name; i++) {
+		if (*flags[i].flag == FLAG_FORCE_OFF)
+			*flags[i].flag = FLAG_OFF;
 	}
 }
 
