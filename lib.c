@@ -529,14 +529,14 @@ enum {
 	WARNING_FORCE_OFF
 };
 
-static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
+static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[])
 {
 	int flag = WARNING_ON;
 	char *p = arg + 1;
 	unsigned i;
 
 	if (!strcmp(p, "sparse-all")) {
-		for (i = 0; i < n; i++) {
+		for (i = 0; warnings[i].name; i++) {
 			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
 				*warnings[i].flag = WARNING_ON;
 		}
@@ -551,7 +551,7 @@ static char **handle_onoff_switch(char *arg, char **next, const struct flag warn
 		flag = WARNING_FORCE_OFF;
 	}
 
-	for (i = 0; i < n; i++) {
+	for (i = 0; warnings[i].name; i++) {
 		if (!strcmp(p,warnings[i].name)) {
 			*warnings[i].flag = flag;
 			return next;
@@ -789,11 +789,12 @@ static const struct flag warnings[] = {
 	{ "universal-initializer", &Wuniversal_initializer },
 	{ "unknown-attribute", &Wunknown_attribute },
 	{ "vla", &Wvla },
+	{ }
 };
 
 static char **handle_switch_W(char *arg, char **next)
 {
-	char ** ret = handle_onoff_switch(arg, next, warnings, ARRAY_SIZE(warnings));
+	char ** ret = handle_onoff_switch(arg, next, warnings);
 	if (ret)
 		return ret;
 
@@ -808,12 +809,13 @@ static struct flag debugs[] = {
 	{ "entry", &dbg_entry},
 	{ "ir", &dbg_ir},
 	{ "postorder", &dbg_postorder},
+	{ }
 };
 
 
 static char **handle_switch_v(char *arg, char **next)
 {
-	char ** ret = handle_onoff_switch(arg, next, debugs, ARRAY_SIZE(debugs));
+	char ** ret = handle_onoff_switch(arg, next, debugs);
 	if (ret)
 		return ret;
 
@@ -856,11 +858,11 @@ static char **handle_switch_d(char *arg, char **next)
 }
 
 
-static void handle_onoff_switch_finalize(const struct flag warnings[], int n)
+static void handle_onoff_switch_finalize(const struct flag warnings[])
 {
 	unsigned i;
 
-	for (i = 0; i < n; i++) {
+	for (i = 0; warnings[i].name; i++) {
 		if (*warnings[i].flag == WARNING_FORCE_OFF)
 			*warnings[i].flag = WARNING_OFF;
 	}
@@ -868,7 +870,7 @@ static void handle_onoff_switch_finalize(const struct flag warnings[], int n)
 
 static void handle_switch_W_finalize(void)
 {
-	handle_onoff_switch_finalize(warnings, ARRAY_SIZE(warnings));
+	handle_onoff_switch_finalize(warnings);
 
 	/* default Wdeclarationafterstatement based on the C dialect */
 	if (-1 == Wdeclarationafterstatement) {
@@ -886,7 +888,7 @@ static void handle_switch_W_finalize(void)
 
 static void handle_switch_v_finalize(void)
 {
-	handle_onoff_switch_finalize(debugs, ARRAY_SIZE(debugs));
+	handle_onoff_switch_finalize(debugs);
 }
 
 static char **handle_switch_U(char *arg, char **next)
