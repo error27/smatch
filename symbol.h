@@ -305,6 +305,7 @@ extern void init_symbols(void);
 extern void init_builtins(int stream);
 extern void declare_builtins(void);
 extern void init_ctype(void);
+extern void init_target(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
@@ -320,6 +321,7 @@ extern struct symbol *examine_pointer_target(struct symbol *);
 extern const char *show_as(struct ident *as);
 extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
+extern const char *builtin_type_suffix(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
 extern const char* get_type_name(enum type type);
 

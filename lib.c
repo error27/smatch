@@ -45,7 +45,9 @@
 #include "scope.h"
 #include "linearize.h"
 #include "target.h"
+#include "machine.h"
 #include "version.h"
+#include "bits.h"
 
 int verbose, optimize_level, optimize_size, preprocessing;
 int die_if_error = 0;
@@ -307,7 +309,7 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
-int funsigned_char = 0;
+int funsigned_char = UNSIGNED_CHAR;
 
 int preprocess_only;
 
@@ -319,30 +321,10 @@ static enum { STANDARD_C89,
               STANDARD_GNU89,
               STANDARD_GNU99, } standard = STANDARD_GNU89;
 
-enum {
-	ARCH_LP32,
-	ARCH_X32,
-	ARCH_LP64,
-	ARCH_LLP64,
-};
-
-#ifdef __LP64__
-#define ARCH_M64_DEFAULT ARCH_LP64
-#elif defined(__x86_64__) || defined(__x86_64)
-#define ARCH_M64_DEFAULT ARCH_X32
-#else
-#define ARCH_M64_DEFAULT ARCH_LP32
-#endif
-
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_msize_long = 0;
-
-#ifdef __BIG_ENDIAN__
-#define ARCH_BIG_ENDIAN 1
-#else
-#define ARCH_BIG_ENDIAN 0
-#endif
 int arch_big_endian = ARCH_BIG_ENDIAN;
+int arch_mach = MACH_NATIVE;
 
 
 #define CMDLINE_INCLUDE 20
@@ -496,15 +478,23 @@ static void handle_arch_m64_finalize(void)
 		max_int_alignment = 8;
 		predefine("__ILP32__", 1, "1");
 		predefine("_ILP32", 1, "1");
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
 		goto case_x86_64;
 	case ARCH_LP32:
 		/* default values */
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+		intmax_ctype = &llong_ctype;
+		uintmax_ctype = &ullong_ctype;
 		return;
 	case ARCH_LP64:
 		bits_in_long = 64;
 		max_int_alignment = 8;
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
+		intmax_ctype = &long_ctype;
+		uintmax_ctype = &ulong_ctype;
 		predefine("__LP64__", 1, "1");
 		predefine("_LP64", 1, "1");
 		goto case_64bit_common;
@@ -513,6 +503,8 @@ static void handle_arch_m64_finalize(void)
 		max_int_alignment = 8;
 		size_t_ctype = &ullong_ctype;
 		ssize_t_ctype = &llong_ctype;
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
 		predefine("__LLP64__", 1, "1");
 		goto case_64bit_common;
 	case_64bit_common:
@@ -1181,11 +1173,20 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
-static void predefined_sizeof(const char *name, unsigned bits)
+#define	PTYPE_SIZEOF	(1U << 0)
+#define	PTYPE_T		(1U << 1)
+#define	PTYPE_MAX	(1U << 2)
+#define	PTYPE_MIN	(1U << 3)
+#define	PTYPE_WIDTH	(1U << 4)
+#define	PTYPE_TYPE	(1U << 5)
+#define	PTYPE_ALL	(PTYPE_MAX|PTYPE_SIZEOF|PTYPE_WIDTH)
+#define	PTYPE_ALL_T	(PTYPE_MAX|PTYPE_SIZEOF|PTYPE_WIDTH|PTYPE_T)
+
+static void predefined_sizeof(const char *name, const char *suffix, unsigned bits)
 {
 	char buf[32];
 
-	snprintf(buf, sizeof(buf), "__SIZEOF_%s__", name);
+	snprintf(buf, sizeof(buf), "__SIZEOF_%s%s__", name, suffix);
 	predefine(buf, 1, "%d", bits/8);
 }
 
@@ -1197,20 +1198,52 @@ static void predefined_width(const char *name, unsigned bits)
 	predefine(buf, 1, "%d", bits);
 }
 
-static void predefined_max(const char *name, const char *suffix, unsigned bits)
+static void predefined_max(const char *name, struct symbol *type)
 {
-	unsigned long long max = (1ULL << (bits - 1 )) - 1;
+	const char *suffix = builtin_type_suffix(type);
+	unsigned bits = type->bit_size - is_signed_type(type);
+	unsigned long long max = bits_mask(bits);
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "__%s_MAX__", name);
 	predefine(buf, 1, "%#llx%s", max, suffix);
 }
 
-static void predefined_type_size(const char *name, const char *suffix, unsigned bits)
+static void predefined_min(const char *name, struct symbol *type)
 {
-	predefined_max(name, suffix, bits);
-	predefined_sizeof(name, bits);
-	predefined_width(name, bits);
+	const char *suffix = builtin_type_suffix(type);
+	char buf[32];
+
+	snprintf(buf, sizeof(buf), "__%s_MIN__", name);
+
+	if (is_signed_type(type))
+		predefine(buf, 1, "(-__%s_MAX__ - 1)", name);
+	else
+		predefine(buf, 1, "0%s", suffix);
+}
+
+static void predefined_type(const char *name, struct symbol *type)
+{
+	const char *typename = builtin_typename(type);
+	add_pre_buffer("#weak_define __%s_TYPE__ %s\n", name, typename);
+}
+
+static void predefined_ctype(const char *name, struct symbol *type, int flags)
+{
+	unsigned bits = type->bit_size;
+
+	if (flags & PTYPE_SIZEOF) {
+		const char *suffix = (flags & PTYPE_T) ? "_T" : "";
+		predefined_sizeof(name, suffix, bits);
+	}
+	if (flags & PTYPE_MAX)
+		predefined_max(name, type);
+	if (flags & PTYPE_MIN)
+		predefined_min(name, type);
+	if (flags & PTYPE_TYPE)
+		predefined_type(name, type);
+	if (flags & PTYPE_WIDTH)
+		predefined_width(name, bits);
 }
 
 static void predefined_macros(void)
@@ -1254,31 +1287,44 @@ static void predefined_macros(void)
 		break;
 	}
 
-	predefined_sizeof("SHORT", bits_in_short);
-	predefined_max("SHRT", "", bits_in_short);
-	predefined_width("SHRT",   bits_in_short);
-	predefined_max("SCHAR", "", bits_in_char);
-	predefined_width("SCHAR",   bits_in_char);
-	predefined_sizeof("WCHAR_T",bits_in_wchar);
-	predefined_max("WCHAR", "", bits_in_wchar);
-	predefined_width("WCHAR",   bits_in_wchar);
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
+	if (funsigned_char)
+		predefine("__CHAR_UNSIGNED__", 1, "1");
 
-	predefined_type_size("INT", "", bits_in_int);
-	predefined_type_size("LONG", "L", bits_in_long);
-	predefined_type_size("LONG_LONG", "LL", bits_in_longlong);
+	predefined_ctype("SHORT",     &short_ctype, PTYPE_SIZEOF);
+	predefined_ctype("SHRT",      &short_ctype, PTYPE_MAX|PTYPE_WIDTH);
+	predefined_ctype("SCHAR",     &schar_ctype, PTYPE_MAX|PTYPE_WIDTH);
+	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
+	predefined_ctype("WINT",        wint_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
+	predefined_ctype("CHAR16",   &ushort_ctype, PTYPE_TYPE);
+	predefined_ctype("CHAR32",     &uint_ctype, PTYPE_TYPE);
 
-	predefined_sizeof("INT128", 128);
+	predefined_ctype("INT",         &int_ctype, PTYPE_ALL);
+	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
+	predefined_ctype("LONG_LONG", &llong_ctype, PTYPE_ALL);
 
-	predefined_sizeof("SIZE_T", bits_in_pointer);
-	predefined_width( "SIZE",   bits_in_pointer);
-	predefined_sizeof("PTRDIFF_T", bits_in_pointer);
-	predefined_width( "PTRDIFF",   bits_in_pointer);
-	predefined_sizeof("POINTER", bits_in_pointer);
+	predefined_ctype("INT8",      &schar_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT8",     &uchar_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT16",     &short_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT16",   &ushort_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT32",      int32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT32",    uint32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT64",      int64_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("UINT64",    uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 
-	predefined_sizeof("FLOAT", bits_in_float);
-	predefined_sizeof("DOUBLE", bits_in_double);
-	predefined_sizeof("LONG_DOUBLE", bits_in_longdouble);
+	predefined_sizeof("INT128", "", 128);
+
+	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINTPTR",   size_t_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("SIZE",      size_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("POINTER",     &ptr_ctype, PTYPE_SIZEOF);
+
+	predefined_sizeof("FLOAT", "", bits_in_float);
+	predefined_sizeof("DOUBLE", "", bits_in_double);
+	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
@@ -1305,17 +1351,6 @@ static void create_builtin_stream(void)
 {
 	// Temporary hack
 	add_pre_buffer("#define _Pragma(x)\n");
-
-	// gcc defines __SIZE_TYPE__ to be size_t.  For linux/i86 and
-	// solaris/sparc that is really "unsigned int" and for linux/x86_64
-	// it is "long unsigned int".  In either case we can probably
-	// get away with this.  We need the #weak_define as cgcc will define
-	// the right __SIZE_TYPE__.
-	if (size_t_ctype == &ulong_ctype)
-		add_pre_buffer("#weak_define __SIZE_TYPE__ long unsigned int\n");
-	else
-		add_pre_buffer("#weak_define __SIZE_TYPE__ unsigned int\n");
-
 
 	/* add the multiarch include directories, if any */
 	if (multiarch_dir && *multiarch_dir) {
@@ -1465,6 +1500,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	list = NULL;
 	if (filelist) {
 		// Initialize type system
+		init_target();
 		init_ctype();
 
 		predefined_macros();
