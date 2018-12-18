@@ -1,4 +1,4 @@
-VERSION=0.5.9-dev
+VERSION=0.6.0-rc1
 
 ########################################################################
 # The following variables can be overwritten from the command line
