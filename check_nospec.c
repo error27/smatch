@@ -96,6 +96,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 
 static void returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
+	struct stree *start_states = get_start_states();
 	struct symbol *returned_sym;
 	struct sm_state *sm;
 	const char *param_name;
@@ -105,6 +106,8 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	returned_sym = expr_to_sym(expr);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (get_state_stree(start_states, my_id, sm->name, sm->sym) == sm->state)
+			continue;
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0) {
 			if (!returned_sym || returned_sym != sm->sym)
