@@ -3045,6 +3045,25 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (ttype == &bool_ctype)
 		cast_to_bool(expr);
 
+	// checks pointers to restricted
+	while (Wbitwise_pointer && tclass == TYPE_PTR && sclass == TYPE_PTR) {
+		tclass = classify_type(ttype->ctype.base_type, &ttype);
+		sclass = classify_type(stype->ctype.base_type, &stype);
+		if (ttype == stype)
+			break;
+		if (!ttype || !stype)
+			break;
+		if (ttype == &void_ctype || stype == &void_ctype)
+			break;
+		if (tclass & TYPE_RESTRICT) {
+			warning(expr->pos, "cast to %s", show_typename(ctype));
+			break;
+		}
+		if (sclass & TYPE_RESTRICT) {
+			warning(expr->pos, "cast from %s", show_typename(source->ctype));
+			break;
+		}
+	}
 out:
 	return ctype;
 }
