@@ -86,10 +86,10 @@ fptr:
  *
  * check-error-start
 expand/builtin-expect.c:33:33: warning: incorrect type in argument 1 (different base types)
-expand/builtin-expect.c:33:33:    expected long [signed] <noident>
+expand/builtin-expect.c:33:33:    expected long
 expand/builtin-expect.c:33:33:    got void *a
 expand/builtin-expect.c:33:36: warning: incorrect type in argument 2 (different base types)
-expand/builtin-expect.c:33:36:    expected long [signed] <noident>
+expand/builtin-expect.c:33:36:    expected long
 expand/builtin-expect.c:33:36:    got void *a
 expand/builtin-expect.c:33:32: warning: incorrect type in return expression (different base types)
 expand/builtin-expect.c:33:32:    expected void *

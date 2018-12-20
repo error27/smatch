@@ -38,10 +38,10 @@ void struct_to_int(u16 val)
  *
  * check-error-start
 cast-bad-00.c:25:18: warning: incorrect type in argument 2 (different base types)
-cast-bad-00.c:25:18:    expected unsigned int [unsigned] [usertype] <noident>
+cast-bad-00.c:25:18:    expected unsigned int [usertype]
 cast-bad-00.c:25:18:    got union u [assigned] u
 cast-bad-00.c:33:18: warning: incorrect type in argument 2 (different base types)
-cast-bad-00.c:33:18:    expected unsigned int [unsigned] [usertype] <noident>
+cast-bad-00.c:33:18:    expected unsigned int [usertype]
 cast-bad-00.c:33:18:    got struct s [assigned] s
  * check-error-end
  */

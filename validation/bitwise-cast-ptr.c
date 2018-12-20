@@ -28,6 +28,6 @@ static __be32* tobf(u32 *x)
 bitwise-cast-ptr.c:9:16: warning: incorrect type in return expression (different base types)
 bitwise-cast-ptr.c:9:16:    expected restricted __be32 [usertype] *
 bitwise-cast-ptr.c:9:16:    got unsigned int [usertype] *x
-bitwise-cast-ptr.c:14:17: warning: cast to restricted __be32 [usertype] *<noident>
+bitwise-cast-ptr.c:14:17: warning: cast to restricted __be32 [usertype] *
  * check-error-end
  */

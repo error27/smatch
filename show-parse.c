@@ -249,7 +249,6 @@ static struct ctype_name {
 
 	{ &void_ctype,   "void", "" },
 	{ &bool_ctype,   "bool", "" },
-	{ &string_ctype, "string", "" },
 
 	{ &float_ctype,  "float", "F" },
 	{ &double_ctype, "double", "" },
@@ -309,6 +308,8 @@ deeper:
 		if (as)
 			prepend(name, "%s ", show_as(as));
 
+		if (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM)
+			mod &= ~MOD_SPECIFIER;
 		s = modifier_string(mod);
 		len = strlen(s);
 		name->start -= len;    
@@ -364,7 +365,8 @@ deeper:
 		break;
 
 	case SYM_NODE:
-		append(name, "%s", show_ident(sym->ident));
+		if (sym->ident)
+			append(name, "%s", show_ident(sym->ident));
 		mod |= sym->ctype.modifiers;
 		combine_address_space(sym->pos, &as, sym->ctype.as);
 		break;
@@ -419,6 +421,10 @@ out:
 		prepend(name, "restricted ");
 	if (fouled)
 		prepend(name, "fouled ");
+
+	// strip trailing space
+	if (name->end > name->start && name->end[-1] == ' ')
+		name->end--;
 }
 
 void show_type(struct symbol *sym)
