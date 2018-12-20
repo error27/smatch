@@ -6,7 +6,7 @@ OS = linux
 
 
 CC = gcc
-CFLAGS = -O2 -finline-functions -g
+CFLAGS = -O2 -g
 CFLAGS += -Wall -Wwrite-strings
 LD = gcc
 AR = ar
