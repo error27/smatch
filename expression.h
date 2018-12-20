@@ -187,7 +187,8 @@ struct expression {
 			struct expression *base;
 			unsigned r_bitpos, r_nrbits;
 		};
-		// EXPR_CAST and EXPR_SIZEOF
+		// EXPR_CAST, EXPR_FORCE_CAST, EXPR_IMPLIED_CAST,
+		// EXPR_SIZEOF, EXPR_ALIGNOF and EXPR_PTRSIZEOF
 		struct /* cast_arg */ {
 			struct symbol *cast_type;
 			struct expression *cast_expression;
