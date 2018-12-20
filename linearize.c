@@ -87,14 +87,6 @@ static struct multijmp *alloc_multijmp(struct basic_block *target, long long beg
 	return multijmp;
 }
 
-static inline int regno(pseudo_t n)
-{
-	int retval = -1;
-	if (n && n->type == PSEUDO_REG)
-		retval = n->nr;
-	return retval;
-}
-
 const char *show_label(struct basic_block *bb)
 {
 	static int n;
