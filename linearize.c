@@ -756,7 +756,7 @@ static struct basic_block * add_label(struct entrypoint *ep, struct symbol *labe
 	return bb;
 }
 
-static void add_branch(struct entrypoint *ep, struct expression *expr, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
+static void add_branch(struct entrypoint *ep, pseudo_t cond, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	struct basic_block *bb = ep->active;
 	struct instruction *br;
@@ -1646,16 +1646,18 @@ static pseudo_t linearize_short_conditional(struct entrypoint *ep, struct expres
 {
 	pseudo_t src1, src2;
 	struct basic_block *bb_false;
-	struct basic_block *merge = alloc_basic_block(ep, expr->pos);
+	struct basic_block *merge;
 	pseudo_t phi1, phi2;
 
 	if (!expr_false || !ep->active)
 		return VOID;
 
 	bb_false = alloc_basic_block(ep, expr_false->pos);
+	merge = alloc_basic_block(ep, expr->pos);
+
 	src1 = linearize_expression(ep, cond);
 	phi1 = alloc_phi(ep->active, src1, expr->ctype);
-	add_branch(ep, expr, src1, merge, bb_false);
+	add_branch(ep, src1, merge, bb_false);
 
 	set_activeblock(ep, bb_false);
 	src2 = linearize_expression(ep, expr_false);
@@ -1790,7 +1792,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 
 	case EXPR_COMPARE:
 		cond = linearize_compare(ep, expr);
-		add_branch(ep, expr, cond, bb_true, bb_false);
+		add_branch(ep, cond, bb_true, bb_false);
 		break;
 		
 	case EXPR_PREOP:
@@ -1799,7 +1801,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 		/* fall through */
 	default: {
 		cond = linearize_expression_to_bool(ep, expr);
-		add_branch(ep, expr, cond, bb_true, bb_false);
+		add_branch(ep, cond, bb_true, bb_false);
 
 		return VOID;
 	}
