@@ -179,10 +179,11 @@ static int if_convert_phi(struct instruction *insn)
 // @return: the unique result if the phi-node is trivial, NULL otherwise
 //
 // A phi-node is trivial if it has a single possible result:
-//	# all operands are the same
-//	# the operands are themselves defined by a chain or cycle of phi-nodes
+//	* all operands are the same
+//	* the operands are themselves defined by a chain or cycle of phi-nodes
 //		and the set of all operands involved contains a single value
 //		not defined by these phi-nodes
+//
 // Since the result is unique, these phi-nodes can be removed.
 static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn, struct pseudo_list **list)
 {
