@@ -37,9 +37,10 @@ Turn all sparse warnings into errors.
 Warn about code which mixes pointers to different address spaces.
 
 Sparse allows an extended attribute
-.BI __attribute__((address_space( num )))
-on pointers, which designates a pointer target in address space \fInum\fR (a
-constant integer).  With \fB\-Waddress\-space\fR, Sparse treats pointers with
+.BI __attribute__((address_space( id )))
+on pointers, which designates a pointer target in address space \fIid\fR (an
+identifier or a constant integer).
+With \fB\-Waddress\-space\fR, Sparse treats pointers with
 identical target types but different address spaces as distinct types.  To
 override this warning, such as for functions which convert pointers between
 address spaces, use a type that includes \fB__attribute__((force))\fR.
