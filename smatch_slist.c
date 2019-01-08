@@ -718,7 +718,7 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	struct stree *implied_two = NULL;
 	AvlIter one_iter;
 	AvlIter two_iter;
-	struct sm_state *tmp_sm;
+	struct sm_state *one, *two, *res;
 
 	if (out_of_memory())
 		return;
@@ -761,22 +761,27 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	for (;;) {
 		if (!one_iter.sm || !two_iter.sm)
 			break;
-		if (one_iter.sm == two_iter.sm) {
-			avl_insert(&results, one_iter.sm);
+
+		one = one_iter.sm;
+		two = two_iter.sm;
+
+		if (one == two) {
+			avl_insert(&results, one);
 			goto next;
 		}
+
 		if (add_pool) {
-			one_iter.sm->pool = implied_one;
+			one->pool = implied_one;
 			if (implied_one->base_stree)
-				one_iter.sm->pool = implied_one->base_stree;
-			two_iter.sm->pool = implied_two;
+				one->pool = implied_one->base_stree;
+			two->pool = implied_two;
 			if (implied_two->base_stree)
-				two_iter.sm->pool = implied_two->base_stree;
+				two->pool = implied_two->base_stree;
 		}
-		tmp_sm = merge_sm_states(one_iter.sm, two_iter.sm);
-		add_possible_sm(tmp_sm, one_iter.sm);
-		add_possible_sm(tmp_sm, two_iter.sm);
-		avl_insert(&results, tmp_sm);
+		res = merge_sm_states(one, two);
+		add_possible_sm(res, one);
+		add_possible_sm(res, two);
+		avl_insert(&results, res);
 next:
 		avl_iter_next(&one_iter);
 		avl_iter_next(&two_iter);
