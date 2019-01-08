@@ -761,7 +761,11 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 	for (;;) {
 		if (!one_iter.sm || !two_iter.sm)
 			break;
-		if (add_pool && one_iter.sm != two_iter.sm) {
+		if (one_iter.sm == two_iter.sm) {
+			avl_insert(&results, one_iter.sm);
+			goto next;
+		}
+		if (add_pool) {
 			one_iter.sm->pool = implied_one;
 			if (implied_one->base_stree)
 				one_iter.sm->pool = implied_one->base_stree;
@@ -773,6 +777,7 @@ static void __merge_stree(struct stree **to, struct stree *stree, int add_pool)
 		add_possible_sm(tmp_sm, one_iter.sm);
 		add_possible_sm(tmp_sm, two_iter.sm);
 		avl_insert(&results, tmp_sm);
+next:
 		avl_iter_next(&one_iter);
 		avl_iter_next(&two_iter);
 	}
