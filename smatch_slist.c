@@ -394,7 +394,10 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result->merged = 1;
 	result->left = one;
 	result->right = two;
-	result->nr_children = one->nr_children + two->nr_children;
+	if (one->nr_children + two->nr_children <= MAX_CHILDREN)
+		result->nr_children = one->nr_children + two->nr_children;
+	else
+		result->nr_children = MAX_CHILDREN;
 	copy_possibles(result, one);
 	copy_possibles(result, two);
 
