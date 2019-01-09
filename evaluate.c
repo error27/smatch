@@ -1027,13 +1027,19 @@ static int modify_for_unsigned(int op)
 	return op;
 }
 
+enum null_constant_type {
+	NON_NULL,
+	NULL_PTR,
+	NULL_ZERO,
+};
+
 static inline int is_null_pointer_constant(struct expression *e)
 {
 	if (e->ctype == &null_ctype)
-		return 1;
+		return NULL_PTR;
 	if (!(e->flags & CEF_ICE))
-		return 0;
-	return is_zero_constant(e) ? 2 : 0;
+		return NON_NULL;
+	return is_zero_constant(e) ? NULL_ZERO : NON_NULL;
 }
 
 static struct symbol *evaluate_compare(struct expression *expr)
@@ -1079,9 +1085,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
 		int is_null1 = is_null_pointer_constant(left);
 		int is_null2 = is_null_pointer_constant(right);
-		if (is_null1 == 2)
+		if (is_null1 == NULL_ZERO)
 			bad_null(left);
-		if (is_null2 == 2)
+		if (is_null2 == NULL_ZERO)
 			bad_null(right);
 		if (is_null1 && is_null2) {
 			int positive = expr->op == SPECIAL_EQUAL;
@@ -1206,14 +1212,14 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 			goto out;
 		}
 		if (is_null1 && (rclass & TYPE_PTR)) {
-			if (is_null1 == 2)
+			if (is_null1 == NULL_ZERO)
 				bad_null(*cond);
 			*cond = cast_to(*cond, rtype);
 			ctype = rtype;
 			goto out;
 		}
 		if (is_null2 && (lclass & TYPE_PTR)) {
-			if (is_null2 == 2)
+			if (is_null2 == NULL_ZERO)
 				bad_null(expr->cond_false);
 			expr->cond_false = cast_to(expr->cond_false, ltype);
 			ctype = ltype;
@@ -1421,7 +1427,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 		// NULL pointer is always OK
 		int is_null = is_null_pointer_constant(*rp);
 		if (is_null) {
-			if (is_null == 2)
+			if (is_null == NULL_ZERO)
 				bad_null(*rp);
 			goto Cast;
 		}
