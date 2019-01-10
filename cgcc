@@ -49,7 +49,7 @@ while (@ARGV) {
 
     $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
-    $gendeps = 1 if /^-M$/;
+    $gendeps = 1 if /^-(M|MM|MD|MMD)$/;
 
     if (/^-target=(.*)$/) {
 	$check .= &add_specs ($1);
