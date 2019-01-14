@@ -43,7 +43,9 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	tmp = alloc_estate_rl(value_ranges);
 	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
 	set_related(tmp, rlist);
-	if (estate_has_hard_max(s1) && estate_has_hard_max(s2))
+
+	if ((estate_has_hard_max(s1) && (!estate_rl(s2) || estate_has_hard_max(s2))) ||
+	    (estate_has_hard_max(s2) && (!estate_rl(s1) || estate_has_hard_max(s1))))
 		estate_set_hard_max(tmp);
 
 	estate_set_fuzzy_max(tmp, sval_max(estate_get_fuzzy_max(s1), estate_get_fuzzy_max(s2)));
