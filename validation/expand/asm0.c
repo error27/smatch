@@ -7,7 +7,6 @@ static void foo(void)
 /*
  * check-name: expand-asm0
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-start
 foo:

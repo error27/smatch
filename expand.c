@@ -1160,6 +1160,22 @@ static int expand_if_statement(struct statement *stmt)
 	return SIDE_EFFECTS;
 }
 
+static int expand_asm_statement(struct statement *stmt)
+{
+	struct asm_operand *op;
+	int cost = 0;
+
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		cost += expand_expression(op->expr);
+	} END_FOR_EACH_PTR(op);
+
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		cost += expand_expression(op->expr);
+	} END_FOR_EACH_PTR(op);
+
+	return cost;
+}
+
 /*
  * Expanding a compound statement is really just
  * about adding up the costs of each individual
@@ -1250,7 +1266,7 @@ static int expand_statement(struct statement *stmt)
 	case STMT_NONE:
 		break;
 	case STMT_ASM:
-		/* FIXME! Do the asm parameter evaluation! */
+		expand_asm_statement(stmt);
 		break;
 	case STMT_CONTEXT:
 		expand_expression(stmt->expression);
