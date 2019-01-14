@@ -149,10 +149,10 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 	true_sm = clone_sm(sm);
 	false_sm = clone_sm(sm);
 
-	true_sm->state = alloc_estate_rl(cast_rl(estate_type(sm->state), true_rl));
+	true_sm->state = clone_partial_estate(sm->state, true_rl);
 	free_slist(&true_sm->possible);
 	add_possible_sm(true_sm, true_sm);
-	false_sm->state = alloc_estate_rl(cast_rl(estate_type(sm->state), false_rl));
+	false_sm->state = clone_partial_estate(sm->state, false_rl);
 	free_slist(&false_sm->possible);
 	add_possible_sm(false_sm, false_sm);
 

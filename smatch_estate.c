@@ -274,6 +274,25 @@ struct smatch_state *clone_estate(struct smatch_state *state)
 	return ret;
 }
 
+struct smatch_state *clone_partial_estate(struct smatch_state *state, struct range_list *rl)
+{
+	struct smatch_state *ret;
+
+	if (!state)
+		return NULL;
+
+	rl = cast_rl(estate_type(state), rl);
+
+	ret = alloc_estate_rl(rl);
+	set_related(ret, clone_related_list(estate_related(state)));
+	if (estate_has_hard_max(state))
+		estate_set_hard_max(ret);
+	if (estate_has_fuzzy_max(state))
+		estate_set_fuzzy_max(ret, estate_get_fuzzy_max(state));
+
+	return ret;
+}
+
 struct smatch_state *alloc_estate_empty(void)
 {
 	struct smatch_state *state;
