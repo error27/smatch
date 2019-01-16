@@ -2240,34 +2240,46 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 static void returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct symbol *returned_sym;
+	char *returned_name;
 	struct sm_state *sm;
-	const char *param_name;
 	char *compare_str;
-	char buf[256];
+	char name_buf[256];
+	char val_buf[256];
+	int len;
 
-	returned_sym = expr_to_sym(expr);
-	if (!returned_sym)
+	// FIXME handle *$
+
+	if (!is_pointer(expr))
 		return;
+
+	returned_name = expr_to_var_sym(expr, &returned_sym);
+	if (!returned_name || !returned_sym)
+		goto free;
+	len = strlen(returned_name);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!estate_rl(sm->state))
 			continue;
 		if (returned_sym != sm->sym)
 			continue;
+		if (strncmp(returned_name, sm->name, len) != 0)
+			continue;
+		if (sm->name[len] != '-')
+			continue;
 
-		param_name = get_param_name(sm);
-		if (!param_name)
-			continue;
-		if (strcmp(param_name, "$") == 0)
-			continue;
+		snprintf(name_buf, sizeof(name_buf), "$%s", sm->name + len);
+
 		compare_str = name_sym_to_param_comparison(sm->name, sm->sym);
 		if (!compare_str && estate_is_whole(sm->state))
 			continue;
-		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, compare_str ?: "");
+		snprintf(val_buf, sizeof(val_buf), "%s%s", sm->state->name, compare_str ?: "");
 
 		sql_insert_return_states(return_id, return_ranges, PARAM_VALUE,
-					 -1, param_name, buf);
+					 -1, name_buf, val_buf);
 	} END_FOR_EACH_SM(sm);
+
+free:
+	free_string(returned_name);
 }
 
 static void db_limited_before(void)
