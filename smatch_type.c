@@ -606,7 +606,7 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, co
 
 	if (strncmp(name, ".", 1) == 0)
 		name += 1;
-	if (strncmp(name, "->", 2) == 0)
+	else if (strncmp(name, "->", 2) == 0)
 		name += 2;
 
 	FOR_EACH_PTR(symbol_list, tmp) {
@@ -621,7 +621,7 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, co
 		if (strcmp(tmp->ident->name, name) == 0)
 			return tmp;
 
-		chunk_len = strlen(tmp->ident->name);
+		chunk_len = tmp->ident->len;
 		if (strncmp(tmp->ident->name, name, chunk_len) == 0 &&
 		    (name[chunk_len] == '.' || name[chunk_len] == '-')) {
 			sub = get_real_base_type(tmp);
@@ -745,7 +745,7 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		return snprintf(buf, size, "<unknown>");
 
 	if (type->type == SYM_BASETYPE) {
-		return snprintf(buf, size, base_type_str(type));
+		return snprintf(buf, size, "%s", base_type_str(type));
 	} else if (type->type == SYM_PTR) {
 		type = get_real_base_type(type);
 		n = type_str_helper(buf, size, type);
