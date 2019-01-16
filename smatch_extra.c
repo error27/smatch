@@ -40,7 +40,7 @@ static int link_id;
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr);
 
 struct string_list *__ignored_macros = NULL;
-static int in_warn_on_macro(void)
+int in_warn_on_macro(void)
 {
 	struct statement *stmt;
 	char *tmp;

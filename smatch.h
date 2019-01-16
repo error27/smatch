@@ -564,6 +564,7 @@ void end_assume(void);
 int impossible_assumption(struct expression *left, int op, sval_t sval);
 
 /* smatch_extras.c */
+int in_warn_on_macro(void);
 #define SMATCH_EXTRA 5 /* this is my_id from smatch extra set in smatch.c */
 extern int RETURN_ID;
 
