@@ -51,7 +51,7 @@ static void set_param_used(struct expression *call, struct expression *arg, char
 
 	arg_nr = get_param_num_from_sym(sym);
 	if (arg_nr >= 0)
-		set_state(my_id, name, sym, &used);
+		set_state_stree(&used_stree, my_id, name, sym, &used);
 free:
 	free_string(name);
 }
