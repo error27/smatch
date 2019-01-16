@@ -1568,6 +1568,7 @@ static int split_positive_from_negative(struct expression *expr)
 	const char *return_ranges;
 	struct range_list *ret_rl;
 	int undo;
+	bool has_zero;
 
 	/* We're going to print the states 3 times */
 	if (get_db_state_count() > 10000 / 3)
@@ -1588,8 +1589,9 @@ static int split_positive_from_negative(struct expression *expr)
 		return 0;
 	if (!has_possible_negative(sm))
 		return 0;
+	has_zero = has_possible_zero_null(sm);
 
-	if (!assume(compare_expression(expr, '>', zero_expr())))
+	if (!assume(compare_expression(expr, has_zero ? '>' : SPECIAL_GTE, zero_expr())))
 		return 0;
 
 	return_id++;
@@ -1601,7 +1603,7 @@ static int split_positive_from_negative(struct expression *expr)
 
 	end_assume();
 
-	if (rl_has_sval(rl, sval_type_val(rl_type(rl), 0))) {
+	if (has_zero) {
 		undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
 
 		return_id++;
