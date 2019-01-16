@@ -4,7 +4,7 @@ TMP_DIR=/tmp
 
 help()
 {
-    echo "Usage: $0 [--no-compile|--ammend] <filename>"
+    echo "Usage: $0 [--no-compile|--amend] <filename>"
     echo "You must be at the base of the kernel tree to run this."
     exit 1
 }
@@ -37,7 +37,7 @@ while true ; do
     if [[ "$1" == "--no-compile" ]] ; then
         NO_COMPILE=true
         shift
-    elif [[ "$1" == "--ammend" ]] ; then
+    elif [[ "$1" == "--amend" ]] ; then
         AMEND="--amend"
         shift
     else
