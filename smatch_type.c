@@ -29,6 +29,8 @@ struct symbol *get_real_base_type(struct symbol *sym)
 
 	if (!sym)
 		return NULL;
+	if (sym->type == SYM_BASETYPE)
+		return sym;
 	ret = get_base_type(sym);
 	if (!ret)
 		return NULL;
