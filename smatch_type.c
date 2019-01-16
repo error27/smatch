@@ -625,6 +625,8 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, co
 		if (strncmp(tmp->ident->name, name, chunk_len) == 0 &&
 		    (name[chunk_len] == '.' || name[chunk_len] == '-')) {
 			sub = get_real_base_type(tmp);
+			if (sub->type == SYM_PTR)
+				sub = get_real_base_type(sub);
 			return get_member_from_string(sub->symbol_list, name + chunk_len);
 		}
 
