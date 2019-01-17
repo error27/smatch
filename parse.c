@@ -2050,7 +2050,8 @@ static struct token *parse_asm_operands(struct token *token, struct statement *s
 			op->name = token->next->next->ident;
 			token = token->next->next->next;
 		}
-		token = primary_expression(token->next, &op->constraint);
+		token = token->next;
+		token = string_expression(token, &op->constraint, "asm constraint");
 		token = parens_expression(token, &op->expr, "in asm parameter");
 		add_expression(inout, op);
 	} while (match_op(token, ','));
@@ -2101,7 +2102,7 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token, &stmt->asm_string);
+	token = string_expression(token, &stmt->asm_string, "inline asm");
 	if (match_op(token, ':'))
 		token = parse_asm_operands(token, stmt, &stmt->asm_outputs);
 	if (match_op(token, ':'))
@@ -2118,7 +2119,7 @@ static struct token *parse_asm_declarator(struct token *token, struct decl_state
 {
 	struct expression *expr;
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token->next, &expr);
+	token = string_expression(token, &expr, "inline asm");
 	token = expect(token, ')', "after asm");
 	return token;
 }

@@ -3523,20 +3523,15 @@ static void evaluate_asm_statement(struct statement *stmt)
 	struct symbol *sym;
 
 	expr = stmt->asm_string;
-	if (!expr || expr->type != EXPR_STRING) {
-		sparse_error(stmt->pos, "need constant string for inline asm");
+	if (!expr)
 		return;
-	}
 
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		/* Identifier */
 
 		/* Constraint */
 		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
-			op->constraint = NULL;
-		} else
+		if (expr)
 			verify_output_constraint(expr, expr->string->data);
 
 		/* Expression */
@@ -3553,10 +3548,7 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 		/* Constraint */
 		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
-			op->constraint = NULL;
-		} else
+		if (expr)
 			verify_input_constraint(expr, expr->string->data);
 
 		/* Expression */
