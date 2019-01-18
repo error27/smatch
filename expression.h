@@ -139,6 +139,12 @@ struct asm_operand {
 	struct ident *name;
 	struct expression *constraint;
 	struct expression *expr;
+	unsigned int is_assign:1;
+	unsigned int is_modify:1;
+	unsigned int is_earlyclobber:1;
+	unsigned int is_commutative:1;
+	unsigned int is_register:1;
+	unsigned int is_memory:1;
 };
 
 struct expression {

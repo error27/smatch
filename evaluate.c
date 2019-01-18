@@ -3493,6 +3493,74 @@ static void evaluate_iterator(struct statement *stmt)
 	evaluate_statement(stmt->iterator_post_statement);
 }
 
+
+static void parse_asm_constraint(struct asm_operand *op)
+{
+	struct expression *constraint = op->constraint;
+	const char *str = constraint->string->data;
+	int c;
+
+	switch (str[0]) {
+	case '+':
+		op->is_modify = true;
+		/* fall-through */
+	case '=':
+		op->is_assign = true;
+		str++;
+		break;
+	}
+
+	while ((c = *str++)) {
+		switch (c) {
+		case '=':
+		case '+':
+			sparse_error(constraint->pos, "invalid ASM constraint '%c'", c);
+			break;
+
+		case '&':
+			op->is_earlyclobber = true;
+			break;
+		case '%':
+			op->is_commutative = true;
+			break;
+		case 'r':
+			op->is_register = true;
+			break;
+
+		case 'm':
+		case 'o':
+		case 'V':
+		case 'Q':
+			op->is_memory = true;
+			break;
+
+		case '<':
+		case '>':
+			// FIXME: ignored for now
+			break;
+
+		case ',':
+			// FIXME: multiple alternative constraints
+			break;
+
+		case '0' ... '9':
+			// FIXME: numeric  matching constraint?
+			break;
+		case '[':
+			// FIXME: symbolic matching constraint
+			return;
+
+		default:
+			// FIXME: arch-specific (and multi-letter) constraints
+			break;
+		}
+	}
+
+	// FIXME: how to deal with multi-constraint?
+	if (op->is_register)
+		op->is_memory = 0;
+}
+
 static void verify_output_constraint(struct expression *expr, const char *constraint)
 {
 	switch (*constraint) {
@@ -3528,8 +3596,10 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 		/* Constraint */
 		expr = op->constraint;
-		if (expr)
+		if (expr) {
+			parse_asm_constraint(op);
 			verify_output_constraint(expr, expr->string->data);
+		}
 
 		/* Expression */
 		expr = op->expr;
@@ -3545,8 +3615,10 @@ static void evaluate_asm_statement(struct statement *stmt)
 
 		/* Constraint */
 		expr = op->constraint;
-		if (expr)
+		if (expr) {
+			parse_asm_constraint(op);
 			verify_input_constraint(expr, expr->string->data);
+		}
 
 		/* Expression */
 		if (!evaluate_expression(op->expr))
