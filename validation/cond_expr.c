@@ -13,7 +13,7 @@ int a(void)
  * check-name: Two-argument conditional expression types
  *
  * check-error-start
-cond_expr.c:10:16: error: incompatible types for operation (~)
-cond_expr.c:10:16:    argument has type double
+cond_expr.c:10:16: error: incompatible type for operation (~):
+cond_expr.c:10:16:    double
  * check-error-end
  */

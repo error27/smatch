@@ -283,9 +283,9 @@ warn_for_different_enum_types (struct position pos,
 		return;
 
 	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM) {
-		warning(pos, "mixing different enum types");
-		info(pos, "    %s versus", show_typename(typea));
-		info(pos, "    %s", show_typename(typeb));
+		warning(pos, "mixing different enum types:");
+		info(pos, "   %s", show_typename(typea));
+		info(pos, "   %s", show_typename(typeb));
 	}
 }
 
@@ -413,16 +413,16 @@ static struct symbol *bad_expr_type(struct expression *expr)
 	case EXPR_COMPARE:
 		if (!valid_subexpr_type(expr))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
-		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
+		sparse_error(expr->pos, "incompatible types for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->left->ctype));
+		info(expr->pos, "   %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
 		if (!valid_expr_type(expr->unop))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
+		sparse_error(expr->pos, "incompatible type for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->unop->ctype));
 		break;
 	default:
 		break;
@@ -910,8 +910,8 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		if (Waddress)
 			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
 	} else if (!is_scalar_type(ctype)) {
-		sparse_error(expr->pos, "incorrect type in conditional (non-scalar type)");
-		info(expr->pos, "   got %s", show_typename(ctype));
+		sparse_error(expr->pos, "incorrect type in conditional (non-scalar type):");
+		info(expr->pos, "   %s", show_typename(ctype));
 		return NULL;
 	}
 
