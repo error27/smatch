@@ -2075,31 +2075,29 @@ static pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
 ALLOCATOR(asm_rules, "asm rules");
 ALLOCATOR(asm_constraint, "asm constraints");
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
-	const char *constraint, const struct ident *ident)
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
-	pseudo_t pseudo = linearize_expression(ep, expr);
+	pseudo_t pseudo = linearize_expression(ep, op->expr);
 	struct asm_constraint *rule = __alloc_asm_constraint(0);
 
-	rule->ident = ident;
-	rule->constraint = constraint;
+	rule->ident = op->name;
+	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->inputs, rule);
 }
 
-static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
-	const char *constraint, const struct ident *ident)
+static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo = alloc_pseudo(insn);
 	struct asm_constraint *rule;
 
-	if (!expr || !linearize_address_gen(ep, expr, &ad))
+	if (!op->expr || !linearize_address_gen(ep, op->expr, &ad))
 		return;
 	linearize_store_gen(ep, pseudo, &ad);
 	rule = __alloc_asm_constraint(0);
-	rule->ident = ident;
-	rule->constraint = constraint;
+	rule->ident = op->name;
+	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->outputs, rule);
 }
@@ -2110,7 +2108,6 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	struct expression *expr;
 	struct asm_rules *rules;
 	struct asm_operand *op;
-	const char *constraint;
 
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
@@ -2125,16 +2122,14 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 
 	/* Gather the inputs.. */
 	FOR_EACH_PTR(stmt->asm_inputs, op) {
-		constraint = op->constraint ? op->constraint->string->data : "";
-		add_asm_input(ep, insn, op->expr, constraint, op->name);
+		add_asm_input(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
 
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
-		constraint = op->constraint ? op->constraint->string->data : "";
-		add_asm_output(ep, insn, op->expr, constraint, op->name);
+		add_asm_output(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
 
 	return VOID;
