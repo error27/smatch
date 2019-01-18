@@ -8,7 +8,6 @@ static int foo(int *p)
 /*
  * check-name: linear-asm-memop
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-start
 foo:

@@ -2089,12 +2089,17 @@ static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struc
 static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
-	pseudo_t pseudo = alloc_pseudo(insn);
+	pseudo_t pseudo;
 	struct asm_constraint *rule;
 
-	if (!op->expr || !linearize_address_gen(ep, op->expr, &ad))
-		return;
-	linearize_store_gen(ep, pseudo, &ad);
+	if (op->is_memory) {
+		pseudo = linearize_expression(ep, op->expr);
+	} else {
+		if (!linearize_address_gen(ep, op->expr, &ad))
+			return;
+		pseudo = alloc_pseudo(insn);
+		linearize_store_gen(ep, pseudo, &ad);
+	}
 	rule = __alloc_asm_constraint(0);
 	rule->ident = op->name;
 	rule->constraint = op->constraint ? op->constraint->string->data : "";
