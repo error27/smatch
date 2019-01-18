@@ -9,7 +9,6 @@ void fo3(int *p) { asm volatile ("op %0" :: "m" (*p)); }
 /*
  * check-name: eval-asm-memop
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 fo0:
