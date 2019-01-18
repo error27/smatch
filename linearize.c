@@ -2101,6 +2101,7 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 		linearize_store_gen(ep, pseudo, &ad);
 	}
 	rule = __alloc_asm_constraint(0);
+	rule->is_memory = op->is_memory;
 	rule->ident = op->name;
 	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);

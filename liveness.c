@@ -39,7 +39,10 @@ static void asm_liveness(struct basic_block *bb, struct instruction *insn,
 	} END_FOR_EACH_PTR(entry);
 		
 	FOR_EACH_PTR(insn->asm_rules->outputs, entry) {
-		def(bb, entry->pseudo);
+		if (entry->is_memory)
+			use(bb, entry->pseudo);
+		else
+			def(bb, entry->pseudo);
 	} END_FOR_EACH_PTR(entry);
 }
 
