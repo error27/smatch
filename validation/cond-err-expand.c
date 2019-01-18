@@ -18,8 +18,12 @@ void bar(void)
  * check-command: test-linearize -Wno-decl $file
  *
  * check-error-start
-cond-err-expand.c:8:11: error: incompatible types in conditional expression (different base types)
-cond-err-expand.c:13:11: error: incompatible types in conditional expression (different base types)
+cond-err-expand.c:8:11: error: incompatible types in conditional expression (different base types):
+cond-err-expand.c:8:11:    int
+cond-err-expand.c:8:11:    void
+cond-err-expand.c:13:11: error: incompatible types in conditional expression (different base types):
+cond-err-expand.c:13:11:    void
+cond-err-expand.c:13:11:    int
  * check-error-end
  *
  * check-output-ignore

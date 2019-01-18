@@ -1132,7 +1132,9 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	if (!typediff)
 		goto OK;
 
-	expression_error(expr, "incompatible types in comparison expression (%s)", typediff);
+	expression_error(expr, "incompatible types in comparison expression (%s):", typediff);
+	info(expr->pos, "   %s", show_typename(ltype));
+	info(expr->pos, "   %s", show_typename(rtype));
 	return NULL;
 
 OK:
@@ -1268,7 +1270,9 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	typediff = "different base types";
 
 Err:
-	expression_error(expr, "incompatible types in conditional expression (%s)", typediff);
+	expression_error(expr, "incompatible types in conditional expression (%s):", typediff);
+	info(expr->pos, "   %s", show_typename(ltype));
+	info(expr->pos, "   %s", show_typename(rtype));
 	/*
 	 * if the condition is constant, the type is in fact known
 	 * so use it, as gcc & clang do.
