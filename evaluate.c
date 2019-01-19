@@ -1581,7 +1581,6 @@ static void evaluate_assign_to(struct expression *left, struct symbol *type)
 static struct symbol *evaluate_assignment(struct expression *expr)
 {
 	struct expression *left = expr->left;
-	struct expression *where = expr;
 	struct symbol *ltype;
 
 	if (!lvalue_expression(left)) {
@@ -1595,7 +1594,7 @@ static struct symbol *evaluate_assignment(struct expression *expr)
 		if (!evaluate_assign_op(expr))
 			return NULL;
 	} else {
-		if (!compatible_assignment_types(where, ltype, &expr->right, "assignment"))
+		if (!compatible_assignment_types(expr, ltype, &expr->right, "assignment"))
 			return NULL;
 	}
 
