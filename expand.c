@@ -61,6 +61,14 @@ static int expand_symbol_expression(struct expression *expr)
 		expr->taint = 0;
 		return 0;
 	}
+
+	// expand compound literals (C99 & C11 6.5.2.5)
+	// FIXME: is this the correct way to identify them?
+	//	All compound literals are anonymous but is
+	//	the reverse true?
+	if (sym->initializer && !expr->symbol_name)
+		return expand_expression(sym->initializer);
+
 	/* The cost of a symbol expression is lower for on-stack symbols */
 	return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 }

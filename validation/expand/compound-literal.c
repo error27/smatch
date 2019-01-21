@@ -13,7 +13,6 @@ static void foo(struct s *p)
 /*
  * check-name: compound-literal
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-start
 foo:

@@ -2935,6 +2935,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * initializer, in which case we need to pass
 	 * the type value down to that initializer rather
 	 * than trying to evaluate it as an expression
+	 * (cfr. compound literals: C99 & C11 6.5.2.5).
 	 *
 	 * A more complex case is when the initializer is
 	 * dereferenced as part of a post-fix expression.
