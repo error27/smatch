@@ -2210,7 +2210,7 @@ static int save_cache_data(void *_table, int argc, char **argv, char **azColName
 	for (i = 0; i < argc; i++) {
 		if (i)
 			p += snprintf(p, 4096 - (p - buf), ", ");
-		sqlite3_snprintf(sizeof(tmp), tmp, "%q", argv[i]);
+		sqlite3_snprintf(sizeof(tmp), tmp, "%q", escape_newlines(argv[i]));
 		p += snprintf(p, 4096 - (p - buf), "'%s'", tmp);
 
 	}
