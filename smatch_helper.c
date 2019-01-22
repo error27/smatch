@@ -869,8 +869,52 @@ char *get_member_name(struct expression *expr)
 			 expr->member->name);
 		return alloc_string(buf);
 	}
-	if (!sym->ident)
-		return NULL;
+	if (!sym->ident) {
+		struct expression *deref;
+		char *full, *outer;
+		int len;
+
+		/*
+		 * If we're in an anonymous struct then maybe we can find an
+		 * outer struct name to use as a name.  This code should be
+		 * recursive and cleaner.  I am not very proud of it.
+		 *
+		 */
+
+		deref = expr->deref;
+		if (deref->type != EXPR_DEREF || !deref->member)
+			return NULL;
+		sym = get_type(deref->deref);
+		if (!sym || sym->type != SYM_STRUCT || !sym->ident)
+			return NULL;
+
+		full = expr_to_str(expr);
+		if (!full)
+			return NULL;
+		deref = deref->deref;
+		if (deref->type == EXPR_PREOP && deref->op == '*')
+			deref = deref->unop;
+		outer = expr_to_str(deref);
+		if (!outer) {
+			free_string(full);
+			return NULL;
+		}
+		len = strlen(outer);
+		if (strncmp(outer, full, len) != 0) {
+			free_string(full);
+			free_string(outer);
+			return NULL;
+		}
+		if (full[len] == '-' && full[len + 1] == '>')
+			len += 2;
+		if (full[len] == '.')
+			len++;
+		snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, full + len);
+		free_string(outer);
+		free_string(full);
+
+		return alloc_string(buf);
+	}
 	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
 	return alloc_string(buf);
 }
