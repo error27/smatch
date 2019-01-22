@@ -41,7 +41,7 @@ struct range_list *rl_one(void);
 char *show_rl(struct range_list *list);
 int str_to_comparison_arg(const char *c, struct expression *call, int *comparison, struct expression **arg);
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl);
-void call_results_to_rl(struct expression *call, struct symbol *type, char *value, struct range_list **rl);
+void call_results_to_rl(struct expression *call, struct symbol *type, const char *value, struct range_list **rl);
 
 struct data_range *alloc_range(sval_t min, sval_t max);
 struct data_range *alloc_range_perm(sval_t min, sval_t max);

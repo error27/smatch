@@ -114,7 +114,7 @@ static void rl_discard_stacks(void)
 		pop_rl(&rl_stack);
 }
 
-static int read_rl_from_var(struct expression *call, char *p, char **end, struct range_list **rl)
+static int read_rl_from_var(struct expression *call, const char *p, const char **end, struct range_list **rl)
 {
 	struct expression *arg;
 	struct smatch_state *state;
@@ -125,7 +125,7 @@ static int read_rl_from_var(struct expression *call, char *p, char **end, struct
 	int star;
 
 	p++;
-	param = strtol(p, &p, 10);
+	param = strtol(p, (char **)&p, 10);
 
 	arg = get_argument_from_call_expr(call->args, param);
 	if (!arg)
@@ -165,7 +165,7 @@ static int read_rl_from_var(struct expression *call, char *p, char **end, struct
 	return 1;
 }
 
-static int read_var_num(struct expression *call, char *p, char **end, struct range_list **rl)
+static int read_var_num(struct expression *call, const char *p, const char **end, struct range_list **rl)
 {
 	sval_t sval;
 
@@ -176,14 +176,14 @@ static int read_var_num(struct expression *call, char *p, char **end, struct ran
 		return read_rl_from_var(call, p, end, rl);
 
 	sval.type = &llong_ctype;
-	sval.value = strtoll(p, end, 10);
+	sval.value = strtoll(p, (char **)end, 10);
 	if (*end == p)
 		return 0;
 	*rl = alloc_rl(sval, sval);
 	return 1;
 }
 
-static char *read_op(char *p)
+static const char *read_op(const char *p)
 {
 	while (*p == ' ')
 		p++;
@@ -199,14 +199,14 @@ static char *read_op(char *p)
 	}
 }
 
-int parse_call_math_rl(struct expression *call, char *math, struct range_list **rl)
+int parse_call_math_rl(struct expression *call, const char *math, struct range_list **rl)
 {
 	struct range_list *tmp;
-	char *c;
+	const char *c;
 
 	/* try to implement shunting yard algorithm. */
 
-	c = (char *)math;
+	c = math;
 	while (1) {
 		if (option_debug)
 			sm_msg("parsing %s", c);
@@ -493,7 +493,7 @@ static char *swap_format(struct expression *call, char *format)
 	while (*p) {
 		if (*p == '$') {
 			p++;
-			param = strtol(p, &p, 10);
+			param = strtol(p, (char **)&p, 10);
 			arg = get_argument_from_call_expr(call->args, param);
 			if (!arg)
 				return NULL;

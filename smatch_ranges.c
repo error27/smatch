@@ -138,10 +138,10 @@ static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min,
 
 static int str_to_comparison_arg_helper(const char *str,
 		struct expression *call, int *comparison,
-		struct expression **arg, char **endp)
+		struct expression **arg, const char **endp)
 {
 	int param;
-	char *c = (char *)str;
+	const char *c = str;
 
 	if (*c != '[')
 		return 0;
@@ -179,7 +179,7 @@ static int str_to_comparison_arg_helper(const char *str,
 		return 0;
 	c++;
 
-	param = strtoll(c, &c, 10);
+	param = strtoll(c, (char **)&c, 10);
 	if (*c == ']')
 		c++; /* skip the ']' character */
 	if (endp)
@@ -218,7 +218,7 @@ int str_to_comparison_arg(const char *str, struct expression *call, int *compari
 	return str_to_comparison_arg_helper(str, call, comparison, arg, NULL);
 }
 
-static int get_val_from_key(int use_max, struct symbol *type, char *c, struct expression *call, char **endp, sval_t *sval)
+static int get_val_from_key(int use_max, struct symbol *type, const char *c, struct expression *call, const char **endp, sval_t *sval)
 {
 	struct expression *arg;
 	int comparison;
@@ -318,7 +318,7 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 	*rl = cast_rl(rl_type(*rl), ret_rl);
 }
 
-static struct range_list *filter_by_comparison_call(char *c, struct expression *call, char **endp, struct range_list *start_rl)
+static struct range_list *filter_by_comparison_call(const char *c, struct expression *call, const char **endp, struct range_list *start_rl)
 {
 	struct symbol *type;
 	struct expression *arg;
@@ -344,9 +344,9 @@ static struct range_list *filter_by_comparison_call(char *c, struct expression *
 	return cast_rl(rl_type(start_rl), casted_start);
 }
 
-static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, char *c, char **endp)
+static sval_t parse_val(int use_max, struct expression *call, struct symbol *type, const char *c, const char **endp)
 {
-	char *start = c;
+	const char *start = c;
 	sval_t ret;
 
 	if (!strncmp(start, "max", 3)) {
@@ -398,17 +398,17 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
 	} else if (type_positive_bits(type) == 64) {
-		ret = sval_type_val(type, strtoull(start, &c, 0));
+		ret = sval_type_val(type, strtoull(start, (char **)&c, 0));
 	} else {
-		ret = sval_type_val(type, strtoll(start, &c, 0));
+		ret = sval_type_val(type, strtoll(start, (char **)&c, 0));
 	}
 	*endp = c;
 	return ret;
 }
 
-static char *jump_to_call_math(char *value)
+static const char *jump_to_call_math(const char *value)
 {
-	char *c = value;
+	const char *c = value;
 
 	while (*c && *c != '[')
 		c++;
@@ -422,11 +422,11 @@ static char *jump_to_call_math(char *value)
 	return c;
 }
 
-static void str_to_rl_helper(struct expression *call, struct symbol *type, char *str, char **endp, struct range_list **rl)
+static void str_to_rl_helper(struct expression *call, struct symbol *type, const char *str, const char **endp, struct range_list **rl)
 {
 	struct range_list *rl_tmp = NULL;
 	sval_t min, max;
-	char *c;
+	const char *c;
 
 	min = sval_type_min(type);
 	max = sval_type_max(type);
@@ -485,11 +485,11 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, char 
 	*endp = c;
 }
 
-static void str_to_dinfo(struct expression *call, struct symbol *type, char *value, struct data_info *dinfo)
+static void str_to_dinfo(struct expression *call, struct symbol *type, const char *value, struct data_info *dinfo)
 {
 	struct range_list *math_rl;
-	char *call_math;
-	char *c;
+	const char *call_math;
+	const char *c;
 	struct range_list *rl = NULL;
 
 	if (!type)
@@ -541,7 +541,7 @@ void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 	*rl = dinfo.value_ranges;
 }
 
-void call_results_to_rl(struct expression *expr, struct symbol *type, char *value, struct range_list **rl)
+void call_results_to_rl(struct expression *expr, struct symbol *type, const char *value, struct range_list **rl)
 {
 	struct data_info dinfo = {};
 
