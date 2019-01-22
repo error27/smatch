@@ -151,7 +151,7 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 	if (ret)
 		return ret;
 
-	skip = strlen(sym->ident->name);
+	skip = sym->ident->len;
 	if (name[skip] != '-' || name[skip + 1] != '>')
 		return NULL;
 	skip += 2;
