@@ -2131,9 +2131,45 @@ static int param_used_callback(void *found, int argc, char **argv, char **azColN
 	return 0;
 }
 
-static int filter_unused_kzalloc_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+static int is_kzalloc_info(struct sm_state *sm)
 {
 	sval_t sval;
+
+	/*
+	 * kzalloc() information is treated as special because so there is just
+	 * a lot of stuff initialized to zero and it makes building the database
+	 * take hours and hours.
+	 *
+	 * In theory, we should just remove this line and not pass any unused
+	 * information, but I'm not sure enough that this code works so I want
+	 * to hold off on that for now.
+	 */
+	if (!estate_get_single_value(sm->state, &sval))
+		return 0;
+	if (sval.value != 0)
+		return 0;
+	return 1;
+}
+
+static int is_really_long(struct sm_state *sm)
+{
+	const char *p;
+	int cnt = 0;
+
+	p = sm->name;
+	while ((p = strstr(p, "->"))) {
+		p += 2;
+		cnt++;
+	}
+
+	if (cnt < 3 ||
+	    strlen(sm->name) < 40)
+		return 0;
+	return 1;
+}
+
+static int filter_unused_param_value_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
 	int found = 0;
 
 	/* for function pointers assume everything is used */
@@ -2148,16 +2184,7 @@ static int filter_unused_kzalloc_info(struct expression *call, int param, char *
 	if (!call->fn->symbol)
 		return 0;
 
-	/*
-	 * kzalloc() information is treated as special because so there is just
-	 * a lot of stuff initialized to zero and it makes building the database
-	 * take hours and hours.
-	 *
-	 * In theory, we should just remove this line and not pass any unused
-	 * information, but I'm not sure enough that this code works so I want
-	 * to hold off on that for now.
-	 */
-	if (!estate_get_single_value(sm->state, &sval) || sval.value != 0)
+	if (!is_kzalloc_info(sm) && !is_really_long(sm))
 		return 0;
 
 	run_sql(&param_used_callback, &found,
@@ -2227,7 +2254,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 
 	if (estate_is_whole(sm->state))
 		return;
-	if (filter_unused_kzalloc_info(call, param, printed_name, sm))
+	if (filter_unused_param_value_info(call, param, printed_name, sm))
 		return;
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
