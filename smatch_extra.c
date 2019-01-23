@@ -134,29 +134,14 @@ static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol 
 	return expr_to_var_sym(assigned->unop, new_sym);
 }
 
-char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+char *get_other_name_sym_helper(const char *name, const char *chunk, int len, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
 	char *orig_name = NULL;
 	char buf[256];
 	char *ret = NULL;
-	int skip;
 
-	*new_sym = NULL;
-
-	if (!sym || !sym->ident)
-		return NULL;
-
-	ret = get_pointed_at(name, sym, new_sym);
-	if (ret)
-		return ret;
-
-	skip = sym->ident->len;
-	if (name[skip] != '-' || name[skip + 1] != '>')
-		return NULL;
-	skip += 2;
-
-	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
+	assigned = get_assigned_expr_name_sym(chunk, sym);
 	if (!assigned)
 		return NULL;
 	if (assigned->type == EXPR_CALL)
@@ -167,30 +152,57 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 		if (!orig_name || !*new_sym)
 			goto free;
 
-		snprintf(buf, sizeof(buf), "%s.%s", orig_name + 1, name + skip);
+		snprintf(buf, sizeof(buf), "%s.%s", orig_name + 1, name + len);
 		ret = alloc_string(buf);
 		free_string(orig_name);
 		return ret;
 	}
 
-	if ((assigned->type != EXPR_PREOP || assigned->op != '*') &&
-	    assigned->type != EXPR_DEREF)
-		goto free;
-
 	orig_name = expr_to_var_sym(assigned, new_sym);
 	if (!orig_name || !*new_sym)
 		goto free;
 
-	snprintf(buf, sizeof(buf), "%s->%s", orig_name, name + skip);
+	snprintf(buf, sizeof(buf), "%s->%s", orig_name, name + len);
 	ret = alloc_string(buf);
 	free_string(orig_name);
 	return ret;
-
 free:
 	free_string(orig_name);
 	return NULL;
 }
 
+char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	char buf[256];
+	char *ret;
+	int len;
+
+	*new_sym = NULL;
+
+	if (!sym || !sym->ident)
+		return NULL;
+
+	ret = get_pointed_at(name, sym, new_sym);
+	if (ret)
+		return ret;
+
+	len = snprintf(buf, sizeof(buf), "%s", name);
+	if (len >= sizeof(buf) - 2)
+		return NULL;
+
+	while (len >= 1) {
+		if (buf[len] == '>' && buf[len - 1] == '-') {
+			len--;
+			buf[len] = '\0';
+			ret = get_other_name_sym_helper(name, buf, len + 2, sym, new_sym);
+			if (ret)
+				return ret;
+		}
+		len--;
+	}
+
+	return NULL;
+}
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	char *new_name;
