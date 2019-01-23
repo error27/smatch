@@ -161,7 +161,7 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 		return NULL;
 	if (assigned->type == EXPR_CALL)
 		return map_call_to_other_name_sym(name, sym, new_sym);
-	if (assigned->type == EXPR_PREOP || assigned->op == '&') {
+	if (assigned->type == EXPR_PREOP && assigned->op == '&') {
 
 		orig_name = expr_to_var_sym(assigned, new_sym);
 		if (!orig_name || !*new_sym)
@@ -173,7 +173,8 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 		return ret;
 	}
 
-	if (assigned->type != EXPR_DEREF)
+	if ((assigned->type != EXPR_PREOP || assigned->op != '*') &&
+	    assigned->type != EXPR_DEREF)
 		goto free;
 
 	orig_name = expr_to_var_sym(assigned, new_sym);
