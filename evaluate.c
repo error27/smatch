@@ -3561,24 +3561,22 @@ static void parse_asm_constraint(struct asm_operand *op)
 		op->is_memory = 0;
 }
 
-static void verify_output_constraint(struct expression *expr, const char *constraint)
+static void verify_output_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
-		break;
-	default:
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (!op->is_assign)
 		expression_error(expr, "output constraint is not an assignment constraint (\"%s\")", constraint);
-	}
 }
 
-static void verify_input_constraint(struct expression *expr, const char *constraint)
+static void verify_input_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (op->is_assign)
 		expression_error(expr, "input constraint with assignment (\"%s\")", constraint);
-	}
 }
 
 static void evaluate_asm_statement(struct statement *stmt)
@@ -3587,18 +3585,16 @@ static void evaluate_asm_statement(struct statement *stmt)
 	struct asm_operand *op;
 	struct symbol *sym;
 
-	expr = stmt->asm_string;
-	if (!expr)
+	if (!stmt->asm_string)
 		return;
 
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (expr) {
+		if (op->constraint) {
 			parse_asm_constraint(op);
-			verify_output_constraint(expr, expr->string->data);
+			verify_output_constraint(op);
 		}
 
 		/* Expression */
@@ -3614,10 +3610,9 @@ static void evaluate_asm_statement(struct statement *stmt)
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (expr) {
+		if (op->constraint) {
 			parse_asm_constraint(op);
-			verify_input_constraint(expr, expr->string->data);
+			verify_input_constraint(op);
 		}
 
 		/* Expression */
