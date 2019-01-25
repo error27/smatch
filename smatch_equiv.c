@@ -223,8 +223,13 @@ void set_equiv(struct expression *left, struct expression *right)
 		goto free;
 
 	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
-	if (!right_sm)
-		right_sm = set_state_expr(SMATCH_EXTRA, right, alloc_estate_whole(get_type(right)));
+	if (!right_sm) {
+		struct range_list *rl;
+
+		if (!get_implied_rl(right, &rl))
+			rl = alloc_whole_rl(get_type(right));
+		right_sm = set_state_expr(SMATCH_EXTRA, right, alloc_estate_rl(rl));
+	}
 	if (!right_sm)
 		goto free;
 
