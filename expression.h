@@ -270,6 +270,7 @@ struct token *parse_expression(struct token *token, struct expression **tree);
 struct token *conditional_expression(struct token *token, struct expression **tree);
 struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
+struct token *string_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
 extern int expand_symbol(struct symbol *);
