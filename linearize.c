@@ -2106,9 +2106,10 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
-	struct expression *expr;
 	struct instruction *insn;
+	struct expression *expr;
 	struct asm_rules *rules;
+	struct asm_operand *op;
 	const char *constraint;
 
 	insn = alloc_instruction(OP_ASM, 0);
@@ -2123,18 +2124,18 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	insn->asm_rules = rules;
 
 	/* Gather the inputs.. */
-	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		constraint = expr->constraint ? expr->constraint->string->data : "";
-		add_asm_input(ep, insn, expr->expr, constraint, expr->name);
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		constraint = op->constraint ? op->constraint->string->data : "";
+		add_asm_input(ep, insn, op->expr, constraint, op->name);
+	} END_FOR_EACH_PTR(op);
 
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		constraint = expr->constraint ? expr->constraint->string->data : "";
-		add_asm_output(ep, insn, expr->expr, constraint, expr->name);
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		constraint = op->constraint ? op->constraint->string->data : "";
+		add_asm_output(ep, insn, op->expr, constraint, op->name);
+	} END_FOR_EACH_PTR(op);
 
 	return VOID;
 }

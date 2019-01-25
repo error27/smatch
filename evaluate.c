@@ -3354,9 +3354,6 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SLICE:
 		expression_error(expr, "internal front-end error: SLICE re-evaluated");
 		return NULL;
-	case EXPR_ASM_OPERAND:
-		expression_error(expr, "internal front-end error: ASM_OPERAND evaluated");
-		return NULL;
 	}
 	return NULL;
 }
@@ -3519,7 +3516,7 @@ static void verify_input_constraint(struct expression *expr, const char *constra
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
-	struct expression *op;
+	struct asm_operand *op;
 	struct symbol *sym;
 
 	expr = stmt->asm_string;

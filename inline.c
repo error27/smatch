@@ -274,26 +274,24 @@ static struct expression * copy_expression(struct expression *expr)
 		}
 		break;
 	}
-	case EXPR_ASM_OPERAND: {
-		expr = dup_expression(expr);
-		expr->constraint = copy_expression(expr->constraint);
-		expr->expr = copy_expression(expr->expr);
-		break;
-	}
 	default:
 		warning(expr->pos, "trying to copy expression type %d", expr->type);
 	}
 	return expr;
 }
 
-static struct expression_list *copy_asm_constraints(struct expression_list *in)
+static struct asm_operand_list *copy_asm_operands(struct asm_operand_list *in)
 {
-	struct expression_list *out = NULL;
-	struct expression *expr;
+	struct asm_operand_list *out = NULL;
+	struct asm_operand *old;
 
-	FOR_EACH_PTR(in, expr) {
-		add_expression(&out, copy_expression(expr));
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(in, old) {
+		struct asm_operand *new = __alloc_asm_operand(0);
+		new->name = old->name;
+		new->constraint = copy_expression(old->constraint);
+		new->expr = copy_expression(old->expr);
+		add_ptr_list(&out, new);
+	} END_FOR_EACH_PTR(old);
 	return out;
 }
 
@@ -445,8 +443,8 @@ static struct statement *copy_one_statement(struct statement *stmt)
 	}
 	case STMT_ASM: {
 		stmt = dup_statement(stmt);
-		stmt->asm_inputs = copy_asm_constraints(stmt->asm_inputs);
-		stmt->asm_outputs = copy_asm_constraints(stmt->asm_outputs);
+		stmt->asm_inputs = copy_asm_operands(stmt->asm_inputs);
+		stmt->asm_outputs = copy_asm_operands(stmt->asm_outputs);
 		/* no need to dup "clobbers", since they are all constant strings */
 		break;
 	}

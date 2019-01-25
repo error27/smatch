@@ -64,7 +64,6 @@ enum expression_type {
 	EXPR_FVALUE,
 	EXPR_SLICE,
 	EXPR_OFFSETOF,
-	EXPR_ASM_OPERAND,
 };
 
 
@@ -135,6 +134,12 @@ enum constexpr_flag {
 enum {
 	Taint_comma = 1,
 }; /* for expr->taint */
+
+struct asm_operand {
+	struct ident *name;
+	struct expression *constraint;
+	struct expression *expr;
+};
 
 struct expression {
 	enum expression_type type:8;
@@ -234,12 +239,6 @@ struct expression {
 				struct ident *ident;
 				struct expression *index;
 			};
-		};
-		// EXPR_ASM_OPERAND
-		struct {
-			struct ident *name;
-			struct expression *constraint;
-			struct expression *expr;
 		};
 	};
 };

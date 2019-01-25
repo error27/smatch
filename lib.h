@@ -67,6 +67,7 @@ struct ident;
 struct token;
 struct symbol;
 struct statement;
+struct asm_operand;
 struct expression;
 struct basic_block;
 struct entrypoint;
@@ -76,6 +77,7 @@ struct pseudo;
 
 DECLARE_PTR_LIST(symbol_list, struct symbol);
 DECLARE_PTR_LIST(statement_list, struct statement);
+DECLARE_PTR_LIST(asm_operand_list, struct asm_operand);
 DECLARE_PTR_LIST(expression_list, struct expression);
 DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);

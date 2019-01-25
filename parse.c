@@ -2037,13 +2037,13 @@ static struct token *expression_statement(struct token *token, struct expression
 }
 
 static struct token *parse_asm_operands(struct token *token, struct statement *stmt,
-	struct expression_list **inout)
+	struct asm_operand_list **inout)
 {
 	/* Allow empty operands */
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
-		struct expression *op = alloc_expression(token->pos, EXPR_ASM_OPERAND);
+		struct asm_operand *op = __alloc_asm_operand(0);
 		if (match_op(token->next, '[') &&
 		    token_type(token->next->next) == TOKEN_IDENT &&
 		    match_op(token->next->next->next, ']')) {
@@ -2053,7 +2053,7 @@ static struct token *parse_asm_operands(struct token *token, struct statement *s
 		token = token->next;
 		token = string_expression(token, &op->constraint, "asm constraint");
 		token = parens_expression(token, &op->expr, "in asm parameter");
-		add_expression(inout, op);
+		add_ptr_list(inout, op);
 	} while (match_op(token, ','));
 	return token;
 }

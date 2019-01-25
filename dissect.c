@@ -450,7 +450,7 @@ again:
 	return ret;
 }
 
-static void do_asm_xputs(usage_t mode, struct expression_list *xputs)
+static void do_asm_xputs(usage_t mode, struct asm_operand_list *xputs)
 {
 	DO_LIST(xputs, op, do_expression(U_W_AOF | mode, op->expr));
 }
