@@ -2132,14 +2132,9 @@ static struct token *parse_static_assert(struct token *token, struct symbol_list
 	if (!cond)
 		sparse_error(token->pos, "Expected constant expression");
 	token = expect(token, ',', "after conditional expression in _Static_assert");
-	token = parse_expression(token, &message);
-	if (!message || message->type != EXPR_STRING) {
-		struct position pos;
-
-		pos = message ? message->pos : token->pos;
-		sparse_error(pos, "bad or missing string literal");
+	token = string_expression(token, &message, "_Static_assert()");
+	if (!message)
 		cond = NULL;
-	}
 	token = expect(token, ')', "after diagnostic message in _Static_assert");
 
 	token = expect(token, ';', "after _Static_assert()");
