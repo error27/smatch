@@ -56,7 +56,7 @@ char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct sy
 	char buf[256];
 
 	/* skip 'foo->'.  This was checked in the caller. */
-	skip = strlen(sym->ident->name) + 2;
+	skip = sym->ident->len + 2;
 
 	state = get_state(my_id, sym->ident->name, sym);
 	if (!state || !state->data)
