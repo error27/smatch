@@ -28,8 +28,12 @@ int check_assigned_expr_id;
 static int my_id;
 static int link_id;
 
+static struct expression *skip_mod;
+
 static void undef(struct sm_state *sm, struct expression *mod_expr)
 {
+	if (mod_expr == skip_mod)
+		return;
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
@@ -118,6 +122,7 @@ static void record_param_assignment(struct expression *expr, int param, char *ke
 	if (!name || !sym)
 		goto free;
 
+	skip_mod = expr;
 	set_state(my_id, name, sym, alloc_state_expr(right));
 free:
 	free_string(name);
