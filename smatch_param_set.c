@@ -164,7 +164,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct string_list *set_list = NULL;
 	char *math_str;
 	char buf[256];
-	sval_t sval;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!estate_rl(sm->state))
@@ -186,14 +185,6 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		if (strcmp(param_name, "$") == 0) {
 			insert_string(&set_list, (char *)sm->name);
-			continue;
-		}
-
-		if (rl_to_sval(rl, &sval)) {
-			insert_string(&set_list, (char *)sm->name);
-			sql_insert_return_states(return_id, return_ranges,
-					param_has_filter_data(sm) ? PARAM_ADD : PARAM_SET,
-					param, param_name, show_rl(rl));
 			continue;
 		}
 
