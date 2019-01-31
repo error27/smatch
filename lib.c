@@ -472,44 +472,6 @@ static char **handle_switch_m(char *arg, char **next)
 	return next;
 }
 
-static void handle_arch_m64_finalize(void)
-{
-	switch (arch_m64) {
-	case ARCH_X32:
-		max_int_alignment = 8;
-		int64_ctype = &llong_ctype;
-		uint64_ctype = &ullong_ctype;
-		break;
-	case ARCH_LP32:
-		/* default values */
-		int64_ctype = &llong_ctype;
-		uint64_ctype = &ullong_ctype;
-		intmax_ctype = &llong_ctype;
-		uintmax_ctype = &ullong_ctype;
-		return;
-	case ARCH_LP64:
-		bits_in_long = 64;
-		max_int_alignment = 8;
-		size_t_ctype = &ulong_ctype;
-		ssize_t_ctype = &long_ctype;
-		intmax_ctype = &long_ctype;
-		uintmax_ctype = &ulong_ctype;
-		goto case_64bit_common;
-	case ARCH_LLP64:
-		bits_in_long = 32;
-		max_int_alignment = 8;
-		size_t_ctype = &ullong_ctype;
-		ssize_t_ctype = &llong_ctype;
-		int64_ctype = &llong_ctype;
-		uint64_ctype = &ullong_ctype;
-		goto case_64bit_common;
-	case_64bit_common:
-		bits_in_pointer = 64;
-		pointer_alignment = 8;
-		break;
-	}
-}
-
 static void handle_arch_msize_long_finalize(void)
 {
 	if (arch_msize_long) {
@@ -520,7 +482,6 @@ static void handle_arch_msize_long_finalize(void)
 
 static void handle_arch_finalize(void)
 {
-	handle_arch_m64_finalize();
 	handle_arch_msize_long_finalize();
 }
 
@@ -1498,8 +1459,6 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	handle_switch_W_finalize();
 	handle_switch_v_finalize();
 
-	handle_arch_finalize();
-
 	// Redirect stdout if needed
 	if (dump_macro_defs || preprocess_only)
 		do_output = 1;
@@ -1515,6 +1474,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	if (filelist) {
 		// Initialize type system
 		init_target();
+		handle_arch_finalize();
 		init_ctype();
 
 		predefined_macros();

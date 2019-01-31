@@ -114,6 +114,41 @@ void init_target(void)
 		break;
 	}
 
+	switch (arch_m64) {
+	case ARCH_X32:
+		max_int_alignment = 8;
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+		break;
+	case ARCH_LP32:
+		/* default values */
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+		intmax_ctype = &llong_ctype;
+		uintmax_ctype = &ullong_ctype;
+		break;
+	case ARCH_LP64:
+		bits_in_long = 64;
+		max_int_alignment = 8;
+		size_t_ctype = &ulong_ctype;
+		ssize_t_ctype = &long_ctype;
+		intmax_ctype = &long_ctype;
+		uintmax_ctype = &ulong_ctype;
+		goto case_64bit_common;
+	case ARCH_LLP64:
+		bits_in_long = 32;
+		max_int_alignment = 8;
+		size_t_ctype = &ullong_ctype;
+		ssize_t_ctype = &llong_ctype;
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+		goto case_64bit_common;
+	case_64bit_common:
+		bits_in_pointer = 64;
+		pointer_alignment = 8;
+		break;
+	}
+
 #if defined(__CYGWIN__)
 	wchar_ctype = &ushort_ctype;
 #endif
