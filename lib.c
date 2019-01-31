@@ -477,11 +477,9 @@ static void handle_arch_m64_finalize(void)
 	switch (arch_m64) {
 	case ARCH_X32:
 		max_int_alignment = 8;
-		predefine("__ILP32__", 1, "1");
-		predefine("_ILP32", 1, "1");
 		int64_ctype = &llong_ctype;
 		uint64_ctype = &ullong_ctype;
-		goto case_x86_64;
+		break;
 	case ARCH_LP32:
 		/* default values */
 		int64_ctype = &llong_ctype;
@@ -496,8 +494,6 @@ static void handle_arch_m64_finalize(void)
 		ssize_t_ctype = &long_ctype;
 		intmax_ctype = &long_ctype;
 		uintmax_ctype = &ulong_ctype;
-		predefine("__LP64__", 1, "1");
-		predefine("_LP64", 1, "1");
 		goto case_64bit_common;
 	case ARCH_LLP64:
 		bits_in_long = 32;
@@ -506,17 +502,10 @@ static void handle_arch_m64_finalize(void)
 		ssize_t_ctype = &llong_ctype;
 		int64_ctype = &llong_ctype;
 		uint64_ctype = &ullong_ctype;
-		predefine("__LLP64__", 1, "1");
 		goto case_64bit_common;
 	case_64bit_common:
 		bits_in_pointer = 64;
 		pointer_alignment = 8;
-		/* fall through */
-	case_x86_64:
-#if defined(__x86_64__) || defined(__x86_64)
-		predefine("__x86_64__", 1, "1");
-		predefine("__x86_64", 1, "1");
-#endif
 		break;
 	}
 }
@@ -1347,6 +1336,29 @@ static void predefined_macros(void)
 	// Temporary hacks
 	predefine("__extension__", 0, NULL);
 	predefine("__pragma__", 0, NULL);
+
+	switch (arch_m64) {
+	case ARCH_LP32:
+		break;
+	case ARCH_X32:
+		predefine("__ILP32__", 1, "1");
+		predefine("_ILP32", 1, "1");
+		break;
+	case ARCH_LP64:
+		predefine("__LP64__", 1, "1");
+		predefine("_LP64", 1, "1");
+		break;
+	case ARCH_LLP64:
+		predefine("__LLP64__", 1, "1");
+		break;
+	}
+
+	if (arch_m64 != ARCH_LP32) {
+#if defined(__x86_64__) || defined(__x86_64)
+		predefine("__x86_64__", 1, "1");
+		predefine("__x86_64", 1, "1");
+#endif
+	}
 }
 
 static void create_builtin_stream(void)
