@@ -9,7 +9,7 @@ int foo(const char *fmt, int a, long l, int *p)
 
 /*
  * check-name: call-variadic
- * check-command: test-linearize -Wno-decl -m64 $file
+ * check-command: test-linearize -Wno-decl $file
  *
  * check-output-start
 foo:
