@@ -563,14 +563,12 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 	gettimeofday(&time_before, NULL);
 
-	if (!is_merged(sm)) {
-		DIMPLIED("%d '%s' is not merged.\n", get_lineno(), sm->name);
-		return;
-	}
+	DIMPLIED("checking implications: (%s (%s) %s %s)\n",
+		 sm->name, sm->state->name, show_special(comparison), show_rl(rl));
 
-	if (option_debug_implied || option_debug) {
-		sm_msg("checking implications: (%s %s %s)",
-		       sm->name, show_special(comparison), show_rl(rl));
+	if (!is_merged(sm)) {
+		DIMPLIED("%d '%s' from line %d is not merged.\n", get_lineno(), sm->name, sm->line);
+		return;
 	}
 
 	separate_pools(sm, comparison, rl, &true_stack, &false_stack, NULL, mixed);
