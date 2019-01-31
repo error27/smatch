@@ -138,7 +138,6 @@ has_patterns()
 	while read val; do
 		grep -s -q "$val" "$ofile"
 		if [ "$?" $cmp 0 ]; then
-			error "test '$ifile' failed"
 			error "	Pattern '$val' unexpectedly $msg"
 			return 1
 		fi
@@ -183,7 +182,6 @@ minmax_patterns()
 		n=$(grep -s "$pat" "$ofile" | wc -l)
 		if [ "$max" = "eq" ]; then
 		    if [ "$n" -ne "$min" ]; then
-			error "test '$ifile' failed"
 			error "	Pattern '$pat' expected $min times but got $n times"
 			return 1
 		    fi
@@ -191,14 +189,12 @@ minmax_patterns()
 		fi
 		if [ "$min" != '-' ]; then
 		    if [ "$n" -lt "$min" ]; then
-			error "test '$ifile' failed"
 			error "	Pattern '$pat' expected min $min times but got $n times"
 			return 1
 		    fi
 		fi
 		if [ "$max" != '-' ]; then
 		    if [ "$n" -gt "$max" ]; then
-			error "test '$ifile' failed"
 			error "	Pattern '$pat' expected max $max times but got $n times"
 			return 1
 		    fi
@@ -403,9 +399,16 @@ do_test()
 	if [ "$must_fail" -eq "1" ]; then
 		if [ "$test_failed" -eq "1" ]; then
 			[ -z "$vquiet" ] && \
-			echo "info: test '$file' is known to fail"
+			echo "info: XFAIL: test '$file' is known to fail"
 		else
-			echo "error: test '$file' is known to fail but succeed!"
+			echo "error: XPASS: test '$file' is known to fail but succeed!"
+		fi
+	else
+		if [ "$test_failed" -eq "1" ]; then
+			echo "error: FAIL: test '$file' failed"
+		else
+			[ "$V" -ne "0" ] && \
+			echo "info: PASS: test '$file' passed"
 		fi
 	fi
 
