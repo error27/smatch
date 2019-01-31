@@ -8,7 +8,7 @@ OS = linux
 CC = gcc
 CFLAGS = -O2 -g
 CFLAGS += -Wall -Wwrite-strings
-LD = gcc
+LD = $(CC)
 AR = ar
 PKG_CONFIG = pkg-config
 CHECKER = CHECK=./sparse ./cgcc -no-compile
