@@ -20,6 +20,7 @@ const char *qus(void) { return lstrip(messg); }
 /*
  * check-name: call-inlined
  * check-command: test-linearize -Wno-decl -m64 $file
+ * check-assert: sizeof(void*) == 8
  *
  * check-output-start
 foo:

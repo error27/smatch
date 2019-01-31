@@ -7,6 +7,8 @@ static unsigned int foo(unsigned int x, long a)
 /*
  * check-name: compound-assign-type
  * check-command: test-linearize -m64 $file
+ * check-assert: sizeof(long) == 8
+ *
  * check-output-ignore
  *
  * check-output-excludes: divu\\.32

@@ -19,6 +19,7 @@ int ad(int i, struct S *b) { return i && b->d; }
 /*
  * check-name: logical
  * check-command: test-linearize -m64 -fdump-ir -Wno-decl $file
+ * check-assert: sizeof(void *) == 8 && sizeof(long) == 8 && sizeof(double) == 8
  *
  * check-output-start
 os:

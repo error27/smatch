@@ -24,6 +24,7 @@ static _Bool fdbl_e(dbl a) { return (_Bool)a; }
 /*
  * check-name: bool-cast
  * check-command: test-linearize -m64 -fdump-ir=linearize $file
+ * check-assert: sizeof(void*) == 8 && sizeof(long) == 8 && sizeof(double) == 8
  *
  * check-output-ignore
  * check-output-excludes: cast\\.

@@ -56,6 +56,7 @@ static double double_2_double(double a) { return a; }
 /*
  * check-name: cast-kinds
  * check-command: test-linearize -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -m64 $file
+ * check-assert: sizeof(void *) == 8 && sizeof(long) == 8 && sizeof(double) == 8
  *
  * check-output-start
 uint_2_int:

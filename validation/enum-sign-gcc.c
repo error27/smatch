@@ -60,4 +60,5 @@ _Static_assert(is_unsigned(D) == 1, "enum D");
 /*
  * check-name: enum-sign-gcc
  * check-command: sparse -m64 $file
+ * check-assert: sizeof(long) == 8
  */

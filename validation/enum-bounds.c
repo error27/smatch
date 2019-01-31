@@ -21,4 +21,5 @@ _Static_assert([typeof(IMM2)] == [long], "");
 /*
  * check-name: enum-bounds
  * check-command: sparse -m64 $file
+ * check-assert: sizeof(long) == 8
  */

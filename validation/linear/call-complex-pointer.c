@@ -6,6 +6,7 @@ int foo(int p, int (*f0)(int), int (*f1)(int), int arg)
 /*
  * check-name: call-complex-pointer
  * check-command: test-linearize -m64 -Wno-decl $file
+ * check-assert: sizeof(void *) == 8
  *
  * check-output-start
 foo:

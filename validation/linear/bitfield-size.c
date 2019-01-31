@@ -40,6 +40,7 @@ void scpy(struct s *d, const struct s *s)
 /*
  * check-name: bitfield-size
  * check-command: test-linearize -m64 -Wno-decl -fdump-ir  $file
+  * check-assert: sizeof(void *) == 8
  *
  * check-output-start
 upostinc:

@@ -9,6 +9,7 @@ fun_t f1(void) { return *fun; }
 /*
  * check-name: degen-function
  * check-command: test-linearize -m64 -Wno-decl -fdump-ir=linearize $file
+ * check-assert: sizeof(void *) == 8
  *
  * check-output-start
 fa:

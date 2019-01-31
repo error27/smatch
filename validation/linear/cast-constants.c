@@ -53,6 +53,7 @@ static double float_2_double(void) { return (double)1.123F; }
 /*
  * check-name: cast-constants.c
  * check-command: test-linearize -m64 $file
+ * check-assert: sizeof(void *) == 8 && sizeof(long) == 8 && sizeof(double) == 8
  *
  * check-output-start
 uint_2_int:

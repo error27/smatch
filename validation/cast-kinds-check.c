@@ -3,6 +3,7 @@
 /*
  * check-name: cast-kinds check
  * check-command: sparse -m64 -v -Wno-pointer-to-int-cast $file
+ * check-assert: sizeof(long) == 8
  *
  * check-error-start
 optim/cast-kinds.c:5:45: warning: cast drops bits

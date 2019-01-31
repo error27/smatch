@@ -7,6 +7,7 @@ int *fd(int i) { return  a; }
 /*
  * check-name: degen-array
  * check-command: test-linearize -m64 -Wno-decl $file
+ * check-assert: sizeof(void *) == 8
  *
  * check-output-start
 fa:

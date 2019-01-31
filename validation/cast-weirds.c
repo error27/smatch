@@ -10,6 +10,7 @@ static void * uint_2_vptr(uint a) { return (void *)a; }
 /*
  * check-name: cast-weirds
  * check-command: sparse -m64 $file
+ * check-assert: sizeof(void *) == 8
  *
  * check-error-start
 cast-weirds.c:4:48: warning: non size-preserving integer to pointer cast

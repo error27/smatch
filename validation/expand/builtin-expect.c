@@ -36,6 +36,7 @@ void *fptr(void *a)
 /*
  * check-name: builtin-expect
  * check-command: test-linearize -m64 -Wno-decl $file
+ * check-assert: sizeof(long) == 8
  *
  * check-output-start
 flia:
