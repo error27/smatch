@@ -67,7 +67,7 @@ enum machine {
 #elif defined(__sparc__) || defined(__sparc)
 #define	MACH_NATIVE	MACH_SPARC32
 #elif defined(__m68k__)
-#define MACH_NATIVE	MACH_68K
+#define MACH_NATIVE	MACH_M68K
 #elif defined(__s390x__) || defined(__zarch__)
 #define MACH_NATIVE	MACH_S390X
 #else
