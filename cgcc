@@ -274,6 +274,9 @@ sub add_specs {
     } elsif ($spec eq 'darwin') {
 	return
 	    ' -D__APPLE__=1 -D__MACH__=1';
+    } elsif ($spec eq 'gnu') {		# Hurd
+	return &add_specs ('unix') .	# So, GNU is Unix, uh?
+	    ' -D__GNU__=1 -D__gnu_hurd__=1 -D__MACH__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
