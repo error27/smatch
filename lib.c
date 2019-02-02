@@ -1320,6 +1320,15 @@ static void predefined_macros(void)
 		predefine("__x86_64", 1, "1");
 #endif
 	}
+
+	switch (arch_mach) {
+	case MACH_MIPS64:
+	case MACH_MIPS32:
+		predefine("_MIPS_SZINT", 1, "%d", int_ctype.bit_size);
+		predefine("_MIPS_SZLONG", 1, "%d", long_ctype.bit_size);
+		predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
+		break;
+	}
 }
 
 static void create_builtin_stream(void)
