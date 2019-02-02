@@ -1314,19 +1314,72 @@ static void predefined_macros(void)
 		break;
 	}
 
-	if (arch_m64 != ARCH_LP32) {
-#if defined(__x86_64__) || defined(__x86_64)
-		predefine("__x86_64__", 1, "1");
-		predefine("__x86_64", 1, "1");
-#endif
-	}
-
 	switch (arch_mach) {
+	case MACH_ARM64:
+		predefine("__aarch64__", 1, "1");
+		break;
+	case MACH_ARM:
+		predefine("__arm__", 1, "1");
+		break;
+	case MACH_M68K:
+		predefine("__m68k__", 1, "1");
+		break;
 	case MACH_MIPS64:
+		if (arch_m64 == ARCH_LP64)
+			predefine("__mips64", 1, "64");
+		/* fall-through */
 	case MACH_MIPS32:
+		predefine("__mips", 1, "%d", ptr_ctype.bit_size);
 		predefine("_MIPS_SZINT", 1, "%d", int_ctype.bit_size);
 		predefine("_MIPS_SZLONG", 1, "%d", long_ctype.bit_size);
 		predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
+		break;
+	case MACH_PPC64:
+		if (arch_m64 == ARCH_LP64) {
+			predefine("__powerpc64__", 1, "1");
+			predefine("__ppc64__", 1, "1");
+			predefine("__PPC64__", 1, "1");
+		}
+		/* fall-through */
+	case MACH_PPC32:
+		predefine("__powerpc__", 1, "1");
+		predefine("__powerpc", 1, "1");
+		predefine("__ppc__", 1, "1");
+		predefine("__PPC__", 1, "1");
+		break;
+	case MACH_RISCV64:
+	case MACH_RISCV32:
+		predefine("__riscv", 1, "1");
+		predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
+		break;
+	case MACH_S390X:
+		predefine("__zarch__", 1, "1");
+		predefine("__s390x__", 1, "1");
+		predefine("__s390__", 1, "1");
+		break;
+	case MACH_SPARC64:
+		if (arch_m64 == ARCH_LP64) {
+			predefine("__sparc_v9__", 1, "1");
+			predefine("__sparcv9__", 1, "1");
+			predefine("__sparcv9", 1, "1");
+			predefine("__sparc64__", 1, "1");
+			predefine("__arch64__", 1, "1");
+		}
+		/* fall-through */
+	case MACH_SPARC32:
+		predefine("__sparc__", 1, "1");
+		predefine("__sparc", 1, "1");
+		break;
+	case MACH_X86_64:
+		if (arch_m64 != ARCH_LP32) {
+			predefine("__x86_64__", 1, "1");
+			predefine("__x86_64", 1, "1");
+			break;
+		}
+		/* fall-through */
+	case MACH_I386:
+		predefine("__i386__", 1, "1");
+		predefine("__i386", 1, "1");
 		break;
 	}
 }
