@@ -69,7 +69,8 @@ static void process_states(void)
 		name = get_param_name(tmp);
 		if (!name)
 			continue;
-
+		if (is_recursive_member(name))
+			continue;
 		sql_insert_return_implies(PARAM_USED, arg, name, "");
 	} END_FOR_EACH_SM(tmp);
 

@@ -750,6 +750,33 @@ static char *show_offset(int offset)
 	return buf;
 }
 
+int is_recursive_member(const char *name)
+{
+	char buf[256];
+	const char *p, *next;
+	int size;
+
+	p = strchr(name, '>');
+	if (!p)
+		return 0;
+	p++;
+	while (true) {
+		next = strchr(p, '>');
+		if (!next)
+			return 0;
+		next++;
+
+		size = next - p;
+		if (size >= sizeof(buf))
+			return 0;
+		memcpy(buf, p, size);
+		buf[size] = '\0';
+		if (strstr(next, buf))
+			return 1;
+		p = next;
+	}
+}
+
 static void print_struct_members(struct expression *call, struct expression *expr, int param, int offset, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
@@ -798,6 +825,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		} else {
 			continue;
 		}
+		if (is_recursive_member(printed_name))
+			continue;
 		callback(call, param, printed_name, sm);
 	} END_FOR_EACH_SM(sm);
 free:
