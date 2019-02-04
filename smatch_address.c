@@ -225,6 +225,9 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 		if (unop->type == EXPR_DEREF) {
 			int offset = get_member_offset_from_deref(unop);
 
+			if (offset == -1)
+				return 0;
+
 			unop = strip_expr(unop->unop);
 			if (unop->type == EXPR_SYMBOL) {
 				*rl = where_allocated_rl(unop->symbol);
