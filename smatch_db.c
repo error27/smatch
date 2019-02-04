@@ -1302,6 +1302,87 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
+static char *get_return_compare_str(struct expression *expr)
+{
+	char *compare_str;
+	char *var;
+	char buf[256];
+	int comparison;
+	int param;
+
+	compare_str = expr_lte_to_param(expr, -1);
+	if (compare_str)
+		return compare_str;
+	param = get_param_num(expr);
+	if (param < 0)
+		return NULL;
+
+	var = expr_to_var(expr);
+	if (!var)
+		return NULL;
+	snprintf(buf, sizeof(buf), "%s orig", var);
+	comparison = get_comparison_strings(var, buf);
+	free_string(var);
+
+	if (!comparison)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "[%s$%d]", show_special(comparison), param);
+	return alloc_sname(buf);
+}
+
+static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
+{
+	struct range_list *rl;
+	char *return_ranges;
+	sval_t sval;
+	char *compare_str;
+	char *math_str;
+	char buf[128];
+
+	*rl_p = NULL;
+
+	if (!expr)
+		return alloc_sname("");
+
+	if (get_implied_value(expr, &sval)) {
+		sval = sval_cast(cur_func_return_type(), sval);
+		*rl_p = alloc_rl(sval, sval);
+		return sval_to_str_or_err_ptr(sval);
+	}
+
+	compare_str = expr_equal_to_param(expr, -1);
+	math_str = get_value_in_terms_of_parameter_math(expr);
+
+	if (get_implied_rl(expr, &rl)) {
+		rl = cast_rl(cur_func_return_type(), rl);
+		return_ranges = show_rl(rl);
+	} else if (get_imaginary_absolute(expr, &rl)){
+		rl = cast_rl(cur_func_return_type(), rl);
+		return alloc_sname(show_rl(rl));
+	} else {
+		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
+		return_ranges = show_rl(rl);
+	}
+	*rl_p = rl;
+
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
+	}
+	if (math_str) {
+		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
+		return alloc_sname(buf);
+	}
+	compare_str = get_return_compare_str(expr);
+	if (compare_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+		return alloc_sname(buf);
+	}
+
+	return return_ranges;
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
 	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", function_signature());
@@ -1311,7 +1392,7 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 {
 	struct returned_state_callback *cb;
 	struct range_list *rl;
-	char *return_ranges;
+	const char *return_ranges;
 	int final_pass_orig = final_pass;
 
 	__push_fake_cur_stree();
@@ -1320,31 +1401,24 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 	__split_whole_condition(expr->conditional);
 	final_pass = final_pass_orig;
 
-	if (get_implied_rl(expr->cond_true, &rl))
-		rl = cast_rl(cur_func_return_type(), rl);
-	else
-		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr->cond_true)));
-	return_ranges = show_rl(rl);
+	return_ranges = get_return_ranges_str(expr->cond_true ?: expr->conditional, &rl);
+
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(rl));
 
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr->cond_true);
+		cb->callback(return_id, (char *)return_ranges, expr->cond_true);
 	} END_FOR_EACH_PTR(cb);
 
 	__push_true_states();
 	__use_false_states();
 
-	if (get_implied_rl(expr->cond_false, &rl))
-		rl = cast_rl(cur_func_return_type(), rl);
-	else
-		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr->cond_false)));
-	return_ranges = show_rl(rl);
+	return_ranges = get_return_ranges_str(expr->cond_false, &rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(rl));
 
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr->cond_false);
+		cb->callback(return_id, (char *)return_ranges, expr->cond_false);
 	} END_FOR_EACH_PTR(cb);
 
 	__merge_true_states();
@@ -1407,35 +1481,6 @@ static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
 	} END_FOR_EACH_PTR(tmp);
 
 	return 0;
-}
-
-static char *get_return_compare_str(struct expression *expr)
-{
-	char *compare_str;
-	char *var;
-	char buf[256];
-	int comparison;
-	int param;
-
-	compare_str = expr_lte_to_param(expr, -1);
-	if (compare_str)
-		return compare_str;
-	param = get_param_num(expr);
-	if (param < 0)
-		return NULL;
-
-	var = expr_to_var(expr);
-	if (!var)
-		return NULL;
-	snprintf(buf, sizeof(buf), "%s orig", var);
-	comparison = get_comparison_strings(var, buf);
-	free_string(var);
-
-	if (!comparison)
-		return NULL;
-
-	snprintf(buf, sizeof(buf), "[%s$%d]", show_special(comparison), param);
-	return alloc_sname(buf);
 }
 
 static int split_possible_helper(struct sm_state *sm, struct expression *expr)
@@ -1505,58 +1550,6 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
 	return split_possible_helper(sm, expr);
-}
-
-static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
-{
-	struct range_list *rl;
-	char *return_ranges;
-	sval_t sval;
-	char *compare_str;
-	char *math_str;
-	char buf[128];
-
-	*rl_p = NULL;
-
-	if (!expr)
-		return alloc_sname("");
-
-	if (get_implied_value(expr, &sval)) {
-		sval = sval_cast(cur_func_return_type(), sval);
-		*rl_p = alloc_rl(sval, sval);
-		return sval_to_str(sval);
-	}
-
-	compare_str = expr_equal_to_param(expr, -1);
-	math_str = get_value_in_terms_of_parameter_math(expr);
-
-	if (get_implied_rl(expr, &rl)) {
-		rl = cast_rl(cur_func_return_type(), rl);
-		return_ranges = show_rl(rl);
-	} else if (get_imaginary_absolute(expr, &rl)){
-		rl = cast_rl(cur_func_return_type(), rl);
-		return alloc_sname(show_rl(rl));
-	} else {
-		rl = cast_rl(cur_func_return_type(), alloc_whole_rl(get_type(expr)));
-		return_ranges = show_rl(rl);
-	}
-	*rl_p = rl;
-
-	if (compare_str) {
-		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-		return alloc_sname(buf);
-	}
-	if (math_str) {
-		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, math_str);
-		return alloc_sname(buf);
-	}
-	compare_str = get_return_compare_str(expr);
-	if (compare_str) {
-		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-		return alloc_sname(buf);
-	}
-
-	return return_ranges;
 }
 
 static bool has_possible_negative(struct sm_state *sm)
