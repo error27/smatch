@@ -2523,6 +2523,24 @@ static void db_param_set(struct expression *expr, int param, char *key, char *va
 	in_param_set = false;
 }
 
+static void match_lost_param(struct expression *call, int param)
+{
+	struct expression *arg;
+
+	if (is_const_param(call->fn, param))
+		return;
+
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+
+	arg = strip_expr(arg);
+	if (arg->type == EXPR_PREOP && arg->op == '&')
+		set_extra_expr_mod(arg->unop, alloc_estate_whole(get_type(arg->unop)));
+	else
+		; /* if pointer then set struct members, maybe?*/
+}
+
 static void db_param_value(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *call;
@@ -2666,6 +2684,7 @@ void register_smatch_extra(int id)
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_set);
+	add_lost_param_hook(&match_lost_param);
 	select_return_states_hook(PARAM_VALUE, &db_param_value);
 	select_return_states_after(&db_limited_after);
 }

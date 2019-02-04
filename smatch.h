@@ -801,6 +801,7 @@ enum info_type {
 	CASTED_CALL	= 1021,
 	TYPE_LINK	= 1022,
 	UNTRACKED_PARAM = 1023,
+	LOST_PARAM	= 2023,
 	CULL_PATH	= 1024,
 	PARAM_SET	= 1025,
 	PARAM_USED	= 1026,
@@ -1158,6 +1159,7 @@ struct expression *get_array_variable(struct expression *size);
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
+void add_lost_param_hook(void (func)(struct expression *call, int param));
 void mark_all_params_untracked(int return_id, char *return_ranges, struct expression *expr);
 
 /* smatch_strings.c */
