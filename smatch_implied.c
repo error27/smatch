@@ -418,7 +418,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 			      const struct state_list *remove_stack,
 			      const struct state_list *keep_stack,
 			      int *modified, int *recurse_cnt,
-			      struct timeval *start)
+			      struct timeval *start, int *incomplete)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
@@ -427,6 +427,17 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	struct timeval now;
 
 	if (!sm)
+		return NULL;
+
+	DIMPLIED("checking [stree %d] %s from %d (nr_children: %d)%s%s left = %s [stree %d] right = %s [stree %d]\n",
+		 get_stree_id(sm->pool),
+		 show_sm(sm), sm->line, sm->nr_children,
+		 sm->skip_implications ? " (skip_implications)" : "",
+		 *incomplete ? " (INCOMPLETE)" : "",
+		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
+		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
+
+	if (*incomplete)
 		return NULL;
 	if (sm->skip_implications)
 		return sm;
@@ -442,6 +453,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 			implied_debug_msg = buf;
 		}
 		sm->skip_implications = 1;
+		*incomplete = 1;
 		return sm;
 	}
 
@@ -459,13 +471,13 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		return sm;
 	}
 
+	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
+	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
 	DIMPLIED("checking [stree %d] %s from %d (%d) left = %s [stree %d] right = %s [stree %d]\n",
 		 get_stree_id(sm->pool),
 		 show_sm(sm), sm->line, sm->nr_children,
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
-	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start);
-	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start);
 	if (!removed) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
@@ -518,6 +530,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	int modified;
 	int recurse_cnt;
 	struct timeval start;
+	int incomplete;
 
 	if (!remove_stack)
 		return NULL;
@@ -535,8 +548,9 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		modified = 0;
 		recurse_cnt = 0;
 		gettimeofday(&start, NULL);
-		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start);
-		if (!filtered_sm || !modified)
+		incomplete = 0;
+		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &incomplete);
+		if (!filtered_sm || !modified || incomplete)
 			continue;
 		/* the assignments here are for borrowed implications */
 		filtered_sm->name = tmp->name;
