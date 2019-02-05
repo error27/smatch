@@ -591,7 +591,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	gettimeofday(&time_after, NULL);
 	sec = time_after.tv_sec - time_before.tv_sec;
 	if (sec > 20) {
-		sm->nr_children = 4000;
+		sm->nr_children = MAX_CHILDREN;
 		sm_perror("Function too hairy.  Ignoring implications after %d seconds.", sec);
 	}
 }
