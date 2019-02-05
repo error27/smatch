@@ -79,6 +79,18 @@ static int sval_too_big(struct symbol *type, sval_t sval)
 	return 0;
 }
 
+static int truncates_nicely(struct symbol *type, sval_t min, sval_t max)
+{
+	unsigned long long mask;
+	int bits = type_bits(type);
+
+	if (bits >= type_bits(min.type))
+		return 0;
+
+	mask = (-1ULL >> (64 - bits)) << (64 - bits);
+	return (min.uvalue & mask) ==  (max.uvalue & mask);
+}
+
 static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min, sval_t max)
 {
 	/* If we're just adding a number, cast it and add it */
@@ -93,11 +105,16 @@ static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min,
 		return;
 	}
 
+	if (truncates_nicely(type, min, max)) {
+		add_range(rl, sval_cast(type, min), sval_cast(type, max));
+		return;
+	}
+
 	/*
 	 * If the range we are adding has more bits than the range type then
 	 * add the whole range type.  Eg:
 	 * 0x8000000000000000 - 0xf000000000000000 -> cast to int
-	 * This isn't totally the right thing to do.  We could be more granular.
+	 *
 	 */
 	if (sval_too_big(type, min) || sval_too_big(type, max)) {
 		add_range(rl, sval_type_min(type), sval_type_max(type));
