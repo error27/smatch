@@ -527,7 +527,7 @@ char *expr_to_chunk_helper(struct expression *expr, struct symbol **sym, struct 
 		if (sym)
 			*sym = tmp;
 		if (vsl)
-			*vsl = expr_to_vsl(expr);
+			add_var_sym(vsl, name, tmp);
 		return name;
 	}
 	free_string(name);
