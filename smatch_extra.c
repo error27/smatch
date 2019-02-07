@@ -2615,7 +2615,7 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	state = get_state(SMATCH_EXTRA, fullname, sym);
 	if (!state)
 		return;
-	type = get_member_type_from_key(symbol_expression(sym), key);
+	type = estate_type(state);
 	str_to_rl(type, value, &rl);
 	if (!rl_to_sval(rl, &max))
 		return;
