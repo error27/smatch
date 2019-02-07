@@ -473,11 +473,6 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
 	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
-	DIMPLIED("checking [stree %d] %s from %d (%d) left = %s [stree %d] right = %s [stree %d]\n",
-		 get_stree_id(sm->pool),
-		 show_sm(sm), sm->line, sm->nr_children,
-		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
-		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	if (!removed) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
