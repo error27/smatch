@@ -28,8 +28,10 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, 0);
-	if (!get_implied_rl(arg, rl))
+	if (!get_implied_rl(arg, rl)) {
 		*rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(-1));
+		*rl = cast_rl(get_type(arg), *rl);
+	}
 	return 1;
 }
 
@@ -78,10 +80,18 @@ static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 	struct expression *arg;
 	struct smatch_state *pre_state;
 	struct smatch_state *end_state;
+	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	end_state = estate_filter_range(pre_state, ll_to_sval(-4095), ll_to_sval(0));
+	if (estate_rl(pre_state)) {
+		rl = estate_rl(pre_state);
+		rl = remove_range(estate_rl(pre_state), ll_to_sval(0), ll_to_sval(0));
+		rl = remove_range(rl, ll_to_sval(-4095), ll_to_sval(-1));
+	} else {
+		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+	}
+	end_state = alloc_estate_rl(rl);
 	set_extra_expr_nomod(arg, end_state);
 }
 
@@ -96,7 +106,7 @@ static void match_param_err_or_null(const char *fn, struct expression *call_expr
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(0));
+	call_results_to_rl(call_expr, &ptr_ctype, "0,(-4095)-(-1)", &rl);
 	rl = rl_intersection(estate_rl(pre_state), rl);
 	rl = cast_rl(estate_type(pre_state), rl);
 	end_state = alloc_estate_rl(rl);

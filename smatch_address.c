@@ -108,23 +108,6 @@ int get_member_offset_from_deref(struct expression *expr)
 	return offset;
 }
 
-static struct range_list *filter_unknown_negatives(struct range_list *rl)
-{
-	struct data_range *first;
-	struct range_list *filter = NULL;
-
-	first = first_ptr_list((struct ptr_list *)rl);
-
-	if (sval_is_min(first->min) &&
-	    sval_is_negative(first->max) &&
-	    first->max.value == -1) {
-		add_ptr_list(&filter, first);
-		return rl_filter(rl, filter);
-	}
-
-	return rl;
-}
-
 static void add_offset_to_pointer(struct range_list **rl, int offset)
 {
 	sval_t min, max, remove, sval;
@@ -136,6 +119,9 @@ static void add_offset_to_pointer(struct range_list **rl, int offset)
 	 *
 	 */
 	if (offset == 0)
+		return;
+
+	if (is_unknown_ptr(orig))
 		return;
 
 	/*
@@ -164,16 +150,6 @@ static void add_offset_to_pointer(struct range_list **rl, int offset)
 		return;
 	}
 
-	orig = filter_unknown_negatives(orig);
-	/*
-	 * FIXME:  This is not really accurate but we're a bit screwed anyway
-	 * when we start doing pointer math with error pointers so it's probably
-	 * not important.
-	 *
-	 */
-	if (sval_is_negative(rl_min(orig)))
-		return;
-
 	/* no wrap around */
 	max.uvalue = rl_max(orig).uvalue;
 	if (max.uvalue > sval_type_max(&ptr_ctype).uvalue - offset) {
@@ -193,13 +169,7 @@ static struct range_list *where_allocated_rl(struct symbol *sym)
 	if (!sym)
 		return NULL;
 
-	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_STATIC)) {
-		if (sym->initializer)
-			return alloc_rl(data_seg_min, data_seg_max);
-		else
-			return alloc_rl(bss_seg_min, bss_seg_max);
-	}
-	return alloc_rl(stack_seg_min, stack_seg_max);
+	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 }
 
 int get_address_rl(struct expression *expr, struct range_list **rl)
@@ -209,7 +179,7 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 		return 0;
 
 	if (expr->type == EXPR_STRING) {
-		*rl = alloc_rl(text_seg_min, text_seg_max);
+		*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 		return 1;
 	}
 

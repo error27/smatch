@@ -429,7 +429,7 @@ sval_t sval_type_min(struct symbol *base_type)
 		base_type = &llong_ctype;
 	ret.type = base_type;
 
-	if (type_unsigned(base_type)) {
+	if (type_unsigned(base_type) || is_ptr_type(base_type)) {
 		ret.value = 0;
 		return ret;
 	}

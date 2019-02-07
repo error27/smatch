@@ -576,7 +576,7 @@ struct data_range {
 #define MTAG_ALIAS_BIT (1ULL << 63)
 #define MTAG_OFFSET_MASK 0xfffULL
 
-extern long long valid_ptr_min, valid_ptr_max;
+const extern unsigned long valid_ptr_min, valid_ptr_max;
 extern sval_t valid_ptr_min_sval, valid_ptr_max_sval;
 extern struct range_list *valid_ptr_rl;
 static const sval_t array_min_sval = {
@@ -585,63 +585,63 @@ static const sval_t array_min_sval = {
 };
 static const sval_t array_max_sval = {
 	.type = &ptr_ctype,
-	{.value = 199999},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t text_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 100000000},
+	{.value = 4096},
 };
 static const sval_t text_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 177777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t data_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 200000000},
+	{.value = 4096},
 };
 static const sval_t data_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 277777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t bss_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 300000000},
+	{.value = 4096},
 };
 static const sval_t bss_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 377777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t stack_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 400000000},
+	{.value = 4096},
 };
 static const sval_t stack_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 477777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t kmalloc_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 500000000},
+	{.value = 4096},
 };
 static const sval_t kmalloc_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 577777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t vmalloc_seg_min = {
 	.type = &ptr_ctype,
-	{.value = 600000000},
+	{.value = 4096},
 };
 static const sval_t vmalloc_seg_max = {
 	.type = &ptr_ctype,
-	{.value = 677777777},
+	{.value = ULONG_MAX - 4095},
 };
 static const sval_t fn_ptr_min = {
 	.type = &ptr_ctype,
-	{.value = 700000000},
+	{.value = 4096},
 };
 static const sval_t fn_ptr_max = {
 	.type = &ptr_ctype,
-	{.value = 777777777},
+	{.value = ULONG_MAX - 4095},
 };
 
 char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
@@ -1242,6 +1242,8 @@ static inline int type_unsigned(struct symbol *base_type)
 {
 	if (!base_type)
 		return 0;
+	if (is_ptr_type(base_type))
+		return 1;
 	if (base_type->ctype.modifiers & MOD_UNSIGNED)
 		return 1;
 	return 0;
@@ -1251,8 +1253,8 @@ static inline int type_positive_bits(struct symbol *type)
 {
 	if (!type)
 		return 0;
-	if (type->type == SYM_ARRAY)
-		return bits_in_pointer - 1;
+	if (type->type == SYM_PTR || type->type == SYM_ARRAY)
+		return bits_in_pointer;
 	if (type_unsigned(type))
 		return type_bits(type);
 	return type_bits(type) - 1;

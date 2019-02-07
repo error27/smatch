@@ -76,25 +76,20 @@ int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
 
-long long valid_ptr_min = 4096;
-long long valid_ptr_max = 2117777777;
+const unsigned long valid_ptr_min = 4096;
+const unsigned long valid_ptr_max = LONG_MAX & ~(MTAG_OFFSET_MASK);
 sval_t valid_ptr_min_sval = {
 	.type = &ptr_ctype,
 	{.value = 4096},
 };
 sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
-	{.value = LONG_MAX - 100000},
+	{.value = ULONG_MAX & ~(MTAG_OFFSET_MASK)},
 };
 struct range_list *valid_ptr_rl;
 
 static void set_valid_ptr_max(void)
 {
-	if (type_bits(&ptr_ctype) == 32)
-		valid_ptr_max = 2117777777;
-	else if (type_bits(&ptr_ctype) == 64)
-		valid_ptr_max = 2117777777777777777LL;
-
 	valid_ptr_max_sval.value = valid_ptr_max;
 }
 

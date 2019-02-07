@@ -26,24 +26,52 @@ __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct 
 			 "permanent ranges", perm_data_range);
 __DECLARE_ALLOCATOR(struct ptr_list, rl_ptrlist);
 
+static int handle_error_pointers(char *full, size_t size, struct data_range *drange)
+{
+	/*
+	 * The kernel has error pointers where you do essentially:
+	 *
+	 * return (void *)(unsigned long)-12;
+	 *
+	 * But what I want here is to print -12 instead of the unsigned version
+	 * of that.
+	 *
+	 */
+
+	if (option_project != PROJ_KERNEL)
+		return 0;
+	if (!type_is_ptr(drange->min.type))
+		return 0;
+	if (drange->min.uvalue < -4095ULL)
+		return 0;
+
+	if (drange->min.value == drange->max.value)
+		snprintf(full + strlen(full), size - strlen(full), "(%lld)", drange->min.value);
+	else
+		snprintf(full + strlen(full), size - strlen(full), "(%lld)-(%lld)", drange->min.value, drange->max.value);
+	return 1;
+}
+
 char *show_rl(struct range_list *list)
 {
 	struct data_range *tmp;
-	char full[512];
+	char full[255];
 	int i = 0;
 
 	full[0] = '\0';
 	full[sizeof(full) - 1] = '\0';
 	FOR_EACH_PTR(list, tmp) {
 		if (i++)
-			strncat(full, ",", 254 - strlen(full));
+			strncat(full, ",", sizeof(full) - 1 - strlen(full));
+		if (handle_error_pointers(full, sizeof(full) - 1, tmp))
+			continue;
 		if (sval_cmp(tmp->min, tmp->max) == 0) {
-			strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
+			strncat(full, sval_to_str(tmp->min), sizeof(full) - 1 - strlen(full));
 			continue;
 		}
-		strncat(full, sval_to_str(tmp->min), 254 - strlen(full));
-		strncat(full, "-", 254 - strlen(full));
-		strncat(full, sval_to_str(tmp->max), 254 - strlen(full));
+		strncat(full, sval_to_str(tmp->min), sizeof(full) - 1 - strlen(full));
+		strncat(full, "-", sizeof(full) - 1 - strlen(full));
+		strncat(full, sval_to_str(tmp->max), sizeof(full) - 1 - strlen(full));
 	} END_FOR_EACH_PTR(tmp);
 	if (strlen(full) == sizeof(full) - 1)
 		full[sizeof(full) - 2] = '+';
@@ -442,9 +470,10 @@ static const char *jump_to_call_math(const char *value)
 static void str_to_rl_helper(struct expression *call, struct symbol *type, const char *str, const char **endp, struct range_list **rl)
 {
 	struct range_list *rl_tmp = NULL;
-	sval_t min, max;
+	sval_t prev_min, min, max;
 	const char *c;
 
+	prev_min = sval_type_min(type);
 	min = sval_type_min(type);
 	max = sval_type_max(type);
 	c = str;
@@ -474,8 +503,12 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, const
 			continue;
 		}
 		if (*c == '+') {
-			min = sval_type_max(type);
+			min = prev_min;
+			max = sval_type_max(type);
+			add_range_t(type, &rl_tmp, min, max);
 			c++;
+			if (*c == '[' || *c == '\0')
+				break;
 		}
 		if (*c != '-') {
 			sm_msg("debug XXX: trouble parsing %s c = %s", str, c);
@@ -489,8 +522,12 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, const
 			max = sval_type_max(type);
 		if (*c == '+') {
 			max = sval_type_max(type);
+			add_range_t(type, &rl_tmp, min, max);
 			c++;
+			if (*c == '[' || *c == '\0')
+				break;
 		}
+		prev_min = max;
 		add_range_t(type, &rl_tmp, min, max);
 		if (*c == ')')
 			c++;
@@ -575,6 +612,25 @@ int is_whole_rl(struct range_list *rl)
 	drange = first_ptr_list((struct ptr_list *)rl);
 	if (sval_is_min(drange->min) && sval_is_max(drange->max))
 		return 1;
+	return 0;
+}
+
+int is_unknown_ptr(struct range_list *rl)
+{
+	struct data_range *drange;
+	int cnt = 0;
+
+	if (is_whole_rl(rl))
+		return 1;
+
+	FOR_EACH_PTR(rl, drange) {
+		if (++cnt >= 3)
+			return 0;
+		if (sval_cmp(drange->min, valid_ptr_min_sval) == 0 &&
+		    sval_cmp(drange->max, valid_ptr_max_sval) == 0)
+			return 1;
+	} END_FOR_EACH_PTR(drange);
+
 	return 0;
 }
 

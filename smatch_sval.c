@@ -94,6 +94,8 @@ int sval_is_ptr(sval_t sval)
 
 int sval_unsigned(sval_t sval)
 {
+	if (is_ptr_type(sval.type))
+		return true;
 	return type_unsigned(sval.type);
 }
 
@@ -607,6 +609,8 @@ const char *sval_to_str(sval_t sval)
 {
 	char buf[30];
 
+	if (sval_is_ptr(sval) && sval.value == valid_ptr_max)
+		return "ptr_max";
 	if (sval_unsigned(sval) && sval.value == ULLONG_MAX)
 		return "u64max";
 	if (sval_unsigned(sval) && sval.value == UINT_MAX)
@@ -636,6 +640,22 @@ const char *sval_to_str(sval_t sval)
 		snprintf(buf, sizeof(buf), "%lld", sval.value);
 
 	return alloc_sname(buf);
+}
+
+const char *sval_to_str_or_err_ptr(sval_t sval)
+{
+	char buf[12];
+
+	if (option_project != PROJ_KERNEL ||
+	    !is_ptr_type(sval.type))
+		return sval_to_str(sval);
+
+	if (sval.uvalue >= -4905ULL) {
+		snprintf(buf, sizeof(buf), "(%lld)", sval.value);
+		return alloc_sname(buf);
+	}
+
+	return sval_to_str(sval);
 }
 
 const char *sval_to_numstr(sval_t sval)
