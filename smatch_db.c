@@ -1302,17 +1302,13 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
-static char *get_return_compare_str(struct expression *expr)
+static char *get_return_compare_is_param(struct expression *expr)
 {
-	char *compare_str;
 	char *var;
 	char buf[256];
 	int comparison;
 	int param;
 
-	compare_str = expr_lte_to_param(expr, -1);
-	if (compare_str)
-		return compare_str;
 	param = get_param_num(expr);
 	if (param < 0)
 		return NULL;
@@ -1329,6 +1325,21 @@ static char *get_return_compare_str(struct expression *expr)
 
 	snprintf(buf, sizeof(buf), "[%s$%d]", show_special(comparison), param);
 	return alloc_sname(buf);
+}
+
+static char *get_return_compare_str(struct expression *expr)
+{
+	char *compare_str;
+
+	compare_str = get_return_compare_is_param(expr);
+	if (compare_str)
+		return compare_str;
+
+	compare_str = expr_lte_to_param(expr, -1);
+	if (compare_str)
+		return compare_str;
+
+	return expr_param_comparison(expr, -1);
 }
 
 static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
