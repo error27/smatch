@@ -32,3 +32,9 @@ tpm_tis_spi_read_bytes s32min-s32max (-4095)-0
 __irq_domain_activate_irq s32min-s32max (-4095)-0
 get_user_pages_fast s32min-s32max 1-s32max[<$1]
 __nci_request s32min-s32max (-4095)-0
+wait_for_common s64min-s64max 0-s64max[<=$1]
+__ilog2_u32 s32min-s32max 0-31
+__ilog2_u64 s32min-s32max 0-63
+driver_attach s32min-s32max (-4095)-0
+mbox_post_sync_cmd 255 0-255
+mmc_io_rw_extended s32min-(-1),1-s32max (-4095)-(-1)
