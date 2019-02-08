@@ -281,13 +281,16 @@ free_data:
 static void match_assign_has_buf_comparison(struct expression *expr)
 {
 	struct expression *size;
+	int limit_type;
 
 	if (expr->op != '=')
 		return;
 	if (expr->right->type == EXPR_CALL)
 		return;
-	size = get_size_variable(expr->right);
+	size = get_size_variable(expr->right, &limit_type);
 	if (!size)
+		return;
+	if (limit_type != ELEM_COUNT)
 		return;
 	match_alloc_helper(expr->left, size, 1);
 }

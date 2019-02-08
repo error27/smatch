@@ -384,6 +384,7 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 	int elements, bytes;
 	char *name;
 	char buf[256] = "";
+	int limit_type;
 	int n;
 	sval_t sval;
 
@@ -392,7 +393,7 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 	elements = get_array_size(arg);
 	bytes = get_array_size_bytes_max(arg);
 	rl = get_array_size_bytes_rl(arg);
-	comp = get_size_variable(arg);
+	comp = get_size_variable(arg, &limit_type);
 
 	name = expr_to_str(arg);
 	n = snprintf(buf, sizeof(buf), "buf size: '%s' %d elements, %d bytes", name, elements, bytes);
@@ -403,7 +404,7 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 
 	if (comp) {
 		name = expr_to_str(comp);
-		snprintf(buf + n, sizeof(buf) - n, "[size_var=%s]", name);
+		snprintf(buf + n, sizeof(buf) - n, "[size_var=%s %s]", limit_type_str(limit_type), name);
 		free_string(name);
 	}
 	sm_msg("%s", buf);

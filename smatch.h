@@ -834,6 +834,12 @@ enum info_type {
 	MEMORY_TAG	= 8036,
 	MTAG_ASSIGN	= 8035,
 	STRING_VALUE	= 8041,
+
+	BYTE_COUNT	= 8050,
+	ELEM_COUNT	= 8051,
+	ELEM_LAST	= 8052,
+	USED_LAST	= 8053,
+	USED_COUNT	= 8054,
 };
 
 extern struct sqlite3 *smatch_db;
@@ -1155,8 +1161,10 @@ void store_link(int link_id, const char *name, struct symbol *sym, const char *l
 void set_auto_copy(int owner);
 
 /* check_buf_comparison */
-struct expression *get_size_variable(struct expression *buf);
+const char *limit_type_str(unsigned int limit_type);
+struct expression *get_size_variable(struct expression *buf, int *limit_type);
 struct expression *get_array_variable(struct expression *size);
+int buf_comparison_index_ok(struct expression *expr);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);
