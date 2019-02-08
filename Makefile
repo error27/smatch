@@ -241,19 +241,16 @@ clean-check:
 	                  \) -exec rm {} \;
 
 
-install: $(INST_PROGRAMS) $(INST_MAN1) install-dirs install-bin install-man
-install-dirs:
-	$(Q)install -d $(DESTDIR)$(BINDIR)
-	$(Q)install -d $(DESTDIR)$(MAN1DIR)
+install: install-bin install-man
 install-bin: $(INST_PROGRAMS:%=$(DESTDIR)$(BINDIR)/%)
 install-man: $(INST_MAN1:%=$(DESTDIR)$(MAN1DIR)/%)
 
 $(DESTDIR)$(BINDIR)/%: %
 	@echo "  INSTALL $@"
-	$(Q)install        $< $@ || exit 1;
+	$(Q)install -D        $< $@ || exit 1;
 $(DESTDIR)$(MAN1DIR)/%: %
 	@echo "  INSTALL $@"
-	$(Q)install -m 644 $< $@ || exit 1;
+	$(Q)install -D -m 644 $< $@ || exit 1;
 
 .PHONY: FORCE
 
