@@ -76,7 +76,7 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)
 
 delete from return_states where function = 'is_kernel_rodata';
 insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 0,   -1,  '', '');
-insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 103,  0,  '\$', '100000000-177777777');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 103,  0,  '\$', '4096-ptr_max');
 insert into return_states values ('faked', 'is_kernel_rodata', 0, 2, '0', 0, 0,   -1,  '', '');
 
 /*
@@ -89,23 +89,23 @@ insert into return_states values ('faked', 'is_kernel_rodata', 0, 2, '0', 0, 0, 
 delete from return_states where function = '__kmalloc';
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 103,   0, '\$', '0');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 103,  0, '\$', '1-4000000');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,500000000-577777777', 0, 1037,  -1, '', 400);
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 103,  0, '\$', '1-4000000');
+insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1037,  -1, '', 400);
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0, '\$', '4000000-long_max');
 
 /*
  * Other kmalloc hacking.
  */
-update return_states set return = '0,500000000-577777777' where function = 'kmalloc_slab' and return = 's64min-s64max';
-update return_states set return = '0,500000000-577777777' where function = 'slab_alloc_node' and return = 's64min-s64max';
-update return_states set return = '0,500000000-577777777' where function = 'kmalloc_large' and return != '0';
-update return_states set return = '0,500000000-577777777' where function = 'kmalloc_order_trace' and return != '0';
+update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_slab' and return = 's64min-s64max';
+update return_states set return = '0,4096-ptr_max' where function = 'slab_alloc_node' and return = 's64min-s64max';
+update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_large' and return != '0';
+update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_order_trace' and return != '0';
 
 delete from return_states where function = 'vmalloc';
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,600000000-677777777', 0, 103,  0, '\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0, 103,  0, '\$', '1-128000000');
 insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
 
 delete from return_states where function = 'ksize';
@@ -155,9 +155,9 @@ update caller_info set value = 4096 where caller='kernfs_file_direct_read' and f
 delete from caller_info where caller='init_fw_attribute_group' and function='(struct device_attribute)->show';
 /* and let's fake the next dev_attr_show() call entirely */
 delete from caller_info where caller='sysfs_kf_seq_show' and function='(struct sysfs_ops)->show';
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 0, '\$', '4096-2117777777777777777');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 0, '\$', '4096-ptr_max');
 insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1002, 2, '\$', '4096');
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 2, '\$', '4096-2117777777777777777');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 2, '\$', '4096-ptr_max');
 insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0,   -1, ''  , '');
 /* config fs confuses smatch a little */
 update caller_info set value = 4096 where caller='fill_read_buffer' and function='(struct configfs_item_operations)->show_attribute' and type = 1002 and parameter = 2;
