@@ -1112,6 +1112,7 @@ int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right);
 unsigned long long fls_mask(unsigned long long uvalue);
 unsigned long long sval_fls_mask(sval_t sval);
 const char *sval_to_str(sval_t sval);
+const char *sval_to_str_or_err_ptr(sval_t sval);
 const char *sval_to_numstr(sval_t sval);
 sval_t ll_to_sval(long long val);
 
