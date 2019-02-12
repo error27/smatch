@@ -1513,7 +1513,12 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		return 0;
 
 	/* bail if it gets too complicated */
-	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
+	nr_possible = 0;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->merged)
+			continue;
+		nr_possible++;
+	} END_FOR_EACH_PTR(tmp);
 	nr_states = get_db_state_count();
 	if (nr_states * nr_possible >= 2000)
 		return 0;
@@ -1665,7 +1670,7 @@ static int split_positive_from_negative(struct expression *expr)
 	return 1;
 }
 
-static int call_return_state_hooks_split_null_non_null(struct expression *expr)
+static int call_return_state_hooks_split_null_non_null_zero(struct expression *expr)
 {
 	struct returned_state_callback *cb;
 	struct range_list *rl;
@@ -1681,8 +1686,6 @@ static int call_return_state_hooks_split_null_non_null(struct expression *expr)
 	if (!expr || expr_equal_to_param(expr, -1))
 		return 0;
 	if (expr->type == EXPR_CALL)
-		return 0;
-	if (!is_pointer(expr))
 		return 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
@@ -2027,13 +2030,13 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
-	} else if (call_return_state_hooks_split_null_non_null(expr)) {
+	} else if (split_positive_from_negative(expr)) {
+		return;
+	} else if (call_return_state_hooks_split_null_non_null_zero(expr)) {
 		return;
 	} else if (call_return_state_hooks_split_success_fail(expr)) {
 		return;
 	} else if (splitable_function_call(expr)) {
-		return;
-	} else if (split_positive_from_negative(expr)) {
 		return;
 	} else if (split_by_bool_param(expr)) {
 	} else if (split_by_null_nonnull_param(expr)) {
