@@ -550,7 +550,6 @@ int __handle_select_assigns(struct expression *expr);
 int __handle_expr_statement_assigns(struct expression *expr);
 
 /* smatch_implied.c */
-extern int option_debug_implied;
 extern int option_debug_related;
 struct range_list_stack;
 void param_limit_implications(struct expression *expr, int param, char *key, char *value);

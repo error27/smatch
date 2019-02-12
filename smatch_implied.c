@@ -63,7 +63,9 @@
 #include "smatch_extra.h"
 
 char *implied_debug_msg;
-#define DIMPLIED(msg...) do { if (option_debug_implied || option_debug) printf(msg); } while (0)
+
+#define implied_debug 0
+#define DIMPLIED(msg...) do { if (implied_debug) printf(msg); } while (0)
 
 int option_debug_implied = 0;
 
@@ -85,7 +87,7 @@ static struct range_list *tmp_range_list(struct symbol *type, long long num)
 
 static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 {
-	if (!option_debug_implied && !option_debug)
+	if (!implied_debug && !option_debug)
 		return;
 
 	if (istrue && isfalse) {
@@ -311,11 +313,9 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 	   positives but won't hide actual bugs.
 	*/
 	if (sm->nr_children > 4000) {
-		if (option_debug || option_debug_implied) {
-			static char buf[1028];
-			snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
-				 __func__, sm->nr_children, sm->name, show_state(sm->state));
-			implied_debug_msg = buf;
+		if (implied_debug) {
+			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
+			       __func__, sm->nr_children, sm->name, show_state(sm->state));
 		}
 		return;
 	}
@@ -346,7 +346,7 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 
 	__separate_pools(sm, comparison, rl, true_stack, &maybe_stack, false_stack, checked, mixed, sm);
 
-	if (option_debug) {
+	if (implied_debug) {
 		struct sm_state *sm;
 
 		FOR_EACH_PTR(*true_stack, sm) {
@@ -354,7 +354,8 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 		} END_FOR_EACH_PTR(sm);
 
 		FOR_EACH_PTR(maybe_stack, sm) {
-			sm_msg("MAYBE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+			sm_msg("MAYBE %s %s[stree %d]",
+			       show_sm(sm), sm->merged ? "(merged) ": "", get_stree_id(sm->pool));
 		} END_FOR_EACH_PTR(sm);
 
 		FOR_EACH_PTR(*false_stack, sm) {
@@ -446,11 +447,9 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	gettimeofday(&now, NULL);
 	if ((*recurse_cnt)++ > 1000 || now.tv_sec - start->tv_sec > 5) {
-		if (local_debug || option_debug_implied) {
-			static char buf[1028];
-			snprintf(buf, sizeof(buf), "debug: %s: nr_children over 4000 (%d). (%s %s)",
+		if (implied_debug) {
+			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
 				 __func__, sm->nr_children, sm->name, show_state(sm->state));
-			implied_debug_msg = buf;
 		}
 		sm->skip_implications = 1;
 		*incomplete = 1;
@@ -534,8 +533,6 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		return NULL;
 
 	FOR_EACH_SM(pre_stree, tmp) {
-		if (option_debug)
-			sm_msg("%s: %s", __func__, show_sm(tmp));
 		if (!tmp->merged)
 			continue;
 		if (sm_in_keep_leafs(tmp, keep_stack))
@@ -588,7 +585,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	*false_states = filter_stack(sm, pre_stree, true_stack, false_stack);
 	free_slist(&true_stack);
 	free_slist(&false_stack);
-	if (option_debug_implied || option_debug) {
+	if (implied_debug) {
 		printf("These are the implied states for the true path: (%s %s %s)\n",
 		       sm->name, show_special(comparison), show_rl(rl));
 		__print_stree(*true_states);

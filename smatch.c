@@ -236,7 +236,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(spammy);
 		OPTION(info);
 		OPTION(debug);
-		OPTION(debug_implied);
 		OPTION(debug_related);
 		OPTION(assume_loops);
 		OPTION(no_data);
