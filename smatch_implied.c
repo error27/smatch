@@ -67,8 +67,6 @@ char *implied_debug_msg;
 #define implied_debug 0
 #define DIMPLIED(msg...) do { if (implied_debug) printf(msg); } while (0)
 
-int option_debug_implied = 0;
-
 /*
  * tmp_range_list():
  * It messes things up to free range list allocations.  This helper fuction
