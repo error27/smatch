@@ -584,7 +584,8 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		return NULL;
 	estate = alloc_estate_range(start, end);
 	if (get_hard_max(condition->right, &max)) {
-		estate_set_hard_max(estate);
+		if (!get_macro_name(condition->pos))
+			estate_set_hard_max(estate);
 		if (condition->op == '<' ||
 		    condition->op == SPECIAL_UNSIGNED_LT ||
 		    condition->op == SPECIAL_NOTEQUAL)
@@ -1383,6 +1384,17 @@ bool is_impossible_variable(struct expression *expr)
 	return false;
 }
 
+static bool in_macro(struct expression *left, struct expression *right)
+{
+	if (!left || !right)
+		return 0;
+	if (left->pos.line != right->pos.line || left->pos.pos != right->pos.pos)
+		return 0;
+	if (get_macro_name(left->pos))
+		return 1;
+	return 0;
+}
+
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
 	struct range_list *left_orig;
@@ -1465,18 +1477,18 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (get_hard_max(right, &dummy))
+		if (get_implied_value(right, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(left_true_state);
-		if (get_hard_max(left, &dummy))
+		if (get_implied_value(left, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(right_false_state);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (get_hard_max(left, &dummy))
+		if (get_implied_value(left, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(right_true_state);
-		if (get_hard_max(right, &dummy))
+		if (get_implied_value(right, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(left_false_state);
 		break;
 	}
