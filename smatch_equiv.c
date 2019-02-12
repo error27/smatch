@@ -212,15 +212,19 @@ void set_related(struct smatch_state *estate, struct related_list *rlist)
  */
 void set_equiv(struct expression *left, struct expression *right)
 {
-	struct sm_state *right_sm, *left_sm;
+	struct sm_state *right_sm, *left_sm, *other_sm;
 	struct relation *rel;
 	char *left_name;
 	struct symbol *left_sym;
 	struct related_list *rlist;
+	char *other_name;
+	struct symbol *other_sym;
 
 	left_name = expr_to_var_sym(left, &left_sym);
 	if (!left_name || !left_sym)
 		goto free;
+
+	other_name = get_other_name_sym(left_name, left_sym, &other_sym);
 
 	right_sm = get_sm_state_expr(SMATCH_EXTRA, right);
 	if (!right_sm) {
@@ -238,12 +242,24 @@ void set_equiv(struct expression *left, struct expression *right)
 	left_sm->name = alloc_string(left_name);
 	left_sm->sym = left_sym;
 	left_sm->state = clone_estate_cast(get_type(left), right_sm->state);
+	/* FIXME: The expression we're passing is wrong */
 	set_extra_mod_helper(left_name, left_sym, left, left_sm->state);
 	__set_sm(left_sm);
+
+	if (other_name && other_sym) {
+		other_sm = clone_sm(right_sm);
+		other_sm->name = alloc_string(other_name);
+		other_sm->sym = other_sym;
+		other_sm->state = clone_estate_cast(get_type(left), left_sm->state);
+		set_extra_mod_helper(other_name, other_sym, NULL, other_sm->state);
+		__set_sm(other_sm);
+	}
 
 	rlist = clone_related_list(estate_related(right_sm->state));
 	add_related(&rlist, right_sm->name, right_sm->sym);
 	add_related(&rlist, left_name, left_sym);
+	if (other_name && other_sym)
+		add_related(&rlist, other_name, other_sym);
 
 	FOR_EACH_PTR(rlist, rel) {
 		struct sm_state *old_sm, *new_sm;
