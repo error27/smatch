@@ -203,6 +203,7 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 
 	return NULL;
 }
+
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	char *new_name;
@@ -2249,6 +2250,9 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, show_rl(rl));
+	if (estate_has_hard_max(sm->state))
+		sql_insert_caller_info(call, HARD_MAX, param, printed_name,
+				       sval_to_str(estate_max(sm->state)));
 	if (estate_has_fuzzy_max(sm->state))
 		sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
 				       sval_to_str(estate_get_fuzzy_max(sm->state)));
@@ -2566,6 +2570,10 @@ static void match_call_info(struct expression *expr)
 			sql_insert_caller_info(expr, PARAM_VALUE, i, "$", show_rl(rl));
 		}
 		state = get_state_expr(SMATCH_EXTRA, arg);
+		if (estate_has_hard_max(state)) {
+			sql_insert_caller_info(expr, HARD_MAX, i, "$",
+					       sval_to_str(estate_max(state)));
+		}
 		if (estate_has_fuzzy_max(state)) {
 			sql_insert_caller_info(expr, FUZZY_MAX, i, "$",
 					       sval_to_str(estate_get_fuzzy_max(state)));
@@ -2597,7 +2605,7 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
-static void set_param_hard_max(const char *name, struct symbol *sym, char *key, char *value)
+static void set_param_fuzzy_max(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
@@ -2620,6 +2628,24 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	if (!rl_to_sval(rl, &max))
 		return;
 	estate_set_fuzzy_max(state, max);
+}
+
+static void set_param_hard_max(const char *name, struct symbol *sym, char *key, char *value)
+{
+	struct smatch_state *state;
+	char fullname[256];
+
+	if (strcmp(key, "*$") == 0)
+		snprintf(fullname, sizeof(fullname), "*%s", name);
+	else if (strncmp(key, "$", 1) == 0)
+		snprintf(fullname, 256, "%s%s", name, key + 1);
+	else
+		return;
+
+	state = get_state(SMATCH_EXTRA, fullname, sym);
+	if (!state)
+		return;
+	estate_set_hard_max(state);
 }
 
 struct sm_state *get_extra_sm_state(struct expression *expr)
@@ -2655,7 +2681,8 @@ void register_smatch_extra(int id)
 	add_merge_hook(my_id, &merge_estates);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	select_caller_info_hook(set_param_value, PARAM_VALUE);
-	select_caller_info_hook(set_param_hard_max, FUZZY_MAX);
+	select_caller_info_hook(set_param_fuzzy_max, FUZZY_MAX);
+	select_caller_info_hook(set_param_hard_max, HARD_MAX);
 	select_return_states_before(&db_limited_before);
 	select_return_states_hook(PARAM_LIMIT, &db_param_limit);
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
