@@ -6,16 +6,19 @@ OS = linux
 
 
 CC = gcc
-CFLAGS = -O2 -g
 LD = $(CC)
 AR = ar
-PKG_CONFIG = pkg-config
-CHECKER_FLAGS = -Wno-vla
 
-DESTDIR=
+CFLAGS ?= -O2 -g
+
+DESTDIR ?=
 PREFIX ?= $(HOME)
-BINDIR=$(PREFIX)/bin
-MANDIR=$(PREFIX)/share/man
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/share/man
+
+PKG_CONFIG ?= pkg-config
+
+CHECKER_FLAGS ?= -Wno-vla
 
 # Allow users to override build settings without dirtying their trees
 # For debugging, put this in local.mk:
