@@ -135,9 +135,15 @@ static void match_condition(struct expression *expr)
 	struct smatch_state *left_false = NULL;
 	struct smatch_state *right_true = NULL;
 	struct smatch_state *right_false = NULL;
+	sval_t sval;
 
 
 	if (expr->type != EXPR_COMPARE)
+		return;
+
+	/* If we're dealing with known expressions, that's for smatch_extra.c */
+	if (get_implied_value(expr->left, &sval) ||
+	    get_implied_value(expr->right, &sval))
 		return;
 
 	switch (expr->op) {
