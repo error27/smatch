@@ -789,7 +789,6 @@ void __negate_cond_stacks(void)
 {
 	struct stree *old_false, *old_true;
 
-	__use_cond_stack(&cond_false_stack);
 	old_false = pop_stree(&cond_false_stack);
 	old_true = pop_stree(&cond_true_stack);
 	push_stree(&cond_false_stack, old_true);
