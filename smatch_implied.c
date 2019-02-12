@@ -301,13 +301,6 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 		return;
 
 	/*
-	 * If it looks like this is going to take too long as-is, then don't
-	 * create even more fake history.
-	 */
-	if (mixed && sm->nr_children > 100)
-		*mixed = 1;
-
-	/*
 	   Sometimes the implications are just too big to deal with
 	   so we bail.  Theoretically, bailing out here can cause more false
 	   positives but won't hide actual bugs.
