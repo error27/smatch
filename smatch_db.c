@@ -2435,6 +2435,8 @@ char *return_state_to_var_sym(struct expression *expr, int param, const char *ke
 
 		if (expr->type != EXPR_ASSIGNMENT)
 			return NULL;
+		if (get_type(expr->left) == &int_ctype && strcmp(key, "$") != 0)
+			return NULL;
 		name = expr_to_var_sym(expr->left, sym);
 		if (!name)
 			return NULL;
