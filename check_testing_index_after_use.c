@@ -62,7 +62,6 @@ static void array_check(struct expression *expr)
 		return;
 	if (is_capped(offset))
 		return;
-	sm_msg("%s: %s array_size = %d", __func__, expr_to_str(offset), array_size);
 	set_state_expr(my_used_id, offset, alloc_state_num(array_size));
 }
 
