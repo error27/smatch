@@ -7,7 +7,6 @@ OS = linux
 
 CC = gcc
 CFLAGS = -O2 -g
-CFLAGS += -Wall -Wwrite-strings
 LD = $(CC)
 AR = ar
 PKG_CONFIG = pkg-config
@@ -91,6 +90,7 @@ all:
 # common flags/options/...
 
 cflags = -fno-strict-aliasing
+cflags += -Wall -Wwrite-strings
 
 GCC_BASE := $(shell $(CC) --print-file-name=)
 cflags += -DGCC_BASE=\"$(GCC_BASE)\"
