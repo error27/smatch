@@ -23,13 +23,26 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
+static sval_t err_ptr_min = {
+	.type = &ptr_ctype,
+	.value = -4095,
+};
+static sval_t err_ptr_max = {
+	.type = &ptr_ctype,
+	.value = -1,
+};
+static sval_t null_ptr = {
+	.type = &ptr_ctype,
+	.value = 0,
+};
+
 static int implied_err_cast_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, 0);
 	if (!get_implied_rl(arg, rl)) {
-		*rl = alloc_rl(ll_to_sval(-4095), ll_to_sval(-1));
+		*rl = alloc_rl(err_ptr_min, err_ptr_max);
 		*rl = cast_rl(get_type(arg), *rl);
 	}
 	return 1;
@@ -86,8 +99,8 @@ static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
 	if (estate_rl(pre_state)) {
 		rl = estate_rl(pre_state);
-		rl = remove_range(estate_rl(pre_state), ll_to_sval(0), ll_to_sval(0));
-		rl = remove_range(rl, ll_to_sval(-4095), ll_to_sval(-1));
+		rl = remove_range(rl, null_ptr, null_ptr);
+		rl = remove_range(rl, err_ptr_min, err_ptr_max);
 	} else {
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	}
@@ -108,7 +121,7 @@ static void match_param_err_or_null(const char *fn, struct expression *call_expr
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
 	call_results_to_rl(call_expr, &ptr_ctype, "0,(-4095)-(-1)", &rl);
 	rl = rl_intersection(estate_rl(pre_state), rl);
-	rl = cast_rl(estate_type(pre_state), rl);
+	rl = cast_rl(get_type(arg), rl);
 	end_state = alloc_estate_rl(rl);
 	set_extra_expr_nomod(arg, end_state);
 }
@@ -118,12 +131,16 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 {
 	struct expression *arg;
 	struct smatch_state *pre_state;
-	struct smatch_state *new_state;
+	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	new_state = estate_filter_range(pre_state, sval_type_min(&long_ctype), ll_to_sval(-1));
-	set_extra_expr_nomod(arg, new_state);
+	if (estate_rl(pre_state))
+		rl = rl_intersection(estate_rl(pre_state), valid_ptr_rl);
+	else
+		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+	rl = cast_rl(get_type(arg), rl);
+	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
 static void match_err(const char *fn, struct expression *call_expr,
@@ -131,13 +148,16 @@ static void match_err(const char *fn, struct expression *call_expr,
 {
 	struct expression *arg;
 	struct smatch_state *pre_state;
-	struct smatch_state *new_state;
+	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	new_state = estate_filter_range(pre_state, sval_type_min(&long_ctype), ll_to_sval(-4096));
-	new_state = estate_filter_range(new_state, ll_to_sval(0), sval_type_max(&long_ctype));
-	set_extra_expr_nomod(arg, new_state);
+	rl = estate_rl(pre_state);
+	if (!rl)
+		rl = alloc_rl(err_ptr_min, err_ptr_max);
+	rl = rl_intersection(rl, alloc_rl(err_ptr_min, err_ptr_max));
+	rl = cast_rl(get_type(arg), rl);
+	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
 static void match_container_of_macro(const char *fn, struct expression *expr, void *unused)
