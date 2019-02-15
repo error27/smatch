@@ -386,29 +386,6 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 	return alloc_estate_rl(rl);
 }
 
-struct smatch_state *estate_filter_range(struct smatch_state *orig,
-				 sval_t filter_min, sval_t filter_max)
-{
-	struct range_list *rl;
-	struct smatch_state *state;
-
-	if (!orig)
-		orig = alloc_estate_whole(filter_min.type);
-
-	rl = remove_range(estate_rl(orig), filter_min, filter_max);
-	state = alloc_estate_rl(rl);
-	if (estate_has_hard_max(orig))
-		estate_set_hard_max(state);
-	if (estate_has_fuzzy_max(orig))
-		estate_set_fuzzy_max(state, estate_get_fuzzy_max(orig));
-	return state;
-}
-
-struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t sval)
-{
-	return estate_filter_range(orig, sval, sval);
-}
-
 /*
  * One of the complications is that smatch tries to free a bunch of data at the
  * end of every function.

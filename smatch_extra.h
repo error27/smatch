@@ -147,7 +147,6 @@ int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 struct smatch_state *get_implied_estate(struct expression *expr);
 
 struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t filter);
-struct smatch_state *estate_filter_range(struct smatch_state *orig, sval_t filter_min, sval_t filter_max);
 struct data_info *clone_dinfo_perm(struct data_info *dinfo);
 struct smatch_state *clone_estate_perm(struct smatch_state *state);
 
