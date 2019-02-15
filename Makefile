@@ -16,7 +16,6 @@ DESTDIR=
 PREFIX ?= $(HOME)
 BINDIR=$(PREFIX)/bin
 MANDIR=$(PREFIX)/share/man
-MAN1DIR=$(MANDIR)/man1
 
 # Allow users to override build settings without dirtying their trees
 # For debugging, put this in local.mk:
@@ -97,6 +96,10 @@ cflags += -DGCC_BASE=\"$(GCC_BASE)\"
 
 MULTIARCH_TRIPLET := $(shell $(CC) -print-multiarch 2>/dev/null)
 cflags += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
+
+
+bindir := $(DESTDIR)$(BINDIR)
+man1dir := $(DESTDIR)$(MANDIR)/man1
 
 ########################################################################
 # target specificities
@@ -241,13 +244,13 @@ clean-check:
 
 
 install: install-bin install-man
-install-bin: $(INST_PROGRAMS:%=$(DESTDIR)$(BINDIR)/%)
-install-man: $(INST_MAN1:%=$(DESTDIR)$(MAN1DIR)/%)
+install-bin: $(INST_PROGRAMS:%=$(bindir)/%)
+install-man: $(INST_MAN1:%=$(man1dir)/%)
 
-$(DESTDIR)$(BINDIR)/%: %
+$(bindir)/%: %
 	@echo "  INSTALL $@"
 	$(Q)install -D        $< $@ || exit 1;
-$(DESTDIR)$(MAN1DIR)/%: %
+$(man1dir)/%: %
 	@echo "  INSTALL $@"
 	$(Q)install -D -m 644 $< $@ || exit 1;
 
