@@ -11,7 +11,6 @@ CFLAGS += -Wall -Wwrite-strings
 LD = $(CC)
 AR = ar
 PKG_CONFIG = pkg-config
-CHECKER = CHECK=./sparse ./cgcc -no-compile
 CHECKER_FLAGS = -Wno-vla
 
 DESTDIR=
@@ -208,7 +207,7 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 
 %.sc: %.c sparse
 	@echo "  CHECK   $<"
-	$(Q) $(CHECKER) $(CHECKER_FLAGS) $(cflags) -c $<
+	$(Q)CHECK=./sparse ./cgcc -no-compile $(CHECKER_FLAGS) $(cflags) -c $<
 
 selfcheck: $(OBJS:.o=.sc)
 
