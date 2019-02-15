@@ -338,7 +338,34 @@ sub add_specs {
 	chomp $os;
 	return &add_specs (lc $os);
     } elsif ($spec eq 'host_arch_specs') {
-	my $arch = `uname -m`;
+	my $gccmachine;
+	my $arch;
+
+	$gccmachine = `$ccom -dumpmachine`;
+	chomp $gccmachine;
+
+	if ($gccmachine =~ '^aarch64-') {
+	    return &add_specs ('aarch64');
+	} elsif ($gccmachine =~ '^arm-.*eabihf$') {
+	    return &add_specs ('arm+hf');
+	} elsif ($gccmachine =~ '^arm-') {
+	    return &add_specs ('arm');
+	} elsif ($gccmachine =~ '^i[23456]86-') {
+	    return &add_specs ('i386');
+	} elsif ($gccmachine =~ '^(powerpc|ppc)64le-') {
+	    return &add_specs ('ppc64+le');
+	} elsif ($gccmachine =~ '^s390x-') {
+	    return &add_specs ('s390x');
+	} elsif ($gccmachine eq 'x86_64-linux-gnu') {
+	    return &add_specs ('x86_64');
+	}
+
+	# fall back to uname -m to determine the specifics.
+	# Note: this is only meaningful when using natively
+	#       since information about the host is used to
+	#	guess characteristics of the target.
+
+	$arch = `uname -m`;
 	chomp $arch;
 	if ($arch =~ /^(i.?86|athlon)$/i) {
 	    return &add_specs ('i386');
@@ -357,10 +384,6 @@ sub add_specs {
 	} elsif ($arch =~ /^(sparc64)$/i) {
 	    return &add_specs ('sparc64');
 	} elsif ($arch =~ /^arm(?:v[78]l)?$/i) {
-	    chomp (my $gccmachine = `$ccom -dumpmachine`);
-	    if ($gccmachine eq 'arm-linux-gnueabihf') {
-		return &add_specs ('arm+hf');
-	    }
 	    return &add_specs ('arm');
 	} elsif ($arch =~ /^(aarch64)$/i) {
 	    return &add_specs ('aarch64');
