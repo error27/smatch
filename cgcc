@@ -315,6 +315,10 @@ sub add_specs {
     } elsif ($spec eq 'ppc64') {
 	return (' -D_STRING_ARCH_unaligned=1 -m64' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'ppc64+be') {
+	return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
+    } elsif ($spec eq 'ppc64+le') {
+	return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
     } elsif ($spec eq 's390x') {
 	return (' -D_BIG_ENDIAN' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
@@ -350,9 +354,9 @@ sub add_specs {
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
 	} elsif ($arch =~ /^(ppc64)$/i) {
-	    return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
+	    return &add_specs ('ppc64+be');
 	} elsif ($arch =~ /^(ppc64le)$/i) {
-	    return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
+	    return &add_specs ('ppc64+le');
 	} elsif ($arch =~ /^(s390x)$/i) {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
