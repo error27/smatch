@@ -322,7 +322,7 @@ sub add_specs {
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'arm') {
-	chomp (my $gccmachine = `$cc -dumpmachine`);
+	chomp (my $gccmachine = `$ccom -dumpmachine`);
 	my $cppsymbols = ' -m32';
 
 	if ($gccmachine eq 'arm-linux-gnueabihf') {
