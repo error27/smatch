@@ -294,7 +294,7 @@ sub add_specs {
 	return (' --arch=arm' .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
     } elsif ($spec eq 'arm+hf') {
-	return &add_specs ('arm') . ' -D__ARM_PCS_VFP=1';
+	return &add_specs ('arm') . ' -mfloat-abi=hard';
     } elsif ($spec eq 'aarch64') {
 	return (' --arch=aarch64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
