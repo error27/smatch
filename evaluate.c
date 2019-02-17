@@ -910,7 +910,7 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		if (Waddress)
 			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
 	} else if (!is_scalar_type(ctype)) {
-		sparse_error(expr->pos, "incorrect type in conditional");
+		sparse_error(expr->pos, "incorrect type in conditional (non-scalar type)");
 		info(expr->pos, "   got %s", show_typename(ctype));
 		return NULL;
 	}
