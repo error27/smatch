@@ -5,5 +5,4 @@
 /*
  * check-name: arm-predef-float-abi-soft
  * check-command: sparse --arch=arm -mfloat-abi=soft $file
- * check-known-to-fail
  */

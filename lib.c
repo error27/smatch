@@ -329,6 +329,7 @@ static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_mach = MACH_NATIVE;
+int arch_fp_abi = FP_ABI_NATIVE;
 int arch_cmodel = CMODEL_UNKNOWN;
 
 
@@ -679,6 +680,15 @@ static int handle_cmodel(const char *opt, const char *arg, const struct flag *fl
 	return handle_subopt_val(opt, arg, cmodels, flag->flag);
 }
 
+static int handle_float_abi(const char *opt, const char *arg, const struct flag *flag, int options) {
+	static const struct val_map fp_abis[] = {
+		{ "hard",		FP_ABI_HARD },
+		{ "soft",		FP_ABI_SOFT },
+		{ "softfp",		FP_ABI_HYBRID },
+		{ "?" },
+	};
+	return handle_subopt_val(opt, arg, fp_abis, flag->flag);
+}
 
 static const struct flag mflags[] = {
 	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
@@ -691,6 +701,7 @@ static const struct flag mflags[] = {
 	{ "big-endian", &arch_big_endian, NULL },
 	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
 	{ "cmodel", &arch_cmodel, handle_cmodel },
+	{ "float-abi", &arch_fp_abi, handle_float_abi },
 	{ }
 };
 
@@ -1519,6 +1530,18 @@ static void predefined_macros(void)
 		break;
 	case MACH_ARM:
 		predefine("__arm__", 1, "1");
+		switch (arch_fp_abi) {
+		case FP_ABI_HARD:
+			predefine("__ARM_PCS_VFP", 1, "1");
+			break;
+		case FP_ABI_SOFT:
+			predefine("__SOFTFP__", 1, "1");
+			/* fall-through */
+		case FP_ABI_HYBRID:
+			predefine("__ARM_PCS", 1, "1");
+			break;
+		}
+		predefine("__VFP_FP__", 1, "1");
 		break;
 	case MACH_M68K:
 		predefine("__m68k__", 1, "1");

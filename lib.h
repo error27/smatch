@@ -207,6 +207,7 @@ extern int funsigned_char;
 extern int arch_m64;
 extern int arch_big_endian;
 extern int arch_mach;
+extern int arch_fp_abi;
 
 enum {
 	CMODEL_UNKNOWN,

@@ -76,4 +76,19 @@ enum machine {
 #define UNSIGNED_CHAR	0
 #endif
 
+
+enum fp_abi {
+	FP_ABI_HARD,
+	FP_ABI_SOFT,
+	FP_ABI_HYBRID,
+};
+
+#if defined(__ARM_PCS_VFP)
+#define FP_ABI_NATIVE		FP_ABI_HARD
+#elif defined(__ARM_PCS) && !defined(__SOFTFP__)
+#define FP_ABI_NATIVE		FP_ABI_HYBRID
+#else
+#define FP_ABI_NATIVE		FP_ABI_SOFT
+#endif
+
 #endif
