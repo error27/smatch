@@ -5,5 +5,4 @@
 /*
  * check-name: arm-predef-hard-float
  * check-command: sparse --arch=arm -mhard-float $file
- * check-known-to-fail
  */

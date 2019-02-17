@@ -702,6 +702,8 @@ static const struct flag mflags[] = {
 	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
 	{ "cmodel", &arch_cmodel, handle_cmodel },
 	{ "float-abi", &arch_fp_abi, handle_float_abi },
+	{ "hard-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_HARD },
+	{ "soft-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_SOFT },
 	{ }
 };
 
