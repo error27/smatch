@@ -52,7 +52,7 @@ static void array_check(struct expression *expr)
 
 	array_str = expr_to_str(array);
 	offset_str = expr_to_str(offset);
-	sm_warning("XXX potentially one past the end of array '%s[%s]'", array_str, offset_str);
+	sm_warning("potentially one past the end of array '%s[%s]'", array_str, offset_str);
 	free_string(array_str);
 	free_string(offset_str);
 }
