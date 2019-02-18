@@ -238,6 +238,15 @@ static void db_returns_barrier(struct expression *expr, int param, char *key, ch
 	mark_user_data_as_nospec();
 }
 
+static void select_return_stmt_cnt(struct expression *expr, int param, char *key, char *value)
+{
+	int cnt;
+
+	cnt = atoi(value);
+	if (cnt > 400)
+		mark_user_data_as_nospec();
+}
+
 void check_nospec(int id)
 {
 	my_id = id;
@@ -252,6 +261,7 @@ void check_nospec(int id)
 	add_split_return_callback(&returned_struct_members);
 	select_return_states_hook(NOSPEC, &db_returns_nospec);
 	select_return_states_hook(NOSPEC_WB, &db_returns_barrier);
+	select_return_states_hook(STMT_CNT, &select_return_stmt_cnt);
 
 	add_hook(&match_asm, ASM_HOOK);
 	add_hook(&match_after_nospec_asm, STMT_HOOK_AFTER);

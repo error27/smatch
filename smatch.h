@@ -1225,6 +1225,7 @@ unsigned long get_max_memory(void);
 
 /* check_is_nospec.c */
 bool is_nospec(struct expression *expr);
+long get_stmt_cnt(void);
 
 /* smatch_nul_terminator.c */
 bool is_nul_terminated(struct expression *expr);
