@@ -2386,8 +2386,8 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	struct range_list *rl;
 	struct range_list *limit;
 	struct range_list *new;
-	char *tmp_name;
-	struct symbol *tmp_sym;
+	char *other_name;
+	struct symbol *other_sym;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -2427,17 +2427,19 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	/* We want to preserve the implications here */
 	if (sm && basically_the_same(estate_rl(sm->state), new))
 		goto free;
-	tmp_name = map_long_to_short_name_sym(name, sym, &tmp_sym);
-	if (tmp_name && tmp_sym) {
-		free_string(name);
-		name = tmp_name;
-		sym = tmp_sym;
-	}
+	other_name = map_long_to_short_name_sym(name, sym, &other_sym);
 
 	if (op == PARAM_LIMIT)
 		set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(new));
 	else
 		set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
+
+	if (other_name && other_sym) {
+		if (op == PARAM_LIMIT)
+			set_extra_nomod_vsl(other_name, other_sym, vsl, NULL, alloc_estate_rl(new));
+		else
+			set_extra_mod(other_name, other_sym, NULL, alloc_estate_rl(new));
+	}
 
 	if (op == PARAM_LIMIT && arg->type == EXPR_BINOP)
 		db_param_limit_binops(arg, key, new);
