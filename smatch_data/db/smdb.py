@@ -197,6 +197,8 @@ def txt_to_val(txt):
         return 2**15 - 1
     elif txt == "u64max":
         return 2**64 - 1
+    elif txt == "ptr_max":
+        return 2**64 - 1
     elif txt == "u32max":
         return 2**32 - 1
     elif txt == "u16max":
