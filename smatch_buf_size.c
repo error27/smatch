@@ -711,17 +711,15 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 static void match_calloc(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *right;
-	struct expression *arg;
-	sval_t elements;
-	sval_t size;
+	struct expression *size, *nr, *mult;
+	struct range_list *rl;
 
 	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, 0);
-	if (!get_implied_value(arg, &elements))
-		return; // FIXME!!!
-	arg = get_argument_from_call_expr(right->args, 1);
-	if (get_implied_value(arg, &size))
-		store_alloc(expr->left, size_to_rl(elements.value * size.value));
+	nr = get_argument_from_call_expr(right->args, 0);
+	size = get_argument_from_call_expr(right->args, 1);
+	mult = binop_expression(nr, '*', size);
+	if (get_implied_rl(mult, &rl))
+		store_alloc(expr->left, rl);
 	else
 		store_alloc(expr->left, size_to_rl(-1));
 }
