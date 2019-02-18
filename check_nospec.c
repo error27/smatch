@@ -225,7 +225,8 @@ static void match_barrier(struct statement *stmt)
 		return;
 	if (strcmp(macro, "rmb") != 0 &&
 	    strcmp(macro, "smp_rmb") != 0 &&
-	    strcmp(macro, "barrier_nospec") != 0)
+	    strcmp(macro, "barrier_nospec") != 0 &&
+	    strcmp(macro, "preempt_disable") != 0)
 		return;
 
 	set_state(barrier_id, "barrier", NULL, &nospec);
