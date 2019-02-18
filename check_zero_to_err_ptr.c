@@ -92,6 +92,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 	struct sm_state *sm, *tmp;
 	sval_t sval;
 
+	if (is_impossible_path())
+		return;
+
 	arg_expr = get_argument_from_call_expr(expr->args, 0);
 	sm = get_sm_state_expr(SMATCH_EXTRA, arg_expr);
 	if (!sm)
