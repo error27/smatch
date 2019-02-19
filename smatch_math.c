@@ -96,7 +96,7 @@ static struct range_list *handle_ampersand_rl(struct expression *expr, int impli
 		return alloc_rl(sval, sval);
 	if (get_address_rl(expr, &rl))
 		return rl;
-	return alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+	return NULL;
 }
 
 static struct range_list *handle_negate_rl(struct expression *expr, int implied, int *recurse_cnt)

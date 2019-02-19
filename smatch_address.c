@@ -192,24 +192,32 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 			return 1;
 		}
 
-		if (unop->type == EXPR_DEREF) {
+		if (unop->type == EXPR_DEREF && unop->member) {
+			struct range_list *unop_rl;
 			int offset = get_member_offset_from_deref(unop);
 
 			if (offset == -1)
 				return 0;
 
 			unop = strip_expr(unop->unop);
-			if (unop->type == EXPR_SYMBOL) {
-				*rl = where_allocated_rl(unop->symbol);
-			} else if (unop->type == EXPR_PREOP && unop->op == '*') {
-				unop = strip_expr(unop->unop);
-				get_absolute_rl(unop, rl);
-			} else {
-				return 0;
+			if (get_implied_rl(unop, &unop_rl)) {
+				*rl = unop_rl;
+				add_offset_to_pointer(rl, offset);
+				return 1;
 			}
 
-			add_offset_to_pointer(rl, offset);
-			return 1;
+			/*
+			 * If the offset is non-zero that means either valid
+			 * pointer or we are already toasted beyond our ability
+			 * to deal with.
+			 *
+			 */
+			if (offset != 0) {
+				*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+				return 1;
+			}
+
+			return 0;
 		}
 
 		return 0;
