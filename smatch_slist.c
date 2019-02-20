@@ -123,6 +123,9 @@ static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, i
 {
 	int ret;
 
+	if (a == b)
+		return 0;
+
 	ret = cmp_tracker(a, b);
 	if (ret)
 		return ret;
@@ -142,8 +145,6 @@ static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, i
 	 * not often a problem in real life.
 	 */
 	if (a->owner == SMATCH_EXTRA && preserve) {
-		if (a == b)
-			return 0;
 		if (a->merged == 1 && b->merged == 0)
 			return -1;
 		if (a->merged == 0)
