@@ -119,7 +119,7 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 	return 0;
 }
 
-static int cmp_sm_states(const struct sm_state *a, const struct sm_state *b, int preserve)
+static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, int preserve)
 {
 	int ret;
 
@@ -202,9 +202,9 @@ void add_possible_sm(struct sm_state *to, struct sm_state *new)
 		preserve = 0;
 
 	FOR_EACH_PTR(to->possible, tmp) {
-		if (cmp_sm_states(tmp, new, preserve) < 0)
+		if (cmp_possible_sm(tmp, new, preserve) < 0)
 			continue;
-		else if (cmp_sm_states(tmp, new, preserve) == 0) {
+		else if (cmp_possible_sm(tmp, new, preserve) == 0) {
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
