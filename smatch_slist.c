@@ -198,14 +198,16 @@ void add_possible_sm(struct sm_state *to, struct sm_state *new)
 {
 	struct sm_state *tmp;
 	int preserve = 1;
+	int cmp;
 
 	if (too_many_possible(to))
 		preserve = 0;
 
 	FOR_EACH_PTR(to->possible, tmp) {
-		if (cmp_possible_sm(tmp, new, preserve) < 0)
+		cmp = cmp_possible_sm(tmp, new, preserve);
+		if (cmp < 0)
 			continue;
-		else if (cmp_possible_sm(tmp, new, preserve) == 0) {
+		else if (cmp == 0) {
 			return;
 		} else {
 			INSERT_CURRENT(new, tmp);
