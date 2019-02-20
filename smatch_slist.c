@@ -214,11 +214,27 @@ void add_possible_sm(struct sm_state *to, struct sm_state *new)
 	add_ptr_list(&to->possible, new);
 }
 
-static void copy_possibles(struct sm_state *to, struct sm_state *from)
+static void copy_possibles(struct sm_state *to, struct sm_state *one, struct sm_state *two)
 {
+	struct sm_state *large = one;
+	struct sm_state *small = two;
 	struct sm_state *tmp;
 
-	FOR_EACH_PTR(from->possible, tmp) {
+	/*
+	 * We spend a lot of time copying the possible lists.  I've tried to
+	 * optimize the process a bit.
+	 *
+	 */
+
+	if (ptr_list_size((struct ptr_list *)two->possible) >
+	    ptr_list_size((struct ptr_list *)one->possible)) {
+		large = two;
+		small = one;
+	}
+
+	to->possible = clone_slist(large->possible);
+	add_possible_sm(to, to);
+	FOR_EACH_PTR(small->possible, tmp) {
 		add_possible_sm(to, tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -398,8 +414,8 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 		result->nr_children = one->nr_children + two->nr_children;
 	else
 		result->nr_children = MAX_CHILDREN;
-	copy_possibles(result, one);
-	copy_possibles(result, two);
+
+	copy_possibles(result, one, two);
 
 	/*
 	 * The ->line information is used by deref_check where we complain about
