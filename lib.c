@@ -355,6 +355,189 @@ void add_pre_buffer(const char *fmt, ...)
 	pre_buffer_end = end;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Helpers for option parsing
+
+struct mask_map {
+	const char *name;
+	unsigned long mask;
+};
+
+static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
+{
+	const char *name;
+
+	for (;(name = map->name); map++) {
+		if (!strncmp(name, str, len) && !name[len]) {
+			if (neg == 0)
+				*val |= map->mask;
+			else
+				*val &= ~map->mask;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
+{
+	if (*opt == '\0') {
+		apply_mask(flag, "", 0, map, 0);
+		return 1;
+	}
+	if (*opt++ != '=')
+		return 0;
+	while (1) {
+		unsigned int len = strcspn(opt, ",+");
+		int neg = 0;
+		if (len == 0)
+			goto end;
+		if (!strncmp(opt, "no-", 3)) {
+			opt += 3;
+			len -= 3;
+			neg = 1;
+		}
+		if (apply_mask(flag, opt, len, map, neg))
+			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
+
+end:
+		opt += len;
+		if (*opt++ == '\0')
+			break;
+	}
+	return 1;
+}
+
+
+static const char *match_option(const char *arg, const char *prefix)
+{
+	unsigned int n = strlen(prefix);
+	if (strncmp(arg, prefix, n) == 0)
+		return arg + n;
+	return NULL;
+}
+
+#define OPT_INVERSE	1
+struct flag {
+	const char *name;
+	int *flag;
+	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
+	unsigned long mask;
+};
+
+static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
+{
+	const char *arg = opt;
+	int val = 1;
+
+	// Prefixe "no-" mean to turn flag off.
+	if (strncmp(arg, "no-", 3) == 0) {
+		arg += 3;
+		val = 0;
+	}
+
+	for (; flags->name; flags++) {
+		const char *opt = match_option(arg, flags->name);
+		int rc;
+
+		if (!opt)
+			continue;
+
+		if (flags->fun) {
+			int options = 0;
+			if (!val)
+				options |= OPT_INVERSE;
+			if ((rc = flags->fun(ori, opt, flags, options)))
+				return rc;
+		}
+
+		// boolean flag
+		if (opt[0] == '\0' && flags->flag) {
+			if (flags->mask & OPT_INVERSE)
+				val = !val;
+			*flags->flag = val;
+			return 1;
+		}
+	}
+
+	// not handled
+	return 0;
+}
+
+static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	*(flag->flag) = flag->mask;
+	return 1;
+}
+
+
+#define	OPTNUM_ZERO_IS_INF		1
+#define	OPTNUM_UNLIMITED		2
+
+#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
+static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
+{									\
+	char *end;							\
+	TYPE val;							\
+									\
+	val = FUNCTION(opt, &end, 0);					\
+	if (*end != '\0' || end == opt) {				\
+		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
+			val = ~val;					\
+		else							\
+			die("error: wrong argument to \'%s\'", arg);	\
+	}								\
+	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
+		val = ~val;						\
+	*ptr = val;							\
+	return 1;							\
+}
+
+OPT_NUMERIC(ullong, unsigned long long, strtoull)
+OPT_NUMERIC(uint, unsigned int, strtoul)
+
+enum {
+	WARNING_OFF,
+	WARNING_ON,
+	WARNING_FORCE_OFF
+};
+
+static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
+{
+	int flag = WARNING_ON;
+	char *p = arg + 1;
+	unsigned i;
+
+	if (!strcmp(p, "sparse-all")) {
+		for (i = 0; i < n; i++) {
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
+				*warnings[i].flag = WARNING_ON;
+		}
+		return NULL;
+	}
+
+	// Prefixes "no" and "no-" mean to turn warning off.
+	if (p[0] == 'n' && p[1] == 'o') {
+		p += 2;
+		if (p[0] == '-')
+			p++;
+		flag = WARNING_FORCE_OFF;
+	}
+
+	for (i = 0; i < n; i++) {
+		if (!strcmp(p,warnings[i].name)) {
+			*warnings[i].flag = flag;
+			return next;
+		}
+	}
+
+	// Unknown.
+	return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Option parsing
+
 static char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
@@ -528,146 +711,6 @@ static void handle_arch_finalize(void)
 	}
 }
 
-static const char *match_option(const char *arg, const char *prefix)
-{
-	unsigned int n = strlen(prefix);
-	if (strncmp(arg, prefix, n) == 0)
-		return arg + n;
-	return NULL;
-}
-
-
-struct mask_map {
-	const char *name;
-	unsigned long mask;
-};
-
-static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
-{
-	const char *name;
-
-	for (;(name = map->name); map++) {
-		if (!strncmp(name, str, len) && !name[len]) {
-			if (neg == 0)
-				*val |= map->mask;
-			else
-				*val &= ~map->mask;
-			return 0;
-		}
-	}
-	return 1;
-}
-
-static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
-{
-	if (*opt == '\0') {
-		apply_mask(flag, "", 0, map, 0);
-		return 1;
-	}
-	if (*opt++ != '=')
-		return 0;
-	while (1) {
-		unsigned int len = strcspn(opt, ",+");
-		int neg = 0;
-		if (len == 0)
-			goto end;
-		if (!strncmp(opt, "no-", 3)) {
-			opt += 3;
-			len -= 3;
-			neg = 1;
-		}
-		if (apply_mask(flag, opt, len, map, neg))
-			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
-
-end:
-		opt += len;
-		if (*opt++ == '\0')
-			break;
-	}
-	return 1;
-}
-
-
-#define OPT_INVERSE	1
-struct flag {
-	const char *name;
-	int *flag;
-	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
-	unsigned long mask;
-};
-
-static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
-{
-	const char *arg = opt;
-	int val = 1;
-
-	// Prefixe "no-" mean to turn flag off.
-	if (strncmp(arg, "no-", 3) == 0) {
-		arg += 3;
-		val = 0;
-	}
-
-	for (; flags->name; flags++) {
-		const char *opt = match_option(arg, flags->name);
-		int rc;
-
-		if (!opt)
-			continue;
-
-		if (flags->fun) {
-			int options = 0;
-			if (!val)
-				options |= OPT_INVERSE;
-			if ((rc = flags->fun(ori, opt, flags, options)))
-				return rc;
-		}
-
-		// boolean flag
-		if (opt[0] == '\0' && flags->flag) {
-			if (flags->mask & OPT_INVERSE)
-				val = !val;
-			*flags->flag = val;
-			return 1;
-		}
-	}
-
-	// not handled
-	return 0;
-}
-
-static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
-{
-	*(flag->flag) = flag->mask;
-	return 1;
-}
-
-
-#define	OPTNUM_ZERO_IS_INF		1
-#define	OPTNUM_UNLIMITED		2
-
-#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
-static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
-{									\
-	char *end;							\
-	TYPE val;							\
-									\
-	val = FUNCTION(opt, &end, 0);					\
-	if (*end != '\0' || end == opt) {				\
-		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
-			val = ~val;					\
-		else							\
-			die("error: wrong argument to \'%s\'", arg);	\
-	}								\
-	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
-		val = ~val;						\
-	*ptr = val;							\
-	return 1;							\
-}
-
-OPT_NUMERIC(ullong, unsigned long long, strtoull)
-OPT_NUMERIC(uint, unsigned int, strtoul)
-
-
 static char **handle_switch_o(char *arg, char **next)
 {
 	if (!strcmp (arg, "o")) {       // "-o foo"
@@ -727,46 +770,6 @@ static const struct flag warnings[] = {
 	{ "unknown-attribute", &Wunknown_attribute },
 	{ "vla", &Wvla },
 };
-
-enum {
-	WARNING_OFF,
-	WARNING_ON,
-	WARNING_FORCE_OFF
-};
-
-
-static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
-{
-	int flag = WARNING_ON;
-	char *p = arg + 1;
-	unsigned i;
-
-	if (!strcmp(p, "sparse-all")) {
-		for (i = 0; i < n; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
-				*warnings[i].flag = WARNING_ON;
-		}
-		return NULL;
-	}
-
-	// Prefixes "no" and "no-" mean to turn warning off.
-	if (p[0] == 'n' && p[1] == 'o') {
-		p += 2;
-		if (p[0] == '-')
-			p++;
-		flag = WARNING_FORCE_OFF;
-	}
-
-	for (i = 0; i < n; i++) {
-		if (!strcmp(p,warnings[i].name)) {
-			*warnings[i].flag = flag;
-			return next;
-		}
-	}
-
-	// Unknown.
-	return NULL;
-}
 
 static char **handle_switch_W(char *arg, char **next)
 {
@@ -1245,6 +1248,9 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Predefines
+
 #define	PTYPE_SIZEOF	(1U << 0)
 #define	PTYPE_T		(1U << 1)
 #define	PTYPE_MAX	(1U << 2)
@@ -1567,6 +1573,8 @@ static void predefined_macros(void)
 
 	predefined_cmodel();
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 static void create_builtin_stream(void)
 {
