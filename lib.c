@@ -358,6 +358,29 @@ void add_pre_buffer(const char *fmt, ...)
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers for option parsing
 
+struct val_map {
+	const char *name;
+	int val;
+};
+
+static int handle_subopt_val(const char *opt, const char *arg, const struct val_map *map, int *flag)
+{
+	const char *name;
+
+	if (*arg++ != '=')
+		die("missing argument for option '%s'", opt);
+	for (;(name = map->name); map++) {
+		if (strcmp(name, arg) == 0 || strcmp(name, "*") == 0) {
+			*flag = map->val;
+			return 1;
+		}
+		if (strcmp(name, "?") == 0)
+			die("invalid argument '%s' in option '%s'", arg, opt);
+	}
+	return 0;
+}
+
+
 struct mask_map {
 	const char *name;
 	unsigned long mask;
@@ -641,6 +664,22 @@ static char **handle_multiarch_dir(char *arg, char **next)
 	return next;
 }
 
+static int handle_cmodel(const char *opt, const char *arg, const struct flag *flag, int options)
+{
+	static const struct val_map cmodels[] = {
+		{ "kernel",	CMODEL_KERNEL },
+		{ "large",	CMODEL_LARGE },
+		{ "medany",	CMODEL_MEDANY },
+		{ "medium",	CMODEL_MEDIUM },
+		{ "medlow",	CMODEL_MEDLOW },
+		{ "small",	CMODEL_SMALL },
+		{ "tiny",	CMODEL_TINY },
+		{ },
+	};
+	return handle_subopt_val(opt, arg, cmodels, flag->flag);
+}
+
+
 static const struct flag mflags[] = {
 	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
 	{ "32", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
@@ -651,6 +690,7 @@ static const struct flag mflags[] = {
 	{ "size-long", &arch_msize_long },
 	{ "big-endian", &arch_big_endian, NULL },
 	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
+	{ "cmodel", &arch_cmodel, handle_cmodel },
 	{ }
 };
 
@@ -658,26 +698,6 @@ static char **handle_switch_m(char *arg, char **next)
 {
 	if (!strcmp(arg, "multiarch-dir")) {
 		return handle_multiarch_dir(arg, next);
-	} else if (!strncmp(arg, "mcmodel", 7)) {
-		arg += 7;
-		if (*arg++ != '=')
-			die("missing argument for -mcmodel");
-		else if (!strcmp(arg, "kernel"))
-			arch_cmodel = CMODEL_KERNEL;
-		else if (!strcmp(arg, "large"))
-			arch_cmodel = CMODEL_LARGE;
-		else if (!strcmp(arg, "medany"))
-			arch_cmodel = CMODEL_MEDANY;
-		else if (!strcmp(arg, "medium"))
-			arch_cmodel = CMODEL_MEDIUM;
-		else if (!strcmp(arg, "medlow"))
-			arch_cmodel = CMODEL_MEDLOW;
-		else if (!strcmp(arg, "small"))
-			arch_cmodel = CMODEL_SMALL;
-		else if (!strcmp(arg, "tiny"))
-			arch_cmodel = CMODEL_TINY;
-		else
-			die("invalid argument for -mcmodel=%s", arg);
 	} else {
 		handle_switches(arg-1, arg+1, mflags);
 	}
