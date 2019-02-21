@@ -641,26 +641,23 @@ static char **handle_multiarch_dir(char *arg, char **next)
 	return next;
 }
 
+static const struct flag mflags[] = {
+	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
+	{ "32", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "31", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "16", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
+	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
+	{ "size-long", &arch_msize_long },
+	{ "big-endian", &arch_big_endian, NULL },
+	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
+	{ }
+};
+
 static char **handle_switch_m(char *arg, char **next)
 {
-	if (!strcmp(arg, "m64")) {
-		arch_m64 = ARCH_LP64;
-	} else if (!strcmp(arg, "m32") || !strcmp(arg, "m16")) {
-		arch_m64 = ARCH_LP32;
-	} else if (!strcmp(arg, "m31")) {
-		arch_m64 = ARCH_LP32;
-	} else if (!strcmp(arg, "mx32")) {
-		arch_m64 = ARCH_X32;
-	} else if (!strcmp(arg, "msize-llp64")) {
-		arch_m64 = ARCH_LLP64;
-	} else if (!strcmp(arg, "msize-long")) {
-		arch_msize_long = 1;
-	} else if (!strcmp(arg, "multiarch-dir")) {
+	if (!strcmp(arg, "multiarch-dir")) {
 		return handle_multiarch_dir(arg, next);
-	} else if (!strcmp(arg, "mbig-endian")) {
-		arch_big_endian = 1;
-	} else if (!strcmp(arg, "mlittle-endian")) {
-		arch_big_endian = 0;
 	} else if (!strncmp(arg, "mcmodel", 7)) {
 		arg += 7;
 		if (*arg++ != '=')
@@ -681,7 +678,10 @@ static char **handle_switch_m(char *arg, char **next)
 			arch_cmodel = CMODEL_TINY;
 		else
 			die("invalid argument for -mcmodel=%s", arg);
+	} else {
+		handle_switches(arg-1, arg+1, mflags);
 	}
+
 	return next;
 }
 
