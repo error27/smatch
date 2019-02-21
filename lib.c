@@ -418,11 +418,13 @@ static const char *match_option(const char *arg, const char *prefix)
 }
 
 #define OPT_INVERSE	1
+#define OPT_VAL		2
 struct flag {
 	const char *name;
 	int *flag;
 	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
 	unsigned long mask;
+	int val;
 };
 
 static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
@@ -453,6 +455,8 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 
 		// boolean flag
 		if (opt[0] == '\0' && flags->flag) {
+			if (flags->mask & OPT_VAL)
+				val = flags->val;
 			if (flags->mask & OPT_INVERSE)
 				val = !val;
 			*flags->flag = val;
