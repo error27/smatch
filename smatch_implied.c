@@ -898,6 +898,9 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	struct stree *implied_false = NULL;
 	struct range_list *orig, *limit;
 
+	if (time_parsing_function() > 40)
+		return;
+
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
