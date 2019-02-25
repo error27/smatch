@@ -20,8 +20,9 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res);
 static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res);
-static bool handle_variable(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res);
+static bool handle_variable(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval);
 static struct range_list *(*custom_handle_variable)(struct expression *expr);
 
 static int get_implied_value_internal(struct expression *expr, sval_t *sval, int *recurse_cnt);
@@ -58,7 +59,7 @@ enum {
 	RL_REAL_ABSOLUTE,
 };
 
-static bool last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt, struct range_list **res)
+static bool last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct expression *expr;
 
@@ -77,22 +78,23 @@ static bool last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt, 
 	} else {
 		return false;
 	}
-	return get_rl_helper(expr, implied, recurse_cnt, res);
+	return get_rl_sval(expr, implied, recurse_cnt, res, res_sval);
 }
 
-static bool handle_expression_statement_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_expression_statement_rl(struct expression *expr, int implied,
+		int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	return last_stmt_rl(get_expression_statement(expr), implied, recurse_cnt, res);
+	return last_stmt_rl(get_expression_statement(expr), implied, recurse_cnt, res, res_sval);
 }
 
-static bool handle_ampersand_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_ampersand_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	sval_t sval;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
 	if (get_mtag_sval(expr, &sval)) {
-		*res = alloc_rl(sval, sval);
+		*res_sval = sval;
 		return true;
 	}
 	if (get_address_rl(expr, res))
@@ -100,14 +102,14 @@ static bool handle_ampersand_rl(struct expression *expr, int implied, int *recur
 	return 0;
 }
 
-static bool handle_negate_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_negate_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	if (known_condition_true(expr->unop)) {
-		*res = rl_zero();
+		*res_sval = zero;
 		return true;
 	}
 	if (known_condition_false(expr->unop)) {
-		*res = rl_one();
+		*res_sval = one;
 		return true;
 	}
 
@@ -115,11 +117,11 @@ static bool handle_negate_rl(struct expression *expr, int implied, int *recurse_
 		return false;
 
 	if (implied_condition_true(expr->unop)) {
-		*res = rl_zero();
+		*res_sval = zero;
 		return true;
 	}
 	if (implied_condition_false(expr->unop)) {
-		*res = rl_one();
+		*res_sval = one;
 		return true;
 	}
 
@@ -127,7 +129,7 @@ static bool handle_negate_rl(struct expression *expr, int implied, int *recurse_
 	return true;
 }
 
-static bool handle_bitwise_negate(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_bitwise_negate(struct expression *expr, int implied, int *recurse_cnt, sval_t *res_sval)
 {
 	struct range_list *rl;
 	sval_t sval;
@@ -138,38 +140,43 @@ static bool handle_bitwise_negate(struct expression *expr, int implied, int *rec
 		return false;
 	sval = sval_preop(sval, '~');
 	sval_cast(get_type(expr->unop), sval);
-	*res = alloc_rl(sval, sval);
+	*res_sval = sval;
 	return true;
 }
 
-static bool handle_minus_preop(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_minus_preop(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *rl;
+	sval_t sval = {};
 	sval_t min, max;
 
-	if (!get_rl_helper(expr->unop, implied, recurse_cnt, &rl) || !rl)
+	if (!get_rl_sval(expr->unop, implied, recurse_cnt, &rl, &sval))
 		return false;
+	if (sval.type) {
+		*res_sval = sval_preop(sval, '-');
+		return true;
+	}
 	min = sval_preop(rl_max(rl), '-');
 	max = sval_preop(rl_min(rl), '-');
 	*res = alloc_rl(min, max);
 	return true;
 }
 
-static bool handle_preop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_preop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	switch (expr->op) {
 	case '&':
-		return handle_ampersand_rl(expr, implied, recurse_cnt, res);
+		return handle_ampersand_rl(expr, implied, recurse_cnt, res, res_sval);
 	case '!':
-		return handle_negate_rl(expr, implied, recurse_cnt, res);
+		return handle_negate_rl(expr, implied, recurse_cnt, res, res_sval);
 	case '~':
-		return handle_bitwise_negate(expr, implied, recurse_cnt, res);
+		return handle_bitwise_negate(expr, implied, recurse_cnt, res_sval);
 	case '-':
-		return handle_minus_preop(expr, implied, recurse_cnt, res);
+		return handle_minus_preop(expr, implied, recurse_cnt, res, res_sval);
 	case '*':
-		return handle_variable(expr, implied, recurse_cnt, res);
+		return handle_variable(expr, implied, recurse_cnt, res, res_sval);
 	case '(':
-		return handle_expression_statement_rl(expr, implied, recurse_cnt, res);
+		return handle_expression_statement_rl(expr, implied, recurse_cnt, res, res_sval);
 	default:
 		return false;
 	}
@@ -590,7 +597,7 @@ static struct range_list *handle_implied_binop(struct range_list *left_rl, int o
 	return res_rl;
 }
 
-static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct smatch_state *state;
 	struct symbol *type;
@@ -598,7 +605,7 @@ static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_c
 	sval_t val, min, max;
 
 	if (handle_known_binop(expr, &val)) {
-		*res = alloc_rl(val, val);
+		*res_sval = val;
 		return true;
 	}
 	if (implied == RL_EXACT)
@@ -696,7 +703,7 @@ static int do_comparison(struct expression *expr)
 	return 0x3;
 }
 
-static bool handle_comparison_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_comparison_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	sval_t left, right;
 	int cmp;
@@ -707,8 +714,10 @@ static bool handle_comparison_rl(struct expression *expr, int implied, int *recu
 		left = get_real_base_type(expr->left->symbol);
 		right = get_real_base_type(expr->left->symbol);
 		if (left == right)
-			goto one;
-		goto zero;
+			*res_sval = one;
+		else
+			*res_sval = zero;
+		return true;
 	}
 
 	if (get_value(expr->left, &left) && get_value(expr->right, &right)) {
@@ -719,31 +728,30 @@ static bool handle_comparison_rl(struct expression *expr, int implied, int *recu
 		tmp_right.min = right;
 		tmp_right.max = right;
 		if (true_comparison_range(&tmp_left, expr->op, &tmp_right))
-			goto one;
-		goto zero;
+			*res_sval = one;
+		else
+			*res_sval = zero;
+		return true;
 	}
 
 	if (implied == RL_EXACT)
 		return false;
 
 	cmp = do_comparison(expr);
-	if (cmp == 1)
-		goto one;
-	if (cmp == 2)
-		goto zero;
+	if (cmp == 1) {
+		*res_sval = one;
+		return true;
+	}
+	if (cmp == 2) {
+		*res_sval = zero;
+		return true;
+	}
 
 	*res = alloc_rl(zero, one);
 	return true;
-
-one:
-	*res = rl_one();
-	return true;
-zero:
-	*res = rl_zero();
-	return true;
 }
 
-static bool handle_logical_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_logical_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	sval_t left, right;
 	int left_known = 0;
@@ -788,14 +796,14 @@ static bool handle_logical_rl(struct expression *expr, int implied, int *recurse
 	return true;
 
 zero:
-	*res = rl_zero();
+	*res_sval = zero;
 	return true;
 one:
-	*res = rl_one();
+	*res_sval = one;
 	return true;
 }
 
-static bool handle_conditional_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_conditional_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct expression *cond_true;
 	struct range_list *true_rl, *false_rl;
@@ -807,17 +815,17 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 		cond_true = expr->conditional;
 
 	if (known_condition_true(expr->conditional))
-		return get_rl_helper(cond_true, implied, recurse_cnt, res);
+		return get_rl_sval(cond_true, implied, recurse_cnt, res, res_sval);
 	if (known_condition_false(expr->conditional))
-		return get_rl_helper(expr->cond_false, implied, recurse_cnt, res);
+		return get_rl_sval(expr->cond_false, implied, recurse_cnt, res, res_sval);
 
 	if (implied == RL_EXACT)
 		return false;
 
 	if (implied_condition_true(expr->conditional))
-		return get_rl_helper(cond_true, implied, recurse_cnt, res);
+		return get_rl_sval(cond_true, implied, recurse_cnt, res, res_sval);
 	if (implied_condition_false(expr->conditional))
-		return get_rl_helper(expr->cond_false, implied, recurse_cnt, res);
+		return get_rl_sval(expr->cond_false, implied, recurse_cnt, res, res_sval);
 
 	/* this becomes a problem with deeply nested conditional statements */
 	if (low_on_memory())
@@ -925,7 +933,7 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 	return clone_rl(estate_rl(state));
 }
 
-static bool handle_variable(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_variable(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct smatch_state *state;
 	struct range_list *rl;
@@ -933,16 +941,18 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 	struct symbol *type;
 
 	if (get_const_value(expr, &sval)) {
-		*res = alloc_rl(sval, sval);
+		*res_sval = sval;
 		return true;
 	}
 
 	if (custom_handle_variable) {
 		rl = custom_handle_variable(expr);
-		if (rl)
-			*res = rl;
-		else
+		if (rl) {
+			if (!rl_to_sval(rl, res_sval))
+				*res = rl;
+		} else {
 			*res = var_to_absolute_rl(expr);
+		}
 		return true;
 	}
 
@@ -950,7 +960,7 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 		return false;
 
 	if (get_mtag_sval(expr, &sval)) {
-		*res = alloc_rl(sval, sval);
+		*res_sval = sval;
 		return true;
 	}
 
@@ -959,6 +969,8 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 		*res = alloc_rl(fn_ptr_min, fn_ptr_max);
 		return true;
 	}
+
+	/* FIXME: call rl_to_sval() on the results */
 
 	switch (implied) {
 	case RL_HARD:
@@ -1091,53 +1103,55 @@ static sval_t handle_sizeof(struct expression *expr)
 	return ret;
 }
 
-static bool handle_strlen(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_strlen(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct expression *arg, *tmp;
 	sval_t tag;
 	sval_t ret = { .type = &ulong_ctype };
-
-	if (implied == RL_EXACT)
-		return false;
+	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	if (!arg)
 		return false;
 	if (arg->type == EXPR_STRING) {
 		ret.value = arg->string->length - 1;
-		*res = alloc_rl(ret, ret);
+		*res_sval = ret;
 		return true;
 	}
+	if (implied == RL_EXACT)
+		return false;
 	if (get_implied_value(arg, &tag) &&
 	    (tmp = fake_string_from_mtag(tag.uvalue))) {
 		ret.value = tmp->string->length - 1;
-		*res = alloc_rl(ret, ret);
+		*res_sval = ret;
 		return true;
 	}
 
 	if (implied == RL_HARD || implied == RL_FUZZY)
 		return false;
 
-	if (get_implied_return(expr, res))
+	if (get_implied_return(expr, &rl)) {
+		*res = rl;
 		return true;
+	}
 
 	return false;
 }
 
-static bool handle_builtin_constant_p(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_builtin_constant_p(struct expression *expr, int implied, int *recurse_cnt, sval_t *res_sval)
 {
 	struct expression *arg;
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	if (get_rl_helper(arg, RL_EXACT, recurse_cnt, &rl))
-		*res = rl_one();
+		*res_sval = one;
 	else
-		*res = rl_zero();
+		*res_sval = zero;
 	return true;
 }
 
-static bool handle__builtin_choose_expr(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle__builtin_choose_expr(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct expression *const_expr, *expr1, *expr2;
 	sval_t sval;
@@ -1149,20 +1163,20 @@ static bool handle__builtin_choose_expr(struct expression *expr, int implied, in
 	if (!get_value(const_expr, &sval) || !expr1 || !expr2)
 		return false;
 	if (sval.value)
-		return get_rl_helper(expr1, implied, recurse_cnt, res);
+		return get_rl_sval(expr1, implied, recurse_cnt, res, res_sval);
 	else
-		return get_rl_helper(expr2, implied, recurse_cnt, res);
+		return get_rl_sval(expr2, implied, recurse_cnt, res, res_sval);
 }
 
-static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *rl;
 
 	if (sym_name_is("__builtin_constant_p", expr->fn))
-		return handle_builtin_constant_p(expr, implied, recurse_cnt, res);
+		return handle_builtin_constant_p(expr, implied, recurse_cnt, res_sval);
 
 	if (sym_name_is("__builtin_choose_expr", expr->fn))
-		return handle__builtin_choose_expr(expr, implied, recurse_cnt, res);
+		return handle__builtin_choose_expr(expr, implied, recurse_cnt, res, res_sval);
 
 	if (sym_name_is("__builtin_expect", expr->fn) ||
 	    sym_name_is("__builtin_bswap16", expr->fn) ||
@@ -1171,11 +1185,11 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 		struct expression *arg;
 
 		arg = get_argument_from_call_expr(expr->args, 0);
-		return get_rl_helper(arg, implied, recurse_cnt, res);
+		return get_rl_sval(arg, implied, recurse_cnt, res, res_sval);
 	}
 
 	if (sym_name_is("strlen", expr->fn))
-		return handle_strlen(expr, implied, recurse_cnt, res);
+		return handle_strlen(expr, implied, recurse_cnt, res, res_sval);
 
 	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
 		return false;
@@ -1201,14 +1215,18 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 	return false;
 }
 
-static bool handle_cast(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_cast(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *rl;
 	struct symbol *type;
+	sval_t sval = {};
 
 	type = get_type(expr);
-	if (get_rl_helper(expr->cast_expression, implied, recurse_cnt, &rl)) {
-		*res = cast_rl(type, rl);
+	if (get_rl_sval(expr->cast_expression, implied, recurse_cnt, &rl, &sval)) {
+		if (sval.type)
+			*res_sval = sval_cast(type, sval);
+		else
+			*res = cast_rl(type, rl);
 		return true;
 	}
 	if (implied == RL_ABSOLUTE || implied == RL_REAL_ABSOLUTE) {
@@ -1223,11 +1241,11 @@ static bool handle_cast(struct expression *expr, int implied, int *recurse_cnt, 
 	return false;
 }
 
-static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res)
 {
 	struct range_list *rl = (void *)-1UL;
 	struct symbol *type;
-	sval_t sval;
+	sval_t sval = {};
 	int ret = -1;
 
 	type = get_type(expr);
@@ -1242,7 +1260,7 @@ static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		ret = handle_cast(expr, implied, recurse_cnt, &rl);
+		ret = handle_cast(expr, implied, recurse_cnt, &rl, &sval);
 		goto out_cast;
 	}
 
@@ -1253,56 +1271,59 @@ static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt
 	switch (expr->type) {
 	case EXPR_VALUE:
 		sval = sval_from_val(expr, expr->value);
-		rl = alloc_rl(sval, sval);
 		ret = 1;
 		break;
 	case EXPR_PREOP:
-		ret = handle_preop_rl(expr, implied, recurse_cnt, &rl);
+		ret = handle_preop_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_POSTOP:
-		ret = get_rl_helper(expr->unop, implied, recurse_cnt, &rl);
+		ret = get_rl_sval(expr->unop, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_BINOP:
-		ret =  handle_binop_rl(expr, implied, recurse_cnt, &rl);
+		ret =  handle_binop_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_COMPARE:
-		ret = handle_comparison_rl(expr, implied, recurse_cnt, &rl);
+		ret = handle_comparison_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_LOGICAL:
-		ret = handle_logical_rl(expr, implied, recurse_cnt, &rl);
+		ret = handle_logical_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
 		sval = handle_sizeof(expr);
-		rl = alloc_rl(sval, sval);
 		ret = 1;
 		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		ret = handle_conditional_rl(expr, implied, recurse_cnt, &rl);
+		ret = handle_conditional_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_CALL:
-		ret = handle_call_rl(expr, implied, recurse_cnt, &rl);
+		ret = handle_call_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_STRING:
-		if (get_mtag_sval(expr, &sval))
-			rl = alloc_rl(sval, sval);
-		else
+		if (!get_mtag_sval(expr, &sval))
 			rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 		ret = 1;
 		break;
 	default:
-		ret = handle_variable(expr, implied, recurse_cnt, &rl);
+		ret = handle_variable(expr, implied, recurse_cnt, &rl, &sval);
 	}
 
 out_cast:
-	if ((ret == 1 && rl == (void *)-1UL) || (ret == 0 && rl != (void *)-1UL)) {
+	if ((ret == 1 && rl == (void *)-1UL && sval.type == NULL) ||
+	    (ret == 0 && (rl != (void *)-1UL && sval.type == NULL)) ||
+	    (sval.type && rl != (void *)-1UL)) {
 		int *null = NULL;
 		sm_msg("DIE:  expr = '%s' ret = %d rl = '%s'", expr_to_str(expr), ret, show_rl(rl));
 		*null = 42;
 	}
 	if (rl == (void *)-1UL)
 		rl = NULL;
+
+	if (sval.type) {
+		*sval_res = sval;
+		return true;
+	}
 
 	if (rl) {
 		*res = rl;
@@ -1313,6 +1334,20 @@ out_cast:
 		return true;
 	}
 	return false;
+}
+
+static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+{
+	struct range_list *rl = NULL;
+	sval_t sval = {};
+
+	if (!get_rl_sval(expr, implied, recurse_cnt, &rl, &sval))
+		return false;
+	if (sval.type)
+		*res = alloc_rl(sval, sval);
+	else
+		*res = rl;
+	return true;
 }
 
 struct {
