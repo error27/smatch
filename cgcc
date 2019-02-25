@@ -315,6 +315,10 @@ sub add_specs {
     } elsif ($spec eq 'ppc64') {
 	return (' -D_STRING_ARCH_unaligned=1 -m64' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'ppc64+be') {
+	return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
+    } elsif ($spec eq 'ppc64+le') {
+	return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
     } elsif ($spec eq 's390x') {
 	return (' -D_BIG_ENDIAN' .
 		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
@@ -322,15 +326,10 @@ sub add_specs {
 		&define_size_t ("long unsigned int") .
 		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
     } elsif ($spec eq 'arm') {
-	chomp (my $gccmachine = `$cc -dumpmachine`);
-	my $cppsymbols = ' -m32';
-
-	if ($gccmachine eq 'arm-linux-gnueabihf') {
-	    $cppsymbols .= ' -D__ARM_PCS_VFP=1';
-	}
-
-	return ($cppsymbols .
+	return (' -m32' .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
+    } elsif ($spec eq 'arm+hf') {
+	return &add_specs ('arm') . ' -D__ARM_PCS_VFP=1';
     } elsif ($spec eq 'aarch64') {
 	return (' -m64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
@@ -339,7 +338,36 @@ sub add_specs {
 	chomp $os;
 	return &add_specs (lc $os);
     } elsif ($spec eq 'host_arch_specs') {
-	my $arch = `uname -m`;
+	my $gccmachine;
+	my $arch;
+
+	$gccmachine = `$ccom -dumpmachine`;
+	chomp $gccmachine;
+
+	if ($gccmachine =~ '^aarch64-') {
+	    return &add_specs ('aarch64');
+	} elsif ($gccmachine =~ '^arm-.*eabihf$') {
+	    return &add_specs ('arm+hf');
+	} elsif ($gccmachine =~ '^arm-') {
+	    return &add_specs ('arm');
+	} elsif ($gccmachine =~ '^i[23456]86-') {
+	    return &add_specs ('i386');
+	} elsif ($gccmachine =~ '^(powerpc|ppc)64le-') {
+	    return &add_specs ('ppc64+le');
+	} elsif ($gccmachine =~ '^s390x-') {
+	    return &add_specs ('s390x');
+	} elsif ($gccmachine eq 'x86_64-linux-gnux32') {
+	    return &add_specs ('x86_64') . ' -mx32';
+	} elsif ($gccmachine =~ '^x86_64-') {
+	    return &add_specs ('x86_64');
+	}
+
+	# fall back to uname -m to determine the specifics.
+	# Note: this is only meaningful when using natively
+	#       since information about the host is used to
+	#	guess characteristics of the target.
+
+	$arch = `uname -m`;
 	chomp $arch;
 	if ($arch =~ /^(i.?86|athlon)$/i) {
 	    return &add_specs ('i386');
@@ -350,9 +378,9 @@ sub add_specs {
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
 	} elsif ($arch =~ /^(ppc64)$/i) {
-	    return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
+	    return &add_specs ('ppc64+be');
 	} elsif ($arch =~ /^(ppc64le)$/i) {
-	    return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
+	    return &add_specs ('ppc64+le');
 	} elsif ($arch =~ /^(s390x)$/i) {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
