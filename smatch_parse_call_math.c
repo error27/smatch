@@ -390,7 +390,7 @@ static int format_expr_helper(char *buf, int remaining, struct expression *expr)
 		return cur - buf;
 	}
 
-	if (get_implied_value(expr, &sval) && !is_mtag_sval(sval)) {
+	if (!param_was_set(expr) && get_implied_value(expr, &sval) && !is_mtag_sval(sval)) {
 		ret = snprintf(cur, remaining, "%s", sval_to_str(sval));
 		remaining -= ret;
 		if (remaining <= 0)
@@ -445,6 +445,7 @@ char *get_value_in_terms_of_parameter_math_var_sym(const char *name, struct symb
 	char buf[256] = "";
 	int ret;
 	int cnt = 0;
+	sval_t sval;
 
 	expr = get_assigned_expr_name_sym(name, sym);
 	if (!expr)
@@ -454,6 +455,9 @@ char *get_value_in_terms_of_parameter_math_var_sym(const char *name, struct symb
 		if (++cnt > 3)
 			break;
 	}
+
+	if (get_implied_value(expr, &sval))
+		return NULL;
 
 	ret = format_expr_helper(buf, sizeof(buf), expr);
 	if (ret == 0)
