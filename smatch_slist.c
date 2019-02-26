@@ -126,9 +126,20 @@ static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, i
 	if (a == b)
 		return 0;
 
-	ret = cmp_tracker(a, b);
-	if (ret)
-		return ret;
+	/*
+	 * This can only be true for smatch_extra.
+	 *
+	 * FIXME: It would be worth reviewing if it makes sense for smatch
+	 * extra to have different trackers (see the code in smatch_implied
+	 * which deals with "borrowed" implications as well.
+	 *
+	 */
+	if (a->owner == SMATCH_EXTRA) {
+		ret = cmp_tracker(a, b);
+		if (ret)
+			return ret;
+	}
+
 
 	/* todo:  add hook for smatch_extra.c */
 	if (a->state > b->state)
