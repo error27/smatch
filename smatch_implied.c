@@ -264,7 +264,6 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 		add_pool(false_stack, sm);
 	else
 		add_pool(maybe_stack, sm);
-
 }
 
 static int is_checked(struct state_list *checked, struct sm_state *sm)
@@ -290,20 +289,33 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 			struct state_list **true_stack,
 			struct state_list **maybe_stack,
 			struct state_list **false_stack,
-			struct state_list **checked, int *mixed, struct sm_state *gate_sm)
+			struct state_list **checked, int *mixed, struct sm_state *gate_sm,
+			struct timeval *start_time)
 {
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
+	struct timeval now;
 
 	if (!sm)
 		return;
+
+	gettimeofday(&now, NULL);
+	if (now.tv_usec - start_time->tv_usec > 1000000) {
+		if (implied_debug) {
+			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
+			       __func__, sm->state->name, show_special(comparison), show_rl(rl));
+		}
+		sm->nr_children = MAX_CHILDREN;
+		if (mixed)
+			*mixed = 1;
+	}
 
 	/*
 	   Sometimes the implications are just too big to deal with
 	   so we bail.  Theoretically, bailing out here can cause more false
 	   positives but won't hide actual bugs.
 	*/
-	if (sm->nr_children > 4000) {
+	if (0 && sm->nr_children == MAX_CHILDREN) {
 		if (implied_debug) {
 			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
 			       __func__, sm->nr_children, sm->name, show_state(sm->state));
@@ -321,8 +333,8 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 
 	do_compare(sm, comparison, rl, true_stack, maybe_stack, false_stack, mixed, gate_sm);
 
-	__separate_pools(sm->left, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm);
-	__separate_pools(sm->right, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm);
+	__separate_pools(sm->left, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm, start_time);
+	__separate_pools(sm->right, comparison, rl, true_stack, maybe_stack, false_stack, checked, mixed, gate_sm, start_time);
 	if (free_checked)
 		free_slist(checked);
 }
@@ -334,8 +346,11 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 {
 	struct state_list *maybe_stack = NULL;
 	struct sm_state *tmp;
+	struct timeval start_time;
 
-	__separate_pools(sm, comparison, rl, true_stack, &maybe_stack, false_stack, checked, mixed, sm);
+
+	gettimeofday(&start_time, NULL);
+	__separate_pools(sm, comparison, rl, true_stack, &maybe_stack, false_stack, checked, mixed, sm, &start_time);
 
 	if (implied_debug) {
 		struct sm_state *sm;
@@ -421,30 +436,25 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	if (!sm)
 		return NULL;
 
-	DIMPLIED("checking [stree %d] %s from %d (nr_children: %d)%s%s left = %s [stree %d] right = %s [stree %d]\n",
+	DIMPLIED("checking [stree %d] %s from %d (nr_children: %d)%s left = %s [stree %d] right = %s [stree %d]\n",
 		 get_stree_id(sm->pool),
 		 show_sm(sm), sm->line, sm->nr_children,
 		 sm->skip_implications ? " (skip_implications)" : "",
-		 *incomplete ? " (INCOMPLETE)" : "",
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 
-	if (*incomplete)
+	if (*incomplete || sm->skip_implications || taking_too_long()) {
+		*incomplete = 1;
 		return NULL;
-	if (sm->skip_implications)
-		return sm;
-	if (taking_too_long())
-		return sm;
+	}
 
 	gettimeofday(&now, NULL);
-	if ((*recurse_cnt)++ > 1000 || now.tv_sec - start->tv_sec > 5) {
+	if ((*recurse_cnt)++ > 250 || now.tv_sec - start->tv_sec > 3) {
 		if (implied_debug) {
 			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
 				 __func__, sm->nr_children, sm->name, show_state(sm->state));
 		}
-		sm->skip_implications = 1;
-		*incomplete = 1;
-		return sm;
+		return NULL;
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
@@ -463,6 +473,8 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
 	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
+	if (*incomplete || *recurse_cnt > 250)
+		return NULL;
 	if (!removed) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
 		return sm;
@@ -515,7 +527,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	int modified;
 	int recurse_cnt;
 	struct timeval start;
-	int incomplete;
+	int incomplete = 0;
 
 	if (!remove_stack)
 		return NULL;
@@ -523,6 +535,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	if (taking_too_long())
 		return NULL;
 
+	gettimeofday(&start, NULL);
 	FOR_EACH_SM(pre_stree, tmp) {
 		if (!tmp->merged)
 			continue;
@@ -530,18 +543,19 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 			continue;
 		modified = 0;
 		recurse_cnt = 0;
-		gettimeofday(&start, NULL);
-		incomplete = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &incomplete);
-		if (!filtered_sm || !modified || incomplete)
+		if (implied_debug)
+			sm_msg("%s: %d %d: filtered = '%s'", __func__, modified, incomplete, show_sm(filtered_sm));
+		if (out_of_memory() || taking_too_long())
+			return NULL;
+		if (incomplete)
+			return ret;  /* Return the implications we figured out before time ran out. */
+		if (!filtered_sm || !modified)
 			continue;
 		/* the assignments here are for borrowed implications */
 		filtered_sm->name = tmp->name;
 		filtered_sm->sym = tmp->sym;
 		avl_insert(&ret, filtered_sm);
-		if (out_of_memory() || taking_too_long())
-			return NULL;
-
 	} END_FOR_EACH_SM(tmp);
 	return ret;
 }
