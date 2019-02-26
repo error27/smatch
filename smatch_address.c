@@ -99,6 +99,8 @@ int get_member_offset_from_deref(struct expression *expr)
 		return -1;
 
 	type = get_type(expr->deref);
+	if (type_is_ptr(type))
+		type = get_real_base_type(type);
 	if (!type || type->type != SYM_STRUCT)
 		return -1;
 
