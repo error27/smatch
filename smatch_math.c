@@ -944,6 +944,9 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 		return true;
 	}
 
+	if (implied == RL_EXACT)
+		return false;
+
 	if (custom_handle_variable) {
 		rl = custom_handle_variable(expr);
 		if (rl) {
@@ -954,9 +957,6 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 		}
 		return true;
 	}
-
-	if (implied == RL_EXACT)
-		return false;
 
 	if (get_mtag_sval(expr, &sval)) {
 		*res_sval = sval;
@@ -1300,8 +1300,13 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 		ret = handle_call_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_STRING:
-		if (!get_mtag_sval(expr, &sval))
-			rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+		if (get_mtag_sval(expr, &sval)) {
+			ret = 1;
+			break;
+		}
+		if (implied == RL_EXACT)
+			break;
+		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 		ret = 1;
 		break;
 	default:
