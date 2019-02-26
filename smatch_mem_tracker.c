@@ -22,7 +22,7 @@ static int my_id;
 
 static unsigned long max_size;
 
-static void match_end_func(struct symbol *sym)
+unsigned long get_mem_kb(void)
 {
 	FILE *file;
 	char buf[1024];
@@ -30,12 +30,20 @@ static void match_end_func(struct symbol *sym)
 
 	file = fopen("/proc/self/statm", "r");
 	if (!file)
-		return;
+		return 0;
 	fread(buf, 1, sizeof(buf), file);
 	fclose(file);
 
 	size = strtoul(buf, NULL, 10);
 	size = size * sysconf(_SC_PAGESIZE) / 1024;
+	return size;
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	unsigned long size;
+
+	size = get_mem_kb();
 	if (size > max_size)
 		max_size = size;
 }

@@ -264,8 +264,15 @@ char *alloc_sname(const char *str)
 	return tmp;
 }
 
+static struct symbol *oom_sym;
 int out_of_memory(void)
 {
+	static int limit = 3000000;  /* Start with a 3GB limit */
+
+	if (oom_sym == cur_func_sym)
+		return 1;
+	oom_sym = NULL;
+
 	/*
 	 * I decided to use 50M here based on trial and error.
 	 * It works out OK for the kernel and so it should work
@@ -273,6 +280,26 @@ int out_of_memory(void)
 	 */
 	if (sm_state_counter * sizeof(struct sm_state) >= 100000000)
 		return 1;
+
+	/*
+	 * We're reading from statm to figure out how much memory we
+	 * are using.  The problem is that at the end of the function
+	 * we release the memory, so that it can be re-used but it
+	 * stays in cache, it's not released to the OS.  So then if
+	 * we allocate memory for different purposes we can easily
+	 * hit the 3GB limit on the next function, so that's why I give
+	 * the next function an extra 100MB to work with.
+	 *
+	 */
+	if (get_mem_kb() > limit) {
+		oom_sym = cur_func_sym;
+		final_pass++;
+		sm_perror("OOM: %luKb sm_state_count = %d", get_mem_kb(), sm_state_counter);
+		final_pass--;
+		limit += 100000;
+		return 1;
+	}
+
 	return 0;
 }
 

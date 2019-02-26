@@ -1221,6 +1221,7 @@ const char *get_syscall_arg_type(struct symbol *sym);
 
 /* smatch_mem_tracker.c */
 extern int option_mem;
+unsigned long get_mem_kb(void);
 unsigned long get_max_memory(void);
 
 /* check_is_nospec.c */
