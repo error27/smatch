@@ -1171,9 +1171,6 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 {
 	struct range_list *rl;
 
-	if (local_debug)
-		sm_msg("%s: expr = '%s'", __func__, expr_to_str(expr));
-
 	if (sym_name_is("__builtin_constant_p", expr->fn))
 		return handle_builtin_constant_p(expr, implied, recurse_cnt, res_sval);
 
@@ -1206,17 +1203,11 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 
 	/* Ugh...  get_implied_return() sets *rl to NULL on failure */
 	if (get_implied_return(expr, &rl)) {
-		if (local_debug)
-			sm_msg("%s:  expr = '%s' implied return = '%s'",
-			       __func__, expr_to_str(expr), show_rl(rl));
 		*res = rl;
 		return true;
 	}
 	rl = db_return_vals(expr);
 	if (rl) {
-		if (local_debug)
-			sm_msg("%s: expr = '%s' from DB.  return = '%s'",
-			       __func__, expr_to_str(expr), show_rl(rl));
 		*res = rl;
 		return true;
 	}
@@ -1356,8 +1347,6 @@ static bool get_rl_helper(struct expression *expr, int implied, int *recurse_cnt
 		*res = alloc_rl(sval, sval);
 	else
 		*res = rl;
-	if (local_debug)
-		sm_msg("%s: expr = '%s' res = '%s'", __func__, expr_to_str(expr), show_rl(*res));
 	return true;
 }
 
