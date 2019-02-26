@@ -11,7 +11,9 @@ scnprintf 0-s32max 0-s32max[<$1]
 vscnprintf s32min-(-2),0-s32max[<$1] 0-s32max[<$1]
 down_interruptible s32min-s32max (-62),(-4)
 __sock_create s32min-(-1),1-s32max (-4095)-(-1)
+__sock_create s32min-(-90),(-88)-(-1),1-s32max (-4095)-(-90),(-88)-(-1)
 sock_create_kern s32min-(-1),1-s32max (-4095)-(-1)
+sock_create_kern s32min-(-90),(-88)-(-1),1-s32max (-4095)-(-90),(-88)-(-1)
 nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-s32max (-4095)-(-18),(-16)-(-1)
 nilfs_cpfile_get_checkpoint_block s32min-(-18),(-16)-(-3),(-1),1-s32max (-4095)-(-18),(-16)-(-3),(-1)
 nilfs_mdt_insert_new_block s32min-(-23),(-21)-(-1),1-s32max (-4095)-(-23),(-21)-(-1)
@@ -33,6 +35,8 @@ __irq_domain_activate_irq s32min-s32max (-4095)-0
 get_user_pages_fast s32min-s32max 1-s32max[<$1]
 __nci_request s32min-s32max (-4095)-0
 wait_for_common s64min-s64max 0-s64max[<=$1]
+wait_for_common 64min-(-1),1-s64max 1-s64max[<=$1]
+dma_fence_wait_timeout s64min-(-1),1-s64max (-4095)-(-1),1-s64max[<=2]
 __ilog2_u32 s32min-s32max 0-31
 __ilog2_u64 s32min-s32max 0-63
 driver_attach s32min-s32max (-4095)-0
