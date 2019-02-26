@@ -1038,9 +1038,8 @@ static char *get_next_ptr_name(void)
 	char *ptr;
 
 	FOR_EACH_PTR(ptr_names, ptr) {
-		if (list_has_string(ptr_names_done, ptr))
+		if (!insert_string(&ptr_names_done, ptr))
 			continue;
-		insert_string(&ptr_names_done, ptr);
 		return ptr;
 	} END_FOR_EACH_PTR(ptr);
 	return NULL;

@@ -1124,7 +1124,7 @@ sval_t ll_to_sval(long long val);
 
 /* smatch_string_list.c */
 int list_has_string(struct string_list *str_list, const char *str);
-void insert_string(struct string_list **str_list, const char *str);
+int insert_string(struct string_list **str_list, const char *str);
 struct string_list *clone_str_list(struct string_list *orig);
 struct string_list *combine_string_lists(struct string_list *one, struct string_list *two);
 

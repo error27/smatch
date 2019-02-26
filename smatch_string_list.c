@@ -36,7 +36,7 @@ int list_has_string(struct string_list *str_list, const char *str)
 	return 0;
 }
 
-void insert_string(struct string_list **str_list, const char *_new)
+int insert_string(struct string_list **str_list, const char *_new)
 {
 	char *new = (char *)_new;
 	char *tmp;
@@ -45,18 +45,17 @@ void insert_string(struct string_list **str_list, const char *_new)
 	FOR_EACH_PTR(*str_list, tmp) {
 		cmp = strcmp(tmp, new);
 		if (cmp < 0)
-		if (strcmp(tmp, new) < 0)
 			continue;
 		else if (cmp == 0) {
-		else if (strcmp(tmp, new) == 0) {
-			return;
+			return 0;
 		} else {
 			INSERT_CURRENT(alloc_string(new), tmp);
-			return;
+			return 1;
 		}
 	} END_FOR_EACH_PTR(tmp);
 	new = alloc_string(new);
 	add_ptr_list(str_list, new);
+	return 1;
 }
 
 struct string_list *clone_str_list(struct string_list *orig)

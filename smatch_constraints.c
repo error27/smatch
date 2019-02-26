@@ -342,9 +342,8 @@ free_data:
 struct string_list *saved_constraints;
 static void save_new_constraint(const char *con)
 {
-	if (list_has_string(saved_constraints, con))
+	if (!insert_string(&saved_constraints, con))
 		return;
-	insert_string(&saved_constraints, con);
 	sql_save_constraint(con);
 }
 
