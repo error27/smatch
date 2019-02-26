@@ -284,7 +284,7 @@ static int split_op_param_key(char *value, int *op, int *param, char **key)
 	if (!parse_comparison(&value, op))
 		return 0;
 
-	snprintf(buf, sizeof(buf), value);
+	snprintf(buf, sizeof(buf), "%s", value);
 
 	p = buf;
 	if (*p++ != '$')
