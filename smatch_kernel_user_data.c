@@ -427,12 +427,18 @@ static void set_points_to_user_data(struct expression *expr)
 	char *name;
 	struct symbol *sym;
 	char buf[256];
+	struct symbol *type;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 	snprintf(buf, sizeof(buf), "*%s", name);
-	set_state(my_id, buf, sym, alloc_estate_whole(&llong_ctype));
+	type = get_type(expr);
+	if (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (!type || type->type != SYM_BASETYPE)
+		type = &llong_ctype;
+	set_state(my_id, buf, sym, alloc_estate_whole(type));
 free:
 	free_string(name);
 }
