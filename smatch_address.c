@@ -194,6 +194,22 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 			return 1;
 		}
 
+		if (is_array(unop)) {
+			struct expression *array;
+			struct expression *offset_expr;
+
+			array = get_array_base(unop);
+			offset_expr = get_array_offset(unop);
+
+			if (implied_not_equal(array, 0) ||
+			    implied_not_equal(offset_expr, 0)) {
+				*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+				return 1;
+			}
+
+			return 0;
+		}
+
 		if (unop->type == EXPR_DEREF && unop->member) {
 			struct range_list *unop_rl;
 			int offset = get_member_offset_from_deref(unop);
