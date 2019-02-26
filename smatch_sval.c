@@ -460,6 +460,8 @@ static sval_t ptr_binop(struct symbol *type, sval_t left, int op, sval_t right)
 		}
 	}
 
+	if (op == '-')
+		ret.type = ssize_t_ctype;
 	return ret;
 }
 

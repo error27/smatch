@@ -629,7 +629,7 @@ static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_c
 		}
 	}
 
-	type = get_type(expr);
+	type = get_promoted_type(get_type(expr->left), get_type(expr->right));
 	get_rl_helper(expr->left, implied, recurse_cnt, &left_rl);
 	left_rl = cast_rl(type, left_rl);
 	get_rl_helper(expr->right, implied, recurse_cnt, &right_rl);
