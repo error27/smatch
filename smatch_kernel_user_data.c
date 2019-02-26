@@ -45,8 +45,11 @@ static const char *kstr_funcs[] = {
 
 static const char *returns_user_data[] = {
 	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read", "nlmsg_data", "nla_data", "memdup_user",
-	"kmap_atomic", "skb_network_header",
+	"kvm_register_read",
+};
+
+static const char *returns_pointer_to_user_data[] = {
+	"nlmsg_data", "nla_data", "memdup_user", "kmap_atomic", "skb_network_header",
 };
 
 static void set_points_to_user_data(struct expression *expr);
@@ -347,6 +350,22 @@ static int is_skb_data(struct expression *expr)
 	return 1;
 }
 
+static bool is_points_to_user_data_fn(struct expression *expr)
+{
+	int i;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
+	    !expr->fn->symbol)
+		return false;
+	expr = expr->fn;
+	for (i = 0; i < ARRAY_SIZE(returns_pointer_to_user_data); i++) {
+		if (sym_name_is(returns_pointer_to_user_data[i], expr))
+			return true;
+	}
+	return false;
+}
+
 static int get_rl_from_function(struct expression *expr, struct range_list **rl)
 {
 	int i;
@@ -377,6 +396,8 @@ int points_to_user_data(struct expression *expr)
 	if (!expr)
 		return 0;
 	if (is_skb_data(expr))
+		return 1;
+	if (is_points_to_user_data_fn(expr))
 		return 1;
 	if (get_rl_from_function(expr, &rl))
 		return 1;
@@ -493,21 +514,21 @@ static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
 	static struct expression *handled;
+	struct expression *faked;
 
-	if (is_fake_call(expr->right)) {
-		struct expression *faked = get_faked_expression();
-		if (faked == handled)
-			return;
+	faked = get_faked_expression();
+	if (faked && faked == handled)
+		return;
+	if (is_fake_call(expr->right))
 		goto clear_old_state;
-	}
 	if (handle_get_user(expr))
 		return;
-	if (points_to_user_data(expr->right))
-		set_points_to_user_data(expr->left);
-	if (handle_struct_assignment(expr)) {
+	if (points_to_user_data(expr->right)) {
 		handled = expr;
-		return;
+		set_points_to_user_data(expr->left);
 	}
+	if (handle_struct_assignment(expr))
+		return;
 
 	if (!get_user_rl(expr->right, &rl))
 		goto clear_old_state;
