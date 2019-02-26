@@ -187,6 +187,7 @@ CK(check_dma_mapping_error)
 CK(check_nospec)
 CK(check_nospec_barrier)
 CK(check_spectre)
+CK(check_spectre_second_half)
 CK(check_implicit_dependencies)
 
 /* wine specific stuff */
