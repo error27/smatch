@@ -77,21 +77,16 @@ struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
 
 const unsigned long valid_ptr_min = 4096;
-const unsigned long valid_ptr_max = LONG_MAX & ~(MTAG_OFFSET_MASK);
-sval_t valid_ptr_min_sval = {
+const unsigned long valid_ptr_max = ULONG_MAX & ~(MTAG_OFFSET_MASK);
+const sval_t valid_ptr_min_sval = {
 	.type = &ptr_ctype,
 	{.value = 4096},
 };
-sval_t valid_ptr_max_sval = {
+const sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
 	{.value = ULONG_MAX & ~(MTAG_OFFSET_MASK)},
 };
 struct range_list *valid_ptr_rl;
-
-static void set_valid_ptr_max(void)
-{
-	valid_ptr_max_sval.value = valid_ptr_max;
-}
 
 static void alloc_valid_ptr_rl(void)
 {
@@ -1914,7 +1909,6 @@ void smatch(int argc, char **argv)
 	gettimeofday(&start, NULL);
 
 	sparse_initialize(argc, argv, &filelist);
-	set_valid_ptr_max();
 	alloc_valid_ptr_rl();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
 		path = getcwd(NULL, 0);

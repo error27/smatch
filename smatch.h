@@ -576,7 +576,7 @@ struct data_range {
 #define MTAG_OFFSET_MASK 0xfffULL
 
 const extern unsigned long valid_ptr_min, valid_ptr_max;
-extern sval_t valid_ptr_min_sval, valid_ptr_max_sval;
+extern const sval_t valid_ptr_min_sval, valid_ptr_max_sval;
 extern struct range_list *valid_ptr_rl;
 static const sval_t array_min_sval = {
 	.type = &ptr_ctype,
