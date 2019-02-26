@@ -212,25 +212,20 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 
 		if (unop->type == EXPR_DEREF && unop->member) {
 			struct range_list *unop_rl;
-			int offset = get_member_offset_from_deref(unop);
+			int offset;
 
-			if (offset == -1)
-				return 0;
-
+			offset = get_member_offset_from_deref(unop);
 			unop = strip_expr(unop->unop);
-			if (get_implied_rl(unop, &unop_rl)) {
+			if (unop->type == EXPR_PREOP && unop->op == '*')
+				unop = strip_expr(unop->unop);
+
+			if (offset >= 0 && get_implied_rl(unop, &unop_rl)) {
 				*rl = unop_rl;
 				add_offset_to_pointer(rl, offset);
 				return 1;
 			}
 
-			/*
-			 * If the offset is non-zero that means either valid
-			 * pointer or we are already toasted beyond our ability
-			 * to deal with.
-			 *
-			 */
-			if (offset != 0) {
+			if (implied_not_equal(unop, 0) || offset > 0) {
 				*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 				return 1;
 			}
