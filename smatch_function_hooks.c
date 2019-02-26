@@ -246,6 +246,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct stree *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
+	struct range_list *rl;
 	int handled = 0;
 
 	if (!call_backs)
@@ -268,7 +269,9 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		call_ranged_call_backs(same_range_call_backs, fn, expr->right, expr);
 		__free_ptr_list((struct ptr_list **)&same_range_call_backs);
 
-		estate = alloc_estate_range(tmp->range->min, tmp->range->max);
+		rl = alloc_rl(tmp->range->min, tmp->range->max);
+		rl = cast_rl(get_type(expr->left), rl);
+		estate = alloc_estate_rl(rl);
 		set_extra_mod(var_name, sym, expr->left, estate);
 
 		tmp_stree = __pop_fake_cur_stree();
