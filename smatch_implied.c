@@ -422,14 +422,13 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	if (!sm)
 		return NULL;
 
-	DIMPLIED("checking [stree %d] %s from %d%s left = %s [stree %d] right = %s [stree %d]\n",
+	DIMPLIED("checking [stree %d] %s from %d left = %s [stree %d] right = %s [stree %d]\n",
 		 get_stree_id(sm->pool),
 		 show_sm(sm), sm->line,
-		 sm->skip_implications ? " (skip_implications)" : "",
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 
-	if (*incomplete || sm->skip_implications || taking_too_long()) {
+	if (*incomplete || taking_too_long()) {
 		*incomplete = 1;
 		return NULL;
 	}
