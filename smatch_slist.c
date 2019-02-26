@@ -96,9 +96,9 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 	if (!a)
 		return 1;
 
-	if (a->owner > b->owner)
-		return -1;
 	if (a->owner < b->owner)
+		return -1;
+	if (a->owner > b->owner)
 		return 1;
 
 	ret = strcmp(a->name, b->name);
