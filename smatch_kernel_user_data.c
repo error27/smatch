@@ -32,7 +32,7 @@ static int my_call_id;
 STATE(called);
 static bool func_gets_user_data;
 
-static const char * kstr_funcs[] = {
+static const char *kstr_funcs[] = {
 	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
 	"kstrtoint", "kstrtou64", "kstrtos64", "kstrtou32", "kstrtos32",
 	"kstrtou16", "kstrtos16", "kstrtou8", "kstrtos8", "kstrtoull_from_user"
@@ -85,39 +85,39 @@ static void pre_merge_hook(struct sm_state *sm)
 	struct smatch_state *user;
 	struct smatch_state *extra;
 	struct range_list *rl;
-	sval_t dummy;
-	sval_t sval_100 = {
-		.type = &int_ctype,
-		.value = 100,
-	};
+	sval_t dummy, max;
 
 	user = get_state(my_id, sm->name, sm->sym);
-	if (!user)
+	if (!user || !estate_rl(user))
 		return;
+
 	if (!__in_function_def && !estate_rl(sm->state)) {
-		/*
-		 * If the one side is capped and the other side is empty then
-		 * let's just mark it as not-user data because the information
-		 * isn't going to be useful.  How this looks is:
+		/* The situation here looks like:
 		 *
 		 * if (user_var > trusted)
 		 *	user_var = trusted;  <-- empty state
 		 * else
-		 *	<-- capped
+		 *	<-- capped (but to an unknown)
 		 *
-		 * The problem is that sometimes things are capped to a literal
-		 * and we'd like to keep the state in that case...  Ugh.  I've
-		 * added a check which assumes that everything less than 100 is
-		 * probably capped against a literal.
+		 * The one side is capped and the other side is set to an
+		 * unknown limit.  In that case, we want to set the capped side
+		 * to an empty rl.
+		 *
+		 * The difficulty lies in knowing that the limit is unknown
+		 * because we just have a binary capped vs uncapped.  Also the
+		 * API doesn't let us select the extra state from the other
+		 * stree.  (FIXME?).
 		 *
 		 */
-		if (is_capped_var_sym(sm->name, sm->sym) &&
-		    sval_cmp(estate_max(user), sval_100) > 0)
+		max = estate_max(user);
+
+		if (is_capped_var_sym(sm->name, sm->sym) && sval_is_a_max(max)) {
 			set_state(my_id, sm->name, sm->sym, alloc_estate_empty());
-		return;
+			return;
+		}
 	}
 	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
-	if (!extra || !estate_rl(extra))
+	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
 	if (rl_to_sval(rl, &dummy))
