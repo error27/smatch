@@ -243,14 +243,25 @@ static struct lock_info kernel_lock_table[] = {
 	{"__raw_write_trylock",       LOCK,   "write_lock", 0, ret_one},
 
 	{"down",               LOCK,   "sem", 0, ret_any},
+	{"down_write",         LOCK,   "sem", 0, ret_any},
 	{"up",                 UNLOCK, "sem", 0, ret_any},
+	{"up_write",           UNLOCK, "sem", 0, ret_any},
 	{"down_trylock",       LOCK,   "sem", 0, ret_zero},
 	{"down_timeout",       LOCK,   "sem", 0, ret_zero},
 	{"down_interruptible", LOCK,   "sem", 0, ret_zero},
+	{"down_write_trylock", LOCK,   "sem", 0, ret_one},
+	{"down_write_killable", LOCK,   "sem", 0, ret_zero},
+
+	{"down_read",          LOCK,   "read_sem", 0, ret_any},
+	{"down_read_trylock",  LOCK,   "read_sem", 0, ret_one},
+	{"down_read_killable", LOCK,   "read_sem", 0, ret_zero},
+	{"up_read",            UNLOCK, "read_sem", 0, ret_any},
 
 	{"mutex_lock",                      LOCK,   "mutex", 0, ret_any},
+	{"mutex_lock_io",                   LOCK,   "mutex", 0, ret_any},
 	{"mutex_unlock",                    UNLOCK, "mutex", 0, ret_any},
 	{"mutex_lock_nested",               LOCK,   "mutex", 0, ret_any},
+	{"mutex_lock_io_nested",            LOCK,   "mutex", 0, ret_any},
 
 	{"mutex_lock_interruptible",        LOCK,   "mutex", 0, ret_zero},
 	{"mutex_lock_interruptible_nested", LOCK,   "mutex", 0, ret_zero},
@@ -448,6 +459,15 @@ static void pre_merge_hook(struct sm_state *sm)
 		set_state(my_id, sm->name, sm->sym, &impossible);
 }
 
+static bool nestable(const char *name)
+{
+	if (strstr(name, "read_sem:"))
+		return true;
+	if (strcmp(name, "bottom_half:") == 0)
+		return true;
+	return false;
+}
+
 static void do_lock(const char *name)
 {
 	struct sm_state *sm;
@@ -458,8 +478,7 @@ static void do_lock(const char *name)
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
 		add_tracker(&starts_unlocked, my_id, name, NULL);
-	if (sm && slist_has_state(sm->possible, &locked) &&
-			strcmp(name, "bottom_half:") != 0)
+	if (sm && slist_has_state(sm->possible, &locked) && !nestable(name))
 		sm_error("double lock '%s'", name);
 	if (sm)
 		func_has_transition = TRUE;
