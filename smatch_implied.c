@@ -411,7 +411,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 			      const struct state_list *remove_stack,
 			      const struct state_list *keep_stack,
 			      int *modified, int *recurse_cnt,
-			      struct timeval *start, int *incomplete)
+			      struct timeval *start, int *bail)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
@@ -428,14 +428,12 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 
-	if (*incomplete || taking_too_long()) {
-		*incomplete = 1;
+	if (*bail)
 		return NULL;
-	}
 
 	gettimeofday(&now, NULL);
 	if (now.tv_sec - start->tv_sec > 3) {
-		*incomplete = 1;
+		*bail = 1;
 		return NULL;
 	}
 	if ((*recurse_cnt)++ > 250)
@@ -455,9 +453,9 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		return sm;
 	}
 
-	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
-	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, incomplete);
-	if (*incomplete || *recurse_cnt > 250)
+	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, bail);
+	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, bail);
+	if (*bail || *recurse_cnt > 250)
 		return NULL;
 	if (!removed) {
 		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
@@ -511,7 +509,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	int modified;
 	int recurse_cnt;
 	struct timeval start;
-	int incomplete = 0;
+	int bail = 0;
 
 	if (!remove_stack)
 		return NULL;
@@ -527,12 +525,12 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 			continue;
 		modified = 0;
 		recurse_cnt = 0;
-		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &incomplete);
+		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &bail);
 		if (implied_debug)
-			sm_msg("%s: %d %d: filtered = '%s'", __func__, modified, incomplete, show_sm(filtered_sm));
+			sm_msg("%s: modified=%d bail=%d: filtered = '%s'", __func__, modified, bail, show_sm(filtered_sm));
 		if (out_of_memory() || taking_too_long())
 			return NULL;
-		if (incomplete)
+		if (bail)
 			return ret;  /* Return the implications we figured out before time ran out. */
 		if (!filtered_sm || !modified)
 			continue;
