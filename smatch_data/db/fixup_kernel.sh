@@ -198,6 +198,9 @@ delete from caller_info where function = '(struct i2c_algorithm)->master_xfer' a
 /* this if from READ_ONCE().  We can't know anything about the data.  */
 delete from type_info where key = '(union anonymous)->__val';
 
+/* This is RIO_BAD_SIZE */
+delete from return_states where file = 'drivers/rapidio/rio-access.c' and return = '129';
+
 EOF
 
 # fixme: this is totally broken
