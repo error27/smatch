@@ -53,6 +53,8 @@ static void reset(struct sm_state *sm, struct expression *mod_expr)
 
 void __save_imaginary_state(struct expression *expr, struct range_list *true_rl, struct range_list *false_rl)
 {
+	if (__in_pre_condition)
+		return;
 	set_true_false_states_expr(my_id, expr, alloc_estate_rl(true_rl), alloc_estate_rl(false_rl));
 }
 
