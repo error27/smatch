@@ -506,6 +506,10 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 		return alloc_int_rl(size - offset.value);
 	}
 
+	size = get_stored_size_end_struct_bytes(expr);
+	if (size)
+		return alloc_int_rl(size);
+
 	/* buf[4] */
 	size = get_real_array_size(expr);
 	if (size)
@@ -515,10 +519,6 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	ret = get_stored_size_bytes(expr);
 	if (ret)
 		return ret;
-
-	size = get_stored_size_end_struct_bytes(expr);
-	if (size)
-		return alloc_int_rl(size);
 
 	/* char *foo = "BAR" */
 	size = get_size_from_initializer(expr);
