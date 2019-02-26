@@ -1314,13 +1314,8 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	}
 
 out_cast:
-	if ((ret == 1 && rl == (void *)-1UL && sval.type == NULL) ||
-	    (ret == 0 && (rl != (void *)-1UL && sval.type == NULL)) ||
-	    (sval.type && rl != (void *)-1UL)) {
-		int *null = NULL;
-		sm_msg("DIE:  expr = '%s' ret = %d rl = '%s'", expr_to_str(expr), ret, show_rl(rl));
-		*null = 42;
-	}
+	if (!ret)
+		return false;
 	if (rl == (void *)-1UL)
 		rl = NULL;
 
