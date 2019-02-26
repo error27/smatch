@@ -1935,6 +1935,7 @@ void smatch(int argc, char **argv)
 	gettimeofday(&stop, NULL);
 
 	set_position(last_pos);
+	final_pass = 1;
 	if (option_time)
 		sm_msg("time: %lu", stop.tv_sec - start.tv_sec);
 	if (option_mem)
