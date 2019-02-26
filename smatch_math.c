@@ -1350,6 +1350,22 @@ static bool get_rl_internal(struct expression *expr, int implied, int *recurse_c
 	return true;
 }
 
+static bool get_rl_helper(struct expression *expr, int implied, struct range_list **res)
+{
+	struct range_list *rl = NULL;
+	sval_t sval = {};
+	int recurse_cnt = 0;
+
+	if (!get_rl_sval(expr, implied, &recurse_cnt, &rl, &sval))
+		return false;
+
+	if (sval.type)
+		*res = alloc_rl(sval, sval);
+	else
+		*res = rl;
+	return true;
+}
+
 struct {
 	struct expression *expr;
 	sval_t sval;
@@ -1416,9 +1432,8 @@ static bool get_implied_value_internal(struct expression *expr, int *recurse_cnt
 int get_implied_value(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_IMPLIED, &recurse_cnt, &rl) ||
+	if (!get_rl_helper(expr, RL_IMPLIED, &rl) ||
 	    !rl_to_sval(rl, sval))
 		return 0;
 	return 1;
@@ -1427,9 +1442,8 @@ int get_implied_value(struct expression *expr, sval_t *sval)
 int get_implied_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_IMPLIED, &recurse_cnt, &rl) || !rl)
+	if (!get_rl_helper(expr, RL_IMPLIED, &rl) || !rl)
 		return 0;
 	*sval = rl_min(rl);
 	return 1;
@@ -1438,9 +1452,8 @@ int get_implied_min(struct expression *expr, sval_t *sval)
 int get_implied_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_IMPLIED, &recurse_cnt, &rl) || !rl)
+	if (!get_rl_helper(expr, RL_IMPLIED, &rl) || !rl)
 		return 0;
 	*sval = rl_max(rl);
 	return 1;
@@ -1448,9 +1461,7 @@ int get_implied_max(struct expression *expr, sval_t *sval)
 
 int get_implied_rl(struct expression *expr, struct range_list **rl)
 {
-	int recurse_cnt = 0;
-
-	if (!get_rl_internal(expr, RL_IMPLIED, &recurse_cnt, rl) || !*rl)
+	if (!get_rl_helper(expr, RL_IMPLIED, rl) || !*rl)
 		return 0;
 	return 1;
 }
@@ -1466,10 +1477,8 @@ static int get_absolute_rl_internal(struct expression *expr, struct range_list *
 
 int get_absolute_rl(struct expression *expr, struct range_list **rl)
 {
-	int recurse_cnt = 0;
-
 	*rl = NULL;
-	 get_rl_internal(expr, RL_ABSOLUTE, &recurse_cnt, rl);
+	 get_rl_helper(expr, RL_ABSOLUTE, rl);
 	if (!*rl)
 		*rl = alloc_whole_rl(get_type(expr));
 	return 1;
@@ -1477,10 +1486,8 @@ int get_absolute_rl(struct expression *expr, struct range_list **rl)
 
 int get_real_absolute_rl(struct expression *expr, struct range_list **rl)
 {
-	int recurse_cnt = 0;
-
 	*rl = NULL;
-	get_rl_internal(expr, RL_REAL_ABSOLUTE, &recurse_cnt, rl);
+	get_rl_helper(expr, RL_REAL_ABSOLUTE, rl);
 	if (!*rl)
 		*rl = alloc_whole_rl(get_type(expr));
 	return 1;
@@ -1490,12 +1497,11 @@ int custom_get_absolute_rl(struct expression *expr,
 			   struct range_list *(*fn)(struct expression *expr),
 			   struct range_list **rl)
 {
-	int recurse_cnt = 0;
 	int ret;
 
 	*rl = NULL;
 	custom_handle_variable = fn;
-	ret = get_rl_internal(expr, RL_REAL_ABSOLUTE, &recurse_cnt, rl);
+	ret = get_rl_helper(expr, RL_REAL_ABSOLUTE, rl);
 	custom_handle_variable = NULL;
 	return ret;
 }
@@ -1514,9 +1520,8 @@ int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_lis
 int get_hard_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_HARD, &recurse_cnt, &rl) || !rl)
+	if (!get_rl_helper(expr, RL_HARD, &rl) || !rl)
 		return 0;
 	*sval = rl_max(rl);
 	return 1;
@@ -1526,9 +1531,8 @@ int get_fuzzy_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 	sval_t tmp;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_FUZZY, &recurse_cnt, &rl) || !rl)
+	if (!get_rl_helper(expr, RL_FUZZY, &rl) || !rl)
 		return 0;
 	tmp = rl_min(rl);
 	if (sval_is_negative(tmp) && sval_is_min(tmp))
@@ -1541,9 +1545,8 @@ int get_fuzzy_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 	sval_t max;
-	int recurse_cnt = 0;
 
-	if (!get_rl_internal(expr, RL_FUZZY, &recurse_cnt, &rl) || !rl)
+	if (!get_rl_helper(expr, RL_FUZZY, &rl) || !rl)
 		return 0;
 	max = rl_max(rl);
 	if (max.uvalue > INT_MAX - 10000)
@@ -1556,13 +1559,12 @@ int get_absolute_min(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 	struct symbol *type;
-	int recurse_cnt = 0;
 
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;  // FIXME: this is wrong but places assume get type can't fail.
 	rl = NULL;
-	get_rl_internal(expr, RL_REAL_ABSOLUTE, &recurse_cnt, &rl);
+	get_rl_helper(expr, RL_REAL_ABSOLUTE, &rl);
 	if (rl)
 		*sval = rl_min(rl);
 	else
@@ -1577,13 +1579,12 @@ int get_absolute_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *rl;
 	struct symbol *type;
-	int recurse_cnt = 0;
 
 	type = get_type(expr);
 	if (!type)
 		type = &llong_ctype;
 	rl = NULL;
-	get_rl_internal(expr, RL_REAL_ABSOLUTE, &recurse_cnt, &rl);
+	get_rl_helper(expr, RL_REAL_ABSOLUTE, &rl);
 	if (rl)
 		*sval = rl_max(rl);
 	else
