@@ -514,21 +514,14 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	if (!remove_stack)
 		return NULL;
 
-	if (taking_too_long())
-		return NULL;
-
 	gettimeofday(&start, NULL);
 	FOR_EACH_SM(pre_stree, tmp) {
-		if (!tmp->merged)
-			continue;
-		if (sm_in_keep_leafs(tmp, keep_stack))
+		if (!tmp->merged || sm_in_keep_leafs(tmp, keep_stack))
 			continue;
 		modified = 0;
 		recurse_cnt = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &bail);
-		if (implied_debug)
-			sm_msg("%s: modified=%d bail=%d: filtered = '%s'", __func__, modified, bail, show_sm(filtered_sm));
-		if (out_of_memory() || taking_too_long())
+		if (taking_too_long())
 			return NULL;
 		if (bail)
 			return ret;  /* Return the implications we figured out before time ran out. */
