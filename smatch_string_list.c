@@ -20,14 +20,16 @@
 int list_has_string(struct string_list *str_list, const char *str)
 {
 	char *tmp;
+	int cmp;
 
 	if (!str)
 		return 0;
 
 	FOR_EACH_PTR(str_list, tmp) {
-		if (strcmp(tmp, str) < 0)
+		cmp = strcmp(tmp, str);
+		if (cmp < 0)
 			continue;
-		if (strcmp(tmp, str) == 0)
+		if (cmp == 0)
 			return 1;
 		return 0;
 	} END_FOR_EACH_PTR(tmp);
@@ -38,10 +40,14 @@ void insert_string(struct string_list **str_list, const char *_new)
 {
 	char *new = (char *)_new;
 	char *tmp;
+	int cmp;
 
 	FOR_EACH_PTR(*str_list, tmp) {
+		cmp = strcmp(tmp, new);
+		if (cmp < 0)
 		if (strcmp(tmp, new) < 0)
 			continue;
+		else if (cmp == 0) {
 		else if (strcmp(tmp, new) == 0) {
 			return;
 		} else {
