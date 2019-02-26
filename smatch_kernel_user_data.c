@@ -718,7 +718,7 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 	struct db_info db_info = {};
 
 	/* for function pointers assume everything is used */
-	if (call->fn->type != EXPR_SYMBOL)
+	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
 		return 0;
 	if (is_fake_call(call))
 		return 0;
