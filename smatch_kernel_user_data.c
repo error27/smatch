@@ -492,15 +492,22 @@ free:
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
+	static struct expression *handled;
 
-	if (is_fake_call(expr->right))
+	if (is_fake_call(expr->right)) {
+		struct expression *faked = get_faked_expression();
+		if (faked == handled)
+			return;
 		goto clear_old_state;
+	}
 	if (handle_get_user(expr))
 		return;
 	if (points_to_user_data(expr->right))
 		set_points_to_user_data(expr->left);
-	if (handle_struct_assignment(expr))
+	if (handle_struct_assignment(expr)) {
+		handled = expr;
 		return;
+	}
 
 	if (!get_user_rl(expr->right, &rl))
 		goto clear_old_state;
