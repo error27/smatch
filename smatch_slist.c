@@ -181,7 +181,6 @@ struct sm_state *alloc_sm_state(int owner, const char *name,
 	sm_state->pool = NULL;
 	sm_state->left = NULL;
 	sm_state->right = NULL;
-	sm_state->nr_children = 1;
 	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
@@ -373,7 +372,6 @@ struct sm_state *clone_sm(struct sm_state *s)
 	ret->possible = clone_slist(s->possible);
 	ret->left = s->left;
 	ret->right = s->right;
-	ret->nr_children = s->nr_children;
 	return ret;
 }
 
@@ -451,10 +449,6 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	result->merged = 1;
 	result->left = one;
 	result->right = two;
-	if (one->nr_children + two->nr_children <= MAX_CHILDREN)
-		result->nr_children = one->nr_children + two->nr_children;
-	else
-		result->nr_children = MAX_CHILDREN;
 
 	copy_possibles(result, one, two);
 

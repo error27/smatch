@@ -78,7 +78,6 @@ struct sm_state {
 	unsigned short owner;
 	unsigned short merged:1;
 	unsigned short skip_implications:1;
-	unsigned short nr_children:14;
 	unsigned int line;
   	struct smatch_state *state;
 	struct stree *pool;
@@ -86,7 +85,6 @@ struct sm_state {
 	struct sm_state *right;
 	struct state_list *possible;
 };
-#define MAX_CHILDREN 0x3FFF /* 2**14 - 1 */
 
 struct var_sym {
 	char *var;

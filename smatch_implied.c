@@ -305,22 +305,8 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
 			       __func__, sm->state->name, show_special(comparison), show_rl(rl));
 		}
-		sm->nr_children = MAX_CHILDREN;
 		if (mixed)
 			*mixed = 1;
-	}
-
-	/*
-	   Sometimes the implications are just too big to deal with
-	   so we bail.  Theoretically, bailing out here can cause more false
-	   positives but won't hide actual bugs.
-	*/
-	if (0 && sm->nr_children == MAX_CHILDREN) {
-		if (implied_debug) {
-			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
-			       __func__, sm->nr_children, sm->name, show_state(sm->state));
-		}
-		return;
 	}
 
 	if (checked == NULL) {
@@ -436,9 +422,9 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	if (!sm)
 		return NULL;
 
-	DIMPLIED("checking [stree %d] %s from %d (nr_children: %d)%s left = %s [stree %d] right = %s [stree %d]\n",
+	DIMPLIED("checking [stree %d] %s from %d%s left = %s [stree %d] right = %s [stree %d]\n",
 		 get_stree_id(sm->pool),
-		 show_sm(sm), sm->line, sm->nr_children,
+		 show_sm(sm), sm->line,
 		 sm->skip_implications ? " (skip_implications)" : "",
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
@@ -449,13 +435,12 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	}
 
 	gettimeofday(&now, NULL);
-	if ((*recurse_cnt)++ > 250 || now.tv_sec - start->tv_sec > 3) {
-		if (implied_debug) {
-			sm_msg("debug: %s: nr_children over 4000 (%d). (%s %s)",
-				 __func__, sm->nr_children, sm->name, show_state(sm->state));
-		}
+	if (now.tv_sec - start->tv_sec > 3) {
+		*incomplete = 1;
 		return NULL;
 	}
+	if ((*recurse_cnt)++ > 250)
+		return NULL;
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
 		DIMPLIED("removed [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
@@ -601,10 +586,8 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 	gettimeofday(&time_after, NULL);
 	sec = time_after.tv_sec - time_before.tv_sec;
-	if (sec > 20) {
-		sm->nr_children = MAX_CHILDREN;
+	if (sec > 20)
 		sm_perror("Function too hairy.  Ignoring implications after %d seconds.", sec);
-	}
 }
 
 static struct expression *get_last_expr(struct statement *stmt)
