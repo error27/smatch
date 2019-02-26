@@ -44,6 +44,7 @@ if [ "$PROJ" != "" ] ; then
 fi
 
 ${bin_dir}/remove_mixed_up_pointer_params.pl $db_file
+${bin_dir}/delete_too_common_fn_ptr.sh $db_file
 ${bin_dir}/mark_function_ptrs_searchable.pl $db_file
 
 # delete duplicate entrees and speed things up
