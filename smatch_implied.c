@@ -427,17 +427,20 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		 show_sm(sm), sm->line,
 		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
-
 	if (*bail)
 		return NULL;
+	if (sm->skip_implications)
+		return sm;
 
 	gettimeofday(&now, NULL);
 	if (now.tv_sec - start->tv_sec > 3) {
 		*bail = 1;
 		return NULL;
 	}
-	if ((*recurse_cnt)++ > 250)
+	if ((*recurse_cnt)++ > 100) {
+		sm->skip_implications = 1;
 		return NULL;
+	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
 		DIMPLIED("removed [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
@@ -521,6 +524,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		modified = 0;
 		recurse_cnt = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &bail);
+		if (recurse_cnt > 100)
+			tmp->skip_implications = 1;
 		if (taking_too_long())
 			return NULL;
 		if (bail)
