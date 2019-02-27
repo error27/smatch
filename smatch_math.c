@@ -1356,6 +1356,11 @@ static bool get_rl_helper(struct expression *expr, int implied, struct range_lis
 	sval_t sval = {};
 	int recurse_cnt = 0;
 
+	if (get_value(expr, &sval)) {
+		*res = alloc_rl(sval, sval);
+		return true;
+	}
+
 	if (!get_rl_sval(expr, implied, &recurse_cnt, &rl, &sval))
 		return false;
 
