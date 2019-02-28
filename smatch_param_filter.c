@@ -148,6 +148,11 @@ static void print_one_mod_param(int return_id, char *return_ranges,
 		return;
 	}
 
+	if (is_ignored_kernel_data(param_name)) {
+		insert_string(totally_filtered, (char *)sm->name);
+		return;
+	}
+
 	sql_insert_return_states(return_id, return_ranges, PARAM_FILTER, param,
 			param_name, show_rl(estate_rl(sm->state)));
 }

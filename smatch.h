@@ -1228,6 +1228,8 @@ long get_stmt_cnt(void);
 
 /* smatch_nul_terminator.c */
 bool is_nul_terminated(struct expression *expr);
+/* check_kernel.c  */
+bool is_ignored_kernel_data(const char *name);
 
 static inline int type_bits(struct symbol *type)
 {

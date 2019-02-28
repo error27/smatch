@@ -414,6 +414,21 @@ static void match__read_once_size(const char *fn, struct expression *call,
 	__in_fake_assign--;
 }
 
+bool is_ignored_kernel_data(const char *name)
+{
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	/*
+	 * On the file I was looking at lockdep was 25% of the DB.
+	 */
+	if (strstr(name, ".dep_map."))
+		return true;
+	if (strstr(name, ".lockdep_map."))
+		return true;
+	return false;
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)

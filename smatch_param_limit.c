@@ -158,6 +158,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (old && rl_equiv(estate_rl(old), estate_rl(state)))
 			continue;
 
+		if (is_ignored_kernel_data(param_name))
+			continue;
+
 		rl = generify_mtag_range(state);
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
 					 param, param_name, show_rl(rl));

@@ -71,6 +71,10 @@ static void process_states(void)
 			continue;
 		if (is_recursive_member(name))
 			continue;
+
+		if (is_ignored_kernel_data(name))
+			continue;
+
 		sql_insert_return_implies(PARAM_USED, arg, name, "");
 	} END_FOR_EACH_SM(tmp);
 

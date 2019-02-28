@@ -192,6 +192,11 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 		}
 
+		if (is_ignored_kernel_data(param_name)) {
+			insert_string(&set_list, (char *)sm->name);
+			continue;
+		}
+
 		math_str = get_value_in_terms_of_parameter_math_var_sym(sm->name, sm->sym);
 		if (math_str) {
 			snprintf(buf, sizeof(buf), "%s[%s]", show_rl(rl), math_str);
