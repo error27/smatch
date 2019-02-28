@@ -263,14 +263,12 @@ char *alloc_sname(const char *str)
 	return tmp;
 }
 
-static struct symbol *oom_sym;
+static struct symbol *oom_func;
+static int oom_limit = 3000000;  /* Start with a 3GB limit */
 int out_of_memory(void)
 {
-	static int limit = 3000000;  /* Start with a 3GB limit */
-
-	if (oom_sym == cur_func_sym)
+	if (oom_func)
 		return 1;
-	oom_sym = NULL;
 
 	/*
 	 * I decided to use 50M here based on trial and error.
@@ -290,12 +288,11 @@ int out_of_memory(void)
 	 * the next function an extra 100MB to work with.
 	 *
 	 */
-	if (get_mem_kb() > limit) {
-		oom_sym = cur_func_sym;
+	if (get_mem_kb() > oom_limit) {
+		oom_func = cur_func_sym;
 		final_pass++;
 		sm_perror("OOM: %luKb sm_state_count = %d", get_mem_kb(), sm_state_counter);
 		final_pass--;
-		limit += 100000;
 		return 1;
 	}
 
@@ -353,6 +350,10 @@ void free_every_single_sm_state(void)
 
 	free_stack_and_strees(&all_pools);
 	sm_state_counter = 0;
+	if (oom_func) {
+		oom_limit += 100000;
+		oom_func = NULL;
+	}
 }
 
 unsigned long get_pool_count(void)
