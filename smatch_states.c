@@ -84,7 +84,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 {
 	struct sm_state *ret;
 
-	if (!name)
+	if (!name || !state)
 		return NULL;
 
 	if (read_only)
