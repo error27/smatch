@@ -158,25 +158,33 @@ Float:
 	expr->type = EXPR_FVALUE;
 }
 
-static void check_shift_count(struct expression *expr, struct expression *right)
+static void warn_shift_count(struct expression *expr, struct symbol *ctype, long long count)
 {
-	struct symbol *ctype = expr->ctype;
-	long long count = get_longlong(right);
-
 	if (count < 0) {
 		if (!Wshift_count_negative)
 			return;
 		warning(expr->pos, "shift count is negative (%lld)", count);
 		return;
 	}
-	if (count < ctype->bit_size)
-		return;
 	if (ctype->type == SYM_NODE)
 		ctype = ctype->ctype.base_type;
 
 	if (!Wshift_count_overflow)
 		return;
 	warning(expr->pos, "shift too big (%llu) for type %s", count, show_typename(ctype));
+}
+
+/* Return true if constant shift size is valid */
+static bool check_shift_count(struct expression *expr, struct expression *right)
+{
+	struct symbol *ctype = expr->ctype;
+	long long count = get_longlong(right);
+
+	if (count >= 0 && count < ctype->bit_size)
+		return true;
+	if (!conservative)
+		warn_shift_count(expr, ctype, count);
+	return false;
 }
 
 /*
@@ -197,9 +205,8 @@ static int simplify_int_binop(struct expression *expr, struct symbol *ctype)
 		return 0;
 	r = right->value;
 	if (expr->op == SPECIAL_LEFTSHIFT || expr->op == SPECIAL_RIGHTSHIFT) {
-		if (conservative)
+		if (!check_shift_count(expr, right))
 			return 0;
-		check_shift_count(expr, right);
 	}
 	if (left->type != EXPR_VALUE)
 		return 0;
