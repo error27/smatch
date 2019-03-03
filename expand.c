@@ -47,6 +47,11 @@
 
 static int expand_expression(struct expression *);
 static int expand_statement(struct statement *);
+
+// If set, don't issue a warning on divide-by-0, invalid shift, ...
+// and don't mark the expression as erroneous but leave it as-is.
+// This allows testing some characteristics of the expression
+// without creating any side-effects (e.g.: is_zero_constant()).
 static int conservative;
 
 static int expand_symbol_expression(struct expression *expr)
