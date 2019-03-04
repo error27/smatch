@@ -141,8 +141,8 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 		return 0;
 	}
 
-	if (option_debug)
-		sm_info("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
+	if (implied_debug)
+		sm_msg("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
 		       sm->name, show_rl(rl), sm->state->name, show_special(comparison), show_rl(rl),
 		       show_rl(true_rl), show_rl(false_rl));
 
