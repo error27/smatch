@@ -411,7 +411,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 			      const struct state_list *remove_stack,
 			      const struct state_list *keep_stack,
 			      int *modified, int *recurse_cnt,
-			      struct timeval *start, int *bail)
+			      struct timeval *start, int *mixed, int *bail)
 {
 	struct sm_state *ret = NULL;
 	struct sm_state *left;
@@ -429,8 +429,10 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	if (*bail)
 		return NULL;
-	if (sm->skip_implications)
+	if (sm->skip_implications) {
+		*mixed = 1;
 		return sm;
+	}
 
 	gettimeofday(&now, NULL);
 	if (now.tv_sec - start->tv_sec > 3) {
@@ -439,7 +441,8 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	}
 	if ((*recurse_cnt)++ > 100) {
 		sm->skip_implications = 1;
-		return NULL;
+		*mixed = 1;
+		return sm;
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
@@ -456,8 +459,8 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		return sm;
 	}
 
-	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, bail);
-	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, bail);
+	left = filter_pools(sm->left, remove_stack, keep_stack, &removed, recurse_cnt, start, mixed, bail);
+	right = filter_pools(sm->right, remove_stack, keep_stack, &removed, recurse_cnt, start, mixed, bail);
 	if (*bail || *recurse_cnt > 250)
 		return NULL;
 	if (!removed) {
@@ -512,6 +515,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 	int modified;
 	int recurse_cnt;
 	struct timeval start;
+	int mixed;
 	int bail = 0;
 
 	if (!remove_stack)
@@ -523,7 +527,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 			continue;
 		modified = 0;
 		recurse_cnt = 0;
-		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &bail);
+		mixed = 0;
+		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &mixed, &bail);
 		if (recurse_cnt > 100)
 			tmp->skip_implications = 1;
 		if (taking_too_long())
@@ -531,6 +536,8 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		if (bail)
 			return ret;  /* Return the implications we figured out before time ran out. */
 		if (!filtered_sm || !modified)
+			continue;
+		if (mixed && cmp_tracker(gate_sm, filtered_sm) == 0)
 			continue;
 		/* the assignments here are for borrowed implications */
 		filtered_sm->name = tmp->name;
