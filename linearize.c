@@ -1764,7 +1764,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 {
 	pseudo_t cond;
 
-	if (!expr || !bb_reachable(ep->active))
+	if (!expr || !valid_type(expr->ctype) || !bb_reachable(ep->active))
 		return VOID;
 
 	switch (expr->type) {
@@ -1864,7 +1864,7 @@ static void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr
 
 static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
-	if (!expr)
+	if (!expr || !valid_type(expr->ctype))
 		return VOID;
 
 	current_pos = expr->pos;
@@ -2417,6 +2417,10 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 		bb_true = alloc_basic_block(ep, stmt->pos);
 		bb_false = endif = alloc_basic_block(ep, stmt->pos);
 
+		// If the condition is invalid, the following
+		// statement(s) are not evaluated.
+		if (!cond || !valid_type(cond->ctype))
+			return VOID;
  		linearize_cond_branch(ep, cond, bb_true, bb_false);
 
 		set_activeblock(ep, bb_true);

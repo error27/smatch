@@ -5,7 +5,6 @@ static void kos(int *r, int a)
 
 /*
  * check-name: eval-bad-assign1
- * check-known-to-fail
  *
  * check-error-start
 eval-bad-assign1.c:3:11: warning: incorrect type in assignment (different base types)
