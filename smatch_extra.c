@@ -498,6 +498,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 {
 	struct expression *iter_var;
 	struct expression *condition, *unop;
+	struct symbol *type;
 	struct sm_state *sm;
 	struct smatch_state *estate;
 	int op;
@@ -521,6 +522,11 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 	if (sval_cmp(estate_min(sm->state), right) < 0)
 		return NULL;
 	start = estate_max(sm->state);
+
+	type = get_type(iter_var);
+	right = sval_cast(type, right);
+	start = sval_cast(type, start);
+
 	if  (sval_cmp(start, right) <= 0)
 		return NULL;
 	if (!sval_is_max(start))
@@ -554,6 +560,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	struct sm_state *sm;
 	struct smatch_state *estate;
 	sval_t start, end, max;
+	struct symbol *type;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -582,6 +589,9 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) < 0)
 		return NULL;
+	type = get_type(iter_var);
+	start = sval_cast(type, start);
+	end = sval_cast(type, end);
 	estate = alloc_estate_range(start, end);
 	if (get_hard_max(condition->right, &max)) {
 		if (!get_macro_name(condition->pos))
@@ -590,6 +600,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		    condition->op == SPECIAL_UNSIGNED_LT ||
 		    condition->op == SPECIAL_NOTEQUAL)
 			max.value--;
+		max = sval_cast(type, max);
 		estate_set_fuzzy_max(estate, max);
 	}
 	set_extra_expr_mod(iter_var, estate);
@@ -612,6 +623,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 		return NULL;
 	if (!get_implied_min(condition->right, &end))
 		end = sval_type_min(get_type(iter_var));
+	end = sval_cast(estate_type(sm->state), end);
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
 
@@ -1317,6 +1329,7 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	struct statement *stmt;
 	struct expression *cond;
 	struct smatch_state *true_state, *false_state;
+	struct symbol *type;
 	sval_t start;
 	sval_t limit;
 
@@ -1348,7 +1361,8 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 		return 0;
 	if (!get_implied_value(right, &limit))
 		return 0;
-
+	type = get_type(left->unop);
+	limit = sval_cast(type, limit);
 	if (sval_cmp(start, limit) > 0)
 		return 0;
 
@@ -1776,6 +1790,10 @@ static int handle_integer_overflow_test(struct expression *expr)
 	get_absolute_min(left->left, &left_min);
 	get_absolute_min(left->right, &right_min);
 	min = sval_binop(left_min, '+', right_min);
+
+	type = get_type(left);
+	min = sval_cast(type, min);
+	max = sval_cast(type, max);
 
 	set_extra_chunk_true_false(left, NULL, alloc_estate_range(min, max));
 	return 1;
