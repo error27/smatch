@@ -630,7 +630,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	switch (condition->op) {
 	case SPECIAL_NOTEQUAL:
 	case '>':
-		if (!sval_is_min(end) && !sval_is_max(end))
+		if (!sval_is_max(end))
 			end.value++;
 		break;
 	case SPECIAL_GTE:
