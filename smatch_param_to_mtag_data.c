@@ -229,6 +229,7 @@ void register_param_to_mtag_data(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	select_return_states_hook(MTAG_ASSIGN, &call_does_mtag_assign);
 	add_merge_hook(my_id, &merge_tag_info);

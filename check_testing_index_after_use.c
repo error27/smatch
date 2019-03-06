@@ -108,6 +108,7 @@ static void match_condition(struct expression *expr)
 void check_testing_index_after_use(int id)
 {
 	my_used_id = id;
+	set_dynamic_states(my_used_id);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_used_id, &delete);

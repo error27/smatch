@@ -203,6 +203,7 @@ void register_param_filter(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_hook(&free_start_states, AFTER_FUNC_HOOK);
 

@@ -871,6 +871,8 @@ void register_buf_size(int id)
 {
 	my_size_id = id;
 
+	set_dynamic_states(my_size_id);
+
 	add_unmatched_state_hook(my_size_id, &unmatched_size_state);
 
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);

@@ -799,6 +799,8 @@ void register_buf_comparison(int id)
 
 	size_id = id;
 
+	set_dynamic_states(size_id);
+
 	add_unmatched_state_hook(size_id, &unmatched_state);
 
 	add_allocation_function("malloc", &match_alloc, 0);
@@ -845,6 +847,7 @@ void register_buf_comparison(int id)
 void register_buf_comparison_links(int id)
 {
 	link_id = id;
+	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_link_modify);
 }

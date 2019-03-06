@@ -560,6 +560,10 @@ int assume(struct expression *expr);
 void end_assume(void);
 int impossible_assumption(struct expression *left, int op, sval_t sval);
 
+/* smatch_slist.h */
+bool has_dynamic_states(unsigned short owner);
+void set_dynamic_states(unsigned short owner);
+
 /* smatch_extras.c */
 int in_warn_on_macro(void);
 #define SMATCH_EXTRA 5 /* this is my_id from smatch extra set in smatch.c */

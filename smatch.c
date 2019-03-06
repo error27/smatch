@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include "smatch.h"
+#include "smatch_slist.h"
 #include "check_list.h"
 
 char *option_debug_check = (char *)"";
@@ -349,6 +350,7 @@ int main(int argc, char **argv)
 	data_dir = get_data_dir(argv[0]);
 
 	allocate_hook_memory();
+	allocate_dynamic_states_array(num_checks);
 	create_function_hook_hash();
 	open_smatch_db(option_db_file);
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {

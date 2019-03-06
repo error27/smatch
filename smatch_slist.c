@@ -119,6 +119,24 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 	return 0;
 }
 
+int *dynamic_states;
+void allocate_dynamic_states_array(int num_checks)
+{
+	dynamic_states = calloc(num_checks + 1, sizeof(int));
+}
+
+void set_dynamic_states(unsigned short owner)
+{
+	dynamic_states[owner] = true;
+}
+
+bool has_dynamic_states(unsigned short owner)
+{
+	if (owner >= num_checks)
+		return false;
+	return dynamic_states[owner];
+}
+
 static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, int preserve)
 {
 	int ret;
@@ -126,43 +144,42 @@ static int cmp_possible_sm(const struct sm_state *a, const struct sm_state *b, i
 	if (a == b)
 		return 0;
 
-	/*
-	 * This can only be true for smatch_extra.
-	 *
-	 * FIXME: It would be worth reviewing if it makes sense for smatch
-	 * extra to have different trackers (see the code in smatch_implied
-	 * which deals with "borrowed" implications as well.
-	 *
-	 */
+	if (!has_dynamic_states(a->owner)) {
+		if (a->state > b->state)
+			return -1;
+		if (a->state < b->state)
+			return 1;
+		return 0;
+	}
+
 	if (a->owner == SMATCH_EXTRA) {
+		/*
+		 * In Smatch extra you can have borrowed implications.
+		 *
+		 * FIXME: review how borrowed implications work and if they
+		 * are the best way.  See also smatch_implied.c.
+		 *
+		 */
 		ret = cmp_tracker(a, b);
 		if (ret)
 			return ret;
+
+		/*
+		 * We want to preserve leaf states.  They're use to split
+		 * returns in smatch_db.c.
+		 *
+		 */
+		if (preserve) {
+			if (a->merged && !b->merged)
+				return -1;
+			if (!a->merged)
+				return 1;
+		}
 	}
+	if (!a->state->name || !b->state->name)
+		return 0;
 
-
-	/* todo:  add hook for smatch_extra.c */
-	if (a->state > b->state)
-		return -1;
-	if (a->state < b->state)
-		return 1;
-	/* This is obviously a massive disgusting hack but we need to preserve
-	 * the unmerged states for smatch extra because we use them in
-	 * smatch_db.c.  Meanwhile if we preserve all the other unmerged states
-	 * then it uses a lot of memory and we don't use it.  Hence this hack.
-	 *
-	 * Also sometimes even just preserving every possible SMATCH_EXTRA state
-	 * takes too much resources so we have to cap that.  Capping is probably
-	 * not often a problem in real life.
-	 */
-	if (a->owner == SMATCH_EXTRA && preserve) {
-		if (a->merged == 1 && b->merged == 0)
-			return -1;
-		if (a->merged == 0)
-			return 1;
-	}
-
-	return 0;
+	return strcmp(a->state->name, b->state->name);
 }
 
 struct sm_state *alloc_sm_state(int owner, const char *name,

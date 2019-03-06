@@ -116,6 +116,7 @@ void check_spectre_second_half(int id)
 
 	if (option_project != PROJ_KERNEL)
 		return;
+	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_done, SYM_HOOK);
 	add_hook(&match_done, DEREF_HOOK);

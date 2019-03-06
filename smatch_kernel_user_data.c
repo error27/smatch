@@ -1241,6 +1241,8 @@ void register_kernel_user_data2(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	set_dynamic_states(my_id);
+
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&match_inline_start, INLINE_FN_START);
 	add_hook(&match_inline_end, INLINE_FN_END);

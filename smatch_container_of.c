@@ -646,6 +646,7 @@ void register_container_of2(int id)
 {
 	param_id = id;
 
+	set_dynamic_states(param_id);
 	select_caller_info_hook(db_passed_container, CONTAINER);
 	add_hook(&handle_passed_container, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(param_id, &unmatched_state);

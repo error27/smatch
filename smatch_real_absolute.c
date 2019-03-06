@@ -131,6 +131,7 @@ void register_real_absolute(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_merge_hook(my_id, &merge_estates);

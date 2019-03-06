@@ -357,6 +357,7 @@ void register_param_compare_limit(int id)
 {
 	compare_id = id;
 
+	set_dynamic_states(compare_id);
 	add_merge_hook(compare_id, &merge_compare_states);
 	add_split_return_callback(&print_return_comparison);
 
@@ -367,7 +368,7 @@ void register_param_compare_limit_links(int id)
 {
 	link_id = id;
 
+	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
-
 }
 

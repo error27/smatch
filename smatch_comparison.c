@@ -2495,6 +2495,7 @@ static void free_data(struct symbol *sym)
 void register_comparison(int id)
 {
 	compare_id = id;
+	set_dynamic_states(compare_id);
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(compare_id, unmatched_comparison);
 	add_pre_merge_hook(compare_id, &pre_merge_hook);
@@ -2515,6 +2516,7 @@ void register_comparison_late(int id)
 void register_comparison_links(int id)
 {
 	link_id = id;
+	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_modify);
 	add_modification_hook_late(link_id, match_inc_dec);
@@ -2531,6 +2533,7 @@ void register_comparison_inc_dec(int id)
 void register_comparison_inc_dec_links(int id)
 {
 	inc_dec_link_id = id;
+	set_dynamic_states(inc_dec_link_id);
 	set_up_link_functions(inc_dec_id, inc_dec_link_id);
 }
 

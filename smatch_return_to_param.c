@@ -280,6 +280,7 @@ free:
 void register_return_to_param(int id)
 {
 	my_id = id;
+	set_dynamic_states(my_id);
 	add_modification_hook(my_id, &undef);
 }
 

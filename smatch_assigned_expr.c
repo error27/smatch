@@ -131,6 +131,7 @@ free:
 void register_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
+	set_dynamic_states(check_assigned_expr_id);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook(my_id, &undef);
 	select_return_states_hook(PARAM_SET, &record_param_assignment);
@@ -139,6 +140,7 @@ void register_assigned_expr(int id)
 void register_assigned_expr_links(int id)
 {
 	link_id = id;
+	set_dynamic_states(link_id);
 	db_ignore_states(link_id);
 	set_up_link_functions(my_id, link_id);
 }

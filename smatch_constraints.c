@@ -516,6 +516,7 @@ void register_constraints(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_condition, CONDITION_HOOK);
 

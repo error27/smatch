@@ -2712,6 +2712,7 @@ void register_smatch_extra(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_merge_hook(my_id, &merge_estates);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	select_caller_info_hook(set_param_value, PARAM_VALUE);
@@ -2750,6 +2751,7 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 void register_smatch_extra_links(int id)
 {
 	link_id = id;
+	set_dynamic_states(link_id);
 }
 
 void register_smatch_extra_late(int id)

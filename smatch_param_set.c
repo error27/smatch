@@ -260,6 +260,7 @@ void register_param_set(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_extra_mod_hook(&extra_mod_hook);
 	add_hook(match_array_assignment, ASSIGNMENT_HOOK);
 	add_unmatched_state_hook(my_id, &unmatched_state);

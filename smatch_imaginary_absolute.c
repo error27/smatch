@@ -76,6 +76,7 @@ void register_imaginary_absolute(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_merge_hook(my_id, &merge_is_empty);
 	add_modification_hook(my_id, &reset);

@@ -282,6 +282,8 @@ void register_modification_hooks(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
+
 	hooks = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
 	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
