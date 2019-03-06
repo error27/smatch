@@ -1376,6 +1376,22 @@ void clear_math_cache(void)
 	memset(cached_results, 0, sizeof(cached_results));
 }
 
+/*
+ * Don't cache EXPR_VALUE because values are fast already.
+ *
+ */
+static bool get_value_literal(struct expression *expr, sval_t *res_sval)
+{
+	struct expression *tmp;
+	int recurse_cnt = 0;
+
+	tmp = strip_expr(expr);
+	if (!tmp || tmp->type != EXPR_VALUE)
+		return false;
+
+	return get_rl_sval(expr, RL_EXACT, &recurse_cnt, NULL, res_sval);
+}
+
 /* returns 1 if it can get a value literal or else returns 0 */
 int get_value(struct expression *expr, sval_t *res_sval)
 {
@@ -1383,6 +1399,9 @@ int get_value(struct expression *expr, sval_t *res_sval)
 	int recurse_cnt = 0;
 	sval_t sval = {};
 	int i;
+
+	if (get_value_literal(expr, res_sval))
+		return 1;
 
 	/*
 	 * This only handles RL_EXACT because other expr statements can be
