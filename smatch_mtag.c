@@ -494,6 +494,8 @@ static struct expression *remove_dereference(struct expression *expr)
 {
 	expr = strip_expr(expr);
 
+	if (!expr)
+		return NULL;
 	if (expr->type == EXPR_PREOP && expr->op == '*')
 		return strip_expr(expr->unop);
 	return preop_expression(expr, '&');
