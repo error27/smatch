@@ -1501,9 +1501,10 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	struct sm_state *tmp;
 	int ret = 0;
 	int nr_possible, nr_states;
-	char *compare_str = NULL;
+	char *compare_str;
 	char buf[128];
 	struct state_list *already_handled = NULL;
+	sval_t sval;
 
 	if (!sm || !sm->merged)
 		return 0;
@@ -1537,10 +1538,12 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(clone_rl(rl)));
-		compare_str = get_return_compare_str(expr);
-		if (compare_str) {
-			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-			return_ranges = alloc_sname(buf);
+		if (!rl_to_sval(rl, &sval)) {
+			compare_str = get_return_compare_str(expr);
+			if (compare_str) {
+				snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+				return_ranges = alloc_sname(buf);
+			}
 		}
 
 		return_id++;
