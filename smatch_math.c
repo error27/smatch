@@ -1245,7 +1245,6 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	struct range_list *rl = (void *)-1UL;
 	struct symbol *type;
 	sval_t sval = {};
-	int ret = -1;
 
 	type = get_type(expr);
 	expr = strip_parens(expr);
@@ -1259,7 +1258,7 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-		ret = handle_cast(expr, implied, recurse_cnt, &rl, &sval);
+		handle_cast(expr, implied, recurse_cnt, &rl, &sval);
 		goto out_cast;
 	}
 
@@ -1270,52 +1269,45 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	switch (expr->type) {
 	case EXPR_VALUE:
 		sval = sval_from_val(expr, expr->value);
-		ret = 1;
 		break;
 	case EXPR_PREOP:
-		ret = handle_preop_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_preop_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_POSTOP:
-		ret = get_rl_sval(expr->unop, implied, recurse_cnt, &rl, &sval);
+		get_rl_sval(expr->unop, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_BINOP:
-		ret =  handle_binop_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_binop_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_COMPARE:
-		ret = handle_comparison_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_comparison_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_LOGICAL:
-		ret = handle_logical_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_logical_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_PTRSIZEOF:
 	case EXPR_SIZEOF:
 		sval = handle_sizeof(expr);
-		ret = 1;
 		break;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
-		ret = handle_conditional_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_conditional_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_CALL:
-		ret = handle_call_rl(expr, implied, recurse_cnt, &rl, &sval);
+		handle_call_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
 	case EXPR_STRING:
-		if (get_mtag_sval(expr, &sval)) {
-			ret = 1;
+		if (get_mtag_sval(expr, &sval))
 			break;
-		}
 		if (implied == RL_EXACT)
 			break;
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
-		ret = 1;
 		break;
 	default:
-		ret = handle_variable(expr, implied, recurse_cnt, &rl, &sval);
+		handle_variable(expr, implied, recurse_cnt, &rl, &sval);
 	}
 
 out_cast:
-	if (!ret)
-		return false;
 	if (rl == (void *)-1UL)
 		rl = NULL;
 
@@ -1323,6 +1315,8 @@ out_cast:
 		*sval_res = sval;
 		return true;
 	}
+	if (implied == RL_EXACT)
+		return false;
 
 	if (rl) {
 		*res = rl;
