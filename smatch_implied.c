@@ -806,7 +806,6 @@ static int handled_by_stored_conditions(struct expression *expr,
 	return 1;
 }
 
-static int found_implications;
 static struct stree *saved_implied_true;
 static struct stree *saved_implied_false;
 static struct stree *extra_saved_implied_true;
@@ -840,19 +839,15 @@ static void get_tf_states(struct expression *expr,
 			  struct stree **implied_false)
 {
 	if (handled_by_comparison_hook(expr, implied_true, implied_false))
-		goto found;
+		return;
 
 	if (handled_by_extra_states(expr, implied_true, implied_false)) {
 		separate_extra_states(implied_true, implied_false);
-		goto found;
+		return;
 	}
 
 	if (handled_by_stored_conditions(expr, implied_true, implied_false))
-		goto found;
-
-	return;
-found:
-	found_implications = 1;
+		return;
 }
 
 static void save_implications_hook(struct expression *expr)
@@ -1067,7 +1062,6 @@ int assume(struct expression *expr)
 	in_fake_env++;
 	final_pass = 0;
 	__push_fake_cur_stree();
-	found_implications = 0;
 	__split_whole_condition(expr);
 	final_pass = orig_final_pass;
 	in_fake_env--;
