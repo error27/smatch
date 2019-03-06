@@ -131,6 +131,7 @@ void set_param_capped_data(const char *name, struct symbol *sym, char *key, char
 
 static void match_condition(struct expression *expr)
 {
+	struct expression *left, *right;
 	struct smatch_state *left_true = NULL;
 	struct smatch_state *left_false = NULL;
 	struct smatch_state *right_true = NULL;
@@ -141,9 +142,15 @@ static void match_condition(struct expression *expr)
 	if (expr->type != EXPR_COMPARE)
 		return;
 
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	while (left->type == EXPR_ASSIGNMENT)
+		left = strip_expr(left->left);
+
 	/* If we're dealing with known expressions, that's for smatch_extra.c */
-	if (get_implied_value(expr->left, &sval) ||
-	    get_implied_value(expr->right, &sval))
+	if (get_implied_value(left, &sval) ||
+	    get_implied_value(right, &sval))
 		return;
 
 	switch (expr->op) {
@@ -174,8 +181,8 @@ static void match_condition(struct expression *expr)
 		return;
 	}
 
-	set_true_false_states_expr(my_id, expr->left, left_true, left_false);
-	set_true_false_states_expr(my_id, expr->right, right_true, right_false);
+	set_true_false_states_expr(my_id, left, left_true, left_false);
+	set_true_false_states_expr(my_id, right, right_true, right_false);
 }
 
 static void match_assign(struct expression *expr)
