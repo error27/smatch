@@ -2480,8 +2480,9 @@ static void db_param_filter(struct expression *expr, int param, char *key, char 
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg;
-	char *name, *tmp_name;
-	struct symbol *sym, *tmp_sym;
+	char *name;
+	char *other_name = NULL;
+	struct symbol *sym, *other_sym;
 	struct symbol *param_type, *arg_type;
 	struct smatch_state *state;
 	struct range_list *new = NULL;
@@ -2513,14 +2514,12 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	else
 		new = rl_union(new, added);
 
-	tmp_name = map_long_to_short_name_sym_nostack(name, sym, &tmp_sym);
-	if (tmp_name && tmp_sym) {
-		free_string(name);
-		name = tmp_name;
-		sym = tmp_sym;
-	}
+	other_name = map_long_to_short_name_sym_nostack(name, sym, &other_sym);
 	set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
+	if (other_name && other_sym)
+		set_extra_mod(other_name, other_sym, NULL, alloc_estate_rl(new));
 free:
+	free_string(other_name);
 	free_string(name);
 }
 
