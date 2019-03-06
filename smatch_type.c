@@ -784,6 +784,8 @@ static int type_str_helper(char *buf, int size, struct symbol *type)
 		if (n > size)
 			return n;
 		return n + snprintf(buf + n, size - n, "}");
+	} else if (type->type == SYM_ENUM) {
+		return snprintf(buf, size, "enum %s", type->ident ? type->ident->name : "<unknown>");
 	} else {
 		return snprintf(buf, size, "<type %d>", type->type);
 	}
