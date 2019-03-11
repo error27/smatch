@@ -187,50 +187,55 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 		return 1;
 	}
 
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
+	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_expr(expr->unop);
-		if (expr->type == EXPR_SYMBOL) {
-			*rl = where_allocated_rl(expr->symbol);
+	else {
+		struct symbol *type;
+
+		type = get_type(expr);
+		if (!type || type->type != SYM_ARRAY)
+			return 0;
+	}
+
+	if (expr->type == EXPR_SYMBOL) {
+		*rl = where_allocated_rl(expr->symbol);
+		return 1;
+	}
+
+	if (is_array(expr)) {
+		struct expression *array;
+		struct expression *offset_expr;
+
+		array = get_array_base(expr);
+		offset_expr = get_array_offset(expr);
+
+		if (implied_not_equal(array, 0) ||
+		    implied_not_equal(offset_expr, 0)) {
+			*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 			return 1;
 		}
 
-		if (is_array(expr)) {
-			struct expression *array;
-			struct expression *offset_expr;
+		return 0;
+	}
 
-			array = get_array_base(expr);
-			offset_expr = get_array_offset(expr);
+	if (expr->type == EXPR_DEREF && expr->member) {
+		struct range_list *unop_rl;
+		int offset;
 
-			if (implied_not_equal(array, 0) ||
-			    implied_not_equal(offset_expr, 0)) {
-				*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
-				return 1;
-			}
+		offset = get_member_offset_from_deref(expr);
+		unop = strip_expr(expr->unop);
+		if (unop->type == EXPR_PREOP && unop->op == '*')
+			unop = strip_expr(unop->unop);
 
-			return 0;
+		if (offset >= 0 && get_implied_rl(unop, &unop_rl)) {
+			*rl = unop_rl;
+			add_offset_to_pointer(rl, offset);
+			return 1;
 		}
 
-		if (expr->type == EXPR_DEREF && expr->member) {
-			struct range_list *unop_rl;
-			int offset;
-
-			offset = get_member_offset_from_deref(expr);
-			unop = strip_expr(expr->unop);
-			if (unop->type == EXPR_PREOP && unop->op == '*')
-				unop = strip_expr(unop->unop);
-
-			if (offset >= 0 && get_implied_rl(unop, &unop_rl)) {
-				*rl = unop_rl;
-				add_offset_to_pointer(rl, offset);
-				return 1;
-			}
-
-			if (implied_not_equal(unop, 0) || offset > 0) {
-				*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
-				return 1;
-			}
-
-			return 0;
+		if (implied_not_equal(unop, 0) || offset > 0) {
+			*rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+			return 1;
 		}
 
 		return 0;
