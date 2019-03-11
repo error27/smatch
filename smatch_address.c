@@ -176,6 +176,8 @@ static struct range_list *where_allocated_rl(struct symbol *sym)
 
 int get_address_rl(struct expression *expr, struct range_list **rl)
 {
+	struct expression *unop;
+
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
@@ -186,20 +188,18 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 	}
 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		struct expression *unop;
-
-		unop = strip_expr(expr->unop);
-		if (unop->type == EXPR_SYMBOL) {
-			*rl = where_allocated_rl(unop->symbol);
+		expr = strip_expr(expr->unop);
+		if (expr->type == EXPR_SYMBOL) {
+			*rl = where_allocated_rl(expr->symbol);
 			return 1;
 		}
 
-		if (is_array(unop)) {
+		if (is_array(expr)) {
 			struct expression *array;
 			struct expression *offset_expr;
 
-			array = get_array_base(unop);
-			offset_expr = get_array_offset(unop);
+			array = get_array_base(expr);
+			offset_expr = get_array_offset(expr);
 
 			if (implied_not_equal(array, 0) ||
 			    implied_not_equal(offset_expr, 0)) {
@@ -210,12 +210,12 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 			return 0;
 		}
 
-		if (unop->type == EXPR_DEREF && unop->member) {
+		if (expr->type == EXPR_DEREF && expr->member) {
 			struct range_list *unop_rl;
 			int offset;
 
-			offset = get_member_offset_from_deref(unop);
-			unop = strip_expr(unop->unop);
+			offset = get_member_offset_from_deref(expr);
+			unop = strip_expr(expr->unop);
 			if (unop->type == EXPR_PREOP && unop->op == '*')
 				unop = strip_expr(unop->unop);
 
