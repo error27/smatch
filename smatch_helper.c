@@ -169,16 +169,16 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 
 		deref = expr->deref;
 		op = deref->op;
-		if (op == '*') {
+		if (deref->type == EXPR_PREOP && op == '*') {
 			struct expression *unop = strip_expr(deref->unop);
 
 			if (unop->type == EXPR_PREOP && unop->op == '&') {
 				deref = unop->unop;
 				op = '.';
 			} else {
-				deref = deref->unop;
-				if (!is_pointer(deref))
+				if (!is_pointer(deref) && !is_pointer(deref->unop))
 					op = '.';
+				deref = deref->unop;
 			}
 		}
 
