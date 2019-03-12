@@ -97,8 +97,14 @@ void update_mtag_data(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!get_mtag_addr_sval(expr, &sval))
-		return;
+	if (expr->type == EXPR_PREOP && expr->op == '*') {
+		expr = strip_expr(expr->unop);
+		if (!get_implied_value_low_overhead(expr, &sval))
+			return;
+	} else {
+		if (!get_mtag_addr_sval(expr, &sval))
+			return;
+	}
 
 	get_absolute_rl(expr, &rl);
 
