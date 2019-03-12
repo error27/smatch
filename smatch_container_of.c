@@ -310,6 +310,7 @@ static int build_offset_str(struct expression *expr, const char *name,
 char *get_container_name(struct expression *container, struct expression *expr)
 {
 	char *container_name, *expr_name;
+	struct symbol *container_sym, *sym;
 	int shared;
 	char minus_str[64];
 	char plus_str[64];
@@ -317,7 +318,7 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	bool star;
 	char *ret = NULL;
 
-	container_name = expr_to_var(container);
+	container_name = expr_to_var_sym(container, &container_sym);
 	if (!container_name)
 		return NULL;
 
@@ -328,9 +329,11 @@ char *get_container_name(struct expression *container, struct expression *expr)
 		star = false;
 	}
 
-	expr_name = expr_to_var(expr);
+	expr_name = expr_to_var_sym(expr, &sym);
 	if (!expr_name)
 		goto free_container;
+	if (container_sym != sym)
+		goto free_expr_name;
 	shared = get_shared_cnt(container_name, expr_name);
 	if (!shared)
 		goto free_expr_name;
