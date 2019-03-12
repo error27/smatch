@@ -92,25 +92,25 @@ static bool handle_expression_statement_rl(struct expression *expr, int implied,
 static bool handle_address(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	sval_t sval;
-	static bool recursed;
+	static int recursed;
 
-	if (recursed)
+	if (recursed > 10)
 		return false;
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
 
-	recursed = true;
+	recursed++;
 	if (get_mtag_sval(expr, &sval)) {
-		recursed = false;
+		recursed--;
 		*res_sval = sval;
 		return true;
 	}
 
 	if (get_address_rl(expr, res)) {
-		recursed = false;
+		recursed--;
 		return true;
 	}
-	recursed = false;
+	recursed--;
 	return 0;
 }
 
