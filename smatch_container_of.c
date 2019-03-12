@@ -112,7 +112,7 @@ static int get_container_offset(struct symbol *sym)
 	return offset;
 }
 
-static char *get_container_name(struct sm_state *sm, int offset)
+static char *get_container_name_sm(struct sm_state *sm, int offset)
 {
 	static char buf[256];
 	const char *name;
@@ -173,7 +173,7 @@ static void process_states(void)
 		offset = get_container_offset(tmp->sym);
 		if (arg < 0 || offset < 0)
 			continue;
-		name = get_container_name(tmp, offset);
+		name = get_container_name_sm(tmp, offset);
 		if (!name)
 			continue;
 		sql_insert_return_implies(CONTAINER, arg, name, "");
@@ -307,15 +307,57 @@ static int build_offset_str(struct expression *expr, const char *name,
 	return 1;
 }
 
+char *get_container_name(struct expression *container, struct expression *expr)
+{
+	char *container_name, *expr_name;
+	int shared;
+	char minus_str[64];
+	char plus_str[64];
+	static char offset_str[64];
+	bool star;
+	char *ret = NULL;
+
+	container_name = expr_to_var(container);
+	if (!container_name)
+		return NULL;
+
+	expr = strip_expr(expr);
+	star = true;
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		star = false;
+	}
+
+	expr_name = expr_to_var(expr);
+	if (!expr_name)
+		goto free_container;
+	shared = get_shared_cnt(container_name, expr_name);
+	if (!shared)
+		goto free_expr_name;
+	if (!build_offset_str(container, container_name, shared, minus_str, sizeof(minus_str), '-'))
+		goto free_expr_name;
+	if (!build_offset_str(expr, expr_name, shared, plus_str, sizeof(plus_str), '+'))
+		goto free_expr_name;
+	if (star)
+		snprintf(offset_str, sizeof(offset_str), "*(%s%s)", minus_str, plus_str);
+	else
+		snprintf(offset_str, sizeof(offset_str), "%s%s", minus_str, plus_str);
+
+	ret = offset_str;
+
+free_expr_name:
+	free_string(expr_name);
+free_container:
+	free_string(container_name);
+
+	return ret;
+}
+
 static void match_call(struct expression *call)
 {
 	struct expression *fn, *arg;
-	char *fn_name, *arg_name;
-	int param, shared;
-	char minus_str[64];
-	char plus_str[64];
-	char offset_str[64];
-	bool star;
+	char *name;
+	int param;
 
 	/*
 	 * We're trying to link the function with the parameter.  There are a
@@ -332,41 +374,17 @@ static void match_call(struct expression *call)
 	 * otherwise it is.  Starred means dereferenced.
 	 */
 	fn = strip_expr(call->fn);
-	fn_name = expr_to_var(fn);
-	if (!fn_name)
-		return;
 
 	param = -1;
 	FOR_EACH_PTR(call->args, arg) {
 		param++;
 
-		arg = strip_expr(arg);
-		star = true;
-		if (arg->type == EXPR_PREOP && arg->op == '&') {
-			arg = strip_expr(arg->unop);
-			star = false;
-		}
-
-		arg_name = expr_to_var(arg);
-		if (!arg_name)
+		name = get_container_name(fn, arg);
+		if (!name)
 			continue;
-		shared = get_shared_cnt(fn_name, arg_name);
-		if (!shared)
-			goto free_arg_name;
-		if (!build_offset_str(fn, fn_name, shared, minus_str, sizeof(minus_str), '-'))
-			goto free_arg_name;
-		if (!build_offset_str(arg, arg_name, shared, plus_str, sizeof(plus_str), '+'))
-			goto free_arg_name;
-		if (star)
-			snprintf(offset_str, sizeof(offset_str), "*(%s%s)", minus_str, plus_str);
-		else
-			snprintf(offset_str, sizeof(offset_str), "%s%s", minus_str, plus_str);
-		sql_insert_caller_info(call, CONTAINER, param, offset_str, "$(-1)");
-free_arg_name:
-		free_string(arg_name);
-	} END_FOR_EACH_PTR(arg);
 
-	free_string(fn_name);
+		sql_insert_caller_info(call, CONTAINER, param, name, "$(-1)");
+	} END_FOR_EACH_PTR(arg);
 }
 
 static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)

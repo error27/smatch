@@ -657,6 +657,22 @@ static void match_mtag_data_offset(const char *fn, struct expression *expr, void
 	free_string(name);
 }
 
+static void match_container(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *container, *x;
+	char *cont, *name, *str;
+
+	container = get_argument_from_call_expr(expr->args, 0);
+	x = get_argument_from_call_expr(expr->args, 1);
+
+	str = get_container_name(container, x);
+	cont = expr_to_str(container);
+	name = expr_to_str(expr);
+	sm_msg("container: '%s' vs '%s' --> '%s'", cont, name, str);
+	free_string(cont);
+	free_string(name);
+}
+
 static void match_state_count(const char *fn, struct expression *expr, void *info)
 {
 	sm_msg("state_count = %d\n", sm_state_counter);
@@ -755,6 +771,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_state_count", &match_state_count, NULL);
 	add_function_hook("__smatch_mem", &match_mem, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
+	add_function_hook("__smatch_container", &match_container, NULL);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);
