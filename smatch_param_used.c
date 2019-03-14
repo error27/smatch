@@ -31,7 +31,7 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 
 	if (!option_info)
 		return;
-	if (__in_fake_assign)
+	if (__in_fake_assign || __in_fake_parameter_assign || __in_function_def)
 		return;
 
 	arg = get_param_num_from_sym(sym);
