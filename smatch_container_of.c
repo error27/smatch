@@ -249,78 +249,99 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 	sql_insert_return_implies(CONTAINER, param, buf, "");
 }
 
-static int get_shared_cnt(const char *one, const char *two)
+static int get_deref_count(struct expression *expr)
 {
-	int i;
-	int on_end = false;
+	int cnt = 0;
 
-	i = 0;
-	while (true) {
-		if (!one[i] || !two[i]) {
-			on_end = true;
-			break;
-		}
-		if (one[i] != two[i])
-			break;
-		i++;
+	while (expr && expr->type == EXPR_DEREF) {
+		expr = expr->deref;
+		if (expr->type == EXPR_PREOP && expr->op == '*')
+			expr = expr->unop;
+		cnt++;
+		if (cnt > 100)
+			return -1;
 	}
-	if (i == 0)
-		return 0;
-	i--;
-	while (i > 0 && (one[i] == '>' || one[i] == '-' || one[i] == '.')) {
-		on_end = true;
-		i--;
-	}
-	if (!on_end)
-		return 0;
-
-	return i + 1;
+	return cnt;
 }
 
-static int build_offset_str(struct expression *expr, const char *name,
-			    int shared, char *buf, int size, int op)
+static struct expression *get_partial_deref(struct expression *expr, int cnt)
 {
-	int chop = 0;
-	int offset;
-	int i;
-
-	i = shared;
-	while (name[i]) {
-		if (name[i] == '.' || name[i] == '-')
-			chop++;
-		i++;
+	while (--cnt >= 0) {
+		if (!expr || expr->type != EXPR_DEREF)
+			return expr;
+		expr = expr->deref;
+		if (expr->type == EXPR_PREOP && expr->op == '*')
+			expr = expr->unop;
 	}
+	return expr;
+}
 
-	// FIXME:  Handle more chops
-	if (chop > 1)
-		return 0;
+static int partial_deref_to_offset_str(struct expression *expr, int cnt, char op, char *buf, int size)
+{
+	int n, offset;
 
-	if (chop == 0) {
-		offset = 0;
-	} else {
+	if (cnt == 0)
+		return snprintf(buf, size, "%c0", op);
+
+	n = 0;
+	while (--cnt >= 0) {
 		offset = get_member_offset_from_deref(expr);
 		if (offset < 0)
-			return 0;
+			return -1;
+		n += snprintf(buf + n, size - n, "%c%d", op, offset);
+		if (expr->type != EXPR_DEREF)
+			return -1;
+		expr = expr->deref;
+		if (expr->type == EXPR_PREOP && expr->op == '*')
+			expr = expr->unop;
 	}
 
-	snprintf(buf, size, "%c%d", (op == '+') ? '+' : '-', offset);
-	return 1;
+	return n;
+}
+
+static char *get_shared_str(struct expression *container, struct expression *expr)
+{
+	struct expression *one, *two;
+	int cont, exp, min, ret, n;
+	static char buf[48];
+
+	cont = get_deref_count(container);
+	exp = get_deref_count(expr);
+	if (cont < 0 || exp < 0)
+		return NULL;
+
+	min = (cont < exp) ? cont : exp;
+	while (min >= 0) {
+		one = get_partial_deref(container, cont - min);
+		two = get_partial_deref(expr, exp - min);
+		if (expr_equiv(one, two))
+			goto found;
+		min--;
+	}
+
+	return NULL;
+
+found:
+	ret = partial_deref_to_offset_str(container, cont - min, '-', buf, sizeof(buf));
+	if (ret < 0)
+		return NULL;
+	n = ret;
+	ret = partial_deref_to_offset_str(expr, exp - min, '+', buf + ret, sizeof(buf) - ret);
+	if (ret < 0)
+		return NULL;
+	n += ret;
+	if (n >= sizeof(buf))
+		return NULL;
+
+	return buf;
 }
 
 char *get_container_name(struct expression *container, struct expression *expr)
 {
-	char *container_name, *expr_name;
 	struct symbol *container_sym, *sym;
-	int shared;
-	char minus_str[64];
-	char plus_str[64];
-	static char offset_str[64];
+	static char buf[64];
+	char *shared;
 	bool star;
-	char *ret = NULL;
-
-	container_name = expr_to_var_sym(container, &container_sym);
-	if (!container_name)
-		return NULL;
 
 	expr = strip_expr(expr);
 	star = true;
@@ -329,31 +350,20 @@ char *get_container_name(struct expression *container, struct expression *expr)
 		star = false;
 	}
 
-	expr_name = expr_to_var_sym(expr, &sym);
-	if (!expr_name)
-		goto free_container;
-	if (container_sym != sym)
-		goto free_expr_name;
-	shared = get_shared_cnt(container_name, expr_name);
-	if (!shared)
-		goto free_expr_name;
-	if (!build_offset_str(container, container_name, shared, minus_str, sizeof(minus_str), '-'))
-		goto free_expr_name;
-	if (!build_offset_str(expr, expr_name, shared, plus_str, sizeof(plus_str), '+'))
-		goto free_expr_name;
+	container_sym = expr_to_sym(container);
+	if (!container_sym)
+		return NULL;
+	sym = expr_to_sym(expr);
+	if (!sym || container_sym != sym)
+		return NULL;
+
+	shared = get_shared_str(container, expr);
 	if (star)
-		snprintf(offset_str, sizeof(offset_str), "*(%s%s)", minus_str, plus_str);
+		snprintf(buf, sizeof(buf), "*(%s)", shared);
 	else
-		snprintf(offset_str, sizeof(offset_str), "%s%s", minus_str, plus_str);
+		snprintf(buf, sizeof(buf), "%s", shared);
 
-	ret = offset_str;
-
-free_expr_name:
-	free_string(expr_name);
-free_container:
-	free_string(container_name);
-
-	return ret;
+	return buf;
 }
 
 static void match_call(struct expression *call)
@@ -392,33 +402,7 @@ static void match_call(struct expression *call)
 
 static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)
 {
-	sval_t offset = {
-		.type = &int_ctype,
-	};
-	const char *arg_offset;
-	int star = 0;
-	int val;
-
-	if (key[0] == '*') {
-		star = 1;
-		key += 2;
-	}
-
-	val = atoi(key);
-	if (val < -4095 || val > 0)
-		return;
-	offset.value = -val;
-	arg_offset = strchr(key, '+');
-	if (!arg_offset)
-		return;
-	val = atoi(arg_offset + 1);
-	if (val > 4095 || val < 0)
-		return;
-	offset.value |= val << 16;
-	if (star)
-		offset.value |= 1ULL << 31;
-
-	set_state(param_id, name, sym, alloc_estate_sval(offset));
+	set_state(param_id, name, sym, alloc_state_str(key));
 }
 
 struct db_info {
@@ -595,30 +579,28 @@ static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *arg, int arg_o
 	return db_info.stree;
 }
 
-static void handle_passed_container(struct symbol *sym)
+static void load_container_data(struct symbol *arg, const char *info)
 {
-	struct symbol *arg;
-	struct smatch_state *state;
+	mtag_t fn_tag, container_tag, arg_tag;
+	int container_offset, arg_offset;
+	char *p = (char *)info;
 	struct sm_state *sm;
 	struct stree *stree;
-	mtag_t fn_tag, container_tag, arg_tag;
-	sval_t offset;
-	int container_offset, arg_offset;
-	int star;
+	bool star = 0;
 
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		state = get_state(param_id, arg->ident->name, arg);
-		if (state)
-			goto found;
-	} END_FOR_EACH_PTR(arg);
+	if (p[0] == '*') {
+		star = 1;
+		p += 2;
+	}
 
-	return;
-found:
-	if (!estate_get_single_value(state, &offset))
+	container_offset = strtoul(p, &p, 0);
+	if (p[0] != '+')  /* FIXME: Handle multiple *(-4-34+48+246) */
 		return;
-	container_offset = -(offset.value & 0xffff);
-	arg_offset = (offset.value & 0xfff0000) >> 16;
-	star = !!(offset.value & (1ULL << 31));
+
+	p++;
+	arg_offset = strtoul(p, &p, 0);
+	if (p && *p != ')')
+		return;
 
 	if (!get_toplevel_mtag(cur_func_sym, &fn_tag))
 		return;
@@ -636,6 +618,19 @@ found:
 		set_state(sm->owner, sm->name, sm->sym, sm->state);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&stree);
+}
+
+static void handle_passed_container(struct symbol *sym)
+{
+	struct symbol *arg;
+	struct smatch_state *state;
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		state = get_state(param_id, arg->ident->name, arg);
+		if (!state || state == &merged)
+			continue;
+		load_container_data(arg, state->name);
+	} END_FOR_EACH_PTR(arg);
 }
 
 void register_container_of(int id)
@@ -658,19 +653,13 @@ void register_container_of(int id)
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }
 
-static struct smatch_state *unmatched_state(struct sm_state *sm)
-{
-	return alloc_estate_whole(estate_type(sm->state));
-}
-
 void register_container_of2(int id)
 {
 	param_id = id;
 
 	set_dynamic_states(param_id);
 	select_caller_info_hook(db_passed_container, CONTAINER);
+	add_merge_hook(param_id, &merge_str_state);
 	add_hook(&handle_passed_container, AFTER_DEF_HOOK);
-	add_unmatched_state_hook(param_id, &unmatched_state);
-	add_merge_hook(param_id, &merge_estates);
 }
 

@@ -81,6 +81,15 @@ struct smatch_state *alloc_state_str(const char *name)
 	return state;
 }
 
+struct smatch_state *merge_str_state(struct smatch_state *s1, struct smatch_state *s2)
+{
+	if (!s1->name || !s2->name)
+		return &merged;
+	if (strcmp(s1->name, s2->name) == 0)
+		return s1;
+	return &merged;
+}
+
 struct smatch_state *alloc_state_expr(struct expression *expr)
 {
 	struct smatch_state *state;
