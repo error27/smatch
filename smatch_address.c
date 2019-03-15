@@ -236,9 +236,28 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 	if (is_array(expr)) {
 		struct expression *array;
 		struct expression *offset_expr;
+		struct range_list *array_rl, *offset_rl, *bytes_rl, *res;
+		struct symbol *type;
+		sval_t bytes;
 
 		array = get_array_base(expr);
 		offset_expr = get_array_offset(expr);
+
+		type = get_type(array);
+		type = get_real_base_type(type);
+		bytes.type = ssize_t_ctype;
+		bytes.uvalue = type_bytes(type);
+		bytes_rl = alloc_rl(bytes, bytes);
+
+		get_absolute_rl(array, &array_rl);
+		get_absolute_rl(offset_expr, &offset_rl);
+
+		if (type_bytes(type)) {
+			res = rl_binop(offset_rl, '*', bytes_rl);
+			res = rl_binop(res, '+', array_rl);
+			*rl = res;
+			return true;
+		}
 
 		if (implied_not_equal(array, 0) ||
 		    implied_not_equal(offset_expr, 0)) {

@@ -1593,9 +1593,38 @@ static struct range_list *handle_divide_rl(struct range_list *left, struct range
 	return rl_union(ret, pos_pos);
 }
 
+static struct range_list *ptr_add_mult(struct range_list *left, int op, struct range_list *right)
+{
+	struct range_list *ret;
+	sval_t l_sval, r_sval, res;
+
+	/*
+	 * This function is sort of the wrong API because it takes two pointer
+	 * and adds them together.  The caller is expected to figure out
+	 * alignment.  Neither of those are the correct things to do.
+	 *
+	 * Really this function is quite bogus...
+	 */
+
+	if (rl_to_sval(left, &l_sval) && rl_to_sval(right, &r_sval)) {
+		res = sval_binop(l_sval, op, r_sval);
+		return alloc_rl(res, res);
+	}
+
+	if (rl_min(left).value != 0 || rl_max(right).value != 0) {
+		ret = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+		return cast_rl(rl_type(left), ret);
+	}
+
+	return alloc_whole_rl(rl_type(left));
+}
+
 static struct range_list *handle_add_mult_rl(struct range_list *left, int op, struct range_list *right)
 {
 	sval_t min, max;
+
+	if (type_is_ptr(rl_type(left)) || type_is_ptr(rl_type(right)))
+		return ptr_add_mult(left, op, right);
 
 	if (sval_binop_overflows(rl_min(left), op, rl_min(right)))
 		return NULL;
