@@ -599,7 +599,7 @@ static void load_container_data(struct symbol *arg, const char *info)
 
 	p++;
 	arg_offset = strtoul(p, &p, 0);
-	if (p && *p != ')')
+	if (p && *p && *p != ')')
 		return;
 
 	if (!get_toplevel_mtag(cur_func_sym, &fn_tag))
