@@ -66,18 +66,27 @@ int get_member_offset(struct symbol *type, const char *member_name)
 {
 	struct symbol *tmp;
 	int offset;
+	int bits;
 
 	if (!type || type->type != SYM_STRUCT)
 		return -1;
 
+	bits = 0;
 	offset = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (bits_to_bytes(bits + type_bits(tmp)) > tmp->ctype.alignment) {
+			offset += bits_to_bytes(bits);
+			bits = 0;
+		}
 		offset = ALIGN(offset, tmp->ctype.alignment);
 		if (tmp->ident &&
 		    strcmp(member_name, tmp->ident->name) == 0) {
 			return offset;
 		}
-		offset += type_bytes(tmp);
+		if (!(type_bits(tmp) % 8) && type_bits(tmp) / 8 == type_bytes(tmp))
+			offset += type_bytes(tmp);
+		else
+			bits += type_bits(tmp);
 	} END_FOR_EACH_PTR(tmp);
 	return -1;
 }
