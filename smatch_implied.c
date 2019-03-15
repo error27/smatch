@@ -436,7 +436,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	}
 
 	gettimeofday(&now, NULL);
-	if (now.tv_sec - start->tv_sec > 3) {
+	if (now.tv_usec - start->tv_usec > 3000000) {
 		*bail = 1;
 		return NULL;
 	}
