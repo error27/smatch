@@ -2274,6 +2274,7 @@ struct range_list *intersect_with_real_abs_expr(struct expression *expr, struct 
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	struct range_list *rl;
+	sval_t dummy;
 
 	if (estate_is_whole(sm->state))
 		return;
@@ -2282,7 +2283,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, show_rl(rl));
-	if (estate_has_hard_max(sm->state))
+	if (!estate_get_single_value(sm->state, &dummy) && estate_has_hard_max(sm->state))
 		sql_insert_caller_info(call, HARD_MAX, param, printed_name,
 				       sval_to_str(estate_max(sm->state)));
 	if (estate_has_fuzzy_max(sm->state))
@@ -2590,6 +2591,7 @@ static void match_call_info(struct expression *expr)
 	struct range_list *rl = NULL;
 	struct expression *arg;
 	struct symbol *type;
+	sval_t dummy;
 	int i = 0;
 
 	FOR_EACH_PTR(expr->args, arg) {
@@ -2603,7 +2605,7 @@ static void match_call_info(struct expression *expr)
 			sql_insert_caller_info(expr, PARAM_VALUE, i, "$", show_rl(rl));
 		}
 		state = get_state_expr(SMATCH_EXTRA, arg);
-		if (estate_has_hard_max(state)) {
+		if (!estate_get_single_value(state, &dummy) && estate_has_hard_max(state)) {
 			sql_insert_caller_info(expr, HARD_MAX, i, "$",
 					       sval_to_str(estate_max(state)));
 		}
