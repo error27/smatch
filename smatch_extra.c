@@ -763,10 +763,24 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	set_extra_mod(sm->name, sm->sym, iter_expr, state);
 }
 
+static bool get_global_rl(const char *name, struct symbol *sym, struct range_list **rl)
+{
+	struct expression *expr;
+
+	if (!sym || !(sym->ctype.modifiers & MOD_TOPLEVEL) || !sym->ident)
+		return false;
+	if (strcmp(sym->ident->name, name) != 0)
+		return false;
+
+	expr = symbol_expression(sym);
+	return get_implied_rl(expr, rl);
+}
+
 static struct stree *unmatched_stree;
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
+	struct range_list *rl;
 
 	if (unmatched_stree) {
 		state = get_state_stree(unmatched_stree, SMATCH_EXTRA, sm->name, sm->sym);
@@ -775,6 +789,8 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	}
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return alloc_estate_empty();
+	if (get_global_rl(sm->name, sm->sym, &rl))
+		return alloc_estate_rl(rl);
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
