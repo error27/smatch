@@ -494,7 +494,6 @@ void __split_expr(struct expression *expr)
 		break;
 	case EXPR_OFFSETOF:
 	case EXPR_ALIGNOF:
-		evaluate_expression(expr);
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:

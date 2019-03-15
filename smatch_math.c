@@ -1259,6 +1259,65 @@ static bool handle_cast(struct expression *expr, int implied, int *recurse_cnt, 
 	return false;
 }
 
+static bool handle_offsetof_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+{
+	/*
+	 * FIXME:  I don't really know what I'm doing here.  I wish that I
+	 * could just get rid of the __builtin_offset() function and use:
+	 * "&((struct bpf_prog *)NULL)->insns[fprog->len]" instead...
+	 * Anyway, I have done the minimum ammount of work to get that
+	 * expression to work.
+	 *
+	 */
+
+	if (expr->op == '.' && expr->down &&
+	    expr->down->type == EXPR_OFFSETOF &&
+	    expr->down->op == '[' &&
+	    expr->down->index) {
+		struct expression *index = expr->down->index;
+		struct symbol *type = expr->in;
+		struct range_list *rl;
+		struct symbol *field;
+		int offset = 0;
+		sval_t sval = { .type = ssize_t_ctype };
+
+		examine_symbol_type(type);
+		type = get_real_base_type(type);
+		if (!type)
+			return false;
+		field = find_identifier(expr->ident, type->symbol_list, &offset);
+		if (!field)
+			return false;
+
+		type = get_real_base_type(field);
+		if (!type || type->type != SYM_ARRAY)
+			return false;
+		type = get_real_base_type(type);
+
+		if (get_implied_value_internal(index, recurse_cnt, &sval)) {
+			res_sval->type = ssize_t_ctype;
+			res_sval->value = offset + sval.value * type_bytes(type);
+			return true;
+		}
+
+		if (!get_rl_sval(index, implied, recurse_cnt, &rl, NULL))
+			return false;
+
+		sval.value = type_bytes(type);
+		rl = rl_binop(rl, '*', alloc_rl(sval, sval));
+		sval.value = offset;
+		*res = rl_binop(rl, '+', alloc_rl(sval, sval));
+		return true;
+	}
+
+	evaluate_expression(expr);
+	if (expr->type == EXPR_VALUE) {
+		*res_sval = sval_from_val(expr, expr->value);
+		return true;
+	}
+	return false;
+}
+
 static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res)
 {
 	struct range_list *rl = (void *)-1UL;
@@ -1321,6 +1380,14 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 		if (implied == RL_EXACT)
 			break;
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
+		break;
+	case EXPR_OFFSETOF:
+		handle_offsetof_rl(expr, implied, recurse_cnt, &rl, &sval);
+		break;
+	case EXPR_ALIGNOF:
+		evaluate_expression(expr);
+		if (expr->type == EXPR_VALUE)
+			sval = sval_from_val(expr, expr->value);
 		break;
 	default:
 		handle_variable(expr, implied, recurse_cnt, &rl, &sval);
