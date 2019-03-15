@@ -62,6 +62,26 @@ static bool is_non_null_array(struct expression *expr)
 	return 0;
 }
 
+static bool matches_anonymous_union(struct symbol *sym, const char *member_name)
+{
+	struct symbol *type, *tmp;
+
+	if (sym->ident)
+		return false;
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_UNION)
+		return false;
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (tmp->ident &&
+		    strcmp(member_name, tmp->ident->name) == 0) {
+			return true;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 int get_member_offset(struct symbol *type, const char *member_name)
 {
 	struct symbol *tmp;
@@ -83,6 +103,8 @@ int get_member_offset(struct symbol *type, const char *member_name)
 		    strcmp(member_name, tmp->ident->name) == 0) {
 			return offset;
 		}
+		if (matches_anonymous_union(tmp, member_name))
+			return offset;
 		if (!(type_bits(tmp) % 8) && type_bits(tmp) / 8 == type_bytes(tmp))
 			offset += type_bytes(tmp);
 		else
