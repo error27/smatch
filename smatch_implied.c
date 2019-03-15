@@ -430,18 +430,12 @@ struct sm_state *filter_pools(struct sm_state *sm,
 		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	if (*bail)
 		return NULL;
-	if (sm->skip_implications) {
-		*skip = 1;
-		return NULL;
-	}
-
 	gettimeofday(&now, NULL);
 	if (now.tv_usec - start->tv_usec > 3000000) {
 		*bail = 1;
 		return NULL;
 	}
 	if ((*recurse_cnt)++ > RECURSE_LIMIT) {
-		sm->skip_implications = 1;
 		*skip = 1;
 		return NULL;
 	}
@@ -535,8 +529,6 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		if (bail)
 			return ret;  /* Return the implications we figured out before time ran out. */
 
-		if (recurse_cnt > RECURSE_LIMIT)
-			tmp->skip_implications = 1;
 
 		if (skip || !filtered_sm || !modified)
 			continue;
