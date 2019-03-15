@@ -1808,46 +1808,4 @@ int implied_condition_false(struct expression *expr)
 	return 0;
 }
 
-int can_integer_overflow(struct symbol *type, struct expression *expr)
-{
-	int op;
-	sval_t lmax, rmax, res;
 
-	if (!type)
-		type = &int_ctype;
-
-	expr = strip_expr(expr);
-
-	if (expr->type == EXPR_ASSIGNMENT) {
-		switch(expr->op) {
-		case SPECIAL_MUL_ASSIGN:
-			op = '*';
-			break;
-		case SPECIAL_ADD_ASSIGN:
-			op = '+';
-			break;
-		case SPECIAL_SHL_ASSIGN:
-			op = SPECIAL_LEFTSHIFT;
-			break;
-		default:
-			return 0;
-		}
-	} else if (expr->type == EXPR_BINOP) {
-		if (expr->op != '*' && expr->op != '+' && expr->op != SPECIAL_LEFTSHIFT)
-			return 0;
-		op = expr->op;
-	} else {
-		return 0;
-	}
-
-	get_absolute_max(expr->left, &lmax);
-	get_absolute_max(expr->right, &rmax);
-
-	if (sval_binop_overflows(lmax, op, rmax))
-		return 1;
-
-	res = sval_binop(lmax, op, rmax);
-	if (sval_cmp(res, sval_type_max(type)) > 0)
-		return 1;
-	return 0;
-}
