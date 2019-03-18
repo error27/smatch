@@ -77,6 +77,9 @@ int is_capped(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	if (is_ptr_type(get_type(expr)))
+		return 0;
+
 	if (get_hard_max(expr, &dummy))
 		return 1;
 
