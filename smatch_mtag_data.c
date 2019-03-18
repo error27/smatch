@@ -36,11 +36,9 @@ static int save_rl(void *_rl, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static struct range_list *select_orig_rl(sval_t sval)
+static struct range_list *select_orig(mtag_t tag, int offset)
 {
 	struct range_list *rl = NULL;
-	mtag_t tag = sval.uvalue & ~MTAG_OFFSET_MASK;
-	int offset = sval.uvalue & MTAG_OFFSET_MASK;
 
 	mem_sql(&save_rl, &rl, "select value from mtag_data where tag = %lld and offset = %d;",
 		tag, offset);
@@ -71,11 +69,8 @@ static int is_kernel_param(const char *name)
 	return 0;
 }
 
-void insert_mtag_data(sval_t sval, struct range_list *rl)
+static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 {
-	mtag_t tag = sval.uvalue & ~MTAG_OFFSET_MASK;
-	int offset = sval.uvalue & MTAG_OFFSET_MASK;
-
 	rl = clone_rl_permanent(rl);
 
 	mem_sql(NULL, NULL, "delete from mtag_data where tag = %lld and offset = %d and type = %d",
@@ -88,7 +83,8 @@ void update_mtag_data(struct expression *expr)
 {
 	struct range_list *orig, *new, *rl;
 	char *name;
-	sval_t sval;
+	mtag_t tag;
+	int offset;
 
 	name = expr_to_var(expr);
 	if (is_kernel_param(name)) {
@@ -97,26 +93,21 @@ void update_mtag_data(struct expression *expr)
 	}
 	free_string(name);
 
-	if (expr->type == EXPR_PREOP && expr->op == '*') {
-		expr = strip_expr(expr->unop);
-		if (!get_implied_value_low_overhead(expr, &sval))
-			return;
-	} else {
-		if (!get_mtag_addr_sval(expr, &sval))
-			return;
-	}
+	if (!expr_to_mtag_offset(expr, &tag, &offset))
+		return;
 
 	get_absolute_rl(expr, &rl);
 
-	orig = select_orig_rl(sval);
+	orig = select_orig(tag, offset);
 	new = rl_union(orig, rl);
-	insert_mtag_data(sval, new);
+	insert_mtag_data(tag, offset, new);
 }
 
 static void match_global_assign(struct expression *expr)
 {
 	struct range_list *rl;
-	sval_t sval;
+	mtag_t tag;
+	int offset;
 	char *name;
 
 	name = expr_to_var(expr->left);
@@ -126,11 +117,11 @@ static void match_global_assign(struct expression *expr)
 	}
 	free_string(name);
 
-	if (!get_mtag_addr_sval(expr->left, &sval))
+	if (!expr_to_mtag_offset(expr->left, &tag, &offset))
 		return;
 
 	get_absolute_rl(expr->right, &rl);
-	insert_mtag_data(sval, rl);
+	insert_mtag_data(tag, offset, rl);
 }
 
 static int save_mtag_data(void *_unused, int argc, char **argv, char **azColName)
