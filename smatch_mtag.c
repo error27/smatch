@@ -82,40 +82,86 @@ static mtag_t str_to_tag(const char *str)
 	return *tag;
 }
 
-static void alloc_assign(const char *fn, struct expression *expr, void *unused)
+const struct {
+	const char *name;
+	int size_arg;
+} allocator_info[] = {
+	{ "kmalloc", 0 },
+	{ "kzalloc", 0 },
+	{ "devm_kmalloc", 1},
+	{ "devm_kzalloc", 1},
+};
+
+static bool is_mtag_call(struct expression *expr)
+{
+	struct expression *arg;
+	int i;
+	sval_t sval;
+
+	if (expr->type != EXPR_CALL ||
+	    expr->fn->type != EXPR_SYMBOL ||
+	    !expr->fn->symbol)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(allocator_info); i++) {
+		if (strcmp(expr->fn->symbol->ident->name, allocator_info[i].name) == 0)
+			break;
+	}
+	if (i == ARRAY_SIZE(allocator_info))
+		return false;
+
+	arg = get_argument_from_call_expr(expr->args, allocator_info[i].size_arg);
+	if (!get_implied_value(arg, &sval))
+		return false;
+
+	return true;
+}
+
+struct smatch_state *swap_mtag_return(struct expression *expr, struct smatch_state *state)
 {
 	struct expression *left, *right;
 	char *left_name, *right_name;
 	struct symbol *left_sym;
+	struct range_list *rl;
 	char buf[256];
 	mtag_t tag;
+	sval_t tag_sval;
 
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return state;
 
-	// FIXME:  This should only happen when the size is not a paramter of
-	// the caller
-	return;
+	if (!estate_rl(state) || strcmp(state->name, "0,4096-ptr_max") != 0)
+		return state;
 
-	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
-		return;
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
-	if (right->type != EXPR_CALL || right->fn->type != EXPR_SYMBOL)
-		return;
+
+	if (!is_mtag_call(right))
+		return state;
 
 	left_name = expr_to_str_sym(left, &left_sym);
+	if (!left_name || !left_sym)
+		return state;
 	right_name = expr_to_str(right);
 
 	snprintf(buf, sizeof(buf), "%s %s %s %s", get_filename(), get_function(),
 		 left_name, right_name);
 	tag = str_to_tag(buf);
+	tag_sval.type = estate_type(state);
+	tag_sval.uvalue = tag;
 
-	sql_insert_mtag_about(tag, left_name, right_name);
+	rl = rl_filter(estate_rl(state), valid_ptr_rl);
+	rl = clone_rl(rl);
+	add_range(&rl, tag_sval, tag_sval);
 
-	if (left_name && left_sym)
-		set_state(my_id, left_name, left_sym, alloc_tag_state(tag));
+	sql_insert_mtag_about(tag, left_name, buf);
+
+	set_state(my_id, left_name, left_sym, alloc_tag_state(tag));
 
 	free_string(left_name);
 	free_string(right_name);
+
+	return alloc_estate_rl(rl);
 }
 
 int get_string_mtag(struct expression *expr, mtag_t *tag)
@@ -388,6 +434,26 @@ int get_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	return 1;
 }
 
+struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl)
+{
+	char buf[256];
+	char *name;
+	sval_t sval;
+	mtag_t tag;
+
+	if (!rl_to_sval(rl, &sval))
+		return rl;
+	if (sval.type->type != SYM_PTR || sval.uvalue != MTAG_SEED)
+		return rl;
+
+	name = expr_to_str(expr);
+	snprintf(buf, sizeof(buf), "%s %s %s", get_filename(), get_function(), name);
+	free_string(name);
+	tag = str_to_tag(buf);
+	sval.value = tag;
+	return alloc_rl(sval, sval);
+}
+
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 {
 	char buf[256];
@@ -426,7 +492,7 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	if (is_array(expr))
 		return get_array_mtag_offset(expr, tag, offset);
 
-	if (expr->type ==  EXPR_DEREF) {
+	if (expr->type == EXPR_DEREF) {
 		*offset = get_member_offset_from_deref(expr);
 		if (*offset < 0)
 			return 0;
@@ -550,9 +616,6 @@ void register_mtag(int id)
 		return;
 
 	add_hook(&global_variable, BASE_HOOK);
-
-	add_function_assign_hook("kmalloc", &alloc_assign, NULL);
-	add_function_assign_hook("kzalloc", &alloc_assign, NULL);
 
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 

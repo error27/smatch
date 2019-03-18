@@ -577,6 +577,7 @@ struct data_range {
 
 #define MTAG_ALIAS_BIT (1ULL << 63)
 #define MTAG_OFFSET_MASK 0xfffULL
+#define MTAG_SEED 0xdead << 12
 
 const extern unsigned long valid_ptr_min, valid_ptr_max;
 extern const sval_t valid_ptr_min_sval, valid_ptr_max_sval;
@@ -966,6 +967,8 @@ void sql_insert_mtag_map(mtag_t tag, int offset, mtag_t container);
 void sql_insert_mtag_alias(mtag_t orig, mtag_t alias);
 int mtag_map_select_container(mtag_t tag, int offset, mtag_t *container);
 int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag);
+struct smatch_state *swap_mtag_return(struct expression *expr, struct smatch_state *state);
+struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl);
 
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
