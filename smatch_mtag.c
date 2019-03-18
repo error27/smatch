@@ -225,6 +225,7 @@ static int get_array_mtag_offset(struct expression *expr, mtag_t *tag, int *offs
 	struct expression *array, *offset_expr;
 	struct symbol *type;
 	sval_t sval;
+	int start_offset;
 
 	if (!is_array(expr))
 		return 0;
@@ -239,13 +240,13 @@ static int get_array_mtag_offset(struct expression *expr, mtag_t *tag, int *offs
 	if (!type_bytes(type))
 		return 0;
 
-	if (!get_mtag(array, tag))
+	if (!expr_to_mtag_offset(array, tag, &start_offset))
 		return 0;
 
 	offset_expr = get_array_offset(expr);
 	if (!get_value(offset_expr, &sval))
 		return 0;
-	*offset = sval.value * type_bytes(type);
+	*offset = start_offset + sval.value * type_bytes(type);
 
 	return 1;
 }
