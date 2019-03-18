@@ -635,11 +635,12 @@ static void match_mtag(const char *fn, struct expression *expr, void *info)
 	struct expression *arg;
 	char *name;
 	mtag_t tag = 0;
+	int offset = 0;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
-	get_mtag(arg, &tag);
-	sm_msg("mtag: '%s' => tag: %lld", name, tag);
+	expr_to_mtag_offset(arg, &tag, &offset);
+	sm_msg("mtag: '%s' => tag: %llu %d", name, tag, offset);
 	free_string(name);
 }
 
