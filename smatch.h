@@ -1252,7 +1252,10 @@ static inline int type_bits(struct symbol *type)
 
 static inline bool type_is_ptr(struct symbol *type)
 {
-	return type && (type->type == SYM_PTR || type->type == SYM_ARRAY);
+	return type &&
+	       (type->type == SYM_PTR ||
+		type->type == SYM_ARRAY ||
+		type->type == SYM_FN);
 }
 
 static inline int type_unsigned(struct symbol *base_type)

@@ -96,7 +96,7 @@ static bool handle_address(struct expression *expr, int implied, int *recurse_cn
 
 	if (recursed > 10)
 		return false;
-	if (implied == RL_EXACT || implied == RL_HARD)
+	if (implied == RL_EXACT)
 		return false;
 
 	recursed++;
@@ -981,11 +981,9 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 	}
 
 	type = get_type(expr);
-	if (type && type->type == SYM_FN) {
-		*res = alloc_rl(fn_ptr_min, fn_ptr_max);
-		return true;
-	}
-	if (type && type->type == SYM_ARRAY)
+	if (type &&
+	    (type->type == SYM_ARRAY ||
+	     type->type == SYM_FN))
 		return handle_address(expr, implied, recurse_cnt, res, res_sval);
 
 	/* FIXME: call rl_to_sval() on the results */

@@ -468,6 +468,11 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 	if (expr->type == EXPR_STRING && get_string_mtag(expr, &tag))
 		goto found;
 
+	if (expr->type == EXPR_SYMBOL &&
+	    (type->type == SYM_ARRAY || type->type == SYM_FN) &&
+	    get_toplevel_mtag(expr->symbol, &tag))
+		goto found;
+
 	if (get_implied_mtag_offset(expr, &tag, &offset))
 		goto found;
 
