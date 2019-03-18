@@ -389,8 +389,22 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 	return 1;
 }
 
+/*
+ * The point of this function is to give you the mtag and the offset so
+ * you can look up the data in the DB.  It takes an expression.
+ *
+ * So say you give it "foo->bar".  Then it would give you the offset of "bar"
+ * and the implied value of "foo".  Or if you lookup "*foo" then the offset is
+ * zero and we look up the implied value of "foo.  But if the expression is
+ * foo, then if "foo" is a global variable, then we get the mtag and the offset
+ * is zero.  If "foo" is a local variable, then there is nothing to look up in
+ * the mtag_data table because that's handled by smatch_extra.c to this returns
+ * false.
+ *
+ */
 int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 {
+	*tag = 0;
 	*offset = 0;
 
 	expr = strip_expr(expr);
@@ -400,17 +414,35 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	if (is_array(expr))
 		return get_array_mtag_offset(expr, tag, offset);
 
-	if (expr->type == EXPR_DEREF) {
+	if (expr->type == EXPR_PREOP && expr->op == '*') {
+		expr = strip_expr(expr->unop);
+		if (get_implied_mtag_offset(expr, tag, offset))
+			return 1;
+	} else if (expr->type == EXPR_DEREF) {
+		int next_offset;
+
 		*offset = get_member_offset_from_deref(expr);
 		if (*offset < 0)
 			return 0;
-		return get_mtag(expr->deref, tag);
+		expr = expr->deref;
+		if (expr->type == EXPR_PREOP && expr->op == '*')
+			expr = strip_expr(expr->unop);
+
+		if (get_implied_mtag_offset(expr, tag, &next_offset)) {
+			// FIXME:  look it up recursively?
+			if (next_offset)
+				return 0;
+			return 1;
+		}
 	}
 
-	if (get_implied_mtag_offset(expr, tag, offset))
-		return 1;
-
-	return get_mtag(expr, tag);
+	switch (expr->type) {
+	case EXPR_STRING:
+		return get_string_mtag(expr, tag);
+	case EXPR_SYMBOL:
+		return get_toplevel_mtag(expr->symbol, tag);
+	}
+	return 0;
 }
 
 int get_mtag_sval(struct expression *expr, sval_t *sval)
