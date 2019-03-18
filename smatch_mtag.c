@@ -379,6 +379,20 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	return 0;
 }
 
+/*
+ * This function takes an address and returns an sval.  Let's take some
+ * example things you might pass to it:
+ * foo->bar:
+ *   If we were only called from smatch_math, we wouldn't need to bother with
+ *   this because it's already been looked up in smatch_extra.c but this is
+ *   also called from other places so we have to check smatch_extra.c.
+ * &foo
+ *   If "foo" is global return the mtag for "foo".
+ * &foo.bar
+ *   If "foo" is global return the mtag for "foo" + the offset of ".bar".
+ * It also handles string literals.
+ *
+ */
 int get_mtag_sval(struct expression *expr, sval_t *sval)
 {
 	struct symbol *type;
@@ -422,10 +436,10 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 
 	if (!expr_to_mtag_offset(expr, &tag, &offset))
 		return 0;
-	if (offset > MTAG_OFFSET_MASK)
-		offset = MTAG_OFFSET_MASK;
-
 found:
+	if (offset >= MTAG_OFFSET_MASK)
+		return 0;
+
 	sval->type = type;
 	sval->uvalue = tag | offset;
 
