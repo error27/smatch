@@ -105,28 +105,6 @@ static void match_assign(struct expression *expr)
 	free_string(name);
 }
 
-#if 0
-static void save_mtag_to_map(struct expression *expr, mtag_t tag, int offset, int param, char *key, char *value)
-{
-	struct expression *arg, *gen_expr;
-	mtag_t arg_tag;
-
-	arg = get_argument_from_call_expr(expr->args, param);
-	if (!arg)
-		return;
-
-	gen_expr = gen_expression_from_key(arg, key);
-	if (!gen_expr)
-		return;
-
-	if (!get_mtag(gen_expr, &arg_tag))
-		arg_tag = 0;
-
-	if (local_debug)
-		sm_msg("finding mtag for '%s' %lld", expr_to_str(gen_expr), arg_tag);
-}
-#endif
-
 static void propogate_assignment(struct expression *expr, mtag_t tag, int offset, int param, char *key)
 {
 	struct expression *arg;
@@ -158,6 +136,7 @@ static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int 
 	struct range_list *rl;
 	mtag_t arg_tag;
 	mtag_t alias;
+	int arg_offset;
 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
@@ -174,7 +153,8 @@ static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int 
 
 //	insert_mtag_data(alias, offset, rl);
 
-	if (get_mtag(gen_expr, &arg_tag))
+	// FIXME:  is arg_offset handled correctly?
+	if (expr_to_mtag_offset(gen_expr, &arg_tag, &arg_offset) && arg_offset == 0)
 		sql_insert_mtag_map(arg_tag, -offset, alias);
 }
 
