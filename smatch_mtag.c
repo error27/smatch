@@ -318,30 +318,6 @@ dec_cnt:
 	return ret;
 }
 
-int get_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
-{
-	int val;
-
-	if (!expr)
-		return 0;
-	if (expr->type == EXPR_PREOP && expr->op == '*')
-		return get_mtag_offset(expr->unop, tag, offset);
-	if (get_implied_mtag_offset(expr, tag, offset))
-		return 1;
-	if (!get_mtag(expr, tag))
-		return 0;
-	expr = strip_expr(expr);
-	if (expr->type == EXPR_SYMBOL) {
-		*offset = 0;
-		return 1;
-	}
-	val = get_member_offset_from_deref(expr);
-	if (val < 0)
-		return 0;
-	*offset = val;
-	return 1;
-}
-
 struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl)
 {
 	char buf[256];
