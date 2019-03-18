@@ -270,6 +270,8 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!ret_sym)
 			break;
+		if (sm->state != &capped)
+			continue;
 		if (ret_sym != sm->sym)
 			continue;
 
