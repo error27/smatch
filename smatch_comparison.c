@@ -2516,6 +2516,7 @@ void register_comparison_late(int id)
 void register_comparison_links(int id)
 {
 	link_id = id;
+	db_ignore_states(link_id);
 	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_modify);
