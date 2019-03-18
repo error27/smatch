@@ -28,8 +28,6 @@ static struct range_list *(*custom_handle_variable)(struct expression *expr);
 static bool get_implied_value_internal(struct expression *expr, int *recurse_cnt, sval_t *res_sval);
 static int get_absolute_rl_internal(struct expression *expr, struct range_list **rl, int *recurse_cnt);
 
-static int low_overhead;
-
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
 
@@ -844,7 +842,7 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 		return get_rl_sval(expr->cond_false, implied, recurse_cnt, res, res_sval);
 
 	/* this becomes a problem with deeply nested conditional statements */
-	if (low_overhead || low_on_memory())
+	if (low_on_memory())
 		return false;
 
 	type = get_type(expr);
@@ -1539,17 +1537,6 @@ int get_implied_value(struct expression *expr, sval_t *sval)
 	    !rl_to_sval(rl, sval))
 		return 0;
 	return 1;
-}
-
-int get_implied_value_low_overhead(struct expression *expr, sval_t *sval)
-{
-	int ret;
-
-	low_overhead++;
-	ret = get_implied_value(expr, sval);
-	low_overhead--;
-
-	return ret;
 }
 
 int get_implied_min(struct expression *expr, sval_t *sval)
