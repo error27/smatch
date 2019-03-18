@@ -271,7 +271,6 @@ static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *of
 static int get_mtag_cnt;
 int get_mtag(struct expression *expr, mtag_t *tag)
 {
-	struct smatch_state *state;
 	int ret = 0;
 
 	expr = strip_expr(expr);
@@ -302,15 +301,6 @@ int get_mtag(struct expression *expr, mtag_t *tag)
 			goto dec_cnt;
 		}
 		break;
-	}
-
-	state = get_state_expr(my_id, expr);
-	if (!state)
-		goto dec_cnt;
-	if (state->data) {
-		*tag = *(mtag_t *)state->data;
-		ret = 1;
-		goto dec_cnt;
 	}
 
 dec_cnt:
