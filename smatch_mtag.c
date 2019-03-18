@@ -242,40 +242,6 @@ static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *of
 	return 1;
 }
 
-static int get_mtag_cnt;
-int get_mtag(struct expression *expr, mtag_t *tag)
-{
-	int ret = 0;
-
-	expr = strip_expr(expr);
-	if (!expr)
-		return 0;
-
-	if (get_mtag_cnt > 0)
-		return 0;
-
-	get_mtag_cnt++;
-
-	switch (expr->type) {
-	case EXPR_STRING:
-		if (get_string_mtag(expr, tag)) {
-			ret = 1;
-			goto dec_cnt;
-		}
-		break;
-	case EXPR_SYMBOL:
-		if (get_toplevel_mtag(expr->symbol, tag)) {
-			ret = 1;
-			goto dec_cnt;
-		}
-		break;
-	}
-
-dec_cnt:
-	get_mtag_cnt--;
-	return ret;
-}
-
 struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl)
 {
 	char buf[256];
