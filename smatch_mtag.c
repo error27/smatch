@@ -475,11 +475,6 @@ static struct expression *remove_dereference(struct expression *expr)
 	return preop_expression(expr, '&');
 }
 
-int get_mtag_addr_sval(struct expression *expr, sval_t *sval)
-{
-	return get_mtag_sval(remove_dereference(expr), sval);
-}
-
 void register_mtag(int id)
 {
 	my_id = id;
