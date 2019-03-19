@@ -374,14 +374,11 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 	if (!type_is_ptr(type))
 		return 0;
 	/*
-	 * There are only three options:
+	 * There are several options:
 	 *
-	 * 1) An array address:
-	 *    p = array;
-	 * 2) An address like so:
-	 *    p = &my_struct->member;
-	 * 3) A pointer:
-	 *    p = pointer;
+	 * If the expr is a string literal, that's an address/mtag.
+	 * SYM_ARRAY and SYM_FN are mtags.  There are "&foo" type addresses.
+	 * And there are saved pointers "p = &foo;"
 	 *
 	 */
 
@@ -393,15 +390,17 @@ int get_mtag_sval(struct expression *expr, sval_t *sval)
 	    get_toplevel_mtag(expr->symbol, &tag))
 		goto found;
 
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		if (expr_to_mtag_offset(expr, &tag, &offset))
+			goto found;
+		return 0;
+	}
+
 	if (get_implied_mtag_offset(expr, &tag, &offset))
 		goto found;
 
-	if (expr->type != EXPR_PREOP || expr->op != '&')
-		return 0;
-	expr = strip_expr(expr->unop);
-
-	if (!expr_to_mtag_offset(expr, &tag, &offset))
-		return 0;
+	return 0;
 found:
 	if (offset >= MTAG_OFFSET_MASK)
 		return 0;
