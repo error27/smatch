@@ -291,6 +291,10 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 		if (ret_sym != sm->sym)
 			continue;
 
+		estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		if (estate_get_single_value(estate, &sval))
+			continue;
+
 		param_name = state_name_to_param_name(sm->name, return_str);
 		if (!param_name)
 			continue;
