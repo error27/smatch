@@ -224,24 +224,6 @@ static int get_array_mtag_offset(struct expression *expr, mtag_t *tag, int *offs
 	return 1;
 }
 
-static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
-{
-	struct smatch_state *state;
-	struct symbol *type;
-	sval_t sval;
-
-	type = get_type(expr);
-	if (!type_is_ptr(type))
-		return 0;
-	state = get_extra_state(expr);
-	if (!state || !estate_get_single_value(state, &sval) || sval.value == 0)
-		return 0;
-
-	*tag = sval.uvalue & ~MTAG_OFFSET_MASK;
-	*offset = sval.uvalue & MTAG_OFFSET_MASK;
-	return 1;
-}
-
 struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl)
 {
 	char buf[256];
@@ -286,6 +268,24 @@ int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new)
 	*new = str_to_tag(buf);
 	sql_insert_mtag_alias(tag, *new);
 
+	return 1;
+}
+
+static int get_implied_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
+{
+	struct smatch_state *state;
+	struct symbol *type;
+	sval_t sval;
+
+	type = get_type(expr);
+	if (!type_is_ptr(type))
+		return 0;
+	state = get_extra_state(expr);
+	if (!state || !estate_get_single_value(state, &sval) || sval.value == 0)
+		return 0;
+
+	*tag = sval.uvalue & ~MTAG_OFFSET_MASK;
+	*offset = sval.uvalue & MTAG_OFFSET_MASK;
 	return 1;
 }
 
