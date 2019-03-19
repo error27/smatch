@@ -68,6 +68,7 @@ static int is_capped_macro(struct expression *expr)
 
 int is_capped(struct expression *expr)
 {
+	struct symbol *type;
 	sval_t dummy;
 
 	expr = strip_expr(expr);
@@ -77,7 +78,12 @@ int is_capped(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (is_ptr_type(get_type(expr)))
+	type = get_type(expr);
+	if (is_ptr_type(type))
+		return 0;
+	if (type == &bool_ctype)
+		return 0;
+	if (type_bits(type) >= 0 && type_bits(type) <= 2)
 		return 0;
 
 	if (get_hard_max(expr, &dummy))
@@ -190,6 +196,16 @@ static void match_condition(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (is_ptr_type(type))
+		return;
+	if (type == &bool_ctype)
+		return;
+	if (type_bits(type) >= 0 && type_bits(type) <= 2)
+		return;
+
 	if (is_capped(expr->right)) {
 		set_state_expr(my_id, expr->left, &capped);
 	} else {
