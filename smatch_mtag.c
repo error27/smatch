@@ -307,6 +307,9 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	*tag = 0;
 	*offset = 0;
 
+	if (bits_in_pointer != 64)
+		return 0;
+
 	expr = strip_expr(expr);
 	if (!expr)
 		return 0;
@@ -424,8 +427,6 @@ void register_mtag(int id)
 	 * bit 11-0 : offset
 	 *
 	 */
-	if (bits_in_pointer != 64)
-		return;
 
 	add_hook(&global_variable, BASE_HOOK);
 }
