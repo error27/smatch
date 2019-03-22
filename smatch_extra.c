@@ -2306,12 +2306,14 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, show_rl(rl));
-	if (!estate_get_single_value(sm->state, &dummy) && estate_has_hard_max(sm->state))
-		sql_insert_caller_info(call, HARD_MAX, param, printed_name,
-				       sval_to_str(estate_max(sm->state)));
-	if (estate_has_fuzzy_max(sm->state))
-		sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
-				       sval_to_str(estate_get_fuzzy_max(sm->state)));
+	if (!estate_get_single_value(sm->state, &dummy)) {
+		if (estate_has_hard_max(sm->state))
+			sql_insert_caller_info(call, HARD_MAX, param, printed_name,
+					       sval_to_str(estate_max(sm->state)));
+		if (estate_has_fuzzy_max(sm->state))
+			sql_insert_caller_info(call, FUZZY_MAX, param, printed_name,
+					       sval_to_str(estate_get_fuzzy_max(sm->state)));
+	}
 }
 
 static void returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
