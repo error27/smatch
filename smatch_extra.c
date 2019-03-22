@@ -1277,7 +1277,14 @@ static void check_dereference(struct expression *expr)
 			return;
 		set_extra_expr_nomod(expr, alloc_estate_rl(rl));
 	} else {
-		set_extra_expr_nomod(expr, alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval));
+		struct range_list *rl;
+
+		if (get_mtag_rl(expr, &rl))
+			rl = rl_intersection(rl, valid_ptr_rl);
+		else
+			rl = clone_rl(valid_ptr_rl);
+
+		set_extra_expr_nomod(expr, alloc_estate_rl(rl));
 	}
 }
 
