@@ -1235,25 +1235,23 @@ bool is_nul_terminated(struct expression *expr);
 /* check_kernel.c  */
 bool is_ignored_kernel_data(const char *name);
 
-static inline int type_bits(struct symbol *type)
-{
-	if (!type)
-		return 0;
-	if (type->type == SYM_PTR)  /* Sparse doesn't set this for &pointers */
-		return bits_in_pointer;
-	if (type->type == SYM_ARRAY)
-		return bits_in_pointer;
-	if (!type->examined)
-		examine_symbol_type(type);
-	return type->bit_size;
-}
-
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&
 	       (type->type == SYM_PTR ||
 		type->type == SYM_ARRAY ||
 		type->type == SYM_FN);
+}
+
+static inline int type_bits(struct symbol *type)
+{
+	if (!type)
+		return 0;
+	if (type_is_ptr(type))
+		return bits_in_pointer;
+	if (!type->examined)
+		examine_symbol_type(type);
+	return type->bit_size;
 }
 
 static inline int type_unsigned(struct symbol *base_type)
@@ -1271,7 +1269,7 @@ static inline int type_positive_bits(struct symbol *type)
 {
 	if (!type)
 		return 0;
-	if (type->type == SYM_PTR || type->type == SYM_ARRAY)
+	if (is_ptr_type(type))
 		return bits_in_pointer;
 	if (type_unsigned(type))
 		return type_bits(type);
