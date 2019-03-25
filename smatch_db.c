@@ -372,11 +372,6 @@ void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_
 		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
 }
 
-void sql_insert_mtag_data(mtag_t tag, const char *var, int offset, int type, const char *value)
-{
-	sql_insert(mtag_data, "%lld, '%s', %d, %d, '%s'", tag, var, offset, type, value);
-}
-
 void sql_insert_mtag_map(mtag_t tag, int offset, mtag_t container)
 {
 	sql_insert(mtag_map, "%lld, %d, %lld", tag, offset, container);
