@@ -277,7 +277,9 @@ int get_address_rl(struct expression *expr, struct range_list **rl)
 		if (unop->type == EXPR_PREOP && unop->op == '*')
 			unop = strip_expr(unop->unop);
 
-		if (offset >= 0 && get_implied_rl(unop, &unop_rl)) {
+		if (offset >= 0 &&
+		    get_implied_rl(unop, &unop_rl) &&
+		    !is_whole_rl(unop_rl)) {
 			*rl = unop_rl;
 			add_offset_to_pointer(rl, offset);
 			return 1;
