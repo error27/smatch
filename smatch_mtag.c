@@ -319,8 +319,7 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 
 	if (expr->type == EXPR_PREOP && expr->op == '*') {
 		expr = strip_expr(expr->unop);
-		if (get_implied_mtag_offset(expr, tag, offset))
-			return 1;
+		return get_implied_mtag_offset(expr, tag, offset);
 	} else if (expr->type == EXPR_DEREF) {
 		int next_offset;
 
@@ -328,21 +327,20 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 		if (*offset < 0)
 			return 0;
 		expr = expr->deref;
-		if (expr->type == EXPR_PREOP && expr->op == '*')
+		if (expr->type == EXPR_PREOP && expr->op == '*') {
 			expr = strip_expr(expr->unop);
 
-		if (get_implied_mtag_offset(expr, tag, &next_offset)) {
-			// FIXME:  look it up recursively?
-			if (next_offset)
-				return 0;
-			return 1;
+			if (get_implied_mtag_offset(expr, tag, &next_offset)) {
+				// FIXME:  look it up recursively?
+				if (next_offset)
+					return 0;
+				return 1;
+			}
+			return 0;
+		} else {
+			return get_toplevel_mtag(expr->symbol, tag);
 		}
-	}
-
-	switch (expr->type) {
-	case EXPR_STRING:
-		return get_string_mtag(expr, tag);
-	case EXPR_SYMBOL:
+	} else if (expr->type == EXPR_SYMBOL) {
 		return get_toplevel_mtag(expr->symbol, tag);
 	}
 	return 0;
