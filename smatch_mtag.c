@@ -337,9 +337,10 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 				return 1;
 			}
 			return 0;
-		} else {
+		} else if (expr->type == EXPR_SYMBOL) {
 			return get_toplevel_mtag(expr->symbol, tag);
 		}
+		return 0;
 	} else if (expr->type == EXPR_SYMBOL) {
 		return get_toplevel_mtag(expr->symbol, tag);
 	}
