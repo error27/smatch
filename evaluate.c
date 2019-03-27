@@ -3387,7 +3387,7 @@ void check_duplicates(struct symbol *sym)
 	}
 	if (!declared) {
 		unsigned long mod = sym->ctype.modifiers;
-		if (mod & (MOD_STATIC | MOD_REGISTER))
+		if (mod & (MOD_STATIC | MOD_REGISTER | MOD_EXT_VISIBLE))
 			return;
 		if (!(mod & MOD_TOPLEVEL))
 			return;

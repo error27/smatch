@@ -82,6 +82,7 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 
 static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
+	attribute_ext_visible,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
 	attribute_designated_init,
@@ -373,6 +374,10 @@ static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
 
+static struct symbol_op ext_visible_op = {
+	.attribute = attribute_ext_visible,
+};
+
 static struct symbol_op attr_bitwise_op = {
 	.attribute = attribute_bitwise,
 };
@@ -562,6 +567,8 @@ static struct init_keyword {
 	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{"externally_visible",	NS_KEYWORD,	.op = &ext_visible_op },
+	{"__externally_visible__",	NS_KEYWORD,	.op = &ext_visible_op },
 
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
@@ -1106,6 +1113,12 @@ static struct token *attribute_modifier(struct token *token, struct symbol *attr
 	return token;
 }
 
+static struct token *attribute_ext_visible(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	ctx->is_ext_visible = 1;
+	return token;
+}
+
 static struct token *attribute_bitwise(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	if (Wbitwise)
@@ -1343,7 +1356,8 @@ static unsigned long storage_modifiers(struct decl_state *ctx)
 		[SRegister] = MOD_REGISTER
 	};
 	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
-		| (ctx->is_tls ? MOD_TLS : 0);
+		| (ctx->is_tls ? MOD_TLS : 0)
+		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0);
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)

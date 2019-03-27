@@ -110,6 +110,7 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	unsigned char prefer_abstract, is_inline, storage_class, is_tls;
+	unsigned char is_ext_visible;
 };
 
 struct symbol_op {
@@ -237,6 +238,7 @@ struct symbol {
 #define MOD_NOCAST		0x04000000
 #define MOD_NODEREF		0x08000000
 #define MOD_NORETURN		0x10000000
+#define MOD_EXT_VISIBLE		0x20000000
 
 
 #define MOD_ACCESS	(MOD_ASSIGNED | MOD_ADDRESSABLE)
@@ -246,7 +248,7 @@ struct symbol {
 #define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
 #define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
 #define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
-#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED)
+#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE)
 #define	MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT | MOD_ATOMIC)
 #define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
