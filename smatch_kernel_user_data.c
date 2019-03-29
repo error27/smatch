@@ -760,7 +760,7 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 	db_info.call = call;
 	run_sql(&returned_rl_callback, &db_info,
 		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
-		get_static_filter(call->fn->symbol), USER_DATA3_SET);
+		get_static_filter(call->fn->symbol), USER_DATA_SET);
 	if (db_info.rl) {
 		func_gets_user_data = true;
 		*rl = db_info.rl;
@@ -769,7 +769,7 @@ static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 
 	run_sql(&returned_rl_callback, &db_info,
 		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
-		get_static_filter(call->fn->symbol), USER_DATA3);
+		get_static_filter(call->fn->symbol), USER_DATA);
 	if (db_info.rl) {
 		if (!we_pass_user_data(call))
 			return 0;
@@ -930,7 +930,7 @@ static void match_call_info(struct expression *expr)
 			continue;
 
 		rl = cast_rl(type, rl);
-		sql_insert_caller_info(expr, USER_DATA3, i, "$", show_rl(rl));
+		sql_insert_caller_info(expr, USER_DATA, i, "$", show_rl(rl));
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -979,7 +979,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	else
 		rl = rl_intersection(estate_rl(sm->state), estate_rl(state));
 
-	sql_insert_caller_info(call, USER_DATA3, param, printed_name, show_rl(rl));
+	sql_insert_caller_info(call, USER_DATA, param, printed_name, show_rl(rl));
 }
 
 static void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
@@ -1175,14 +1175,14 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges,
-					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
+					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
 					 param, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
 
 	if (points_to_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges,
 					 (is_skb_data(expr) || !func_gets_user_data) ?
-					 USER_DATA3_SET : USER_DATA3,
+					 USER_DATA_SET : USER_DATA,
 					 -1, "*$", "");
 		goto free_string;
 	}
@@ -1200,14 +1200,14 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (strcmp(param_name, "$") == 0)
 			return_found = true;
 		sql_insert_return_states(return_id, return_ranges,
-					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
+					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
 					 -1, param_name, show_rl(estate_rl(sm->state)));
 	} END_FOR_EACH_SM(sm);
 
 
 	if (!return_found && get_user_rl(expr, &rl)) {
 		sql_insert_return_states(return_id, return_ranges,
-					 func_gets_user_data ? USER_DATA3_SET : USER_DATA3,
+					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
 					 -1, "$", show_rl(rl));
 		goto free_string;
 	}
@@ -1232,7 +1232,7 @@ static void match_inline_end(struct expression *expr)
 	func_gets_user_data = pop_int(&gets_data_stack);
 }
 
-void register_kernel_user_data2(int id)
+void register_kernel_user_data(int id)
 {
 	int i;
 
@@ -1278,13 +1278,13 @@ void register_kernel_user_data2(int id)
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
-	select_caller_info_hook(set_param_user_data, USER_DATA3);
-	select_return_states_hook(USER_DATA3, &returns_param_user_data);
-	select_return_states_hook(USER_DATA3_SET, &returns_param_user_data_set);
+	select_caller_info_hook(set_param_user_data, USER_DATA);
+	select_return_states_hook(USER_DATA, &returns_param_user_data);
+	select_return_states_hook(USER_DATA_SET, &returns_param_user_data_set);
 	add_split_return_callback(&param_set_to_user_data);
 }
 
-void register_kernel_user_data3(int id)
+void register_kernel_user_data2(int id)
 {
 	my_call_id = id;
 

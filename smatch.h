@@ -783,7 +783,6 @@ enum info_type {
 
 	PARAM_VALUE	= 1001,
 	BUF_SIZE	= 1002,
-	USER_DATA	= 1003,
 	CAPPED_DATA	= 1004,
 	RETURN_VALUE	= 1005,
 	DEREFERENCE	= 1006,
@@ -820,8 +819,8 @@ enum info_type {
 	TERMINATED	= 1038,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
-	USER_DATA3	= 8017,
-	USER_DATA3_SET	= 9017,
+	USER_DATA	= 8017,
+	USER_DATA_SET	= 9017,
 	NO_OVERFLOW	= 8018,
 	NO_OVERFLOW_SIMPLE = 8019,
 	LOCKED		= 8020,

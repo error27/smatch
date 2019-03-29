@@ -23,18 +23,8 @@ delete from caller_info where function = '(struct irq_router)->set' and type != 
 delete from caller_info where function = '(struct net_device_ops)->ndo_change_mtu' and caller = 'i40e_dbg_netdev_ops_write';
 delete from caller_info where function = '(struct timer_list)->function' and type != 0;
 
-/* type 1003 is USER_DATA */
-delete from caller_info where caller = 'hid_input_report' and type = 1003;
-delete from caller_info where caller = 'nes_process_iwarp_aeqe' and type = 1003;
-delete from caller_info where caller = 'oz_process_ep0_urb' and type = 1003;
-delete from caller_info where function = 'dev_hard_start_xmit' and key = '\$' and type = 1003;
-delete from caller_info where function like '%->ndo_start_xmit' and key = '\$' and type = 1003;
-delete from caller_info where caller = 'packet_rcv_fanout' and function = '(struct packet_type)->func' and parameter = 1 and type = 1003;
-delete from caller_info where caller = 'hptiop_probe' and type = 1003;
-delete from caller_info where caller = 'p9_fd_poll' and function = '(struct file_operations)->poll' and type = 1003;
-delete from caller_info where caller = 'proc_reg_poll' and function = 'proc_reg_poll ptr poll' and type = 1003;
-delete from caller_info where function = 'blkdev_ioctl' and type = 1003 and parameter = 0 and key = '\$';
-/* 9017 is USER_DATA3_SET */
+/* 8017 is USER_DATA and  9017 is USER_DATA_SET */
+delete from caller_info where function = 'dev_hard_start_xmit' and type = 8017;
 delete from return_states where function='vscnprintf' and type = 9017;
 delete from return_states where function='scnprintf' and type = 9017;
 delete from return_states where function='vsnprintf' and type = 9017;
@@ -57,9 +47,9 @@ delete from caller_info where function = 'nf_tables_newexpr' and type = 8017 and
 delete from caller_info where caller = 'fb_set_var' and function = '(struct fb_ops)->fb_set_par' and type = 8017 and parameter = 0;
 delete from return_states where function = 'tty_lookup_driver' and parameter = 2 and type = 8017;
 
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 0, '\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 1, '\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 1003, 2, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 2, '\$', '1');
 
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
@@ -206,7 +196,7 @@ EOF
 # fixme: this is totally broken
 call_id=$(echo "select distinct call_id from caller_info where function = '__kernel_write';" | sqlite3 $db_file)
 for id in $call_id ; do
-    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 1003, 1, '*\$', '');" | sqlite3 $db_file
+    echo "insert into caller_info values ('fake', '', '__kernel_write', $id, 0, 8017, 1, '*\$', '');" | sqlite3 $db_file
 done
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
