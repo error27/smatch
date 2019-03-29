@@ -3022,7 +3022,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		tas = ttype->ctype.as;
 	}
 
-	if (stype == &ulong_ctype && !Wcast_from_as)
+	if ((stype == &ulong_ctype || stype == uintptr_ctype) && !Wcast_from_as)
 		sas = &bad_address_space;
 	else if (sclass == TYPE_PTR) {
 		examine_pointer_target(stype);
