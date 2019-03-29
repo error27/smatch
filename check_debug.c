@@ -668,7 +668,7 @@ static void match_container(const char *fn, struct expression *expr, void *info)
 
 	str = get_container_name(container, x);
 	cont = expr_to_str(container);
-	name = expr_to_str(expr);
+	name = expr_to_str(x);
 	sm_msg("container: '%s' vs '%s' --> '%s'", cont, name, str);
 	free_string(cont);
 	free_string(name);
