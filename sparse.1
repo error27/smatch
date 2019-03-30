@@ -41,9 +41,16 @@ Sparse allows an extended attribute
 on pointers, which designates a pointer target in address space \fIid\fR (an
 identifier or a constant integer).
 With \fB\-Waddress\-space\fR, Sparse treats pointers with
-identical target types but different address spaces as distinct types.  To
-override this warning, such as for functions which convert pointers between
-address spaces, use a type that includes \fB__attribute__((force))\fR.
+identical target types but different address spaces as distinct types and
+will warn accordingly.
+
+Sparse will also warn on casts which remove the address space (casts to an
+integer type or to a plain pointer type). An exception to this is when the
+destination type is \fBuintptr_t\fR (or \fBunsigned long\fR) since such casts
+are often used to "get a pointer value representation in an integer type" and
+such values are independent of the address space.
+
+To override these warnings, use a type that includes \fB__attribute__((force))\fR.
 
 Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-address\-space\fR.
