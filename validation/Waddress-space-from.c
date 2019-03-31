@@ -44,17 +44,20 @@ static void expl(obj_t __kernel *k, obj_t __iomem *o,
 }
 
 /*
- * check-name: cast-from-as
+ * check-name: Waddress-space-from
  * check-command: sparse -Wno-cast-from-as $file
+ * check-description: Test the removal of AS from a pointer but only
+ *	in the non-strict variant where casts to ulong (or uintptr_t)
+ *	are allowed.
  *
  * check-error-start
-cast-from-as.c:23:10: warning: cast removes address space '__iomem' of expression
-cast-from-as.c:24:10: warning: cast removes address space '__iomem' of expression
-cast-from-as.c:29:10: warning: cast removes address space '__user' of expression
-cast-from-as.c:30:10: warning: cast removes address space '__user' of expression
-cast-from-as.c:35:10: warning: cast removes address space '__percpu' of expression
-cast-from-as.c:36:10: warning: cast removes address space '__percpu' of expression
-cast-from-as.c:41:10: warning: cast removes address space '__rcu' of expression
-cast-from-as.c:42:10: warning: cast removes address space '__rcu' of expression
+Waddress-space-from.c:23:10: warning: cast removes address space '__iomem' of expression
+Waddress-space-from.c:24:10: warning: cast removes address space '__iomem' of expression
+Waddress-space-from.c:29:10: warning: cast removes address space '__user' of expression
+Waddress-space-from.c:30:10: warning: cast removes address space '__user' of expression
+Waddress-space-from.c:35:10: warning: cast removes address space '__percpu' of expression
+Waddress-space-from.c:36:10: warning: cast removes address space '__percpu' of expression
+Waddress-space-from.c:41:10: warning: cast removes address space '__rcu' of expression
+Waddress-space-from.c:42:10: warning: cast removes address space '__rcu' of expression
  * check-error-end
  */

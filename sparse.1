@@ -104,6 +104,8 @@ Sparse does not issues these warnings by default.
 Warn about casts which add an address space to a pointer type.
 
 A cast that includes \fB__attribute__((force))\fR will suppress this warning.
+No warning is generated if the original type is \fBuintptr_t\fR
+(or \fBunsigned long\fR).
 
 Sparse does not issue these warnings by default.
 .

@@ -3015,14 +3015,14 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		}
 	}
 
-	if (ttype == &ulong_ctype && !Wcast_from_as)
+	if ((ttype == &ulong_ctype || ttype == uintptr_ctype) && !Wcast_from_as)
 		tas = &bad_address_space;
 	else if (tclass == TYPE_PTR) {
 		examine_pointer_target(ttype);
 		tas = ttype->ctype.as;
 	}
 
-	if ((stype == &ulong_ctype || stype == uintptr_ctype) && !Wcast_from_as)
+	if ((stype == &ulong_ctype || stype == uintptr_ctype))
 		sas = &bad_address_space;
 	else if (sclass == TYPE_PTR) {
 		examine_pointer_target(stype);
