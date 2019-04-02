@@ -98,6 +98,11 @@ struct constraint {
 };
 DECLARE_PTR_LIST(constraint_list, struct constraint);
 
+struct bit_info {
+	unsigned long long set;
+	unsigned long long possible;
+};
+
 enum hook_type {
 	EXPR_HOOK,
 	STMT_HOOK,
@@ -813,6 +818,7 @@ enum info_type {
 	CONSTRAINT	= 1031,
 	PASSES_TYPE	= 1032,
 	CONSTRAINT_REQUIRED = 1033,
+	BIT_INFO	= 1034,
 	NOSPEC		= 1035,
 	NOSPEC_WB	= 1036,
 	STMT_CNT	= 1037,
@@ -1220,6 +1226,9 @@ int get_mtag_sval(struct expression *expr, sval_t *sval);
 /* Trinity fuzzer stuff */
 const char *get_syscall_arg_type(struct symbol *sym);
 
+/* smatch_bit_info.c */
+struct bit_info *get_bit_info(struct expression *expr);
+struct bit_info *get_bit_info_var_sym(const char *name, struct symbol *sym);
 /* smatch_mem_tracker.c */
 extern int option_mem;
 unsigned long get_mem_kb(void);
