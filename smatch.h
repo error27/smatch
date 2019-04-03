@@ -207,6 +207,7 @@ extern char *trace_variable;
 extern struct stree *global_states;
 int is_skipped_function(void);
 int is_silenced_function(void);
+extern bool implications_off;
 
 /* smatch_impossible.c */
 int is_impossible_path(void);

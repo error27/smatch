@@ -64,6 +64,8 @@
 
 char *implied_debug_msg;
 
+bool implications_off;
+
 #define implied_debug 0
 #define DIMPLIED(msg...) do { if (implied_debug) printf(msg); } while (0)
 
@@ -387,16 +389,21 @@ static int taking_too_long(void)
 {
 	static void *printed;
 
-	if (out_of_memory())
+	if (out_of_memory()) {
+		implications_off = true;
 		return 1;
+	}
 
-	if (time_parsing_function() < 60)
+	if (time_parsing_function() < 60) {
+		implications_off = false;
 		return 0;
+	}
 
 	if (!__inline_fn && printed != cur_func_sym) {
 		sm_perror("turning off implications after 60 seconds");
 		printed = cur_func_sym;
 	}
+	implications_off = true;
 	return 1;
 }
 

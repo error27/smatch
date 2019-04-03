@@ -152,7 +152,7 @@ static void match_dereferences(struct expression *expr)
 {
 	char *name;
 
-	if (parse_error)
+	if (implications_off || parse_error)
 		return;
 
 	if (expr->type != EXPR_PREOP)
