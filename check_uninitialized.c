@@ -123,11 +123,8 @@ static void match_negative_comparison(struct expression *expr)
 		return;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state == &initialized) {
+		if (sm->state == &initialized)
 			set_true_false_states(my_id, sm->name, sm->sym, NULL, &initialized);
-			if (local_debug)
-				sm_msg("%s: set %s", __func__, sm->name);
-		}
 	} END_FOR_EACH_SM(sm);
 
 	end_assume();
