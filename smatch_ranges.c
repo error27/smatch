@@ -216,6 +216,8 @@ static int str_to_comparison_arg_helper(const char *str,
 		c++;
 		c++;
 		*comparison = SPECIAL_NOTEQUAL;
+	} else if (*c == '$') {
+		*comparison = SPECIAL_EQUAL;
 	} else {
 		return 0;
 	}
