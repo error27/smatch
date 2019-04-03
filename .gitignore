@@ -5,6 +5,7 @@
 *.so
 .*.swp
 *.pyc
+*~
 
 # generated
 version.h
