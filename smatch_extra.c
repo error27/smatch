@@ -1939,11 +1939,10 @@ static bool handle_bit_test(struct expression *expr)
 	var = strip_expr(shift->right);
 
 	type = get_type(shift->left);
-	if (type_signed(type) &&
-	    (!get_implied_max(var, &sval) || sval.uvalue > type_bits(type)))
+	if (!get_implied_max(var, &sval) || sval.uvalue > type_bits(type))
 		return false;
 
-	bit_info = get_bit_info(expr->left);
+	bit_info = get_bit_info(mask);
 	if (!bit_info)
 		return false;
 	if (!bit_info->possible)
