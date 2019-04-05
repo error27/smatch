@@ -1919,21 +1919,26 @@ static sval_t get_high_mask(sval_t known)
 static bool handle_bit_test(struct expression *expr)
 {
 	struct range_list *orig_rl, *rl;
-	struct expression *right, *var;
+	struct expression *shift, *mask, *var;
 	struct bit_info *bit_info;
 	struct symbol *type;
 	sval_t sval;
 	sval_t high = { .type = &int_ctype };
 	sval_t low = { .type = &int_ctype };
 
-	right = strip_expr(expr->right);
-	if (right->type != EXPR_BINOP || right->op != SPECIAL_LEFTSHIFT)
+	shift = strip_expr(expr->right);
+	mask = strip_expr(expr->left);
+	if (shift->type != EXPR_BINOP || shift->op != SPECIAL_LEFTSHIFT) {
+		shift = strip_expr(expr->left);
+		mask = strip_expr(expr->right);
+		if (shift->type != EXPR_BINOP || shift->op != SPECIAL_LEFTSHIFT)
+			return false;
+	}
+	if (!get_implied_value(shift->left, &sval) || sval.value != 1)
 		return false;
-	if (!get_implied_value(right->left, &sval) || sval.value != 1)
-		return false;
-	var = strip_expr(right->right);
+	var = strip_expr(shift->right);
 
-	type = get_type(right->left);
+	type = get_type(shift->left);
 	if (type_signed(type) &&
 	    (!get_implied_max(var, &sval) || sval.uvalue > type_bits(type)))
 		return false;
@@ -1954,7 +1959,7 @@ static bool handle_bit_test(struct expression *expr)
 	if (!rl)
 		return false;
 
-	set_extra_expr_true_false(right->right, alloc_estate_rl(rl), NULL);
+	set_extra_expr_true_false(shift->right, alloc_estate_rl(rl), NULL);
 
 	return true;
 }
