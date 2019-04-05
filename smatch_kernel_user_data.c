@@ -808,7 +808,7 @@ static struct range_list *var_user_rl(struct expression *expr)
 		goto found;
 	}
 
-	if (!option_spammy && expr->type == EXPR_BINOP && expr->op == '/') {
+	if (expr->type == EXPR_BINOP && expr->op == '/') {
 		struct range_list *left = NULL;
 		struct range_list *right = NULL;
 		struct range_list *abs_right;
