@@ -587,15 +587,23 @@ int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right)
 	return sval_binop_overflows(left, op, right);
 }
 
-unsigned long long fls_mask(unsigned long long uvalue)
+int sm_fls64(unsigned long long uvalue)
 {
-	unsigned long long high_bit = 0;
+	int high_bit = 0;
 
 	while (uvalue) {
 		uvalue >>= 1;
 		high_bit++;
 	}
 
+	return high_bit;
+}
+
+unsigned long long fls_mask(unsigned long long uvalue)
+{
+	int high_bit = 0;
+
+	high_bit = sm_fls64(uvalue);
 	if (high_bit == 0)
 		return 0;
 
