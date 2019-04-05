@@ -996,6 +996,8 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 
 	if (strcmp(key, "*$") == 0)
 		snprintf(fullname, sizeof(fullname), "*%s", name);
+	else if (strcmp(key, "**$") == 0)
+		snprintf(fullname, sizeof(fullname), "**%s", name);
 	else if (strncmp(key, "$", 1) == 0)
 		snprintf(fullname, 256, "%s%s", name, key + 1);
 	else

@@ -809,7 +809,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 			else /* these are already handled. fixme: handle them here */
 				continue;
 		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
-			snprintf(printed_name, sizeof(printed_name), "*$%s", show_offset(offset));
+			snprintf(printed_name, sizeof(printed_name), "%s*$%s",
+				 is_address ? "*" : "", show_offset(offset));
 		} else if (strncmp(name, sm->name, len) == 0) {
 			if (isalnum(sm->name[len]))
 				continue;
