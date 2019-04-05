@@ -812,7 +812,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 			snprintf(printed_name, sizeof(printed_name), "%s*$%s",
 				 is_address ? "*" : "", show_offset(offset));
 		} else if (strncmp(name, sm->name, len) == 0) {
-			if (isalnum(sm->name[len]))
+			if (sm->name[len] != '.' && sm->name[len] != '-')
 				continue;
 			if (is_address)
 				snprintf(printed_name, sizeof(printed_name), "$%s->%s", show_offset(offset), sm->name + len + 1);
