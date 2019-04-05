@@ -1921,7 +1921,6 @@ static bool handle_bit_test(struct expression *expr)
 	struct range_list *orig_rl, *rl;
 	struct expression *shift, *mask, *var;
 	struct bit_info *bit_info;
-	struct symbol *type;
 	sval_t sval;
 	sval_t high = { .type = &int_ctype };
 	sval_t low = { .type = &int_ctype };
@@ -1938,10 +1937,6 @@ static bool handle_bit_test(struct expression *expr)
 		return false;
 	var = strip_expr(shift->right);
 
-	type = get_type(shift->left);
-	if (!get_implied_max(var, &sval) || sval.uvalue > type_bits(type))
-		return false;
-
 	bit_info = get_bit_info(mask);
 	if (!bit_info)
 		return false;
@@ -1949,6 +1944,9 @@ static bool handle_bit_test(struct expression *expr)
 		return false;
 
 	get_absolute_rl(var, &orig_rl);
+	if (sval_is_negative(rl_min(orig_rl)) ||
+	    rl_max(orig_rl).uvalue > type_bits(get_type(shift->left)))
+		return false;
 
 	low.value = ffsll(bit_info->possible);
 	high.value = sm_fls64(bit_info->possible);
