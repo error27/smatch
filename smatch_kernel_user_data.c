@@ -1003,14 +1003,6 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 
 	type = get_member_type_from_key(symbol_expression(sym), key);
 
-	/* if the caller passes a void pointer with user data */
-	if (strcmp(key, "*$") == 0 && type && type != &void_ctype) {
-		struct expression *expr = symbol_expression(sym);
-
-		tag_as_user_data(expr);
-		set_points_to_user_data(expr);
-		return;
-	}
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
 	set_state(my_id, fullname, sym, state);
