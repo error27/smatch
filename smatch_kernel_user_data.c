@@ -793,6 +793,11 @@ static struct range_list *var_user_rl(struct expression *expr)
 	struct range_list *rl;
 	struct range_list *absolute_rl;
 
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		no_user_data_flag = 1;
+		return NULL;
+	}
+
 	if (expr->type == EXPR_BINOP && expr->op == '%') {
 		struct range_list *left, *right;
 

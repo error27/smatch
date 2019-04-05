@@ -89,13 +89,22 @@ static bool handle_expression_statement_rl(struct expression *expr, int implied,
 
 static bool handle_address(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	sval_t sval;
+	struct range_list *rl;
 	static int recursed;
+	sval_t sval;
 
 	if (recursed > 10)
 		return false;
 	if (implied == RL_EXACT)
 		return false;
+
+	if (custom_handle_variable) {
+		rl = custom_handle_variable(expr);
+		if (rl) {
+			*res = rl;
+			return true;
+		}
+	}
 
 	recursed++;
 	if (get_mtag_sval(expr, &sval)) {
