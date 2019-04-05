@@ -1916,6 +1916,49 @@ static sval_t get_high_mask(sval_t known)
 	return ret;
 }
 
+static bool handle_bit_test(struct expression *expr)
+{
+	struct range_list *orig_rl, *rl;
+	struct expression *right, *var;
+	struct bit_info *bit_info;
+	struct symbol *type;
+	sval_t sval;
+	sval_t high = { .type = &int_ctype };
+	sval_t low = { .type = &int_ctype };
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_BINOP || right->op != SPECIAL_LEFTSHIFT)
+		return false;
+	if (!get_implied_value(right->left, &sval) || sval.value != 1)
+		return false;
+	var = strip_expr(right->right);
+
+	type = get_type(right->left);
+	if (type_signed(type) &&
+	    (!get_implied_max(var, &sval) || sval.uvalue > type_bits(type)))
+		return false;
+
+	bit_info = get_bit_info(expr->left);
+	if (!bit_info)
+		return false;
+	if (!bit_info->possible)
+		return false;
+
+	get_absolute_rl(var, &orig_rl);
+
+	low.value = ffsll(bit_info->possible);
+	high.value = sm_fls64(bit_info->possible);
+	rl = alloc_rl(low, high);
+	rl = cast_rl(get_type(var), rl);
+	rl = rl_intersection(orig_rl, rl);
+	if (!rl)
+		return false;
+
+	set_extra_expr_true_false(right->right, alloc_estate_rl(rl), NULL);
+
+	return true;
+}
+
 static void handle_AND_op(struct expression *var, sval_t known)
 {
 	struct range_list *orig_rl;
@@ -1961,6 +2004,9 @@ static void handle_AND_op(struct expression *var, sval_t known)
 static void handle_AND_condition(struct expression *expr)
 {
 	sval_t known;
+
+	if (handle_bit_test(expr))
+		return;
 
 	if (get_implied_value(expr->left, &known))
 		handle_AND_op(expr->right, known);
