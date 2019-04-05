@@ -1184,6 +1184,9 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (param < 0)
 			continue;
 
+		if (!param_was_set_var_sym(sm->name, sm->sym))
+			continue;
+
 		/* The logic here was that if we were passed in a user data then
 		 * we don't record that.  It's like the difference between
 		 * param_filter and param_set.  When I think about it, I'm not
