@@ -407,6 +407,24 @@ static int taking_too_long(void)
 	return 1;
 }
 
+static char *sm_state_info(struct sm_state *sm)
+{
+	static char buf[256];
+	int n = 0;
+
+	n += snprintf(buf + n, sizeof(buf) - n, "[stree %d line %d] ",
+		      get_stree_id(sm->pool),  sm->line);
+	n += snprintf(buf + n, sizeof(buf) - n, "%s ", show_sm(sm));
+	n += snprintf(buf + n, sizeof(buf) - n, "left = %s [stree %d] ",
+		      sm->left ? sm->left->state->name : "<none>",
+		      sm->left ? get_stree_id(sm->left->pool) : -1);
+
+	n += snprintf(buf + n, sizeof(buf) - n, "right = %s [stree %d]",
+		      sm->right ? sm->right->state->name : "<none>",
+		      sm->right ? get_stree_id(sm->right->pool) : -1);
+	return buf;
+}
+
 /*
  * NOTE: If a state is in both the keep stack and the remove stack then that is
  * a bug.  Only add states which are definitely true or definitely false.  If
@@ -429,35 +447,32 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	if (!sm)
 		return NULL;
-
-	DIMPLIED("checking [stree %d] %s from %d left = %s [stree %d] right = %s [stree %d]\n",
-		 get_stree_id(sm->pool),
-		 show_sm(sm), sm->line,
-		 sm->left ? sm->left->state->name : "<none>", sm->left ? get_stree_id(sm->left->pool) : -1,
-		 sm->right ? sm->right->state->name : "<none>", sm->right ? get_stree_id(sm->right->pool) : -1);
 	if (*bail)
 		return NULL;
 	gettimeofday(&now, NULL);
 	if (now.tv_usec - start->tv_usec > 3000000) {
+		DIMPLIED("%s: implications taking too long: %s\n", __func__, sm_state_info(sm));
 		*bail = 1;
 		return NULL;
 	}
 	if ((*recurse_cnt)++ > RECURSE_LIMIT) {
+		DIMPLIED("%s: recursed too far:  %s\n", __func__, sm_state_info(sm));
 		*skip = 1;
 		return NULL;
 	}
 
 	if (pool_in_pools(sm->pool, remove_stack)) {
-		DIMPLIED("removed [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
+		DIMPLIED("%s: remove: %s\n", __func__, sm_state_info(sm));
 		*modified = 1;
 		return NULL;
 	}
 
 	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack) || sm_in_keep_leafs(sm, keep_stack)) {
-		DIMPLIED("kept [stree %d] %s from %d. %s. %s. %s.\n", get_stree_id(sm->pool), show_sm(sm), sm->line,
+		DIMPLIED("%s: keep %s (%s, %s, %s): %s\n", __func__, sm->state->name,
 			is_merged(sm) ? "merged" : "not merged",
 			pool_in_pools(sm->pool, keep_stack) ? "not in keep pools" : "in keep pools",
-			sm_in_keep_leafs(sm, keep_stack) ? "reachable keep leaf" : "no keep leaf");
+			sm_in_keep_leafs(sm, keep_stack) ? "reachable keep leaf" : "no keep leaf",
+			sm_state_info(sm));
 		return sm;
 	}
 
@@ -466,12 +481,12 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	if (*bail || *skip)
 		return NULL;
 	if (!removed) {
-		DIMPLIED("kept [stree %d] %s from %d\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
+		DIMPLIED("%s: kept all: %s\n", __func__, sm_state_info(sm));
 		return sm;
 	}
 	*modified = 1;
 	if (!left && !right) {
-		DIMPLIED("removed [stree %d] %s from %d <none>\n", get_stree_id(sm->pool), show_sm(sm), sm->line);
+		DIMPLIED("%s: removed all: %s\n", __func__, sm_state_info(sm));
 		return NULL;
 	}
 
@@ -501,8 +516,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 
 	ret->pool = sm->pool;
 
-	DIMPLIED("partial %s => ", show_sm(sm));
-	DIMPLIED("%s from %d [stree %d]\n", show_sm(ret), sm->line, get_stree_id(sm->pool));
+	DIMPLIED("%s: partial: %s\n", __func__, sm_state_info(sm));
 	return ret;
 }
 
