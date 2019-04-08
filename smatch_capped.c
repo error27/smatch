@@ -272,7 +272,7 @@ static void print_return_implies_capped(int return_id, char *return_ranges, stru
 			continue;
 
 		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
-		if (orig == &capped)
+		if (orig == &capped && !param_was_set_var_sym(sm->name, sm->sym))
 			continue;
 
 		param_name = get_param_name(sm);
