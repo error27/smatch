@@ -206,7 +206,7 @@ static int get_rl_from_mtag_offset(mtag_t tag, int offset, struct symbol *type, 
 	ret = 1;
 
 update_cache:
-	cached_results[idx].tag = tag;
+	cached_results[idx].tag = merged;
 	cached_results[idx].rl = db_info.rl;
 	idx = (idx + 1) % ARRAY_SIZE(cached_results);
 
