@@ -1033,6 +1033,25 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 
 	type = get_member_type_from_key(symbol_expression(sym), key);
 
+	/*
+	 * Say this function takes a struct ponter but the caller passes
+	 * this_function(skb->data).  We have two options, we could pass *$
+	 * as user data or we could pass foo->bar, foo->baz as user data.
+	 * The second option is easier to implement so we do that.
+	 *
+	 */
+	if (strcmp(key, "*$") == 0) {
+		struct symbol *tmp = type;
+
+		while (tmp && tmp->type == SYM_PTR)
+			tmp = get_real_base_type(tmp);
+
+		if (tmp && (tmp->type == SYM_STRUCT || tmp->type == SYM_UNION)) {
+			tag_as_user_data(symbol_expression(sym));
+			return;
+		}
+	}
+
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
 	set_state(my_id, fullname, sym, state);
