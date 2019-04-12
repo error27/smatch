@@ -889,22 +889,11 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 	return !!*rl;
 }
 
-int get_user_rl_spammy(struct expression *expr, struct range_list **rl)
-{
-	int ret;
-
-	option_spammy++;
-	ret = get_user_rl(expr, rl);
-	option_spammy--;
-
-	return ret;
-}
-
 int is_user_rl(struct expression *expr)
 {
 	struct range_list *tmp;
 
-	return get_user_rl_spammy(expr, &tmp);
+	return !!get_user_rl(expr, &tmp);
 }
 
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl)
@@ -1109,7 +1098,6 @@ static void set_to_user_data(struct expression *expr, char *key, char *value)
 	set_state(my_id, name, sym, alloc_estate_rl(rl));
 free:
 	free_string(name);
-
 }
 
 static void returns_param_user_data(struct expression *expr, int param, char *key, char *value)
