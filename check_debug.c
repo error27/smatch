@@ -19,6 +19,11 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+void show_sname_alloc(void);
+void show_data_range_alloc(void);
+void show_ptrlist_alloc(void);
+void show_sm_state_alloc(void);
+
 int local_debug;
 static int my_id;
 char *trace_variable;
