@@ -537,6 +537,7 @@ extern struct statement *__next_stmt;
 void init_fake_env(void);
 void end_fake_env(void);
 int time_parsing_function(void);
+bool taking_too_long(void);
 
 /* smatch_struct_assignment.c */
 struct expression *get_faked_expression(void);

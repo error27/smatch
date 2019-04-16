@@ -385,7 +385,7 @@ static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_g
 	return 0;
 }
 
-static int taking_too_long(void)
+static int going_too_slow(void)
 {
 	static void *printed;
 
@@ -545,7 +545,7 @@ static struct stree *filter_stack(struct sm_state *gate_sm,
 		recurse_cnt = 0;
 		skip = 0;
 		filtered_sm = filter_pools(tmp, remove_stack, keep_stack, &modified, &recurse_cnt, &start, &skip, &bail);
-		if (taking_too_long())
+		if (going_too_slow())
 			return NULL;
 		if (bail)
 			return ret;  /* Return the implications we figured out before time ran out. */
@@ -865,7 +865,7 @@ static void get_tf_states(struct expression *expr,
 
 static void save_implications_hook(struct expression *expr)
 {
-	if (taking_too_long())
+	if (going_too_slow())
 		return;
 	get_tf_states(expr, &saved_implied_true, &saved_implied_false);
 }

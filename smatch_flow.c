@@ -867,7 +867,7 @@ int time_parsing_function(void)
 	return ms_since(&fn_start_time) / 1000;
 }
 
-static int taking_too_long(void)
+bool taking_too_long(void)
 {
 	if ((ms_since(&outer_fn_start_time) / 1000) > 60 * 5) /* five minutes */
 		return 1;
