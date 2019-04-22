@@ -1285,6 +1285,7 @@ static bool handle_offsetof_rl(struct expression *expr, int implied, int *recurs
 		struct symbol *field;
 		int offset = 0;
 		sval_t sval = { .type = ssize_t_ctype };
+		sval_t tmp_sval = {};
 
 		examine_symbol_type(type);
 		type = get_real_base_type(type);
@@ -1305,8 +1306,20 @@ static bool handle_offsetof_rl(struct expression *expr, int implied, int *recurs
 			return true;
 		}
 
-		if (!get_rl_sval(index, implied, recurse_cnt, &rl, NULL))
+		if (!get_rl_sval(index, implied, recurse_cnt, &rl, &tmp_sval))
 			return false;
+
+		/*
+		 * I'm not sure why get_rl_sval() would return an sval when
+		 * get_implied_value_internal() failed but it does when I
+		 * parse drivers/net/ethernet/mellanox/mlx5/core/en/monitor_stats.c
+		 *
+		 */
+		if (tmp_sval.type) {
+			res_sval->type = ssize_t_ctype;
+			res_sval->value = offset + sval.value * type_bytes(type);
+			return true;
+		}
 
 		sval.value = type_bytes(type);
 		rl = rl_binop(rl, '*', alloc_rl(sval, sval));
