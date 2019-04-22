@@ -315,8 +315,6 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 	FOR_EACH_PTR(estate_related(orig_state), rel) {
 		struct smatch_state *estate;
 
-		if (option_debug_related)
-			sm_msg("%s updating related %s to %s", name, rel->name, state->name);
 		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
 		if (!estate)
 			continue;

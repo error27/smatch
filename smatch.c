@@ -37,7 +37,6 @@ int option_call_tree = 0;
 int option_no_db = 0;
 int option_enable = 0;
 int option_disable = 0;
-int option_debug_related;
 int option_file_output;
 int option_time;
 int option_mem;
@@ -237,7 +236,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(spammy);
 		OPTION(info);
 		OPTION(debug);
-		OPTION(debug_related);
 		OPTION(assume_loops);
 		OPTION(no_data);
 		OPTION(two_passes);

@@ -102,21 +102,6 @@ struct related_list *get_shared_relations(struct related_list *one,
 	return ret;
 }
 
-static void debug_addition(struct related_list *rlist, const char *name)
-{
-	struct relation *tmp;
-
-	if (!option_debug_related)
-		return;
-
-	sm_prefix();
-	sm_printf("(");
-	FOR_EACH_PTR(rlist, tmp) {
-		sm_printf("%s ", tmp->name);
-	} END_FOR_EACH_PTR(tmp);
-	sm_printf(") <-- %s\n", name);
-}
-
 static void add_related(struct related_list **rlist, const char *name, struct symbol *sym)
 {
 	struct relation *rel;
@@ -125,8 +110,6 @@ static void add_related(struct related_list **rlist, const char *name, struct sy
 		.name = (char *)name,
 		.sym = sym
 	};
-
-	debug_addition(*rlist, name);
 
 	FOR_EACH_PTR(*rlist, rel) {
 		if (cmp_relation(rel, &tmp) < 0)
