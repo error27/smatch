@@ -433,8 +433,6 @@ static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurs
 			left_rl = cast_rl(type, left_rl);
 			left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
 		} else {
-			if (implied == RL_HARD)
-				return false;
 			left_rl = alloc_whole_rl(type);
 		}
 	}
@@ -467,8 +465,6 @@ static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurs
 			right_rl = cast_rl(type, right_rl);
 			right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
 		} else {
-			if (implied == RL_HARD)
-				return false;
 			right_rl = alloc_whole_rl(type);
 		}
 	}
