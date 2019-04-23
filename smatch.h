@@ -1123,6 +1123,7 @@ sval_t sval_preop(sval_t sval, int op);
 sval_t sval_binop(sval_t left, int op, sval_t right);
 int sval_binop_overflows(sval_t left, int op, sval_t right);
 int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right);
+int find_first_zero_bit(unsigned long long uvalue);
 int sm_fls64(unsigned long long uvalue);
 unsigned long long fls_mask(unsigned long long uvalue);
 unsigned long long sval_fls_mask(sval_t sval);

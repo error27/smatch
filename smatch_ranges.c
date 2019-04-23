@@ -1769,6 +1769,9 @@ static struct range_list *handle_AND_rl_sval(struct range_list *rl, sval_t sval)
 	sval_t zero = { .type = sval.type, .value = 0 };
 	sval_t min;
 
+	if (sm_fls64(rl_max(rl).uvalue) < find_first_zero_bit(sval.uvalue))
+		return rl;
+
 	min = sval_lowest_set_bit(sval);
 
 	if (min.value != 0) {

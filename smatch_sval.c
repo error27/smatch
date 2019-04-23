@@ -587,6 +587,17 @@ int sval_binop_overflows_no_sign(sval_t left, int op, sval_t right)
 	return sval_binop_overflows(left, op, right);
 }
 
+int find_first_zero_bit(unsigned long long uvalue)
+{
+	int i;
+
+	for (i = 0; i < 64; i++) {
+		if (!(uvalue & (1ULL << i)))
+			return i;
+	}
+	return i;
+}
+
 int sm_fls64(unsigned long long uvalue)
 {
 	int high_bit = 0;
