@@ -227,7 +227,7 @@ static int str_to_comparison_arg_helper(const char *str,
 	c++;
 
 	param = strtoll(c, (char **)&c, 10);
-	if (*c == ']')
+	if (*c == ',' || *c == ']')
 		c++; /* skip the ']' character */
 	if (endp)
 		*endp = (char *)c;

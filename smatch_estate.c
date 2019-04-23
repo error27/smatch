@@ -50,6 +50,9 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 	estate_set_fuzzy_max(tmp, sval_max(estate_get_fuzzy_max(s1), estate_get_fuzzy_max(s2)));
 
+	if (estate_capped(s1) && estate_capped(s2))
+		estate_set_capped(tmp);
+
 	return tmp;
 }
 
@@ -136,6 +139,21 @@ int estate_get_hard_max(struct smatch_state *state, sval_t *sval)
 	return 1;
 }
 
+bool estate_capped(struct smatch_state *state)
+{
+	if (!state)
+		return false;
+	/* impossible states are capped */
+	if (!estate_rl(state))
+		return true;
+	return get_dinfo(state)->capped;
+}
+
+void estate_set_capped(struct smatch_state *state)
+{
+	get_dinfo(state)->capped = true;
+}
+
 sval_t estate_min(struct smatch_state *state)
 {
 	return rl_min(estate_rl(state));
@@ -183,6 +201,8 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 	if (one == two)
 		return 1;
 	if (!rlists_equiv(estate_related(one), estate_related(two)))
+		return 0;
+	if (estate_capped(one) != estate_capped(two))
 		return 0;
 	if (strcmp(one->name, two->name) == 0)
 		return 1;

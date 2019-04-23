@@ -87,45 +87,23 @@ static void pre_merge_hook(struct sm_state *sm)
 {
 	struct smatch_state *user;
 	struct smatch_state *extra;
+	struct smatch_state *state;
 	struct range_list *rl;
-	sval_t dummy, max;
+	sval_t dummy;
 
 	user = get_state(my_id, sm->name, sm->sym);
 	if (!user || !estate_rl(user))
 		return;
-
-	if (!__in_function_def && !estate_rl(sm->state)) {
-		/* The situation here looks like:
-		 *
-		 * if (user_var > trusted)
-		 *	user_var = trusted;  <-- empty state
-		 * else
-		 *	<-- capped (but to an unknown)
-		 *
-		 * The one side is capped and the other side is set to an
-		 * unknown limit.  In that case, we want to set the capped side
-		 * to an empty rl.
-		 *
-		 * The difficulty lies in knowing that the limit is unknown
-		 * because we just have a binary capped vs uncapped.  Also the
-		 * API doesn't let us select the extra state from the other
-		 * stree.  (FIXME?).
-		 *
-		 */
-		max = estate_max(user);
-
-		if (is_capped_var_sym(sm->name, sm->sym) && sval_is_a_max(max)) {
-			set_state(my_id, sm->name, sm->sym, alloc_estate_empty());
-			return;
-		}
-	}
 	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
 	if (rl_to_sval(rl, &dummy))
 		rl = NULL;
-	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
+	state = alloc_estate_rl(clone_rl(rl));
+	if (estate_capped(user) || is_capped_var_sym(sm->name, sm->sym))
+		estate_set_capped(state);
+	set_state(my_id, sm->name, sm->sym, state);
 }
 
 static void extra_nomod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
@@ -140,6 +118,30 @@ static void extra_nomod_hook(const char *name, struct symbol *sym, struct expres
 	if (rl_equiv(rl, estate_rl(user)))
 		return;
 	set_state(my_id, name, sym, alloc_estate_rl(rl));
+}
+
+bool user_rl_capped(struct expression *expr)
+{
+	struct smatch_state *state;
+	struct range_list *rl;
+
+	if (!expr)
+		return true;
+	if (is_capped(expr))
+		return true;
+	if (expr->type == EXPR_BINOP) {
+		if (user_rl_capped(expr->left) &&
+		    user_rl_capped(expr->right))
+			return true;
+		return false;
+	}
+	state = get_state_expr(my_id, expr);
+	if (!state) {
+		if (get_user_rl(expr, &rl))
+			return false;
+		return true;
+	}
+	return estate_capped(state);
 }
 
 static void tag_inner_struct_members(struct expression *expr, struct symbol *member)
@@ -520,6 +522,7 @@ static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
 	static struct expression *handled;
+	struct smatch_state *state;
 	struct expression *faked;
 
 	faked = get_faked_expression();
@@ -540,7 +543,10 @@ static void match_assign(struct expression *expr)
 		goto clear_old_state;
 
 	rl = cast_rl(get_type(expr->left), rl);
-	set_state_expr(my_id, expr->left, alloc_estate_rl(rl));
+	state = alloc_estate_rl(rl);
+	if (user_rl_capped(expr->right))
+		estate_set_capped(state);
+	set_state_expr(my_id, expr->left, state);
 
 	return;
 
@@ -572,61 +578,105 @@ static void handle_eq_noteq(struct expression *expr)
 	}
 }
 
-static void handle_unsigned_lt_gt(struct expression *expr)
+static struct range_list *strip_negatives(struct range_list *rl)
 {
+	sval_t min = rl_min(rl);
+	sval_t minus_one = { .type = rl_type(rl), .value = -1 };
+
+	if (!rl || !sval_is_negative(rl_min(rl)))
+		return rl;
+
+	return remove_range(rl, min, minus_one);
+}
+
+static void handle_compare(struct expression *expr)
+{
+	struct expression  *left, *right;
+	struct range_list *left_rl = NULL;
+	struct range_list *right_rl = NULL;
+	struct range_list *user_rl;
+	struct smatch_state *capped_state;
+	struct smatch_state *left_true = NULL;
+	struct smatch_state *left_false = NULL;
+	struct smatch_state *right_true = NULL;
+	struct smatch_state *right_false = NULL;
 	struct symbol *type;
-	struct range_list *left;
-	struct range_list *right;
-	struct range_list *non_negative;
-	sval_t min, minus_one;
+	sval_t sval;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	while (left->type == EXPR_ASSIGNMENT)
+		left = strip_expr(left->left);
 
 	/*
-	 * conditions are mostly handled by smatch_extra.c.  The special case
-	 * here is that say you have if (user_int < unknown_u32) {
-	 * In Smatch extra we say that, We have no idea what value
-	 * unknown_u32 is so the only thin we can say for sure is that
-	 * user_int is not -1 (UINT_MAX).  But in check_user_data2.c we should
-	 * assume that unless unknown_u32 is user data, it's probably less than
-	 * INT_MAX.
+	 * Conditions are mostly handled by smatch_extra.c, but there are some
+	 * times where the exact values are not known so we can't do that.
+	 *
+	 * Normally, we might consider using smatch_capped.c to supliment smatch
+	 * extra but that doesn't work when we merge unknown uncapped kernel
+	 * data with unknown capped user data.  The result is uncapped user
+	 * data.  We need to keep it separate and say that the user data is
+	 * capped.  In the past, I would have marked this as just regular
+	 * kernel data (not user data) but we can't do that these days because
+	 * we need to track user data for Spectre.
+	 *
+	 * The other situation which we have to handle is when we do have an
+	 * int and we compare against an unknown unsigned kernel variable.  In
+	 * that situation we assume that the kernel data is less than INT_MAX.
+	 * Otherwise then we get all sorts of array underflow false positives.
 	 *
 	 */
 
+	/* Handled in smatch_extra.c */
+	if (get_implied_value(left, &sval) ||
+	    get_implied_value(right, &sval))
+		return;
+
+	get_user_rl(left, &left_rl);
+	get_user_rl(right, &right_rl);
+
+	/* nothing to do */
+	if (!left_rl && !right_rl)
+		return;
+	/* if both sides are user data that's not a good limit */
+	if (left_rl && right_rl)
+		return;
+
+	if (left_rl)
+		user_rl = left_rl;
+	else
+		user_rl = right_rl;
+
 	type = get_type(expr);
-	if (!type_unsigned(type))
-		return;
-
-	/*
-	 * Assume if (user < trusted) { ... because I am lazy and because this
-	 * is the correct way to write code.
-	 */
-	if (!get_user_rl(expr->left, &left))
-		return;
-	if (get_user_rl(expr->right, &right))
-		return;
-
-	if (!sval_is_negative(rl_min(left)))
-		return;
-	min = rl_min(left);
-	minus_one.type = rl_type(left);
-	minus_one.value = -1;
-	non_negative = remove_range(left, min, minus_one);
+	if (type_unsigned(type))
+		user_rl = strip_negatives(user_rl);
+	capped_state = alloc_estate_rl(user_rl);
+	estate_set_capped(capped_state);
 
 	switch (expr->op) {
 	case '<':
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_LTE:
 	case SPECIAL_UNSIGNED_LTE:
-		set_true_false_states_expr(my_id, expr->left,
-					   alloc_estate_rl(non_negative), NULL);
+		if (left_rl)
+			left_true = capped_state;
+		else
+			right_false = capped_state;
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 	case SPECIAL_GTE:
 	case SPECIAL_UNSIGNED_GTE:
-		set_true_false_states_expr(my_id, expr->left,
-					   NULL, alloc_estate_rl(non_negative));
+		if (left_rl)
+			left_false = capped_state;
+		else
+			right_true = capped_state;
 		break;
 	}
+
+	set_true_false_states_expr(my_id, left, left_true, left_false);
+	set_true_false_states_expr(my_id, right, right_true, right_false);
 }
 
 static void match_condition(struct expression *expr)
@@ -640,7 +690,7 @@ static void match_condition(struct expression *expr)
 		return;
 	}
 
-	handle_unsigned_lt_gt(expr);
+	handle_compare(expr);
 }
 
 static void match_user_assign_function(const char *fn, struct expression *expr, void *unused)
@@ -908,23 +958,35 @@ int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list 
 	return 0;
 }
 
-static void match_call_info(struct expression *expr)
+static char *get_user_rl_str(struct expression *expr, struct symbol *type)
 {
 	struct range_list *rl;
+	static char buf[64];
+
+	if (!get_user_rl(expr, &rl))
+		return NULL;
+	rl = cast_rl(type, rl);
+	snprintf(buf, sizeof(buf), "%s%s",
+		 show_rl(rl), user_rl_capped(expr) ? "[c]" : "");
+	return buf;
+}
+
+static void match_call_info(struct expression *expr)
+{
 	struct expression *arg;
 	struct symbol *type;
-	int i = 0;
+	char *str;
+	int i;
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
 		type = get_arg_type(expr->fn, i);
-
-		if (!get_user_rl(arg, &rl))
+		str = get_user_rl_str(arg, type);
+		if (!str)
 			continue;
 
-		rl = cast_rl(type, rl);
-		sql_insert_caller_info(expr, USER_DATA, i, "$", show_rl(rl));
+		sql_insert_caller_info(expr, USER_DATA, i, "$", str);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -948,6 +1010,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	struct smatch_state *state;
 	struct range_list *rl;
 	struct symbol *type;
+	char buf[64];
 
 	/*
 	 * Smatch uses a hack where if we get an unsigned long we say it's
@@ -973,7 +1036,9 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	else
 		rl = rl_intersection(estate_rl(sm->state), estate_rl(state));
 
-	sql_insert_caller_info(call, USER_DATA, param, printed_name, show_rl(rl));
+	snprintf(buf, sizeof(buf), "%s%s", show_rl(rl),
+		 estate_capped(sm->state) ? "[c]" : "");
+	sql_insert_caller_info(call, USER_DATA, param, printed_name, buf);
 }
 
 static void db_param_set(struct expression *expr, int param, char *key, char *value)
@@ -1004,10 +1069,18 @@ free:
 	free_string(name);
 }
 
+static bool param_data_capped(const char *value)
+{
+	if (strstr(value, ",c") || strstr(value, "[c"))
+		return true;
+	return false;
+}
+
 static void set_param_user_data(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
+	struct expression *expr;
 	struct symbol *type;
 	char fullname[256];
 
@@ -1020,7 +1093,8 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	else
 		return;
 
-	type = get_member_type_from_key(symbol_expression(sym), key);
+	expr = symbol_expression(sym);
+	type = get_member_type_from_key(expr, key);
 
 	/*
 	 * Say this function takes a struct ponter but the caller passes
@@ -1043,6 +1117,8 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
+	if (param_data_capped(value) || is_capped(expr))
+		estate_set_capped(state);
 	set_state(my_id, fullname, sym, state);
 }
 
@@ -1083,6 +1159,7 @@ static void match_syscall_definition(struct symbol *sym)
 
 static void set_to_user_data(struct expression *expr, char *key, char *value)
 {
+	struct smatch_state *state;
 	char *name;
 	struct symbol *sym;
 	struct symbol *type;
@@ -1095,7 +1172,10 @@ static void set_to_user_data(struct expression *expr, char *key, char *value)
 
 	call_results_to_rl(expr, type, value, &rl);
 
-	set_state(my_id, name, sym, alloc_estate_rl(rl));
+	state = alloc_estate_rl(rl);
+	if (param_data_capped(value))
+		estate_set_capped(state);
+	set_state(my_id, name, sym, state);
 free:
 	free_string(name);
 }
@@ -1178,6 +1258,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	const char *param_name;
 	struct symbol *ret_sym;
 	bool return_found = false;
+	char buf[64];
 
 	expr = strip_expr(expr);
 	return_str = expr_to_str(expr);
@@ -1211,20 +1292,27 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		if (strcmp(param_name, "$") == 0)  /* The -1 param is handled after the loop */
 			continue;
 
+		snprintf(buf, sizeof(buf), "%s%s",
+			 show_rl(estate_rl(sm->state)),
+			 estate_capped(sm->state) ? "[c]" : "");
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
-					 param, param_name, show_rl(estate_rl(sm->state)));
+					 param, param_name, buf);
 	} END_FOR_EACH_SM(sm);
 
+	/*
+	 * This is to handle things like return skb->data where we don't set a
+	 * state for that.
+	 */
 	if (points_to_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges,
 					 (is_skb_data(expr) || !func_gets_user_data) ?
 					 USER_DATA_SET : USER_DATA,
-					 -1, "*$", "");
+					 -1, "*$", "s64min-s64max");
 		goto free_string;
 	}
 
-
+	/* This if for "return foo;" where "foo->bar" is user data. */
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!ret_sym)
 			break;
@@ -1236,12 +1324,16 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 			continue;
 		if (strcmp(param_name, "$") == 0)
 			return_found = true;
+		snprintf(buf, sizeof(buf), "%s%s",
+			 show_rl(estate_rl(sm->state)),
+			 estate_capped(sm->state) ? "[c]" : "");
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
-					 -1, param_name, show_rl(estate_rl(sm->state)));
+					 -1, param_name, buf);
 	} END_FOR_EACH_SM(sm);
 
 
+	/* This if for "return ntohl(foo);" */
 	if (!return_found && get_user_rl(expr, &rl)) {
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
