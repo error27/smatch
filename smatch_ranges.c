@@ -1749,25 +1749,67 @@ static struct range_list *handle_XOR_rl(struct range_list *left, struct range_li
 	return cast_rl(rl_type(left), alloc_rl(zero, max));
 }
 
+static sval_t sval_lowest_set_bit(sval_t sval)
+{
+	sval_t ret = { .type = sval.type };
+	int i;
+
+	for (i = 0; i < 64; i++) {
+		if (sval.uvalue & 1ULL << i) {
+			ret.uvalue = (1ULL << i);
+			return ret;
+		}
+	}
+	return ret;
+}
+
+static struct range_list *handle_AND_rl_sval(struct range_list *rl, sval_t sval)
+{
+	struct range_list *known_rl;
+	sval_t zero = { .type = sval.type, .value = 0 };
+	sval_t min;
+
+	min = sval_lowest_set_bit(sval);
+
+	if (min.value != 0) {
+		sval_t max, mod;
+
+		max = rl_max(rl);
+		mod = sval_binop(max, '%', min);
+		if (mod.value) {
+			max = sval_binop(max, '-', mod);
+			max.value++;
+			if (max.value > 0 && sval_cmp(max, rl_max(rl)) < 0)
+				rl = remove_range(rl, max, rl_max(rl));
+		}
+	}
+
+	known_rl = alloc_rl(min, sval);
+
+	rl = rl_intersection(rl, known_rl);
+	zero = rl_min(rl);
+	zero.value = 0;
+	add_range(&rl, zero, zero);
+
+	return rl;
+}
+
 static struct range_list *handle_AND_rl(struct range_list *left, struct range_list *right)
 {
-	unsigned long long left_set, left_maybe;
-	unsigned long long right_set, right_maybe;
-	sval_t zero, max;
+	sval_t sval, zero;
+	struct range_list *rl;
 
-	return NULL;
+	if (rl_to_sval(left, &sval))
+		return handle_AND_rl_sval(right, sval);
+	if (rl_to_sval(right, &sval))
+		return handle_AND_rl_sval(left, sval);
 
-	left_set = rl_bits_always_set(left);
-	left_maybe = rl_bits_maybe_set(left);
+	rl = rl_intersection(left, right);
+	zero = rl_min(rl);
+	zero.value = 0;
+	add_range(&rl, zero, zero);
 
-	right_set = rl_bits_always_set(right);
-	right_maybe = rl_bits_maybe_set(right);
-
-	zero = max = rl_min(left);
-	zero.uvalue = 0;
-	max.uvalue = fls_mask((left_maybe | right_maybe) ^ (left_set & right_set));
-
-	return cast_rl(rl_type(left), alloc_rl(zero, max));
+	return rl;
 }
 
 struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)

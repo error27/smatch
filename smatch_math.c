@@ -394,26 +394,10 @@ static bool handle_mod_rl(struct expression *expr, int implied, int *recurse_cnt
 	return true;
 }
 
-static sval_t sval_lowest_set_bit(sval_t sval)
-{
-	int i;
-	int found = 0;
-
-	for (i = 0; i < 64; i++) {
-		if (sval.uvalue & 1ULL << i) {
-			if (!found++)
-				continue;
-			sval.uvalue &= ~(1ULL << i);
-		}
-	}
-	return sval;
-}
-
 static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
 {
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
-	sval_t known;
 	int new_recurse;
 
 	if (implied != RL_IMPLIED && implied != RL_ABSOLUTE && implied != RL_REAL_ABSOLUTE)
@@ -421,55 +405,19 @@ static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurs
 
 	type = get_type(expr);
 
-	if (get_implied_value_internal(expr->left, recurse_cnt, &known)) {
-		sval_t min;
-
-		min = sval_lowest_set_bit(known);
-		left_rl = alloc_rl(min, known);
-		left_rl = cast_rl(type, left_rl);
-		add_range(&left_rl, sval_type_val(type, 0), sval_type_val(type, 0));
-	} else {
-		if (get_rl_internal(expr->left, implied, recurse_cnt, &left_rl)) {
-			left_rl = cast_rl(type, left_rl);
-			left_rl = alloc_rl(sval_type_val(type, 0), rl_max(left_rl));
-		} else {
-			left_rl = alloc_whole_rl(type);
-		}
-	}
+	if (!get_rl_internal(expr->left, implied, recurse_cnt, &left_rl))
+		left_rl = alloc_whole_rl(type);
+	left_rl = cast_rl(type, left_rl);
 
 	new_recurse = *recurse_cnt;
 	if (*recurse_cnt >= 200)
 		new_recurse = 100;  /* Let's try super hard to get the mask */
-	if (get_implied_value_internal(expr->right, &new_recurse, &known)) {
-		sval_t min, left_max, mod;
+	if (!get_rl_internal(expr->right, implied, &new_recurse, &right_rl))
+		right_rl = alloc_whole_rl(type);
+	right_rl = cast_rl(type, right_rl);
+	*recurse_cnt = new_recurse;
 
-		*recurse_cnt = new_recurse;
-
-		min = sval_lowest_set_bit(known);
-		right_rl = alloc_rl(min, known);
-		right_rl = cast_rl(type, right_rl);
-		add_range(&right_rl, sval_type_val(type, 0), sval_type_val(type, 0));
-
-		if (min.value != 0) {
-			left_max = rl_max(left_rl);
-			mod = sval_binop(left_max, '%', min);
-			if (mod.value) {
-				left_max = sval_binop(left_max, '-', mod);
-				left_max.value++;
-				if (left_max.value > 0 && sval_cmp(left_max, rl_max(left_rl)) < 0)
-					left_rl = remove_range(left_rl, left_max, rl_max(left_rl));
-			}
-		}
-	} else {
-		if (get_rl_internal(expr->right, implied, recurse_cnt, &right_rl)) {
-			right_rl = cast_rl(type, right_rl);
-			right_rl = alloc_rl(sval_type_val(type, 0), rl_max(right_rl));
-		} else {
-			right_rl = alloc_whole_rl(type);
-		}
-	}
-
-	*res = rl_intersection(left_rl, right_rl);
+	*res = rl_binop(left_rl, '&', right_rl);
 	return true;
 }
 
