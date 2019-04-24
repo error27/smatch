@@ -39,7 +39,7 @@ static int find_param_eq(struct expression *expr, int size)
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
-	struct symbol *type;
+	struct symbol *type, *arg_type;
 	int size, bytes;
 	int i, nr;
 	char buf[16];
@@ -55,6 +55,10 @@ static void match_call(struct expression *expr)
 		type = get_type(arg);
 		if (!type || (type->type != SYM_PTR && type->type != SYM_ARRAY))
 			continue;
+		arg_type = get_arg_type(expr->fn, i);
+		if (arg_type != type)
+			continue;
+
 		size = get_array_size(arg);
 		if (size > 0) {
 			nr = find_param_eq(expr, size);
