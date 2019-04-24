@@ -141,6 +141,9 @@ char *get_fnptr_name(struct expression *expr)
 {
 	char *name;
 
+	if (is_zero(expr))
+		return NULL;
+
 	expr = strip_expr(expr);
 
 	/* (*ptrs[0])(a, b, c) is the same as ptrs[0](a, b, c); */
