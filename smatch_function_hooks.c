@@ -365,7 +365,7 @@ static void store_return_state(struct db_callback_info *db_info, const char *ret
 
 static bool fake_a_param_assignment(struct expression *expr, const char *return_str)
 {
-	struct expression *arg, *left, *right, *fake_assign;
+	struct expression *arg, *left, *right, *tmp, *fake_assign;
 	char *p;
 	int param;
 	char buf[256];
@@ -405,6 +405,12 @@ static bool fake_a_param_assignment(struct expression *expr, const char *return_
 	arg = get_argument_from_call_expr(right->args, param);
 	if (!arg)
 		return false;
+
+	/* There should be a get_other_name() function which returns an expr */
+	tmp = get_assigned_expr(arg);
+	if (tmp)
+		arg = tmp;
+
 	/*
 	 * This is a sanity check to prevent side effects from evaluating stuff
 	 * twice.

@@ -59,6 +59,7 @@ struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *s
 
 static void match_assignment(struct expression *expr)
 {
+	static struct expression *ignored_expr;
 	struct symbol *left_sym, *right_sym;
 	char *left_name = NULL;
 	char *right_name = NULL;
@@ -75,6 +76,12 @@ static void match_assignment(struct expression *expr)
 		if (is_whole_rl(rl))
 			return;
 	}
+
+	if (expr->left == ignored_expr)
+		return;
+	ignored_expr = NULL;
+	if (__in_fake_parameter_assign)
+		ignored_expr = expr->left;
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
