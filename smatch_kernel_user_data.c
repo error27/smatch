@@ -582,9 +582,14 @@ static struct range_list *strip_negatives(struct range_list *rl)
 {
 	sval_t min = rl_min(rl);
 	sval_t minus_one = { .type = rl_type(rl), .value = -1 };
+	sval_t over = { .type = rl_type(rl), .value = INT_MAX + 1ULL };
+	sval_t max = sval_type_max(rl_type(rl));
 
-	if (!rl || !sval_is_negative(rl_min(rl)))
-		return rl;
+	if (!rl)
+		return NULL;
+
+	if (!type_unsigned(rl_type(rl)) && type_bits(rl_type(rl)) > 31)
+		return remove_range(rl, over, max);
 
 	return remove_range(rl, min, minus_one);
 }
