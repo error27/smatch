@@ -170,7 +170,7 @@ static void match_condition(struct expression *expr)
 {
 	char *name;
 
-	if (parse_error)
+	if (implications_off || parse_error)
 		return;
 
 	if (is_impossible_path())
@@ -300,7 +300,7 @@ static void match_symbol(struct expression *expr)
 {
 	char *name;
 
-	if (parse_error)
+	if (implications_off || parse_error)
 		return;
 
 	if (is_impossible_path())
