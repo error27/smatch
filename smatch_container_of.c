@@ -339,9 +339,25 @@ found:
 char *get_container_name(struct expression *container, struct expression *expr)
 {
 	struct symbol *container_sym, *sym;
+	struct expression *tmp;
 	static char buf[64];
 	char *shared;
 	bool star;
+	int cnt;
+
+	cnt = 0;
+	while ((tmp = get_assigned_expr(expr))) {
+		expr = tmp;
+		if (cnt++ > 3)
+			break;
+	}
+
+	cnt = 0;
+	while ((tmp = get_assigned_expr(container))) {
+		container = tmp;
+		if (cnt++ > 3)
+			break;
+	}
 
 	expr = strip_expr(expr);
 	star = true;
@@ -581,7 +597,7 @@ static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *arg, int arg_o
 
 static void load_container_data(struct symbol *arg, const char *info)
 {
-	mtag_t fn_tag, container_tag, arg_tag;
+	mtag_t cur_tag, container_tag, arg_tag;
 	int container_offset, arg_offset;
 	char *p = (char *)info;
 	struct sm_state *sm;
@@ -593,8 +609,28 @@ static void load_container_data(struct symbol *arg, const char *info)
 		p += 2;
 	}
 
-	container_offset = strtoul(p, &p, 0);
-	if (p[0] != '+')  /* FIXME: Handle multiple *(-4-34+48+246) */
+	if (!get_toplevel_mtag(cur_func_sym, &cur_tag))
+		return;
+
+	while (true) {
+		container_offset = strtoul(p, &p, 0);
+		if (local_debug)
+			sm_msg("%s: cur_tag = %llu container_offset = %d",
+			       __func__, cur_tag, container_offset);
+		if (!mtag_map_select_container(cur_tag, container_offset, &container_tag))
+			return;
+		cur_tag = container_tag;
+		if (local_debug)
+			sm_msg("%s: container_tag = %llu p = '%s'",
+			       __func__, container_tag, p);
+		if (!p)
+			return;
+		if (p[0] != '-')
+			break;
+		p++;
+	}
+
+	if (p[0] != '+')
 		return;
 
 	p++;
@@ -602,10 +638,6 @@ static void load_container_data(struct symbol *arg, const char *info)
 	if (p && *p && *p != ')')
 		return;
 
-	if (!get_toplevel_mtag(cur_func_sym, &fn_tag))
-		return;
-	if (!mtag_map_select_container(fn_tag, container_offset, &container_tag))
-		return;
 	if (!arg_offset || star) {
 		arg_tag = container_tag;
 	} else {
