@@ -1264,7 +1264,9 @@ static void print_initializer_list(struct expression_list *expr_list,
 			continue;
 		if (!expr->expr_ident)
 			continue;
-		if (!expr->ident_expression || !expr->ident_expression->symbol_name)
+		if (!expr->ident_expression ||
+		    expr->ident_expression->type != EXPR_SYMBOL ||
+		    !expr->ident_expression->symbol_name)
 			continue;
 		base_type = get_type(expr->ident_expression);
 		if (!base_type || base_type->type != SYM_FN)
