@@ -1798,6 +1798,18 @@ static struct range_list *handle_AND_rl_sval(struct range_list *rl, sval_t sval)
 	return rl;
 }
 
+static struct range_list *fudge_AND_rl(struct range_list *rl)
+{
+	struct range_list *ret;
+	sval_t min;
+
+	min = sval_lowest_set_bit(rl_min(rl));
+	ret = clone_rl(rl);
+	add_range(&ret, min, rl_min(rl));
+
+	return ret;
+}
+
 static struct range_list *handle_AND_rl(struct range_list *left, struct range_list *right)
 {
 	sval_t sval, zero;
@@ -1807,6 +1819,9 @@ static struct range_list *handle_AND_rl(struct range_list *left, struct range_li
 		return handle_AND_rl_sval(right, sval);
 	if (rl_to_sval(right, &sval))
 		return handle_AND_rl_sval(left, sval);
+
+	left = fudge_AND_rl(left);
+	right = fudge_AND_rl(right);
 
 	rl = rl_intersection(left, right);
 	zero = rl_min(rl);
