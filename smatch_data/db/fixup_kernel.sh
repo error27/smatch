@@ -191,6 +191,9 @@ delete from type_info where key = '(union anonymous)->__val';
 /* This is RIO_BAD_SIZE */
 delete from return_states where file = 'drivers/rapidio/rio-access.c' and return = '129';
 
+/* Smatch sucks at loops */
+delete from return_states where function = 'ata_dev_next' and type = 103;
+
 EOF
 
 # fixme: this is totally broken
