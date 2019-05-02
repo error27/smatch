@@ -1263,6 +1263,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	const char *param_name;
 	struct symbol *ret_sym;
 	bool return_found = false;
+	bool pointed_at_found = false;
 	char buf[64];
 
 	expr = strip_expr(expr);
@@ -1305,18 +1306,6 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 					 param, param_name, buf);
 	} END_FOR_EACH_SM(sm);
 
-	/*
-	 * This is to handle things like return skb->data where we don't set a
-	 * state for that.
-	 */
-	if (points_to_user_data(expr)) {
-		sql_insert_return_states(return_id, return_ranges,
-					 (is_skb_data(expr) || func_gets_user_data) ?
-					 USER_DATA_SET : USER_DATA,
-					 -1, "*$", "s64min-s64max");
-		goto free_string;
-	}
-
 	/* This if for "return foo;" where "foo->bar" is user data. */
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!ret_sym)
@@ -1343,10 +1332,19 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
 					 -1, "$", show_rl(rl));
-		goto free_string;
 	}
 
-free_string:
+	/*
+	 * This is to handle things like return skb->data where we don't set a
+	 * state for that.
+	 */
+	if (!pointed_at_found && points_to_user_data(expr)) {
+		sql_insert_return_states(return_id, return_ranges,
+					 (is_skb_data(expr) || func_gets_user_data) ?
+					 USER_DATA_SET : USER_DATA,
+					 -1, "*$", "s64min-s64max");
+	}
+
 	free_string(return_str);
 }
 
