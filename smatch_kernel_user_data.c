@@ -1311,7 +1311,7 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	 */
 	if (points_to_user_data(expr)) {
 		sql_insert_return_states(return_id, return_ranges,
-					 (is_skb_data(expr) || !func_gets_user_data) ?
+					 (is_skb_data(expr) || func_gets_user_data) ?
 					 USER_DATA_SET : USER_DATA,
 					 -1, "*$", "s64min-s64max");
 		goto free_string;
