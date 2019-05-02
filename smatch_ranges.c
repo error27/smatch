@@ -26,8 +26,21 @@ __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct 
 			 "permanent ranges", perm_data_range);
 __DECLARE_ALLOCATOR(struct ptr_list, rl_ptrlist);
 
-static int handle_error_pointers(char *full, size_t size, struct data_range *drange)
+static bool is_err_ptr(sval_t sval)
 {
+	if (option_project != PROJ_KERNEL)
+		return false;
+	if (!type_is_ptr(sval.type))
+		return false;
+	if (sval.uvalue < -4095ULL)
+		return false;
+	return true;
+}
+
+static char *get_err_pointer_str(struct data_range *drange)
+{
+	static char buf[20];
+
 	/*
 	 * The kernel has error pointers where you do essentially:
 	 *
@@ -37,44 +50,53 @@ static int handle_error_pointers(char *full, size_t size, struct data_range *dra
 	 * of that.
 	 *
 	 */
-
-	if (option_project != PROJ_KERNEL)
-		return 0;
-	if (!type_is_ptr(drange->min.type))
-		return 0;
-	if (drange->min.uvalue < -4095ULL)
-		return 0;
+	if (!is_err_ptr(drange->min))
+		return NULL;
 
 	if (drange->min.value == drange->max.value)
-		snprintf(full + strlen(full), size - strlen(full), "(%lld)", drange->min.value);
+		snprintf(buf, sizeof(buf), "(%lld)", drange->min.value);
 	else
-		snprintf(full + strlen(full), size - strlen(full), "(%lld)-(%lld)", drange->min.value, drange->max.value);
-	return 1;
+		snprintf(buf, sizeof(buf), "(%lld)-(%lld)", drange->min.value, drange->max.value);
+	return buf;
 }
 
 char *show_rl(struct range_list *list)
 {
+	struct data_range *prev_drange = NULL;
 	struct data_range *tmp;
 	char full[255];
+	char *p = full;
+	char *prev = full;
+	char *err_ptr;
+	int remain;
 	int i = 0;
 
 	full[0] = '\0';
-	full[sizeof(full) - 1] = '\0';
+
 	FOR_EACH_PTR(list, tmp) {
-		if (i++)
-			strncat(full, ",", sizeof(full) - 1 - strlen(full));
-		if (handle_error_pointers(full, sizeof(full) - 1, tmp))
-			continue;
-		if (sval_cmp(tmp->min, tmp->max) == 0) {
-			strncat(full, sval_to_str(tmp->min), sizeof(full) - 1 - strlen(full));
-			continue;
+		remain = full + sizeof(full) - p;
+		if (remain < 48) {
+			snprintf(prev, full + sizeof(full) - prev, ",%s-%s",
+				 sval_to_str(prev_drange->min),
+				 sval_to_str(sval_type_max(prev_drange->min.type)));
+			break;
 		}
-		strncat(full, sval_to_str(tmp->min), sizeof(full) - 1 - strlen(full));
-		strncat(full, "-", sizeof(full) - 1 - strlen(full));
-		strncat(full, sval_to_str(tmp->max), sizeof(full) - 1 - strlen(full));
+		prev_drange = tmp;
+		prev = p;
+
+		err_ptr = get_err_pointer_str(tmp);
+		if (err_ptr) {
+			p += snprintf(p, remain, "%s%s", i++ ? "," : "", err_ptr);
+		} else if (sval_cmp(tmp->min, tmp->max) == 0) {
+			p += snprintf(p, remain, "%s%s", i++ ? "," : "",
+				      sval_to_str(tmp->min));
+		} else {
+			p += snprintf(p, remain, "%s%s-%s", i++ ? "," : "",
+				      sval_to_str(tmp->min),
+				      sval_to_str(tmp->max));
+		}
 	} END_FOR_EACH_PTR(tmp);
-	if (strlen(full) == sizeof(full) - 1)
-		full[sizeof(full) - 2] = '+';
+
 	return alloc_sname(full);
 }
 
