@@ -79,7 +79,7 @@ char *escape_newlines(const char *str)
 	int i, j;
 
 	for (i = 0, j = 0; str[i] != '\0' && j != sizeof(buf); i++, j++) {
-		if (str[i] != '\n') {
+		if (str[i] != '\r' && str[i] != '\n') {
 			buf[j] = str[i];
 			continue;
 		}
@@ -331,7 +331,7 @@ void sql_save_constraint(const char *con)
 	if (!option_info)
 		return;
 
-        sm_msg("SQL: insert or ignore into constraints (str) values('%s');", con);
+        sm_msg("SQL: insert or ignore into constraints (str) values('%s');", escape_newlines(con));
 }
 
 void sql_save_constraint_required(const char *data, int op, const char *limit)
