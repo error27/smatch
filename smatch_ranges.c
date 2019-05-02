@@ -769,6 +769,55 @@ struct range_list *alloc_whole_rl(struct symbol *type)
 	return alloc_rl(sval_type_min(type), sval_type_max(type));
 }
 
+static bool collapse_pointer_rl(struct range_list **rl, sval_t min, sval_t max)
+{
+	struct range_list *new_rl = NULL;
+	struct data_range *tmp;
+	static bool recurse;
+	bool ret = false;
+	int cnt = 0;
+
+	/*
+	 * With the mtag work, then we end up getting huge lists of mtags.
+	 * That seems cool, but the problem is that we can only store about
+	 * 8-10 mtags in the DB before we truncate the list.  Also the mtags
+	 * aren't really used at all so it's a waste of resources for now...
+	 * In the future, we maybe will revisit this code.
+	 *
+	 */
+
+	if (recurse)
+		return false;
+	recurse = true;
+	if (!type_is_ptr(min.type))
+		goto out;
+
+	if (ptr_list_size((struct ptr_list *)*rl) < 8)
+		goto out;
+	FOR_EACH_PTR(*rl, tmp) {
+		if (!is_err_ptr(tmp->min))
+			cnt++;
+	} END_FOR_EACH_PTR(tmp);
+	if (cnt < 8)
+		goto out;
+
+	FOR_EACH_PTR(*rl, tmp) {
+		if (sval_cmp(tmp->min, valid_ptr_min_sval) >= 0 &&
+		    sval_cmp(tmp->max, valid_ptr_max_sval) <= 0)
+			add_range(&new_rl, valid_ptr_min_sval, valid_ptr_max_sval);
+		else
+			add_range(&new_rl, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+
+	add_range(&new_rl, min, max);
+
+	*rl = new_rl;
+	ret = true;
+out:
+	recurse = false;
+	return ret;
+}
+
 extern int rl_ptrlist_hack;
 void add_range(struct range_list **list, sval_t min, sval_t max)
 {
@@ -808,6 +857,9 @@ void add_range(struct range_list **list, sval_t min, sval_t max)
 		min = sval_type_min(min.type);
 		max = sval_type_max(min.type);
 	}
+
+	if (collapse_pointer_rl(list, min, max))
+		return;
 
 	/*
 	 * FIXME:  This has a problem merging a range_list like: min-0,3-max
