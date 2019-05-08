@@ -678,9 +678,13 @@ static bool handle_comparison_rl(struct expression *expr, int implied, int *recu
 	if (expr->op == SPECIAL_EQUAL && expr->left->type == EXPR_TYPE) {
 		struct symbol *left, *right;
 
+		if (expr->right->type != EXPR_TYPE)
+			return false;
+
 		left = get_real_base_type(expr->left->symbol);
-		right = get_real_base_type(expr->left->symbol);
-		if (left == right)
+		right = get_real_base_type(expr->right->symbol);
+		if (type_bits(left) == type_bits(right) &&
+		    type_positive_bits(left) == type_positive_bits(right))
 			*res_sval = one;
 		else
 			*res_sval = zero;
