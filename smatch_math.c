@@ -168,11 +168,24 @@ static bool handle_bitwise_negate(struct expression *expr, int implied, int *rec
 	return true;
 }
 
+static bool untrusted_type_min(struct expression *expr)
+{
+	struct range_list *rl;
+
+	rl = var_user_rl(expr);
+	if (local_debug)
+		sm_msg("%s: rl = '%s'", __func__, show_rl(rl));
+	return rl && sval_is_min(rl_min(rl));
+}
+
 static bool handle_minus_preop(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *rl;
+	struct range_list *ret = NULL;
+	struct symbol *type;
+	sval_t neg_one = { .value = -1 };
+	sval_t zero = { .value = 0 };
 	sval_t sval = {};
-	sval_t min, max;
 
 	if (!get_rl_sval(expr->unop, implied, recurse_cnt, &rl, &sval))
 		return false;
@@ -180,9 +193,56 @@ static bool handle_minus_preop(struct expression *expr, int implied, int *recurs
 		*res_sval = sval_preop(sval, '-');
 		return true;
 	}
-	min = sval_preop(rl_max(rl), '-');
-	max = sval_preop(rl_min(rl), '-');
-	*res = alloc_rl(min, max);
+	/*
+	 * One complication is that -INT_MIN is still INT_MIN because of integer
+	 * overflows...  But how many times do we set a time out to INT_MIN?
+	 * So normally when we call abs() then it does return a positive value.
+	 *
+	 */
+	type = rl_type(rl);
+	neg_one.type = zero.type = type;
+
+	if (sval_is_negative(rl_min(rl))) {
+		struct range_list *neg;
+		struct data_range *drange;
+		sval_t new_min, new_max;
+
+		neg = alloc_rl(sval_type_min(type), neg_one);
+		neg = rl_intersection(rl, neg);
+
+		if (sval_is_min(rl_min(neg)) && !sval_is_min(rl_max(neg)))
+			neg = remove_range(neg, sval_type_min(type), sval_type_min(type));
+
+		FOR_EACH_PTR(neg, drange) {
+			new_min = drange->max;
+			new_min.value = -new_min.value;
+			new_max = drange->min;
+			new_max.value = -new_max.value;
+			add_range(&ret, new_min, new_max);
+		} END_FOR_EACH_PTR(drange);
+
+		if (untrusted_type_min(expr))
+			add_range(&ret, sval_type_min(type), sval_type_min(type));
+	}
+
+	if (!sval_is_negative(rl_max(rl))) {
+		struct range_list *pos;
+		struct data_range *drange;
+		sval_t new_min, new_max;
+
+		pos = alloc_rl(zero, sval_type_max(type));
+		pos = rl_intersection(rl, pos);
+
+		FOR_EACH_PTR(pos, drange) {
+			new_min = drange->max;
+			new_min.value = -new_min.value;
+			new_max = drange->min;
+			new_max.value = -new_max.value;
+			add_range(&ret, new_min, new_max);
+		} END_FOR_EACH_PTR(drange);
+	}
+
+	*res = ret;
 	return true;
 }
 

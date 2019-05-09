@@ -842,7 +842,7 @@ struct stree *get_user_stree(void)
 
 static int user_data_flag;
 static int no_user_data_flag;
-static struct range_list *var_user_rl(struct expression *expr)
+struct range_list *var_user_rl(struct expression *expr)
 {
 	struct smatch_state *state;
 	struct range_list *rl;

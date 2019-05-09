@@ -1035,6 +1035,7 @@ int get_user_rl(struct expression *expr, struct range_list **rl);
 int is_user_rl(struct expression *expr);
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl);
 bool user_rl_capped(struct expression *expr);
+struct range_list *var_user_rl(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();
