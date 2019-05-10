@@ -345,6 +345,11 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	bool star;
 	int cnt;
 
+	container_sym = expr_to_sym(container);
+	sym = expr_to_sym(expr);
+	if (container_sym && container_sym == sym)
+		goto found;
+
 	cnt = 0;
 	while ((tmp = get_assigned_expr(expr))) {
 		expr = tmp;
@@ -359,6 +364,7 @@ char *get_container_name(struct expression *container, struct expression *expr)
 			break;
 	}
 
+found:
 	expr = strip_expr(expr);
 	star = true;
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
