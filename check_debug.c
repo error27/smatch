@@ -203,7 +203,7 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 static void match_user_rl(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	struct range_list *rl;
+	struct range_list *rl = NULL;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
