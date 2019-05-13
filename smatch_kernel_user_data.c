@@ -940,8 +940,23 @@ found:
 	return clone_rl(rl_intersection(rl, absolute_rl));
 }
 
+static bool is_ptr_subtract(struct expression *expr)
+{
+	expr = strip_expr(expr);
+	if (!expr)
+		return false;
+	if (expr->type == EXPR_BINOP && expr->op == '-' &&
+	    type_is_ptr(get_type(expr->left))) {
+		return true;
+	}
+	return false;
+}
+
 int get_user_rl(struct expression *expr, struct range_list **rl)
 {
+	if (is_ptr_subtract(expr))
+		return 0;
+
 	user_data_flag = 0;
 	no_user_data_flag = 0;
 	custom_get_absolute_rl(expr, &var_user_rl, rl);
