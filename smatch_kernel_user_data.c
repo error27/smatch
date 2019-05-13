@@ -588,7 +588,7 @@ static struct range_list *strip_negatives(struct range_list *rl)
 	if (!rl)
 		return NULL;
 
-	if (!type_unsigned(rl_type(rl)) && type_bits(rl_type(rl)) > 31)
+	if (type_unsigned(rl_type(rl)) && type_bits(rl_type(rl)) > 31)
 		return remove_range(rl, over, max);
 
 	return remove_range(rl, min, minus_one);
