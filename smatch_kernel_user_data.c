@@ -127,10 +127,12 @@ bool user_rl_capped(struct expression *expr)
 {
 	struct smatch_state *state;
 	struct range_list *rl;
+	sval_t sval;
 
+	expr = strip_expr(expr);
 	if (!expr)
-		return true;
-	if (is_capped(expr))
+		return false;
+	if (get_value(expr, &sval))
 		return true;
 	if (expr->type == EXPR_BINOP) {
 		if (user_rl_capped(expr->left) &&
@@ -139,12 +141,13 @@ bool user_rl_capped(struct expression *expr)
 		return false;
 	}
 	state = get_state_expr(my_id, expr);
-	if (!state) {
-		if (get_user_rl(expr, &rl))
-			return false;
-		return true;
-	}
-	return estate_capped(state);
+	if (state)
+		return estate_capped(state);
+
+	if (get_user_rl(expr, &rl))
+		return false;  /* uncapped user data */
+
+	return true;  /* not actually user data */
 }
 
 static void tag_inner_struct_members(struct expression *expr, struct symbol *member)
