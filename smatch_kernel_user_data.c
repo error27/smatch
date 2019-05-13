@@ -108,7 +108,7 @@ static void pre_merge_hook(struct sm_state *sm)
 
 static void extra_nomod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	struct smatch_state *user;
+	struct smatch_state *user, *new;
 	struct range_list *rl;
 
 	user = get_state(my_id, name, sym);
@@ -117,7 +117,10 @@ static void extra_nomod_hook(const char *name, struct symbol *sym, struct expres
 	rl = rl_intersection(estate_rl(user), estate_rl(state));
 	if (rl_equiv(rl, estate_rl(user)))
 		return;
-	set_state(my_id, name, sym, alloc_estate_rl(rl));
+	new = alloc_estate_rl(rl);
+	if (estate_capped(user))
+		estate_set_capped(new);
+	set_state(my_id, name, sym, new);
 }
 
 bool user_rl_capped(struct expression *expr)
