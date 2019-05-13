@@ -1325,6 +1325,8 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 			continue;
 		if (strcmp(param_name, "$") == 0)
 			return_found = true;
+		if (strcmp(param_name, "*$") == 0)
+			pointed_at_found = true;
 		snprintf(buf, sizeof(buf), "%s%s",
 			 show_rl(estate_rl(sm->state)),
 			 estate_capped(sm->state) ? "[c]" : "");
