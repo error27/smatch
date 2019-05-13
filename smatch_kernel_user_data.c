@@ -542,6 +542,10 @@ static void match_assign(struct expression *expr)
 	if (handle_struct_assignment(expr))
 		return;
 
+	/* Handled by DB code */
+	if (expr->right->type == EXPR_CALL || __in_fake_parameter_assign)
+		return;
+
 	if (!get_user_rl(expr->right, &rl))
 		goto clear_old_state;
 
