@@ -329,6 +329,7 @@ static char *get_data_dir(char *arg0)
 
 int main(int argc, char **argv)
 {
+	struct string_list *filelist = NULL;
 	int i;
 	reg_func func;
 
@@ -351,6 +352,9 @@ int main(int argc, char **argv)
 	allocate_dynamic_states_array(num_checks);
 	create_function_hook_hash();
 	open_smatch_db(option_db_file);
+	sparse_initialize(argc, argv, &filelist);
+	alloc_valid_ptr_rl();
+
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
@@ -361,7 +365,7 @@ int main(int argc, char **argv)
 			func(i);
 	}
 
-	smatch(argc, argv);
+	smatch(filelist);
 	free_string(data_dir);
 
 	if (option_succeed)

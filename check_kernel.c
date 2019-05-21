@@ -434,6 +434,9 @@ void check_kernel(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	err_ptr_min = sval_cast(&ptr_ctype, err_ptr_min);
+	err_ptr_max = sval_cast(&ptr_ctype, err_ptr_max);
+
 	add_implied_return_hook("ERR_PTR", &implied_err_cast_return, NULL);
 	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
 	add_implied_return_hook("PTR_ERR", &implied_err_cast_return, NULL);

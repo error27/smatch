@@ -507,7 +507,7 @@ extern int __in_fake_assign;
 extern int __in_fake_parameter_assign;
 extern int __in_fake_struct_assign;
 extern int in_fake_env;
-void smatch (int argc, char **argv);
+void smatch (struct string_list *filelist);
 int inside_loop(void);
 int definitely_inside_loop(void);
 struct expression *get_switch_expr(void);
@@ -584,9 +584,13 @@ struct data_range {
 #define MTAG_OFFSET_MASK 0xfffULL
 #define MTAG_SEED 0xdead << 12
 
-const extern unsigned long valid_ptr_min, valid_ptr_max;
-extern const sval_t valid_ptr_min_sval, valid_ptr_max_sval;
+const extern unsigned long valid_ptr_min;
+extern unsigned long valid_ptr_max;
+extern const sval_t valid_ptr_min_sval;
+extern sval_t valid_ptr_max_sval;
 extern struct range_list *valid_ptr_rl;
+void alloc_valid_ptr_rl(void);
+
 static const sval_t array_min_sval = {
 	.type = &ptr_ctype,
 	{.value = 100000},

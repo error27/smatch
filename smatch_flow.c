@@ -77,19 +77,22 @@ struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
 
 const unsigned long valid_ptr_min = 4096;
-const unsigned long valid_ptr_max = ULONG_MAX & ~(MTAG_OFFSET_MASK);
+unsigned long valid_ptr_max = ULONG_MAX & ~(MTAG_OFFSET_MASK);
 const sval_t valid_ptr_min_sval = {
 	.type = &ptr_ctype,
 	{.value = 4096},
 };
-const sval_t valid_ptr_max_sval = {
+sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
 	{.value = ULONG_MAX & ~(MTAG_OFFSET_MASK)},
 };
 struct range_list *valid_ptr_rl;
 
-static void alloc_valid_ptr_rl(void)
+void alloc_valid_ptr_rl(void)
 {
+	valid_ptr_max = sval_type_max(&ulong_ctype).value & ~(MTAG_OFFSET_MASK);
+	valid_ptr_max_sval.value = valid_ptr_max;
+
 	valid_ptr_rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	valid_ptr_rl = cast_rl(&ptr_ctype, valid_ptr_rl);
 	valid_ptr_rl = clone_rl_permanent(valid_ptr_rl);
@@ -1897,9 +1900,8 @@ static void open_output_files(char *base_file)
 		sm_fatal("Error:  Cannot open %s", buf);
 }
 
-void smatch(int argc, char **argv)
+void smatch(struct string_list *filelist)
 {
-	struct string_list *filelist = NULL;
 	struct symbol_list *sym_list;
 	struct timeval stop, start;
 	char *path;
@@ -1907,8 +1909,6 @@ void smatch(int argc, char **argv)
 
 	gettimeofday(&start, NULL);
 
-	sparse_initialize(argc, argv, &filelist);
-	alloc_valid_ptr_rl();
 	FOR_EACH_PTR_NOTAG(filelist, base_file) {
 		path = getcwd(NULL, 0);
 		free(full_base_file);
