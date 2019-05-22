@@ -91,10 +91,10 @@ static void pre_merge_hook(struct sm_state *sm)
 	struct range_list *rl;
 	sval_t dummy;
 
-	user = get_state(my_id, sm->name, sm->sym);
+	user = __get_state(my_id, sm->name, sm->sym);
 	if (!user || !estate_rl(user))
 		return;
-	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
@@ -111,7 +111,7 @@ static void extra_nomod_hook(const char *name, struct symbol *sym, struct expres
 	struct smatch_state *user, *new;
 	struct range_list *rl;
 
-	user = get_state(my_id, name, sym);
+	user = __get_state(my_id, name, sym);
 	if (!user)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(state));
@@ -422,7 +422,7 @@ int points_to_user_data(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 	snprintf(buf, sizeof(buf), "*%s", name);
-	state = get_state(my_id, buf, sym);
+	state = __get_state(my_id, buf, sym);
 	if (state && estate_rl(state))
 		ret = 1;
 free:
@@ -1060,7 +1060,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	    is_struct_ptr(sm->sym))
 		return;
 
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!state || !estate_rl(state))
 		rl = estate_rl(sm->state);
 	else
