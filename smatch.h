@@ -430,6 +430,7 @@ int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);
 int parent_is_gone(struct expression *expr);
 int invert_op(int op);
+int op_remove_assign(int op);
 int expr_equiv(struct expression *one, struct expression *two);
 void push_int(struct int_stack **stack, int num);
 int pop_int(struct int_stack **stack);

@@ -1110,6 +1110,34 @@ int invert_op(int op)
 	return 0;
 }
 
+int op_remove_assign(int op)
+{
+	switch (op) {
+	case SPECIAL_ADD_ASSIGN:
+		return '+';
+	case SPECIAL_SUB_ASSIGN:
+		return '-';
+	case SPECIAL_MUL_ASSIGN:
+		return '*';
+	case SPECIAL_DIV_ASSIGN:
+		return '/';
+	case SPECIAL_MOD_ASSIGN:
+		return '%';
+	case SPECIAL_AND_ASSIGN:
+		return '&';
+	case SPECIAL_OR_ASSIGN:
+		return '|';
+	case SPECIAL_XOR_ASSIGN:
+		return '^';
+	case SPECIAL_SHL_ASSIGN:
+		return SPECIAL_LEFTSHIFT;
+	case SPECIAL_SHR_ASSIGN:
+		return SPECIAL_RIGHTSHIFT;
+	default:
+		return op;
+	}
+}
+
 int expr_equiv(struct expression *one, struct expression *two)
 {
 	struct symbol *one_sym = NULL;

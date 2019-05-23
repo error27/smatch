@@ -1021,34 +1021,6 @@ free:
 	free_string(right_name);
 }
 
-static int op_remove_assign(int op)
-{
-	switch (op) {
-	case SPECIAL_ADD_ASSIGN:
-		return '+';
-	case SPECIAL_SUB_ASSIGN:
-		return '-';
-	case SPECIAL_MUL_ASSIGN:
-		return '*';
-	case SPECIAL_DIV_ASSIGN:
-		return '/';
-	case SPECIAL_MOD_ASSIGN:
-		return '%';
-	case SPECIAL_AND_ASSIGN:
-		return '&';
-	case SPECIAL_OR_ASSIGN:
-		return '|';
-	case SPECIAL_XOR_ASSIGN:
-		return '^';
-	case SPECIAL_SHL_ASSIGN:
-		return SPECIAL_LEFTSHIFT;
-	case SPECIAL_SHR_ASSIGN:
-		return SPECIAL_RIGHTSHIFT;
-	default:
-		return op;
-	}
-}
-
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl = NULL;
