@@ -36,6 +36,7 @@
 
 static int my_id;
 static int link_id;
+extern int check_assigned_expr_id;
 
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr);
 
@@ -134,12 +135,12 @@ static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol 
 	return expr_to_var_sym(assigned->unop, new_sym);
 }
 
-char *get_other_name_sym_helper(const char *name, const char *chunk, int len, struct symbol *sym, struct symbol **new_sym)
+char *get_other_name_sym_from_chunk(const char *name, const char *chunk, int len, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
 	char *orig_name = NULL;
 	char buf[256];
-	char *ret = NULL;
+	char *ret;
 
 	assigned = get_assigned_expr_name_sym(chunk, sym);
 	if (!assigned)
@@ -171,7 +172,36 @@ free:
 	return NULL;
 }
 
-char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+static char *get_long_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	struct expression *tmp;
+	struct sm_state *sm;
+	char buf[256];
+
+	/*
+	 * Just prepend the name with a different name/sym and return that.
+	 * For example, if we set "foo->bar = bar;" then we clamp "bar->baz",
+	 * that also clamps "foo->bar->baz".
+	 *
+	 */
+
+	FOR_EACH_MY_SM(check_assigned_expr_id, __get_cur_stree(), sm) {
+		tmp = sm->state->data;
+		if (!tmp || tmp->type != EXPR_SYMBOL)
+			continue;
+		if (tmp->symbol == sym)
+			goto found;
+	} END_FOR_EACH_SM(sm);
+
+	return NULL;
+
+found:
+	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + tmp->symbol->ident->len);
+	*new_sym = sm->sym;
+	return alloc_string(buf);
+}
+
+char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)
 {
 	char buf[256];
 	char *ret;
@@ -186,6 +216,10 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 	if (ret)
 		return ret;
 
+	ret = map_long_to_short_name_sym(name, sym, new_sym, use_stack);
+	if (ret)
+		return ret;
+
 	len = snprintf(buf, sizeof(buf), "%s", name);
 	if (len >= sizeof(buf) - 2)
 		return NULL;
@@ -194,14 +228,28 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 		if (buf[len] == '>' && buf[len - 1] == '-') {
 			len--;
 			buf[len] = '\0';
-			ret = get_other_name_sym_helper(name, buf, len + 2, sym, new_sym);
+			ret = get_other_name_sym_from_chunk(name, buf, len + 2, sym, new_sym);
 			if (ret)
 				return ret;
 		}
 		len--;
 	}
 
+	ret = get_long_name_sym(name, sym, new_sym);
+	if (ret)
+		return ret;
+
 	return NULL;
+}
+
+char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	return get_other_name_sym_helper(name, sym, new_sym, true);
+}
+
+char *get_other_name_sym_nostack(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	return get_other_name_sym_helper(name, sym, new_sym, false);
 }
 
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
@@ -2460,7 +2508,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	/* We want to preserve the implications here */
 	if (sm && basically_the_same(estate_rl(sm->state), new))
 		goto free;
-	other_name = map_long_to_short_name_sym(name, sym, &other_sym);
+	other_name = get_other_name_sym(name, sym, &other_sym);
 
 	if (op == PARAM_LIMIT)
 		set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(new));
@@ -2527,7 +2575,7 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	else
 		new = rl_union(new, added);
 
-	other_name = map_long_to_short_name_sym_nostack(name, sym, &other_sym);
+	other_name = get_other_name_sym_nostack(name, sym, &other_sym);
 	set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
 	if (other_name && other_sym)
 		set_extra_mod(other_name, other_sym, NULL, alloc_estate_rl(new));
