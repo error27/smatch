@@ -1375,6 +1375,28 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	free_string(return_str);
 }
 
+static void returns_param_capped(struct expression *expr, int param, char *key, char *value)
+{
+	struct smatch_state *state, *new;
+	struct symbol *sym;
+	char *name;
+
+	name = return_state_to_var_sym(expr, param, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	state = get_state(my_id, name, sym);
+	if (!state || estate_capped(state))
+		goto free;
+
+	new = clone_estate(state);
+	estate_set_capped(new);
+
+	set_state(my_id, name, sym, new);
+free:
+	free_string(name);
+}
+
 static struct int_stack *gets_data_stack;
 static void match_function_def(struct symbol *sym)
 {
@@ -1441,6 +1463,7 @@ void register_kernel_user_data(int id)
 	select_caller_info_hook(set_param_user_data, USER_DATA);
 	select_return_states_hook(USER_DATA, &returns_param_user_data);
 	select_return_states_hook(USER_DATA_SET, &returns_param_user_data_set);
+	select_return_states_hook(CAPPED_DATA, &returns_param_capped);
 	add_split_return_callback(&param_set_to_user_data);
 }
 
