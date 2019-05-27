@@ -123,6 +123,26 @@ static void extra_nomod_hook(const char *name, struct symbol *sym, struct expres
 	set_state(my_id, name, sym, new);
 }
 
+static bool binop_capped(struct expression *expr)
+{
+	struct range_list *left_rl;
+	int comparison;
+
+	if (expr->op == '-' && get_user_rl(expr->left, &left_rl)) {
+		if (!user_rl_capped(expr->left))
+			return false;
+		comparison = get_comparison(expr->left, expr->right);
+		if (comparison && show_special(comparison)[0] == '>')
+			return true;
+		return false;
+	}
+
+	if (user_rl_capped(expr->left) &&
+	    user_rl_capped(expr->right))
+		return true;
+	return false;
+}
+
 bool user_rl_capped(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -134,12 +154,8 @@ bool user_rl_capped(struct expression *expr)
 		return false;
 	if (get_value(expr, &sval))
 		return true;
-	if (expr->type == EXPR_BINOP) {
-		if (user_rl_capped(expr->left) &&
-		    user_rl_capped(expr->right))
-			return true;
-		return false;
-	}
+	if (expr->type == EXPR_BINOP)
+		return binop_capped(expr);
 	state = get_state_expr(my_id, expr);
 	if (state)
 		return estate_capped(state);
