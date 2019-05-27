@@ -1030,9 +1030,6 @@ static void match_assign(struct expression *expr)
 	struct symbol *left_type;
 	struct symbol *sym;
 	char *name;
-	sval_t left_min, left_max;
-	sval_t right_min, right_max;
-	sval_t res_min, res_max;
 
 	left = strip_expr(expr->left);
 
@@ -1057,45 +1054,9 @@ static void match_assign(struct expression *expr)
 
 	left_type = get_type(left);
 
-	res_min = sval_type_min(left_type);
-	res_max = sval_type_max(left_type);
-
 	switch (expr->op) {
 	case SPECIAL_ADD_ASSIGN:
-		get_absolute_max(left, &left_max);
-		get_absolute_max(right, &right_max);
-		if (sval_binop_overflows(left_max, '+', sval_cast(left_type, right_max)))
-			break;
-		if (get_implied_min(left, &left_min) &&
-		    !sval_is_negative_min(left_min) &&
-		    get_implied_min(right, &right_min) &&
-		    !sval_is_negative_min(right_min)) {
-			res_min = sval_binop(left_min, '+', right_min);
-			res_min = sval_cast(left_type, res_min);
-		}
-		if (inside_loop())  /* we are assuming loops don't lead to wrapping */
-			break;
-		res_max = sval_binop(left_max, '+', right_max);
-		res_max = sval_cast(left_type, res_max);
-		break;
 	case SPECIAL_SUB_ASSIGN:
-		if (get_implied_max(left, &left_max) &&
-		    !sval_is_max(left_max) &&
-		    get_implied_min(right, &right_min) &&
-		    !sval_is_min(right_min)) {
-			res_max = sval_binop(left_max, '-', right_min);
-			res_max = sval_cast(left_type, res_max);
-		}
-		if (inside_loop())
-			break;
-		if (get_implied_min(left, &left_min) &&
-		    !sval_is_min(left_min) &&
-		    get_implied_max(right, &right_max) &&
-		    !sval_is_max(right_max)) {
-			res_min = sval_binop(left_min, '-', right_max);
-			res_min = sval_cast(left_type, res_min);
-		}
-		break;
 	case SPECIAL_AND_ASSIGN:
 	case SPECIAL_MOD_ASSIGN:
 	case SPECIAL_SHL_ASSIGN:
@@ -1107,15 +1068,23 @@ static void match_assign(struct expression *expr)
 		binop_expr = binop_expression(expr->left,
 					      op_remove_assign(expr->op),
 					      expr->right);
-		if (get_absolute_rl(binop_expr, &rl)) {
-			rl = cast_rl(left_type, rl);
-			set_extra_mod(name, sym, left, alloc_estate_rl(rl));
-			goto free;
+		get_absolute_rl(binop_expr, &rl);
+		rl = cast_rl(left_type, rl);
+		if (inside_loop()) {
+			if (expr->op == SPECIAL_ADD_ASSIGN)
+				add_range(&rl, rl_max(rl), sval_type_max(rl_type(rl)));
+
+			if (expr->op == SPECIAL_SUB_ASSIGN &&
+			    !sval_is_negative(rl_min(rl))) {
+				sval_t zero = { .type = rl_type(rl) };
+
+				add_range(&rl, rl_min(rl), zero);
+			}
 		}
-		break;
+		set_extra_mod(name, sym, left, alloc_estate_rl(rl));
+		goto free;
 	}
-	rl = cast_rl(left_type, alloc_rl(res_min, res_max));
-	set_extra_mod(name, sym, left, alloc_estate_rl(rl));
+	set_extra_mod(name, sym, left, alloc_estate_whole(left_type));
 free:
 	free_string(name);
 }
