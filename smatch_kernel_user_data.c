@@ -540,6 +540,39 @@ free:
 	return ret;
 }
 
+static bool handle_op_assign(struct expression *expr)
+{
+	struct expression *binop_expr;
+	struct smatch_state *state;
+	struct range_list *rl;
+
+	switch (expr->op) {
+	case SPECIAL_ADD_ASSIGN:
+	case SPECIAL_SUB_ASSIGN:
+	case SPECIAL_AND_ASSIGN:
+	case SPECIAL_MOD_ASSIGN:
+	case SPECIAL_SHL_ASSIGN:
+	case SPECIAL_SHR_ASSIGN:
+	case SPECIAL_OR_ASSIGN:
+	case SPECIAL_XOR_ASSIGN:
+	case SPECIAL_MUL_ASSIGN:
+	case SPECIAL_DIV_ASSIGN:
+		binop_expr = binop_expression(expr->left,
+					      op_remove_assign(expr->op),
+					      expr->right);
+		if (!get_user_rl(binop_expr, &rl))
+			return true;
+
+		rl = cast_rl(get_type(expr->left), rl);
+		state = alloc_estate_rl(rl);
+		if (user_rl_capped(binop_expr))
+			estate_set_capped(state);
+		set_state_expr(my_id, expr->left, state);
+		return true;
+	}
+	return false;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
@@ -560,6 +593,11 @@ static void match_assign(struct expression *expr)
 	}
 	if (handle_struct_assignment(expr))
 		return;
+
+	if (handle_op_assign(expr))
+		return;
+	if (expr->op != '=')
+		goto clear_old_state;
 
 	/* Handled by DB code */
 	if (expr->right->type == EXPR_CALL || __in_fake_parameter_assign)
