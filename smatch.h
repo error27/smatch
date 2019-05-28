@@ -659,8 +659,7 @@ static const sval_t fn_ptr_max = {
 
 char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
 char *map_call_to_other_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
-char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym);
-char *map_long_to_short_name_sym_nostack(const char *name, struct symbol *sym, struct symbol **new_sym);
+char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack);
 
 #define STRLEN_MAX_RET 1010101
 

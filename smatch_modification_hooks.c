@@ -181,7 +181,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	call_modification_hooks_name_sym(name, sym, expr, BOTH);
 	__in_fake_assign--;
 
-	other_name = map_long_to_short_name_sym(name, sym, &other_sym);
+	other_name = get_other_name_sym(name, sym, &other_sym);
 	if (other_name) {
 		__in_fake_assign++;
 		call_modification_hooks_name_sym(other_name, other_sym, expr, BOTH);
