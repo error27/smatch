@@ -585,7 +585,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	struct range_list *var_rl = db_info->rl;
 	struct range_list *ret_range;
 	int type, param;
-	char *key, *value;
+	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
 	struct stree *stree;
 	int return_id;
@@ -595,6 +595,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		return 0;
 
 	return_id = atoi(argv[0]);
+	ret_str = argv[1];
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -627,7 +628,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		return 0;
 	}
 
-	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
+	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), ret_str, &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
 	if (!ret_range)
 		ret_range = alloc_whole_rl(get_type(db_info->expr));
@@ -652,13 +653,13 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		filter_by_comparison(&ret_range, flip_comparison(negate_comparison(comparison)), var_rl);
 	}
 
-	handle_ret_equals_param(argv[1], ret_range, db_info->expr);
+	handle_ret_equals_param(ret_str, ret_range, db_info->expr);
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr), argv[1]);
-		__add_return_to_param_mapping(db_info->expr, argv[1]);
-		store_return_state(db_info, argv[1], alloc_estate_rl(clone_rl(var_rl)));
+		__add_return_comparison(strip_expr(db_info->expr), ret_str);
+		__add_return_to_param_mapping(db_info->expr, ret_str);
+		store_return_state(db_info, ret_str, alloc_estate_rl(clone_rl(var_rl)));
 	}
 
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
@@ -847,7 +848,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	struct db_callback_info *db_info = _info;
 	struct range_list *ret_range;
 	int type, param;
-	char *key, *value;
+	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
 	struct stree *stree;
 	int return_id;
@@ -856,6 +857,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		return 0;
 
 	return_id = atoi(argv[0]);
+	ret_str = argv[1];
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -890,17 +892,17 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		param_limit_implications(db_info->expr, param, key, value);
 
 	db_info->handled = 1;
-	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), argv[1], &ret_range);
+	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), ret_str, &ret_range);
 	if (!ret_range)
 		ret_range = alloc_whole_rl(get_type(strip_expr(db_info->expr->right)));
 	ret_range = cast_rl(get_type(db_info->expr->right), ret_range);
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr->right), argv[1]);
-		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), argv[1]);
-		__add_return_to_param_mapping(db_info->expr, argv[1]);
-		store_return_state(db_info, argv[1], alloc_estate_rl(ret_range));
+		__add_return_comparison(strip_expr(db_info->expr->right), ret_str);
+		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
+		__add_return_to_param_mapping(db_info->expr, ret_str);
+		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
 	}
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
@@ -1032,7 +1034,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	struct db_callback_info *db_info = _info;
 	struct range_list *ret_range;
 	int type, param;
-	char *key, *value;
+	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
 	struct stree *stree;
 	int return_id;
@@ -1042,6 +1044,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		return 0;
 
 	return_id = atoi(argv[0]);
+	ret_str = argv[1];
 	type = atoi(argv[2]);
 	param = atoi(argv[3]);
 	key = argv[4];
@@ -1074,13 +1077,13 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	if (type == PARAM_LIMIT)
 		param_limit_implications(db_info->expr, param, key, value);
 
-	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), argv[1], &ret_range);
+	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), ret_str, &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr), argv[1]);
-		__add_return_to_param_mapping(db_info->expr, argv[1]);
+		__add_return_comparison(strip_expr(db_info->expr), ret_str);
+		__add_return_to_param_mapping(db_info->expr, ret_str);
 	}
 
 
