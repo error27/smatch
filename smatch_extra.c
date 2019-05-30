@@ -902,7 +902,7 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static int values_fit_type(struct expression *left, struct expression *right)
+int values_fit_type(struct expression *left, struct expression *right)
 {
 	struct range_list *rl;
 	struct symbol *type;
@@ -2404,18 +2404,6 @@ static void db_limited_before(void)
 static void db_limited_after(void)
 {
 	free_stree(&unmatched_stree);
-}
-
-static int rl_fits_in_type(struct range_list *rl, struct symbol *type)
-{
-	if (type_bits(rl_type(rl)) <= type_bits(type))
-		return 1;
-	if (sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
-		return 0;
-	if (sval_is_negative(rl_min(rl)) &&
-	    sval_cmp(rl_min(rl), sval_type_min(type)) < 0)
-		return 0;
-	return 1;
 }
 
 static int basically_the_same(struct range_list *orig, struct range_list *new)

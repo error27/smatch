@@ -1368,6 +1368,18 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl)
 	return ret;
 }
 
+int rl_fits_in_type(struct range_list *rl, struct symbol *type)
+{
+	if (type_bits(rl_type(rl)) <= type_bits(type))
+		return 1;
+	if (sval_cmp(rl_max(rl), sval_type_max(type)) > 0)
+		return 0;
+	if (sval_is_negative(rl_min(rl)) &&
+	    sval_cmp(rl_min(rl), sval_type_min(type)) < 0)
+		return 0;
+	return 1;
+}
+
 static int rl_is_sane(struct range_list *rl)
 {
 	struct data_range *tmp;

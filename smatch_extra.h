@@ -47,6 +47,8 @@ void call_results_to_rl(struct expression *call, struct symbol *type, const char
 struct data_range *alloc_range(sval_t min, sval_t max);
 struct data_range *alloc_range_perm(sval_t min, sval_t max);
 
+int rl_fits_in_type(struct range_list *rl, struct symbol *type);
+
 struct range_list *alloc_rl(sval_t min, sval_t max);
 struct range_list *clone_rl(struct range_list *list);
 struct range_list *clone_rl_permanent(struct range_list *list);
