@@ -504,8 +504,7 @@ static bool use_rl_binop(struct expression *expr, int implied, int *recurse_cnt,
 
 static bool handle_right_shift(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
 {
-	struct range_list *left_rl;
-	sval_t right;
+	struct range_list *left_rl, *right_rl;
 	sval_t min, max;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
@@ -521,9 +520,10 @@ static bool handle_right_shift(struct expression *expr, int implied, int *recurs
 		min = sval_type_val(get_type(expr->left), 0);
 	}
 
-	if (get_implied_value_internal(expr->right, recurse_cnt, &right)) {
-		min = sval_binop(min, SPECIAL_RIGHTSHIFT, right);
-		max = sval_binop(max, SPECIAL_RIGHTSHIFT, right);
+	if (get_rl_internal(expr->right, implied, recurse_cnt, &right_rl) &&
+	    !sval_is_negative(rl_min(right_rl))) {
+		min = sval_binop(min, SPECIAL_RIGHTSHIFT, rl_max(right_rl));
+		max = sval_binop(max, SPECIAL_RIGHTSHIFT, rl_min(right_rl));
 	} else if (!sval_is_negative(min)) {
 		min.value = 0;
 		max = sval_type_max(max.type);
@@ -539,34 +539,21 @@ static bool handle_left_shift(struct expression *expr, int implied, int *recurse
 {
 	struct range_list *left_rl, *rl;
 	sval_t right;
-	sval_t min, max;
-	int add_zero = 0;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
 	/* this is hopeless without the right side */
 	if (!get_implied_value_internal(expr->right, recurse_cnt, &right))
 		return false;
-	if (get_rl_internal(expr->left, implied, recurse_cnt, &left_rl)) {
-		max = rl_max(left_rl);
-		min = rl_min(left_rl);
-		if (min.value == 0) {
-			min.value = 1;
-			add_zero = 1;
-		}
-	} else {
+	if (!get_rl_internal(expr->left, implied, recurse_cnt, &left_rl)) {
 		if (implied == RL_FUZZY)
 			return false;
-		max = sval_type_max(get_type(expr->left));
-		min = sval_type_val(get_type(expr->left), 1);
-		add_zero = 1;
+		left_rl = alloc_whole_rl(get_type(expr->left));
 	}
 
-	max = sval_binop(max, SPECIAL_LEFTSHIFT, right);
-	min = sval_binop(min, SPECIAL_LEFTSHIFT, right);
-	rl = alloc_rl(min, max);
-	if (add_zero)
-		rl = rl_union(rl, rl_zero());
+	rl = rl_binop(left_rl, SPECIAL_LEFTSHIFT, alloc_rl(right, right));
+	if (!rl)
+		return false;
 	*res = rl;
 	return true;
 }

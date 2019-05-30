@@ -1917,6 +1917,72 @@ static struct range_list *handle_AND_rl(struct range_list *left, struct range_li
 	return rl;
 }
 
+static struct range_list *handle_lshift(struct range_list *left_orig, struct range_list *right_orig)
+{
+	struct range_list *left;
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+	sval_t zero = { .type = rl_type(left_orig), };
+	sval_t shift, min, max;
+	bool add_zero = false;
+
+	if (!rl_to_sval(right_orig, &shift) || sval_is_negative(shift))
+		return NULL;
+	if (shift.value == 0)
+		return left_orig;
+
+	/* Cast to unsigned for easier left shift math */
+	if (type_positive_bits(rl_type(left_orig)) < 32)
+		left = cast_rl(&uint_ctype, left_orig);
+	else if(type_positive_bits(rl_type(left_orig)) == 63)
+		left = cast_rl(&ullong_ctype, left_orig);
+	else
+		left = left_orig;
+
+	FOR_EACH_PTR(left, tmp) {
+		min = tmp->min;
+		max = tmp->max;
+
+		if (min.value == 0 || max.value > sval_type_max(max.type).uvalue >> shift.uvalue)
+			add_zero = true;
+		if (min.value == 0 && max.value == 0)
+			continue;
+		if (min.value == 0)
+			min.value = 1;
+		min = sval_binop(min, SPECIAL_LEFTSHIFT, shift);
+		max = sval_binop(max, SPECIAL_LEFTSHIFT, shift);
+		add_range(&ret, min, max);
+	} END_FOR_EACH_PTR(tmp);
+
+	if (!rl_fits_in_type(ret, rl_type(left_orig)))
+		add_zero = true;
+	ret = cast_rl(rl_type(left_orig), ret);
+	if (add_zero)
+		add_range(&ret, zero, zero);
+
+	return ret;
+}
+
+static struct range_list *handle_rshift(struct range_list *left_orig, struct range_list *right_orig)
+{
+	struct data_range *tmp;
+	struct range_list *ret = NULL;
+	sval_t shift, min, max;
+
+	if (!rl_to_sval(right_orig, &shift) || sval_is_negative(shift))
+		return NULL;
+	if (shift.value == 0)
+		return left_orig;
+
+	FOR_EACH_PTR(left_orig, tmp) {
+		min = sval_binop(tmp->min, SPECIAL_RIGHTSHIFT, shift);
+		max = sval_binop(tmp->max, SPECIAL_RIGHTSHIFT, shift);
+		add_range(&ret, min, max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 struct range_list *rl_binop(struct range_list *left, int op, struct range_list *right)
 {
 	struct symbol *cast_type;
@@ -1963,10 +2029,10 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	case '-':
 		ret = handle_sub_rl(left, right);
 		break;
-	/* FIXME:  Do the rest as well */
 	case SPECIAL_RIGHTSHIFT:
+		return handle_rshift(left, right);
 	case SPECIAL_LEFTSHIFT:
-		break;
+		return handle_lshift(left, right);
 	}
 
 	return ret;
