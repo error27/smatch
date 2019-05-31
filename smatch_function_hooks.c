@@ -838,11 +838,11 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 
 	call_backs = search_callback(func_hash, fn);
 	FOR_EACH_PTR(call_backs, tmp) {
-		struct range_list *range_rl = NULL;
+		struct range_list *range_rl;
 
 		if (tmp->type != RANGED_CALL)
 			continue;
-		add_range(&range_rl, tmp->range->min, tmp->range->max);
+		range_rl = alloc_rl(tmp->range->min, tmp->range->max);
 		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
 		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
 			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
