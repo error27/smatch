@@ -610,37 +610,13 @@ static struct range_list *handle_implied_binop(struct range_list *left_rl, int o
 	return res_rl;
 }
 
-static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+static bool handle_binop_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	struct smatch_state *state;
 	struct symbol *type;
 	struct range_list *left_rl = NULL;
 	struct range_list *right_rl = NULL;
 	struct range_list *rl;
-	sval_t val, min, max;
-
-	if (handle_known_binop(expr, &val)) {
-		*res_sval = val;
-		return true;
-	}
-	if (implied == RL_EXACT)
-		return false;
-
-	if (custom_handle_variable) {
-		rl = custom_handle_variable(expr);
-		if (rl) {
-			*res = rl;
-			return true;
-		}
-	}
-
-	state = get_extra_state(expr);
-	if (state && !is_whole_rl(estate_rl(state))) {
-		if (implied != RL_HARD || estate_has_hard_max(state)) {
-			*res = clone_rl(estate_rl(state));
-			return true;
-		}
-	}
+	sval_t min, max;
 
 	type = get_promoted_type(get_type(expr->left), get_type(expr->right));
 	get_rl_internal(expr->left, implied, recurse_cnt, &left_rl);
@@ -687,6 +663,39 @@ static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_c
 
 	*res = alloc_rl(min, max);
 	return true;
+
+}
+
+static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+{
+	struct smatch_state *state;
+	struct range_list *rl;
+	sval_t val;
+
+	if (handle_known_binop(expr, &val)) {
+		*res_sval = val;
+		return true;
+	}
+	if (implied == RL_EXACT)
+		return false;
+
+	if (custom_handle_variable) {
+		rl = custom_handle_variable(expr);
+		if (rl) {
+			*res = rl;
+			return true;
+		}
+	}
+
+	state = get_extra_state(expr);
+	if (state && !is_whole_rl(estate_rl(state))) {
+		if (implied != RL_HARD || estate_has_hard_max(state)) {
+			*res = clone_rl(estate_rl(state));
+			return true;
+		}
+	}
+
+	return handle_binop_rl_helper(expr, implied, recurse_cnt, res, res_sval);
 }
 
 static int do_comparison(struct expression *expr)
