@@ -844,12 +844,8 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 			continue;
 		add_range(&range_rl, tmp->range->min, tmp->range->max);
 		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
-		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state))) {
-			if (!possibly_true_rl(rl_invert(range_rl), SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
-				(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
-			else
-				db_info->handled = -1;
-		}
+		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
+			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
