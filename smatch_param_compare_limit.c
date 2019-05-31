@@ -180,8 +180,8 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 	struct compare_data *data;
 	struct var_sym *left, *right;
 	int left_param, right_param;
-	static char left_buf[256];
-	static char right_buf[256];
+	static char left_buf[248];
+	static char right_buf[248];
 	static char info_buf[256];
 	const char *tmp_name;
 
