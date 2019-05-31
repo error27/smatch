@@ -173,8 +173,6 @@ static bool untrusted_type_min(struct expression *expr)
 	struct range_list *rl;
 
 	rl = var_user_rl(expr);
-	if (local_debug)
-		sm_msg("%s: rl = '%s'", __func__, show_rl(rl));
 	return rl && sval_is_min(rl_min(rl));
 }
 
