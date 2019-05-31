@@ -39,6 +39,9 @@ delete from return_states where function='sprintf' and type = 8017;
 /* because of recursion it gets passed to everything and is impossible to debug */
 delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
 delete from caller_info where function = '__netdev_start_xmit' and type = 8017;
+delete from caller_info where function = '(struct packet_type)->func' and type = 8017;
+delete from caller_info where caller = 'NF_HOOK_COND' and type = 8017;
+delete from caller_info where caller = 'NF_HOOK' and type = 8017;
 /* comparison doesn't deal with chunks, I guess.  */
 delete from return_states where function='get_tty_driver' and type = 8017;
 delete from caller_info where caller = 'snd_ctl_elem_write' and function = '(struct snd_kcontrol)->put' and type = 8017;
