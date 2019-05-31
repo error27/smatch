@@ -139,6 +139,16 @@ void return_implies_state(const char *look_for, long long start, long long end,
 	add_callback(func_hash, look_for, cb);
 }
 
+void return_implies_state_sval(const char *look_for, sval_t start, sval_t end,
+			 implication_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(RANGED_CALL, call_back, info);
+	cb->range = alloc_range_perm(start, end);
+	add_callback(func_hash, look_for, cb);
+}
+
 void select_return_states_hook(int type, return_implies_hook *callback)
 {
 	struct return_implies_callback *cb = __alloc_return_implies_callback(0);

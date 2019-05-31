@@ -176,6 +176,8 @@ void add_macro_assign_hook_extra(const char *look_for, func_hook *call_back,
 			      void *info);
 void return_implies_state(const char *look_for, long long start, long long end,
 			 implication_hook *call_back, void *info);
+void return_implies_state_sval(const char *look_for, sval_t start, sval_t end,
+			 implication_hook *call_back, void *info);
 void select_return_states_hook(int type, return_implies_hook *callback);
 void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
