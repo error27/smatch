@@ -1290,18 +1290,6 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	set_to_user_data(arg, key, value);
 }
 
-static int has_empty_state(struct sm_state *sm)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (!estate_rl(tmp->state))
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-
-	return 0;
-}
-
 static void param_set_to_user_data(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *sm;
@@ -1320,9 +1308,6 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 	ret_sym = expr_to_sym(expr);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (has_empty_state(sm))
-			continue;
-
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
 			continue;
