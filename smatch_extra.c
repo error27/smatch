@@ -1648,6 +1648,45 @@ static int is_simple_math(struct expression *expr)
 	return 0;
 }
 
+static int flip_op(int op)
+{
+	/* We only care about simple math */
+	switch (op) {
+	case '+':
+		return '-';
+	case '-':
+		return '+';
+	case '*':
+		return '/';
+	}
+	return 0;
+}
+
+static void move_known_to_rl(struct expression **expr_p, struct range_list **rl_p)
+{
+	struct expression *expr = *expr_p;
+	struct range_list *rl = *rl_p;
+	sval_t sval;
+
+	if (!is_simple_math(expr))
+		return;
+
+	if (get_implied_value(expr->right, &sval)) {
+		*expr_p = expr->left;
+		*rl_p = rl_binop(rl, flip_op(expr->op), alloc_rl(sval, sval));
+		move_known_to_rl(expr_p, rl_p);
+		return;
+	}
+	if (expr->op == '-')
+		return;
+	if (get_implied_value(expr->left, &sval)) {
+		*expr_p = expr->right;
+		*rl_p = rl_binop(rl, flip_op(expr->op), alloc_rl(sval, sval));
+		move_known_to_rl(expr_p, rl_p);
+		return;
+	}
+}
+
 static void move_known_values(struct expression **left_p, struct expression **right_p)
 {
 	struct expression *left = *left_p;
@@ -2467,16 +2506,19 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (!arg)
 		return;
 
+	if (strcmp(key, "$") == 0)
+		compare_type = get_arg_type(expr->fn, param);
+	else
+		compare_type = get_member_type_from_key(arg, key);
+
+	call_results_to_rl(expr, compare_type, value, &limit);
+	if (strcmp(key, "$") == 0)
+		move_known_to_rl(&arg, &limit);
 	name = get_chunk_from_key(arg, key, &sym, &vsl);
 	if (!name)
 		return;
 	if (op != PARAM_LIMIT && !sym)
 		goto free;
-
-	if (strcmp(key, "$") == 0)
-		compare_type = get_arg_type(expr->fn, param);
-	else
-		compare_type = get_member_type_from_key(arg, key);
 
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (sm)
@@ -2487,14 +2529,13 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (op == PARAM_LIMIT && !rl_fits_in_type(rl, compare_type))
 		goto free;
 
-	call_results_to_rl(expr, compare_type, value, &limit);
 	new = rl_intersection(rl, limit);
 
 	var_type = get_member_type_from_key(arg, key);
 	new = cast_rl(var_type, new);
 
 	/* We want to preserve the implications here */
-	if (sm && basically_the_same(estate_rl(sm->state), new))
+	if (sm && basically_the_same(rl, new))
 		goto free;
 	other_name = get_other_name_sym(name, sym, &other_sym);
 
