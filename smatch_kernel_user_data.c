@@ -807,38 +807,6 @@ static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 	return 0;
 }
 
-struct db_info {
-	struct range_list *rl;
-	struct expression *call;
-};
-static int returned_rl_callback(void *_info, int argc, char **argv, char **azColName)
-{
-	struct db_info *db_info = _info;
-	struct range_list *rl;
-	char *return_ranges = argv[0];
-	char *user_ranges = argv[1];
-	struct expression *arg;
-	int comparison;
-
-	if (argc != 2)
-		return 0;
-
-	call_results_to_rl(db_info->call, get_type(db_info->call), user_ranges, &rl);
-	if (str_to_comparison_arg(return_ranges, db_info->call, &comparison, &arg) &&
-	    comparison == SPECIAL_EQUAL) {
-		struct range_list *orig_rl;
-
-		if (!get_user_rl(arg, &orig_rl))
-			return 0;
-		rl = rl_intersection(rl, orig_rl);
-		if (!rl)
-			return 0;
-	}
-	db_info->rl = rl_union(db_info->rl, rl);
-
-	return 0;
-}
-
 static int has_user_data(struct symbol *sym)
 {
 	struct sm_state *tmp;
@@ -868,35 +836,17 @@ static int we_pass_user_data(struct expression *call)
 
 static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 {
-	struct db_info db_info = {};
+	struct smatch_state *state;
+	char buf[48];
 
-	/* for function pointers assume everything is used */
-	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
-		return 0;
 	if (is_fake_call(call))
 		return 0;
-
-	db_info.call = call;
-	run_sql(&returned_rl_callback, &db_info,
-		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
-		get_static_filter(call->fn->symbol), USER_DATA_SET);
-	if (db_info.rl) {
-		func_gets_user_data = true;
-		*rl = db_info.rl;
-		return 1;
-	}
-
-	run_sql(&returned_rl_callback, &db_info,
-		"select return, value from return_states where %s and type = %d and parameter = -1 and key = '$';",
-		get_static_filter(call->fn->symbol), USER_DATA);
-	if (db_info.rl) {
-		if (!we_pass_user_data(call))
-			return 0;
-		*rl = db_info.rl;
-		return 1;
-	}
-
-	return 0;
+	snprintf(buf, sizeof(buf), "return %p", call);
+	state = get_state(my_id, buf, NULL);
+	if (!state || !estate_rl(state))
+		return 0;
+	*rl = estate_rl(state);
+	return 1;
 }
 
 struct stree *get_user_stree(void)
@@ -1241,6 +1191,22 @@ static void match_syscall_definition(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void store_user_data_return(struct expression *expr, char *key, char *value)
+{
+	struct range_list *rl;
+	struct symbol *type;
+	char buf[48];
+
+	if (strcmp(key, "$") != 0)
+		return;
+
+	type = get_type(expr);
+	snprintf(buf, sizeof(buf), "return %p", expr);
+	call_results_to_rl(expr, type, value, &rl);
+
+	set_state(my_id, buf, NULL, alloc_estate_rl(rl));
+}
+
 static void set_to_user_data(struct expression *expr, char *key, char *value)
 {
 	struct smatch_state *state;
@@ -1279,8 +1245,10 @@ static void returns_param_user_data(struct expression *expr, int param, char *ke
 		return;
 
 	if (param == -1) {
-		if (expr->type != EXPR_ASSIGNMENT)
+		if (expr->type != EXPR_ASSIGNMENT) {
+			store_user_data_return(expr, key, value);
 			return;
+		}
 		set_to_user_data(expr->left, key, value);
 		return;
 	}
@@ -1298,8 +1266,10 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	func_gets_user_data = true;
 
 	if (param == -1) {
-		if (expr->type != EXPR_ASSIGNMENT)
+		if (expr->type != EXPR_ASSIGNMENT) {
+			store_user_data_return(expr, key, value);
 			return;
+		}
 		if (strcmp(key, "*$") == 0) {
 			set_points_to_user_data(expr->left);
 			tag_as_user_data(expr->left);
