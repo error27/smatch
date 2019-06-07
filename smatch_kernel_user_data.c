@@ -1070,6 +1070,9 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	else
 		rl = rl_intersection(estate_rl(sm->state), estate_rl(state));
 
+	if (!rl)
+		return;
+
 	snprintf(buf, sizeof(buf), "%s%s", show_rl(rl),
 		 estate_capped(sm->state) ? "[c]" : "");
 	sql_insert_caller_info(call, USER_DATA, param, printed_name, buf);
