@@ -73,32 +73,11 @@ insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 103
 insert into return_states values ('faked', 'is_kernel_rodata', 0, 2, '0', 0, 0,   -1,  '', '');
 
 /*
- * I am a bad person for doing this to __kmalloc() which is a very deep function
- * and can easily be removed instead of to kmalloc().  But kmalloc() is an
- * inline function so it ends up being recorded thousands of times in the
- * database.  Doing this is easier.
- *
- */
-delete from return_states where function = '__kmalloc';
-insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 1, '16', 0, 103,   0, '\$', '0');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 103,  0, '\$', '1-4000000');
-insert into return_states values ('faked', '__kmalloc', 0, 2, '0,4096-ptr_max', 0, 1037,  -1, '', 400);
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '__kmalloc', 0, 3, '0', 0,    103,  0, '\$', '4000000-long_max');
-
-/*
  * Other kmalloc hacking.
  */
-update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_slab' and return = 's64min-s64max';
-update return_states set return = '0,4096-ptr_max' where function = 'slab_alloc_node' and return = 's64min-s64max';
-update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_large' and return != '0';
-update return_states set return = '0,4096-ptr_max' where function = 'kmalloc_order_trace' and return != '0';
-
 delete from return_states where function = 'vmalloc';
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '0,4096-ptr_max', 0, 103,  0, '\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', 'vmalloc', 0, 1, '4096-ptr_max', 0, 103,  0, '\$', '1-128000000');
 insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
 
 delete from return_states where function = 'ksize';
@@ -223,3 +202,17 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
          | sqlite3 $db_file
 done
 
+
+for func in __kmalloc __kmalloc_track_caller ; do
+
+    cat << EOF | sqlite3 $db_file
+delete from return_states where function = '$func';
+insert into return_states values ('faked', '$func', 0, 1, '16', 0,    0,  -1, '', '');
+insert into return_states values ('faked', '$func', 0, 1, '16', 0, 103,   0, '\$', '0');
+insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0, 103,  0, '\$', '1-4000000');
+insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0, 1037,  -1, '', 400);
+insert into return_states values ('faked', '$func', 0, 3, '0', 0,    0,  -1, '', '');
+insert into return_states values ('faked', '$func', 0, 3, '0', 0,    103,  0, '\$', '1-long_max');
+EOF
+done
