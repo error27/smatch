@@ -129,10 +129,18 @@ static bool binop_capped(struct expression *expr)
 	int comparison;
 
 	if (expr->op == '-' && get_user_rl(expr->left, &left_rl)) {
-		if (!user_rl_capped(expr->left))
-			return false;
+		if (user_rl_capped(expr->left))
+			return true;
 		comparison = get_comparison(expr->left, expr->right);
 		if (comparison && show_special(comparison)[0] == '>')
+			return true;
+		return false;
+	}
+
+	if (expr->op == '&' || expr->op == '%') {
+		if (is_capped(expr->left) || is_capped(expr->right))
+			return true;
+		if (user_rl_capped(expr->left) || user_rl_capped(expr->right))
 			return true;
 		return false;
 	}
