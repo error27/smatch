@@ -164,6 +164,9 @@ bool user_rl_capped(struct expression *expr)
 		return true;
 	if (expr->type == EXPR_BINOP)
 		return binop_capped(expr);
+	if ((expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) &&
+	    (expr->op == SPECIAL_INCREMENT || expr->op == SPECIAL_DECREMENT))
+		return user_rl_capped(expr->unop);
 	state = get_state_expr(my_id, expr);
 	if (state)
 		return estate_capped(state);
