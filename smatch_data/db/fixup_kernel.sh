@@ -40,6 +40,7 @@ delete from return_states where function='sprintf' and type = 8017;
 delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
 delete from caller_info where function = '__netdev_start_xmit' and type = 8017;
 delete from caller_info where function = '(struct packet_type)->func' and type = 8017;
+delete from caller_info where function = '(struct bio)->bi_end_io' and type = 8017;
 delete from caller_info where caller = 'NF_HOOK_COND' and type = 8017;
 delete from caller_info where caller = 'NF_HOOK' and type = 8017;
 /* comparison doesn't deal with chunks, I guess.  */
