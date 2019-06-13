@@ -409,16 +409,21 @@ static int going_too_slow(void)
 
 static char *sm_state_info(struct sm_state *sm)
 {
-	static char buf[256];
+	static char buf[512];
 	int n = 0;
 
 	n += snprintf(buf + n, sizeof(buf) - n, "[stree %d line %d] ",
 		      get_stree_id(sm->pool),  sm->line);
+	if (n >= sizeof(buf))
+		return buf;
 	n += snprintf(buf + n, sizeof(buf) - n, "%s ", show_sm(sm));
+	if (n >= sizeof(buf))
+		return buf;
 	n += snprintf(buf + n, sizeof(buf) - n, "left = %s [stree %d] ",
 		      sm->left ? sm->left->state->name : "<none>",
 		      sm->left ? get_stree_id(sm->left->pool) : -1);
-
+	if (n >= sizeof(buf))
+		return buf;
 	n += snprintf(buf + n, sizeof(buf) - n, "right = %s [stree %d]",
 		      sm->right ? sm->right->state->name : "<none>",
 		      sm->right ? get_stree_id(sm->right->pool) : -1);
