@@ -275,6 +275,9 @@ static struct symbol *get_type_helper(struct expression *expr)
 	case EXPR_LOGICAL:
 		ret = &int_ctype;
 		break;
+	case EXPR_OFFSETOF:
+		ret = &ulong_ctype;
+		break;
 	default:
 		return NULL;
 	}
