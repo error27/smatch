@@ -333,7 +333,7 @@ static void match_condition(struct expression *expr)
 	if (!get_value(expr->right, &right))
 		return;
 
-	orig = get_bit_info(expr);
+	orig = get_bit_info(expr->left);
 	true_info = *orig;
 	false_info = *orig;
 
