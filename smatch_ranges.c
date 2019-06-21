@@ -1512,22 +1512,64 @@ struct range_list *rl_filter(struct range_list *rl, struct range_list *filter)
 	return rl;
 }
 
+struct range_list *do_intersection(struct range_list *one_rl, struct range_list *two_rl)
+{
+	struct data_range *one, *two;
+	struct range_list *ret = NULL;
+
+
+	PREPARE_PTR_LIST(one_rl, one);
+	PREPARE_PTR_LIST(two_rl, two);
+
+	while (true) {
+		if (!one || !two)
+			break;
+		if (sval_cmp(one->max, two->min) < 0) {
+			NEXT_PTR_LIST(one);
+			continue;
+		}
+		if (sval_cmp(one->min, two->min) < 0 && sval_cmp(one->max, two->max) <= 0) {
+			add_range(&ret, two->min, one->max);
+			NEXT_PTR_LIST(one);
+			continue;
+		}
+		if (sval_cmp(one->min, two->min) >= 0 && sval_cmp(one->max, two->max) <= 0) {
+			add_range(&ret, one->min, one->max);
+			NEXT_PTR_LIST(one);
+			continue;
+		}
+		if (sval_cmp(one->min, two->min) < 0 && sval_cmp(one->max, two->max) > 0) {
+			add_range(&ret, two->min, two->max);
+			NEXT_PTR_LIST(two);
+			continue;
+		}
+		if (sval_cmp(one->min, two->max) <= 0 && sval_cmp(one->max, two->max) > 0) {
+			add_range(&ret, one->min, two->max);
+			NEXT_PTR_LIST(two);
+			continue;
+		}
+		if (sval_cmp(one->min, two->max) <= 0) {
+			sm_fatal("error calculating intersection of '%s' and '%s'", show_rl(one_rl), show_rl(two_rl));
+			return NULL;
+		}
+		NEXT_PTR_LIST(two);
+	}
+
+	FINISH_PTR_LIST(two);
+	FINISH_PTR_LIST(one);
+
+	return ret;
+}
+
 struct range_list *rl_intersection(struct range_list *one, struct range_list *two)
 {
-	struct range_list *one_orig;
-	struct range_list *two_orig;
 	struct range_list *ret;
 	struct symbol *ret_type;
 	struct symbol *small_type;
 	struct symbol *large_type;
 
-	if (!two)
+	if (!one || !two)
 		return NULL;
-	if (!one)
-		return NULL;
-
-	one_orig = one;
-	two_orig = two;
 
 	ret_type = rl_type(one);
 	small_type = rl_type(one);
@@ -1541,23 +1583,7 @@ struct range_list *rl_intersection(struct range_list *one, struct range_list *tw
 	one = cast_rl(large_type, one);
 	two = cast_rl(large_type, two);
 
-	ret = one;
-	one = rl_invert(one);
-	two = rl_invert(two);
-
-	ret = rl_filter(ret, one);
-	ret = rl_filter(ret, two);
-
-	one = cast_rl(small_type, one_orig);
-	two = cast_rl(small_type, two_orig);
-
-	one = rl_invert(one);
-	two = rl_invert(two);
-
-	ret = cast_rl(small_type, ret);
-	ret = rl_filter(ret, one);
-	ret = rl_filter(ret, two);
-
+	ret = do_intersection(one, two);
 	return cast_rl(ret_type, ret);
 }
 
