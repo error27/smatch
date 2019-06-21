@@ -17,6 +17,7 @@ except sqlite3.Error, e:
 def usage():
     print "%s" %(sys.argv[0])
     print "<function> - how a function is called"
+    print "info <type> - how a function is called, filtered by type"
     print "return_states <function> - what a function returns"
     print "call_tree <function> - show the call tree"
     print "where <struct_type> <member> - where a struct member is set"
@@ -605,6 +606,12 @@ if len(sys.argv) < 2:
 if len(sys.argv) == 2:
     func = sys.argv[1]
     print_caller_info("", func)
+elif sys.argv[1] == "info":
+    my_type = ""
+    if len(sys.argv) == 4:
+        my_type = sys.argv[3]
+    func = sys.argv[2]
+    print_caller_info("", func, my_type)
 elif sys.argv[1] == "call_info":
     if len(sys.argv) != 4:
         usage()
@@ -612,12 +619,6 @@ elif sys.argv[1] == "call_info":
     func = sys.argv[3]
     caller_info_values(filename, func)
     print_caller_info(filename, func)
-elif sys.argv[1] == "user_data":
-    func = sys.argv[2]
-    print_caller_info(filename, func, "USER_DATA")
-elif sys.argv[1] == "param_value":
-    func = sys.argv[2]
-    print_caller_info(filename, func, "PARAM_VALUE")
 elif sys.argv[1] == "function_ptr" or sys.argv[1] == "fn_ptr":
     func = sys.argv[2]
     print_fn_ptrs(func)
