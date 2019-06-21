@@ -1471,36 +1471,6 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	return ret;
 }
 
-struct range_list *rl_invert(struct range_list *orig)
-{
-	struct range_list *ret = NULL;
-	struct data_range *tmp;
-	sval_t gap_min, abs_max, sval;
-
-	if (!orig)
-		return NULL;
-	if (type_bits(rl_type(orig)) < 0)  /* void type mostly */
-		return NULL;
-
-	gap_min = sval_type_min(rl_min(orig).type);
-	abs_max = sval_type_max(rl_max(orig).type);
-
-	FOR_EACH_PTR(orig, tmp) {
-		if (sval_cmp(tmp->min, gap_min) > 0) {
-			sval = sval_type_val(tmp->min.type, tmp->min.value - 1);
-			add_range(&ret, gap_min, sval);
-		}
-		if (sval_cmp(tmp->max, abs_max) == 0)
-			return ret;
-		gap_min = sval_type_val(tmp->max.type, tmp->max.value + 1);
-	} END_FOR_EACH_PTR(tmp);
-
-	if (sval_cmp(gap_min, abs_max) <= 0)
-		add_range(&ret, gap_min, abs_max);
-
-	return ret;
-}
-
 struct range_list *rl_filter(struct range_list *rl, struct range_list *filter)
 {
 	struct data_range *tmp;
