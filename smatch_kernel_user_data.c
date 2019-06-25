@@ -1131,18 +1131,22 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	struct expression *expr;
 	struct symbol *type;
 	char fullname[256];
+	char *key_orig = key;
+	bool add_star = false;
 
-	if (strcmp(key, "*$") == 0)
-		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strcmp(key, "**$") == 0)
+	if (strcmp(key, "**$") == 0) {
 		snprintf(fullname, sizeof(fullname), "**%s", name);
-	else if (strncmp(key, "$", 1) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 1);
-	else
-		return;
+	} else {
+		if (key[0] == '*') {
+			add_star = true;
+			key++;
+		}
+
+		snprintf(fullname, 256, "%s%s%s", add_star ? "*" : "", name, key + 1);
+	}
 
 	expr = symbol_expression(sym);
-	type = get_member_type_from_key(expr, key);
+	type = get_member_type_from_key(expr, key_orig);
 
 	/*
 	 * Say this function takes a struct ponter but the caller passes
@@ -1151,7 +1155,7 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	 * The second option is easier to implement so we do that.
 	 *
 	 */
-	if (strcmp(key, "*$") == 0) {
+	if (strcmp(key_orig, "*$") == 0) {
 		struct symbol *tmp = type;
 
 		while (tmp && tmp->type == SYM_PTR)
@@ -1375,7 +1379,6 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
 					 -1, param_name, buf);
 	} END_FOR_EACH_SM(sm);
-
 
 	/* This if for "return ntohl(foo);" */
 	if (!return_found && get_user_rl(expr, &rl)) {

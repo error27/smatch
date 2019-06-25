@@ -2708,20 +2708,24 @@ static void match_call_info(struct expression *expr)
 
 static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
+	struct expression *expr;
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
 	struct symbol *type;
 	char fullname[256];
+	char *key_orig = key;
+	bool add_star = false;
 	sval_t dummy;
 
-	if (strcmp(key, "*$") == 0)
-		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strncmp(key, "$", 1) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 1);
-	else
-		return;
+	if (key[0] == '*') {
+		add_star = true;
+		key++;
+	}
 
-	type = get_member_type_from_key(symbol_expression(sym), key);
+	snprintf(fullname, 256, "%s%s%s", add_star ? "*" : "", name, key + 1);
+
+	expr = symbol_expression(sym);
+	type = get_member_type_from_key(expr, key_orig);
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
 	if (estate_get_single_value(state, &dummy))

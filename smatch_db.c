@@ -776,11 +776,13 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
 	struct sm_state *sm;
+	const char *sm_name;
 	char *name;
 	struct symbol *sym;
 	int len;
 	char printed_name[256];
 	int is_address = 0;
+	bool add_star;
 	struct symbol *type;
 
 	expr = strip_expr(expr);
@@ -803,21 +805,32 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	FOR_EACH_SM(stree, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (strcmp(name, sm->name) == 0) {
+		sm_name = sm->name;
+		add_star = false;
+		if (sm_name[0] == '*') {
+			add_star = true;
+			sm_name++;
+		}
+		// FIXME: simplify?
+		if (!add_star && strcmp(name, sm_name) == 0) {
 			if (is_address)
 				snprintf(printed_name, sizeof(printed_name), "*$%s", show_offset(offset));
 			else /* these are already handled. fixme: handle them here */
 				continue;
-		} else if (sm->name[0] == '*' && strcmp(name, sm->name + 1) == 0) {
+		} else if (add_star && strcmp(name, sm_name) == 0) {
 			snprintf(printed_name, sizeof(printed_name), "%s*$%s",
 				 is_address ? "*" : "", show_offset(offset));
-		} else if (strncmp(name, sm->name, len) == 0) {
-			if (sm->name[len] != '.' && sm->name[len] != '-')
+		} else if (strncmp(name, sm_name, len) == 0) {
+			if (sm_name[len] != '.' && sm_name[len] != '-')
 				continue;
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "$%s->%s", show_offset(offset), sm->name + len + 1);
+				snprintf(printed_name, sizeof(printed_name),
+					 "%s$%s->%s", add_star ? "*" : "",
+					 show_offset(offset), sm_name + len + 1);
 			else
-				snprintf(printed_name, sizeof(printed_name), "$%s%s", show_offset(offset), sm->name + len);
+				snprintf(printed_name, sizeof(printed_name),
+					 "%s$%s%s", add_star ? "*" : "",
+					 show_offset(offset), sm_name + len);
 		} else {
 			continue;
 		}
@@ -2415,6 +2428,7 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 {
 	char buf[256];
 	char *tmp;
+	bool add_star = false;
 
 	if (!arg)
 		return NULL;
@@ -2438,19 +2452,25 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		}
 	}
 
+	if (key[0] == '*') {
+		add_star = true;
+		key++;
+	}
+
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		arg = strip_expr(arg->unop);
 		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
-		snprintf(buf, sizeof(buf), "%s.%s", tmp, key + 3);
+		snprintf(buf, sizeof(buf), "%s%s.%s",
+			 add_star ? "*" : "", tmp, key + 3);
 		return alloc_string(buf);
 	}
 
 	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
-	snprintf(buf, sizeof(buf), "%s%s", tmp, key + 1);
+	snprintf(buf, sizeof(buf), "%s%s%s", add_star ? "*" : "", tmp, key + 1);
 	free_string(tmp);
 	return alloc_string(buf);
 }
@@ -2468,17 +2488,25 @@ const char *state_name_to_param_name(const char *state_name, const char *param_n
 {
 	int name_len;
 	static char buf[256];
+	bool add_star = false;
 
 	name_len = strlen(param_name);
 
+	if (state_name[0] == '*') {
+		add_star = true;
+		state_name++;
+	}
+
 	if (strcmp(state_name, param_name) == 0) {
-		return "$";
-	} else if (state_name[name_len] == '-' && /* check for '-' from "->" */
-	    strncmp(state_name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "$%s", state_name + name_len);
+		snprintf(buf, sizeof(buf), "%s$", add_star ? "*" : "");
 		return buf;
-	} else if (state_name[0] == '*' && strcmp(state_name + 1, param_name) == 0) {
-		return "*$";
+	}
+
+	if (state_name[name_len] == '-' && /* check for '-' from "->" */
+	    strncmp(state_name, param_name, name_len) == 0) {
+		snprintf(buf, sizeof(buf), "%s$%s",
+			 add_star ? "*" : "", state_name + name_len);
+		return buf;
 	}
 	return NULL;
 }
