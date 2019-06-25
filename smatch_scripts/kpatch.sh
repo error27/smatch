@@ -80,10 +80,6 @@ for file in $(grep -l $fullname ~/var/mail/sent-*) ; do
 done
 qc "Looks OK?"
 
-git log -10 --oneline $fullname
-echo "Copy and paste one of these subjects?"
-read unused
-
 git add $fullname
 
 cat /dev/null > $MSG_FILE
@@ -95,6 +91,7 @@ else
     echo "" >> $MSG_FILE
     echo "# $sm_err" >> $MSG_FILE
 fi
+git log -10 --oneline $fullname | sed -e 's/^/# /' >> $MSG_FILE
 vim $MSG_FILE
 
 grep -v '^#' $MSG_FILE > $MSG_FILE.1
