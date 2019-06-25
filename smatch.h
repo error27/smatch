@@ -1077,6 +1077,7 @@ int combine_comparisons(int left_compare, int right_compare);
 int state_to_comparison(struct smatch_state *state);
 struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch_state *s2);
 int get_comparison(struct expression *left, struct expression *right);
+int get_comparison_no_extra(struct expression *a, struct expression *b);
 int get_comparison_strings(const char *one, const char *two);
 int possible_comparison(struct expression *a, int comparison, struct expression *b);
 struct state_list *get_all_comparisons(struct expression *expr);

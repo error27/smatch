@@ -1604,7 +1604,7 @@ int get_comparison_strings(const char *one, const char *two)
 	return ret;
 }
 
-int get_comparison(struct expression *a, struct expression *b)
+static int get_comparison_helper(struct expression *a, struct expression *b, bool use_extra)
 {
 	char *one = NULL;
 	char *two = NULL;
@@ -1653,9 +1653,19 @@ free:
 	free_string(one);
 	free_string(two);
 
-	if (!ret)
+	if (!ret && use_extra)
 		return comparison_from_extra(a, b);
 	return ret;
+}
+
+int get_comparison(struct expression *a, struct expression *b)
+{
+	return get_comparison_helper(a, b, true);
+}
+
+int get_comparison_no_extra(struct expression *a, struct expression *b)
+{
+	return get_comparison_helper(a, b, false);
 }
 
 int possible_comparison(struct expression *a, int comparison, struct expression *b)

@@ -1040,7 +1040,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto done;
 	}
 
-	comparison = get_comparison(left, right);
+	comparison = get_comparison_no_extra(left, right);
 	if (comparison) {
 		comparison = flip_comparison(comparison);
 		get_implied_rl(left, &orig_rl);
