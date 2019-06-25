@@ -67,7 +67,7 @@ sval_t sval_type_val(struct symbol *type, long long val)
 	sval_t ret;
 
 	if (!type)
-		type = &int_ctype;
+		type = &llong_ctype;
 
 	ret.type = type;
 	ret.value = val;
