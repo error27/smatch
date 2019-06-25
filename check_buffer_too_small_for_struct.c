@@ -27,6 +27,7 @@ static void match_assign(struct expression *expr)
 	struct expression *size_expr;
 	sval_t min_size;
 	int limit_type;
+	int bytes;
 
 	left_type = get_type(expr->left);
 	if (!left_type || left_type->type != SYM_PTR)
@@ -42,6 +43,10 @@ static void match_assign(struct expression *expr)
 	if (!right_type)
 		return;
 	if (right_type != &void_ctype && type_bits(right_type) != 8)
+		return;
+
+	bytes = get_array_size_bytes(expr->right);
+	if (bytes >= type_bytes(left_type))
 		return;
 
 	size_expr = get_size_variable(expr->right, &limit_type);
