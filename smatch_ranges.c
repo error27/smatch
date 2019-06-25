@@ -611,11 +611,31 @@ cast:
 	dinfo->value_ranges = rl;
 }
 
+static int rl_is_sane(struct range_list *rl)
+{
+	struct data_range *tmp;
+	struct symbol *type;
+
+	type = rl_type(rl);
+	FOR_EACH_PTR(rl, tmp) {
+		if (!sval_fits(type, tmp->min))
+			return 0;
+		if (!sval_fits(type, tmp->max))
+			return 0;
+		if (sval_cmp(tmp->min, tmp->max) > 0)
+			return 0;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 1;
+}
+
 void str_to_rl(struct symbol *type, char *value, struct range_list **rl)
 {
 	struct data_info dinfo = {};
 
 	str_to_dinfo(NULL, type, value, &dinfo);
+	if (!rl_is_sane(dinfo.value_ranges))
+		dinfo.value_ranges = alloc_whole_rl(type);
 	*rl = dinfo.value_ranges;
 }
 
@@ -1377,24 +1397,6 @@ int rl_fits_in_type(struct range_list *rl, struct symbol *type)
 	if (sval_is_negative(rl_min(rl)) &&
 	    sval_cmp(rl_min(rl), sval_type_min(type)) < 0)
 		return 0;
-	return 1;
-}
-
-static int rl_is_sane(struct range_list *rl)
-{
-	struct data_range *tmp;
-	struct symbol *type;
-
-	type = rl_type(rl);
-	FOR_EACH_PTR(rl, tmp) {
-		if (!sval_fits(type, tmp->min))
-			return 0;
-		if (!sval_fits(type, tmp->max))
-			return 0;
-		if (sval_cmp(tmp->min, tmp->max) > 0)
-			return 0;
-	} END_FOR_EACH_PTR(tmp);
-
 	return 1;
 }
 
