@@ -321,18 +321,22 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 		expr = strip_expr(expr->unop);
 		return get_implied_mtag_offset(expr, tag, offset);
 	} else if (expr->type == EXPR_DEREF) {
-		int next_offset;
+		int tmp, tmp_offset = 0;
 
-		*offset = get_member_offset_from_deref(expr);
-		if (*offset < 0)
-			return 0;
-		expr = expr->deref;
+		while (expr->type == EXPR_DEREF) {
+			tmp = get_member_offset_from_deref(expr);
+			if (tmp < 0)
+				return 0;
+			tmp_offset += tmp;
+			expr = expr->deref;
+		}
+		*offset = tmp_offset;
 		if (expr->type == EXPR_PREOP && expr->op == '*') {
 			expr = strip_expr(expr->unop);
 
-			if (get_implied_mtag_offset(expr, tag, &next_offset)) {
+			if (get_implied_mtag_offset(expr, tag, &tmp_offset)) {
 				// FIXME:  look it up recursively?
-				if (next_offset)
+				if (tmp_offset)
 					return 0;
 				return 1;
 			}
