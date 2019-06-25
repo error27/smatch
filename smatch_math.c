@@ -335,7 +335,7 @@ static bool handle_subtract_rl(struct expression *expr, int implied, int *recurs
 	struct symbol *type;
 	struct range_list *left_orig, *right_orig;
 	struct range_list *left_rl, *right_rl;
-	sval_t max, min, tmp;
+	sval_t min, max, tmp;
 	int comparison;
 	int offset;
 
