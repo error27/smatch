@@ -181,6 +181,25 @@ int get_toplevel_mtag(struct symbol *sym, mtag_t *tag)
 	return 1;
 }
 
+bool get_symbol_mtag(struct symbol *sym, mtag_t *tag)
+{
+	char buf[256];
+
+	if (!sym || !sym->ident)
+		return false;
+
+	if (get_toplevel_mtag(sym, tag))
+		return true;
+
+	if (get_param_num_from_sym(sym) >= 0)
+		return false;
+
+	snprintf(buf, sizeof(buf), "%s %s %s",
+		 get_filename(), get_function(), sym->ident->name);
+	*tag = str_to_tag(buf);
+	return true;
+}
+
 static void global_variable(struct symbol *sym)
 {
 	mtag_t tag;
@@ -342,11 +361,11 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 			}
 			return 0;
 		} else if (expr->type == EXPR_SYMBOL) {
-			return get_toplevel_mtag(expr->symbol, tag);
+			return get_symbol_mtag(expr->symbol, tag);
 		}
 		return 0;
 	} else if (expr->type == EXPR_SYMBOL) {
-		return get_toplevel_mtag(expr->symbol, tag);
+		return get_symbol_mtag(expr->symbol, tag);
 	}
 	return 0;
 }
