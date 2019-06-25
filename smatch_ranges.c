@@ -137,8 +137,8 @@ static int truncates_nicely(struct symbol *type, sval_t min, sval_t max)
 	if (bits >= type_bits(min.type))
 		return 0;
 
-	mask = (-1ULL >> (64 - bits)) << (64 - bits);
-	return (min.uvalue & mask) ==  (max.uvalue & mask);
+	mask = -1ULL << bits;
+	return (min.uvalue & mask) == (max.uvalue & mask);
 }
 
 static void add_range_t(struct symbol *type, struct range_list **rl, sval_t min, sval_t max)
