@@ -1002,7 +1002,7 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 	case RL_IMPLIED:
 	case RL_ABSOLUTE:
 		state = get_extra_state(expr);
-		if (!state || !state->data) {
+		if (!state || estate_is_whole(state)) {
 			if (implied == RL_HARD)
 				return false;
 			if (get_local_rl(expr, res))
