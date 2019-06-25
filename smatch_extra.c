@@ -785,6 +785,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 		limit = sval_binop(estate_min(sm->state), '-',
 				   sval_type_val(estate_type(sm->state), 1));
 	}
+	limit = sval_cast(estate_type(sm->state), limit);
 	if (!estate_has_hard_max(sm->state) && !__has_breaks()) {
 		if (iter_expr->op == SPECIAL_INCREMENT)
 			state = alloc_estate_range(estate_min(sm->state), limit);
