@@ -99,8 +99,8 @@ int is_capped(struct expression *expr)
 			return 1;
 		if (expr->op == SPECIAL_RIGHTSHIFT)
 			return 1;
-		if (expr->op == '%')
-			return is_capped(expr->right);
+		if (expr->op == '%' && is_capped(expr->right))
+			return 1;
 		if (!is_capped(expr->left))
 			return 0;
 		if (expr->op == '/')
