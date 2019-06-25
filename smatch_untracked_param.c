@@ -85,6 +85,23 @@ static void assume_tracked(struct expression *call_expr, int param, char *key, c
 	tracked = 1;
 }
 
+static char *get_array_from_key(struct expression *expr, int param, const char *key, struct symbol **sym)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return NULL;
+	if (arg->type != EXPR_PREOP || arg->op != '&')
+		return NULL;
+	arg = arg->unop;
+	if (!is_array(arg))
+		return NULL;
+	arg = get_array_base(arg);
+
+	return expr_to_var_sym(arg, sym);
+}
+
 static void mark_untracked_lost(struct expression *expr, int param, const char *key, int type)
 {
 	char *name;
@@ -96,8 +113,11 @@ static void mark_untracked_lost(struct expression *expr, int param, const char *
 		return;
 
 	name = return_state_to_var_sym(expr, param, key, &sym);
-	if (!name || !sym)
-		goto free;
+	if (!name || !sym) {
+		name = get_array_from_key(expr, param, key, &sym);
+		if (!name || !sym)
+			goto free;
+	}
 
 	if (type == LOST_PARAM)
 		call_lost_callbacks(expr, param);
