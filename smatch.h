@@ -1164,6 +1164,7 @@ struct sm_state *stored_condition_implication_hook(struct expression *expr,
 
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);
+int get_formatted_string_min_size(struct expression *call, int arg);
 
 /* smatch_param_set.c */
 int param_was_set(struct expression *expr);
