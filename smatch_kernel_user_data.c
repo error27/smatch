@@ -1382,9 +1382,11 @@ static void param_set_to_user_data(int return_id, char *return_ranges, struct ex
 
 	/* This if for "return ntohl(foo);" */
 	if (!return_found && get_user_rl(expr, &rl)) {
+		snprintf(buf, sizeof(buf), "%s%s",
+			 show_rl(rl), user_rl_capped(expr) ? "[c]" : "");
 		sql_insert_return_states(return_id, return_ranges,
 					 func_gets_user_data ? USER_DATA_SET : USER_DATA,
-					 -1, "$", show_rl(rl));
+					 -1, "$", buf);
 	}
 
 	/*
