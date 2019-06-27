@@ -100,6 +100,8 @@ void update_mtag_data(struct expression *expr)
 	mtag_t tag;
 	int offset;
 
+	if (is_local_variable(expr))
+		return;
 	name = expr_to_var(expr);
 	if (is_kernel_param(name)) {
 		free_string(name);
@@ -242,6 +244,8 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 	mtag_t tag;
 	int offset;
 
+	if (is_local_variable(expr))
+		return 0;
 	if (!expr_to_mtag_offset(expr, &tag, &offset))
 		return 0;
 	if (offset >= MTAG_OFFSET_MASK)
