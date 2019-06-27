@@ -496,20 +496,16 @@ free:
 	return ret;
 }
 
-int is_local_variable(struct expression *expr)
+bool is_local_variable(struct expression *expr)
 {
 	struct symbol *sym;
-	char *name;
 
-	name = expr_to_var_sym(expr, &sym);
-	free_string(name);
-	if (!sym || !sym->scope || !sym->scope->token || !cur_func_sym)
-		return 0;
-	if (cmp_pos(sym->scope->token->pos, cur_func_sym->pos) < 0)
-		return 0;
-	if (is_static(expr))
-		return 0;
-	return 1;
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return false;
+	sym = expr->symbol;
+	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
+		return true;
+	return false;
 }
 
 int types_equiv(struct symbol *one, struct symbol *two)
