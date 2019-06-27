@@ -79,6 +79,19 @@ static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 		tag, offset, DATA_VALUE, (unsigned long)rl);
 }
 
+static bool invalid_type(struct symbol *type)
+{
+	if (!type)
+		return true;
+	if (type == &void_ctype)
+		return true;
+	if (type->type == SYM_STRUCT ||
+	    type->type == SYM_ARRAY ||
+	    type->type == SYM_UNION)
+		return true;
+	return false;
+}
+
 void update_mtag_data(struct expression *expr)
 {
 	struct range_list *orig, *new, *rl;
@@ -98,9 +111,7 @@ void update_mtag_data(struct expression *expr)
 		return;
 
 	type = get_type(expr);
-	if ((offset == 0) &&
-	    (!type || type == &void_ctype ||
-	     type->type == SYM_STRUCT || type->type == SYM_UNION || type->type == SYM_ARRAY))
+	if (offset == 0 && invalid_type(type))
 		return;
 
 	get_absolute_rl(expr, &rl);
@@ -188,10 +199,6 @@ static int get_rl_from_mtag_offset(mtag_t tag, int offset, struct symbol *type, 
 	int ret;
 	int i;
 
-	if (!type || type == &void_ctype ||
-	    (type->type == SYM_STRUCT || type->type == SYM_ARRAY || type->type == SYM_UNION))
-		return 0;
-
 	for (i = 0; i < ARRAY_SIZE(cached_results); i++) {
 		if (merged == cached_results[i].tag) {
 			if (cached_results[i].rl) {
@@ -241,7 +248,7 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 		return 0;
 
 	type = get_type(expr);
-	if (!type)
+	if (invalid_type(type))
 		return 0;
 
 	return get_rl_from_mtag_offset(tag, offset, type, rl);
