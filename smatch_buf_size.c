@@ -905,13 +905,14 @@ void register_buf_size(int id)
 		add_allocation_function("__alloc_bootmem", &match_alloc, 0);
 		add_allocation_function("alloc_bootmem", &match_alloc, 0);
 		add_allocation_function("kmap", &match_page, 0);
+		add_allocation_function("kmap_atomic", &match_page, 0);
 		add_allocation_function("get_zeroed_page", &match_page, 0);
 		add_allocation_function("alloc_page", &match_page, 0);
-		add_allocation_function("page_address", &match_page, 0);
-		add_allocation_function("lowmem_page_address", &match_page, 0);
 		add_allocation_function("alloc_pages", &match_alloc_pages, 1);
 		add_allocation_function("alloc_pages_current", &match_alloc_pages, 1);
 		add_allocation_function("__get_free_pages", &match_alloc_pages, 1);
+		add_allocation_function("dma_alloc_contiguous", &match_alloc, 1);
+		add_allocation_function("dma_alloc_coherent", &match_alloc, 1);
 	}
 
 	add_allocation_function("strndup", match_strndup, 0);
