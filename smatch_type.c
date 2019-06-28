@@ -500,7 +500,7 @@ bool is_local_variable(struct expression *expr)
 {
 	struct symbol *sym;
 
-	if (!expr || expr->type != EXPR_SYMBOL)
+	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
 		return false;
 	sym = expr->symbol;
 	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
