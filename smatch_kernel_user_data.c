@@ -89,7 +89,6 @@ static void pre_merge_hook(struct sm_state *sm)
 	struct smatch_state *extra;
 	struct smatch_state *state;
 	struct range_list *rl;
-	sval_t dummy;
 
 	user = __get_state(my_id, sm->name, sm->sym);
 	if (!user || !estate_rl(user))
@@ -98,8 +97,6 @@ static void pre_merge_hook(struct sm_state *sm)
 	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
-	if (rl_to_sval(rl, &dummy))
-		rl = NULL;
 	state = alloc_estate_rl(clone_rl(rl));
 	if (estate_capped(user) || is_capped_var_sym(sm->name, sm->sym))
 		estate_set_capped(state);
