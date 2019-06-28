@@ -204,13 +204,16 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
 	struct range_list *rl = NULL;
+	bool capped = false;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
 
 	get_user_rl(arg, &rl);
-	sm_msg("user rl: '%s' = '%s'", name, show_rl(rl));
+	if (rl)
+		capped = user_rl_capped(arg);
+	sm_msg("user rl: '%s' = '%s'%s", name, show_rl(rl), capped ? " (capped)" : "");
 
 	free_string(name);
 }
