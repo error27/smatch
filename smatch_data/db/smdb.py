@@ -267,7 +267,7 @@ def get_next_str(txt):
         if txt[0] == '-':
             parsed += 1
         for char in txt[parsed:]:
-            if char == '-':
+            if char == '-' or char == '[':
                 break
             parsed += 1
         val = txt[:parsed]
