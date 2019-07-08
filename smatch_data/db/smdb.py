@@ -574,8 +574,8 @@ def trace_param_helper(func, param, indent = 0):
     sources = trace_callers(func, param)
     for path in sources:
 
-        if len(path[1]) and path[1][0] == 'p' and path[1][1] == ' ':
-            p = int(path[1][2:])
+        if len(path[1]) and path[1][0] == '$':
+            p = int(re.findall('\d+', path[1][1:])[0])
             trace_param_helper(path[0], p, indent + 2)
         elif len(path[0]) and path[0][0] == '%':
             print "  %s%s" %(" " * indent, path[1])
