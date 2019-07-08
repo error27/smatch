@@ -71,7 +71,6 @@ if  echo $oname | grep -q .o$ ; then
 fi
 
 if [[ ! -z $ARCH ]]; then
-	echo "yes"
 	KERNEL_ARCH="ARCH=$ARCH"
 fi
 if [[ ! -z $CROSS_COMPILE ]] ; then
