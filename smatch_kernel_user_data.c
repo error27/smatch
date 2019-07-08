@@ -539,7 +539,7 @@ static int handle_get_user(struct expression *expr)
 		return 0;
 
 	name = expr_to_var(expr->right);
-	if (!name || strcmp(name, "__val_gu") != 0)
+	if (!name || (strcmp(name, "__val_gu") != 0 && strcmp(name, "__gu_val") != 0))
 		goto free;
 	set_state_expr(my_id, expr->left, alloc_estate_whole(get_type(expr->left)));
 	ret = 1;

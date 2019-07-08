@@ -108,7 +108,7 @@ static void match_assign(struct expression *expr)
 		return;
 	}
 	name = expr_to_var(expr->right);
-	if (!name || strcmp(name, "__val_gu") != 0)
+	if (!name || (strcmp(name, "__val_gu") != 0 && strcmp(name, "__gu_val")))
 		goto free;
 	set_state_expr(my_max_id, expr->left, &user_data);
 	set_state_expr(my_min_id, expr->left, &user_data);
