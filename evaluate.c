@@ -1178,20 +1178,22 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	expr->flags = (expr->conditional->flags & (*cond)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
 	/*
-	 * A conditional operator yields a particular constant
-	 * expression type only if all of its three subexpressions are
-	 * of that type [6.6(6), 6.6(8)].
-	 * As an extension, relax this restriction by allowing any
-	 * constant expression type for the condition expression.
-	 *
-	 * A conditional operator never yields an address constant
-	 * [6.6(9)].
-	 * However, as an extension, if the condition is any constant
-	 * expression, and the true and false expressions are both
-	 * address constants, mark the result as an address constant.
+	 * In the standard, it is defined that an integer constant expression
+	 * shall only have operands that are themselves constant [6.6(6)].
+	 * While this definition is very clear for expressions that need all
+	 * their operands to be evaluated, for conditional expressions with a
+	 * constant condition things are much less obvious.
+	 * So, as an extension, do the same as GCC seems to do:
+	 *	Consider a conditional expression with a constant condition
+	 *	as having the same constantness as the argument corresponding
+	 *	to the truth value (including in the case of address constants
+	 *	which are defined more stricly [6.6(9)]).
 	 */
-	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
-		expr->flags = (*cond)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
+	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR)) {
+		int is_true = expr_truth_value(expr->conditional);
+		struct expression *arg = is_true ? *cond : expr->cond_false;
+		expr->flags = arg->flags & ~CEF_CONST_MASK;
+	}
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
