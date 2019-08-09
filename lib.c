@@ -568,6 +568,14 @@ OPT_NUMERIC(uint, unsigned int, strtoul)
 ////////////////////////////////////////////////////////////////////////////////
 // Option parsing
 
+static char **handle_switch_a(char *arg, char **next)
+{
+	if (!strcmp (arg, "ansi"))
+		standard = STANDARD_C89;
+
+	return next;
+}
+
 static char **handle_switch_D(char *arg, char **next)
 {
 	const char *name = arg + 1;
@@ -592,248 +600,6 @@ static char **handle_switch_D(char *arg, char **next)
 		}
 	}
 	add_pre_buffer("#define %s %s\n", name, value);
-	return next;
-}
-
-static char **handle_switch_E(char *arg, char **next)
-{
-	if (arg[1] == '\0')
-		preprocess_only = 1;
-	return next;
-}
-
-static char **handle_switch_I(char *arg, char **next)
-{
-	char *path = arg+1;
-
-	switch (arg[1]) {
-	case '-':
-		add_pre_buffer("#split_include\n");
-		break;
-
-	case '\0':	/* Plain "-I" */
-		path = *++next;
-		if (!path)
-			die("missing argument for -I option");
-		/* Fall through */
-	default:
-		add_pre_buffer("#add_include \"%s/\"\n", path);
-	}
-	return next;
-}
-
-static void add_cmdline_include(char *filename)
-{
-	if (cmdline_include_nr >= CMDLINE_INCLUDE)
-		die("too many include files for %s\n", filename);
-	cmdline_include[cmdline_include_nr++] = filename;
-}
-
-static char **handle_switch_i(char *arg, char **next)
-{
-	if (*next && !strcmp(arg, "include"))
-		add_cmdline_include(*++next);
-	else if (*next && !strcmp(arg, "imacros"))
-		add_cmdline_include(*++next);
-	else if (*next && !strcmp(arg, "isystem")) {
-		char *path = *++next;
-		if (!path)
-			die("missing argument for -isystem option");
-		add_pre_buffer("#add_isystem \"%s/\"\n", path);
-	} else if (*next && !strcmp(arg, "idirafter")) {
-		char *path = *++next;
-		if (!path)
-			die("missing argument for -idirafter option");
-		add_pre_buffer("#add_dirafter \"%s/\"\n", path);
-	}
-	return next;
-}
-
-static char **handle_switch_M(char *arg, char **next)
-{
-	if (!strcmp(arg, "MF") || !strcmp(arg,"MQ") || !strcmp(arg,"MT")) {
-		if (!*next)
-			die("missing argument for -%s option", arg);
-		return next + 1;
-	}
-	return next;
-}
-
-static char **handle_multiarch_dir(char *arg, char **next)
-{
-	multiarch_dir = *++next;
-	if (!multiarch_dir)
-		die("missing argument for -multiarch-dir option");
-	return next;
-}
-
-static int handle_cmodel(const char *opt, const char *arg, const struct flag *flag, int options)
-{
-	static const struct val_map cmodels[] = {
-		{ "kernel",	CMODEL_KERNEL },
-		{ "large",	CMODEL_LARGE },
-		{ "medany",	CMODEL_MEDANY },
-		{ "medium",	CMODEL_MEDIUM },
-		{ "medlow",	CMODEL_MEDLOW },
-		{ "small",	CMODEL_SMALL },
-		{ "tiny",	CMODEL_TINY },
-		{ },
-	};
-	return handle_subopt_val(opt, arg, cmodels, flag->flag);
-}
-
-static int handle_float_abi(const char *opt, const char *arg, const struct flag *flag, int options) {
-	static const struct val_map fp_abis[] = {
-		{ "hard",		FP_ABI_HARD },
-		{ "soft",		FP_ABI_SOFT },
-		{ "softfp",		FP_ABI_HYBRID },
-		{ "?" },
-	};
-	return handle_subopt_val(opt, arg, fp_abis, flag->flag);
-}
-
-static const struct flag mflags[] = {
-	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
-	{ "32", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
-	{ "31", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
-	{ "16", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
-	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
-	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
-	{ "size-long", &arch_msize_long },
-	{ "big-endian", &arch_big_endian, NULL },
-	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
-	{ "cmodel", &arch_cmodel, handle_cmodel },
-	{ "float-abi", &arch_fp_abi, handle_float_abi },
-	{ "hard-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_HARD },
-	{ "soft-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_SOFT },
-	{ }
-};
-
-static char **handle_switch_m(char *arg, char **next)
-{
-	if (!strcmp(arg, "multiarch-dir")) {
-		return handle_multiarch_dir(arg, next);
-	} else {
-		handle_switches(arg-1, arg+1, mflags);
-	}
-
-	return next;
-}
-
-static char **handle_switch_o(char *arg, char **next)
-{
-	if (!strcmp (arg, "o")) {       // "-o foo"
-		if (!*++next)
-			die("argument to '-o' is missing");
-		outfile = *next;
-	}
-	// else "-ofoo"
-
-	return next;
-}
-
-static const struct flag pflags[] = {
-	{ "pedantic", &Wpedantic, NULL, OPT_VAL, FLAG_ON },
-	{ }
-};
-
-static char **handle_switch_p(char *arg, char **next)
-{
-	handle_switches(arg-1, arg, pflags);
-	return next;
-}
-
-static const struct flag warnings[] = {
-	{ "address", &Waddress },
-	{ "address-space", &Waddress_space },
-	{ "bitwise", &Wbitwise },
-	{ "bitwise-pointer", &Wbitwise_pointer},
-	{ "cast-from-as", &Wcast_from_as },
-	{ "cast-to-as", &Wcast_to_as },
-	{ "cast-truncate", &Wcast_truncate },
-	{ "constant-suffix", &Wconstant_suffix },
-	{ "constexpr-not-const", &Wconstexpr_not_const},
-	{ "context", &Wcontext },
-	{ "decl", &Wdecl },
-	{ "declaration-after-statement", &Wdeclarationafterstatement },
-	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
-	{ "designated-init", &Wdesignated_init },
-	{ "do-while", &Wdo_while },
-	{ "enum-mismatch", &Wenum_mismatch },
-	{ "external-function-has-definition", &Wexternal_function_has_definition },
-	{ "implicit-int", &Wimplicit_int },
-	{ "init-cstring", &Winit_cstring },
-	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
-	{ "memcpy-max-count", &Wmemcpy_max_count },
-	{ "non-pointer-null", &Wnon_pointer_null },
-	{ "newline-eof", &Wnewline_eof },
-	{ "old-initializer", &Wold_initializer },
-	{ "old-style-definition", &Wold_style_definition },
-	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
-	{ "override-init", &Woverride_init },
-	{ "override-init-all", &Woverride_init_all },
-	{ "paren-string", &Wparen_string },
-	{ "pedantic", &Wpedantic },
-	{ "pointer-to-int-cast", &Wpointer_to_int_cast },
-	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
-	{ "return-void", &Wreturn_void },
-	{ "shadow", &Wshadow },
-	{ "shift-count-negative", &Wshift_count_negative },
-	{ "shift-count-overflow", &Wshift_count_overflow },
-	{ "sizeof-bool", &Wsizeof_bool },
-	{ "strict-prototypes", &Wstrict_prototypes },
-	{ "pointer-arith", &Wpointer_arith },
-	{ "sparse-error", &Wsparse_error },
-	{ "tautological-compare", &Wtautological_compare },
-	{ "transparent-union", &Wtransparent_union },
-	{ "typesign", &Wtypesign },
-	{ "undef", &Wundef },
-	{ "uninitialized", &Wuninitialized },
-	{ "universal-initializer", &Wuniversal_initializer },
-	{ "unknown-attribute", &Wunknown_attribute },
-	{ "vla", &Wvla },
-	{ }
-};
-
-static char **handle_switch_W(char *arg, char **next)
-{
-	char ** ret = handle_onoff_switch(arg, next, warnings);
-	if (ret)
-		return ret;
-
-	if (!strcmp(arg, "Wsparse-all")) {
-		int i;
-		for (i = 0; warnings[i].name; i++) {
-			if (*warnings[i].flag != FLAG_FORCE_OFF)
-				*warnings[i].flag = FLAG_ON;
-		}
-	}
-
-	// Unknown.
-	return next;
-}
-
-static struct flag debugs[] = {
-	{ "compound", &dbg_compound},
-	{ "dead", &dbg_dead},
-	{ "domtree", &dbg_domtree},
-	{ "entry", &dbg_entry},
-	{ "ir", &dbg_ir},
-	{ "postorder", &dbg_postorder},
-	{ }
-};
-
-
-static char **handle_switch_v(char *arg, char **next)
-{
-	char ** ret = handle_onoff_switch(arg, next, debugs);
-	if (ret)
-		return ret;
-
-	// Unknown.
-	do {
-		verbose++;
-	} while (*++arg == 'v');
 	return next;
 }
 
@@ -868,44 +634,10 @@ static char **handle_switch_d(char *arg, char **next)
 	return next;
 }
 
-
-static void handle_switch_W_finalize(void)
+static char **handle_switch_E(char *arg, char **next)
 {
-	handle_onoff_switch_finalize(warnings);
-
-	/* default Wdeclarationafterstatement based on the C dialect */
-	if (-1 == Wdeclarationafterstatement) {
-		switch (standard) {
-			case STANDARD_C89:
-			case STANDARD_C94:
-				Wdeclarationafterstatement = 1;
-				break;
-			default:
-				Wdeclarationafterstatement = 0;
-				break;
-		}
-	}
-}
-
-static void handle_switch_v_finalize(void)
-{
-	handle_onoff_switch_finalize(debugs);
-}
-
-static char **handle_switch_U(char *arg, char **next)
-{
-	const char *name = arg + 1;
-	add_pre_buffer ("#undef %s\n", name);
-	return next;
-}
-
-static char **handle_switch_O(char *arg, char **next)
-{
-	int level = 1;
-	if (arg[1] >= '0' && arg[1] <= '9')
-		level = arg[1] - '0';
-	optimize_level = level;
-	optimize_size = arg[1] == 's';
+	if (arg[1] == '\0')
+		preprocess_only = 1;
 	return next;
 }
 
@@ -1033,11 +765,184 @@ static char **handle_switch_G(char *arg, char **next)
 		return next;     // "-G0" or (bogus) terminal "-G"
 }
 
-static char **handle_switch_a(char *arg, char **next)
+static char **handle_base_dir(char *arg, char **next)
 {
-	if (!strcmp (arg, "ansi"))
-		standard = STANDARD_C89;
+	gcc_base_dir = *++next;
+	if (!gcc_base_dir)
+		die("missing argument for -gcc-base-dir option");
+	return next;
+}
 
+static char **handle_switch_g(char *arg, char **next)
+{
+	if (!strcmp (arg, "gcc-base-dir"))
+		return handle_base_dir(arg, next);
+
+	return next;
+}
+
+static char **handle_switch_I(char *arg, char **next)
+{
+	char *path = arg+1;
+
+	switch (arg[1]) {
+	case '-':
+		add_pre_buffer("#split_include\n");
+		break;
+
+	case '\0':	/* Plain "-I" */
+		path = *++next;
+		if (!path)
+			die("missing argument for -I option");
+		/* Fall through */
+	default:
+		add_pre_buffer("#add_include \"%s/\"\n", path);
+	}
+	return next;
+}
+
+static void add_cmdline_include(char *filename)
+{
+	if (cmdline_include_nr >= CMDLINE_INCLUDE)
+		die("too many include files for %s\n", filename);
+	cmdline_include[cmdline_include_nr++] = filename;
+}
+
+static char **handle_switch_i(char *arg, char **next)
+{
+	if (*next && !strcmp(arg, "include"))
+		add_cmdline_include(*++next);
+	else if (*next && !strcmp(arg, "imacros"))
+		add_cmdline_include(*++next);
+	else if (*next && !strcmp(arg, "isystem")) {
+		char *path = *++next;
+		if (!path)
+			die("missing argument for -isystem option");
+		add_pre_buffer("#add_isystem \"%s/\"\n", path);
+	} else if (*next && !strcmp(arg, "idirafter")) {
+		char *path = *++next;
+		if (!path)
+			die("missing argument for -idirafter option");
+		add_pre_buffer("#add_dirafter \"%s/\"\n", path);
+	}
+	return next;
+}
+
+static char **handle_switch_M(char *arg, char **next)
+{
+	if (!strcmp(arg, "MF") || !strcmp(arg,"MQ") || !strcmp(arg,"MT")) {
+		if (!*next)
+			die("missing argument for -%s option", arg);
+		return next + 1;
+	}
+	return next;
+}
+
+static int handle_mcmodel(const char *opt, const char *arg, const struct flag *flag, int options)
+{
+	static const struct val_map cmodels[] = {
+		{ "kernel",	CMODEL_KERNEL },
+		{ "large",	CMODEL_LARGE },
+		{ "medany",	CMODEL_MEDANY },
+		{ "medium",	CMODEL_MEDIUM },
+		{ "medlow",	CMODEL_MEDLOW },
+		{ "small",	CMODEL_SMALL },
+		{ "tiny",	CMODEL_TINY },
+		{ },
+	};
+	return handle_subopt_val(opt, arg, cmodels, flag->flag);
+}
+
+static int handle_mfloat_abi(const char *opt, const char *arg, const struct flag *flag, int options) {
+	static const struct val_map fp_abis[] = {
+		{ "hard",		FP_ABI_HARD },
+		{ "soft",		FP_ABI_SOFT },
+		{ "softfp",		FP_ABI_HYBRID },
+		{ "?" },
+	};
+	return handle_subopt_val(opt, arg, fp_abis, flag->flag);
+}
+
+static char **handle_multiarch_dir(char *arg, char **next)
+{
+	multiarch_dir = *++next;
+	if (!multiarch_dir)
+		die("missing argument for -multiarch-dir option");
+	return next;
+}
+
+static const struct flag mflags[] = {
+	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
+	{ "32", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "31", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "16", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
+	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
+	{ "size-long", &arch_msize_long },
+	{ "big-endian", &arch_big_endian, NULL },
+	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
+	{ "cmodel", &arch_cmodel, handle_mcmodel },
+	{ "float-abi", &arch_fp_abi, handle_mfloat_abi },
+	{ "hard-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_HARD },
+	{ "soft-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_SOFT },
+	{ }
+};
+
+static char **handle_switch_m(char *arg, char **next)
+{
+	if (!strcmp(arg, "multiarch-dir")) {
+		return handle_multiarch_dir(arg, next);
+	} else {
+		handle_switches(arg-1, arg+1, mflags);
+	}
+
+	return next;
+}
+
+static char **handle_nostdinc(char *arg, char **next)
+{
+	add_pre_buffer("#nostdinc\n");
+	return next;
+}
+
+static char **handle_switch_n(char *arg, char **next)
+{
+	if (!strcmp (arg, "nostdinc"))
+		return handle_nostdinc(arg, next);
+
+	return next;
+}
+
+static char **handle_switch_O(char *arg, char **next)
+{
+	int level = 1;
+	if (arg[1] >= '0' && arg[1] <= '9')
+		level = arg[1] - '0';
+	optimize_level = level;
+	optimize_size = arg[1] == 's';
+	return next;
+}
+
+static char **handle_switch_o(char *arg, char **next)
+{
+	if (!strcmp (arg, "o")) {       // "-o foo"
+		if (!*++next)
+			die("argument to '-o' is missing");
+		outfile = *next;
+	}
+	// else "-ofoo"
+
+	return next;
+}
+
+static const struct flag pflags[] = {
+	{ "pedantic", &Wpedantic, NULL, OPT_VAL, FLAG_ON },
+	{ }
+};
+
+static char **handle_switch_p(char *arg, char **next)
+{
+	handle_switches(arg-1, arg, pflags);
 	return next;
 }
 
@@ -1087,34 +992,127 @@ static char **handle_switch_s(const char *arg, char **next)
 	return next;
 }
 
-static char **handle_nostdinc(char *arg, char **next)
+static char **handle_switch_U(char *arg, char **next)
 {
-	add_pre_buffer("#nostdinc\n");
+	const char *name = arg + 1;
+	add_pre_buffer ("#undef %s\n", name);
 	return next;
 }
 
-static char **handle_switch_n(char *arg, char **next)
-{
-	if (!strcmp (arg, "nostdinc"))
-		return handle_nostdinc(arg, next);
+static struct flag debugs[] = {
+	{ "compound", &dbg_compound},
+	{ "dead", &dbg_dead},
+	{ "domtree", &dbg_domtree},
+	{ "entry", &dbg_entry},
+	{ "ir", &dbg_ir},
+	{ "postorder", &dbg_postorder},
+	{ }
+};
 
+static char **handle_switch_v(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, debugs);
+	if (ret)
+		return ret;
+
+	// Unknown.
+	do {
+		verbose++;
+	} while (*++arg == 'v');
 	return next;
 }
 
-static char **handle_base_dir(char *arg, char **next)
+static void handle_switch_v_finalize(void)
 {
-	gcc_base_dir = *++next;
-	if (!gcc_base_dir)
-		die("missing argument for -gcc-base-dir option");
+	handle_onoff_switch_finalize(debugs);
+}
+
+static const struct flag warnings[] = {
+	{ "address", &Waddress },
+	{ "address-space", &Waddress_space },
+	{ "bitwise", &Wbitwise },
+	{ "bitwise-pointer", &Wbitwise_pointer},
+	{ "cast-from-as", &Wcast_from_as },
+	{ "cast-to-as", &Wcast_to_as },
+	{ "cast-truncate", &Wcast_truncate },
+	{ "constant-suffix", &Wconstant_suffix },
+	{ "constexpr-not-const", &Wconstexpr_not_const},
+	{ "context", &Wcontext },
+	{ "decl", &Wdecl },
+	{ "declaration-after-statement", &Wdeclarationafterstatement },
+	{ "default-bitfield-sign", &Wdefault_bitfield_sign },
+	{ "designated-init", &Wdesignated_init },
+	{ "do-while", &Wdo_while },
+	{ "enum-mismatch", &Wenum_mismatch },
+	{ "external-function-has-definition", &Wexternal_function_has_definition },
+	{ "implicit-int", &Wimplicit_int },
+	{ "init-cstring", &Winit_cstring },
+	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
+	{ "memcpy-max-count", &Wmemcpy_max_count },
+	{ "non-pointer-null", &Wnon_pointer_null },
+	{ "newline-eof", &Wnewline_eof },
+	{ "old-initializer", &Wold_initializer },
+	{ "old-style-definition", &Wold_style_definition },
+	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },
+	{ "override-init", &Woverride_init },
+	{ "override-init-all", &Woverride_init_all },
+	{ "paren-string", &Wparen_string },
+	{ "pedantic", &Wpedantic },
+	{ "pointer-to-int-cast", &Wpointer_to_int_cast },
+	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
+	{ "return-void", &Wreturn_void },
+	{ "shadow", &Wshadow },
+	{ "shift-count-negative", &Wshift_count_negative },
+	{ "shift-count-overflow", &Wshift_count_overflow },
+	{ "sizeof-bool", &Wsizeof_bool },
+	{ "strict-prototypes", &Wstrict_prototypes },
+	{ "pointer-arith", &Wpointer_arith },
+	{ "sparse-error", &Wsparse_error },
+	{ "tautological-compare", &Wtautological_compare },
+	{ "transparent-union", &Wtransparent_union },
+	{ "typesign", &Wtypesign },
+	{ "undef", &Wundef },
+	{ "uninitialized", &Wuninitialized },
+	{ "universal-initializer", &Wuniversal_initializer },
+	{ "unknown-attribute", &Wunknown_attribute },
+	{ "vla", &Wvla },
+	{ }
+};
+
+static char **handle_switch_W(char *arg, char **next)
+{
+	char ** ret = handle_onoff_switch(arg, next, warnings);
+	if (ret)
+		return ret;
+
+	if (!strcmp(arg, "Wsparse-all")) {
+		int i;
+		for (i = 0; warnings[i].name; i++) {
+			if (*warnings[i].flag != FLAG_FORCE_OFF)
+				*warnings[i].flag = FLAG_ON;
+		}
+	}
+
+	// Unknown.
 	return next;
 }
 
-static char **handle_switch_g(char *arg, char **next)
+static void handle_switch_W_finalize(void)
 {
-	if (!strcmp (arg, "gcc-base-dir"))
-		return handle_base_dir(arg, next);
+	handle_onoff_switch_finalize(warnings);
 
-	return next;
+	/* default Wdeclarationafterstatement based on the C dialect */
+	if (-1 == Wdeclarationafterstatement) {
+		switch (standard) {
+			case STANDARD_C89:
+			case STANDARD_C94:
+				Wdeclarationafterstatement = 1;
+				break;
+			default:
+				Wdeclarationafterstatement = 0;
+				break;
+		}
+	}
 }
 
 static char **handle_switch_x(char *arg, char **next)
@@ -1139,12 +1137,6 @@ static char **handle_arch(char *arg, char **next)
 	return next;
 }
 
-static char **handle_version(char *arg, char **next)
-{
-	printf("%s\n", SPARSE_VERSION);
-	exit(0);
-}
-
 static char **handle_param(char *arg, char **next)
 {
 	char *value = NULL;
@@ -1160,6 +1152,12 @@ static char **handle_param(char *arg, char **next)
 		die("missing argument for --param option");
 
 	return next;
+}
+
+static char **handle_version(char *arg, char **next)
+{
+	printf("%s\n", SPARSE_VERSION);
+	exit(0);
 }
 
 struct switches {
