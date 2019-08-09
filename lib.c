@@ -364,6 +364,15 @@ void add_pre_buffer(const char *fmt, ...)
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers for option parsing
 
+static const char *match_option(const char *arg, const char *prefix)
+{
+	unsigned int n = strlen(prefix);
+	if (strncmp(arg, prefix, n) == 0)
+		return arg + n;
+	return NULL;
+}
+
+
 struct val_map {
 	const char *name;
 	int val;
@@ -438,14 +447,6 @@ end:
 }
 
 
-static const char *match_option(const char *arg, const char *prefix)
-{
-	unsigned int n = strlen(prefix);
-	if (strncmp(arg, prefix, n) == 0)
-		return arg + n;
-	return NULL;
-}
-
 #define OPT_INVERSE	1
 #define OPT_VAL		2
 struct flag {
@@ -497,6 +498,41 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 	return 0;
 }
 
+static char **handle_onoff_switch(char *arg, char **next, const struct flag flags[])
+{
+	int flag = FLAG_ON;
+	char *p = arg + 1;
+	unsigned i;
+
+	// Prefixes "no" and "no-" mean to turn warning off.
+	if (p[0] == 'n' && p[1] == 'o') {
+		p += 2;
+		if (p[0] == '-')
+			p++;
+		flag = FLAG_FORCE_OFF;
+	}
+
+	for (i = 0; flags[i].name; i++) {
+		if (!strcmp(p,flags[i].name)) {
+			*flags[i].flag = flag;
+			return next;
+		}
+	}
+
+	// Unknown.
+	return NULL;
+}
+
+static void handle_onoff_switch_finalize(const struct flag flags[])
+{
+	unsigned i;
+
+	for (i = 0; flags[i].name; i++) {
+		if (*flags[i].flag == FLAG_FORCE_OFF)
+			*flags[i].flag = FLAG_OFF;
+	}
+}
+
 static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	*(flag->flag) = flag->mask;
@@ -528,31 +564,6 @@ static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
 
 OPT_NUMERIC(ullong, unsigned long long, strtoull)
 OPT_NUMERIC(uint, unsigned int, strtoul)
-
-static char **handle_onoff_switch(char *arg, char **next, const struct flag flags[])
-{
-	int flag = FLAG_ON;
-	char *p = arg + 1;
-	unsigned i;
-
-	// Prefixes "no" and "no-" mean to turn warning off.
-	if (p[0] == 'n' && p[1] == 'o') {
-		p += 2;
-		if (p[0] == '-')
-			p++;
-		flag = FLAG_FORCE_OFF;
-	}
-
-	for (i = 0; flags[i].name; i++) {
-		if (!strcmp(p,flags[i].name)) {
-			*flags[i].flag = flag;
-			return next;
-		}
-	}
-
-	// Unknown.
-	return NULL;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Option parsing
@@ -857,16 +868,6 @@ static char **handle_switch_d(char *arg, char **next)
 	return next;
 }
 
-
-static void handle_onoff_switch_finalize(const struct flag flags[])
-{
-	unsigned i;
-
-	for (i = 0; flags[i].name; i++) {
-		if (*flags[i].flag == FLAG_FORCE_OFF)
-			*flags[i].flag = FLAG_OFF;
-	}
-}
 
 static void handle_switch_W_finalize(void)
 {
