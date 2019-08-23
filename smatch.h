@@ -1238,6 +1238,7 @@ int get_mtag_sval(struct expression *expr, sval_t *sval);
 const char *get_syscall_arg_type(struct symbol *sym);
 
 /* smatch_bit_info.c */
+struct bit_info *rl_to_binfo(struct range_list *rl);
 struct bit_info *get_bit_info(struct expression *expr);
 struct bit_info *get_bit_info_var_sym(const char *name, struct symbol *sym);
 /* smatch_mem_tracker.c */

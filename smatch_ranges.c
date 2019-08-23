@@ -1847,67 +1847,23 @@ static sval_t sval_lowest_set_bit(sval_t sval)
 	return ret;
 }
 
-static struct range_list *handle_AND_rl_sval(struct range_list *rl, sval_t sval)
-{
-	struct range_list *known_rl;
-	sval_t zero = { .type = sval.type, .value = 0 };
-	sval_t min;
-
-	if (sm_fls64(rl_max(rl).uvalue) < find_first_zero_bit(sval.uvalue) &&
-	    sm_fls64(rl_min(rl).uvalue) < find_first_zero_bit(sval.uvalue))
-		return rl;
-
-	min = sval_lowest_set_bit(sval);
-
-	if (min.value != 0) {
-		sval_t max, mod;
-
-		max = rl_max(rl);
-		mod = sval_binop(max, '%', min);
-		if (mod.value) {
-			max = sval_binop(max, '-', mod);
-			max.value++;
-			if (max.value > 0 && sval_cmp(max, rl_max(rl)) < 0)
-				rl = remove_range(rl, max, rl_max(rl));
-		}
-	}
-
-	known_rl = alloc_rl(min, sval);
-
-	rl = rl_intersection(rl, known_rl);
-	zero = rl_min(rl);
-	zero.value = 0;
-	add_range(&rl, zero, zero);
-
-	return rl;
-}
-
-static struct range_list *fudge_AND_rl(struct range_list *rl)
-{
-	struct range_list *ret;
-	sval_t min;
-
-	min = sval_lowest_set_bit(rl_min(rl));
-	ret = clone_rl(rl);
-	add_range(&ret, min, rl_min(rl));
-
-	return ret;
-}
-
 static struct range_list *handle_AND_rl(struct range_list *left, struct range_list *right)
 {
-	sval_t sval, zero;
+	struct bit_info *one, *two;
 	struct range_list *rl;
+	sval_t min, max, zero;
+	unsigned long long bits;
 
-	if (rl_to_sval(left, &sval))
-		return handle_AND_rl_sval(right, sval);
-	if (rl_to_sval(right, &sval))
-		return handle_AND_rl_sval(left, sval);
+	one = rl_to_binfo(left);
+	two = rl_to_binfo(right);
+	bits = one->possible & two->possible;
 
-	left = fudge_AND_rl(left);
-	right = fudge_AND_rl(right);
+	max = rl_max(left);
+	max.uvalue = bits;
+	min = sval_lowest_set_bit(max);
 
-	rl = rl_intersection(left, right);
+	rl = alloc_rl(min, max);
+
 	zero = rl_min(rl);
 	zero.value = 0;
 	add_range(&rl, zero, zero);
