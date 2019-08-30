@@ -527,8 +527,8 @@ void __split_expr(struct expression *expr)
 			break;
 		if (handle__builtin_choose_expr(expr))
 			break;
-		split_expr_list(expr->args, expr);
 		__split_expr(expr->fn);
+		split_expr_list(expr->args, expr);
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
 		if (inlinable(expr->fn))
