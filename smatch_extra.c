@@ -172,7 +172,7 @@ free:
 	return NULL;
 }
 
-static char *get_long_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym)
+static char *get_long_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)
 {
 	struct expression *tmp;
 	struct sm_state *sm;
@@ -196,6 +196,8 @@ static char *get_long_name_sym(const char *name, struct symbol *sym, struct symb
 	return NULL;
 
 found:
+	if (!use_stack && name[tmp->symbol->ident->len] != '-')
+		return NULL;
 	snprintf(buf, sizeof(buf), "%s%s", sm->name, name + tmp->symbol->ident->len);
 	*new_sym = sm->sym;
 	return alloc_string(buf);
@@ -235,7 +237,7 @@ char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct sym
 		len--;
 	}
 
-	ret = get_long_name_sym(name, sym, new_sym);
+	ret = get_long_name_sym(name, sym, new_sym, use_stack);
 	if (ret)
 		return ret;
 
@@ -258,7 +260,7 @@ void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr
 	struct symbol *new_sym;
 
 	set_extra_mod_helper(name, sym, expr, state);
-	new_name = get_other_name_sym(name, sym, &new_sym);
+	new_name = get_other_name_sym_nostack(name, sym, &new_sym);
 	if (new_name && new_sym)
 		set_extra_mod_helper(new_name, new_sym, expr, state);
 	free_string(new_name);
