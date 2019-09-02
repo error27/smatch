@@ -104,7 +104,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 {
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, expr, state);
-	if ((__in_fake_assign || in_param_set) &&
+	if (in_param_set &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
 	set_state(SMATCH_EXTRA, name, sym, state);
