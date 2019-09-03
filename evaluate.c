@@ -3592,6 +3592,9 @@ static void evaluate_asm_memop(struct asm_operand *op)
 
 		evaluate_addressof(addr);
 		op->expr = addr;
+	} else {
+		evaluate_expression(op->expr);
+		degenerate(op->expr);
 	}
 }
 

@@ -29,7 +29,6 @@ static void qux(void)
 
 /*
  * check-name: asm-degen
- * check-known-to-fail
  *
  * check-error-start
 eval/asm-degen.c:12:24: warning: dereference of noderef expression
