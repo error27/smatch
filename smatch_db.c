@@ -1124,6 +1124,7 @@ static void match_data_from_db(struct symbol *sym)
 		__unnullify_path();
 		data.prev_func_id = -1;
 		data.ignore = 0;
+		data.results = 0;
 
 		FOR_EACH_PTR(ptr_names, ptr) {
 			run_sql(caller_info_callback, &data,
