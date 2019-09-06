@@ -26,7 +26,7 @@ __DO_ALLOCATOR(struct data_range, sizeof(struct data_range), __alignof__(struct 
 			 "permanent ranges", perm_data_range);
 __DECLARE_ALLOCATOR(struct ptr_list, rl_ptrlist);
 
-static bool is_err_ptr(sval_t sval)
+bool is_err_ptr(sval_t sval)
 {
 	if (option_project != PROJ_KERNEL)
 		return false;

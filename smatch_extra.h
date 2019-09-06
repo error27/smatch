@@ -73,6 +73,8 @@ int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list
 int rl_has_sval(struct range_list *rl, sval_t sval);
 int ranges_equiv(struct data_range *one, struct data_range *two);
 
+bool is_err_ptr(sval_t sval);
+
 int rl_equiv(struct range_list *one, struct range_list *two);
 int is_whole_rl(struct range_list *rl);
 int is_unknown_ptr(struct range_list *rl);

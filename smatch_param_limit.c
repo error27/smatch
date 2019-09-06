@@ -116,14 +116,13 @@ static struct range_list *generify_mtag_range(struct smatch_state *state)
 	 * pointer and it's like, "Sorry bro, that's not possible."
 	 *
 	 */
-	rl = rl_intersection(estate_rl(state), valid_ptr_rl);
-	if (!rl)
-		return estate_rl(state);
-
+	rl = estate_rl(state);
 	FOR_EACH_PTR(rl, drange) {
 		if (drange->min.value != drange->max.value)
 			continue;
-		if (drange->min.value > -4096 && drange->min.value <= 0)
+		if (drange->min.value == 0)
+			continue;
+		if (is_err_ptr(drange->min))
 			continue;
 		return rl_union(valid_ptr_rl, rl);
 	} END_FOR_EACH_PTR(drange);
