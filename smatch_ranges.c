@@ -249,6 +249,13 @@ static int str_to_comparison_arg_helper(const char *str,
 	c++;
 
 	param = strtoll(c, (char **)&c, 10);
+	/*
+	 * FIXME: handle parameter math.  [==$1 + 100]
+	 *
+	 */
+	if (*c == ' ')
+		return 0;
+
 	if (*c == ',' || *c == ']')
 		c++; /* skip the ']' character */
 	if (endp)
