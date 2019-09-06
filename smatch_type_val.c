@@ -396,6 +396,8 @@ static void match_assign_value(struct expression *expr)
 		return;
 
 	type = get_type(expr->left);
+	if (type && type->type == SYM_STRUCT)
+		return;
 	member = get_member_name(expr->left);
 	if (!member)
 		return;
@@ -542,6 +544,19 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!arg)
 		return;
 	type = get_member_type_from_key(arg, key);
+	/*
+	 * The situation here is that say we memset() a void pointer to zero
+	 * then that's returned to the called as "*$ = 0;" but on the caller's
+	 * side it's not void, it's a struct.
+	 *
+	 * So the question is should we be passing that slightly bogus
+	 * information back to the caller?  Maybe, maybe not, but either way we
+	 * are not going to record it here because a struct can't be zero.
+	 *
+	 */
+	if (type && type->type == SYM_STRUCT)
+		return;
+
 	if (arg->type != EXPR_PREOP || arg->op != '&')
 		return;
 	arg = strip_expr(arg->unop);

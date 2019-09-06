@@ -2592,6 +2592,8 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 
 	arg_type = get_arg_type_from_key(expr->fn, param, arg, key);
 	param_type = get_member_type_from_key(arg, key);
+	if (param_type && param_type->type == SYM_STRUCT)
+		return;
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
