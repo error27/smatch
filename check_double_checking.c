@@ -131,6 +131,9 @@ static int previous_statement_was_synchronize(void)
 	struct position prev_pos;
 	char *ident;
 
+	if (!__cur_stmt)
+		return 0;
+
 	if (__prev_stmt) {
 		prev_pos = __prev_stmt->pos;
 		prev_pos.line -= 3;
