@@ -124,7 +124,7 @@ struct smatch_state *get_real_absolute_state(struct expression *expr)
 
 struct smatch_state *get_real_absolute_state_var_sym(const char *name, struct symbol *sym)
 {
-	return get_state(my_id, name, sym);
+	return __get_state(my_id, name, sym);
 }
 
 void register_real_absolute(int id)

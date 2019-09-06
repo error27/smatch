@@ -168,7 +168,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!estate_rl(sm->state))
 			continue;
-		extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		extra = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
 		if (extra) {
 			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 			if (!rl)
