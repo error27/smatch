@@ -398,7 +398,7 @@ int returns_pointer(struct symbol *sym)
 	if (!sym || sym->type != SYM_FN)
 		return 0;
 	sym = get_base_type(sym);
-	if (sym->type == SYM_PTR)
+	if (sym && sym->type == SYM_PTR)
 		return 1;
 	return 0;
 }
