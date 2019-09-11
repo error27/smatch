@@ -2500,14 +2500,14 @@ const char *state_name_to_param_name(const char *state_name, const char *param_n
 
 	if (strcmp(state_name, param_name) == 0) {
 		snprintf(buf, sizeof(buf), "%s$", add_star ? "*" : "");
-		return buf;
+		return alloc_sname(buf);
 	}
 
 	if (state_name[name_len] == '-' && /* check for '-' from "->" */
 	    strncmp(state_name, param_name, name_len) == 0) {
 		snprintf(buf, sizeof(buf), "%s$%s",
 			 add_star ? "*" : "", state_name + name_len);
-		return buf;
+		return alloc_sname(buf);
 	}
 	return NULL;
 }
