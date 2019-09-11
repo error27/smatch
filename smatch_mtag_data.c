@@ -69,6 +69,18 @@ static int is_kernel_param(const char *name)
 	return 0;
 }
 
+static bool is_ignored_macro(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+	if (strcmp(macro, "EXPORT_SYMBOL") == 0)
+		return true;
+	return false;
+}
+
 static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 {
 	rl = clone_rl_permanent(rl);
@@ -104,6 +116,8 @@ void update_mtag_data(struct expression *expr, struct smatch_state *state)
 		return;
 	if (is_local_variable(expr))
 		return;
+	if (is_ignored_macro(expr))
+		return;
 	name = expr_to_var(expr);
 	if (is_kernel_param(name)) {
 		free_string(name);
@@ -130,6 +144,8 @@ static void match_global_assign(struct expression *expr)
 	int offset;
 	char *name;
 
+	if (is_ignored_macro(expr))
+		return;
 	name = expr_to_var(expr->left);
 	if (is_kernel_param(name)) {
 		free_string(name);
