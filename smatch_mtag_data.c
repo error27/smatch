@@ -92,14 +92,16 @@ static bool invalid_type(struct symbol *type)
 	return false;
 }
 
-void update_mtag_data(struct expression *expr)
+void update_mtag_data(struct expression *expr, struct smatch_state *state)
 {
-	struct range_list *orig, *new, *rl;
+	struct range_list *orig, *new;
 	struct symbol *type;
 	char *name;
 	mtag_t tag;
 	int offset;
 
+	if (!expr)
+		return;
 	if (is_local_variable(expr))
 		return;
 	name = expr_to_var(expr);
@@ -116,10 +118,8 @@ void update_mtag_data(struct expression *expr)
 	if (offset == 0 && invalid_type(type))
 		return;
 
-	get_absolute_rl(expr, &rl);
-
 	orig = select_orig(tag, offset);
-	new = rl_union(orig, rl);
+	new = rl_union(orig, estate_rl(state));
 	insert_mtag_data(tag, offset, new);
 }
 

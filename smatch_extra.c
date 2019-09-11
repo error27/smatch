@@ -102,8 +102,11 @@ void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct express
 static bool in_param_set;
 void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
+	if (!expr)
+		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
 	call_extra_mod_hooks(name, sym, expr, state);
+	update_mtag_data(expr, state);
 	if (in_param_set &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
@@ -262,7 +265,7 @@ void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr
 	set_extra_mod_helper(name, sym, expr, state);
 	new_name = get_other_name_sym_nostack(name, sym, &new_sym);
 	if (new_name && new_sym)
-		set_extra_mod_helper(new_name, new_sym, expr, state);
+		set_extra_mod_helper(new_name, new_sym, NULL, state);
 	free_string(new_name);
 }
 
@@ -2572,7 +2575,7 @@ static void db_param_filter(struct expression *expr, int param, char *key, char 
 
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
-	struct expression *arg;
+	struct expression *arg, *gen_expr;
 	char *name;
 	char *other_name = NULL;
 	struct symbol *sym, *other_sym;
@@ -2597,6 +2600,7 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
+	gen_expr = gen_expression_from_key(arg, key);
 
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state)
@@ -2610,9 +2614,9 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 		new = rl_union(new, added);
 
 	other_name = get_other_name_sym_nostack(name, sym, &other_sym);
-	set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
+	set_extra_mod(name, sym, gen_expr, alloc_estate_rl(new));
 	if (other_name && other_sym)
-		set_extra_mod(other_name, other_sym, NULL, alloc_estate_rl(new));
+		set_extra_mod(other_name, other_sym, gen_expr, alloc_estate_rl(new));
 free:
 	free_string(other_name);
 	free_string(name);

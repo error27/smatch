@@ -162,6 +162,79 @@ struct expression *string_expression(char *str)
 	return ret;
 }
 
+static struct expression *get_expression_from_base_and_str(struct expression *base, const char *addition)
+{
+	struct expression *ret;
+	struct token *token, *prev, *end;
+	char *alloc;
+
+	if (addition[0] == '\0')
+		return base;
+
+	alloc = alloc_string(addition);
+
+	token = tokenize_buffer(alloc, strlen(alloc), &end);
+	if (!token)
+		return NULL;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return NULL;
+	token = token->next;
+
+	ret = base;
+	while (token_type(token) == TOKEN_SPECIAL &&
+	       (token->special == SPECIAL_DEREFERENCE || token->special == '.')) {
+		prev = token;
+		token = token->next;
+		if (token_type(token) != TOKEN_IDENT)
+			return NULL;
+		switch (prev->special) {
+		case SPECIAL_DEREFERENCE:
+			ret = deref_expression(ret);
+			ret = member_expression(ret, '*', token->ident);
+			break;
+		case '.':
+			ret = member_expression(ret, '.', token->ident);
+			break;
+		default:
+			return NULL;
+		}
+		token = token->next;
+	}
+
+	if (token_type(token) != TOKEN_STREAMEND)
+		return NULL;
+
+	return ret;
+}
+
+struct expression *gen_expression_from_name_sym(const char *name, struct symbol *sym)
+{
+	struct expression *base;
+	int skip = 0;
+	struct expression *ret;
+
+	if (!name || !sym)
+		return NULL;
+
+	base = symbol_expression(sym);
+	while (name[skip] != '\0' && name[skip] != '.' && name[skip] != '-')
+		skip++;
+
+	ret = get_expression_from_base_and_str(base, name + skip);
+	if (ret) {
+		char *new = expr_to_str(ret);
+
+		/*
+		 * FIXME: this sometimes changes "foo->bar.a.b->c" into
+		 * "foo->bar.a.b.c".  I don't know why...  :(
+		 *
+		 */
+		if (!new || strcmp(name, new) != 0)
+			return NULL;
+	}
+	return ret;
+}
+
 struct expression *gen_expression_from_key(struct expression *arg, const char *key)
 {
 	struct expression *ret;

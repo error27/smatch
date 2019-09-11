@@ -213,6 +213,7 @@ struct expression *string_expression(char *str);
 struct expression *compare_expression(struct expression *left, int op, struct expression *right);
 struct expression *unknown_value_expression(struct expression *expr);
 int is_fake_call(struct expression *expr);
+struct expression *gen_expression_from_name_sym(const char *name, struct symbol *sym);
 struct expression *gen_expression_from_key(struct expression *arg, const char *key);
 void free_tmp_expressions(void);
 void expr_set_parent_expr(struct expression *expr, struct expression *parent);
