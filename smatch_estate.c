@@ -116,7 +116,7 @@ void estate_clear_fuzzy_max(struct smatch_state *state)
 
 int estate_has_hard_max(struct smatch_state *state)
 {
-	if (!state)
+	if (!state || !estate_rl(state))
 		return 0;
 	return get_dinfo(state)->hard_max;
 }
