@@ -99,12 +99,83 @@ void call_extra_nomod_hooks(const char *name, struct symbol *sym, struct express
 	call_extra_hooks(extra_nomod_hooks, name, sym, expr, state);
 }
 
+static void set_union_info(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	struct symbol *type, *tmp, *inner_type, *inner, *new_type;
+	struct expression *deref, *member_expr;
+	struct smatch_state *new;
+	int offset, inner_offset;
+	static bool in_recurse;
+	char *member_name;
+
+	if (__in_fake_assign)
+		return;
+
+	if (in_recurse)
+		return;
+	in_recurse = true;
+
+	if (!expr || expr->type != EXPR_DEREF || !expr->member)
+		goto done;
+	offset = get_member_offset_from_deref(expr);
+	if (offset < 0)
+		goto done;
+
+	deref = strip_expr(expr->deref);
+	type = get_type(deref);
+	if (type_is_ptr(type))
+		type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		goto done;
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		inner_type = get_real_base_type(tmp);
+		if (!inner_type || inner_type->type != SYM_UNION)
+			continue;
+
+		inner = first_ptr_list((struct ptr_list *)inner_type->symbol_list);
+		if (!inner || !inner->ident)
+			continue;
+
+		inner_offset = get_member_offset(type, inner->ident->name);
+		if (inner_offset < offset)
+			continue;
+		if (inner_offset > offset)
+			goto done;
+
+		FOR_EACH_PTR(inner_type->symbol_list, inner) {
+			struct symbol *tmp_type;
+
+			if (!inner->ident || inner->ident == expr->member)
+				continue;
+			tmp_type = get_real_base_type(inner);
+			if (tmp_type && tmp_type->type == SYM_STRUCT)
+				continue;
+			member_expr = deref;
+			if (tmp->ident)
+				member_expr = member_expression(member_expr, '.', tmp->ident);
+			member_expr = member_expression(member_expr, expr->op, inner->ident);
+			member_name = expr_to_var(member_expr);
+			if (!member_name)
+				continue;
+			new_type = get_real_base_type(inner);
+			new = alloc_estate_rl(cast_rl(new_type, estate_rl(state)));
+			set_extra_mod_helper(member_name, sym, member_expr, new);
+			free_string(member_name);
+		} END_FOR_EACH_PTR(inner);
+	} END_FOR_EACH_PTR(tmp);
+
+done:
+	in_recurse = false;
+}
+
 static bool in_param_set;
 void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	if (!expr)
 		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
+	set_union_info(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
 	update_mtag_data(expr, state);
 	if (in_param_set &&
