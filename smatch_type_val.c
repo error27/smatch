@@ -294,6 +294,9 @@ static int is_uncasted_pointer_assign(void)
 	if (!left_type || !right_type)
 		return 0;
 
+	if (left_type->type == SYM_STRUCT && left_type == right_type)
+		return 1;
+
 	if (left_type->type != SYM_PTR &&
 	    left_type->type != SYM_ARRAY)
 		return 0;
