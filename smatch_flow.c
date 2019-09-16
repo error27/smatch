@@ -44,6 +44,7 @@ static unsigned int loop_count;
 static int last_goto_statement_handled;
 int __expr_stmt_count;
 int __in_function_def;
+int __in_unmatched_hook;
 static struct expression_list *switch_expr_stack = NULL;
 static struct expression_list *post_op_stack = NULL;
 

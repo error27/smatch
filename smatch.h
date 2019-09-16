@@ -520,6 +520,7 @@ void __split_expr(struct expression *expr);
 void __split_label_stmt(struct statement *stmt);
 void __split_stmt(struct statement *stmt);
 extern int __in_function_def;
+extern int __in_unmatched_hook;
 extern int option_assume_loops;
 extern int option_two_passes;
 extern int option_no_db;
