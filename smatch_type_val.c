@@ -227,13 +227,46 @@ static int is_container_of(void)
 	return 1;
 }
 
+static bool is_driver_data(void)
+{
+	static struct expression *prev_expr;
+	struct expression *expr;
+	char *name;
+	static bool prev_ret;
+	bool ret = false;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return false;
+
+	if (expr == prev_expr)
+		return prev_ret;
+	prev_expr = expr;
+
+	name = expr_to_str(expr->right);
+	if (!name) {
+		prev_ret = false;
+		return false;
+	}
+
+	if (strstr(name, "get_drvdata(") ||
+	    strstr(name, "dev.driver_data") ||
+	    strstr(name, "dev->driver_data"))
+		ret = true;
+
+	free_string(name);
+
+	prev_ret = ret;
+	return ret;
+}
+
 static int is_ignored_macro(void)
 {
 	struct expression *expr;
 	char *name;
 
 	expr = get_faked_expression();
-	if (!expr || expr->type != EXPR_ASSIGNMENT)
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return 0;
 	name = get_macro_name(expr->right->pos);
 	if (!name)
@@ -248,6 +281,20 @@ static int is_ignored_macro(void)
 		return 1;
 	if (strcmp(name, "hlist_entry") == 0)
 		return 1;
+	if (strcmp(name, "per_cpu_ptr") == 0)
+		return 1;
+	if (strcmp(name, "raw_cpu_ptr") == 0)
+		return 1;
+	if (strcmp(name, "this_cpu_ptr") == 0)
+		return 1;
+
+	if (strcmp(name, "TRACE_EVENT") == 0)
+		return 1;
+	if (strcmp(name, "DECLARE_EVENT_CLASS") == 0)
+		return 1;
+	if (strcmp(name, "DEFINE_EVENT") == 0)
+		return 1;
+
 	if (strstr(name, "for_each"))
 		return 1;
 	return 0;
@@ -266,6 +313,24 @@ static int is_ignored_function(void)
 
 	if (sym_name_is("kmalloc", expr->fn))
 		return 1;
+	if (sym_name_is("vmalloc", expr->fn))
+		return 1;
+	if (sym_name_is("kvmalloc", expr->fn))
+		return 1;
+	if (sym_name_is("kmalloc_array", expr->fn))
+		return 1;
+	if (sym_name_is("vmalloc_array", expr->fn))
+		return 1;
+	if (sym_name_is("kvmalloc_array", expr->fn))
+		return 1;
+
+	if (sym_name_is("mmu_memory_cache_alloc", expr->fn))
+		return 1;
+	if (sym_name_is("kmem_alloc", expr->fn))
+		return 1;
+	if (sym_name_is("alloc_pages", expr->fn))
+		return 1;
+
 	if (sym_name_is("netdev_priv", expr->fn))
 		return 1;
 	if (sym_name_is("dev_get_drvdata", expr->fn))
@@ -420,6 +485,8 @@ static void match_assign_value(struct expression *expr)
 		if (is_uncasted_fn_param_from_db())
 			goto free;
 		if (is_container_of())
+			goto free;
+		if (is_driver_data())
 			goto free;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
 		goto free;
