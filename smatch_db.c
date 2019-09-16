@@ -1852,8 +1852,6 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 	struct sm_state *tmp;
 	int ret = 0;
 	int nr_possible, nr_states;
-	char *compare_str = NULL;
-	char buf[128];
 	struct state_list *already_handled = NULL;
 
 	if (!sm || !sm->merged)
@@ -1882,12 +1880,6 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		compare_str = get_return_compare_str(expr);
-		if (compare_str) {
-			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-			return_ranges = alloc_sname(buf);
-		}
-
 		return_id++;
 		FOR_EACH_PTR(returned_state_callbacks, cb) {
 			cb->callback(return_id, (char *)return_ranges, expr);
