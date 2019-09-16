@@ -221,21 +221,48 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	free_ptr_list((struct ptr_list **)&set_list);
 }
 
+static int possibly_empty(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (strcmp(tmp->name, "") == 0)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 int param_was_set_var_sym(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
-	int len;
+	char buf[80];
+	int len, i;
+	static int printed;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->sym != sym)
+	if (!name)
+		return 0;
+
+	len = strlen(name);
+	if (len >= sizeof(buf))
+		len = sizeof(buf) - 1;
+
+	for (i = 0; i <= len; i++) {
+		if (name[i] != '-' && name[i] != '\0')
 			continue;
-		len = strlen(sm->name);
-		if (strncmp(sm->name, name, len) != 0)
+
+		memcpy(buf, name, i);
+		buf[i] = '\0';
+
+		sm = get_sm_state(my_id, buf, sym);
+		if (!sm)
 			continue;
-		if (name[len] == '\0' ||
-		    name[len] == '-')
-			return 1;
-	} END_FOR_EACH_SM(sm);
+		if (possibly_empty(sm))
+			continue;
+		return 1;
+	}
+
+	if (name[0] == '*')
+		return param_was_set_var_sym(name + 1, sym);
 
 	return 0;
 }
