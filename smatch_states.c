@@ -53,6 +53,7 @@ static struct stree_stack *cond_true_stack; /* states affected by a branch */
 static struct stree_stack *cond_false_stack;
 
 static struct stree_stack *fake_cur_stree_stack;
+static int read_only;
 
 static struct stree_stack *break_stack;
 static struct stree_stack *fake_break_stack;
@@ -79,12 +80,25 @@ int unreachable(void)
 	return 0;
 }
 
+void __set_cur_stree_readonly(void)
+{
+	read_only++;
+}
+
+void __set_cur_stree_writable(void)
+{
+	read_only--;
+}
+
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *ret;
 
 	if (!name || !state)
 		return NULL;
+
+	if (read_only)
+		sm_perror("cur_stree is read only.");
 
 	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *s;
@@ -184,6 +198,9 @@ void __merge_stree_into_cur(struct stree *stree)
 
 void __set_sm(struct sm_state *sm)
 {
+	if (read_only)
+		sm_perror("cur_stree is read only.");
+
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
 		struct smatch_state *s;
@@ -207,6 +224,9 @@ void __set_sm(struct sm_state *sm)
 
 void __set_sm_cur_stree(struct sm_state *sm)
 {
+	if (read_only)
+		sm_perror("cur_stree is read only.");
+
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
 		struct smatch_state *s;
@@ -227,6 +247,9 @@ void __set_sm_cur_stree(struct sm_state *sm)
 
 void __set_sm_fake_stree(struct sm_state *sm)
 {
+	if (read_only)
+		sm_perror("cur_stree is read only.");
+
 	if (option_debug ||
 	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
 		struct smatch_state *s;
@@ -457,6 +480,9 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
+	if (read_only)
+		sm_perror("cur_stree is read only.");
+
 	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
 		struct smatch_state *tmp;
 

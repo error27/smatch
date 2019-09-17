@@ -700,6 +700,8 @@ static void match_states_stree(struct stree **one, struct stree **two)
 	fake_two = clone_stree(__get_cur_stree());
 	__free_fake_cur_stree();
 
+	__set_cur_stree_readonly();
+
 	avl_iter_begin(&one_iter, *one, FORWARD);
 	avl_iter_begin(&two_iter, *two, FORWARD);
 
@@ -731,6 +733,8 @@ static void match_states_stree(struct stree **one, struct stree **two)
 			avl_iter_next(&two_iter);
 		}
 	}
+
+	__set_cur_stree_writable();
 
 	FOR_EACH_PTR(add_to_one, sm) {
 		avl_insert(one, sm);
