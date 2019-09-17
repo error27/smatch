@@ -126,10 +126,12 @@ free:
 	return ret;
 }
 
-void __swap_cur_stree(struct stree *stree)
+struct stree *__swap_cur_stree(struct stree *stree)
 {
-	free_stree(&cur_stree);
+	struct stree *orig = cur_stree;
+
 	cur_stree = stree;
+	return orig;
 }
 
 void __push_fake_cur_stree(void)

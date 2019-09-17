@@ -683,7 +683,7 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl);
 int get_array_rl(struct expression *expr, struct range_list **rl);
 
 /* smatch_states.c */
-void __swap_cur_stree(struct stree *stree);
+struct stree *__swap_cur_stree(struct stree *stree);
 void __push_fake_cur_stree();
 struct stree *__pop_fake_cur_stree();
 void __free_fake_cur_stree();

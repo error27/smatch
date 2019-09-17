@@ -688,8 +688,17 @@ static void match_states_stree(struct stree **one, struct stree **two)
 	struct sm_state *sm;
 	struct state_list *add_to_one = NULL;
 	struct state_list *add_to_two = NULL;
+	struct stree *orig, *fake_one, *fake_two;
 	AvlIter one_iter;
 	AvlIter two_iter;
+
+	__set_fake_cur_stree_fast(*one);
+	fake_one = clone_stree(__get_cur_stree());
+	__free_fake_cur_stree();
+
+	__set_fake_cur_stree_fast(*two);
+	fake_two = clone_stree(__get_cur_stree());
+	__free_fake_cur_stree();
 
 	avl_iter_begin(&one_iter, *one, FORWARD);
 	avl_iter_begin(&two_iter, *two, FORWARD);
@@ -698,11 +707,11 @@ static void match_states_stree(struct stree **one, struct stree **two)
 		if (!one_iter.sm && !two_iter.sm)
 			break;
 		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
-			__set_fake_cur_stree_fast(*two);
+			orig = __swap_cur_stree(fake_two);
 			__in_unmatched_hook++;
 			tmp_state = __client_unmatched_state_function(one_iter.sm);
 			__in_unmatched_hook--;
-			__free_fake_cur_stree();
+			__swap_cur_stree(orig);
 			sm = alloc_state_no_name(one_iter.sm->owner, one_iter.sm->name,
 						  one_iter.sm->sym, tmp_state);
 			add_ptr_list(&add_to_two, sm);
@@ -711,11 +720,11 @@ static void match_states_stree(struct stree **one, struct stree **two)
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
 		} else {
-			__set_fake_cur_stree_fast(*one);
+			orig = __swap_cur_stree(fake_one);
 			__in_unmatched_hook++;
 			tmp_state = __client_unmatched_state_function(two_iter.sm);
 			__in_unmatched_hook--;
-			__free_fake_cur_stree();
+			__swap_cur_stree(orig);
 			sm = alloc_state_no_name(two_iter.sm->owner, two_iter.sm->name,
 						  two_iter.sm->sym, tmp_state);
 			add_ptr_list(&add_to_one, sm);
@@ -733,6 +742,8 @@ static void match_states_stree(struct stree **one, struct stree **two)
 
 	free_slist(&add_to_one);
 	free_slist(&add_to_two);
+	free_stree(&fake_one);
+	free_stree(&fake_two);
 }
 
 static void call_pre_merge_hooks(struct stree **one, struct stree **two)
