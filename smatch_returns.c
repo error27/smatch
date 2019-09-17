@@ -64,7 +64,7 @@ static void call_hooks(void)
 	FOR_EACH_PTR(callback_list, rs_cb) {
 		rs_cb->callback();
 	} END_FOR_EACH_PTR(rs_cb);
-	__pop_fake_cur_stree_fast();
+	__free_fake_cur_stree();
 }
 
 static void match_return(int return_id, char *return_ranges, struct expression *expr)
