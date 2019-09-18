@@ -281,7 +281,6 @@ int param_was_set_var_sym(const char *name, struct symbol *sym)
 	struct sm_state *sm;
 	char buf[80];
 	int len, i;
-	static int printed;
 
 	if (!name)
 		return 0;
