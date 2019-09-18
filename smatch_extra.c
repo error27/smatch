@@ -2280,7 +2280,7 @@ int parent_is_null_var_sym(const char *name, struct symbol *sym)
 	start = &buf[0];
 	while (*start == '*') {
 		start++;
-		state = get_state(SMATCH_EXTRA, start, sym);
+		state = __get_state(SMATCH_EXTRA, start, sym);
 		if (!state)
 			continue;
 		if (!estate_rl(state))
