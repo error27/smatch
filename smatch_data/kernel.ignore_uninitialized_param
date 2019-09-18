@@ -109,3 +109,4 @@ smb_hc_read 2
 smb_word_op 5
 atl1c_read_phy_reg 2
 adf7242_read_reg 2
+tfp410_readb 2
