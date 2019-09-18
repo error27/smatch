@@ -2062,6 +2062,7 @@ vanilla:
 	nr_states = get_db_state_count();
 	if (nr_states >= 10000) {
 		match_return_info(return_id, (char *)return_ranges, expr);
+		print_limited_param_set(return_id, (char *)return_ranges, expr);
 		mark_all_params_untracked(return_id, (char *)return_ranges, expr);
 		return;
 	}
