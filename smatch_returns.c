@@ -116,14 +116,8 @@ struct stree_stack *get_all_return_strees(void)
 
 static void free_resources(struct symbol *sym)
 {
-	struct stree *tmp;
-
 	free_stree(&all_return_states);
-
-	FOR_EACH_PTR(return_stree_stack, tmp) {
-		free_stree(&tmp);
-	} END_FOR_EACH_PTR(tmp);
-	free_stree_stack(&return_stree_stack);
+	free_stack_and_strees(&return_stree_stack);
 }
 
 void register_returns_early(int id)
