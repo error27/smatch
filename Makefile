@@ -73,7 +73,7 @@ SMATCH_FILES=smatch_flow.o smatch_conditions.o smatch_slist.o smatch_states.o \
 	smatch_equiv.o smatch_buf_size.o smatch_strlen.o smatch_capped.o smatch_db.o \
 	smatch_expressions.o smatch_returns.o smatch_parse_call_math.o \
 	smatch_param_limit.o smatch_param_filter.o \
-	smatch_param_set.o smatch_comparison.o smatch_param_compare_limit.o smatch_local_values.o \
+	smatch_param_set.o smatch_comparison.o smatch_param_compare_limit.o \
 	smatch_function_ptrs.o smatch_annotate.o smatch_string_list.o \
 	smatch_param_cleared.o smatch_start_states.o \
 	smatch_recurse.o smatch_data_source.o smatch_type_val.o \
