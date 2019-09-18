@@ -31,6 +31,7 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 
 	if (!option_info)
 		return;
+
 	if (__in_fake_assign || __in_fake_parameter_assign || __in_function_def || __in_unmatched_hook)
 		return;
 
@@ -47,6 +48,9 @@ static void set_param_used(struct expression *call, struct expression *arg, char
 	struct symbol *sym;
 	char *name;
 	int arg_nr;
+
+	if (!option_info)
+		return;
 
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
