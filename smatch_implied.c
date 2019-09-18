@@ -56,7 +56,6 @@
  * a pool:  a pool is an slist that has been merged with another slist.
  */
 
-#include <sys/time.h>
 #include <time.h>
 #include "smatch.h"
 #include "smatch_slist.h"
@@ -296,13 +295,14 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 {
 	int free_checked = 0;
 	struct state_list *checked_states = NULL;
-	struct timeval now;
+	struct timeval now, diff;
 
 	if (!sm)
 		return;
 
 	gettimeofday(&now, NULL);
-	if (now.tv_usec - start_time->tv_usec > 1000000) {
+	timersub(&now, start_time, &diff);
+	if (diff.tv_sec >= 1) {
 		if (implied_debug) {
 			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
 			       __func__, sm->state->name, show_special(comparison), show_rl(rl));
@@ -448,14 +448,15 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	struct sm_state *left;
 	struct sm_state *right;
 	int removed = 0;
-	struct timeval now;
+	struct timeval now, diff;
 
 	if (!sm)
 		return NULL;
 	if (*bail)
 		return NULL;
 	gettimeofday(&now, NULL);
-	if (now.tv_usec - start->tv_usec > 3000000) {
+	timersub(&now, start, &diff);
+	if (diff.tv_sec >= 3) {
 		DIMPLIED("%s: implications taking too long: %s\n", __func__, sm_state_info(sm));
 		*bail = 1;
 		return NULL;
