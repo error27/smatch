@@ -402,7 +402,7 @@ static struct range_list *filter_by_comparison_call(const char *c, struct expres
 	int comparison;
 
 	/* For when we have a function that takes a function pointer. */
-	if (call->type != EXPR_CALL)
+	if (!call || call->type != EXPR_CALL)
 		return start_rl;
 
 	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
