@@ -298,7 +298,12 @@ static void call_get_state_hooks(int owner, const char *name, struct symbol *sym
 
 struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym)
 {
-	return get_state_stree(cur_stree, owner, name, sym);
+	struct sm_state *sm;
+
+	sm = get_sm_state(owner, name, sym);
+	if (!sm)
+		return NULL;
+	return sm->state;
 }
 
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
