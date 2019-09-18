@@ -177,6 +177,9 @@ delete from return_states where file = 'drivers/rapidio/rio-access.c' and return
 /* Smatch sucks at loops */
 delete from return_states where function = 'ata_dev_next' and type = 103;
 
+/* The problem is that parsing big function pointers is hard. */
+delete from return_states where function = 'vfs_get_tree' and type = 1024;
+
 EOF
 
 # fixme: this is totally broken
