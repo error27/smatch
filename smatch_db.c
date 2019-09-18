@@ -1106,8 +1106,7 @@ static void match_data_from_db(struct symbol *sym)
 		if (ptr_list_size((struct ptr_list *)ptr_names) > 20) {
 			__free_ptr_list((struct ptr_list **)&ptr_names);
 			__free_ptr_list((struct ptr_list **)&ptr_names_done);
-			stree = __pop_fake_cur_stree();
-			free_stree(&stree);
+			__free_fake_cur_stree();
 			return;
 		}
 
