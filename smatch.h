@@ -872,6 +872,7 @@ void select_call_implies_hook(int type, void (*callback)(struct expression *call
 void select_return_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));
 struct range_list *db_return_vals(struct expression *expr);
 struct range_list *db_return_vals_from_str(const char *fn_name);
+struct range_list *db_return_vals_no_args(struct expression *expr);
 char *return_state_to_var_sym(struct expression *expr, int param, const char *key, struct symbol **sym);
 char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl);
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym);

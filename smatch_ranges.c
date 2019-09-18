@@ -401,6 +401,10 @@ static struct range_list *filter_by_comparison_call(const char *c, struct expres
 	struct range_list *casted_start, *right_orig;
 	int comparison;
 
+	/* For when we have a function that takes a function pointer. */
+	if (call->type != EXPR_CALL)
+		return start_rl;
+
 	if (!str_to_comparison_arg_helper(c, call, &comparison, &arg, endp))
 		return start_rl;
 
@@ -496,6 +500,21 @@ static const char *jump_to_call_math(const char *value)
 		return NULL;
 
 	return c;
+}
+
+static struct range_list *get_param_return_rl(struct expression *call, const char *call_math)
+{
+	struct expression *arg;
+	int param;
+
+	call_math += 3;
+	param = atoi(call_math);
+
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return NULL;
+
+	return db_return_vals_no_args(arg);
 }
 
 static void str_to_rl_helper(struct expression *call, struct symbol *type, const char *str, const char **endp, struct range_list **rl)
@@ -599,6 +618,12 @@ static void str_to_dinfo(struct expression *call, struct symbol *type, const cha
 		goto cast;
 
 	call_math = jump_to_call_math(value);
+	if (call_math && call_math[0] == 'r') {
+		math_rl = get_param_return_rl(call, call_math);
+		if (math_rl)
+			rl = rl_intersection(rl, math_rl);
+		goto cast;
+	}
 	if (call_math && parse_call_math_rl(call, call_math, &math_rl)) {
 		rl = rl_intersection(rl, math_rl);
 		goto cast;

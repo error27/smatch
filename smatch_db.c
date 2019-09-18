@@ -718,6 +718,33 @@ struct range_list *db_return_vals_from_str(const char *fn_name)
 	return ret_info.return_range_list;
 }
 
+/*
+ * This is used when we have a function that takes a function pointer as a
+ * parameter.  "frob(blah, blah, my_function);"  We know that the return values
+ * from frob() come from my_funcion() so we want to find the possible returns
+ * of my_function(), but we don't know which arguments are passed to it.
+ *
+ */
+struct range_list *db_return_vals_no_args(struct expression *expr)
+{
+	struct return_info ret_info = {};
+
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return NULL;
+
+	ret_info.static_returns_call = expr;
+	ret_info.return_type = get_type(expr);
+	ret_info.return_type = get_real_base_type(ret_info.return_type);
+	if (!ret_info.return_type)
+		return NULL;
+
+	run_sql(db_return_callback, &ret_info,
+		"select distinct return from return_states where %s;",
+		get_static_filter(expr->symbol));
+
+	return ret_info.return_range_list;
+}
+
 static void match_call_marker(struct expression *expr)
 {
 	struct symbol *type;
@@ -1261,6 +1288,29 @@ static void match_call_implies(struct symbol *sym)
 			   call_implies_callbacks);
 }
 
+static char *get_fn_param_str(struct expression *expr)
+{
+	struct expression *tmp;
+	int param;
+	char buf[32];
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_CALL)
+		return NULL;
+	expr = strip_expr(expr->fn);
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return NULL;
+	param = get_param_num(expr);
+	if (param < 0)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "[r $%d]", param);
+	return alloc_sname(buf);
+}
+
 static char *get_return_compare_is_param(struct expression *expr)
 {
 	char *var;
@@ -1306,6 +1356,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	struct range_list *rl;
 	char *return_ranges;
 	sval_t sval;
+	char *fn_param_str;
 	char *compare_str;
 	char *math_str;
 	char buf[128];
@@ -1321,6 +1372,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		return sval_to_str_or_err_ptr(sval);
 	}
 
+	fn_param_str = get_fn_param_str(expr);
 	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
 
@@ -1337,6 +1389,10 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	}
 	*rl_p = rl;
 
+	if (fn_param_str) {
+		snprintf(buf, sizeof(buf), "%s%s", return_ranges, fn_param_str);
+		return alloc_sname(buf);
+	}
 	if (compare_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
 		return alloc_sname(buf);
