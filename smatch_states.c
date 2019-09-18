@@ -44,6 +44,7 @@ struct smatch_state true_state = { .name = "true" };
 struct smatch_state false_state = { .name = "false" };
 
 static struct stree *cur_stree; /* current states */
+static struct stree *fast_overlay;
 
 static struct stree_stack *true_stack; /* states after a t/f branch */
 static struct stree_stack *false_stack;
@@ -172,12 +173,14 @@ void __free_fake_cur_stree(void)
 
 void __set_fake_cur_stree_fast(struct stree *stree)
 {
-	struct sm_state *sm;
+	if (fast_overlay)
+		sm_perror("cannot nest fast overlay");
+	fast_overlay = stree;
+}
 
-	__push_fake_cur_stree();
-	FOR_EACH_SM(stree, sm) {
-		__set_sm(sm);
-	} END_FOR_EACH_SM(sm);
+void __pop_fake_cur_stree_fast(void)
+{
+	fast_overlay = NULL;
 }
 
 void __merge_stree_into_cur(struct stree *stree)
@@ -357,6 +360,12 @@ free:
 
 struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 {
+	struct sm_state *ret;
+
+	ret = get_sm_state_stree(fast_overlay, owner, name, sym);
+	if (ret)
+		return ret;
+
 	return get_sm_state_stree(cur_stree, owner, name, sym);
 }
 

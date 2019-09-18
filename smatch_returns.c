@@ -59,12 +59,13 @@ void all_return_states_hook(void (*callback)(void))
 static void call_hooks(void)
 {
 	struct return_states_callback *rs_cb;
+	struct stree *orig;
 
-	__set_fake_cur_stree_fast(all_return_states);
+	orig = __swap_cur_stree(all_return_states);
 	FOR_EACH_PTR(callback_list, rs_cb) {
 		rs_cb->callback();
 	} END_FOR_EACH_PTR(rs_cb);
-	__free_fake_cur_stree();
+	__swap_cur_stree(orig);
 }
 
 static void match_return(int return_id, char *return_ranges, struct expression *expr)

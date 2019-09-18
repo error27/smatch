@@ -688,6 +688,7 @@ void __push_fake_cur_stree();
 struct stree *__pop_fake_cur_stree();
 void __free_fake_cur_stree();
 void __set_fake_cur_stree_fast(struct stree *stree);
+void __pop_fake_cur_stree_fast(void);
 void __merge_stree_into_cur(struct stree *stree);
 
 int unreachable(void);
