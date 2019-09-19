@@ -80,6 +80,7 @@ struct ident {
 
 enum token_type {
 	TOKEN_EOF,
+	TOKEN_BAD,
 	TOKEN_ERROR,
 	TOKEN_IDENT,
 	TOKEN_ZERO_IDENT,

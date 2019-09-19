@@ -1762,7 +1762,7 @@ int known_condition_false(struct expression *expr)
 	if (!expr)
 		return 0;
 
-	if (is_zero(expr))
+	if (expr_is_zero(expr))
 		return 1;
 
 	return 0;

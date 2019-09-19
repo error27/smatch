@@ -589,7 +589,7 @@ int sym_name_is(const char *name, struct expression *expr)
 	return 0;
 }
 
-int is_zero(struct expression *expr)
+int expr_is_zero(struct expression *expr)
 {
 	sval_t sval;
 

@@ -63,5 +63,7 @@ void store_macro_pos(struct token *token)
 
 char *get_macro_name(struct position pos)
 {
+	if (!macro_table)
+		return NULL;
 	return do_search_macro(macro_table, &pos);
 }

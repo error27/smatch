@@ -141,7 +141,7 @@ char *get_fnptr_name(struct expression *expr)
 {
 	char *name;
 
-	if (is_zero(expr))
+	if (expr_is_zero(expr))
 		return NULL;
 
 	expr = strip_expr(expr);

@@ -399,7 +399,7 @@ int parse_call_math(struct expression *expr, char *math, sval_t *val);
 int parse_call_math_rl(struct expression *call, const char *math, struct range_list **rl);
 char *get_value_in_terms_of_parameter_math(struct expression *expr);
 char *get_value_in_terms_of_parameter_math_var_sym(const char *var, struct symbol *sym);
-int is_zero(struct expression *expr);
+int expr_is_zero(struct expression *expr);
 int known_condition_true(struct expression *expr);
 int known_condition_false(struct expression *expr);
 int implied_condition_true(struct expression *expr);

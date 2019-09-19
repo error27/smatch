@@ -62,7 +62,10 @@ static struct token *comma_expression(struct token *, struct expression **);
 
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where)
 {
+	struct token *p;
+
 	token = expect(token, '(', where);
+	p = token;
 	if (match_op(token, '{')) {
 		struct expression *e = alloc_expression(token->pos, EXPR_STATEMENT);
 		struct statement *stmt = alloc_statement(token->pos, STMT_COMPOUND);
@@ -74,6 +77,9 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 		token = expect(token, '}', "at end of statement expression");
 	} else
 		token = parse_expression(token, expr);
+
+	if (token == p)
+		sparse_error(token->pos, "an expression is expected before ')'");
 	return expect(token, ')', where);
 }
 
@@ -318,10 +324,7 @@ static void get_number_value(struct expression *expr, struct token *token)
 			show_token(token));
 	want_unsigned = 1;
 got_it:
-	if (!Wbig_constants)
-		do_warn = 0;
-
-	if (do_warn)
+	if (do_warn && Wconstant_suffix)
 		warning(expr->pos, "constant %s is so big it is%s%s%s",
 			show_token(token),
 			want_unsigned ? " unsigned":"",

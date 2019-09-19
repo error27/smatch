@@ -404,7 +404,7 @@ void __fake_struct_member_assignments(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
-	if (is_zero(expr->right))
+	if (expr_is_zero(expr->right))
 		return;
 
 	left_type = get_type(expr->left);

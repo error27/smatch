@@ -47,9 +47,9 @@ static struct expression *strip_condition(struct expression *expr)
 	if (expr->type == EXPR_COMPARE &&
 	    (expr->op == SPECIAL_EQUAL ||
 	     expr->op == SPECIAL_NOTEQUAL)) {
-		if (is_zero(expr->left))
+		if (expr_is_zero(expr->left))
 			return strip_condition(expr->right);
-		if (is_zero(expr->right))
+		if (expr_is_zero(expr->right))
 			return strip_condition(expr->left);
 	}
 

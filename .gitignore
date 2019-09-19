@@ -11,8 +11,6 @@
 *.c.smatch.sql
 
 # generated
-pre-process.h
-sparse.pc
 version.h
 
 # programs
@@ -49,6 +47,7 @@ cscope.files
 
 # local makefile
 local.mk
+.*.mk
 
 # local smatch checks
 check_list_local.h
