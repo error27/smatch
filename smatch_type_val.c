@@ -573,24 +573,14 @@ static void asm_expr(struct statement *stmt)
 	struct expression *expr;
 	struct range_list *rl;
 	char *member;
-	int state = 0;
 
 	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		switch (state) {
-		case 0: /* identifier */
-		case 1: /* constraint */
-			state++;
+		member = get_member_name(expr->expr);
+		if (!member)
 			continue;
-		case 2: /* expression */
-			state = 0;
-			member = get_member_name(expr);
-			if (!member)
-				continue;
-			rl = alloc_whole_rl(get_type(expr));
-			add_type_val(member, rl);
-			free_string(member);
-			continue;
-		}
+		rl = alloc_whole_rl(get_type(expr->expr));
+		add_type_val(member, rl);
+		free_string(member);
 	} END_FOR_EACH_PTR(expr);
 }
 

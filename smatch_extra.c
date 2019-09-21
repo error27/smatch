@@ -1307,20 +1307,14 @@ static void asm_expr(struct statement *stmt)
 
 	struct expression *expr;
 	struct symbol *type;
-	int state = 0;
 
 	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		switch (state) {
-		case 0: /* identifier */
-		case 1: /* constraint */
-			state++;
-			continue;
-		case 2: /* expression */
-			state = 0;
-			type = get_type(strip_expr(expr));
-			set_extra_expr_mod(expr, alloc_estate_whole(type));
+		if (expr->type != EXPR_ASM_OPERAND) {
+			sm_perror("unexpected asm param type %d", expr->type);
 			continue;
 		}
+		type = get_type(strip_expr(expr->expr));
+		set_extra_expr_mod(expr->expr, alloc_estate_whole(type));
 	} END_FOR_EACH_PTR(expr);
 }
 
