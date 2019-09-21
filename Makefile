@@ -95,7 +95,7 @@ all:
 # common flags/options/...
 
 cflags = -fno-strict-aliasing
-cflags += -Wall -Wwrite-strings
+cflags += -Wall -Wwrite-strings -Wno-switch
 
 GCC_BASE := $(shell $(CC) --print-file-name=)
 cflags += -DGCC_BASE=\"$(GCC_BASE)\"
