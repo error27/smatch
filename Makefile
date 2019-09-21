@@ -174,7 +174,7 @@ LLVM_LIBS += $(shell $(LLVM_CONFIG) --system-libs 2>/dev/null)
 LLVM_LIBS += $(shell $(LLVM_CONFIG) --cxxflags | grep -F -q -e '-stdlib=libc++' && echo -lc++)
 PROGRAMS += $(LLVM_PROGS)
 INST_PROGRAMS += sparse-llvm sparsec
-sparse-llvm-cflags := $(LLVM_CFLAGS)
+sparse-llvm-cflags := $(LLVM_CFLAGS) -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS
 sparse-llvm-ldflags := $(LLVM_LDFLAGS)
 sparse-llvm-ldlibs := $(LLVM_LIBS)
 else
