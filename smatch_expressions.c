@@ -171,7 +171,7 @@ static struct expression *get_expression_from_base_and_str(struct expression *ba
 	if (addition[0] == '\0')
 		return base;
 
-	alloc = alloc_string(addition);
+	alloc = alloc_string_newline(addition);
 
 	token = tokenize_buffer(alloc, strlen(alloc), &end);
 	if (!token)

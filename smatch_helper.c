@@ -39,6 +39,19 @@ char *alloc_string(const char *str)
 	return tmp;
 }
 
+char *alloc_string_newline(const char *str)
+{
+	char *tmp;
+	int len;
+
+	if (!str)
+		return NULL;
+	len = strlen(str);
+	tmp = malloc(len + 2);
+	snprintf(tmp, len + 2, "%s\n", str);
+	return tmp;
+}
+
 void free_string(char *str)
 {
 	free(str);

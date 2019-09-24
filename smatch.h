@@ -363,6 +363,7 @@ void add_get_state_hook(void (*fn)(int owner, const char *name, struct symbol *s
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);
 char *alloc_string(const char *str);
+char *alloc_string_newline(const char *str);
 void free_string(char *str);
 void append(char *dest, const char *data, int buff_len);
 void remove_parens(char *str);
