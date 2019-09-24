@@ -9,5 +9,4 @@ _Static_assert(b == -1L,              "value");
 /*
  * check-name: enum-sign-extend
  * check-command: sparse -m64 $file
- * check-known-to-fail
  */
