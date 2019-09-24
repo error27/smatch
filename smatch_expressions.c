@@ -164,7 +164,7 @@ struct expression *string_expression(char *str)
 
 static struct expression *get_expression_from_base_and_str(struct expression *base, const char *addition)
 {
-	struct expression *ret;
+	struct expression *ret = NULL;
 	struct token *token, *prev, *end;
 	char *alloc;
 
@@ -175,9 +175,9 @@ static struct expression *get_expression_from_base_and_str(struct expression *ba
 
 	token = tokenize_buffer(alloc, strlen(alloc), &end);
 	if (!token)
-		return NULL;
+		goto free;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return NULL;
+		goto free;
 	token = token->next;
 
 	ret = base;
@@ -186,7 +186,7 @@ static struct expression *get_expression_from_base_and_str(struct expression *ba
 		prev = token;
 		token = token->next;
 		if (token_type(token) != TOKEN_IDENT)
-			return NULL;
+			goto free;
 		switch (prev->special) {
 		case SPECIAL_DEREFERENCE:
 			ret = deref_expression(ret);
@@ -196,13 +196,16 @@ static struct expression *get_expression_from_base_and_str(struct expression *ba
 			ret = member_expression(ret, '.', token->ident);
 			break;
 		default:
-			return NULL;
+			goto free;
 		}
 		token = token->next;
 	}
 
 	if (token_type(token) != TOKEN_STREAMEND)
-		return NULL;
+		goto free;
+
+free:
+	free_string(alloc);
 
 	return ret;
 }
