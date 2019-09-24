@@ -289,10 +289,13 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 	case EXPR_VALUE: {
+		sval_t sval = {};
 		char tmp[25];
 
 		*complicated = 1;
-		snprintf(tmp, 25, "%lld", expr->value);
+		if (!get_value(expr, &sval))
+			return;
+		snprintf(tmp, 25, "%s", sval_to_numstr(sval));
 		append(buf, tmp, len);
 		return;
 	}
