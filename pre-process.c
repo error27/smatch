@@ -960,13 +960,14 @@ const char *find_include(const char *skip, const char *look_for)
 		return NULL;
 
 	if (!getcwd(cwd, sizeof(cwd)))
-		return NULL;
+		goto close;
 
 	while ((entry = readdir(dp))) {
 		lstat(entry->d_name, &statbuf);
 
 		if (strcmp(entry->d_name, look_for) == 0) {
 			snprintf(buf, sizeof(buf), "%s/%s", cwd, entry->d_name);
+			closedir(dp);
 			return buf;
 		}
 
@@ -980,10 +981,13 @@ const char *find_include(const char *skip, const char *look_for)
 			chdir(entry->d_name);
 			ret = find_include("", look_for);
 			chdir("..");
-			if (ret)
+			if (ret) {
+				closedir(dp);
 				return ret;
+			}
 		}
 	}
+close:
 	closedir(dp);
 
 	return NULL;
@@ -1030,7 +1034,12 @@ static void use_best_guess_header_file(struct token *token, const char *filename
 	char dir_part[PATH_MAX];
 	const char *file_part;
 	const char *include_name;
+	static int cnt;
 	int len;
+
+	/* Avoid guessing includes recursively. */
+	if (cnt++ > 1000)
+		return;
 
 	if (!filename || filename[0] == '\0')
 		return;
