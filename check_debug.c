@@ -22,6 +22,7 @@
 void show_sname_alloc(void);
 void show_data_range_alloc(void);
 void show_ptrlist_alloc(void);
+void show_rl_ptrlist_alloc(void);
 void show_sm_state_alloc(void);
 
 int local_debug;
@@ -690,6 +691,8 @@ static void match_state_count(const char *fn, struct expression *expr, void *inf
 static void match_mem(const char *fn, struct expression *expr, void *info)
 {
 	show_sname_alloc();
+	show_data_range_alloc();
+	show_rl_ptrlist_alloc();
 	show_ptrlist_alloc();
 	sm_msg("%lu pools", get_pool_count());
 	sm_msg("%d strees", unfree_stree);
