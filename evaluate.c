@@ -3503,6 +3503,9 @@ static void parse_asm_constraint(struct asm_operand *op)
 	int c;
 
 	switch (str[0]) {
+	case '\0':
+		sparse_error(constraint->pos, "invalid ASM constraint (\"\")");
+		break;
 	case '+':
 		op->is_modify = true;
 		/* fall-through */
