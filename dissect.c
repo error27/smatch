@@ -450,13 +450,9 @@ again:
 	return ret;
 }
 
-static void do_asm_xputs(usage_t mode, struct expression_list *xputs)
+static void do_asm_xputs(usage_t mode, struct asm_operand_list *xputs)
 {
-	int nr = 0;
-
-	DO_LIST(xputs, expr,
-		if (++nr % 3 == 0)
-			do_expression(U_W_AOF | mode, expr));
+	DO_LIST(xputs, op, do_expression(U_W_AOF | mode, op->expr));
 }
 
 static struct symbol *do_statement(usage_t mode, struct statement *stmt)

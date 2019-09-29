@@ -2049,22 +2049,23 @@ static struct token *expression_statement(struct token *token, struct expression
 }
 
 static struct token *parse_asm_operands(struct token *token, struct statement *stmt,
-	struct expression_list **inout)
+	struct asm_operand_list **inout)
 {
 	/* Allow empty operands */
 	if (match_op(token->next, ':') || match_op(token->next, ')'))
 		return token->next;
 	do {
-		struct expression *op = alloc_expression(token->pos, EXPR_ASM_OPERAND);
+		struct asm_operand *op = __alloc_asm_operand(0);
 		if (match_op(token->next, '[') &&
 		    token_type(token->next->next) == TOKEN_IDENT &&
 		    match_op(token->next->next->next, ']')) {
 			op->name = token->next->next->ident;
 			token = token->next->next->next;
 		}
-		token = primary_expression(token->next, &op->constraint);
+		token = token->next;
+		token = string_expression(token, &op->constraint, "asm constraint");
 		token = parens_expression(token, &op->expr, "in asm parameter");
-		add_expression(inout, op);
+		add_ptr_list(inout, op);
 	} while (match_op(token, ','));
 	return token;
 }
@@ -2113,7 +2114,7 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 		token = token->next;
 	}
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token, &stmt->asm_string);
+	token = string_expression(token, &stmt->asm_string, "inline asm");
 	if (match_op(token, ':'))
 		token = parse_asm_operands(token, stmt, &stmt->asm_outputs);
 	if (match_op(token, ':'))
@@ -2130,7 +2131,7 @@ static struct token *parse_asm_declarator(struct token *token, struct decl_state
 {
 	struct expression *expr;
 	token = expect(token, '(', "after asm");
-	token = parse_expression(token->next, &expr);
+	token = string_expression(token, &expr, "inline asm");
 	token = expect(token, ')', "after asm");
 	return token;
 }
@@ -2144,14 +2145,9 @@ static struct token *parse_static_assert(struct token *token, struct symbol_list
 	if (!cond)
 		sparse_error(token->pos, "Expected constant expression");
 	token = expect(token, ',', "after conditional expression in _Static_assert");
-	token = parse_expression(token, &message);
-	if (!message || message->type != EXPR_STRING) {
-		struct position pos;
-
-		pos = message ? message->pos : token->pos;
-		sparse_error(pos, "bad or missing string literal");
+	token = string_expression(token, &message, "_Static_assert()");
+	if (!message)
 		cond = NULL;
-	}
 	token = expect(token, ')', "after diagnostic message in _Static_assert");
 
 	token = expect(token, ';', "after _Static_assert()");

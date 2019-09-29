@@ -1185,9 +1185,6 @@ int show_expression(struct expression *expr)
 	case EXPR_TYPE:
 		warning(expr->pos, "unable to show type expression");
 		return 0;
-	case EXPR_ASM_OPERAND:
-		warning(expr->pos, "unable to show asm operand expression");
-		return 0;
 	}
 	return 0;
 }

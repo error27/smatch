@@ -106,8 +106,8 @@ struct statement {
 		};
 		struct /* asm */ {
 			struct expression *asm_string;
-			struct expression_list *asm_outputs;
-			struct expression_list *asm_inputs;
+			struct asm_operand_list *asm_outputs;
+			struct asm_operand_list *asm_inputs;
 			struct expression_list *asm_clobbers;
 			struct symbol_list *asm_labels;
 		};

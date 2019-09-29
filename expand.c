@@ -66,6 +66,14 @@ static int expand_symbol_expression(struct expression *expr)
 		expr->taint = 0;
 		return 0;
 	}
+
+	// expand compound literals (C99 & C11 6.5.2.5)
+	// FIXME: is this the correct way to identify them?
+	//	All compound literals are anonymous but is
+	//	the reverse true?
+	if (sym->initializer && !expr->symbol_name)
+		return expand_expression(sym->initializer);
+
 	/* The cost of a symbol expression is lower for on-stack symbols */
 	return (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ? 2 : 1;
 }
@@ -1095,9 +1103,6 @@ static int expand_expression(struct expression *expr)
 	case EXPR_OFFSETOF:
 		expression_error(expr, "internal front-end error: sizeof in expansion?");
 		return UNSAFE;
-	case EXPR_ASM_OPERAND:
-		expression_error(expr, "internal front-end error: ASM_OPERAND in expansion?");
-		return UNSAFE;
 	}
 	return SIDE_EFFECTS;
 }
@@ -1165,6 +1170,22 @@ static int expand_if_statement(struct statement *stmt)
 	expand_statement(stmt->if_true);
 	expand_statement(stmt->if_false);
 	return SIDE_EFFECTS;
+}
+
+static int expand_asm_statement(struct statement *stmt)
+{
+	struct asm_operand *op;
+	int cost = 0;
+
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		cost += expand_expression(op->expr);
+	} END_FOR_EACH_PTR(op);
+
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		cost += expand_expression(op->expr);
+	} END_FOR_EACH_PTR(op);
+
+	return cost;
 }
 
 /*
@@ -1257,7 +1278,7 @@ static int expand_statement(struct statement *stmt)
 	case STMT_NONE:
 		break;
 	case STMT_ASM:
-		/* FIXME! Do the asm parameter evaluation! */
+		expand_asm_statement(stmt);
 		break;
 	case STMT_CONTEXT:
 		expand_expression(stmt->expression);

@@ -83,6 +83,17 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 	return expect(token, ')', where);
 }
 
+struct token *string_expression(struct token *token, struct expression **expr, const char *where)
+{
+	struct token *next = primary_expression(token, expr);
+
+	if (!*expr || (*expr)->type != EXPR_STRING) {
+		sparse_error(token->pos, "string literal expected for %s", where);
+		*expr = NULL;
+	}
+	return next;
+}
+
 /*
  * Handle __func__, __FUNCTION__ and __PRETTY_FUNCTION__ token
  * conversion

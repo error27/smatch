@@ -68,6 +68,7 @@ struct asm_constraint {
 	pseudo_t pseudo;
 	const char *constraint;
 	const struct ident *ident;
+	unsigned int is_memory:1;
 };
 
 DECLARE_ALLOCATOR(asm_constraint);

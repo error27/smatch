@@ -12,8 +12,8 @@ static enum eb foo(enum ea a)
  * check-command: sparse -Wenum-mismatch $file
  *
  * check-error-start
-enum-mismatch.c:7:16: warning: mixing different enum types
-enum-mismatch.c:7:16:     unsigned int enum ea versus
-enum-mismatch.c:7:16:     unsigned int enum eb
+enum-mismatch.c:7:16: warning: mixing different enum types:
+enum-mismatch.c:7:16:    unsigned int enum ea
+enum-mismatch.c:7:16:    unsigned int enum eb
  * check-error-end
  */

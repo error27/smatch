@@ -283,9 +283,9 @@ warn_for_different_enum_types (struct position pos,
 		return;
 
 	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM) {
-		warning(pos, "mixing different enum types");
-		info(pos, "    %s versus", show_typename(typea));
-		info(pos, "    %s", show_typename(typeb));
+		warning(pos, "mixing different enum types:");
+		info(pos, "   %s", show_typename(typea));
+		info(pos, "   %s", show_typename(typeb));
 	}
 }
 
@@ -413,16 +413,16 @@ static struct symbol *bad_expr_type(struct expression *expr)
 	case EXPR_COMPARE:
 		if (!valid_subexpr_type(expr))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
-		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
+		sparse_error(expr->pos, "incompatible types for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->left->ctype));
+		info(expr->pos, "   %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
 		if (!valid_expr_type(expr->unop))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
+		sparse_error(expr->pos, "incompatible type for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->unop->ctype));
 		break;
 	default:
 		break;
@@ -910,8 +910,8 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		if (Waddress)
 			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
 	} else if (!is_scalar_type(ctype)) {
-		sparse_error(expr->pos, "incorrect type in conditional (non-scalar type)");
-		info(expr->pos, "   got %s", show_typename(ctype));
+		sparse_error(expr->pos, "non-scalar type in conditional:");
+		info(expr->pos, "   %s", show_typename(ctype));
 		return NULL;
 	}
 
@@ -2937,6 +2937,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * initializer, in which case we need to pass
 	 * the type value down to that initializer rather
 	 * than trying to evaluate it as an expression
+	 * (cfr. compound literals: C99 & C11 6.5.2.5).
 	 *
 	 * A more complex case is when the initializer is
 	 * dereferenced as part of a post-fix expression.
@@ -3355,9 +3356,6 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_SLICE:
 		expression_error(expr, "internal front-end error: SLICE re-evaluated");
 		return NULL;
-	case EXPR_ASM_OPERAND:
-		expression_error(expr, "internal front-end error: ASM_OPERAND evaluated");
-		return NULL;
 	}
 	return NULL;
 }
@@ -3497,48 +3495,128 @@ static void evaluate_iterator(struct statement *stmt)
 	evaluate_statement(stmt->iterator_post_statement);
 }
 
-static void verify_output_constraint(struct expression *expr, const char *constraint)
+
+static void parse_asm_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
+	struct expression *constraint = op->constraint;
+	const char *str = constraint->string->data;
+	int c;
+
+	switch (str[0]) {
+	case '+':
+		op->is_modify = true;
+		/* fall-through */
+	case '=':
+		op->is_assign = true;
+		str++;
 		break;
-	default:
-		expression_error(expr, "output constraint is not an assignment constraint (\"%s\")", constraint);
 	}
+
+	while ((c = *str++)) {
+		switch (c) {
+		case '=':
+		case '+':
+			sparse_error(constraint->pos, "invalid ASM constraint '%c'", c);
+			break;
+
+		case '&':
+			op->is_earlyclobber = true;
+			break;
+		case '%':
+			op->is_commutative = true;
+			break;
+		case 'r':
+			op->is_register = true;
+			break;
+
+		case 'm':
+		case 'o':
+		case 'V':
+		case 'Q':
+			op->is_memory = true;
+			break;
+
+		case '<':
+		case '>':
+			// FIXME: ignored for now
+			break;
+
+		case ',':
+			// FIXME: multiple alternative constraints
+			break;
+
+		case '0' ... '9':
+			// FIXME: numeric  matching constraint?
+			break;
+		case '[':
+			// FIXME: symbolic matching constraint
+			return;
+
+		default:
+			// FIXME: arch-specific (and multi-letter) constraints
+			break;
+		}
+	}
+
+	// FIXME: how to deal with multi-constraint?
+	if (op->is_register)
+		op->is_memory = 0;
 }
 
-static void verify_input_constraint(struct expression *expr, const char *constraint)
+static void verify_output_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (!op->is_assign)
+		expression_error(expr, "output constraint is not an assignment constraint (\"%s\")", constraint);
+}
+
+static void verify_input_constraint(struct asm_operand *op)
+{
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (op->is_assign)
 		expression_error(expr, "input constraint with assignment (\"%s\")", constraint);
+}
+
+static void evaluate_asm_memop(struct asm_operand *op)
+{
+	if (op->is_memory) {
+		struct expression *expr = op->expr;
+		struct expression *addr;
+
+		// implicit addressof
+		addr = alloc_expression(expr->pos, EXPR_PREOP);
+		addr->op = '&';
+		addr->unop = expr;
+
+		evaluate_addressof(addr);
+		op->expr = addr;
+	} else {
+		evaluate_expression(op->expr);
+		degenerate(op->expr);
 	}
 }
 
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
-	struct expression *op;
+	struct asm_operand *op;
 	struct symbol *sym;
 
-	expr = stmt->asm_string;
-	if (!expr || expr->type != EXPR_STRING) {
-		sparse_error(stmt->pos, "need constant string for inline asm");
+	if (!stmt->asm_string)
 		return;
-	}
 
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
-			op->constraint = NULL;
-		} else
-			verify_output_constraint(expr, expr->string->data);
+		if (op->constraint) {
+			parse_asm_constraint(op);
+			verify_output_constraint(op);
+		}
 
 		/* Expression */
 		expr = op->expr;
@@ -3547,22 +3625,22 @@ static void evaluate_asm_statement(struct statement *stmt)
 		if (!lvalue_expression(expr))
 			warning(expr->pos, "asm output is not an lvalue");
 		evaluate_assign_to(expr, expr->ctype);
+		evaluate_asm_memop(op);
 	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_inputs, op) {
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
-			op->constraint = NULL;
-		} else
-			verify_input_constraint(expr, expr->string->data);
+		if (op->constraint) {
+			parse_asm_constraint(op);
+			verify_input_constraint(op);
+		}
 
 		/* Expression */
 		if (!evaluate_expression(op->expr))
 			return;
+		evaluate_asm_memop(op);
 	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
