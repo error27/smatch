@@ -160,18 +160,6 @@ static void replace_with_defined(struct token *token)
 	replace_with_bool(token, token_defined(token));
 }
 
-static void replace_with_has_builtin(struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
-	replace_with_bool(token, sym && sym->builtin);
-}
-
-static void replace_with_has_attribute(struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, NS_KEYWORD);
-	replace_with_bool(token, sym && sym->op && sym->op->attribute);
-}
-
 static void expand_line(struct token *token)
 {
 	replace_with_integer(token, token->pos.line);
@@ -1609,14 +1597,6 @@ static int expression_value(struct token **where)
 				state = 1;
 				beginning = list;
 				break;
-			} else if (p->ident == &__has_builtin_ident) {
-				state = 4;
-				beginning = list;
-				break;
-			} else if (p->ident == &__has_attribute_ident) {
-				state = 6;
-				beginning = list;
-				break;
 			}
 			if (!expand_one_symbol(list))
 				continue;
@@ -1645,38 +1625,6 @@ static int expression_value(struct token **where)
 			state = 0;
 			if (!match_op(p, ')'))
 				sparse_error(p->pos, "missing ')' after \"defined\"");
-			*list = p->next;
-			continue;
-
-		// __has_builtin(x) or __has_attribute(x)
-		case 4: case 6:
-			if (match_op(p, '(')) {
-				state++;
-			} else {
-				sparse_error(p->pos, "missing '(' after \"__has_%s\"",
-					state == 4 ? "builtin" : "attribute");
-				state = 0;
-			}
-			*beginning = p;
-			break;
-		case 5: case 7:
-			if (token_type(p) != TOKEN_IDENT) {
-				sparse_error(p->pos, "identifier expected");
-				state = 0;
-				break;
-			}
-			if (!match_op(p->next, ')'))
-				sparse_error(p->pos, "missing ')' after \"__has_%s\"",
-					state == 5 ? "builtin" : "attribute");
-			if (state == 5)
-				replace_with_has_builtin(p);
-			else
-				replace_with_has_attribute(p);
-			state = 8;
-			*beginning = p;
-			break;
-		case 8:
-			state = 0;
 			*list = p->next;
 			continue;
 		}
@@ -2003,6 +1951,36 @@ static int handle_nondirective(struct stream *stream, struct token **line, struc
 	return 1;
 }
 
+static bool expand_has_attribute(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct symbol *sym;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	sym = lookup_symbol(arg->ident, NS_KEYWORD);
+	replace_with_bool(token, sym && sym->op && sym->op->attribute);
+	return true;
+}
+
+static bool expand_has_builtin(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct symbol *sym;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	sym = lookup_symbol(arg->ident, NS_SYMBOL);
+	replace_with_bool(token, sym && sym->builtin);
+	return true;
+}
+
 static bool expand_has_extension(struct token *token, struct arg *args)
 {
 	struct token *arg = args[0].expanded;
@@ -2133,6 +2111,8 @@ static void init_preprocessor(void)
 		{ "__TIME__",		expand_time },
 		{ "__COUNTER__",	expand_counter },
 		{ "__INCLUDE_LEVEL__",	expand_include_level },
+		{ "__has_attribute",	NULL, expand_has_attribute },
+		{ "__has_builtin",	NULL, expand_has_builtin },
 		{ "__has_extension",	NULL, expand_has_extension },
 		{ "__has_feature",	NULL, expand_has_feature },
 	};
