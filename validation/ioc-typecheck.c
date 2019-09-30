@@ -4,8 +4,4 @@ static unsigned iocnrs[] = {
 };
 /*
  * check-name: integer constant & conditional expression
- * check-known-to-fail
- *
- * check-error-start
- * check-error-end
  */
