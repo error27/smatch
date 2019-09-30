@@ -777,6 +777,9 @@ static int expand(struct token **list, struct symbol *sym)
 		expand_arguments(nargs, args);
 	}
 
+	if (sym->expand)
+		return sym->expand(token, args) ? 0 : 1;
+
 	expanding->tainted = 1;
 
 	last = token->next;
@@ -2000,6 +2003,34 @@ static int handle_nondirective(struct stream *stream, struct token **line, struc
 	return 1;
 }
 
+static void create_arglist(struct symbol *sym, int count)
+{
+	struct token *token;
+	struct token **next;
+
+	if (!count)
+		return;
+
+	token = __alloc_token(0);
+	token_type(token) = TOKEN_ARG_COUNT;
+	token->count.normal = count;
+	sym->arglist = token;
+	next = &token->next;
+
+	while (count--) {
+		struct token *id, *uses;
+		id = __alloc_token(0);
+		token_type(id) = TOKEN_IDENT;
+		uses = __alloc_token(0);
+		token_type(uses) = TOKEN_ARG_COUNT;
+		uses->count.normal = 1;
+
+		*next = id;
+		id->next = uses;
+		next = &uses->next;
+	}
+	*next = &eof_token_entry;
+}
 
 static void init_preprocessor(void)
 {
@@ -2041,6 +2072,7 @@ static void init_preprocessor(void)
 	static struct {
 		const char *name;
 		void (*expand_simple)(struct token *);
+		bool (*expand)(struct token *, struct arg *args);
 	} dynamic[] = {
 		{ "__LINE__",		expand_line },
 		{ "__FILE__",		expand_file },
@@ -2067,6 +2099,8 @@ static void init_preprocessor(void)
 		struct symbol *sym;
 		sym = create_symbol(stream, dynamic[i].name, SYM_NODE, NS_MACRO);
 		sym->expand_simple = dynamic[i].expand_simple;
+		if ((sym->expand = dynamic[i].expand) != NULL)
+			create_arglist(sym, 1);
 	}
 
 	counter_macro = 0;
