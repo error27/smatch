@@ -229,8 +229,8 @@ static int expand_one_symbol(struct token **list)
 	sym = lookup_macro(token->ident);
 	if (!sym)
 		return 1;
-	if (sym->expander) {
-		sym->expander(token);
+	if (sym->expand_simple) {
+		sym->expand_simple(token);
 		return 1;
 	} else {
 		int rc;
@@ -2040,7 +2040,7 @@ static void init_preprocessor(void)
 	};
 	static struct {
 		const char *name;
-		void (*expander)(struct token *);
+		void (*expand_simple)(struct token *);
 	} dynamic[] = {
 		{ "__LINE__",		expand_line },
 		{ "__FILE__",		expand_file },
@@ -2066,7 +2066,7 @@ static void init_preprocessor(void)
 	for (i = 0; i < ARRAY_SIZE(dynamic); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, dynamic[i].name, SYM_NODE, NS_MACRO);
-		sym->expander = dynamic[i].expander;
+		sym->expand_simple = dynamic[i].expand_simple;
 	}
 
 	counter_macro = 0;
