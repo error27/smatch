@@ -2003,6 +2003,58 @@ static int handle_nondirective(struct stream *stream, struct token **line, struc
 	return 1;
 }
 
+static bool expand_has_extension(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct ident *ident;
+	bool val = false;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	ident = arg->ident;
+	if (ident == &c_alignas_ident)
+		val = true;
+	else if (ident == &c_alignof_ident)
+		val = true;
+	else if (ident == &c_generic_selections_ident)
+		val = true;
+	else if (ident == &c_static_assert_ident)
+		val = true;
+
+	replace_with_bool(token, val);
+	return 1;
+}
+
+static bool expand_has_feature(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct ident *ident;
+	bool val = false;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	ident = arg->ident;
+	if (standard >= STANDARD_C11) {
+		if (ident == &c_alignas_ident)
+			val = true;
+		else if (ident == &c_alignof_ident)
+			val = true;
+		else if (ident == &c_generic_selections_ident)
+			val = true;
+		else if (ident == &c_static_assert_ident)
+			val = true;
+	}
+
+	replace_with_bool(token, val);
+	return 1;
+}
+
 static void create_arglist(struct symbol *sym, int count)
 {
 	struct token *token;
@@ -2081,6 +2133,8 @@ static void init_preprocessor(void)
 		{ "__TIME__",		expand_time },
 		{ "__COUNTER__",	expand_counter },
 		{ "__INCLUDE_LEVEL__",	expand_include_level },
+		{ "__has_extension",	NULL, expand_has_extension },
+		{ "__has_feature",	NULL, expand_has_feature },
 	};
 
 	for (i = 0; i < ARRAY_SIZE(normal); i++) {

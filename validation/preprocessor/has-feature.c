@@ -12,7 +12,6 @@ __has_feature()??? Quesako?
 /*
  * check-name: has-feature
  * check-command: sparse -E $file
- * check-known-to-fail
  *
  * check-output-start
 
