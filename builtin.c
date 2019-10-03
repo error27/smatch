@@ -230,6 +230,44 @@ static struct symbol_op bswap_op = {
 };
 
 
+#define EXPAND_FINDBIT(name)					\
+static int expand_##name(struct expression *expr, int cost)	\
+{								\
+	struct expression *arg;					\
+	long long val;						\
+								\
+	if (cost)						\
+		return cost;					\
+								\
+	arg = first_expression(expr->args);			\
+	val = get_expression_value_silent(arg);			\
+	switch (arg->ctype->bit_size) {				\
+	case sizeof(int) * 8:					\
+		val = __builtin_##name(val); break;		\
+	case sizeof(long long) * 8:				\
+		val = __builtin_##name##ll(val); break;		\
+	default: /* impossible error */				\
+		return SIDE_EFFECTS;				\
+	}							\
+								\
+	expr->value = val;					\
+	expr->type = EXPR_VALUE;				\
+	expr->taint = 0;					\
+	return 0;						\
+}								\
+								\
+static struct symbol_op name##_op = {				\
+	.evaluate = evaluate_pure_unop,				\
+	.expand = expand_##name,				\
+}
+
+EXPAND_FINDBIT(clz);
+EXPAND_FINDBIT(ctz);
+EXPAND_FINDBIT(clrsb);
+EXPAND_FINDBIT(ffs);
+EXPAND_FINDBIT(parity);
+EXPAND_FINDBIT(popcount);
+
 static int evaluate_fp_unop(struct expression *expr)
 {
 	struct expression *arg;
@@ -334,11 +372,29 @@ static struct sym_init {
 	{ "__builtin_bswap16", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
 	{ "__builtin_bswap32", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
 	{ "__builtin_bswap64", &builtin_fn_type, MOD_TOPLEVEL, &bswap_op },
+	{ "__builtin_clrsb", &builtin_fn_type, MOD_TOPLEVEL, &clrsb_op },
+	{ "__builtin_clrsbl", &builtin_fn_type, MOD_TOPLEVEL, &clrsb_op },
+	{ "__builtin_clrsbll", &builtin_fn_type, MOD_TOPLEVEL, &clrsb_op },
+	{ "__builtin_clz", &builtin_fn_type, MOD_TOPLEVEL, &clz_op },
+	{ "__builtin_clzl", &builtin_fn_type, MOD_TOPLEVEL, &clz_op },
+	{ "__builtin_clzll", &builtin_fn_type, MOD_TOPLEVEL, &clz_op },
+	{ "__builtin_ctz", &builtin_fn_type, MOD_TOPLEVEL, &ctz_op },
+	{ "__builtin_ctzl", &builtin_fn_type, MOD_TOPLEVEL, &ctz_op },
+	{ "__builtin_ctzll", &builtin_fn_type, MOD_TOPLEVEL, &ctz_op },
+	{ "__builtin_ffs", &builtin_fn_type, MOD_TOPLEVEL, &ffs_op },
+	{ "__builtin_ffsl", &builtin_fn_type, MOD_TOPLEVEL, &ffs_op },
+	{ "__builtin_ffsll", &builtin_fn_type, MOD_TOPLEVEL, &ffs_op },
 	{ "__builtin_isfinite", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isinf", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isinf_sign", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isnan", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_isnormal", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
+	{ "__builtin_parity", &builtin_fn_type, MOD_TOPLEVEL, &parity_op },
+	{ "__builtin_parityl", &builtin_fn_type, MOD_TOPLEVEL, &parity_op },
+	{ "__builtin_parityll", &builtin_fn_type, MOD_TOPLEVEL, &parity_op },
+	{ "__builtin_popcount", &builtin_fn_type, MOD_TOPLEVEL, &popcount_op },
+	{ "__builtin_popcountl", &builtin_fn_type, MOD_TOPLEVEL, &popcount_op },
+	{ "__builtin_popcountll", &builtin_fn_type, MOD_TOPLEVEL, &popcount_op },
 	{ "__builtin_signbit", &builtin_fn_type, MOD_TOPLEVEL, &fp_unop_op },
 	{ "__builtin_add_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },
 	{ "__builtin_sub_overflow", &builtin_fn_type, MOD_TOPLEVEL, &overflow_op },

@@ -272,7 +272,7 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 		if (next->pos.newline && match_op(next, '#')) {
 			if (!next->pos.noexpand) {
 				sparse_error(next->pos,
-					     "directive in argument list");
+					     "directive in macro's argument list");
 				preprocessor_line(stream, p);
 				__free_token(next);	/* Free the '#' token */
 				continue;
