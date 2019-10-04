@@ -257,6 +257,9 @@ SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto
 smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS)
 	$(QUIET_LINK)$(LD) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
+check_list_local.h:
+	touch check_list_local.h
+
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
 	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
 
