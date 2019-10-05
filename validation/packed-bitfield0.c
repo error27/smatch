@@ -55,5 +55,4 @@ int main(void)
 
 /*
  * check-name: packed-bitfield0
- * check-known-to-fail
  */

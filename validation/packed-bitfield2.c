@@ -12,5 +12,4 @@ _Static_assert(sizeof(struct bf2) == 8);
 
 /*
  * check-name: packed-bitfield2
- * check-known-to-fail
  */

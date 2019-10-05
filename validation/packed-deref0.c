@@ -20,5 +20,4 @@ static void bar(obj_t o)
 
 /*
  * check-name: packed-deref0
- * check-known-to-fail
  */

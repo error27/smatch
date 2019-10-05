@@ -24,5 +24,4 @@ static int foo(struct s *ptr)
 
 /*
  * check-name: packed-bitfield1
- * check-known-to-fail
  */

@@ -17,5 +17,4 @@ static int ld(struct s *s)
 /*
  * check-name: packed-bitfield5
  * check-description: is check_access() OK with 'overlapping' packed bitfields?
- * check-known-to-fail
  */

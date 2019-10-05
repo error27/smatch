@@ -112,6 +112,7 @@ struct decl_state {
 	unsigned char prefer_abstract;
 	unsigned char autotype;
 	unsigned char forced;
+	unsigned char packed;
 };
 
 struct pseudo;

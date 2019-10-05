@@ -29,5 +29,4 @@ _Static_assert(   sizeof(struct c) == 6, "size struct");
 
 /*
  * check-name: packed-struct
- * check-known-to-fail
  */

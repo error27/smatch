@@ -767,6 +767,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	attr.ctype.base_type = sym;
 	token = handle_attributes(token, &attr);
 	apply_ctype(token->pos, &sym->ctype, &attr.ctype);
+	sym->packed = attr.packed;
 
 	sym->endpos = token->pos;
 
@@ -1089,8 +1090,10 @@ static struct token *ignore_attribute(struct token *token, struct symbol *attr, 
 
 static struct token *attribute_packed(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	if (!ctx->ctype.alignment)
+	if (!ctx->ctype.alignment) {
 		ctx->ctype.alignment = 1;
+		ctx->packed = 1;
+	}
 	return token;
 }
 
