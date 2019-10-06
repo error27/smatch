@@ -719,10 +719,11 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct token *token, struct decl_state *ctx,
 	struct token *(*parse)(struct token *, struct symbol *))
 {
+	struct decl_state attr = { };
 	struct symbol *sym;
 	struct position *repos;
 
-	token = handle_attributes(token, ctx);
+	token = handle_attributes(token, &attr);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
@@ -763,6 +764,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 	token = parse(token->next, sym);
 	token = expect(token, '}', "at end of specifier");
+	apply_ctype(token->pos, &sym->ctype, &attr.ctype);
 
 	sym->endpos = token->pos;
 
