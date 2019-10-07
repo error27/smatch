@@ -738,19 +738,19 @@ static struct token *struct_union_enum_specifier(enum type type,
 		ctx->ctype.base_type = sym;
 		repos = &token->pos;
 		token = token->next;
-		if (match_op(token, '{')) {
-			// The following test is actually wrong for empty
-			// structs, but (1) they are not C99, (2) gcc does
-			// the same thing, and (3) it's easier.
-			if (sym->symbol_list)
-				error_die(token->pos, "redefinition of %s", show_typename (sym));
-			sym->pos = *repos;
+		if (!match_op(token, '{'))
+			return token;
 
-			// Mark the structure as needing re-examination
-			sym->examined = 0;
-			goto end;
-		}
-		return token;
+		// The following test is actually wrong for empty
+		// structs, but (1) they are not C99, (2) gcc does
+		// the same thing, and (3) it's easier.
+		if (sym->symbol_list)
+			error_die(token->pos, "redefinition of %s", show_typename (sym));
+		sym->pos = *repos;
+
+		// Mark the structure as needing re-examination
+		sym->examined = 0;
+		goto end;
 	}
 
 	// private struct/union/enum type
