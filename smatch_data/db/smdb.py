@@ -677,9 +677,5 @@ elif sys.argv[1] == "constraint":
         struct_type = sys.argv[2]
         member = sys.argv[3]
     constraint(struct_type, member)
-elif sys.argv[1] == "test":
-    filename = sys.argv[2]
-    func = sys.argv[3]
-    caller_info_values(filename, func)
 else:
     usage()
