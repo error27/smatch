@@ -252,7 +252,7 @@ SMATCH_SCRIPTS=smatch_scripts/add_gfp_to_allocations.sh \
 	smatch_scripts/trace_params.pl smatch_scripts/unlocked_paths.pl \
 	smatch_scripts/whitespace_only.sh smatch_scripts/wine_checker.sh \
 
-SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto
+SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 
 smatch: smatch.o $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS)
 	$(QUIET_LINK)$(LD) -o $@ $< $(SMATCH_FILES) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
