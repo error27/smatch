@@ -195,6 +195,8 @@ CK(check_implicit_dependencies)
 CK(check_wine_filehandles)
 CK(check_wine_WtoA)
 
+CK(check_arm64_tagged)
+
 #include "check_list_local.h"
 
 CK(register_scope)
