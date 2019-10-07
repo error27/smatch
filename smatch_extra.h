@@ -31,6 +31,7 @@ struct data_info {
 	sval_t fuzzy_max;
 	unsigned int hard_max:1;
 	unsigned int capped:1;
+	unsigned int treat_untagged:1;
 };
 DECLARE_ALLOCATOR(data_info);
 
@@ -148,6 +149,8 @@ void estate_clear_hard_max(struct smatch_state *state);
 int estate_get_hard_max(struct smatch_state *state, sval_t *sval);
 bool estate_capped(struct smatch_state *state);
 void estate_set_capped(struct smatch_state *state);
+bool estate_treat_untagged(struct smatch_state *state);
+void estate_set_treat_untagged(struct smatch_state *state);
 
 int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 struct smatch_state *get_implied_estate(struct expression *expr);
