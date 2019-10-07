@@ -745,12 +745,10 @@ static struct token *struct_union_enum_specifier(enum type type,
 			if (sym->symbol_list)
 				error_die(token->pos, "redefinition of %s", show_typename (sym));
 			sym->pos = *repos;
-			token = parse(token->next, sym);
-			token = expect(token, '}', "at end of struct-union-enum-specifier");
 
 			// Mark the structure as needing re-examination
 			sym->examined = 0;
-			sym->endpos = token->pos;
+			goto end;
 		}
 		return token;
 	}
@@ -764,9 +762,11 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 	sym = alloc_symbol(token->pos, type);
 	set_current_scope(sym);		// used by dissect
-	token = parse(token->next, sym);
 	ctx->ctype.base_type = sym;
-	token =  expect(token, '}', "at end of specifier");
+end:
+	token = parse(token->next, sym);
+	token = expect(token, '}', "at end of specifier");
+
 	sym->endpos = token->pos;
 
 	return token;
