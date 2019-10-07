@@ -574,6 +574,12 @@ def rl_is_tagged(txt):
 
     return 1
 
+def rl_is_treat_untagged(txt):
+    if "[u]" in txt:
+        return 1;
+
+    return 0
+
 def parse_warns_tagged(filename):
     proc = subprocess.Popen(['cat %s | grep "potentially tagged" | sort | uniq' %(filename)], shell=True, stdout=subprocess.PIPE)
     while True:
@@ -622,6 +628,8 @@ def find_tagged(func, param, caller_call_id, printed):
         for row in cur:
             if not rl_is_tagged(row[2]):
                 continue
+	    if rl_is_treat_untagged(row[2]):
+	        continue
             found = 1
             if row[1] not in callers:
                 callers[row[1]] = {}
