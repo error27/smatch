@@ -184,8 +184,6 @@ bool user_rl_treat_untagged(struct expression *expr)
 	struct range_list *rl;
 	sval_t sval;
 
-	char *var_name = expr_to_var(expr);
-
 	expr = strip_expr(expr);
 	if (!expr)
 		return false;
