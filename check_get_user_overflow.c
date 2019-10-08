@@ -127,14 +127,15 @@ static void check_expr(struct expression *expr)
 
 	sm = get_sm_state_expr(my_max_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_max(expr, &max) || sval_cmp_val(max, 20000) > 0)
+		get_absolute_max(expr, &max);
+		if (sval_cmp_val(max, 20000) > 0)
 			overflow = 1;
 	}
 
 	sm = get_sm_state_expr(my_min_id, expr);
 	if (sm && slist_has_state(sm->possible, &user_data)) {
-		if (!get_absolute_min(expr, &sval) ||
-		    (sval_is_negative(sval) && sval_cmp_val(sval, -20000) < 0))
+		get_absolute_min(expr, &sval);
+		if (sval_is_negative(sval) && sval_cmp_val(sval, -20000) < 0)
 			underflow = 1;
 	}
 
