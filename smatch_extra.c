@@ -2444,12 +2444,14 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	struct range_list *rl;
 	sval_t dummy;
 
-	if (estate_is_whole(sm->state))
+	if (estate_is_whole(sm->state) || !estate_rl(sm->state))
 		return;
 	if (filter_unused_param_value_info(call, param, printed_name, sm))
 		return;
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);
+	if (!rl)
+		return;
 	sql_insert_caller_info(call, PARAM_VALUE, param, printed_name, show_rl(rl));
 	if (!estate_get_single_value(sm->state, &dummy)) {
 		if (estate_has_hard_max(sm->state))
