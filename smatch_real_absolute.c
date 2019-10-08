@@ -36,6 +36,18 @@
 
 static int my_id;
 
+static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	struct smatch_state *abs;
+	struct range_list *rl;
+
+	abs = get_state(my_id, name, sym);
+	if (!abs || !estate_rl(abs))
+		return;
+	rl = rl_intersection(estate_rl(abs), estate_rl(state));
+	set_state(my_id, name, sym, alloc_estate_rl(clone_rl(rl)));
+}
+
 static void pre_merge_hook(struct sm_state *sm)
 {
 	struct smatch_state *abs;
@@ -57,11 +69,6 @@ static void pre_merge_hook(struct sm_state *sm)
 static struct smatch_state *empty_state(struct sm_state *sm)
 {
 	return alloc_estate_empty();
-}
-
-static void reset(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
 }
 
 static int in_iterator_pre_statement(void)
@@ -135,7 +142,7 @@ void register_real_absolute(int id)
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_merge_hook(my_id, &merge_estates);
-	add_modification_hook(my_id, &reset);
+	add_extra_mod_hook(&extra_mod_hook);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 }
