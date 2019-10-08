@@ -671,11 +671,6 @@ char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct sy
 int get_absolute_min_helper(struct expression *expr, sval_t *sval);
 int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
-/* smatch_local_values.c */
-int get_local_rl(struct expression *expr, struct range_list **rl);
-int get_local_max_helper(struct expression *expr, sval_t *sval);
-int get_local_min_helper(struct expression *expr, sval_t *sval);
-
 /* smatch_type_value.c */
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
 /* smatch_data_val.c */
