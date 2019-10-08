@@ -1254,6 +1254,7 @@ bool is_nospec(struct expression *expr);
 long get_stmt_cnt(void);
 
 /* smatch_nul_terminator.c */
+bool is_nul_terminated_var_sym(const char *name, struct symbol *sym);
 bool is_nul_terminated(struct expression *expr);
 /* check_kernel.c  */
 bool is_ignored_kernel_data(const char *name);
