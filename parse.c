@@ -2890,7 +2890,7 @@ static struct token *toplevel_asm_declaration(struct token *token, struct symbol
 
 	token = parse_asm_statement(token, stmt);
 
-	add_symbol(list, anon);
+	// FIXME: add_symbol(list, anon);
 	return token;
 }
 
