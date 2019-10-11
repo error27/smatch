@@ -2336,25 +2336,38 @@ static char *get_next_string(char **str)
 	static char string[256];
 	char *start;
 	char *p = *str;
-	int len;
+	int len, i, j;
 
 	if (*p == '\0')
 		return NULL;
 	start = p;
 
-	while (*p != '\0' && *p != ' ' && *p != '\n')
+	while (*p != '\0' && *p != '\n') {
+		if (*p == '\\' && *(p + 1) == ' ') {
+			p += 2;
+			continue;
+		}
+		if (*p == ' ')
+			break;
 		p++;
+	}
 
 	len = p - start;
-	if (len > 256) {
-		memcpy(string, start, 255);
-		string[255] = '\0';
+	if (len > sizeof(string)) {
+		memcpy(string, start, sizeof(string));
+		string[sizeof(string) - 1] = '\0';
 		sm_ierror("return_fix: '%s' too long", string);
 		**str = '\0';
 		return NULL;
 	}
 	memcpy(string, start, len);
 	string[len] = '\0';
+	for (i = 0; i < sizeof(string) - 1; i++) {
+		if (string[i] == '\\' && string[i + 1] == ' ') {
+			for (j = i; string[j] != '\0'; j++)
+				string[j] = string[j + 1];
+		}
+	}
 	if (*p != '\0')
 		p++;
 	*str = p;
