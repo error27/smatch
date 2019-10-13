@@ -56,7 +56,7 @@ Terminators
 Arithmetic binops
 -----------------
 They all follow the same signature:
-	* .src1, .src1: operands (types must be compatible with .target)
+	* .src1, .src2: operands (types must be compatible with .target)
 	* .target: result of the operation (must be an integral type)
 	* .type: type of .target
 
@@ -93,7 +93,7 @@ They all follow the same signature:
 Floating-point binops
 ---------------------
 They all follow the same signature:
-	* .src1, .src1: operands (types must be compatible with .target)
+	* .src1, .src2: operands (types must be compatible with .target)
 	* .target: result of the operation (must be a floating-point type)
 	* .type: type of .target
 
