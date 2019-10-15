@@ -32,6 +32,12 @@ struct hook_container {
 };
 ALLOCATOR(hook_container, "hook functions");
 DECLARE_PTR_LIST(hook_func_list, struct hook_container);
+
+typedef void (expr_func)(struct expression *expr);
+typedef void (stmt_func)(struct statement *stmt);
+typedef void (sym_func)(struct symbol *sym);
+typedef void (sym_list_func)(struct symbol_list *sym_list);
+
 static struct hook_func_list *merge_funcs;
 static struct hook_func_list *unmatched_state_funcs;
 static struct hook_func_list *hook_array[NUM_HOOKS] = {};
@@ -118,26 +124,22 @@ void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *sm))
 
 static void pass_expr_to_client(void *fn, void *data)
 {
-	typedef void (expr_func)(struct expression *expr);
-	((expr_func *) fn)((struct expression *) data);
+	((expr_func *)fn)((struct expression *)data);
 }
 
 static void pass_stmt_to_client(void *fn, void *data)
 {
-	typedef void (stmt_func)(struct statement *stmt);
-	((stmt_func *) fn)((struct statement *) data);
+	((stmt_func *)fn)((struct statement *)data);
 }
 
 static void pass_sym_to_client(void *fn, void *data)
 {
-	typedef void (sym_func)(struct symbol *sym);
-	((sym_func *) fn)((struct symbol *) data);
+	((sym_func *)fn)((struct symbol *)data);
 }
 
 static void pass_sym_list_to_client(void *fn, void *data)
 {
-	typedef void (sym_func)(struct symbol_list *sym_list);
-	((sym_func *) fn)((struct symbol_list *) data);
+	((sym_list_func *)fn)((struct symbol_list *)data);
 }
 
 void __pass_to_client(void *data, enum hook_type type)
@@ -171,7 +173,7 @@ void __pass_case_to_client(struct expression *switch_expr,
 	struct hook_container *container;
 
 	FOR_EACH_PTR(hook_array[CASE_HOOK], container) {
-		((case_func *) container->fn)(switch_expr, rl);
+		((case_func *)container->fn)(switch_expr, rl);
 	} END_FOR_EACH_PTR(container);
 }
 
@@ -202,7 +204,7 @@ struct smatch_state *__client_merge_function(int owner,
 
 	FOR_EACH_PTR(merge_funcs, tmp) {
 		if (tmp->owner == owner)
-			return ((merge_func_t *) tmp->fn)(s1, s2);
+			return ((merge_func_t *)tmp->fn)(s1, s2);
 	} END_FOR_EACH_PTR(tmp);
 	return &undefined;
 }
@@ -213,7 +215,7 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm)
 
 	FOR_EACH_PTR(unmatched_state_funcs, tmp) {
 		if (tmp->owner == sm->owner)
-			return ((unmatched_func_t *) tmp->fn)(sm);
+			return ((unmatched_func_t *)tmp->fn)(sm);
 	} END_FOR_EACH_PTR(tmp);
 	return &undefined;
 }
@@ -271,7 +273,7 @@ void __call_scope_hooks(void)
 
 	hook_list = pop_scope_hook_list(&scope_hooks);
 	FOR_EACH_PTR(hook_list, tmp) {
-		((scope_hook *) tmp->fn)(tmp->data);
+		((scope_hook *)tmp->fn)(tmp->data);
 		__free_scope_container(tmp);
 	} END_FOR_EACH_PTR(tmp);
 }
