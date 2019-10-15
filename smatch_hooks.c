@@ -48,119 +48,49 @@ static struct scope_hook_stack *scope_hooks;
 void add_hook(void *func, enum hook_type type)
 {
 	struct hook_container *container = __alloc_hook_container(0);
+	static const enum hook_type data_types[NUM_HOOKS] = {
+		[EXPR_HOOK] = EXPR_PTR,
+		[STMT_HOOK] = STMT_PTR,
+		[STMT_HOOK_AFTER] = STMT_PTR,
+		[SYM_HOOK] = EXPR_PTR,
+		[STRING_HOOK] = EXPR_PTR,
+		[DECLARATION_HOOK] = SYMBOL_PTR,
+		[ASSIGNMENT_HOOK] = EXPR_PTR,
+		[ASSIGNMENT_HOOK_AFTER] = EXPR_PTR,
+		[RAW_ASSIGNMENT_HOOK] = EXPR_PTR,
+		[GLOBAL_ASSIGNMENT_HOOK] = EXPR_PTR,
+		[CALL_ASSIGNMENT_HOOK] = EXPR_PTR,
+		[MACRO_ASSIGNMENT_HOOK] = EXPR_PTR,
+		[BINOP_HOOK] = EXPR_PTR,
+		[OP_HOOK] = EXPR_PTR,
+		[LOGIC_HOOK] = EXPR_PTR,
+		[PRELOOP_HOOK] = STMT_PTR,
+		[CONDITION_HOOK] = EXPR_PTR,
+		[SELECT_HOOK] = EXPR_PTR,
+		[WHOLE_CONDITION_HOOK] = EXPR_PTR,
+		[FUNCTION_CALL_HOOK] = EXPR_PTR,
+		[CALL_HOOK_AFTER_INLINE] = EXPR_PTR,
+		[FUNCTION_CALL_HOOK_AFTER_DB] = EXPR_PTR,
+		[DEREF_HOOK] = EXPR_PTR,
+		[CASE_HOOK] = 0, /* nothing needed */
+		[ASM_HOOK] = STMT_PTR,
+		[CAST_HOOK] = EXPR_PTR,
+		[SIZEOF_HOOK] = EXPR_PTR,
+		[BASE_HOOK] = SYMBOL_PTR,
+		[FUNC_DEF_HOOK] = SYMBOL_PTR,
+		[AFTER_DEF_HOOK] = SYMBOL_PTR,
+		[END_FUNC_HOOK] = SYMBOL_PTR,
+		[AFTER_FUNC_HOOK] = SYMBOL_PTR,
+		[RETURN_HOOK] = EXPR_PTR,
+		[INLINE_FN_START] = EXPR_PTR,
+		[INLINE_FN_END] = EXPR_PTR,
+		[END_FILE_HOOK] = SYM_LIST_PTR,
+	};
 
 	container->hook_type = type;
 	container->fn = func;
-	switch (type) {
-	case EXPR_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case STMT_HOOK:
-		container->data_type = STMT_PTR;
-		break;
-	case STMT_HOOK_AFTER:
-		container->data_type = STMT_PTR;
-		break;
-	case SYM_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case STRING_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case DECLARATION_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case ASSIGNMENT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case ASSIGNMENT_HOOK_AFTER:
-		container->data_type = EXPR_PTR;
-		break;
-	case RAW_ASSIGNMENT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case GLOBAL_ASSIGNMENT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case CALL_ASSIGNMENT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case MACRO_ASSIGNMENT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case BINOP_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case OP_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case LOGIC_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case PRELOOP_HOOK:
-		container->data_type = STMT_PTR;
-		break;
-	case CONDITION_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case SELECT_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case WHOLE_CONDITION_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case FUNCTION_CALL_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case CALL_HOOK_AFTER_INLINE:
-		container->data_type = EXPR_PTR;
-		break;
-	case FUNCTION_CALL_HOOK_AFTER_DB:
-		container->data_type = EXPR_PTR;
-		break;
-	case DEREF_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case CASE_HOOK:
-		/* nothing needed */
-		break;
-	case ASM_HOOK:
-		container->data_type = STMT_PTR;
-		break;
-	case CAST_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case SIZEOF_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case BASE_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case FUNC_DEF_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case AFTER_DEF_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case END_FUNC_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case AFTER_FUNC_HOOK:
-		container->data_type = SYMBOL_PTR;
-		break;
-	case RETURN_HOOK:
-		container->data_type = EXPR_PTR;
-		break;
-	case INLINE_FN_START:
-		container->data_type = EXPR_PTR;
-		break;
-	case INLINE_FN_END:
-		container->data_type = EXPR_PTR;
-		break;
-	case END_FILE_HOOK:
-		container->data_type = SYM_LIST_PTR;
-		break;
-	}
+	container->data_type = data_types[type];
+
 	add_ptr_list(&hook_array[type], container);
 }
 
