@@ -115,12 +115,6 @@ void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *sm))
 	pre_merge_hooks[client_id] = hook;
 }
 
-static void pass_to_client(void *fn)
-{
-	typedef void (expr_func)();
-	((expr_func *) fn)();
-}
-
 static void pass_expr_to_client(void *fn, void *data)
 {
 	typedef void (expr_func)(struct expression *expr);
@@ -165,15 +159,6 @@ void __pass_to_client(void *data, enum hook_type type)
 			pass_sym_list_to_client(container->fn, data);
 			break;
 		}
-	} END_FOR_EACH_PTR(container);
-}
-
-void __pass_to_client_no_data(enum hook_type type)
-{
-	struct hook_container *container;
-
-	FOR_EACH_PTR(hook_array[type], container) {
-		pass_to_client(container->fn);
 	} END_FOR_EACH_PTR(container);
 }
 

@@ -763,7 +763,6 @@ void __print_cur_stree(void);
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
-void __pass_to_client_no_data(enum hook_type type);
 void __pass_case_to_client(struct expression *switch_expr,
 			   struct range_list *rl);
 int __has_merge_function(int client_id);
