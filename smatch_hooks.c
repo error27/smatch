@@ -18,6 +18,7 @@
 #include "smatch.h"
 
 enum data_type {
+	NO_DATA,
 	EXPR_PTR,
 	STMT_PTR,
 	SYMBOL_PTR,
@@ -72,7 +73,7 @@ void add_hook(void *func, enum hook_type type)
 		[CALL_HOOK_AFTER_INLINE] = EXPR_PTR,
 		[FUNCTION_CALL_HOOK_AFTER_DB] = EXPR_PTR,
 		[DEREF_HOOK] = EXPR_PTR,
-		[CASE_HOOK] = 0, /* nothing needed */
+		[CASE_HOOK] = NO_DATA,
 		[ASM_HOOK] = STMT_PTR,
 		[CAST_HOOK] = EXPR_PTR,
 		[SIZEOF_HOOK] = EXPR_PTR,
