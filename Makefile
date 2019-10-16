@@ -309,7 +309,7 @@ SMATCH_SCRIPTS=smatch_scripts/add_gfp_to_allocations.sh \
 SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 
 smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS)
-	$(QUIET_LINK)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
+	$(Q)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
 check_list_local.h:
 	touch check_list_local.h
