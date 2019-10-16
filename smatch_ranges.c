@@ -2133,7 +2133,6 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 		break;
 	default:
 		sm_perror(" unhandled comparison %d", op);
-		return;
 	}
 
 	if (left_true_rl) {
