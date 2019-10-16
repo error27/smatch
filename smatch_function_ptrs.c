@@ -279,7 +279,8 @@ static void match_function_assign(struct expression *expr)
 		right = strip_expr(right->unop);
 
 	if (right->type != EXPR_SYMBOL &&
-	    right->type != EXPR_DEREF)
+	    right->type != EXPR_DEREF &&
+	    right->type != EXPR_CALL)
 		return;
 
 	if (!can_hold_function_ptr(right) ||
