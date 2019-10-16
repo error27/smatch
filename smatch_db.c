@@ -2353,7 +2353,7 @@ static char *get_next_string(char **str)
 	}
 
 	len = p - start;
-	if (len > sizeof(string)) {
+	if (len >= sizeof(string)) {
 		memcpy(string, start, sizeof(string));
 		string[sizeof(string) - 1] = '\0';
 		sm_ierror("return_fix: '%s' too long", string);
