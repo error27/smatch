@@ -255,6 +255,12 @@ static int can_hold_function_ptr(struct expression *expr)
 		if (!type)
 			return 0;
 	}
+	/* pointer to a pointer */
+	if (type->type == SYM_PTR || type->type == SYM_ARRAY) {
+		type = get_real_base_type(type);
+		if (!type)
+			return 0;
+	}
 	if (type->type == SYM_FN)
 		return 1;
 	if (type == &ulong_ctype && expr->type == EXPR_DEREF)
