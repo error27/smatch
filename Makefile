@@ -5,7 +5,7 @@ VERSION=0.6.1-rc1
 OS = linux
 
 
-CC = gcc
+CC ?= gcc
 LD = $(CC)
 AR = ar
 
