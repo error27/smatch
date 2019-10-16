@@ -570,6 +570,7 @@ void __split_expr(struct expression *expr)
 	default:
 		break;
 	};
+	__pass_to_client(expr, EXPR_HOOK_AFTER);
 	pop_expression(&big_expression_stack);
 }
 

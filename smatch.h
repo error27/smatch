@@ -105,6 +105,7 @@ struct bit_info {
 
 enum hook_type {
 	EXPR_HOOK,
+	EXPR_HOOK_AFTER,
 	STMT_HOOK,
 	STMT_HOOK_AFTER,
 	SYM_HOOK,

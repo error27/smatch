@@ -43,6 +43,7 @@ static struct hook_func_list *unmatched_state_funcs;
 static struct hook_func_list *hook_array[NUM_HOOKS] = {};
 static const enum data_type data_types[NUM_HOOKS] = {
 	[EXPR_HOOK] = EXPR_PTR,
+	[EXPR_HOOK_AFTER] = EXPR_PTR,
 	[STMT_HOOK] = STMT_PTR,
 	[STMT_HOOK_AFTER] = STMT_PTR,
 	[SYM_HOOK] = EXPR_PTR,
@@ -145,7 +146,6 @@ static void pass_sym_list_to_client(void *fn, void *data)
 void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
-
 
 	FOR_EACH_PTR(hook_array[type], container) {
 		switch (data_types[type]) {
