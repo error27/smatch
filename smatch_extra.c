@@ -300,7 +300,7 @@ char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct sym
 	if (len >= sizeof(buf) - 2)
 		return NULL;
 
-	while (len >= 1) {
+	while (use_stack && len >= 1) {
 		if (buf[len] == '>' && buf[len - 1] == '-') {
 			len--;
 			buf[len] = '\0';
