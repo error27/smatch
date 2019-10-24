@@ -588,6 +588,9 @@ static char *get_allocation_recipe_from_call(struct expression *expr)
 		BUF_SIZE, sql_filter);
 	if (!buf_size_recipe || strcmp(buf_size_recipe, "invalid") == 0)
 		return NULL;
+	/* Known sizes should be handled in smatch_buf_size.c */
+	if (!strchr(buf_size_recipe, '$'))
+		return NULL;
 	return swap_format(expr, buf_size_recipe);
 }
 
@@ -606,8 +609,6 @@ static void match_returns_call(int return_id, char *return_ranges, struct expres
 	char *sname;
 
 	sname = get_allocation_recipe_from_call(call);
-	if (option_debug)
-		sm_msg("sname = %s", sname);
 	if (!sname)
 		return;
 
