@@ -1350,6 +1350,8 @@ static void match_dereferences(struct expression *expr)
 {
 	if (expr->type != EXPR_PREOP)
 		return;
+	if (getting_address(expr))
+		return;
 	/* it's saying that foo[1] = bar dereferences foo[1] */
 	if (is_array(expr))
 		return;
