@@ -20,6 +20,7 @@ compile
 graph
 test-dissect
 test-linearize
+test-show-type
 example
 test-unssa
 ctags

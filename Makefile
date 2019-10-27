@@ -80,6 +80,7 @@ PROGRAMS += test-dissect
 PROGRAMS += test-lexing
 PROGRAMS += test-linearize
 PROGRAMS += test-parsing
+PROGRAMS += test-show-type
 PROGRAMS += test-unssa
 
 INST_PROGRAMS=sparse cgcc
