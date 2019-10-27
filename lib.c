@@ -1046,6 +1046,73 @@ static char **handle_switch_x(char *arg, char **next)
 }
 
 
+static char **handle_arch(char *arg, char **next)
+{
+	static const struct arch {
+		const char *name;
+		char mach;
+		char bits;
+		bool big_endian:1;
+	} archs[] = {
+		{ "aarch64",	MACH_ARM64,	64, 0 },
+		{ "arm64",	MACH_ARM64,	64, 0 },
+		{ "arm",	MACH_ARM,	32, 0 },
+		{ "i386",	MACH_I386,	32, 0 },
+		{ "m68k",	MACH_M68K,	32, 0 },
+		{ "mips",	MACH_MIPS32,	0,  1 },
+		{ "powerpc",	MACH_PPC32,	0,  1 },
+		{ "ppc",	MACH_PPC32,	0,  1 },
+		{ "riscv",	MACH_RISCV32,	0,  0 },
+		{ "s390x",	MACH_S390X,	64, 1 },
+		{ "s390",	MACH_S390,	32, 1 },
+		{ "sparc",	MACH_SPARC32,	0,  1 },
+		{ "x86_64",	MACH_X86_64,	64, 0 },
+		{ "x86-64",	MACH_X86_64,	64, 0 },
+		{ NULL },
+	};
+	const struct arch *p;
+
+	if (*arg++ != '=')
+		die("missing argument for --arch option");
+
+	for (p = &archs[0]; p->name; p++) {
+		size_t len = strlen(p->name);
+		if (strncmp(p->name, arg, len) == 0) {
+			const char *suf = arg + len;
+			int bits = p->bits;
+
+			arch_mach = p->mach;
+			if (bits == 0) {
+				if (!strcmp(suf, "")) {
+					bits = 32;
+				} else if (!strcmp(suf, "32")) {
+					bits = 32;
+				} else if (!strcmp(suf, "64")) {
+					bits = 64;
+					arch_mach += 1;
+				} else {
+					die("invalid architecture: %s", arg);
+				}
+			} else {
+				if (strcmp(suf, ""))
+					die("invalid architecture: %s", arg);
+			}
+
+			// adjust the arch size (but keep x32 & llp64)
+			if (bits == 32)
+				arch_m64 = ARCH_LP32;
+			else if (bits == 64 && arch_m64 == ARCH_LP32)
+				arch_m64 = ARCH_LP64;
+			if (p->big_endian)
+				arch_big_endian = 1;
+
+			break;
+		}
+	}
+
+	return next;
+}
+
 static char **handle_version(char *arg, char **next)
 {
 	printf("%s\n", SPARSE_VERSION);
@@ -1078,6 +1145,7 @@ struct switches {
 static char **handle_long_options(char *arg, char **next)
 {
 	static struct switches cmd[] = {
+		{ "arch", handle_arch, 1 },
 		{ "param", handle_param, 1 },
 		{ "version", handle_version },
 		{ NULL, NULL }

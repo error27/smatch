@@ -423,6 +423,14 @@ Sparse does not issue these warnings by default.
 .
 .SH MISC OPTIONS
 .TP
+.B \-\-arch=\fIARCH\fR
+Specify the target architecture.
+For architectures having both a 32-bit and a 64-bit variant (mips, powerpc,
+riscv & sparc) the architecture name can be suffixed with \fI32\fR or \fI64\fR.
+
+The default architecture & size is the one of the machine used to build Sparse.
+.
+.TP
 .B \-gcc-base-dir \fIdir\fR
 Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/include-fixed/.
 .
