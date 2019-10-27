@@ -58,6 +58,27 @@ int enum_alignment = 4;
 void init_target(void)
 {
 	switch (arch_mach) {
+	case MACH_I386:
+	case MACH_MIPS32:
+	case MACH_PPC32:
+	case MACH_RISCV32:
+	case MACH_SPARC32:
+	case MACH_S390:
+		if (arch_m64 == ARCH_LP64)
+			arch_mach++;
+		break;
+	case MACH_X86_64:
+	case MACH_MIPS64:
+	case MACH_PPC64:
+	case MACH_RISCV64:
+	case MACH_SPARC64:
+	case MACH_S390X:
+		if (arch_m64 == ARCH_LP32)
+			arch_mach--;
+		break;
+	}
+
+	switch (arch_mach) {
 	case MACH_X86_64:
 		if (arch_m64 == ARCH_LP64)
 			break;
