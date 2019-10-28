@@ -310,6 +310,8 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
+int fpic = 0;
+int fpie = 0;
 int funsigned_char = UNSIGNED_CHAR;
 
 int preprocess_only;
@@ -483,6 +485,9 @@ static void handle_arch_msize_long_finalize(void)
 static void handle_arch_finalize(void)
 {
 	handle_arch_msize_long_finalize();
+
+	if (fpie > fpic)
+		fpic = fpie;
 }
 
 static const char *match_option(const char *arg, const char *prefix)
@@ -590,6 +595,12 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 
 	// not handled
 	return 0;
+}
+
+static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	*(flag->flag) = flag->mask;
+	return 1;
 }
 
 
@@ -940,6 +951,10 @@ static struct flag fflags[] = {
 	{ "tabstop=",		NULL,	handle_ftabstop },
 	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
 	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
+	{ "pic",		&fpic,	handle_switch_setval, 1 },
+	{ "PIC",		&fpic,	handle_switch_setval, 2 },
+	{ "pie",		&fpie,	handle_switch_setval, 1 },
+	{ "PIE",		&fpie,	handle_switch_setval, 2 },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
 	{ "unsigned-char",	&funsigned_char, NULL, },
 	{ },
@@ -1381,6 +1396,15 @@ static void predefined_macros(void)
 		predefine("__i386__", 1, "1");
 		predefine("__i386", 1, "1");
 		break;
+	}
+
+	if (fpic) {
+		predefine("__pic__", 0, "%d", fpic);
+		predefine("__PIC__", 0, "%d", fpic);
+	}
+	if (fpie) {
+		predefine("__pie__", 0, "%d", fpie);
+		predefine("__PIE__", 0, "%d", fpie);
 	}
 }
 
