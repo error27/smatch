@@ -125,19 +125,6 @@ static int has_global_scope(struct expression *expr)
 	return toplevel(sym->scope);
 }
 
-static int was_initialized(struct expression *expr)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name)
-		return 0;
-	if (sym->initializer)
-		return 1;
-	return 0;
-}
-
 static void match_clear(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *ptr;
@@ -259,8 +246,6 @@ static void check_was_initialized(struct expression *data)
 
 	if (has_global_scope(data))
 		return;
-	if (was_initialized(data))
-		return;
 	if (was_memset(data))
 		return;
 	if (warn_on_holey_struct(data))
@@ -305,16 +290,6 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	match_clear(NULL, expr, INT_PTR(param));
-}
-
-static void match_assign(struct expression *expr)
-{
-	struct symbol *type;
-
-	type = get_type(expr->left);
-	if (!type || type->type != SYM_STRUCT)
-		return;
-	set_state_expr(my_whole_id, expr->left, &cleared);
 }
 
 static struct smatch_state *alloc_expr_state(struct expression *expr)
@@ -430,7 +405,6 @@ void check_rosenberg(int id)
 	add_function_hook("__builtin_memset", &match_clear, INT_PTR(0));
 	add_function_hook("__builtin_memcpy", &match_clear, INT_PTR(0));
 
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	register_clears_argument();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
 
