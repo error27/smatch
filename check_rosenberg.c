@@ -28,6 +28,7 @@
 
 static int my_whole_id;
 static int my_member_id;
+static int skb_put_id;
 
 STATE(cleared);
 
@@ -267,6 +268,21 @@ static void check_was_initialized(struct expression *data)
 	check_members_initialized(data);
 }
 
+static void check_skb_put(struct expression *data)
+{
+	data = strip_expr(data);
+	if (!data)
+		return;
+	if (data->type == EXPR_PREOP && data->op == '&')
+		data = strip_expr(data->unop);
+
+	if (was_memset(data))
+		return;
+	if (warn_on_holey_struct(data))
+		return;
+	check_members_initialized(data);
+}
+
 static void match_copy_to_user(const char *fn, struct expression *expr, void *_arg)
 {
 	int arg = PTR_INT(_arg);
@@ -299,6 +315,51 @@ static void match_assign(struct expression *expr)
 	if (!type || type->type != SYM_STRUCT)
 		return;
 	set_state_expr(my_whole_id, expr->left, &cleared);
+}
+
+static struct smatch_state *alloc_expr_state(struct expression *expr)
+{
+	struct smatch_state *state;
+	char *name;
+
+	name = expr_to_str(expr);
+	if (!name)
+		return NULL;
+
+	state = __alloc_smatch_state(0);
+	expr = strip_expr(expr);
+	state->name = alloc_sname(name);
+	free_string(name);
+	state->data = expr;
+	return state;
+}
+
+static void match_skb_put(const char *fn, struct expression *expr, void *unused)
+{
+	struct symbol *type;
+	struct smatch_state *state;
+
+	type = get_type(expr->left);
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+	state = alloc_expr_state(expr->left);
+	set_state_expr(skb_put_id, expr->left, state);
+}
+
+static void match_return_skb_put(struct expression *expr)
+{
+	struct sm_state *sm;
+	struct stree *stree;
+
+	if (is_error_return(expr))
+		return;
+
+	stree = __get_cur_stree();
+
+	FOR_EACH_MY_SM(skb_put_id, stree, sm) {
+		check_skb_put(sm->state->data);
+	} END_FOR_EACH_SM(sm);
 }
 
 static void register_clears_argument(void)
@@ -384,5 +445,16 @@ void check_rosenberg2(int id)
 	my_member_id = id;
 	set_dynamic_states(my_member_id);
 	add_extra_mod_hook(&extra_mod_hook);
+}
+
+void check_rosenberg3(int id)
+{
+	if (option_project != PROJ_KERNEL)
+		return;
+
+	skb_put_id = id;
+	set_dynamic_states(skb_put_id);
+	add_function_assign_hook("skb_put", &match_skb_put, NULL);
+	add_hook(&match_return_skb_put, RETURN_HOOK);
 }
 
