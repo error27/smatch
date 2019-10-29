@@ -456,6 +456,8 @@ static char **handle_switch_m(char *arg, char **next)
 		arch_m64 = ARCH_LP64;
 	} else if (!strcmp(arg, "m32") || !strcmp(arg, "m16")) {
 		arch_m64 = ARCH_LP32;
+	} else if (!strcmp(arg, "m31")) {
+		arch_m64 = ARCH_LP32;
 	} else if (!strcmp(arg, "mx32")) {
 		arch_m64 = ARCH_X32;
 	} else if (!strcmp(arg, "msize-llp64")) {
@@ -1356,6 +1358,7 @@ static void predefined_macros(void)
 	case MACH_S390X:
 		predefine("__zarch__", 1, "1");
 		predefine("__s390x__", 1, "1");
+	case MACH_S390:
 		predefine("__s390__", 1, "1");
 		break;
 	case MACH_SPARC64:

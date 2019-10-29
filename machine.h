@@ -31,8 +31,8 @@ enum machine {
 	MACH_PPC32,	MACH_PPC64,
 	MACH_RISCV32,	MACH_RISCV64,
 	MACH_SPARC32,	MACH_SPARC64,
+	MACH_S390,	MACH_S390X,
 	MACH_M68K,
-	MACH_S390X,
 	MACH_UNKNOWN
 };
 
@@ -64,6 +64,8 @@ enum machine {
 #define MACH_NATIVE	MACH_M68K
 #elif defined(__s390x__) || defined(__zarch__)
 #define MACH_NATIVE	MACH_S390X
+#elif defined(__s390__)
+#define MACH_NATIVE	MACH_S390
 #else
 #define MACH_NATIVE	MACH_UNKNOWN
 #endif

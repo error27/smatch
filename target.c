@@ -97,6 +97,7 @@ void init_target(void)
 	switch (arch_mach) {
 	case MACH_ARM:
 	case MACH_MIPS32:
+	case MACH_S390:
 	case MACH_S390X:
 	case MACH_SPARC32:
 		bits_in_longdouble = 64;
