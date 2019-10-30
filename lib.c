@@ -1329,6 +1329,7 @@ static void predefined_macros(void)
 			predefine("__mips64", 1, "64");
 		/* fall-through */
 	case MACH_MIPS32:
+		predefine("__mips__", 1, "1");
 		predefine("__mips", 1, "%d", ptr_ctype.bit_size);
 		predefine("_MIPS_SZINT", 1, "%d", int_ctype.bit_size);
 		predefine("_MIPS_SZLONG", 1, "%d", long_ctype.bit_size);
