@@ -336,13 +336,9 @@ int merge_comparisons(int one, int two)
 }
 
 /*
- * This is for if you have "a < b" and "b <= c".  Or in other words,
- * "a < b <= c".  You would call this like get_combined_comparison('<', '<=').
+ * This is for if you have "a < b" and "b <= c" and you want to see how "a
+ * compares to c".  You would call this like get_combined_comparison('<', '<=').
  * The return comparison would be '<'.
- *
- * This function is different from merge_comparisons(), for example:
- * merge_comparison('<', '==') returns '<='
- * get_combined_comparison('<', '==') returns '<'
  */
 int combine_comparisons(int left_compare, int right_compare)
 {
