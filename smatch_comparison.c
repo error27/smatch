@@ -2597,13 +2597,8 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (!sm)
 		return;
 	data = sm->state->data;
-	if (!data) {
-		if (sm->merged) {
-			filter_by_sm(sm->left, op, true_stack, false_stack);
-			filter_by_sm(sm->right, op, true_stack, false_stack);
-		}
-		return;
-	}
+	if (!data)
+		goto split;
 
 	if (data->comparison &&
 	    data->comparison == filter_comparison(data->comparison, op))
@@ -2617,7 +2612,7 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		add_ptr_list(true_stack, sm);
 	if (isfalse)
 		add_ptr_list(false_stack, sm);
-
+split:
 	if (sm->merged) {
 		filter_by_sm(sm->left, op, true_stack, false_stack);
 		filter_by_sm(sm->right, op, true_stack, false_stack);
