@@ -310,6 +310,8 @@ unsigned long fdump_ir;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
+int fpic = 0;
+int fpie = 0;
 int funsigned_char = UNSIGNED_CHAR;
 
 int preprocess_only;
@@ -326,6 +328,7 @@ static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_mach = MACH_NATIVE;
+int arch_cmodel = CMODEL_UNKNOWN;
 
 
 #define CMDLINE_INCLUDE 20
@@ -468,6 +471,26 @@ static char **handle_switch_m(char *arg, char **next)
 		arch_big_endian = 1;
 	} else if (!strcmp(arg, "mlittle-endian")) {
 		arch_big_endian = 0;
+	} else if (!strncmp(arg, "mcmodel", 7)) {
+		arg += 7;
+		if (*arg++ != '=')
+			die("missing argument for -mcmodel");
+		else if (!strcmp(arg, "kernel"))
+			arch_cmodel = CMODEL_KERNEL;
+		else if (!strcmp(arg, "large"))
+			arch_cmodel = CMODEL_LARGE;
+		else if (!strcmp(arg, "medany"))
+			arch_cmodel = CMODEL_MEDANY;
+		else if (!strcmp(arg, "medium"))
+			arch_cmodel = CMODEL_MEDIUM;
+		else if (!strcmp(arg, "medlow"))
+			arch_cmodel = CMODEL_MEDLOW;
+		else if (!strcmp(arg, "small"))
+			arch_cmodel = CMODEL_SMALL;
+		else if (!strcmp(arg, "tiny"))
+			arch_cmodel = CMODEL_TINY;
+		else
+			die("invalid argument for -mcmodel=%s", arg);
 	}
 	return next;
 }
@@ -483,6 +506,23 @@ static void handle_arch_msize_long_finalize(void)
 static void handle_arch_finalize(void)
 {
 	handle_arch_msize_long_finalize();
+
+	if (fpie > fpic)
+		fpic = fpie;
+
+	switch (arch_mach) {
+	case MACH_ARM64:
+		if (arch_cmodel == CMODEL_UNKNOWN)
+			arch_cmodel = CMODEL_SMALL;
+		break;
+	case MACH_RISCV32:
+	case MACH_RISCV64:
+		if (arch_cmodel == CMODEL_UNKNOWN)
+			arch_cmodel = CMODEL_MEDLOW;
+		if (fpic)
+			arch_cmodel = CMODEL_PIC;
+		break;
+	}
 }
 
 static const char *match_option(const char *arg, const char *prefix)
@@ -590,6 +630,12 @@ static int handle_switches(const char *ori, const char *opt, const struct flag *
 
 	// not handled
 	return 0;
+}
+
+static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	*(flag->flag) = flag->mask;
+	return 1;
 }
 
 
@@ -940,6 +986,10 @@ static struct flag fflags[] = {
 	{ "tabstop=",		NULL,	handle_ftabstop },
 	{ "mem2reg",		NULL,	handle_fpasses,	PASS_MEM2REG },
 	{ "optim",		NULL,	handle_fpasses,	PASS_OPTIM },
+	{ "pic",		&fpic,	handle_switch_setval, 1 },
+	{ "PIC",		&fpic,	handle_switch_setval, 2 },
+	{ "pie",		&fpie,	handle_switch_setval, 1 },
+	{ "PIE",		&fpie,	handle_switch_setval, 2 },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
 	{ "unsigned-char",	&funsigned_char, NULL, },
 	{ },
@@ -1198,6 +1248,55 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 		predefined_width(name, bits);
 }
 
+static void predefined_cmodel(void)
+{
+	const char *pre, *suf;
+	const char *def = NULL;
+	switch (arch_mach) {
+	case MACH_ARM64:
+		pre = "__AARCH64_CMODEL_";
+		suf = "__";
+		switch (arch_cmodel) {
+		case CMODEL_LARGE:
+			def = "LARGE";
+			break;
+		case CMODEL_SMALL:
+			def = "SMALL";
+			break;
+		case CMODEL_TINY:
+			def = "TINY";
+			break;
+		default:
+			break;
+		}
+		break;
+	case MACH_RISCV32:
+	case MACH_RISCV64:
+		pre = "__riscv_cmodel_";
+		suf = "";
+		switch (arch_cmodel) {
+		case CMODEL_MEDLOW:
+			def = "medlow";
+			break;
+		case CMODEL_MEDANY:
+			def = "medany";
+			break;
+		case CMODEL_PIC:
+			def = "pic";
+			break;
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (!def)
+		return;
+	add_pre_buffer("#weak_define %s%s%s 1\n", pre, def, suf);
+}
+
 static void predefined_macros(void)
 {
 	predefine("__CHECKER__", 0, "1");
@@ -1382,6 +1481,17 @@ static void predefined_macros(void)
 		predefine("__i386", 1, "1");
 		break;
 	}
+
+	if (fpic) {
+		predefine("__pic__", 0, "%d", fpic);
+		predefine("__PIC__", 0, "%d", fpic);
+	}
+	if (fpie) {
+		predefine("__pie__", 0, "%d", fpie);
+		predefine("__PIE__", 0, "%d", fpie);
+	}
+
+	predefined_cmodel();
 }
 
 static void create_builtin_stream(void)

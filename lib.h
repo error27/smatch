@@ -199,11 +199,26 @@ extern int fmem_report;
 extern unsigned long fdump_ir;
 extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
+extern int fpic;
+extern int fpie;
 extern int funsigned_char;
 
 extern int arch_m64;
 extern int arch_big_endian;
 extern int arch_mach;
+
+enum {
+	CMODEL_UNKNOWN,
+	CMODEL_KERNEL,
+	CMODEL_LARGE,
+	CMODEL_MEDANY,
+	CMODEL_MEDIUM,
+	CMODEL_MEDLOW,
+	CMODEL_PIC,
+	CMODEL_SMALL,
+	CMODEL_TINY,
+};
+extern int arch_cmodel;
 
 extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);
