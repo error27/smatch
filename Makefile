@@ -9,7 +9,7 @@ CC ?= gcc
 LD = $(CC)
 AR = ar
 
-CFLAGS ?= -O2 -g
+CFLAGS ?= -g
 
 DESTDIR ?=
 PREFIX ?= $(HOME)
