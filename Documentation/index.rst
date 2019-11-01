@@ -23,6 +23,7 @@ Developer documentation
    api
    IR
    doc-guide
+   types
 
 How to contribute
 -----------------
