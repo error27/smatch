@@ -152,9 +152,6 @@ define gdb_show_ctype
 	if ($arg0->modifiers & MOD_ASSIGNED)
 		printf "MOD_ASSIGNED "
 	end
-	if ($arg0->modifiers & MOD_TYPE)
-		printf "MOD_TYPE "
-	end
 	if ($arg0->modifiers & MOD_SAFE)
 		printf "MOD_SAFE "
 	end

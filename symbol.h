@@ -222,7 +222,7 @@ struct symbol {
 #define MOD_UNSIGNED		0x00004000
 #define MOD_EXPLICITLY_SIGNED	0x00008000
 
-#define MOD_TYPE		0x00010000
+     // MOD UNUSED		0x00010000
 #define MOD_USERTYPE		0x00020000
 #define MOD_CHAR		0x00040000
 #define MOD_SHORT		0x00080000
@@ -373,7 +373,7 @@ static inline int is_signed_type(struct symbol *sym)
 
 static inline int is_type_type(struct symbol *type)
 {
-	return (type->ctype.modifiers & MOD_TYPE) != 0;
+	return type == &type_ctype;
 }
 
 static inline int is_ptr_type(struct symbol *type)

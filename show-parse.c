@@ -140,7 +140,6 @@ const char *modifier_string(unsigned long mod)
 		{MOD_NODEREF,		"[noderef]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
 		{MOD_ASSIGNED,		"[assigned]"},
-		{MOD_TYPE,		"[type]"},
 		{MOD_SAFE,		"[safe]"},
 		{MOD_USERTYPE,		"[usertype]"},
 		{MOD_NORETURN,		"[noreturn]"},
