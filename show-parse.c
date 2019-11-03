@@ -60,7 +60,6 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		[SYM_ENUM] = "enum",
 		[SYM_TYPEDEF] = "tdef",
 		[SYM_TYPEOF] = "tpof",
-		[SYM_MEMBER] = "memb",
 		[SYM_BITFIELD] = "bitf",
 		[SYM_LABEL] = "labl",
 		[SYM_RESTRICT] = "rstr",

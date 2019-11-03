@@ -535,7 +535,6 @@ const char* get_type_name(enum type type)
 	[SYM_ENUM] = "enum",
 	[SYM_TYPEDEF] = "typedef",
 	[SYM_TYPEOF] = "typeof",
-	[SYM_MEMBER] = "member",
 	[SYM_BITFIELD] = "bitfield",
 	[SYM_LABEL] = "label",
 	[SYM_RESTRICT] = "restrict",
