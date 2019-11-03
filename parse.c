@@ -60,6 +60,7 @@ static declarator_t
 	thread_specifier, const_qualifier, volatile_qualifier;
 static declarator_t restrict_qualifier;
 static declarator_t atomic_qualifier;
+static declarator_t autotype_specifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
 static struct token *parse_return_statement(struct token *token, struct statement *stmt);
@@ -209,6 +210,13 @@ static struct symbol_op atomic_op = {
 static struct symbol_op typeof_op = {
 	.type = KW_SPECIFIER,
 	.declarator = typeof_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
+};
+
+static struct symbol_op autotype_op = {
+	.type = KW_SPECIFIER,
+	.declarator = autotype_specifier,
 	.test = Set_Any,
 	.set = Set_S|Set_T,
 };
@@ -505,6 +513,7 @@ static struct init_keyword {
 	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
 	{ "__typeof", 	NS_TYPEDEF, .op = &typeof_op },
 	{ "__typeof__",	NS_TYPEDEF, .op = &typeof_op },
+	{ "__auto_type",NS_TYPEDEF, .op = &autotype_op },
 
 	{ "__attribute",   NS_TYPEDEF, .op = &attribute_op },
 	{ "__attribute__", NS_TYPEDEF, .op = &attribute_op },
@@ -1076,6 +1085,13 @@ static struct token *typeof_specifier(struct token *token, struct decl_state *ct
 		ctx->ctype.base_type = typeof_sym;
 	}
 	return expect(token, ')', "after typeof");
+}
+
+static struct token *autotype_specifier(struct token *token, struct decl_state *ctx)
+{
+	ctx->ctype.base_type = &autotype_ctype;
+	ctx->autotype = 1;
+	return token;
 }
 
 static struct token *ignore_attribute(struct token *token, struct symbol *attr, struct decl_state *ctx)
@@ -2985,6 +3001,11 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			}
 		}
 	} else if (base_type && base_type->type == SYM_FN) {
+		if (base_type->ctype.base_type == &autotype_ctype) {
+			sparse_error(decl->pos, "'%s()' has __auto_type return type",
+				show_ident(decl->ident));
+			base_type->ctype.base_type = &int_ctype;
+		}
 		if (base_type->ctype.base_type == &incomplete_ctype) {
 			warning(decl->pos, "'%s()' has implicit return type",
 				show_ident(decl->ident));
@@ -3034,6 +3055,23 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 			if (is_typedef) {
 				// TODO: handle -std=c89 --pedantic
 				check_duplicates(decl);
+			}
+		}
+
+		if (ctx.autotype) {
+			const char *msg = NULL;
+			if (decl->ctype.base_type != &autotype_ctype)
+				msg = "on non-identifier";
+			else if (match_op(token, ','))
+				msg = "on declaration list";
+			else if (!decl->initializer)
+				msg = "without initializer";
+			else if (decl->initializer->type == EXPR_SYMBOL &&
+				 decl->initializer->symbol == decl)
+				msg = "on self-init var";
+			if (msg) {
+				sparse_error(decl->pos, "__auto_type %s", msg);
+				decl->ctype.base_type = &bad_ctype;
 			}
 		}
 

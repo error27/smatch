@@ -192,6 +192,10 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
+		if (member->ctype.base_type == &autotype_ctype) {
+			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
+			member->ctype.base_type = &incomplete_ctype;
+		}
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
@@ -209,6 +213,19 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 static struct symbol *examine_base_type(struct symbol *sym)
 {
 	struct symbol *base_type;
+
+	if (sym->ctype.base_type == &autotype_ctype) {
+		struct symbol *type = evaluate_expression(sym->initializer);
+		if (!type)
+			type = &bad_ctype;
+		if (is_bitfield_type(type)) {
+			warning(sym->pos, "__auto_type on bitfield");
+			if (type->type == SYM_NODE)
+				type = type->ctype.base_type;
+			type = type->ctype.base_type;
+		}
+		sym->ctype.base_type = type;
+	}
 
 	/* Check the base type */
 	base_type = examine_symbol_type(sym->ctype.base_type);
@@ -734,6 +751,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		string_ctype, ptr_ctype, lazy_ptr_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
+struct symbol	autotype_ctype;
 struct symbol	int_ptr_ctype, uint_ptr_ctype;
 struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
@@ -792,6 +810,7 @@ static const struct ctype_declare {
 	{ &void_ctype,         T_BASETYPE },
 	{ &type_ctype,         T_BASETYPE },
 	{ &incomplete_ctype,   T_BASETYPE },
+	{ &autotype_ctype,     T_BASETYPE },
 	{ &bad_ctype,          T_BASETYPE },
 
 	{ &char_ctype,         T__INT(-2, char) },
