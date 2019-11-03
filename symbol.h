@@ -80,7 +80,7 @@ enum keyword {
 	KW_MODIFIER	= 1 << 1,
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
-	KW_STATEMENT	= 1 << 4,
+     // KW UNUSED	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
 	KW_SHORT	= 1 << 7,
