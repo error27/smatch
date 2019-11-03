@@ -64,9 +64,7 @@ enum type {
 	SYM_STRUCT,
 	SYM_UNION,
 	SYM_ENUM,
-	SYM_TYPEDEF,
 	SYM_TYPEOF,
-	SYM_MEMBER,
 	SYM_BITFIELD,
 	SYM_LABEL,
 	SYM_RESTRICT,
@@ -80,7 +78,7 @@ enum keyword {
 	KW_MODIFIER	= 1 << 1,
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
-	KW_STATEMENT	= 1 << 4,
+     // KW UNUSED	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
 	KW_SHORT	= 1 << 7,
@@ -224,7 +222,7 @@ struct symbol {
 #define MOD_UNSIGNED		0x00004000
 #define MOD_EXPLICITLY_SIGNED	0x00008000
 
-#define MOD_TYPE		0x00010000
+     // MOD UNUSED		0x00010000
 #define MOD_USERTYPE		0x00020000
 #define MOD_CHAR		0x00040000
 #define MOD_SHORT		0x00080000
@@ -375,7 +373,7 @@ static inline int is_signed_type(struct symbol *sym)
 
 static inline int is_type_type(struct symbol *type)
 {
-	return (type->ctype.modifiers & MOD_TYPE) != 0;
+	return type == &type_ctype;
 }
 
 static inline int is_ptr_type(struct symbol *type)

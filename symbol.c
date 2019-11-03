@@ -533,9 +533,7 @@ const char* get_type_name(enum type type)
 	[SYM_STRUCT] = "struct",
 	[SYM_UNION] = "union",
 	[SYM_ENUM] = "enum",
-	[SYM_TYPEDEF] = "typedef",
 	[SYM_TYPEOF] = "typeof",
-	[SYM_MEMBER] = "member",
 	[SYM_BITFIELD] = "bitfield",
 	[SYM_LABEL] = "label",
 	[SYM_RESTRICT] = "restrict",
@@ -744,7 +742,7 @@ static const struct ctype_declare {
 } ctype_declaration[] = {
 	{ &bool_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_bool,	     &max_int_alignment, &int_type },
 	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,	     NULL,		 NULL },
-	{ &type_ctype,	    SYM_BASETYPE, MOD_TYPE,		    NULL,		     NULL,		 NULL },
+	{ &type_ctype,	    SYM_BASETYPE, 0,			    NULL,	     NULL,		 NULL },
 	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
 
