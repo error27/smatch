@@ -109,7 +109,6 @@ static const char *symbol_type_name(enum type type)
 		[SYM_STRUCT] = "SYM_STRUCT",
 		[SYM_UNION] = "SYM_UNION",
 		[SYM_ENUM] = "SYM_ENUM",
-		[SYM_TYPEDEF] = "SYM_TYPEDEF",
 		[SYM_TYPEOF] = "SYM_TYPEOF",
 		[SYM_BITFIELD] = "SYM_BITFIELD",
 		[SYM_LABEL] = "SYM_LABEL",
