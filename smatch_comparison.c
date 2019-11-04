@@ -247,21 +247,19 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 	if (strstr(data->left_var, " orig"))
 		left_rl = get_orig_rl(data->left_vsl);
 	else if (!get_implied_rl_var_sym(data->left_var, vsl_to_sym(data->left_vsl), &left_rl))
-		return &undefined;
+		goto alloc;
 
 	if (strstr(data->right_var, " orig"))
 		right_rl = get_orig_rl(data->right_vsl);
 	else if (!get_implied_rl_var_sym(data->right_var, vsl_to_sym(data->right_vsl), &right_rl))
-		return &undefined;
+		goto alloc;
 
 	op = rl_comparison(left_rl, right_rl);
-	if (op)
-		return alloc_compare_state(
-				data->left, data->left_var, data->left_vsl,
-				op,
-				data->right, data->right_var, data->right_vsl);
 
-	return &undefined;
+alloc:
+	return alloc_compare_state(data->left, data->left_var, data->left_vsl,
+				   op,
+				   data->right, data->right_var, data->right_vsl);
 }
 
 /* remove_unsigned_from_comparison() is obviously a hack. */
@@ -543,13 +541,14 @@ struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch
 	struct compare_data *data = s1->data;
 	int op;
 
+	if (!data)
+		return &undefined;
+
 	op = merge_comparisons(state_to_comparison(s1), state_to_comparison(s2));
-	if (op)
-		return alloc_compare_state(
-				data->left, data->left_var, data->left_vsl,
-				op,
-				data->right, data->right_var, data->right_vsl);
-	return &undefined;
+	return alloc_compare_state(
+			data->left, data->left_var, data->left_vsl,
+			op,
+			data->right, data->right_var, data->right_vsl);
 }
 
 static struct smatch_state *alloc_link_state(struct string_list *links)
@@ -687,7 +686,11 @@ static void match_inc(struct sm_state *sm, bool preserve)
 			set_state(compare_id, tmp, NULL, new);
 			break;
 		default:
-			set_state(compare_id, tmp, NULL, &undefined);
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					UNKNOWN_COMPARISON,
+					data->right, data->right_var, data->right_vsl);
+			set_state(compare_id, tmp, NULL, new);
 		}
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -701,7 +704,14 @@ static void match_dec(struct sm_state *sm, bool preserve)
 	links = sm->state->data;
 
 	FOR_EACH_PTR(links, tmp) {
+		struct compare_data *data;
+		struct smatch_state *new;
+
 		state = get_state(compare_id, tmp, NULL);
+		if (!state || !state->data)
+			continue;
+
+		data = state->data;
 
 		switch (state_to_comparison(state)) {
 		case SPECIAL_EQUAL:
@@ -709,9 +719,6 @@ static void match_dec(struct sm_state *sm, bool preserve)
 		case SPECIAL_UNSIGNED_LTE:
 		case '<':
 		case SPECIAL_UNSIGNED_LT: {
-			struct compare_data *data = state->data;
-			struct smatch_state *new;
-
 			if (preserve)
 				break;
 
@@ -723,7 +730,11 @@ static void match_dec(struct sm_state *sm, bool preserve)
 			break;
 			}
 		default:
-			set_state(compare_id, tmp, NULL, &undefined);
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					UNKNOWN_COMPARISON,
+					data->right, data->right_var, data->right_vsl);
+			set_state(compare_id, tmp, NULL, new);
 		}
 	} END_FOR_EACH_PTR(tmp);
 }
