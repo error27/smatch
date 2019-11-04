@@ -399,124 +399,99 @@ int combine_comparisons(int left_compare, int right_compare)
 	return 0;
 }
 
-int filter_comparison(int orig, int op)
+/*
+ * This is mostly used when you know from extra state that a <= b but you
+ * know from comparisons that a != b so then if take the intersection then
+ * we know that a < b.  The name is taken from the fact that the intersection
+ * of < and <= is <.
+ */
+int comparison_intersection(int left_compare, int right_compare)
 {
-	if (orig == op)
-		return orig;
+	int LT, GT, EQ, NE;
 
-	orig = remove_unsigned_from_comparison(orig);
-	op = remove_unsigned_from_comparison(op);
+	left_compare = remove_unsigned_from_comparison(left_compare);
+	right_compare = remove_unsigned_from_comparison(right_compare);
 
-	switch (orig) {
-	case 0:
-		return op;
+	LT = GT = EQ = NE = 0;
+
+	/* Only one side is known. */
+	if (!left_compare)
+		return right_compare;
+	if (!right_compare)
+		return left_compare;
+
+	switch (left_compare) {
 	case '<':
-		switch (op) {
-		case '<':
-		case SPECIAL_LTE:
-		case SPECIAL_NOTEQUAL:
-			return '<';
-		}
-		return 0;
+		LT++;
+		NE++;
+		break;
 	case SPECIAL_LTE:
-		switch (op) {
-		case '<':
-		case SPECIAL_LTE:
-		case SPECIAL_EQUAL:
-			return op;
-		case SPECIAL_NOTEQUAL:
-			return '<';
-		}
-		return 0;
+		LT++;
+		EQ++;
+		break;
 	case SPECIAL_EQUAL:
-		switch (op) {
-		case SPECIAL_LTE:
-		case SPECIAL_EQUAL:
-		case SPECIAL_GTE:
-		case SPECIAL_UNSIGNED_LTE:
-		case SPECIAL_UNSIGNED_GTE:
-			return SPECIAL_EQUAL;
-		}
-		return 0;
+		EQ++;
+		break;
 	case SPECIAL_NOTEQUAL:
-		switch (op) {
-		case '<':
-		case SPECIAL_LTE:
-			return '<';
-		case SPECIAL_UNSIGNED_LT:
-		case SPECIAL_UNSIGNED_LTE:
-			return SPECIAL_UNSIGNED_LT;
-		case SPECIAL_NOTEQUAL:
-			return op;
-		case '>':
-		case SPECIAL_GTE:
-			return '>';
-		case SPECIAL_UNSIGNED_GT:
-		case SPECIAL_UNSIGNED_GTE:
-			return SPECIAL_UNSIGNED_GT;
-		}
-		return 0;
+		NE++;
+		break;
 	case SPECIAL_GTE:
-		switch (op) {
-		case SPECIAL_LTE:
-			return SPECIAL_EQUAL;
-		case '>':
-		case SPECIAL_GTE:
-		case SPECIAL_EQUAL:
-			return op;
-		case SPECIAL_NOTEQUAL:
-			return '>';
-		}
-		return 0;
+		GT++;
+		EQ++;
+		break;
 	case '>':
-		switch (op) {
-		case '>':
-		case SPECIAL_GTE:
-		case SPECIAL_NOTEQUAL:
-			return '>';
-		}
-		return 0;
-	case SPECIAL_UNSIGNED_LT:
-		switch (op) {
-		case SPECIAL_UNSIGNED_LT:
-		case SPECIAL_UNSIGNED_LTE:
-		case SPECIAL_NOTEQUAL:
-			return SPECIAL_UNSIGNED_LT;
-		}
-		return 0;
-	case SPECIAL_UNSIGNED_LTE:
-		switch (op) {
-		case SPECIAL_UNSIGNED_LT:
-		case SPECIAL_UNSIGNED_LTE:
-		case SPECIAL_EQUAL:
-			return op;
-		case SPECIAL_NOTEQUAL:
-			return SPECIAL_UNSIGNED_LT;
-		case SPECIAL_UNSIGNED_GTE:
-			return SPECIAL_EQUAL;
-		}
-		return 0;
-	case SPECIAL_UNSIGNED_GTE:
-		switch (op) {
-		case SPECIAL_UNSIGNED_LTE:
-			return SPECIAL_EQUAL;
-		case SPECIAL_NOTEQUAL:
-			return SPECIAL_UNSIGNED_GT;
-		case SPECIAL_EQUAL:
-		case SPECIAL_UNSIGNED_GTE:
-		case SPECIAL_UNSIGNED_GT:
-			return op;
-		}
-		return 0;
-	case SPECIAL_UNSIGNED_GT:
-		switch (op) {
-		case SPECIAL_UNSIGNED_GT:
-		case SPECIAL_UNSIGNED_GTE:
-		case SPECIAL_NOTEQUAL:
-			return SPECIAL_UNSIGNED_GT;
-		}
-		return 0;
+		GT++;
+		NE++;
+		break;
 	}
+
+	switch (right_compare) {
+	case '<':
+		LT++;
+		NE++;
+		break;
+	case SPECIAL_LTE:
+		LT++;
+		EQ++;
+		break;
+	case SPECIAL_EQUAL:
+		EQ++;
+		break;
+	case SPECIAL_NOTEQUAL:
+		NE++;
+		break;
+	case SPECIAL_GTE:
+		GT++;
+		EQ++;
+		break;
+	case '>':
+		GT++;
+		NE++;
+		break;
+	}
+
+	if (LT == 2) {
+		if (EQ == 2)
+			return SPECIAL_LTE;
+		return '<';
+	}
+
+	if (GT == 2) {
+		if (EQ == 2)
+			return SPECIAL_GTE;
+		return '>';
+	}
+	if (EQ == 2)
+		return SPECIAL_EQUAL;
+	if (GT && LT)
+		return 0;
+	if (NE == 2)
+		return SPECIAL_NOTEQUAL;
+	if (GT && NE)
+		return '>';
+	if (LT && NE)
+		return '<';
+
 	return 0;
 }
 
@@ -1012,8 +987,8 @@ static void update_tf_links(struct stree *pre_stree,
 		true_comparison = combine_comparisons(left_comparison, right_comparison);
 		false_comparison = combine_comparisons(left_false_comparison, right_comparison);
 
-		true_comparison = filter_comparison(orig_comparison, true_comparison);
-		false_comparison = filter_comparison(orig_comparison, false_comparison);
+		true_comparison = comparison_intersection(orig_comparison, true_comparison);
+		false_comparison = comparison_intersection(orig_comparison, false_comparison);
 
 		if (strcmp(left_var, right_var) > 0) {
 		  	struct expression *tmp_expr = left_expr;
@@ -1272,8 +1247,8 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	}
 
 	orig_comparison = get_comparison(left_expr, right_expr);
-	op = filter_comparison(orig_comparison, op);
-	false_op = filter_comparison(orig_comparison, false_op);
+	op = comparison_intersection(orig_comparison, op);
+	false_op = comparison_intersection(orig_comparison, false_op);
 
 	snprintf(state_name, sizeof(state_name), "%s vs %s", left, right);
 	true_state = alloc_compare_state(
@@ -2489,7 +2464,7 @@ int param_compare_limit_is_impossible(struct expression *expr, int left_param, c
 	if (!state_op)
 		goto free;
 
-	if (!filter_comparison(remove_unsigned_from_comparison(state_op), op))
+	if (!comparison_intersection(remove_unsigned_from_comparison(state_op), op))
 		ret = 1;
 free:
 	free_string(left_name);
@@ -2597,11 +2572,11 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		goto split;
 
 	if (data->comparison &&
-	    data->comparison == filter_comparison(data->comparison, op))
+	    data->comparison == comparison_intersection(data->comparison, op))
 		istrue = 1;
 
 	if (data->comparison &&
-	    data->comparison == filter_comparison(data->comparison, negate_comparison(op)))
+	    data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
 		isfalse = 1;
 
 	if (istrue)

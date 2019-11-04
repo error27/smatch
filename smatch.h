@@ -1072,7 +1072,7 @@ struct smatch_state *alloc_compare_state(
 		int comparison,
 		struct expression *right,
 		const char *right_var, struct var_sym_list *right_vsl);
-int filter_comparison(int orig, int op);
+int comparison_intersection(int orig, int op);
 int merge_comparisons(int one, int two);
 int combine_comparisons(int left_compare, int right_compare);
 int state_to_comparison(struct smatch_state *state);
