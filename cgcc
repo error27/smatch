@@ -148,30 +148,6 @@ sub quote_arg {
 
 # -----------------------------------------------------------------------------
 
-sub integer_types {
-    my ($char,@dummy) = @_;
-
-    my %pow2m1 =
-	(8 => '127',
-	 16 => '32767',
-	 32 => '2147483647',
-	 64 => '9223372036854775807',
-	 128 => '170141183460469231731687303715884105727',
-	 );
-    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL'], ['LONG_LONG_LONG','LLL']);
-
-    my $result = " -D__CHAR_BIT__=$char";
-    while (@types && @_) {
-	my $bits = shift @_;
-	my ($name,$suffix) = @{ shift @types };
-	die "$0: weird number of bits." unless exists $pow2m1{$bits};
-	$result .= " -D__${name}_MAX__=" . $pow2m1{$bits} . $suffix;
-    }
-    return $result;
-}
-
-# -----------------------------------------------------------------------------
-
 sub float_types {
     my ($has_inf,$has_qnan,$dec_dig,@bitsizes) = @_;
     my $result = " -D__FLT_RADIX__=2";
@@ -241,14 +217,6 @@ sub float_types {
 
 # -----------------------------------------------------------------------------
 
-sub define_size_t {
-    my ($text) = @_;
-    # We have to undef in order to override check's internal definition.
-    return ' -U__SIZE_TYPE__ ' . &quote_arg ("-D__SIZE_TYPE__=$text");
-}
-
-# -----------------------------------------------------------------------------
-
 sub add_specs {
     my ($spec) = @_;
     if ($spec eq 'sunos') {
@@ -294,29 +262,26 @@ sub add_specs {
 	    " -D'__declspec(x)=__attribute__((x))'";
     } elsif ($spec eq 'i386') {
 	return (
+		' --arch=i386' .
 		&float_types (1, 1, 21, [24,8], [53,11], [64,15]));
     } elsif ($spec eq 'sparc') {
 	return (
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		' --arch=sparc' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'sparc64') {
 	return (
-		&integer_types (8, 16, 32, 64, 64, 128) .
-		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ("long unsigned int") .
-		' -D__SIZEOF_POINTER__=8');
+		' --arch=sparc64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'x86_64') {
-	return &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
+	return (' --arch=x86_64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc') {
 	return (' -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		' --arch=ppc' .
+		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc64') {
-	return (' -D_STRING_ARCH_unaligned=1 -m64' .
+	return (' -D_STRING_ARCH_unaligned=1 ' .
+		' --arch=ppc64' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc64+be') {
 	return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
@@ -324,17 +289,15 @@ sub add_specs {
 	return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
     } elsif ($spec eq 's390x') {
 	return (' -D_BIG_ENDIAN' .
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 36, [24,8], [53,11], [113,15]) .
-		&define_size_t ("long unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		' --arch=s390x' .
+		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'arm') {
-	return (' -m32' .
+	return (' --arch=arm' .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
     } elsif ($spec eq 'arm+hf') {
 	return &add_specs ('arm') . ' -D__ARM_PCS_VFP=1';
     } elsif ($spec eq 'aarch64') {
-	return (' -m64' .
+	return (' --arch=aarch64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
