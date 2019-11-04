@@ -1113,7 +1113,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		__add_return_to_param_mapping(db_info->expr, ret_str);
 	}
 
-
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
 			tmp->callback(db_info->expr, param, key, value);
@@ -1191,12 +1190,14 @@ static void db_return_states_call(struct expression *expr)
 static void match_function_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;
+	struct expression *fn;
 
-	if (expr->fn->type == EXPR_SYMBOL && expr->fn->symbol) {
-		call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
+	fn = strip_expr(expr->fn);
+	if (fn->type == EXPR_SYMBOL && fn->symbol) {
+		call_backs = search_callback(func_hash, (char *)fn->symbol->ident->name);
 		if (call_backs)
 			call_call_backs(call_backs, REGULAR_CALL,
-					expr->fn->symbol->ident->name, expr);
+					fn->symbol->ident->name, expr);
 	}
 	db_return_states_call(expr);
 }

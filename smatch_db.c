@@ -508,17 +508,19 @@ static int is_local_symbol(struct expression *expr)
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
+	struct expression *fn;
 	int row_count = 0;
 
 	if (is_fake_call(call))
 		return;
 
-	if (call->fn->type != EXPR_SYMBOL || !call->fn->symbol || is_local_symbol(call->fn)) {
+	fn = strip_expr(call->fn);
+	if (fn->type != EXPR_SYMBOL || !fn->symbol || is_local_symbol(fn)) {
 		sql_select_return_states_pointer(cols, call, callback, info);
 		return;
 	}
 
-	if (inlinable(call->fn)) {
+	if (inlinable(fn)) {
 		mem_sql(callback, info,
 			"select %s from return_states where call_id = '%lu' order by return_id, type;",
 			cols, (unsigned long)call);
@@ -526,12 +528,12 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	}
 
 	run_sql(get_row_count, &row_count, "select count(*) from return_states where %s;",
-		get_static_filter(call->fn->symbol));
+		get_static_filter(fn->symbol));
 	if (row_count > 3000)
 		return;
 
 	run_sql(callback, info, "select %s from return_states where %s order by file, return_id, type;",
-		cols, get_static_filter(call->fn->symbol));
+		cols, get_static_filter(fn->symbol));
 }
 
 #define CALL_IMPLIES 0
