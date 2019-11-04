@@ -256,6 +256,8 @@ int estate_get_single_value(struct smatch_state *state, sval_t *sval)
 {
 	sval_t min, max;
 
+	if (!estate_rl(state))
+		return 0;
 	min = rl_min(estate_rl(state));
 	max = rl_max(estate_rl(state));
 	if (sval_cmp(min, max) != 0)
