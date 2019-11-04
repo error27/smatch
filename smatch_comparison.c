@@ -1654,7 +1654,8 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 {
 	char *one = NULL;
 	char *two = NULL;
-	int ret = 0;
+	int ret = UNKNOWN_COMPARISON;
+	int extra = UNKNOWN_COMPARISON;
 
 	if (a == UNKNOWN_COMPARISON ||
 	    b == UNKNOWN_COMPARISON)
@@ -1686,7 +1687,7 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 		ret = get_comparison_strings(one, two);
 	}
 
-	if (!ret)
+	if (ret == UNKNOWN_COMPARISON)
 		goto free;
 
 	if ((is_plus_one(a) || is_minus_one(b)) && ret == '<')
@@ -1700,9 +1701,8 @@ free:
 	free_string(one);
 	free_string(two);
 
-	if (!ret && use_extra)
-		return comparison_from_extra(a, b);
-	return ret;
+	extra = comparison_from_extra(a, b);
+	return comparison_intersection(ret, extra);
 }
 
 int get_comparison(struct expression *a, struct expression *b)
