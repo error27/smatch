@@ -57,6 +57,15 @@ static struct symbol *vsl_to_sym(struct var_sym_list *vsl)
 	return vs->sym;
 }
 
+static const char *show_comparison(int comparison)
+{
+	if (comparison == IMPOSSIBLE_COMPARISON)
+		return "impossible";
+	if (comparison == UNKNOWN_COMPARISON)
+		return "unknown";
+	return show_special(comparison);
+}
+
 struct smatch_state *alloc_compare_state(
 		struct expression *left,
 		const char *left_var, struct var_sym_list *left_vsl,
@@ -68,7 +77,7 @@ struct smatch_state *alloc_compare_state(
 	struct compare_data *data;
 
 	state = __alloc_smatch_state(0);
-	state->name = alloc_sname(show_special(comparison));
+	state->name = alloc_sname(show_comparison(comparison));
 	data = __alloc_compare_data(0);
 	data->left = left;
 	data->left_var = alloc_sname(left_var);
@@ -84,7 +93,7 @@ struct smatch_state *alloc_compare_state(
 int state_to_comparison(struct smatch_state *state)
 {
 	if (!state || !state->data)
-		return 0;
+		return UNKNOWN_COMPARISON;
 	return ((struct compare_data *)state->data)->comparison;
 }
 
@@ -94,8 +103,8 @@ int state_to_comparison(struct smatch_state *state)
 int flip_comparison(int op)
 {
 	switch (op) {
-	case 0:
-		return 0;
+	case UNKNOWN_COMPARISON:
+		return UNKNOWN_COMPARISON;
 	case '<':
 		return '>';
 	case SPECIAL_UNSIGNED_LT:
@@ -116,6 +125,8 @@ int flip_comparison(int op)
 		return '<';
 	case SPECIAL_UNSIGNED_GT:
 		return SPECIAL_UNSIGNED_LT;
+	case IMPOSSIBLE_COMPARISON:
+		return UNKNOWN_COMPARISON;
 	default:
 		sm_perror("unhandled comparison %d", op);
 		return op;
@@ -125,8 +136,8 @@ int flip_comparison(int op)
 int negate_comparison(int op)
 {
 	switch (op) {
-	case 0:
-		return 0;
+	case UNKNOWN_COMPARISON:
+		return UNKNOWN_COMPARISON;
 	case '<':
 		return SPECIAL_GTE;
 	case SPECIAL_UNSIGNED_LT:
@@ -147,6 +158,8 @@ int negate_comparison(int op)
 		return SPECIAL_LTE;
 	case SPECIAL_UNSIGNED_GT:
 		return SPECIAL_UNSIGNED_LTE;
+	case IMPOSSIBLE_COMPARISON:
+		return UNKNOWN_COMPARISON;
 	default:
 		sm_perror("unhandled comparison %d", op);
 		return op;
@@ -159,7 +172,7 @@ static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl
 	struct symbol *type = &int_ctype;
 
 	if (!left_rl || !right_rl)
-		return 0;
+		return UNKNOWN_COMPARISON;
 
 	if (type_positive_bits(rl_type(left_rl)) > type_positive_bits(type))
 		type = rl_type(left_rl);
@@ -188,7 +201,7 @@ static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl
 	if (sval_cmp(left_min, right_max) == 0)
 		return SPECIAL_GTE;
 
-	return 0;
+	return UNKNOWN_COMPARISON;
 }
 
 static int comparison_from_extra(struct expression *a, struct expression *b)
@@ -196,9 +209,9 @@ static int comparison_from_extra(struct expression *a, struct expression *b)
 	struct range_list *left, *right;
 
 	if (!get_implied_rl(a, &left))
-		return 0;
+		return UNKNOWN_COMPARISON;
 	if (!get_implied_rl(b, &right))
-		return 0;
+		return UNKNOWN_COMPARISON;
 
 	return rl_comparison(left, right);
 }
@@ -221,10 +234,15 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 {
 	struct compare_data *data = sm->state->data;
 	struct range_list *left_rl, *right_rl;
-	int op;
+	int op = UNKNOWN_COMPARISON;
 
 	if (!data)
 		return &undefined;
+
+	if (is_impossible_path()) {
+		op = IMPOSSIBLE_COMPARISON;
+		goto alloc;
+	}
 
 	if (strstr(data->left_var, " orig"))
 		left_rl = get_orig_rl(data->left_vsl);
@@ -271,8 +289,13 @@ int merge_comparisons(int one, int two)
 {
 	int LT, EQ, GT;
 
-	if (!one || !two)
-		return 0;
+	if (one == UNKNOWN_COMPARISON || two == UNKNOWN_COMPARISON)
+		return UNKNOWN_COMPARISON;
+
+	if (one == IMPOSSIBLE_COMPARISON)
+		return two;
+	if (two == IMPOSSIBLE_COMPARISON)
+		return one;
 
 	one = remove_unsigned_from_comparison(one);
 	two = remove_unsigned_from_comparison(two);
@@ -321,7 +344,7 @@ int merge_comparisons(int one, int two)
 	}
 
 	if (LT && EQ && GT)
-		return 0;
+		return UNKNOWN_COMPARISON;
 	if (LT && EQ)
 		return SPECIAL_LTE;
 	if (LT && GT)
@@ -332,7 +355,7 @@ int merge_comparisons(int one, int two)
 		return SPECIAL_GTE;
 	if (GT)
 		return '>';
-	return 0;
+	return UNKNOWN_COMPARISON;
 }
 
 /*
@@ -396,7 +419,7 @@ int combine_comparisons(int left_compare, int right_compare)
 			return SPECIAL_GTE;
 		return '>';
 	}
-	return 0;
+	return UNKNOWN_COMPARISON;
 }
 
 /*
@@ -484,7 +507,7 @@ int comparison_intersection(int left_compare, int right_compare)
 	if (EQ == 2)
 		return SPECIAL_EQUAL;
 	if (GT && LT)
-		return 0;
+		return IMPOSSIBLE_COMPARISON;
 	if (NE == 2)
 		return SPECIAL_NOTEQUAL;
 	if (GT && NE)
@@ -492,7 +515,7 @@ int comparison_intersection(int left_compare, int right_compare)
 	if (LT && NE)
 		return '<';
 
-	return 0;
+	return UNKNOWN_COMPARISON;
 }
 
 static void pre_merge_hook(struct sm_state *sm)
@@ -823,7 +846,7 @@ static void match_preop(struct expression *expr)
 		return;
 
 	op = rl_comparison(left, right);
-	if (!op)
+	if (op == UNKNOWN_COMPARISON)
 		return;
 
 	add_comparison(expr->unop, op, parent->right);
@@ -1592,7 +1615,7 @@ int get_comparison_strings(const char *one, const char *two)
 	int ret = 0;
 
 	if (!one || !two)
-		return 0;
+		return UNKNOWN_COMPARISON;
 
 	if (strcmp(one, two) == 0)
 		return SPECIAL_EQUAL;
@@ -1622,8 +1645,9 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 	char *two = NULL;
 	int ret = 0;
 
-	if (!a || !b)
-		return 0;
+	if (a == UNKNOWN_COMPARISON ||
+	    b == UNKNOWN_COMPARISON)
+		return UNKNOWN_COMPARISON;
 
 	a = strip_parens(a);
 	b = strip_parens(b);
@@ -1659,7 +1683,7 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 	else if ((is_minus_one(a) || is_plus_one(b)) && ret == '>')
 		ret = SPECIAL_GTE;
 	else
-		ret = 0;
+		ret = UNKNOWN_COMPARISON;
 
 free:
 	free_string(one);
@@ -1879,11 +1903,11 @@ void __add_return_comparison(struct expression *call, const char *range)
 {
 	struct expression *arg;
 	int comparison;
-	char buf[4];
+	char buf[16];
 
 	if (!str_to_comparison_arg(range, call, &comparison, &arg))
 		return;
-	snprintf(buf, sizeof(buf), "%s", show_special(comparison));
+	snprintf(buf, sizeof(buf), "%s", show_comparison(comparison));
 	update_links_from_call(call, comparison, arg);
 	add_comparison(call, comparison, arg);
 }
@@ -1945,11 +1969,12 @@ static char *range_comparison_to_param_helper(struct expression *expr, char star
 			continue;
 		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
 		compare = get_comparison_strings(var, buf);
-		if (!compare)
+		if (compare == UNKNOWN_COMPARISON ||
+		    compare == IMPOSSIBLE_COMPARISON)
 			continue;
-		if (show_special(compare)[0] != starts_with)
+		if (show_comparison(compare)[0] != starts_with)
 			continue;
-		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_comparison(compare), i);
 		ret_str = alloc_sname(buf);
 		break;
 	} END_FOR_EACH_PTR(param);
@@ -1980,9 +2005,10 @@ char *name_sym_to_param_comparison(const char *name, struct symbol *sym)
 			continue;
 		snprintf(buf, sizeof(buf), "%s orig", param->ident->name);
 		compare = get_comparison_strings(name, buf);
-		if (!compare)
+		if (compare == UNKNOWN_COMPARISON ||
+		    compare == IMPOSSIBLE_COMPARISON)
 			continue;
-		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_comparison(compare), i);
 		return alloc_sname(buf);
 	} END_FOR_EACH_PTR(param);
 
@@ -2023,7 +2049,7 @@ char *expr_param_comparison(struct expression *expr, int ignore)
 		compare = get_comparison_strings(var, buf);
 		if (!compare)
 			continue;
-		snprintf(buf, sizeof(buf), "[%s$%d]", show_special(compare), i);
+		snprintf(buf, sizeof(buf), "[%s$%d]", show_comparison(compare), i);
 		ret_str = alloc_sname(buf);
 		break;
 	} END_FOR_EACH_PTR(param);
@@ -2102,7 +2128,9 @@ static void match_call_info(struct expression *expr)
 			if (!sm)
 				continue;
 			data = sm->state->data;
-			if (!data || !data->comparison)
+			if (!data ||
+			    data->comparison == UNKNOWN_COMPARISON ||
+			    data->comparison == IMPOSSIBLE_COMPARISON)
 				continue;
 			arg_name = expr_to_var(arg);
 			if (!arg_name)
@@ -2127,7 +2155,7 @@ static void match_call_info(struct expression *expr)
 			right_name = get_printed_param_name(expr, right_vs->var, right_vs->sym);
 			if (!right_name)
 				goto free;
-			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(comparison), right_name);
+			snprintf(info_buf, sizeof(info_buf), "%s %s", show_comparison(comparison), right_name);
 			sql_insert_caller_info(expr, PARAM_COMPARE, i, "$", info_buf);
 
 free:
@@ -2177,7 +2205,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 		right_name = get_printed_param_name(call, right->var, right->sym);
 		if (!right_name)
 			continue;
-		snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(data->comparison), right_name);
+		snprintf(info_buf, sizeof(info_buf), "%s %s", show_comparison(data->comparison), right_name);
 		sql_insert_caller_info(call, PARAM_COMPARE, param, printed_name, info_buf);
 	} END_FOR_EACH_PTR(link);
 }
@@ -2248,7 +2276,9 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			if (!sm)
 				continue;
 			data = sm->state->data;
-			if (!data || !data->comparison)
+			if (!data ||
+			    data->comparison == UNKNOWN_COMPARISON ||
+			    data->comparison == IMPOSSIBLE_COMPARISON)
 				continue;
 			if (ptr_list_size((struct ptr_list *)data->left_vsl) != 1 ||
 			    ptr_list_size((struct ptr_list *)data->right_vsl) != 1)
@@ -2290,7 +2320,7 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			 * smatch_param_compare_limit.c.
 			 */
 
-			snprintf(info_buf, sizeof(info_buf), "%s %s", show_special(data->comparison), right_buf);
+			snprintf(info_buf, sizeof(info_buf), "%s %s", show_comparison(data->comparison), right_buf);
 			sql_insert_return_states(return_id, return_ranges,
 					PARAM_COMPARE, left_param, left_buf, info_buf);
 		} END_FOR_EACH_PTR(link);
