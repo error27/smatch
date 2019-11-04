@@ -1751,6 +1751,12 @@ int known_condition_true(struct expression *expr)
 	if (!expr)
 		return 0;
 
+	if (__inline_fn && get_param_num(expr) >= 0) {
+		if (get_implied_value(expr, &tmp) && tmp.value)
+			return 1;
+		return 0;
+	}
+
 	if (get_value(expr, &tmp) && tmp.value)
 		return 1;
 
@@ -1759,8 +1765,16 @@ int known_condition_true(struct expression *expr)
 
 int known_condition_false(struct expression *expr)
 {
+	sval_t tmp;
+
 	if (!expr)
 		return 0;
+
+	if (__inline_fn && get_param_num(expr) >= 0) {
+		if (get_implied_value(expr, &tmp) && tmp.value == 0)
+			return 1;
+		return 0;
+	}
 
 	if (expr_is_zero(expr))
 		return 1;
