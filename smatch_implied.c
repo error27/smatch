@@ -597,14 +597,6 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	*false_states = filter_stack(sm, pre_stree, true_stack, false_stack);
 	free_slist(&true_stack);
 	free_slist(&false_stack);
-	if (implied_debug) {
-		printf("These are the implied states for the true path: (%s (%s) %s %s)\n",
-		       sm->name, sm->state->name, show_special(comparison), show_rl(rl));
-		__print_stree(*true_states);
-		printf("These are the implied states for the false path: (%s (%s) %s %s)\n",
-		       sm->name, sm->state->name, show_special(comparison), show_rl(rl));
-		__print_stree(*false_states);
-	}
 
 	gettimeofday(&time_after, NULL);
 	sec = time_after.tv_sec - time_before.tv_sec;
@@ -879,6 +871,17 @@ static void save_implications_hook(struct expression *expr)
 static void set_implied_states(struct expression *expr)
 {
 	struct sm_state *sm;
+
+	if (implied_debug) {
+		char *name;
+
+		name = expr_to_str(expr);
+		printf("These are the implied states for the true path: (%s)\n", name);
+		__print_stree(saved_implied_true);
+		printf("These are the implied states for the false path: (%s)\n", name);
+		__print_stree(saved_implied_false);
+		free_string(name);
+	}
 
 	FOR_EACH_SM(saved_implied_true, sm) {
 		__set_true_false_sm(sm, NULL);
