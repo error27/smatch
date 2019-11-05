@@ -430,6 +430,10 @@ int comparison_intersection(int left_compare, int right_compare)
 {
 	int LT, GT, EQ, NE;
 
+	if (left_compare == IMPOSSIBLE_COMPARISON ||
+	    right_compare == IMPOSSIBLE_COMPARISON)
+		return IMPOSSIBLE_COMPARISON;
+
 	left_compare = remove_unsigned_from_comparison(left_compare);
 	right_compare = remove_unsigned_from_comparison(right_compare);
 
@@ -1341,7 +1345,6 @@ void __comparison_match_condition(struct expression *expr)
 		new_right = binop_expression(right, '-', left->left);
 		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
 	}
-
 
 	redo = 0;
 	left = strip_parens(expr->left);
@@ -2612,15 +2615,22 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (!sm)
 		return;
 	data = sm->state->data;
-	if (!data)
+	if (!data || data->comparison == UNKNOWN_COMPARISON)
 		goto split;
+	if (data->comparison == IMPOSSIBLE_COMPARISON)
+		return;
 
-	if (data->comparison &&
-	    data->comparison == comparison_intersection(data->comparison, op))
+	/*
+	 * We want to check that "data->comparison" is totally inside "op".  So
+	 * if data->comparison is < and op is <= then that's true.  Or if
+	 * data->comparison is == and op is <= then that's true.  But if
+	 * data->comparison is <= and op is < than that's neither true nor
+	 * false.
+	 */
+	if (data->comparison == comparison_intersection(data->comparison, op))
 		istrue = 1;
 
-	if (data->comparison &&
-	    data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
+	if (data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
 		isfalse = 1;
 
 	if (istrue)
@@ -2628,10 +2638,8 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (isfalse)
 		add_ptr_list(false_stack, sm);
 split:
-	if (sm->merged) {
-		filter_by_sm(sm->left, op, true_stack, false_stack);
-		filter_by_sm(sm->right, op, true_stack, false_stack);
-	}
+	filter_by_sm(sm->left, op, true_stack, false_stack);
+	filter_by_sm(sm->right, op, true_stack, false_stack);
 }
 
 struct sm_state *comparison_implication_hook(struct expression *expr,
