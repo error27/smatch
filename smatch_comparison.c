@@ -520,9 +520,9 @@ int comparison_intersection(int left_compare, int right_compare)
 	return UNKNOWN_COMPARISON;
 }
 
-static void pre_merge_hook(struct sm_state *sm)
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
-	struct compare_data *data = sm->state->data;
+	struct compare_data *data = cur->state->data;
 	int extra, new;
 
 	if (!data)
@@ -534,7 +534,7 @@ static void pre_merge_hook(struct sm_state *sm)
 	if (new == data->comparison)
 		return;
 
-	set_state(compare_id, sm->name, NULL,
+	set_state(compare_id, cur->name, NULL,
 		  alloc_compare_state(data->left, data->left_var, data->left_vsl,
 				      new,
 				      data->right, data->right_var, data->right_vsl));

@@ -83,26 +83,23 @@ static struct smatch_state *empty_state(struct sm_state *sm)
 	return alloc_estate_empty();
 }
 
-static void pre_merge_hook(struct sm_state *sm)
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
-	struct smatch_state *user;
+	struct smatch_state *user = cur->state;
 	struct smatch_state *extra;
 	struct smatch_state *state;
 	struct range_list *rl;
 
-	user = __get_state(my_id, sm->name, sm->sym);
-	if (!user || !estate_rl(user))
-		return;
-	extra = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra = __get_state(SMATCH_EXTRA, cur->name, cur->sym);
 	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(user), estate_rl(extra));
 	state = alloc_estate_rl(clone_rl(rl));
-	if (estate_capped(user) || is_capped_var_sym(sm->name, sm->sym))
+	if (estate_capped(user) || is_capped_var_sym(cur->name, cur->sym))
 		estate_set_capped(state);
 	if (estate_treat_untagged(user))
 		estate_set_treat_untagged(state);
-	set_state(my_id, sm->name, sm->sym, state);
+	set_state(my_id, cur->name, cur->sym, state);
 }
 
 static void extra_nomod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)

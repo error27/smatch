@@ -48,22 +48,20 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	set_state(my_id, name, sym, alloc_estate_rl(clone_rl(rl)));
 }
 
-static void pre_merge_hook(struct sm_state *sm)
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
-	struct smatch_state *abs;
 	struct smatch_state *extra;
 	struct range_list *rl;
 
-	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra = get_state(SMATCH_EXTRA, cur->name, cur->sym);
 	if (!extra || !estate_rl(extra))
 		return;
-	abs = get_state(my_id, sm->name, sm->sym);
-	if (!abs || !estate_rl(abs)) {
-		set_state(my_id, sm->name, sm->sym, clone_estate(extra));
+	if (!estate_rl(cur->state)) {
+		set_state(my_id, cur->name, cur->sym, clone_estate(extra));
 		return;
 	}
-	rl = rl_intersection(estate_rl(abs), estate_rl(extra));
-	set_state(my_id, sm->name, sm->sym, alloc_estate_rl(clone_rl(rl)));
+	rl = rl_intersection(estate_rl(cur->state), estate_rl(extra));
+	set_state(my_id, cur->name, cur->sym, alloc_estate_rl(clone_rl(rl)));
 }
 
 static struct smatch_state *empty_state(struct sm_state *sm)

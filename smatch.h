@@ -155,7 +155,7 @@ typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smat
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
-void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *sm));
+void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct sm_state *other));
 typedef void (scope_hook)(void *data);
 void add_scope_hook(scope_hook *hook, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
@@ -772,7 +772,7 @@ struct smatch_state *__client_merge_function(int owner,
 					     struct smatch_state *s1,
 					     struct smatch_state *s2);
 struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
-void call_pre_merge_hook(struct sm_state *sm);
+void call_pre_merge_hook(struct sm_state *cur, struct sm_state *other);
 void __push_scope_hooks(void);
 void __call_scope_hooks(void);
 
