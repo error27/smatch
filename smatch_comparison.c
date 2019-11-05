@@ -751,7 +751,20 @@ static void reset_sm(struct sm_state *sm)
 	links = sm->state->data;
 
 	FOR_EACH_PTR(links, tmp) {
-		set_state(compare_id, tmp, NULL, &undefined);
+		struct smatch_state *old, *new;
+
+		old = get_state(compare_id, tmp, NULL);
+		if (!old || !old->data) {
+			new = &undefined;
+		} else {
+			struct compare_data *data = old->data;
+
+			new = alloc_compare_state(
+					data->left, data->left_var, data->left_vsl,
+					UNKNOWN_COMPARISON,
+					data->right, data->right_var, data->right_vsl);
+		}
+		set_state(compare_id, tmp, NULL, new);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
