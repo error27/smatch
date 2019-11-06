@@ -2652,6 +2652,17 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
 		isfalse = 1;
 
+	if (debug_implied()) {
+		sm_msg("%s: %s: op = '%s' negated '%s'. true_intersect = '%s' false_insersect = '%s' sm = '%s'",
+		       __func__,
+		       sm->state->name,
+		       alloc_sname(show_comparison(op)),
+		       alloc_sname(show_comparison(negate_comparison(op))),
+		       alloc_sname(show_comparison(comparison_intersection(data->comparison, op))),
+		       alloc_sname(show_comparison(comparison_intersection(data->comparison, negate_comparison(op)))),
+		       show_sm(sm));
+	}
+
 	if (istrue)
 		add_ptr_list(true_stack, sm);
 	if (isfalse)
@@ -2702,7 +2713,7 @@ struct sm_state *comparison_implication_hook(struct expression *expr,
 	if (!*true_stack && !*false_stack)
 		return NULL;
 
-	if (option_debug)
+	if (debug_implied())
 		sm_msg("implications from comparison: (%s)", show_sm(sm));
 
 	return sm;

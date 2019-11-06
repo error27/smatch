@@ -68,6 +68,11 @@ bool implications_off;
 #define implied_debug 0
 #define DIMPLIED(msg...) do { if (implied_debug) printf(msg); } while (0)
 
+bool debug_implied(void)
+{
+	return implied_debug;
+}
+
 /*
  * tmp_range_list():
  * It messes things up to free range list allocations.  This helper fuction

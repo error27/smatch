@@ -204,6 +204,7 @@ extern int final_pass;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
+bool debug_implied(void);
 extern int option_info;
 extern int option_spammy;
 extern char *trace_variable;
