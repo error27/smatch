@@ -337,6 +337,7 @@ deeper:
 		mod = sym->ctype.modifiers;
 		as = sym->ctype.as;
 		was_ptr = 1;
+		examine_pointer_target(sym);
 		break;
 
 	case SYM_FN:

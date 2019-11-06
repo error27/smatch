@@ -4,7 +4,6 @@ static typeof(i) *ptr;
 /*
  * check-name: eval-typeof0
  * check-command: test-show-type $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: unknown type
