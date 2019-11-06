@@ -173,14 +173,18 @@ void __free_fake_cur_stree(void)
 
 void __set_fake_cur_stree_fast(struct stree *stree)
 {
-	if (fast_overlay)
+	if (fast_overlay) {
 		sm_perror("cannot nest fast overlay");
+		return;
+	}
 	fast_overlay = stree;
+	set_fast_math_only();
 }
 
 void __pop_fake_cur_stree_fast(void)
 {
 	fast_overlay = NULL;
+	clear_fast_math_only();
 }
 
 void __merge_stree_into_cur(struct stree *stree)

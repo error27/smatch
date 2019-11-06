@@ -524,10 +524,16 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
 	struct compare_data *data = cur->state->data;
 	int extra, new;
+	static bool in_recurse;
 
 	if (!data)
 		return;
+
+	if (in_recurse)
+		return;
+	in_recurse = true;
 	extra = comparison_from_extra(data->left, data->right);
+	in_recurse = false;
 	if (!extra)
 		return;
 	new = comparison_intersection(extra, data->comparison);

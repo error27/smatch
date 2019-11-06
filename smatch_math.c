@@ -31,6 +31,8 @@ static int get_absolute_rl_internal(struct expression *expr, struct range_list *
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
 static sval_t one   = {.type = &int_ctype, {.value = 1} };
 
+static int fast_math_only;
+
 struct range_list *rl_zero(void)
 {
 	static struct range_list *zero_perm;
@@ -853,7 +855,7 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 		return get_rl_sval(expr->cond_false, implied, recurse_cnt, res, res_sval);
 
 	/* this becomes a problem with deeply nested conditional statements */
-	if (low_on_memory())
+	if (fast_math_only || low_on_memory())
 		return false;
 
 	type = get_type(expr);
@@ -1505,6 +1507,16 @@ static int cache_idx;
 void clear_math_cache(void)
 {
 	memset(cached_results, 0, sizeof(cached_results));
+}
+
+void set_fast_math_only(void)
+{
+	fast_math_only++;
+}
+
+void clear_fast_math_only(void)
+{
+	fast_math_only--;
 }
 
 /*
