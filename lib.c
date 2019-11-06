@@ -1153,9 +1153,7 @@ static char **handle_arch(char *arg, char **next)
 				arch_m64 = ARCH_LP32;
 			else if (bits == 64 && arch_m64 == ARCH_LP32)
 				arch_m64 = ARCH_LP64;
-			if (p->big_endian)
-				arch_big_endian = 1;
-
+			arch_big_endian = p->big_endian;
 			break;
 		}
 	}
