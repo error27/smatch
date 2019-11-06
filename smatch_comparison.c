@@ -428,7 +428,7 @@ int combine_comparisons(int left_compare, int right_compare)
  */
 int comparison_intersection(int left_compare, int right_compare)
 {
-	int LT, GT, EQ, NE;
+	int LT, GT, EQ, NE, total;
 
 	if (left_compare == IMPOSSIBLE_COMPARISON ||
 	    right_compare == IMPOSSIBLE_COMPARISON)
@@ -437,7 +437,7 @@ int comparison_intersection(int left_compare, int right_compare)
 	left_compare = remove_unsigned_from_comparison(left_compare);
 	right_compare = remove_unsigned_from_comparison(right_compare);
 
-	LT = GT = EQ = NE = 0;
+	LT = GT = EQ = NE = total = 0;
 
 	/* Only one side is known. */
 	if (!left_compare)
@@ -448,51 +448,63 @@ int comparison_intersection(int left_compare, int right_compare)
 	switch (left_compare) {
 	case '<':
 		LT++;
-		NE++;
+		total += 1;
 		break;
 	case SPECIAL_LTE:
 		LT++;
 		EQ++;
+		total += 2;
 		break;
 	case SPECIAL_EQUAL:
 		EQ++;
+		total += 1;
 		break;
 	case SPECIAL_NOTEQUAL:
 		NE++;
+		total += 1;
 		break;
 	case SPECIAL_GTE:
 		GT++;
 		EQ++;
+		total += 2;
 		break;
 	case '>':
 		GT++;
-		NE++;
+		total += 1;
 		break;
+	default:
+		return UNKNOWN_COMPARISON;
 	}
 
 	switch (right_compare) {
 	case '<':
 		LT++;
-		NE++;
+		total += 1;
 		break;
 	case SPECIAL_LTE:
 		LT++;
 		EQ++;
+		total += 2;
 		break;
 	case SPECIAL_EQUAL:
 		EQ++;
+		total += 1;
 		break;
 	case SPECIAL_NOTEQUAL:
 		NE++;
+		total += 1;
 		break;
 	case SPECIAL_GTE:
 		GT++;
 		EQ++;
+		total += 2;
 		break;
 	case '>':
 		GT++;
-		NE++;
+		total += 1;
 		break;
+	default:
+		return UNKNOWN_COMPARISON;
 	}
 
 	if (LT == 2) {
@@ -508,14 +520,18 @@ int comparison_intersection(int left_compare, int right_compare)
 	}
 	if (EQ == 2)
 		return SPECIAL_EQUAL;
+	if (total == 2 && EQ && NE)
+		return IMPOSSIBLE_COMPARISON;
 	if (GT && LT)
 		return IMPOSSIBLE_COMPARISON;
-	if (NE == 2)
-		return SPECIAL_NOTEQUAL;
 	if (GT && NE)
 		return '>';
 	if (LT && NE)
 		return '<';
+	if (NE == 2)
+		return SPECIAL_NOTEQUAL;
+	if (total == 2 && (LT || GT) && EQ)
+		return IMPOSSIBLE_COMPARISON;
 
 	return UNKNOWN_COMPARISON;
 }
