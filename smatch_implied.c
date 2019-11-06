@@ -791,6 +791,12 @@ static int handled_by_extra_states(struct expression *expr,
 				   struct stree **implied_true,
 				   struct stree **implied_false)
 {
+	sval_t sval;
+
+	/* If the expression is known then it has no implications.  */
+	if (get_implied_value(expr, &sval))
+		return true;
+
 	if (expr->type == EXPR_COMPARE)
 		return handle_comparison(expr, implied_true, implied_false);
 	else
