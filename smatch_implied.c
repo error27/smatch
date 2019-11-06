@@ -877,7 +877,8 @@ static void set_implied_states(struct expression *expr)
 {
 	struct sm_state *sm;
 
-	if (implied_debug) {
+	if (implied_debug &&
+	    (expr || saved_implied_true || saved_implied_false)) {
 		char *name;
 
 		name = expr_to_str(expr);
