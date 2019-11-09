@@ -1514,6 +1514,8 @@ static void predefined_macros(void)
 		predefine("__powerpc", 1, "1");
 		predefine("__ppc__", 1, "1");
 		predefine("__PPC__", 1, "1");
+		if (arch_big_endian)
+			predefine("_BIG_DEBIAN", 1, "1");
 		break;
 	case MACH_RISCV64:
 	case MACH_RISCV32:

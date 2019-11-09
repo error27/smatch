@@ -276,11 +276,10 @@ sub add_specs {
 	return (' --arch=x86_64' .
 		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc') {
-	return (' -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
-		' --arch=ppc' .
+	return (' --arch=ppc' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc64') {
-	return (' -D_STRING_ARCH_unaligned=1 ' .
+	return (
 		' --arch=ppc64' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc64+be') {
