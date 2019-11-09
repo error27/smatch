@@ -24,6 +24,7 @@ test-inspect
 test-lexing
 test-linearize
 test-parsing
+test-show-type
 test-unssa
 
 # tags
