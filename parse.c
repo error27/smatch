@@ -1564,8 +1564,10 @@ static struct symbol * const unsigned_types[] =
 static struct symbol * const real_types[] =
 	{&float_ctype, &double_ctype, &ldouble_ctype};
 static struct symbol * const * const types[] = {
-	int_types + 2, signed_types + 2, unsigned_types + 2,
-	real_types + 1,
+	[CInt]  = int_types + 2,
+	[CSInt] = signed_types + 2,
+	[CUInt] = unsigned_types + 2,
+	[CReal] = real_types + 1,
 };
 
 struct symbol *ctype_integer(int size, int want_unsigned)
