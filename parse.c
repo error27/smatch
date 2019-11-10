@@ -112,7 +112,7 @@ enum {
 };
 
 enum {
-	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar,
+	CInt = 0, CSInt, CUInt, CReal,
 };
 
 enum {
@@ -248,7 +248,7 @@ static struct symbol_op char_op = {
 	.type = KW_SPECIFIER,
 	.test = Set_T|Set_Long|Set_Short,
 	.set = Set_T|Set_Char,
-	.class = CChar,
+	.class = CInt,
 };
 
 static struct symbol_op int_op = {
@@ -1554,20 +1554,18 @@ Catch_all:
 }
 
 static struct symbol * const int_types[] =
-	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
+	{&char_ctype, &short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
 static struct symbol * const signed_types[] =
-	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
+	{&schar_ctype, &sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
 	 &slllong_ctype};
 static struct symbol * const unsigned_types[] =
-	{&ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
+	{&uchar_ctype, &ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
 	 &ulllong_ctype};
 static struct symbol * const real_types[] =
 	{&float_ctype, &double_ctype, &ldouble_ctype};
-static struct symbol * const char_types[] =
-	{&char_ctype, &schar_ctype, &uchar_ctype};
 static struct symbol * const * const types[] = {
-	int_types + 1, signed_types + 1, unsigned_types + 1,
-	real_types + 1, char_types, char_types + 1, char_types + 2
+	int_types + 2, signed_types + 2, unsigned_types + 2,
+	real_types + 1,
 };
 
 struct symbol *ctype_integer(int size, int want_unsigned)
@@ -1625,6 +1623,8 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 				size = 2;
 			if (s->op->type & KW_SHORT) {
 				size = -1;
+			} else if (s->op->set & Set_Char) {
+				size = -2;
 			} else if (s->op->type & KW_LONG && size++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
