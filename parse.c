@@ -300,9 +300,9 @@ static struct symbol_op long_op = {
 };
 
 static struct symbol_op int128_op = {
-	.type = KW_SPECIFIER | KW_LONG,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_T|Set_Char|Set_Short|Set_Int|Set_Float|Set_Double|Set_Long|Set_Vlong|Set_Int128,
-	.set =  Set_T|Set_Int128,
+	.set =  Set_T|Set_Int128|Set_Vlong,
 	.class = CInt,
 };
 
@@ -1624,12 +1624,12 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 			seen |= s->op->set;
 			class += s->op->class;
-			if (s->op->set & Set_Int128)
-				size = 2;
 			if (s->op->type & KW_SHORT) {
 				size = -1;
 			} else if (s->op->set & Set_Char) {
 				size = -2;
+			} else if (s->op->set & Set_Int128) {
+				size = 3;
 			} else if (s->op->type & KW_LONG && size++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
