@@ -255,6 +255,7 @@ static struct symbol_op int_op = {
 	.type = KW_SPECIFIER,
 	.test = Set_T,
 	.set = Set_T|Set_Int,
+	.class = CInt,
 };
 
 static struct symbol_op double_op = {
@@ -275,6 +276,7 @@ static struct symbol_op short_op = {
 	.type = KW_SPECIFIER | KW_SHORT,
 	.test = Set_S|Set_Char|Set_Float|Set_Double|Set_Long|Set_Short,
 	.set = Set_Short,
+	.class = CInt,
 };
 
 static struct symbol_op signed_op = {
@@ -301,6 +303,7 @@ static struct symbol_op int128_op = {
 	.type = KW_SPECIFIER | KW_LONG,
 	.test = Set_S|Set_T|Set_Char|Set_Short|Set_Int|Set_Float|Set_Double|Set_Long|Set_Vlong|Set_Int128,
 	.set =  Set_T|Set_Int128,
+	.class = CInt,
 };
 
 static struct symbol_op if_op = {
