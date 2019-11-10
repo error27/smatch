@@ -294,7 +294,7 @@ static struct symbol_op unsigned_op = {
 };
 
 static struct symbol_op long_op = {
-	.type = KW_SPECIFIER | KW_LONG,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_Char|Set_Float|Set_Short|Set_Vlong,
 	.set = Set_Long,
 };
@@ -1630,7 +1630,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 				size = -2;
 			} else if (s->op->set & Set_Int128) {
 				size = 3;
-			} else if (s->op->type & KW_LONG && size++) {
+			} else if (s->op->set & Set_Long && size++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
 							   Set_Vlong,
