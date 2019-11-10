@@ -81,7 +81,7 @@ enum keyword {
      // KW UNUSED	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
-	KW_SHORT	= 1 << 7,
+     // KW UNUSED	= 1 << 7,
 	KW_LONG		= 1 << 8,
 	KW_EXACT	= 1 << 9,
 };

@@ -266,14 +266,14 @@ static struct symbol_op double_op = {
 };
 
 static struct symbol_op float_op = {
-	.type = KW_SPECIFIER | KW_SHORT,
+	.type = KW_SPECIFIER,
 	.test = Set_T|Set_Signed|Set_Unsigned|Set_Short|Set_Long,
 	.set = Set_T|Set_Float,
 	.class = CReal,
 };
 
 static struct symbol_op short_op = {
-	.type = KW_SPECIFIER | KW_SHORT,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_Char|Set_Float|Set_Double|Set_Long|Set_Short,
 	.set = Set_Short,
 	.class = CInt,
@@ -1624,7 +1624,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 			seen |= s->op->set;
 			class += s->op->class;
-			if (s->op->type & KW_SHORT) {
+			if (s->op->set & (Set_Short|Set_Float)) {
 				size = -1;
 			} else if (s->op->set & Set_Char) {
 				size = -2;
