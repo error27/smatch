@@ -313,7 +313,7 @@ unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
-int funsigned_char = UNSIGNED_CHAR;
+int funsigned_char = -1;
 
 int preprocess_only;
 

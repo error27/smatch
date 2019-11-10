@@ -137,6 +137,24 @@ void init_target(void)
 		break;
 	}
 
+	switch (arch_mach) {
+	case MACH_ARM:
+	case MACH_ARM64:
+	case MACH_PPC32:
+	case MACH_PPC64:
+	case MACH_RISCV32:
+	case MACH_RISCV64:
+	case MACH_S390:
+	case MACH_S390X:
+		if (funsigned_char == -1)
+			funsigned_char = 1;
+		break;
+	default:
+		if (funsigned_char == -1)
+			funsigned_char = 0;
+		break;
+	}
+
 	switch (arch_m64) {
 	case ARCH_X32:
 		max_int_alignment = 8;
