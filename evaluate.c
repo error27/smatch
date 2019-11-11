@@ -150,7 +150,7 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 		return &int_ctype;
 
 	/* If char/short has as many bits as int, it still gets "promoted" */
-	if (mod & (MOD_CHAR | MOD_SHORT)) {
+	if (type->rank < 0) {
 		if (mod & MOD_UNSIGNED)
 			return &uint_ctype;
 		return &int_ctype;
@@ -196,7 +196,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	if ((lmod ^ rmod) & MOD_UNSIGNED) {
 		if (lmod & MOD_UNSIGNED)
 			goto left;
-	} else if ((lmod & ~rmod) & (MOD_LONG_ALL))
+	} else if (left->rank > right->rank)
 		goto left;
 right:
 	left = right;
@@ -557,9 +557,7 @@ Normal:
 		else
 			return rtype;
 	} else if (rclass & TYPE_FLOAT) {
-		unsigned long lmod = ltype->ctype.modifiers;
-		unsigned long rmod = rtype->ctype.modifiers;
-		if (rmod & ~lmod & (MOD_LONG_ALL))
+		if (rtype->rank > ltype->rank)
 			return rtype;
 		else
 			return ltype;
@@ -798,11 +796,11 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 				return "different address spaces";
 			if (base1 != base2)
 				return "different base types";
+			if (t1->rank != t2->rank)
+				return "different type sizes";
 			diff = (mod1 ^ mod2) & ~MOD_IGNORE;
 			if (!diff)
 				return NULL;
-			if (diff & MOD_SIZE)
-				return "different type sizes";
 			else if (diff & ~MOD_SIGNEDNESS)
 				return "different modifiers";
 			else
@@ -1391,9 +1389,9 @@ static int whitelist_pointers(struct symbol *t1, struct symbol *t2)
 		return 0;
 	if (t1 == t2)
 		return 1;
-	if (t1->ctype.modifiers & t2->ctype.modifiers & MOD_CHAR)
+	if (t1->rank == -2 && t2->rank == -2)
 		return 1;
-	if ((t1->ctype.modifiers ^ t2->ctype.modifiers) & MOD_SIZE)
+	if (t1->rank != t2->rank)
 		return 0;
 	return !Wtypesign;
 }
@@ -2344,8 +2342,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 			if (is_int(class)) {
 				*p = cast_to(expr, integer_promotion(type));
 			} else if (class & TYPE_FLOAT) {
-				unsigned long mod = type->ctype.modifiers;
-				if (!(mod & (MOD_LONG_ALL)))
+				if (type->rank < 0)
 					*p = cast_to(expr, &double_ctype);
 			} else if (class & TYPE_PTR) {
 				if (expr->ctype == &null_ctype)

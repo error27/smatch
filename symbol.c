@@ -221,6 +221,7 @@ static struct symbol *examine_base_type(struct symbol *sym)
 	if (base_type->type == SYM_NODE) {
 		base_type = base_type->ctype.base_type;
 		sym->ctype.base_type = base_type;
+		sym->rank = base_type->rank;
 	}
 	return base_type;
 }
@@ -299,7 +300,7 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 	 * on T - if it's a character type, we get the length of string literal
 	 * (including NUL), otherwise we have one element here.
 	 */
-	if (t->ctype.base_type == &int_type && t->ctype.modifiers & MOD_CHAR)
+	if (t->ctype.base_type == &int_type && t->rank == -2)
 		is_char = 1;
 
 	switch (expr->type) {
@@ -416,6 +417,7 @@ static struct symbol * examine_node_type(struct symbol *sym)
 	}
 	
 	sym->bit_size = bit_size;
+	sym->rank = base_type->rank;
 	return sym;
 }
 
@@ -561,6 +563,7 @@ void create_fouled(struct symbol *type)
 		struct symbol *new = alloc_symbol(type->pos, type->type);
 		*new = *type;
 		new->bit_size = bits_in_int;
+		new->rank = 0;
 		new->type = SYM_FOULED;
 		new->ctype.base_type = type;
 		add_symbol(&restr, type);
@@ -730,63 +733,60 @@ static int bits_in_type32 = 32;
 static int bits_in_type64 = 64;
 static int bits_in_type128 = 128;
 
-#define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
-#define MOD_LL (MOD_LONG | MOD_LONGLONG)
-#define MOD_LLL MOD_LONGLONGLONG
-
-#define T_BASETYPE      SYM_BASETYPE, 0, NULL, NULL, NULL
-#define T_INT(R, S, M)  SYM_BASETYPE, (R|M), &bits_in_##S, &max_int_alignment, &int_type
+#define T_BASETYPE      SYM_BASETYPE, 0, 0, NULL, NULL, NULL
+#define T_INT(R, S, M)  SYM_BASETYPE, M, R, &bits_in_##S, &max_int_alignment, &int_type
 #define T__INT(R, S)    T_INT(R, S, MOD_SIGNED)
 #define T_SINT(R, S)    T_INT(R, S, MOD_ESIGNED)
-#define T_UINT(R, S)    T_INT(R, S, MOD_UNSIGNED)
-#define T_FLOAT_(R,S,A) SYM_BASETYPE, R, &bits_in_##S, A, &fp_type
+#define T_UINT(R,S)     T_INT(R, S, MOD_UNSIGNED)
+#define T_FLOAT_(R,S,A) SYM_BASETYPE, 0, R, &bits_in_##S, A, &fp_type
 #define T_FLOAT(R, S)   T_FLOAT_(R, S, &max_fp_alignment)
-#define T_PTR(B)        SYM_PTR, 0, &bits_in_pointer, &pointer_alignment, B
-#define T_NODE(M,B,S,A) SYM_NODE, M, S, A, B
+#define T_PTR(B)        SYM_PTR, 0, 0, &bits_in_pointer, &pointer_alignment, B
+#define T_NODE(M,B,S,A) SYM_NODE, M, 0, S, A, B
 #define T_CONST(B,S,A)  T_NODE(MOD_CONST, B, S, A)
 
 static const struct ctype_declare {
 	struct symbol *ptr;
 	enum type type;
 	unsigned long modifiers;
+	int rank;
 	int *bit_size;
 	int *maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &bool_ctype,         T_INT(0,          bool, MOD_UNSIGNED) },
+	{ &bool_ctype,         T_INT(-3, bool, MOD_UNSIGNED) },
 	{ &void_ctype,         T_BASETYPE },
 	{ &type_ctype,         T_BASETYPE },
 	{ &incomplete_ctype,   T_BASETYPE },
 	{ &bad_ctype,          T_BASETYPE },
 
-	{ &char_ctype,         T__INT(MOD_CHAR,  char) },
-	{ &schar_ctype,        T_SINT(MOD_CHAR,  char) },
-	{ &uchar_ctype,        T_UINT(MOD_CHAR,  char) },
-	{ &short_ctype,        T__INT(MOD_SHORT, short) },
-	{ &sshort_ctype,       T_SINT(MOD_SHORT, short) },
-	{ &ushort_ctype,       T_UINT(MOD_SHORT, short) },
-	{ &int_ctype,          T__INT(0,         int) },
-	{ &sint_ctype,         T_SINT(0,         int) },
-	{ &uint_ctype,         T_UINT(0,         int) },
-	{ &long_ctype,         T__INT(MOD_LONG,  long) },
-	{ &slong_ctype,        T_SINT(MOD_LONG,  long) },
-	{ &ulong_ctype,        T_UINT(MOD_LONG,  long) },
-	{ &llong_ctype,        T__INT(MOD_LL,    longlong) },
-	{ &sllong_ctype,       T_SINT(MOD_LL,    longlong) },
-	{ &ullong_ctype,       T_UINT(MOD_LL,    longlong) },
-	{ &lllong_ctype,       T__INT(MOD_LLL,   longlonglong) },
-	{ &slllong_ctype,      T_SINT(MOD_LLL,   longlonglong) },
-	{ &ulllong_ctype,      T_UINT(MOD_LLL,   longlonglong) },
+	{ &char_ctype,         T__INT(-2, char) },
+	{ &schar_ctype,        T_SINT(-2, char) },
+	{ &uchar_ctype,        T_UINT(-2, char) },
+	{ &short_ctype,        T__INT(-1, short) },
+	{ &sshort_ctype,       T_SINT(-1, short) },
+	{ &ushort_ctype,       T_UINT(-1, short) },
+	{ &int_ctype,          T__INT( 0, int) },
+	{ &sint_ctype,         T_SINT( 0, int) },
+	{ &uint_ctype,         T_UINT( 0, int) },
+	{ &long_ctype,         T__INT( 1, long) },
+	{ &slong_ctype,        T_SINT( 1, long) },
+	{ &ulong_ctype,        T_UINT( 1, long) },
+	{ &llong_ctype,        T__INT( 2, longlong) },
+	{ &sllong_ctype,       T_SINT( 2, longlong) },
+	{ &ullong_ctype,       T_UINT( 2, longlong) },
+	{ &lllong_ctype,       T__INT( 3, longlonglong) },
+	{ &slllong_ctype,      T_SINT( 3, longlonglong) },
+	{ &ulllong_ctype,      T_UINT( 3, longlonglong) },
 
-	{ &float_ctype,        T_FLOAT(0,        float) },
-	{ &double_ctype,       T_FLOAT(MOD_LONG, double) },
-	{ &ldouble_ctype,      T_FLOAT(MOD_LL,   longdouble) },
+	{ &float_ctype,        T_FLOAT(-1, float) },
+	{ &double_ctype,       T_FLOAT( 0, double) },
+	{ &ldouble_ctype,      T_FLOAT( 1, longdouble) },
 
-	{ &float32_ctype,      T_FLOAT(0,        type32) },
-	{ &float32x_ctype,     T_FLOAT(MOD_LONG, double) },
-	{ &float64_ctype,      T_FLOAT(MOD_LONG, type64) },
-	{ &float64x_ctype,     T_FLOAT(MOD_LONG, longdouble) },
-	{ &float128_ctype,     T_FLOAT_(MOD_LL,  type128, &max_alignment) },
+	{ &float32_ctype,      T_FLOAT(-1, type32) },
+	{ &float32x_ctype,     T_FLOAT(-1, double) },
+	{ &float64_ctype,      T_FLOAT( 0, type64) },
+	{ &float64x_ctype,     T_FLOAT( 1, longdouble) },
+	{ &float128_ctype,     T_FLOAT_(2, type128, &max_alignment) },
 
 	{ &string_ctype,       T_PTR(&char_ctype) },
 	{ &ptr_ctype,          T_PTR(&void_ctype) },
@@ -806,9 +806,6 @@ static const struct ctype_declare {
 	{ &const_char_ctype,   T_CONST(&char_ctype, &bits_in_char, &max_int_alignment)},
 	{ NULL, }
 };
-#undef MOD_LLL
-#undef MOD_LL
-#undef MOD_ESIGNED
 
 void init_ctype(void)
 {
@@ -823,6 +820,7 @@ void init_ctype(void)
 		if (alignment > maxalign)
 			alignment = maxalign;
 		sym->type = ctype->type;
+		sym->rank = ctype->rank;
 		sym->bit_size = bit_size;
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
@@ -830,6 +828,7 @@ void init_ctype(void)
 
 		if (sym->type == SYM_NODE) {
 			struct symbol *base = sym->ctype.base_type;
+			sym->rank = base->rank;
 			if (!ctype->bit_size)
 				sym->bit_size = base->bit_size;
 			if (!ctype->maxalign)

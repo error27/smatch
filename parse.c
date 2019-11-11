@@ -255,7 +255,6 @@ static struct symbol_op int_op = {
 	.type = KW_SPECIFIER,
 	.test = Set_T,
 	.set = Set_T|Set_Int,
-	.class = CInt,
 };
 
 static struct symbol_op double_op = {
@@ -276,7 +275,6 @@ static struct symbol_op short_op = {
 	.type = KW_SPECIFIER,
 	.test = Set_S|Set_Char|Set_Float|Set_Double|Set_Long|Set_Short,
 	.set = Set_Short,
-	.class = CInt,
 };
 
 static struct symbol_op signed_op = {
@@ -1624,12 +1622,12 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 			seen |= s->op->set;
 			class += s->op->class;
+			if (s->op->set & Set_Int128)
+				rank = 3;
+			else if (s->op->set & Set_Char)
+				rank = -2;
 			if (s->op->set & (Set_Short|Set_Float)) {
 				rank = -1;
-			} else if (s->op->set & Set_Char) {
-				rank = -2;
-			} else if (s->op->set & Set_Int128) {
-				rank = 3;
 			} else if (s->op->set & Set_Long && rank++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
@@ -2823,7 +2821,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 static void promote_k_r_types(struct symbol *arg)
 {
 	struct symbol *base = arg->ctype.base_type;
-	if (base && base->ctype.base_type == &int_type && (base->ctype.modifiers & (MOD_CHAR | MOD_SHORT))) {
+	if (base && base->ctype.base_type == &int_type && base->rank < 0) {
 		arg->ctype.base_type = &int_ctype;
 	}
 }
