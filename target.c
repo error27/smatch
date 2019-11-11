@@ -79,11 +79,11 @@ void init_target(void)
 	}
 
 	switch (arch_mach) {
-	case MACH_X86_64:
-		if (arch_m64 == ARCH_LP64)
-			break;
-		/* fall through */
 	case MACH_I386:
+		wchar_ctype = &long_ctype;
+		/* fall through */
+	case MACH_X86_64:
+		break;
 	case MACH_M68K:
 	case MACH_SPARC32:
 	case MACH_PPC32:
