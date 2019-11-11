@@ -90,6 +90,9 @@ void init_target(void)
 #if defined(__FreeBSD__) || defined(__APPLE__)
 		wint_ctype = &int_ctype;
 #endif
+#if defined(__CYGWIN__)
+		wchar_ctype = &ushort_ctype;
+#endif
 		break;
 	case MACH_M68K:
 	case MACH_SPARC32:
@@ -196,8 +199,4 @@ void init_target(void)
 		pointer_alignment = 8;
 		break;
 	}
-
-#if defined(__CYGWIN__)
-	wchar_ctype = &ushort_ctype;
-#endif
 }
