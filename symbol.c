@@ -733,6 +733,18 @@ static int bits_in_type128 = 128;
 #define MOD_ESIGNED (MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_LL (MOD_LONG | MOD_LONGLONG)
 #define MOD_LLL MOD_LONGLONGLONG
+
+#define T_BASETYPE      SYM_BASETYPE, 0, NULL, NULL, NULL
+#define T_INT(R, S, M)  SYM_BASETYPE, (R|M), &bits_in_##S, &max_int_alignment, &int_type
+#define T__INT(R, S)    T_INT(R, S, MOD_SIGNED)
+#define T_SINT(R, S)    T_INT(R, S, MOD_ESIGNED)
+#define T_UINT(R, S)    T_INT(R, S, MOD_UNSIGNED)
+#define T_FLOAT_(R,S,A) SYM_BASETYPE, R, &bits_in_##S, A, &fp_type
+#define T_FLOAT(R, S)   T_FLOAT_(R, S, &max_fp_alignment)
+#define T_PTR(B)        SYM_PTR, 0, &bits_in_pointer, &pointer_alignment, B
+#define T_NODE(M,B,S,A) SYM_NODE, M, S, A, B
+#define T_CONST(B,S,A)  T_NODE(MOD_CONST, B, S, A)
+
 static const struct ctype_declare {
 	struct symbol *ptr;
 	enum type type;
@@ -741,57 +753,57 @@ static const struct ctype_declare {
 	int *maxalign;
 	struct symbol *base_type;
 } ctype_declaration[] = {
-	{ &bool_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_bool,	     &max_int_alignment, &int_type },
-	{ &void_ctype,	    SYM_BASETYPE, 0,			    NULL,	     NULL,		 NULL },
-	{ &type_ctype,	    SYM_BASETYPE, 0,			    NULL,	     NULL,		 NULL },
-	{ &incomplete_ctype,SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
-	{ &bad_ctype,	    SYM_BASETYPE, 0,			    NULL,		     NULL,		 NULL },
+	{ &bool_ctype,         T_INT(0,          bool, MOD_UNSIGNED) },
+	{ &void_ctype,         T_BASETYPE },
+	{ &type_ctype,         T_BASETYPE },
+	{ &incomplete_ctype,   T_BASETYPE },
+	{ &bad_ctype,          T_BASETYPE },
 
-	{ &char_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_CHAR,    &bits_in_char,	     &max_int_alignment, &int_type },
-	{ &schar_ctype,	    SYM_BASETYPE, MOD_ESIGNED | MOD_CHAR,   &bits_in_char,	     &max_int_alignment, &int_type },
-	{ &uchar_ctype,	    SYM_BASETYPE, MOD_UNSIGNED | MOD_CHAR,  &bits_in_char,	     &max_int_alignment, &int_type },
-	{ &short_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_SHORT,   &bits_in_short,	     &max_int_alignment, &int_type },
-	{ &sshort_ctype,    SYM_BASETYPE, MOD_ESIGNED | MOD_SHORT,  &bits_in_short,	     &max_int_alignment, &int_type },
-	{ &ushort_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_SHORT, &bits_in_short,	     &max_int_alignment, &int_type },
-	{ &int_ctype,	    SYM_BASETYPE, MOD_SIGNED,		    &bits_in_int,	     &max_int_alignment, &int_type },
-	{ &sint_ctype,	    SYM_BASETYPE, MOD_ESIGNED,		    &bits_in_int,	     &max_int_alignment, &int_type },
-	{ &uint_ctype,	    SYM_BASETYPE, MOD_UNSIGNED,		    &bits_in_int,	     &max_int_alignment, &int_type },
-	{ &long_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LONG,    &bits_in_long,	     &max_int_alignment, &int_type },
-	{ &slong_ctype,	    SYM_BASETYPE, MOD_ESIGNED | MOD_LONG,   &bits_in_long,	     &max_int_alignment, &int_type },
-	{ &ulong_ctype,	    SYM_BASETYPE, MOD_UNSIGNED | MOD_LONG,  &bits_in_long,	     &max_int_alignment, &int_type },
-	{ &llong_ctype,	    SYM_BASETYPE, MOD_SIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
-	{ &sllong_ctype,    SYM_BASETYPE, MOD_ESIGNED | MOD_LL,	    &bits_in_longlong,       &max_int_alignment, &int_type },
-	{ &ullong_ctype,    SYM_BASETYPE, MOD_UNSIGNED | MOD_LL,    &bits_in_longlong,       &max_int_alignment, &int_type },
-	{ &lllong_ctype,    SYM_BASETYPE, MOD_SIGNED | MOD_LLL,	    &bits_in_longlonglong,   &max_int_alignment, &int_type },
-	{ &slllong_ctype,   SYM_BASETYPE, MOD_ESIGNED | MOD_LLL,    &bits_in_longlonglong,   &max_int_alignment, &int_type },
-	{ &ulllong_ctype,   SYM_BASETYPE, MOD_UNSIGNED | MOD_LLL,   &bits_in_longlonglong,   &max_int_alignment, &int_type },
+	{ &char_ctype,         T__INT(MOD_CHAR,  char) },
+	{ &schar_ctype,        T_SINT(MOD_CHAR,  char) },
+	{ &uchar_ctype,        T_UINT(MOD_CHAR,  char) },
+	{ &short_ctype,        T__INT(MOD_SHORT, short) },
+	{ &sshort_ctype,       T_SINT(MOD_SHORT, short) },
+	{ &ushort_ctype,       T_UINT(MOD_SHORT, short) },
+	{ &int_ctype,          T__INT(0,         int) },
+	{ &sint_ctype,         T_SINT(0,         int) },
+	{ &uint_ctype,         T_UINT(0,         int) },
+	{ &long_ctype,         T__INT(MOD_LONG,  long) },
+	{ &slong_ctype,        T_SINT(MOD_LONG,  long) },
+	{ &ulong_ctype,        T_UINT(MOD_LONG,  long) },
+	{ &llong_ctype,        T__INT(MOD_LL,    longlong) },
+	{ &sllong_ctype,       T_SINT(MOD_LL,    longlong) },
+	{ &ullong_ctype,       T_UINT(MOD_LL,    longlong) },
+	{ &lllong_ctype,       T__INT(MOD_LLL,   longlonglong) },
+	{ &slllong_ctype,      T_SINT(MOD_LLL,   longlonglong) },
+	{ &ulllong_ctype,      T_UINT(MOD_LLL,   longlonglong) },
 
-	{ &float_ctype,	    SYM_BASETYPE,  0,			    &bits_in_float,          &max_fp_alignment,  &fp_type },
-	{ &double_ctype,    SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
-	{ &ldouble_ctype,   SYM_BASETYPE, MOD_LONG | MOD_LONGLONG,  &bits_in_longdouble,     &max_fp_alignment,  &fp_type },
+	{ &float_ctype,        T_FLOAT(0,        float) },
+	{ &double_ctype,       T_FLOAT(MOD_LONG, double) },
+	{ &ldouble_ctype,      T_FLOAT(MOD_LL,   longdouble) },
 
-	{ &float32_ctype,   SYM_BASETYPE,  0,			    &bits_in_type32,          &max_fp_alignment, &fp_type },
-	{ &float32x_ctype,  SYM_BASETYPE, MOD_LONG,		    &bits_in_double,         &max_fp_alignment,  &fp_type },
-	{ &float64_ctype,   SYM_BASETYPE,  0,			    &bits_in_type64,          &max_fp_alignment, &fp_type },
-	{ &float64x_ctype,  SYM_BASETYPE, MOD_LONG | MOD_LONGLONG,  &bits_in_longdouble,     &max_fp_alignment,  &fp_type },
-	{ &float128_ctype,  SYM_BASETYPE,  0,			    &bits_in_type128,         &max_alignment,    &fp_type },
+	{ &float32_ctype,      T_FLOAT(0,        type32) },
+	{ &float32x_ctype,     T_FLOAT(MOD_LONG, double) },
+	{ &float64_ctype,      T_FLOAT(MOD_LONG, type64) },
+	{ &float64x_ctype,     T_FLOAT(MOD_LONG, longdouble) },
+	{ &float128_ctype,     T_FLOAT_(MOD_LL,  type128, &max_alignment) },
 
-	{ &string_ctype,    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &char_ctype },
-	{ &ptr_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
-	{ &null_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
-	{ &label_ctype,	    SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
-	{ &lazy_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &void_ctype },
-	{ &int_ptr_ctype,   SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &int_ctype },
-	{ &uint_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &uint_ctype },
-	{ &long_ptr_ctype,  SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &long_ctype },
-	{ &ulong_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &ulong_ctype },
-	{ &llong_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &llong_ctype },
-	{ &ullong_ptr_ctype,SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &ullong_ctype },
+	{ &string_ctype,       T_PTR(&char_ctype) },
+	{ &ptr_ctype,          T_PTR(&void_ctype) },
+	{ &null_ctype,         T_PTR(&void_ctype) },
+	{ &label_ctype,        T_PTR(&void_ctype) },
+	{ &lazy_ptr_ctype,     T_PTR(&void_ctype) },
+	{ &int_ptr_ctype,      T_PTR(&int_ctype) },
+	{ &uint_ptr_ctype,     T_PTR(&uint_ctype) },
+	{ &long_ptr_ctype,     T_PTR(&long_ctype) },
+	{ &ulong_ptr_ctype,    T_PTR(&ulong_ctype) },
+	{ &llong_ptr_ctype,    T_PTR(&llong_ctype) },
+	{ &ullong_ptr_ctype,   T_PTR(&ullong_ctype) },
+	{ &const_ptr_ctype,    T_PTR(&const_void_ctype) },
+	{ &const_string_ctype, T_PTR(&const_char_ctype) },
 
-	{ &const_void_ctype, SYM_NODE,	  MOD_CONST,		    NULL, NULL, &void_ctype },
-	{ &const_char_ctype, SYM_NODE,	  MOD_CONST,		    &bits_in_char, &max_int_alignment, &char_ctype },
-	{ &const_ptr_ctype, SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &const_void_ctype },
-	{ &const_string_ctype,SYM_PTR,	  0,			    &bits_in_pointer,        &pointer_alignment, &const_char_ctype },
+	{ &const_void_ctype,   T_CONST(&void_ctype, NULL, NULL) },
+	{ &const_char_ctype,   T_CONST(&char_ctype, &bits_in_char, &max_int_alignment)},
 	{ NULL, }
 };
 #undef MOD_LLL
@@ -815,6 +827,14 @@ void init_ctype(void)
 		sym->ctype.alignment = alignment;
 		sym->ctype.base_type = ctype->base_type;
 		sym->ctype.modifiers = ctype->modifiers;
+
+		if (sym->type == SYM_NODE) {
+			struct symbol *base = sym->ctype.base_type;
+			if (!ctype->bit_size)
+				sym->bit_size = base->bit_size;
+			if (!ctype->maxalign)
+				sym->ctype.alignment = base->ctype.alignment;
+		}
 	}
 
 	// and now some adjustments
