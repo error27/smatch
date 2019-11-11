@@ -83,6 +83,13 @@ void init_target(void)
 		wchar_ctype = &long_ctype;
 		/* fall through */
 	case MACH_X86_64:
+#if defined(__APPLE__)
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__)
+		wint_ctype = &int_ctype;
+#endif
 		break;
 	case MACH_M68K:
 	case MACH_SPARC32:
@@ -192,12 +199,5 @@ void init_target(void)
 
 #if defined(__CYGWIN__)
 	wchar_ctype = &ushort_ctype;
-#endif
-#if defined(__FreeBSD__) || defined(__APPLE__)
-	wint_ctype = &int_ctype;
-#endif
-#if defined(__APPLE__)
-	int64_ctype = &llong_ctype;
-	uint64_ctype = &ullong_ctype;
 #endif
 }
