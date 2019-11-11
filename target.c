@@ -105,10 +105,6 @@ void init_target(void)
 	}
 
 	switch (arch_mach) {
-	case MACH_MIPS64:
-		if (arch_m64 == ARCH_LP64)
-			break;
-		/* fall through */
 	case MACH_M68K:
 	case MACH_SPARC32:
 	case MACH_PPC32:

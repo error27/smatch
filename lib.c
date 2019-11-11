@@ -1494,8 +1494,7 @@ static void predefined_macros(void)
 		predefine("__m68k__", 1, "1");
 		break;
 	case MACH_MIPS64:
-		if (arch_m64 == ARCH_LP64)
-			predefine("__mips64", 1, "64");
+		predefine("__mips64", 1, "64");
 		/* fall-through */
 	case MACH_MIPS32:
 		predefine("__mips__", 1, "1");
@@ -1505,11 +1504,9 @@ static void predefined_macros(void)
 		predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
 		break;
 	case MACH_PPC64:
-		if (arch_m64 == ARCH_LP64) {
-			predefine("__powerpc64__", 1, "1");
-			predefine("__ppc64__", 1, "1");
-			predefine("__PPC64__", 1, "1");
-		}
+		predefine("__powerpc64__", 1, "1");
+		predefine("__ppc64__", 1, "1");
+		predefine("__PPC64__", 1, "1");
 		/* fall-through */
 	case MACH_PPC32:
 		predefine("__powerpc__", 1, "1");
@@ -1531,13 +1528,11 @@ static void predefined_macros(void)
 		predefine("__s390__", 1, "1");
 		break;
 	case MACH_SPARC64:
-		if (arch_m64 == ARCH_LP64) {
-			predefine("__sparc_v9__", 1, "1");
-			predefine("__sparcv9__", 1, "1");
-			predefine("__sparcv9", 1, "1");
-			predefine("__sparc64__", 1, "1");
-			predefine("__arch64__", 1, "1");
-		}
+		predefine("__sparc_v9__", 1, "1");
+		predefine("__sparcv9__", 1, "1");
+		predefine("__sparcv9", 1, "1");
+		predefine("__sparc64__", 1, "1");
+		predefine("__arch64__", 1, "1");
 		/* fall-through */
 	case MACH_SPARC32:
 		predefine("__sparc__", 1, "1");
