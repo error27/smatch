@@ -1599,7 +1599,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 {
 	int seen = 0;
 	int class = CInt;
-	int size = 0;
+	int rank = 0;
 
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *s = lookup_symbol(token->ident,
@@ -1625,12 +1625,12 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			seen |= s->op->set;
 			class += s->op->class;
 			if (s->op->set & (Set_Short|Set_Float)) {
-				size = -1;
+				rank = -1;
 			} else if (s->op->set & Set_Char) {
-				size = -2;
+				rank = -2;
 			} else if (s->op->set & Set_Int128) {
-				size = 3;
-			} else if (s->op->set & Set_Long && size++) {
+				rank = 3;
+			} else if (s->op->set & Set_Long && rank++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
 							   Set_Vlong,
@@ -1652,7 +1652,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 	if (!(seen & Set_S)) {	/* not set explicitly? */
 		struct symbol *base = &incomplete_ctype;
 		if (seen & Set_Any)
-			base = types[class][size];
+			base = types[class][rank];
 		ctx->ctype.base_type = base;
 	}
 
