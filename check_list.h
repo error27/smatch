@@ -200,6 +200,7 @@ CK(check_arm64_tagged)
 
 /* illumos specific */
 CK(check_all_func_returns)
+CK(check_cmn_err)
 
 #include "check_list_local.h"
 
