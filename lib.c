@@ -255,7 +255,6 @@ static struct token *pre_buffer_end = NULL;
 
 int Waddress = 0;
 int Waddress_space = 1;
-int Wbig_constants = 1;
 int Wbitwise = 1;
 int Wbitwise_pointer = 0;
 int Wcast_from_as = 0;
@@ -275,7 +274,6 @@ int Wint_to_pointer_cast = 1;
 int Wenum_mismatch = 1;
 int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
-int Wnon_ansi_function_declaration = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wold_style_definition = 1;
@@ -639,7 +637,6 @@ static char **handle_switch_o(char *arg, char **next)
 static const struct flag warnings[] = {
 	{ "address", &Waddress },
 	{ "address-space", &Waddress_space },
-	{ "big-constants", &Wbig_constants },
 	{ "bitwise", &Wbitwise },
 	{ "bitwise-pointer", &Wbitwise_pointer},
 	{ "cast-from-as", &Wcast_from_as },
@@ -658,7 +655,6 @@ static const struct flag warnings[] = {
 	{ "init-cstring", &Winit_cstring },
 	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
 	{ "memcpy-max-count", &Wmemcpy_max_count },
-	{ "non-ansi-function-declaration", &Wnon_ansi_function_declaration },
 	{ "non-pointer-null", &Wnon_pointer_null },
 	{ "old-initializer", &Wold_initializer },
 	{ "old-style-definition", &Wold_style_definition },

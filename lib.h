@@ -139,7 +139,6 @@ extern int preprocess_only;
 
 extern int Waddress;
 extern int Waddress_space;
-extern int Wbig_constants;
 extern int Wbitwise;
 extern int Wbitwise_pointer;
 extern int Wcast_from_as;
@@ -159,7 +158,6 @@ extern int Wimplicit_int;
 extern int Winit_cstring;
 extern int Wint_to_pointer_cast;
 extern int Wmemcpy_max_count;
-extern int Wnon_ansi_function_declaration;
 extern int Wnon_pointer_null;
 extern int Wold_initializer;
 extern int Wold_style_definition;
