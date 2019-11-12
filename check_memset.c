@@ -44,7 +44,6 @@ static void check_size_not_ARRAY_SIZE(struct expression *expr)
 static void match_memset(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
-	sval_t sval;
 
 	arg_expr = get_argument_from_call_expr(expr->args, 2);
 	if (!arg_expr)
