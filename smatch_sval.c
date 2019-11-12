@@ -327,7 +327,7 @@ static sval_t sval_binop_unsigned(struct symbol *type, sval_t left, int op, sval
 		break;
 	case '/':
 		if (right.uvalue == 0) {
-			sm_msg("debug: %s: divide by zero", __func__);
+			sm_debug("%s: divide by zero", __func__);
 			ret.uvalue = 123456789;
 		} else {
 			ret.uvalue = left.uvalue / right.uvalue;
