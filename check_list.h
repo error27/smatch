@@ -198,6 +198,9 @@ CK(check_wine_WtoA)
 
 CK(check_arm64_tagged)
 
+/* illumos specific */
+CK(check_all_func_returns)
+
 #include "check_list_local.h"
 
 CK(register_scope)
