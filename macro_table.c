@@ -90,8 +90,6 @@ char *get_inner_macro(struct position pos)
 
 struct string_list *get_all_macros(struct position pos)
 {
-	struct string_list *list;
-
 	if (!macro_table)
 		return NULL;
 	return do_search_macro(macro_table, &pos);
