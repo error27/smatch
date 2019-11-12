@@ -154,6 +154,7 @@ extern int Wdefault_bitfield_sign;
 extern int Wdesignated_init;
 extern int Wdo_while;
 extern int Wenum_mismatch;
+extern int Wexternal_function_has_definition;
 extern int Wsparse_error;
 extern int Wimplicit_int;
 extern int Winit_cstring;

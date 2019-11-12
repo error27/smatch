@@ -269,6 +269,7 @@ int Wimplicit_int = 1;
 int Winit_cstring = 0;
 int Wint_to_pointer_cast = 1;
 int Wenum_mismatch = 1;
+int Wexternal_function_has_definition = 1;
 int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
 int Wnon_pointer_null = 1;
@@ -696,6 +697,7 @@ static const struct flag warnings[] = {
 	{ "designated-init", &Wdesignated_init },
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
+	{ "external-function-has-definition", &Wexternal_function_has_definition },
 	{ "implicit-int", &Wimplicit_int },
 	{ "init-cstring", &Winit_cstring },
 	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
