@@ -105,19 +105,6 @@ void init_target(void)
 	}
 
 	switch (arch_mach) {
-	case MACH_M68K:
-	case MACH_SPARC32:
-	case MACH_PPC32:
-	case MACH_MIPS32:
-	case MACH_RISCV32:
-		int32_ctype = &long_ctype;
-		uint32_ctype = &ulong_ctype;
-		break;
-	default:
-		break;
-	}
-
-	switch (arch_mach) {
 	case MACH_ARM:
 	case MACH_MIPS32:
 	case MACH_S390:
