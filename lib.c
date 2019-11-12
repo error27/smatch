@@ -53,7 +53,7 @@ int verbose, optimize_level, optimize_size, preprocessing;
 int die_if_error = 0;
 int parse_error;
 int has_error = 0;
-int do_output = 1;
+int do_output = 0;
 
 #ifndef __GNUC__
 # define __GNUC__ 2
