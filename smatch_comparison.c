@@ -2644,8 +2644,8 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		       struct state_list **false_stack)
 {
 	struct compare_data *data;
-	int istrue = 0;
-	int isfalse = 0;
+	int is_true = 0;
+	int is_false = 0;
 
 	if (!sm)
 		return;
@@ -2663,10 +2663,9 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	 * false.
 	 */
 	if (data->comparison == comparison_intersection(data->comparison, op))
-		istrue = 1;
-
+		is_true = 1;
 	if (data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
-		isfalse = 1;
+		is_false = 1;
 
 	if (debug_implied()) {
 		sm_msg("%s: %s: op = '%s' negated '%s'. true_intersect = '%s' false_insersect = '%s' sm = '%s'",
@@ -2679,9 +2678,9 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		       show_sm(sm));
 	}
 
-	if (istrue)
+	if (is_true)
 		add_ptr_list(true_stack, sm);
-	if (isfalse)
+	if (is_false)
 		add_ptr_list(false_stack, sm);
 split:
 	filter_by_sm(sm->left, op, true_stack, false_stack);
