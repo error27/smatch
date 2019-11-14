@@ -251,6 +251,8 @@ struct symbol {
 #define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
 #define MOD_TYPEOF	(MOD_QUALIFIER | MOD_NOCAST | MOD_SPECIFIER)
+/* modifiers for funtion attributes */
+#define MOD_FUN_ATTR	(MOD_PURE|MOD_NORETURN)
 
 
 /* Current parsing/evaluation function */

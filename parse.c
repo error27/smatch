@@ -2900,6 +2900,21 @@ static struct token *toplevel_asm_declaration(struct token *token, struct symbol
 	return token;
 }
 
+static unsigned long declaration_modifiers(struct decl_state *ctx)
+{
+	unsigned long mods;
+
+	// Storage modifiers only relates to the declaration
+	mods = storage_modifiers(ctx);
+
+	// Function attributes also only relates to the declaration
+	// and must not be present in the function/return type.
+	mods |= ctx->ctype.modifiers & MOD_FUN_ATTR;
+	ctx->ctype.modifiers &=~ MOD_FUN_ATTR;
+
+	return mods;
+}
+
 struct token *external_declaration(struct token *token, struct symbol_list **list,
 		validate_decl_t validate_decl)
 {
@@ -2920,7 +2935,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctx);
-	mod = storage_modifiers(&ctx);
+	mod = declaration_modifiers(&ctx);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
