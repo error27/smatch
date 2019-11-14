@@ -202,6 +202,7 @@ extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
 extern int fpic;
 extern int fpie;
+extern int fshort_wchar;
 extern int funsigned_char;
 
 extern int arch_m64;

@@ -313,6 +313,7 @@ unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
+int fshort_wchar = 0;
 int funsigned_char = -1;
 
 int preprocess_only;
@@ -995,6 +996,7 @@ static struct flag fflags[] = {
 	{ "pie",		&fpie,	handle_switch_setval, 1 },
 	{ "PIE",		&fpie,	handle_switch_setval, 2 },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
+	{ "short-wchar",	&fshort_wchar },
 	{ "unsigned-char",	&funsigned_char, NULL, },
 	{ },
 };

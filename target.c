@@ -106,6 +106,8 @@ void init_target(void)
 	default:
 		break;
 	}
+	if (fshort_wchar)
+		wchar_ctype = &ushort_ctype;
 
 	switch (arch_mach) {
 	case MACH_MIPS64:
