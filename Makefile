@@ -323,7 +323,7 @@ $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
 all: $(PROGRAMS) smatch
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
-ldlibs  += $($(@)-ldlibs)  $(LDLIBS)
+ldlibs  += $($(@)-ldlibs)  $(LDLIBS) -lm
 $(PROGRAMS): % : %.o $(LIBS)
 	@echo "  LD      $@"
 	$(Q)$(LD) $(ldflags) $^ $(ldlibs) -o $@
