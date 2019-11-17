@@ -21,7 +21,6 @@ static void foo(void)
 
 /*
  * check-name: function-attribute-pointer
- * check-known-to-fail
  *
  * check-error-start
 function-attribute-pointer.c:14:20: warning: incorrect type in argument 1 (different modifiers)

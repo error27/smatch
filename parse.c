@@ -82,6 +82,7 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 
 static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
+	attribute_function,
 	attribute_ext_visible,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
@@ -375,6 +376,10 @@ static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
 
+static struct symbol_op attr_fun_op = {
+	.attribute = attribute_function,
+};
+
 static struct symbol_op ext_visible_op = {
 	.attribute = attribute_ext_visible,
 };
@@ -566,13 +571,13 @@ static struct init_keyword {
 	{ "__designated_init__",	NS_KEYWORD,	.op = &designated_init_op },
 	{ "transparent_union",	NS_KEYWORD,	.op = &transparent_union_op },
 	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
-	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
-	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_mod_op },
-	{ "pure",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
-	{"__pure__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
-	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
-	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
-	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_mod_op },
+	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_fun_op },
+	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_fun_op },
+	{ "pure",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
+	{"__pure__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
+	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
+	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
+	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"externally_visible",	NS_KEYWORD,	.op = &ext_visible_op },
 	{"__externally_visible__",	NS_KEYWORD,	.op = &ext_visible_op },
 
@@ -1114,6 +1119,15 @@ static void apply_qualifier(struct position *pos, struct ctype *ctx, unsigned lo
 static struct token *attribute_modifier(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	apply_qualifier(&token->pos, &ctx->ctype, attr->ctype.modifiers);
+	return token;
+}
+
+static struct token *attribute_function(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	unsigned long mod = attr->ctype.modifiers;
+	if (ctx->f_modifiers & mod)
+		warning(token->pos, "duplicate %s", modifier_string(mod));
+	ctx->f_modifiers |= mod;
 	return token;
 }
 
@@ -1862,6 +1876,7 @@ static struct token *direct_declarator(struct token *token, struct decl_state *c
 		enum kind kind = which_func(token, p, ctx->prefer_abstract);
 		struct symbol *fn;
 		fn = alloc_indirect_symbol(token->pos, ctype, SYM_FN);
+		ctype->modifiers |= ctx->f_modifiers;
 		token = token->next;
 		if (kind == K_R)
 			token = identifier_list(token, fn);
@@ -2900,21 +2915,6 @@ static struct token *toplevel_asm_declaration(struct token *token, struct symbol
 	return token;
 }
 
-static unsigned long declaration_modifiers(struct decl_state *ctx)
-{
-	unsigned long mods;
-
-	// Storage modifiers only relates to the declaration
-	mods = storage_modifiers(ctx);
-
-	// Function attributes also only relates to the declaration
-	// and must not be present in the function/return type.
-	mods |= ctx->ctype.modifiers & MOD_FUN_ATTR;
-	ctx->ctype.modifiers &=~ MOD_FUN_ATTR;
-
-	return mods;
-}
-
 struct token *external_declaration(struct token *token, struct symbol_list **list,
 		validate_decl_t validate_decl)
 {
@@ -2935,7 +2935,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctx);
-	mod = declaration_modifiers(&ctx);
+	mod = storage_modifiers(&ctx);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
@@ -2988,6 +2988,9 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 				show_ident(decl->ident));
 			base_type->ctype.base_type = &int_ctype;
 		}
+		/* apply attributes placed after the declarator */
+		decl->ctype.modifiers |= ctx.f_modifiers;
+
 		/* K&R argument declaration? */
 		if (lookup_type(token))
 			return parse_k_r_arguments(token, decl, list);

@@ -6,5 +6,4 @@ _Static_assert([void (__noreturn *)(void)] == [typeof(&fun)], "");
 
 /*
  * check-name: function-attribute-inner
- * check-known-to-fail
  */
