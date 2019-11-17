@@ -1,17 +1,20 @@
 #define __pure __attribute__((pure))
 
-struct s {
-	int x;
-};
 
-static __pure struct s *grab(struct s *ptr)
+static __pure int funi(int val)
+{
+	return val;
+}
+
+static __pure int *funp(int *ptr)
 {
 	return ptr;
 }
 
-static void foo(struct s *ptr)
+static void foo(int val, int *ptr)
 {
-	struct s *ptr = grab(ptr);
+	int  nbr = funi(val);
+	int *res = funp(ptr);
 }
 
 /*
