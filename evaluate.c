@@ -658,7 +658,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 
 static void examine_fn_arguments(struct symbol *fn);
 
-#define MOD_IGN (MOD_QUALIFIER | MOD_PURE)
+#define MOD_IGN (MOD_QUALIFIER | MOD_FUN_ATTR)
 
 const char *type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2)
@@ -1429,6 +1429,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 
 	if (tclass == TYPE_PTR) {
 		unsigned long mod1, mod2;
+		unsigned long modl, modr;
 		struct symbol *b1, *b2;
 		// NULL pointer is always OK
 		int is_null = is_null_pointer_constant(*rp);
@@ -1471,7 +1472,10 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 			goto Cast;
 		}
 		/* It's OK if the target is more volatile or const than the source */
-		*typediff = type_difference(&t->ctype, &s->ctype, 0, mod1);
+		/* It's OK if the source is more pure/noreturn than the target */
+		modr = mod1 & ~MOD_REV_QUAL;
+		modl = mod2 &  MOD_REV_QUAL;
+		*typediff = type_difference(&t->ctype, &s->ctype, modl, modr);
 		if (*typediff)
 			return 0;
 		return 1;

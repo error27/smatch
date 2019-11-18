@@ -253,6 +253,8 @@ struct symbol {
 #define MOD_TYPEOF	(MOD_QUALIFIER | MOD_NOCAST | MOD_SPECIFIER)
 /* modifiers for funtion attributes */
 #define MOD_FUN_ATTR	(MOD_PURE|MOD_NORETURN)
+/* like cvr-qualifiers but 'reversed' (OK: source <= target) */
+#define MOD_REV_QUAL	(MOD_PURE|MOD_NORETURN)
 
 
 /* Current parsing/evaluation function */
