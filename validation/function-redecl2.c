@@ -25,7 +25,4 @@ void func2(int a)
 
 /*
  * check-name: function-redecl2
- *
- * check-known-to-fail
- *
  */

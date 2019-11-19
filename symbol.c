@@ -588,6 +588,14 @@ struct symbol *befoul(struct symbol *type)
 	return NULL;
 }
 
+static void inherit_declaration(struct symbol *sym, struct symbol *prev)
+{
+	unsigned long mods = prev->ctype.modifiers;
+
+	// inherit function attributes
+	sym->ctype.modifiers |= mods & MOD_FUN_ATTR;
+}
+
 void check_declaration(struct symbol *sym)
 {
 	int warned = 0;
@@ -598,6 +606,7 @@ void check_declaration(struct symbol *sym)
 			continue;
 		if (sym->scope == next->scope) {
 			sym->same_symbol = next;
+			inherit_declaration(sym, next);
 			return;
 		}
 		/* Extern in block level matches a TOPLEVEL non-static symbol */

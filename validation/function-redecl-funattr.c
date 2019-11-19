@@ -9,6 +9,5 @@ void __noreturn	n(void);
 void		n(void) { while (1) ; }
 
 /*
- * check-name: function-attribute-omitted
- * check-known-to-fail
+ * check-name: function-redecl-funattr
  */
