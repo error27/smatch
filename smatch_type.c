@@ -143,9 +143,29 @@ static struct symbol *get_symbol_from_deref(struct expression *expr)
 	return get_real_base_type(sym);
 }
 
+static struct symbol *handle__builtin_choose_expr(struct expression *expr)
+{
+	struct expression *const_expr, *expr1, *expr2;
+	sval_t sval;
+
+	const_expr = get_argument_from_call_expr(expr->args, 0);
+	expr1 = get_argument_from_call_expr(expr->args, 1);
+	expr2 = get_argument_from_call_expr(expr->args, 2);
+
+	if (!get_value(const_expr, &sval) || !expr1 || !expr2)
+		return NULL;
+	if (sval.value)
+		return get_type(expr1);
+	else
+		return get_type(expr2);
+}
+
 static struct symbol *get_return_type(struct expression *expr)
 {
 	struct symbol *tmp;
+
+	if (sym_name_is("__builtin_choose_expr", expr->fn))
+		return handle__builtin_choose_expr(expr);
 
 	tmp = get_type(expr->fn);
 	if (!tmp)
