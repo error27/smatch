@@ -1908,19 +1908,12 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 	const char *return_ranges;
 	struct sm_state *tmp;
 	int ret = 0;
-	int nr_possible, nr_states;
 	struct state_list *already_handled = NULL;
 
 	if (!sm || !sm->merged)
 		return 0;
 
 	if (too_many_possible(sm))
-		return 0;
-
-	/* bail if it gets too complicated */
-	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
-	nr_states = get_db_state_count();
-	if (nr_states * nr_possible >= 2000)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
@@ -1961,6 +1954,10 @@ static int split_by_bool_param(struct expression *expr)
 	sm = get_sm_state(SMATCH_EXTRA, start_sm->name, start_sm->sym);
 	if (!sm || estate_get_single_value(sm->state, &sval))
 		return 0;
+
+	if (get_db_state_count() * 2 >= 2000)
+		return 0;
+
 	return split_on_bool_sm(sm, expr);
 }
 
@@ -1971,6 +1968,7 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	sval_t zero = {
 		.type = &ulong_ctype,
 	};
+	int nr_possible;
 
 	/* function must only take one pointer */
 	if (ptr_list_size((struct ptr_list *)cur_func_sym->ctype.base_type->arguments) != 1)
@@ -1988,6 +1986,9 @@ static int split_by_null_nonnull_param(struct expression *expr)
 		return 0;
 
 	if (!rl_has_sval(estate_rl(sm->state), zero))
+
+	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
+	if (get_db_state_count() * nr_possible >= 2000)
 		return 0;
 
 	return split_on_bool_sm(sm, expr);
