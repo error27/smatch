@@ -1086,7 +1086,9 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto free;
 	}
 
-	if (is_pointer(right) && get_address_rl(right, &rl)) {
+	if (is_pointer(right) &&
+	    right->type == EXPR_PREOP && right->op == '&' &&
+	    get_address_rl(right, &rl)) {
 		state = alloc_estate_rl(rl);
 		goto done;
 	}
