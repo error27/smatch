@@ -162,6 +162,17 @@ struct expression *string_expression(char *str)
 	return ret;
 }
 
+struct expression *call_expression(struct expression *fn, struct expression_list *args)
+{
+	struct expression *expr;
+
+	expr = alloc_tmp_expression(fn->pos, EXPR_CALL);
+	expr->fn = fn;
+	expr->args = args;
+
+	return expr;
+}
+
 static struct expression *get_expression_from_base_and_str(struct expression *base, const char *addition)
 {
 	struct expression *ret = NULL;
