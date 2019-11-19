@@ -1464,7 +1464,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 			 */
 			if (b1->type == SYM_FN)
 				mod1 |= MOD_CONST;
-			if (mod2 & ~mod1) {
+			if (mod2 & ~mod1 & ~MOD_FUN_ATTR) {
 				*typediff = "different modifiers";
 				return 0;
 			}
