@@ -1965,9 +1965,6 @@ static int split_by_null_nonnull_param(struct expression *expr)
 {
 	struct symbol *arg;
 	struct sm_state *sm;
-	sval_t zero = {
-		.type = &ulong_ctype,
-	};
 	int nr_possible;
 
 	/* function must only take one pointer */
@@ -1985,7 +1982,8 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	if (!sm)
 		return 0;
 
-	if (!rl_has_sval(estate_rl(sm->state), zero))
+	if (!has_possible_zero_null(sm))
+		return 0;
 
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
 	if (get_db_state_count() * nr_possible >= 2000)
