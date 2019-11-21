@@ -618,6 +618,27 @@ void check_declaration(struct symbol *sym)
 	}
 }
 
+static void inherit_static(struct symbol *sym)
+{
+	struct symbol *prev;
+
+	// only 'plain' symbols are concerned
+	if (sym->ctype.modifiers & (MOD_STATIC|MOD_EXTERN))
+		return;
+
+	for (prev = sym->next_id; prev; prev = prev->next_id) {
+		if (prev->namespace != NS_SYMBOL)
+			continue;
+		if (prev->scope != file_scope)
+			continue;
+
+		sym->ctype.modifiers |= prev->ctype.modifiers & MOD_STATIC;
+
+		// previous declarations are already converted
+		return;
+	}
+}
+
 void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 {
 	struct scope *scope;
@@ -640,6 +661,8 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
 		unsigned mod = MOD_ADDRESSABLE | MOD_TOPLEVEL;
+
+		inherit_static(sym);
 
 		scope = global_scope;
 		if (sym->ctype.modifiers & MOD_STATIC ||
