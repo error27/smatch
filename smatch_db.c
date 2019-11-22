@@ -29,6 +29,8 @@ struct sqlite3 *cache_db;
 
 static int return_id;
 
+static void call_return_state_hooks(struct expression *expr);
+
 #define SQLITE_CACHE_PAGES 1000
 
 struct def_callback {
@@ -1417,12 +1419,18 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", function_signature());
 }
 
-static void call_return_state_hooks_conditional(struct expression *expr)
+static bool call_return_state_hooks_conditional(struct expression *expr)
 {
-	struct returned_state_callback *cb;
-	struct range_list *rl;
-	const char *return_ranges;
 	int final_pass_orig = final_pass;
+	static int recurse;
+
+	if (recurse >= 2)
+		return false;
+	if (!expr ||
+	    (expr->type != EXPR_CONDITIONAL && expr->type != EXPR_SELECT))
+		return false;
+
+	recurse++;
 
 	__push_fake_cur_stree();
 
@@ -1430,28 +1438,18 @@ static void call_return_state_hooks_conditional(struct expression *expr)
 	__split_whole_condition(expr->conditional);
 	final_pass = final_pass_orig;
 
-	return_ranges = get_return_ranges_str(expr->cond_true ?: expr->conditional, &rl);
-
-	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(rl));
-
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, (char *)return_ranges, expr->cond_true);
-	} END_FOR_EACH_PTR(cb);
+	call_return_state_hooks(expr->cond_true ?: expr->conditional);
 
 	__push_true_states();
 	__use_false_states();
 
-	return_ranges = get_return_ranges_str(expr->cond_false, &rl);
-	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(rl));
-
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, (char *)return_ranges, expr->cond_false);
-	} END_FOR_EACH_PTR(cb);
+	call_return_state_hooks(expr->cond_false);
 
 	__merge_true_states();
 	__free_fake_cur_stree();
+
+	recurse--;
+	return true;
 }
 
 static void call_return_state_hooks_compare(struct expression *expr)
@@ -1842,15 +1840,6 @@ static int is_boolean(struct expression *expr)
 	return 0;
 }
 
-static int is_conditional(struct expression *expr)
-{
-	if (!expr)
-		return 0;
-	if (expr->type == EXPR_CONDITIONAL || expr->type == EXPR_SELECT)
-		return 1;
-	return 0;
-}
-
 static int splitable_function_call(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -2037,8 +2026,7 @@ static void call_return_state_hooks(struct expression *expr)
 	    (is_condition(expr) || is_boolean(expr))) {
 		call_return_state_hooks_compare(expr);
 		return;
-	} else if (is_conditional(expr)) {
-		call_return_state_hooks_conditional(expr);
+	} else if (call_return_state_hooks_conditional(expr)) {
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
