@@ -2639,9 +2639,60 @@ void register_comparison_inc_dec_links(int id)
 	set_up_link_functions(inc_dec_id, inc_dec_link_id);
 }
 
+static struct sm_state *clone_partial_sm(struct sm_state *sm, int comparison)
+{
+	struct compare_data *data;
+	struct sm_state *clone;
+	struct stree *stree;
+
+	data = sm->state->data;
+
+	clone = clone_sm(sm);
+	clone->state = alloc_compare_state(data->left, data->left_var, data->left_vsl,
+					   comparison,
+					   data->right, data->right_var, data->right_vsl);
+	free_slist(&clone->possible);
+	add_possible_sm(clone, clone);
+
+	stree = clone_stree(sm->pool);
+	overwrite_sm_state_stree(&stree, clone);
+	clone->pool = stree;
+
+	return clone;
+}
+
+static void create_fake_history(struct sm_state *sm, int op,
+			       struct state_list **true_stack,
+			       struct state_list **false_stack)
+{
+	struct sm_state *true_sm, *false_sm;
+	struct compare_data *data;
+	int true_comparison;
+	int false_comparison;
+
+	data = sm->state->data;
+
+	if (is_merged(sm) || sm->left || sm->right)
+		return;
+
+	true_comparison = comparison_intersection(data->comparison, op);
+	false_comparison = comparison_intersection(data->comparison, negate_comparison(op));
+
+	true_sm = clone_partial_sm(sm, true_comparison);
+	false_sm = clone_partial_sm(sm, false_comparison);
+
+	sm->merged = 1;
+	sm->left = true_sm;
+	sm->right = false_sm;
+
+	add_ptr_list(true_stack, true_sm);
+	add_ptr_list(false_stack, false_sm);
+}
+
 static void filter_by_sm(struct sm_state *sm, int op,
 		       struct state_list **true_stack,
-		       struct state_list **false_stack)
+		       struct state_list **false_stack,
+		       bool *useful)
 {
 	struct compare_data *data;
 	int is_true = 0;
@@ -2667,6 +2718,11 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (data->comparison == comparison_intersection(data->comparison, negate_comparison(op)))
 		is_false = 1;
 
+	if (!is_true && !is_false && !is_merged(sm)) {
+		create_fake_history(sm, op, true_stack, false_stack);
+		return;
+	}
+
 	if (debug_implied()) {
 		sm_msg("%s: %s: op = '%s' negated '%s'. true_intersect = '%s' false_insersect = '%s' sm = '%s'",
 		       __func__,
@@ -2678,13 +2734,14 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		       show_sm(sm));
 	}
 
+	*useful = true;
 	if (is_true)
 		add_ptr_list(true_stack, sm);
 	if (is_false)
 		add_ptr_list(false_stack, sm);
 split:
-	filter_by_sm(sm->left, op, true_stack, false_stack);
-	filter_by_sm(sm->right, op, true_stack, false_stack);
+	filter_by_sm(sm->left, op, true_stack, false_stack, useful);
+	filter_by_sm(sm->right, op, true_stack, false_stack, useful);
 }
 
 struct sm_state *comparison_implication_hook(struct expression *expr,
@@ -2695,6 +2752,7 @@ struct sm_state *comparison_implication_hook(struct expression *expr,
 	char *left, *right;
 	int op;
 	static char buf[256];
+	bool useful = false;
 
 	if (expr->type != EXPR_COMPARE)
 		return NULL;
@@ -2724,8 +2782,8 @@ struct sm_state *comparison_implication_hook(struct expression *expr,
 	if (!sm->merged)
 		return NULL;
 
-	filter_by_sm(sm, op, true_stack, false_stack);
-	if (!*true_stack && !*false_stack)
+	filter_by_sm(sm, op, true_stack, false_stack, &useful);
+	if (!useful)
 		return NULL;
 
 	if (debug_implied())

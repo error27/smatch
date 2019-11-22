@@ -833,14 +833,15 @@ static struct stree *saved_implied_false;
 static struct stree *extra_saved_implied_true;
 static struct stree *extra_saved_implied_false;
 
-static void separate_extra_states(struct stree **implied_true,
-				  struct stree **implied_false)
+static void separate_implication_states(struct stree **implied_true,
+					 struct stree **implied_false,
+					 int owner)
 {
 	struct sm_state *sm;
 
-	/* We process extra states later to preserve the implications. */
+	/* We process these states later to preserve the implications. */
 	FOR_EACH_SM(*implied_true, sm) {
-		if (sm->owner == SMATCH_EXTRA)
+		if (sm->owner == owner)
 			overwrite_sm_state_stree(&extra_saved_implied_true, sm);
 	} END_FOR_EACH_SM(sm);
 	FOR_EACH_SM(extra_saved_implied_true, sm) {
@@ -848,7 +849,7 @@ static void separate_extra_states(struct stree **implied_true,
 	} END_FOR_EACH_SM(sm);
 
 	FOR_EACH_SM(*implied_false, sm) {
-		if (sm->owner == SMATCH_EXTRA)
+		if (sm->owner == owner)
 			overwrite_sm_state_stree(&extra_saved_implied_false, sm);
 	} END_FOR_EACH_SM(sm);
 	FOR_EACH_SM(extra_saved_implied_false, sm) {
@@ -860,11 +861,13 @@ static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
-	if (handled_by_comparison_hook(expr, implied_true, implied_false))
+	if (handled_by_comparison_hook(expr, implied_true, implied_false)) {
+		separate_implication_states(implied_true, implied_false, comparison_id);
 		return;
+	}
 
 	if (handled_by_extra_states(expr, implied_true, implied_false)) {
-		separate_extra_states(implied_true, implied_false);
+		separate_implication_states(implied_true, implied_false, SMATCH_EXTRA);
 		return;
 	}
 
