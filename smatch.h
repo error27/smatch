@@ -1058,6 +1058,7 @@ void __add_return_to_param_mapping(struct expression *assign, const char *return
 char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym);
 
 /* smatch_comparison.c */
+extern int comparison_id;
 #define UNKNOWN_COMPARISON 0
 #define IMPOSSIBLE_COMPARISON -1
 struct compare_data {
