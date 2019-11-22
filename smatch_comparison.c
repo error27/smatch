@@ -542,6 +542,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	int extra, new;
 	static bool in_recurse;
 
+	// FIXME.  No data is useless
 	if (!data)
 		return;
 
@@ -556,6 +557,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	if (new == data->comparison)
 		return;
 
+	// FIXME: we should always preserve implications
 	set_state(comparison_id, cur->name, NULL,
 		  alloc_compare_state(data->left, data->left_var, data->left_vsl,
 				      new,
@@ -1199,6 +1201,7 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 			SPECIAL_EQUAL,
 			data->right, data->right_var, data->right_vsl);
 
+	// FIXME: This doesn't handle links correct so it doesn't set "param orig"
 	set_true_false_states(comparison_id, state_name, NULL, NULL, false_state);
 }
 
