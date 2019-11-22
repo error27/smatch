@@ -1168,6 +1168,10 @@ struct expression_list *get_conditions(struct expression *expr);
 struct sm_state *stored_condition_implication_hook(struct expression *expr,
 			struct state_list **true_stack,
 			struct state_list **false_stack);
+/* smatch_parsed_conditions.c */
+struct sm_state *parsed_condition_implication_hook(struct expression *expr,
+			struct state_list **true_stack,
+			struct state_list **false_stack);
 
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);

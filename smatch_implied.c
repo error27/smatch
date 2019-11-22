@@ -803,6 +803,31 @@ static int handled_by_extra_states(struct expression *expr,
 		return handle_zero_comparison(expr, implied_true, implied_false);
 }
 
+static int handled_by_parsed_conditions(struct expression *expr,
+					struct stree **implied_true,
+					struct stree **implied_false)
+{
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
+	struct stree *pre_stree;
+	struct sm_state *sm;
+
+	sm = parsed_condition_implication_hook(expr, &true_stack, &false_stack);
+	if (!sm)
+		return 0;
+
+	pre_stree = clone_stree(__get_cur_stree());
+
+	*implied_true = filter_stack(sm, pre_stree, false_stack, true_stack);
+	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
+
+	free_stree(&pre_stree);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
+
+	return 1;
+}
+
 static int handled_by_stored_conditions(struct expression *expr,
 					struct stree **implied_true,
 					struct stree **implied_false)
@@ -861,6 +886,9 @@ static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
+	if (handled_by_parsed_conditions(expr, implied_true, implied_false))
+		return;
+
 	if (handled_by_comparison_hook(expr, implied_true, implied_false)) {
 		separate_implication_states(implied_true, implied_false, comparison_id);
 		return;
