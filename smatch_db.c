@@ -2479,7 +2479,7 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 {
 	char buf[256];
 	char *tmp;
-	bool add_star = false;
+	int star_cnt = 0;
 
 	if (!arg)
 		return NULL;
@@ -2503,9 +2503,14 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		}
 	}
 
-	if (key[0] == '*') {
-		add_star = true;
+	while (key[0] == '*') {
+		star_cnt++;
 		key++;
+	}
+
+	if (arg->type == EXPR_PREOP && arg->op == '&' && star_cnt) {
+		arg = strip_expr(arg->unop);
+		star_cnt--;
 	}
 
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
@@ -2513,15 +2518,15 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
-		snprintf(buf, sizeof(buf), "%s%s.%s",
-			 add_star ? "*" : "", tmp, key + 3);
+		snprintf(buf, sizeof(buf), "%.*s%s.%s",
+			 star_cnt, "**********", tmp, key + 3);
 		return alloc_string(buf);
 	}
 
 	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
-	snprintf(buf, sizeof(buf), "%s%s%s", add_star ? "*" : "", tmp, key + 1);
+	snprintf(buf, sizeof(buf), "%.*s%s%s", star_cnt, "**********", tmp, key + 1);
 	free_string(tmp);
 	return alloc_string(buf);
 }
@@ -2537,26 +2542,29 @@ char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym,
 
 const char *state_name_to_param_name(const char *state_name, const char *param_name)
 {
+	int star_cnt = 0;
 	int name_len;
-	static char buf[256];
-	bool add_star = false;
+	char buf[256];
 
 	name_len = strlen(param_name);
 
-	if (state_name[0] == '*') {
-		add_star = true;
+	while (state_name[0] == '*') {
+		star_cnt++;
 		state_name++;
 	}
 
+	/* ten out of ten stars! */
+	if (star_cnt > 10)
+		return NULL;
+
 	if (strcmp(state_name, param_name) == 0) {
-		snprintf(buf, sizeof(buf), "%s$", add_star ? "*" : "");
+		snprintf(buf, sizeof(buf), "%.*s$", star_cnt, "**********");
 		return alloc_sname(buf);
 	}
 
 	if (state_name[name_len] == '-' && /* check for '-' from "->" */
 	    strncmp(state_name, param_name, name_len) == 0) {
-		snprintf(buf, sizeof(buf), "%s$%s",
-			 add_star ? "*" : "", state_name + name_len);
+		snprintf(buf, sizeof(buf), "%.*s$%s", star_cnt, "**********", state_name + name_len);
 		return alloc_sname(buf);
 	}
 	return NULL;
