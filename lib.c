@@ -1433,8 +1433,6 @@ static void predefined_macros(void)
 	predefined_ctype("INT64",      int64_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("UINT64",    uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 
-	predefined_sizeof("INT128", "", 128);
-
 	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
@@ -1446,6 +1444,17 @@ static void predefined_macros(void)
 	predefined_sizeof("FLOAT", "", bits_in_float);
 	predefined_sizeof("DOUBLE", "", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
+
+	switch (arch_mach) {
+	case MACH_ARM64:
+	case MACH_MIPS64:
+	case MACH_PPC64:
+	case MACH_RISCV64:
+	case MACH_S390X:
+	case MACH_SPARC64:
+	case MACH_X86_64:
+		predefined_sizeof("INT128", "", 128);
+	}
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
