@@ -121,6 +121,8 @@ void init_target(void)
 			break;
 		/* fall through */
 	case MACH_ARM:
+	case MACH_MIPS64:
+		// FIXME: ABI n32 & (n)64 have 128-bit ldouble
 	case MACH_MIPS32:
 	case MACH_S390:
 	case MACH_S390X:
