@@ -329,6 +329,7 @@ static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_mach = MACH_NATIVE;
+int arch_os = OS_NATIVE;
 int arch_cmodel = CMODEL_UNKNOWN;
 
 

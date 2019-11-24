@@ -70,4 +70,30 @@ enum machine {
 #define MACH_NATIVE	MACH_UNKNOWN
 #endif
 
+
+enum {
+	OS_CYGWIN,
+	OS_DARWIN,
+	OS_FREEBSD,
+	OS_LINUX,
+	OS_NETBSD,
+	OS_OPENBSD,
+	OS_SUNOS,
+	OS_UNKNOWN,
+};
+
+#if defined(__linux__) || defined(__linux)
+#define OS_NATIVE	OS_LINUX
+#elif defined(__FreeBSD__)
+#define OS_NATIVE	OS_FREEBSD
+#elif defined(__APPLE__)
+#define OS_NATIVE	OS_DARWIN
+#elif defined(__CYGWIN__)
+#define OS_NATIVE	OS_CYGWIN
+#elif defined(__sun__) && defined(__sun)
+#define OS_NATIVE	OS_SUNOS
+#else
+#define OS_NATIVE	OS_UNKNOWN
+#endif
+
 #endif
