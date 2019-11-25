@@ -493,8 +493,8 @@ static struct init_keyword {
 	/* Predeclared types */
 	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
 	{ "__builtin_ms_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
-	{ "__int128_t",	NS_TYPEDEF, .type = &lllong_ctype, .op = &spec_op },
-	{ "__uint128_t",NS_TYPEDEF, .type = &ulllong_ctype, .op = &spec_op },
+	{ "__int128_t",	NS_TYPEDEF, .type = &sint128_ctype, .op = &spec_op },
+	{ "__uint128_t",NS_TYPEDEF, .type = &uint128_ctype, .op = &spec_op },
 	{ "_Float32",	NS_TYPEDEF, .type = &float32_ctype, .op = &spec_op },
 	{ "_Float32x",	NS_TYPEDEF, .type = &float32x_ctype, .op = &spec_op },
 	{ "_Float64",	NS_TYPEDEF, .type = &float64_ctype, .op = &spec_op },
@@ -1229,8 +1229,8 @@ static struct symbol *to_TI_mode(struct symbol *ctype)
 {
 	if (ctype->ctype.base_type != &int_type)
 		return NULL;
-	return ctype->ctype.modifiers & MOD_UNSIGNED ? &ulllong_ctype
-						     : &slllong_ctype;
+	return ctype->ctype.modifiers & MOD_UNSIGNED ? &uint128_ctype
+						     : &sint128_ctype;
 }
 
 static struct symbol *to_pointer_mode(struct symbol *ctype)
@@ -1569,13 +1569,13 @@ Catch_all:
 }
 
 static struct symbol * const int_types[] =
-	{&char_ctype, &short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
+	{&char_ctype, &short_ctype, &int_ctype, &long_ctype, &llong_ctype, &int128_ctype};
 static struct symbol * const signed_types[] =
 	{&schar_ctype, &sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
-	 &slllong_ctype};
+	 &sint128_ctype};
 static struct symbol * const unsigned_types[] =
 	{&uchar_ctype, &ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
-	 &ulllong_ctype};
+	 &uint128_ctype};
 static struct symbol * const real_types[] =
 	{&float_ctype, &double_ctype, &ldouble_ctype};
 static struct symbol * const * const types[] = {

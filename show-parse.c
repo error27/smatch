@@ -235,9 +235,9 @@ static struct ctype_name {
 	{ & llong_ctype, "long long", "LL" },
 	{ &sllong_ctype, "signed long long", "LL" },
 	{ &ullong_ctype, "unsigned long long", "ULL" },
-	{ & lllong_ctype, "long long long", "LLL" },
-	{ &slllong_ctype, "signed long long long", "LLL" },
-	{ &ulllong_ctype, "unsigned long long long", "ULLL" },
+	{ & int128_ctype, "__int128", "" },
+	{ &sint128_ctype, "signed __int128", "" },
+	{ &uint128_ctype, "unsigned __int128", "" },
 
 	{ &void_ctype,   "void", "" },
 	{ &bool_ctype,   "bool", "" },
