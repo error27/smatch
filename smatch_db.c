@@ -803,6 +803,61 @@ int is_recursive_member(const char *name)
 	}
 }
 
+char *sm_to_arg_name(struct expression *expr, struct sm_state *sm)
+{
+	struct symbol *sym;
+	const char *sm_name;
+	char *name;
+	bool is_address = false;
+	bool add_star = false;
+	char buf[256];
+	char *ret = NULL;
+	int len;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return NULL;
+
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		is_address = true;
+	}
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	if (sym != sm->sym)
+		goto free;
+
+	sm_name = sm->name;
+	add_star = false;
+	if (sm_name[0] == '*') {
+		add_star = true;
+		sm_name++;
+	}
+
+	len = strlen(name);
+	if (strncmp(name, sm_name, len) != 0)
+		goto free;
+	if (sm_name[len] == '\0') {
+		snprintf(buf, sizeof(buf), "%s%s$",
+			 add_star ? "*" : "", is_address ? "*" : "");
+	} else {
+		if (sm_name[len] != '.' && sm_name[len] != '-')
+			goto free;
+		if (sm_name[len] == '-')
+			len++;
+		// FIXME does is_address really imply that sm_name[len] == '-'
+		snprintf(buf, sizeof(buf), "%s$->%s", add_star ? "*" : "",
+			 sm_name + len);
+	}
+
+	ret = alloc_sname(buf);
+free:
+	free_string(name);
+	return ret;
+}
+
 static void print_struct_members(struct expression *call, struct expression *expr, int param, int offset, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
