@@ -330,6 +330,7 @@ static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_mach = MACH_NATIVE;
+int arch_fp_abi = FP_ABI_NATIVE;
 int arch_cmodel = CMODEL_UNKNOWN;
 
 
@@ -355,6 +356,216 @@ void add_pre_buffer(const char *fmt, ...)
 		pre_buffer_end->next = begin;
 	pre_buffer_end = end;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Helpers for option parsing
+
+struct val_map {
+	const char *name;
+	int val;
+};
+
+static int handle_subopt_val(const char *opt, const char *arg, const struct val_map *map, int *flag)
+{
+	const char *name;
+
+	if (*arg++ != '=')
+		die("missing argument for option '%s'", opt);
+	for (;(name = map->name); map++) {
+		if (strcmp(name, arg) == 0 || strcmp(name, "*") == 0) {
+			*flag = map->val;
+			return 1;
+		}
+		if (strcmp(name, "?") == 0)
+			die("invalid argument '%s' in option '%s'", arg, opt);
+	}
+	return 0;
+}
+
+
+struct mask_map {
+	const char *name;
+	unsigned long mask;
+};
+
+static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
+{
+	const char *name;
+
+	for (;(name = map->name); map++) {
+		if (!strncmp(name, str, len) && !name[len]) {
+			if (neg == 0)
+				*val |= map->mask;
+			else
+				*val &= ~map->mask;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
+{
+	if (*opt == '\0') {
+		apply_mask(flag, "", 0, map, 0);
+		return 1;
+	}
+	if (*opt++ != '=')
+		return 0;
+	while (1) {
+		unsigned int len = strcspn(opt, ",+");
+		int neg = 0;
+		if (len == 0)
+			goto end;
+		if (!strncmp(opt, "no-", 3)) {
+			opt += 3;
+			len -= 3;
+			neg = 1;
+		}
+		if (apply_mask(flag, opt, len, map, neg))
+			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
+
+end:
+		opt += len;
+		if (*opt++ == '\0')
+			break;
+	}
+	return 1;
+}
+
+
+static const char *match_option(const char *arg, const char *prefix)
+{
+	unsigned int n = strlen(prefix);
+	if (strncmp(arg, prefix, n) == 0)
+		return arg + n;
+	return NULL;
+}
+
+#define OPT_INVERSE	1
+#define OPT_VAL		2
+struct flag {
+	const char *name;
+	int *flag;
+	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
+	unsigned long mask;
+	int val;
+};
+
+static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
+{
+	const char *arg = opt;
+	int val = 1;
+
+	// Prefixe "no-" mean to turn flag off.
+	if (strncmp(arg, "no-", 3) == 0) {
+		arg += 3;
+		val = 0;
+	}
+
+	for (; flags->name; flags++) {
+		const char *opt = match_option(arg, flags->name);
+		int rc;
+
+		if (!opt)
+			continue;
+
+		if (flags->fun) {
+			int options = 0;
+			if (!val)
+				options |= OPT_INVERSE;
+			if ((rc = flags->fun(ori, opt, flags, options)))
+				return rc;
+		}
+
+		// boolean flag
+		if (opt[0] == '\0' && flags->flag) {
+			if (flags->mask & OPT_VAL)
+				val = flags->val;
+			if (flags->mask & OPT_INVERSE)
+				val = !val;
+			*flags->flag = val;
+			return 1;
+		}
+	}
+
+	// not handled
+	return 0;
+}
+
+static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	*(flag->flag) = flag->mask;
+	return 1;
+}
+
+
+#define	OPTNUM_ZERO_IS_INF		1
+#define	OPTNUM_UNLIMITED		2
+
+#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
+static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
+{									\
+	char *end;							\
+	TYPE val;							\
+									\
+	val = FUNCTION(opt, &end, 0);					\
+	if (*end != '\0' || end == opt) {				\
+		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
+			val = ~val;					\
+		else							\
+			die("error: wrong argument to \'%s\'", arg);	\
+	}								\
+	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
+		val = ~val;						\
+	*ptr = val;							\
+	return 1;							\
+}
+
+OPT_NUMERIC(ullong, unsigned long long, strtoull)
+OPT_NUMERIC(uint, unsigned int, strtoul)
+
+enum {
+	WARNING_OFF,
+	WARNING_ON,
+	WARNING_FORCE_OFF
+};
+
+static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
+{
+	int flag = WARNING_ON;
+	char *p = arg + 1;
+	unsigned i;
+
+	if (!strcmp(p, "sparse-all")) {
+		for (i = 0; i < n; i++) {
+			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
+				*warnings[i].flag = WARNING_ON;
+		}
+		return NULL;
+	}
+
+	// Prefixes "no" and "no-" mean to turn warning off.
+	if (p[0] == 'n' && p[1] == 'o') {
+		p += 2;
+		if (p[0] == '-')
+			p++;
+		flag = WARNING_FORCE_OFF;
+	}
+
+	for (i = 0; i < n; i++) {
+		if (!strcmp(p,warnings[i].name)) {
+			*warnings[i].flag = flag;
+			return next;
+		}
+	}
+
+	// Unknown.
+	return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Option parsing
 
 static char **handle_switch_D(char *arg, char **next)
 {
@@ -455,47 +666,56 @@ static char **handle_multiarch_dir(char *arg, char **next)
 	return next;
 }
 
+static int handle_cmodel(const char *opt, const char *arg, const struct flag *flag, int options)
+{
+	static const struct val_map cmodels[] = {
+		{ "kernel",	CMODEL_KERNEL },
+		{ "large",	CMODEL_LARGE },
+		{ "medany",	CMODEL_MEDANY },
+		{ "medium",	CMODEL_MEDIUM },
+		{ "medlow",	CMODEL_MEDLOW },
+		{ "small",	CMODEL_SMALL },
+		{ "tiny",	CMODEL_TINY },
+		{ },
+	};
+	return handle_subopt_val(opt, arg, cmodels, flag->flag);
+}
+
+static int handle_float_abi(const char *opt, const char *arg, const struct flag *flag, int options) {
+	static const struct val_map fp_abis[] = {
+		{ "hard",		FP_ABI_HARD },
+		{ "soft",		FP_ABI_SOFT },
+		{ "softfp",		FP_ABI_HYBRID },
+		{ "?" },
+	};
+	return handle_subopt_val(opt, arg, fp_abis, flag->flag);
+}
+
+static const struct flag mflags[] = {
+	{ "64", &arch_m64, NULL, OPT_VAL, ARCH_LP64 },
+	{ "32", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "31", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "16", &arch_m64, NULL, OPT_VAL, ARCH_LP32 },
+	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
+	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
+	{ "size-long", &arch_msize_long },
+	{ "big-endian", &arch_big_endian, NULL },
+	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
+	{ "cmodel", &arch_cmodel, handle_cmodel },
+	{ "float-abi", &arch_fp_abi, handle_float_abi },
+	{ "hard-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_HARD },
+	{ "soft-float", &arch_fp_abi, NULL, OPT_VAL, FP_ABI_SOFT },
+	{ }
+};
+
 static char **handle_switch_m(char *arg, char **next)
 {
-	if (!strcmp(arg, "m64")) {
-		arch_m64 = ARCH_LP64;
-	} else if (!strcmp(arg, "m32") || !strcmp(arg, "m16")) {
-		arch_m64 = ARCH_LP32;
-	} else if (!strcmp(arg, "m31")) {
-		arch_m64 = ARCH_LP32;
-	} else if (!strcmp(arg, "mx32")) {
-		arch_m64 = ARCH_X32;
-	} else if (!strcmp(arg, "msize-llp64")) {
-		arch_m64 = ARCH_LLP64;
-	} else if (!strcmp(arg, "msize-long")) {
-		arch_msize_long = 1;
-	} else if (!strcmp(arg, "multiarch-dir")) {
+	if (!strcmp(arg, "multiarch-dir")) {
 		return handle_multiarch_dir(arg, next);
-	} else if (!strcmp(arg, "mbig-endian")) {
-		arch_big_endian = 1;
-	} else if (!strcmp(arg, "mlittle-endian")) {
-		arch_big_endian = 0;
-	} else if (!strncmp(arg, "mcmodel", 7)) {
-		arg += 7;
-		if (*arg++ != '=')
-			die("missing argument for -mcmodel");
-		else if (!strcmp(arg, "kernel"))
-			arch_cmodel = CMODEL_KERNEL;
-		else if (!strcmp(arg, "large"))
-			arch_cmodel = CMODEL_LARGE;
-		else if (!strcmp(arg, "medany"))
-			arch_cmodel = CMODEL_MEDANY;
-		else if (!strcmp(arg, "medium"))
-			arch_cmodel = CMODEL_MEDIUM;
-		else if (!strcmp(arg, "medlow"))
-			arch_cmodel = CMODEL_MEDLOW;
-		else if (!strcmp(arg, "small"))
-			arch_cmodel = CMODEL_SMALL;
-		else if (!strcmp(arg, "tiny"))
-			arch_cmodel = CMODEL_TINY;
-		else
-			die("invalid argument for -mcmodel=%s", arg);
+	} else {
+		handle_switches(arg-1, arg+1, mflags);
 	}
+
 	return next;
 }
 
@@ -528,146 +748,6 @@ static void handle_arch_finalize(void)
 		break;
 	}
 }
-
-static const char *match_option(const char *arg, const char *prefix)
-{
-	unsigned int n = strlen(prefix);
-	if (strncmp(arg, prefix, n) == 0)
-		return arg + n;
-	return NULL;
-}
-
-
-struct mask_map {
-	const char *name;
-	unsigned long mask;
-};
-
-static int apply_mask(unsigned long *val, const char *str, unsigned len, const struct mask_map *map, int neg)
-{
-	const char *name;
-
-	for (;(name = map->name); map++) {
-		if (!strncmp(name, str, len) && !name[len]) {
-			if (neg == 0)
-				*val |= map->mask;
-			else
-				*val &= ~map->mask;
-			return 0;
-		}
-	}
-	return 1;
-}
-
-static int handle_suboption_mask(const char *arg, const char *opt, const struct mask_map *map, unsigned long *flag)
-{
-	if (*opt == '\0') {
-		apply_mask(flag, "", 0, map, 0);
-		return 1;
-	}
-	if (*opt++ != '=')
-		return 0;
-	while (1) {
-		unsigned int len = strcspn(opt, ",+");
-		int neg = 0;
-		if (len == 0)
-			goto end;
-		if (!strncmp(opt, "no-", 3)) {
-			opt += 3;
-			len -= 3;
-			neg = 1;
-		}
-		if (apply_mask(flag, opt, len, map, neg))
-			die("error: wrong option '%.*s' for \'%s\'", len, opt, arg);
-
-end:
-		opt += len;
-		if (*opt++ == '\0')
-			break;
-	}
-	return 1;
-}
-
-
-#define OPT_INVERSE	1
-struct flag {
-	const char *name;
-	int *flag;
-	int (*fun)(const char *arg, const char *opt, const struct flag *, int options);
-	unsigned long mask;
-};
-
-static int handle_switches(const char *ori, const char *opt, const struct flag *flags)
-{
-	const char *arg = opt;
-	int val = 1;
-
-	// Prefixe "no-" mean to turn flag off.
-	if (strncmp(arg, "no-", 3) == 0) {
-		arg += 3;
-		val = 0;
-	}
-
-	for (; flags->name; flags++) {
-		const char *opt = match_option(arg, flags->name);
-		int rc;
-
-		if (!opt)
-			continue;
-
-		if (flags->fun) {
-			int options = 0;
-			if (!val)
-				options |= OPT_INVERSE;
-			if ((rc = flags->fun(ori, opt, flags, options)))
-				return rc;
-		}
-
-		// boolean flag
-		if (opt[0] == '\0' && flags->flag) {
-			if (flags->mask & OPT_INVERSE)
-				val = !val;
-			*flags->flag = val;
-			return 1;
-		}
-	}
-
-	// not handled
-	return 0;
-}
-
-static int handle_switch_setval(const char *arg, const char *opt, const struct flag *flag, int options)
-{
-	*(flag->flag) = flag->mask;
-	return 1;
-}
-
-
-#define	OPTNUM_ZERO_IS_INF		1
-#define	OPTNUM_UNLIMITED		2
-
-#define OPT_NUMERIC(NAME, TYPE, FUNCTION)	\
-static int opt_##NAME(const char *arg, const char *opt, TYPE *ptr, int flag)	\
-{									\
-	char *end;							\
-	TYPE val;							\
-									\
-	val = FUNCTION(opt, &end, 0);					\
-	if (*end != '\0' || end == opt) {				\
-		if ((flag & OPTNUM_UNLIMITED) && !strcmp(opt, "unlimited"))	\
-			val = ~val;					\
-		else							\
-			die("error: wrong argument to \'%s\'", arg);	\
-	}								\
-	if ((flag & OPTNUM_ZERO_IS_INF) && val == 0)			\
-		val = ~val;						\
-	*ptr = val;							\
-	return 1;							\
-}
-
-OPT_NUMERIC(ullong, unsigned long long, strtoull)
-OPT_NUMERIC(uint, unsigned int, strtoul)
-
 
 static char **handle_switch_o(char *arg, char **next)
 {
@@ -728,46 +808,6 @@ static const struct flag warnings[] = {
 	{ "unknown-attribute", &Wunknown_attribute },
 	{ "vla", &Wvla },
 };
-
-enum {
-	WARNING_OFF,
-	WARNING_ON,
-	WARNING_FORCE_OFF
-};
-
-
-static char **handle_onoff_switch(char *arg, char **next, const struct flag warnings[], int n)
-{
-	int flag = WARNING_ON;
-	char *p = arg + 1;
-	unsigned i;
-
-	if (!strcmp(p, "sparse-all")) {
-		for (i = 0; i < n; i++) {
-			if (*warnings[i].flag != WARNING_FORCE_OFF && warnings[i].flag != &Wsparse_error)
-				*warnings[i].flag = WARNING_ON;
-		}
-		return NULL;
-	}
-
-	// Prefixes "no" and "no-" mean to turn warning off.
-	if (p[0] == 'n' && p[1] == 'o') {
-		p += 2;
-		if (p[0] == '-')
-			p++;
-		flag = WARNING_FORCE_OFF;
-	}
-
-	for (i = 0; i < n; i++) {
-		if (!strcmp(p,warnings[i].name)) {
-			*warnings[i].flag = flag;
-			return next;
-		}
-	}
-
-	// Unknown.
-	return NULL;
-}
 
 static char **handle_switch_W(char *arg, char **next)
 {
@@ -1247,6 +1287,9 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Predefines
+
 #define	PTYPE_SIZEOF	(1U << 0)
 #define	PTYPE_T		(1U << 1)
 #define	PTYPE_MAX	(1U << 2)
@@ -1491,6 +1534,18 @@ static void predefined_macros(void)
 		break;
 	case MACH_ARM:
 		predefine("__arm__", 1, "1");
+		switch (arch_fp_abi) {
+		case FP_ABI_HARD:
+			predefine("__ARM_PCS_VFP", 1, "1");
+			break;
+		case FP_ABI_SOFT:
+			predefine("__SOFTFP__", 1, "1");
+			/* fall-through */
+		case FP_ABI_HYBRID:
+			predefine("__ARM_PCS", 1, "1");
+			break;
+		}
+		predefine("__VFP_FP__", 1, "1");
 		break;
 	case MACH_M68K:
 		predefine("__m68k__", 1, "1");
@@ -1569,6 +1624,8 @@ static void predefined_macros(void)
 
 	predefined_cmodel();
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 static void create_builtin_stream(void)
 {
