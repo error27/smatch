@@ -113,7 +113,7 @@ enum {
 };
 
 enum {
-	CInt = 0, CSInt, CUInt, CReal, CChar, CSChar, CUChar,
+	CInt = 0, CSInt, CUInt, CReal,
 };
 
 enum {
@@ -249,7 +249,7 @@ static struct symbol_op char_op = {
 	.type = KW_SPECIFIER,
 	.test = Set_T|Set_Long|Set_Short,
 	.set = Set_T|Set_Char,
-	.class = CChar,
+	.class = CInt,
 };
 
 static struct symbol_op int_op = {
@@ -266,14 +266,14 @@ static struct symbol_op double_op = {
 };
 
 static struct symbol_op float_op = {
-	.type = KW_SPECIFIER | KW_SHORT,
+	.type = KW_SPECIFIER,
 	.test = Set_T|Set_Signed|Set_Unsigned|Set_Short|Set_Long,
 	.set = Set_T|Set_Float,
 	.class = CReal,
 };
 
 static struct symbol_op short_op = {
-	.type = KW_SPECIFIER | KW_SHORT,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_Char|Set_Float|Set_Double|Set_Long|Set_Short,
 	.set = Set_Short,
 };
@@ -293,15 +293,16 @@ static struct symbol_op unsigned_op = {
 };
 
 static struct symbol_op long_op = {
-	.type = KW_SPECIFIER | KW_LONG,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_Char|Set_Float|Set_Short|Set_Vlong,
 	.set = Set_Long,
 };
 
 static struct symbol_op int128_op = {
-	.type = KW_SPECIFIER | KW_LONG,
+	.type = KW_SPECIFIER,
 	.test = Set_S|Set_T|Set_Char|Set_Short|Set_Int|Set_Float|Set_Double|Set_Long|Set_Vlong|Set_Int128,
-	.set =  Set_T|Set_Int128,
+	.set =  Set_T|Set_Int128|Set_Vlong,
+	.class = CInt,
 };
 
 static struct symbol_op if_op = {
@@ -1568,20 +1569,20 @@ Catch_all:
 }
 
 static struct symbol * const int_types[] =
-	{&short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
+	{&char_ctype, &short_ctype, &int_ctype, &long_ctype, &llong_ctype, &lllong_ctype};
 static struct symbol * const signed_types[] =
-	{&sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
+	{&schar_ctype, &sshort_ctype, &sint_ctype, &slong_ctype, &sllong_ctype,
 	 &slllong_ctype};
 static struct symbol * const unsigned_types[] =
-	{&ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
+	{&uchar_ctype, &ushort_ctype, &uint_ctype, &ulong_ctype, &ullong_ctype,
 	 &ulllong_ctype};
 static struct symbol * const real_types[] =
 	{&float_ctype, &double_ctype, &ldouble_ctype};
-static struct symbol * const char_types[] =
-	{&char_ctype, &schar_ctype, &uchar_ctype};
 static struct symbol * const * const types[] = {
-	int_types + 1, signed_types + 1, unsigned_types + 1,
-	real_types + 1, char_types, char_types + 1, char_types + 2
+	[CInt]  = int_types + 2,
+	[CSInt] = signed_types + 2,
+	[CUInt] = unsigned_types + 2,
+	[CReal] = real_types + 1,
 };
 
 struct symbol *ctype_integer(int size, int want_unsigned)
@@ -1610,7 +1611,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 {
 	int seen = 0;
 	int class = CInt;
-	int size = 0;
+	int rank = 0;
 
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *s = lookup_symbol(token->ident,
@@ -1636,10 +1637,12 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			seen |= s->op->set;
 			class += s->op->class;
 			if (s->op->set & Set_Int128)
-				size = 2;
-			if (s->op->type & KW_SHORT) {
-				size = -1;
-			} else if (s->op->type & KW_LONG && size++) {
+				rank = 3;
+			else if (s->op->set & Set_Char)
+				rank = -2;
+			if (s->op->set & (Set_Short|Set_Float)) {
+				rank = -1;
+			} else if (s->op->set & Set_Long && rank++) {
 				if (class == CReal) {
 					specifier_conflict(token->pos,
 							   Set_Vlong,
@@ -1661,7 +1664,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 	if (!(seen & Set_S)) {	/* not set explicitly? */
 		struct symbol *base = &incomplete_ctype;
 		if (seen & Set_Any)
-			base = types[class][size];
+			base = types[class][rank];
 		ctx->ctype.base_type = base;
 	}
 
@@ -2833,7 +2836,7 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 static void promote_k_r_types(struct symbol *arg)
 {
 	struct symbol *base = arg->ctype.base_type;
-	if (base && base->ctype.base_type == &int_type && (base->ctype.modifiers & (MOD_CHAR | MOD_SHORT))) {
+	if (base && base->ctype.base_type == &int_type && base->rank < 0) {
 		arg->ctype.base_type = &int_ctype;
 	}
 }

@@ -161,9 +161,8 @@ Float:
 	else
 		expr->fvalue = old->fvalue;
 
-	if (!(newtype->ctype.modifiers & MOD_LONGLONG) && \
-	    !(newtype->ctype.modifiers & MOD_LONGLONGLONG)) {
-		if ((newtype->ctype.modifiers & MOD_LONG))
+	if (newtype->rank <= 0) {
+		if (newtype->rank == 0)
 			expr->fvalue = (double)expr->fvalue;
 		else
 			expr->fvalue = (float)expr->fvalue;
@@ -358,7 +357,7 @@ static int simplify_cmp_binop(struct expression *expr, struct symbol *ctype)
 static int simplify_float_binop(struct expression *expr)
 {
 	struct expression *left = expr->left, *right = expr->right;
-	unsigned long mod = expr->ctype->ctype.modifiers;
+	int rank = expr->ctype->rank;
 	long double l, r, res;
 
 	if (left->type != EXPR_FVALUE || right->type != EXPR_FVALUE)
@@ -367,7 +366,7 @@ static int simplify_float_binop(struct expression *expr)
 	l = left->fvalue;
 	r = right->fvalue;
 
-	if (mod & MOD_LONGLONG) {
+	if (rank > 0) {
 		switch (expr->op) {
 		case '+':	res = l + r; break;
 		case '-':	res = l - r; break;
@@ -376,7 +375,7 @@ static int simplify_float_binop(struct expression *expr)
 				res = l / r; break;
 		default: return 0;
 		}
-	} else if (mod & MOD_LONG) {
+	} else if (rank == 0) {
 		switch (expr->op) {
 		case '+':	res = (double) l + (double) r; break;
 		case '-':	res = (double) l - (double) r; break;

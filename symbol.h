@@ -81,8 +81,8 @@ enum keyword {
      // KW UNUSED	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
-	KW_SHORT	= 1 << 7,
-	KW_LONG		= 1 << 8,
+     // KW UNUSED	= 1 << 7,
+     // KW UNUSED	= 1 << 8,
 	KW_EXACT	= 1 << 9,
 };
 
@@ -178,6 +178,7 @@ struct symbol {
 					builtin:1,
 					torename:1,
 					transparent_union:1;
+			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
@@ -225,11 +226,11 @@ struct symbol {
 
      // MOD UNUSED		0x00010000
 #define MOD_USERTYPE		0x00020000
-#define MOD_CHAR		0x00040000
-#define MOD_SHORT		0x00080000
-#define MOD_LONG		0x00100000
-#define MOD_LONGLONG		0x00200000
-#define MOD_LONGLONGLONG	0x00400000
+     // MOD UNUSED		0x00040000
+     // MOD UNUSED		0x00080000
+     // MOD UNUSED		0x00100000
+     // MOD UNUSED		0x00200000
+     // MOD UNUSED		0x00400000
 
 #define MOD_SAFE		0x00800000	// non-null/non-trapping pointer
 #define MOD_PURE		0x01000000
@@ -243,10 +244,9 @@ struct symbol {
 #define MOD_ACCESS	(MOD_ASSIGNED | MOD_ADDRESSABLE)
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
 #define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
+#define MOD_ESIGNED	(MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
-#define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
-#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
-#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
+#define MOD_SPECIFIER	MOD_SIGNEDNESS
 #define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE)
 #define	MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT | MOD_ATOMIC)
 #define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
