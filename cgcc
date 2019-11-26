@@ -252,6 +252,7 @@ sub add_specs {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
 	return &add_specs ('unix') .
+	    ' -fshort-wchar' .
 	    ' -D__CYGWIN__=1 -D__CYGWIN32__=1' .
 	    " -D'_cdecl=__attribute__((__cdecl__))'" .
 	    " -D'__cdecl=__attribute__((__cdecl__))'" .

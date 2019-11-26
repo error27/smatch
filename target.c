@@ -79,11 +79,21 @@ void init_target(void)
 	}
 
 	switch (arch_mach) {
-	case MACH_X86_64:
-		if (arch_m64 == ARCH_LP64)
-			break;
-		/* fall through */
 	case MACH_I386:
+		wchar_ctype = &long_ctype;
+		/* fall through */
+	case MACH_X86_64:
+#if defined(__APPLE__)
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+#endif
+#if defined(__FreeBSD__) || defined(__APPLE__)
+		wint_ctype = &int_ctype;
+#endif
+#if defined(__CYGWIN__)
+		wchar_ctype = &ushort_ctype;
+#endif
+		break;
 	case MACH_M68K:
 	case MACH_SPARC32:
 	case MACH_PPC32:
@@ -96,6 +106,8 @@ void init_target(void)
 	default:
 		break;
 	}
+	if (fshort_wchar)
+		wchar_ctype = &ushort_ctype;
 
 	switch (arch_mach) {
 	case MACH_MIPS64:
@@ -137,6 +149,24 @@ void init_target(void)
 		break;
 	}
 
+	switch (arch_mach) {
+	case MACH_ARM:
+	case MACH_ARM64:
+	case MACH_PPC32:
+	case MACH_PPC64:
+	case MACH_RISCV32:
+	case MACH_RISCV64:
+	case MACH_S390:
+	case MACH_S390X:
+		if (funsigned_char == -1)
+			funsigned_char = 1;
+		break;
+	default:
+		if (funsigned_char == -1)
+			funsigned_char = 0;
+		break;
+	}
+
 	switch (arch_m64) {
 	case ARCH_X32:
 		max_int_alignment = 8;
@@ -171,15 +201,4 @@ void init_target(void)
 		pointer_alignment = 8;
 		break;
 	}
-
-#if defined(__CYGWIN__)
-	wchar_ctype = &ushort_ctype;
-#endif
-#if defined(__FreeBSD__) || defined(__APPLE__)
-	wint_ctype = &int_ctype;
-#endif
-#if defined(__APPLE__)
-	int64_ctype = &llong_ctype;
-	uint64_ctype = &ullong_ctype;
-#endif
 }

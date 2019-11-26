@@ -6,6 +6,6 @@ void foo(void)
 }
 
 /*
- * check-name: funsigned-char
- * check-command: sparse -funsigned-char -Wno-decl $file
+ * check-name: char-unsigned-native
+ * check-command: sparse --arch=arm -Wno-decl $file
  */
