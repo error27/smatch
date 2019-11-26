@@ -131,6 +131,7 @@ sub check_only_option {
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
     return 1 if $arg =~ /^-f(dump-ir|memcpy-max-count|diagnostic-prefix)(=\S*)?$/;
     return 1 if $arg =~ /^-f(mem2reg|optim)(-enable|-disable|=last)?$/;
+    return 1 if $arg =~ /^-msize-(long|llp64)$/;
     return 0;
 }
 
