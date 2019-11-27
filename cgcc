@@ -292,6 +292,9 @@ sub add_specs {
 	return (' -D_BIG_ENDIAN' .
 		' --arch=s390x' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'riscv64') {
+	return (' --arch=riscv64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'arm') {
 	return (' --arch=arm' .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
