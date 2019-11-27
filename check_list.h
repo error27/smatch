@@ -25,6 +25,9 @@ CK(register_param_compare_limit)
 CK(register_param_compare_limit_links)
 CK(register_returns_early)
 
+CK(register_param_cleared)  /* param_set relies on param_cleared */
+CK(register_param_set)
+
 CK(register_smatch_ignore)
 CK(register_buf_size)
 CK(register_strlen)
@@ -33,8 +36,6 @@ CK(register_capped)
 CK(register_parse_call_math)
 CK(register_param_limit)
 CK(register_param_filter)
-CK(register_param_set)
-CK(register_param_cleared)
 CK(register_struct_assignment)
 CK(register_comparison)
 CK(register_comparison_links)
