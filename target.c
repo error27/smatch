@@ -95,6 +95,10 @@ void init_target(void)
 		case OS_FREEBSD:
 			wint_ctype = &int_ctype;
 			break;
+		case OS_OPENBSD:
+			wchar_ctype = &int_ctype;
+			wint_ctype = &int_ctype;
+			break;
 		}
 		break;
 	case MACH_M68K:
