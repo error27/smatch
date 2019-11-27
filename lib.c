@@ -1574,12 +1574,15 @@ static void predefined_macros(void)
 		predefine("__powerpc64__", 1, "1");
 		predefine("__ppc64__", 1, "1");
 		predefine("__PPC64__", 1, "1");
+		predefine("_ARCH_PPC64", 1, "1");
 		/* fall-through */
 	case MACH_PPC32:
 		predefine("__powerpc__", 1, "1");
 		predefine("__powerpc", 1, "1");
 		predefine("__ppc__", 1, "1");
 		predefine("__PPC__", 1, "1");
+		predefine("__PPC", 1, "1");
+		predefine("_ARCH_PPC", 1, "1");
 		if (arch_big_endian)
 			predefine("_BIG_ENDIAN", 1, "1");
 		break;
