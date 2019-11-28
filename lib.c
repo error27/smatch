@@ -329,8 +329,9 @@ static enum { STANDARD_C89,
 static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
-int arch_mach = MACH_NATIVE;
 int arch_fp_abi = FP_ABI_NATIVE;
+int arch_mach = MACH_NATIVE;
+int arch_os = OS_NATIVE;
 int arch_cmodel = CMODEL_UNKNOWN;
 
 
@@ -1463,7 +1464,7 @@ static void predefined_macros(void)
 	predefined_ctype("WCHAR",      wchar_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
 	predefined_ctype("WINT",        wint_ctype, PTYPE_ALL_T|PTYPE_MIN|PTYPE_TYPE);
 	predefined_ctype("CHAR16",   &ushort_ctype, PTYPE_TYPE);
-	predefined_ctype("CHAR32",     &uint_ctype, PTYPE_TYPE);
+	predefined_ctype("CHAR32",    uint32_ctype, PTYPE_TYPE);
 
 	predefined_ctype("INT",         &int_ctype, PTYPE_ALL);
 	predefined_ctype("LONG",       &long_ctype, PTYPE_ALL);
@@ -1478,8 +1479,6 @@ static void predefined_macros(void)
 	predefined_ctype("INT64",      int64_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("UINT64",    uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 
-	predefined_sizeof("INT128", "", 128);
-
 	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
@@ -1491,6 +1490,17 @@ static void predefined_macros(void)
 	predefined_sizeof("FLOAT", "", bits_in_float);
 	predefined_sizeof("DOUBLE", "", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
+
+	switch (arch_mach) {
+	case MACH_ARM64:
+	case MACH_MIPS64:
+	case MACH_PPC64:
+	case MACH_RISCV64:
+	case MACH_S390X:
+	case MACH_SPARC64:
+	case MACH_X86_64:
+		predefined_sizeof("INT128", "", 128);
+	}
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
@@ -1551,8 +1561,7 @@ static void predefined_macros(void)
 		predefine("__m68k__", 1, "1");
 		break;
 	case MACH_MIPS64:
-		if (arch_m64 == ARCH_LP64)
-			predefine("__mips64", 1, "64");
+		predefine("__mips64", 1, "64");
 		/* fall-through */
 	case MACH_MIPS32:
 		predefine("__mips__", 1, "1");
@@ -1562,11 +1571,9 @@ static void predefined_macros(void)
 		predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
 		break;
 	case MACH_PPC64:
-		if (arch_m64 == ARCH_LP64) {
-			predefine("__powerpc64__", 1, "1");
-			predefine("__ppc64__", 1, "1");
-			predefine("__PPC64__", 1, "1");
-		}
+		predefine("__powerpc64__", 1, "1");
+		predefine("__ppc64__", 1, "1");
+		predefine("__PPC64__", 1, "1");
 		/* fall-through */
 	case MACH_PPC32:
 		predefine("__powerpc__", 1, "1");
@@ -1588,13 +1595,11 @@ static void predefined_macros(void)
 		predefine("__s390__", 1, "1");
 		break;
 	case MACH_SPARC64:
-		if (arch_m64 == ARCH_LP64) {
-			predefine("__sparc_v9__", 1, "1");
-			predefine("__sparcv9__", 1, "1");
-			predefine("__sparcv9", 1, "1");
-			predefine("__sparc64__", 1, "1");
-			predefine("__arch64__", 1, "1");
-		}
+		predefine("__sparc_v9__", 1, "1");
+		predefine("__sparcv9__", 1, "1");
+		predefine("__sparcv9", 1, "1");
+		predefine("__sparc64__", 1, "1");
+		predefine("__arch64__", 1, "1");
 		/* fall-through */
 	case MACH_SPARC32:
 		predefine("__sparc__", 1, "1");

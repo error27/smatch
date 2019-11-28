@@ -83,25 +83,33 @@ void init_target(void)
 		wchar_ctype = &long_ctype;
 		/* fall through */
 	case MACH_X86_64:
-#if defined(__APPLE__)
-		int64_ctype = &llong_ctype;
-		uint64_ctype = &ullong_ctype;
-#endif
-#if defined(__FreeBSD__) || defined(__APPLE__)
-		wint_ctype = &int_ctype;
-#endif
-#if defined(__CYGWIN__)
-		wchar_ctype = &ushort_ctype;
-#endif
+		switch (arch_os) {
+		case OS_CYGWIN:
+			wchar_ctype = &ushort_ctype;
+			break;
+		case OS_DARWIN:
+			int64_ctype = &llong_ctype;
+			uint64_ctype = &ullong_ctype;
+			wint_ctype = &int_ctype;
+			break;
+		case OS_FREEBSD:
+			wint_ctype = &int_ctype;
+			break;
+		}
 		break;
 	case MACH_M68K:
-	case MACH_SPARC32:
 	case MACH_PPC32:
 		wchar_ctype = &long_ctype;
 		break;
 	case MACH_ARM:
 	case MACH_ARM64:
 		wchar_ctype = &uint_ctype;
+		break;
+	case MACH_SPARC32:
+		if (arch_os == OS_SUNOS) {
+			wint_ctype = &long_ctype;
+			wchar_ctype = &long_ctype;
+		}
 		break;
 	default:
 		break;
@@ -110,29 +118,16 @@ void init_target(void)
 		wchar_ctype = &ushort_ctype;
 
 	switch (arch_mach) {
-	case MACH_MIPS64:
-		if (arch_m64 == ARCH_LP64)
+	case MACH_SPARC32:
+		if (arch_os == OS_SUNOS)
 			break;
 		/* fall through */
-	case MACH_M68K:
-	case MACH_SPARC32:
-	case MACH_PPC32:
-	case MACH_MIPS32:
-	case MACH_RISCV32:
-		arch_m64 = ARCH_LP32;
-		int32_ctype = &long_ctype;
-		uint32_ctype = &ulong_ctype;
-		break;
-	default:
-		break;
-	}
-
-	switch (arch_mach) {
 	case MACH_ARM:
+	case MACH_MIPS64:
+		// FIXME: ABI n32 & (n)64 have 128-bit ldouble
 	case MACH_MIPS32:
 	case MACH_S390:
 	case MACH_S390X:
-	case MACH_SPARC32:
 		bits_in_longdouble = 64;
 		max_fp_alignment = 8;
 		break;
