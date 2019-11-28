@@ -230,7 +230,7 @@ sub add_specs {
 	    ' -DNULL="((void *)0)"';
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
-	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
+	    ' -D__linux__=1 -D__linux=1 -Dlinux=1';
     } elsif ($spec eq 'gnu/kfreebsd') {
 	return &add_specs ('unix') .
 	    ' -D__FreeBSD_kernel__=1';
