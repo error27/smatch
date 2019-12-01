@@ -181,6 +181,9 @@ void target_init(void)
 	arch_target = target;
 	arch_mach = target->mach;
 
+	if (fpie > fpic)
+		fpic = fpie;
+
 	if (target->wchar)
 		wchar_ctype = target->wchar;
 	if (target->wint)
@@ -192,4 +195,11 @@ void target_init(void)
 
 	if (target->init)
 		target->init(target);
+
+	if (arch_msize_long) {
+		size_t_ctype = &ulong_ctype;
+		ssize_t_ctype = &long_ctype;
+	}
+	if (fshort_wchar)
+		wchar_ctype = &ushort_ctype;
 }

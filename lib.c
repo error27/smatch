@@ -320,7 +320,7 @@ int preprocess_only;
 
 enum standard standard = STANDARD_GNU89;
 
-static int arch_msize_long = 0;
+int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_fp_abi = FP_ABI_NATIVE;
@@ -712,38 +712,6 @@ static char **handle_switch_m(char *arg, char **next)
 	}
 
 	return next;
-}
-
-static void handle_arch_msize_long_finalize(void)
-{
-	if (arch_msize_long) {
-		size_t_ctype = &ulong_ctype;
-		ssize_t_ctype = &long_ctype;
-	}
-}
-
-static void handle_arch_finalize(void)
-{
-	handle_arch_msize_long_finalize();
-
-	if (fpie > fpic)
-		fpic = fpie;
-	if (fshort_wchar)
-		wchar_ctype = &ushort_ctype;
-
-	switch (arch_mach) {
-	case MACH_ARM64:
-		if (arch_cmodel == CMODEL_UNKNOWN)
-			arch_cmodel = CMODEL_SMALL;
-		break;
-	case MACH_RISCV32:
-	case MACH_RISCV64:
-		if (arch_cmodel == CMODEL_UNKNOWN)
-			arch_cmodel = CMODEL_MEDLOW;
-		if (fpic)
-			arch_cmodel = CMODEL_PIC;
-		break;
-	}
 }
 
 static char **handle_switch_o(char *arg, char **next)
@@ -1732,7 +1700,6 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	if (filelist) {
 		// Initialize type system
 		target_init();
-		handle_arch_finalize();
 		init_ctype();
 
 		predefined_macros();
