@@ -1350,16 +1350,8 @@ static void predefined_macros(void)
 	predefined_sizeof("DOUBLE", "", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
 
-	switch (arch_mach) {
-	case MACH_ARM64:
-	case MACH_MIPS64:
-	case MACH_PPC64:
-	case MACH_RISCV64:
-	case MACH_S390X:
-	case MACH_SPARC64:
-	case MACH_X86_64:
+	if (arch_target->has_int128)
 		predefined_sizeof("INT128", "", 128);
-	}
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");

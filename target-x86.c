@@ -61,6 +61,7 @@ const struct target target_x86_64 = {
 	.bitness = ARCH_LP64,
 	.big_endian = 0,
 	.unsigned_char = 0,
+	.has_int128 = 1,
 
 	.bits_in_longdouble = 128,
 	.max_fp_alignment = 16,

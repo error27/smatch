@@ -58,6 +58,7 @@ const struct target target_sparc64 = {
 	.bitness = ARCH_LP64,
 	.big_endian = 1,
 	.unsigned_char = 0,
+	.has_int128 = 1,
 
 	.target_32bit = &target_sparc32,
 

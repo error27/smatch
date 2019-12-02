@@ -37,6 +37,7 @@ const struct target target_s390x = {
 	.bitness = ARCH_LP64,
 	.big_endian = 1,
 	.unsigned_char = 1,
+	.has_int128 = 1,
 
 	.bits_in_longdouble = 64,
 	.max_fp_alignment = 8,

@@ -60,6 +60,7 @@ struct target {
 	unsigned int	big_endian:1;
 	unsigned int	unsigned_char:1;
 	unsigned int	size_t_long:1;
+	unsigned int	has_int128:1;
 
 	struct symbol	*wchar;
 	struct symbol	*wint;
