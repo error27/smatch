@@ -24,6 +24,13 @@ static void init_x86(const struct target *target)
 	}
 }
 
+
+static void predefine_i386(const struct target *self)
+{
+	predefine("__i386__", 1, "1");
+	predefine("__i386", 1, "1");
+}
+
 const struct target target_i386 = {
 	.mach = MACH_I386,
 	.bitness = ARCH_LP32,
@@ -36,7 +43,18 @@ const struct target target_i386 = {
 
 	.init = init_x86,
 	.target_64bit = &target_x86_64,
+
+	.predefine = predefine_i386,
 };
+
+
+static void predefine_x86_64(const struct target *self)
+{
+	predefine("__x86_64__", 1, "1");
+	predefine("__x86_64", 1, "1");
+	predefine("__amd64__", 1, "1");
+	predefine("__amd64", 1, "1");
+}
 
 const struct target target_x86_64 = {
 	.mach = MACH_X86_64,
@@ -49,4 +67,6 @@ const struct target target_x86_64 = {
 
 	.init = init_x86,
 	.target_32bit = &target_i386,
+
+	.predefine = predefine_x86_64,
 };

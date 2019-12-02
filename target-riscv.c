@@ -11,6 +11,12 @@ static void init_riscv(const struct target *self)
 		arch_cmodel = CMODEL_PIC;
 }
 
+static void predefine_riscv(const struct target *self)
+{
+	predefine("__riscv", 1, "1");
+	predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
+}
+
 const struct target target_riscv32 = {
 	.mach = MACH_RISCV32,
 	.bitness = ARCH_LP32,
@@ -20,6 +26,7 @@ const struct target target_riscv32 = {
 	.target_64bit = &target_riscv64,
 
 	.init = init_riscv,
+	.predefine = predefine_riscv,
 };
 
 const struct target target_riscv64 = {
@@ -31,4 +38,5 @@ const struct target target_riscv64 = {
 	.target_32bit = &target_riscv32,
 
 	.init = init_riscv,
+	.predefine = predefine_riscv,
 };

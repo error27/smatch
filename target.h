@@ -71,6 +71,7 @@ struct target {
 	const struct target *target_64bit;
 
 	void (*init)(const struct target *self);
+	void (*predefine)(const struct target *self);
 };
 
 extern const struct target target_default;
