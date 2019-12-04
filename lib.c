@@ -318,13 +318,7 @@ int funsigned_char = -1;
 
 int preprocess_only;
 
-static enum { STANDARD_C89,
-              STANDARD_C94,
-              STANDARD_C99,
-              STANDARD_C11,
-              STANDARD_GNU11,
-              STANDARD_GNU89,
-              STANDARD_GNU99, } standard = STANDARD_GNU89;
+enum standard standard = STANDARD_GNU89;
 
 static int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
@@ -890,27 +884,16 @@ static void handle_switch_W_finalize(void)
 	handle_onoff_switch_finalize(warnings, ARRAY_SIZE(warnings));
 
 	/* default Wdeclarationafterstatement based on the C dialect */
-	if (-1 == Wdeclarationafterstatement)
-	{
-		switch (standard)
-		{
+	if (-1 == Wdeclarationafterstatement) {
+		switch (standard) {
 			case STANDARD_C89:
 			case STANDARD_C94:
 				Wdeclarationafterstatement = 1;
 				break;
-
-			case STANDARD_C99:
-			case STANDARD_GNU89:
-			case STANDARD_GNU99:
-			case STANDARD_C11:
-			case STANDARD_GNU11:
+			default:
 				Wdeclarationafterstatement = 0;
 				break;
-
-			default:
-				assert (0);
 		}
-
 	}
 }
 
@@ -1095,6 +1078,15 @@ static char **handle_switch_s(const char *arg, char **next)
 
 		else if (!strcmp(arg, "gnu11"))
 			standard = STANDARD_GNU11;
+
+		else if (!strcmp(arg, "c17") ||
+			 !strcmp(arg, "c18") ||
+			 !strcmp(arg, "iso9899:2017") ||
+			 !strcmp(arg, "iso9899:2018"))
+			standard = STANDARD_C17;
+		else if (!strcmp(arg, "gnu17") ||
+			 !strcmp(arg, "gnu18"))
+			standard = STANDARD_GNU17;
 
 		else
 			die ("Unsupported C dialect");
@@ -1422,36 +1414,33 @@ static void predefined_macros(void)
 
 	predefine("__STDC__", 1, "1");
 	switch (standard) {
-	case STANDARD_C89:
-		predefine("__STRICT_ANSI__", 1, "1");
+	default:
 		break;
 
 	case STANDARD_C94:
 		predefine("__STDC_VERSION__", 1, "199409L");
-		predefine("__STRICT_ANSI__", 1, "1");
 		break;
 
 	case STANDARD_C99:
-		predefine("__STDC_VERSION__", 1, "199901L");
-		predefine("__STRICT_ANSI__", 1, "1");
-		break;
-
-	case STANDARD_GNU89:
-	default:
-		break;
-
 	case STANDARD_GNU99:
 		predefine("__STDC_VERSION__", 1, "199901L");
 		break;
 
 	case STANDARD_C11:
-		predefine("__STRICT_ANSI__", 1, "1");
 	case STANDARD_GNU11:
+		predefine("__STDC_VERSION__", 1, "201112L");
+		break;
+	case STANDARD_C17:
+	case STANDARD_GNU17:
+		predefine("__STDC_VERSION__", 1, "201710L");
+		break;
+	}
+	if (!(standard & STANDARD_GNU) && (standard != STANDARD_NONE))
+		predefine("__STRICT_ANSI__", 1, "1");
+	if (standard >= STANDARD_C11) {
 		predefine("__STDC_NO_ATOMICS__", 1, "1");
 		predefine("__STDC_NO_COMPLEX__", 1, "1");
 		predefine("__STDC_NO_THREADS__", 1, "1");
-		predefine("__STDC_VERSION__", 1, "201112L");
-		break;
 	}
 
 	predefine("__CHAR_BIT__", 1, "%d", bits_in_char);
