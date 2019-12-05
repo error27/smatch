@@ -70,9 +70,11 @@ static int get_arg_num(struct expression *expr)
 	state = get_state_expr(my_id, expr);
 	if (!state || state != &argument)
 		return -1;
-	
+	if (!cur_func_sym)
+		return -1;
+
 	i = 0;
-	FOR_EACH_PTR(func_sym->ctype.base_type->arguments, arg) {
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
 		if (arg == this_arg)
 			return i;
 		i++;
