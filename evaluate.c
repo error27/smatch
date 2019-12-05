@@ -1542,6 +1542,8 @@ static int compatible_argument_type(struct expression *expr, struct symbol *targ
 
 static void mark_addressable(struct expression *expr)
 {
+	while (expr->type == EXPR_BINOP && expr->op == '+')
+		expr = expr->left;
 	if (expr->type == EXPR_SYMBOL) {
 		struct symbol *sym = expr->symbol;
 		sym->ctype.modifiers |= MOD_ADDRESSABLE;

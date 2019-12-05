@@ -16,7 +16,6 @@ int use1(void)
 /*
  * check-name: eval/addressable-complex
  * check-command: test-linearize -Wno-decl -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: load\\.
