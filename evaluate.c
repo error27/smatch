@@ -1540,6 +1540,14 @@ static int compatible_argument_type(struct expression *expr, struct symbol *targ
 	return compatible_assignment_types(expr, target, rp, where);
 }
 
+static void mark_addressable(struct expression *expr)
+{
+	if (expr->type == EXPR_SYMBOL) {
+		struct symbol *sym = expr->symbol;
+		sym->ctype.modifiers |= MOD_ADDRESSABLE;
+	}
+}
+
 static void mark_assigned(struct expression *expr)
 {
 	struct symbol *sym;
@@ -1780,10 +1788,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	ctype = op->ctype;
 	*expr = *op->unop;
 
-	if (expr->type == EXPR_SYMBOL) {
-		struct symbol *sym = expr->symbol;
-		sym->ctype.modifiers |= MOD_ADDRESSABLE;
-	}
+	mark_addressable(expr);
 
 	/*
 	 * symbol expression evaluation is lazy about the type
