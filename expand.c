@@ -694,6 +694,8 @@ static int expand_dereference(struct expression *expr)
 			if (ctype->bit_size != value->ctype->bit_size)
 				return UNSAFE;
 			if (value->type == EXPR_VALUE) {
+				if (!is_integral_type(ctype))
+					return UNSAFE;
 				if (is_bitfield_type(value->ctype))
 					return UNSAFE;
 				expr->type = EXPR_VALUE;
@@ -701,6 +703,8 @@ static int expand_dereference(struct expression *expr)
 				expr->taint = 0;
 				return 0;
 			} else if (value->type == EXPR_FVALUE) {
+				if (!is_float_type(ctype))
+					return UNSAFE;
 				expr->type = EXPR_FVALUE;
 				expr->fvalue = value->fvalue;
 				return 0;

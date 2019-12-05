@@ -13,7 +13,6 @@ static float foo(void)
  * check-name: constant-union-int-to-float
  * check description: must not infer the float value from the int
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): load\\.
