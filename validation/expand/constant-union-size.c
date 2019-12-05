@@ -10,9 +10,9 @@ static int foo(void)
 }
 
 /*
- * check-name: bug-expand-union
- * check description: must not infer the value from the float
- * check-command: test-linearize $file
+ * check-name: constant-union-size
+ * check description: the size of the initializer doesn't match
+ * check-command: test-linearize -fdump-ir $file
  * check-known-to-fail
  *
  * check-output-ignore

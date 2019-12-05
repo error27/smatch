@@ -10,8 +10,8 @@ static int foo(void)
 }
 
 /*
- * check-name: bug-expand-union
- * check description: must not infer the value from the float
+ * check-name: type-punning-float-to-int
+ * check description: must not infer the int value from the float
  * check-command: test-linearize $file
  * check-known-to-fail
  *
