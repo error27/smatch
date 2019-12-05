@@ -13,7 +13,6 @@ static float foo(void)
  * check-name: type-punning-int-to-float
  * check description: must not infer the float value from the int
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: load\\.

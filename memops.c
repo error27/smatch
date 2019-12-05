@@ -82,6 +82,15 @@ static int local_pseudo(pseudo_t pseudo)
 		&& !address_taken(pseudo);
 }
 
+static bool compatible_loads(struct instruction *a, struct instruction *b)
+{
+	if (is_integral_type(a->type) && is_float_type(b->type))
+		return false;
+	if (is_float_type(a->type) && is_integral_type(b->type))
+		return false;
+	return true;
+}
+
 static void simplify_loads(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -114,6 +123,8 @@ static void simplify_loads(struct basic_block *bb)
 							continue;
 						goto next_load;
 					}
+					if (!compatible_loads(insn, dom))
+						goto next_load;
 					/* Yeehaa! Found one! */
 					convert_load_instruction(insn, dom->target);
 					goto next_load;
