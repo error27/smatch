@@ -621,6 +621,66 @@ static int expand_addressof(struct expression *expr)
 	return expand_expression(expr->unop);
 }
 
+///
+// lookup the type of a struct's memeber at the requested offset
+static struct symbol *find_member(struct symbol *sym, int offset)
+{
+	struct ptr_list *head, *list;
+
+	head = (struct ptr_list *) sym->symbol_list;
+	list = head;
+	if (!head)
+		return NULL;
+	do {
+		int nr = list->nr;
+		int i;
+		for (i = 0; i < nr; i++) {
+			struct symbol *ent = (struct symbol *) list->list[i];
+			int curr = ent->offset;
+			if (curr == offset)
+				return ent;
+			if (curr > offset)
+				return NULL;
+		}
+	} while ((list = list->next) != head);
+	return NULL;
+}
+
+///
+// lookup a suitable default initializer value at the requested offset
+static struct expression *default_initializer(struct symbol *sym, int offset)
+{
+	static struct expression value;
+	struct symbol *type;
+
+redo:
+	switch (sym->type) {
+	case SYM_NODE:
+		sym = sym->ctype.base_type;
+		goto redo;
+	case SYM_STRUCT:
+		type = find_member(sym, offset);
+		if (!type)
+			return NULL;
+		break;
+	case SYM_ARRAY:
+		type = sym->ctype.base_type;
+		break;
+	default:
+		return NULL;
+	}
+
+	if (is_integral_type(type))
+		value.type = EXPR_VALUE;
+	else if (is_float_type(type))
+		value.type = EXPR_FVALUE;
+	else
+		return NULL;
+
+	value.ctype = type;
+	return &value;
+}
+
 /*
  * Look up a trustable initializer value at the requested offset.
  *
@@ -646,10 +706,11 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 			if (entry->init_offset < offset)
 				continue;
 			if (entry->init_offset > offset)
-				return NULL;
+				break;
 			return entry->init_expr;
 		} END_FOR_EACH_PTR(entry);
-		return NULL;
+
+		value = default_initializer(sym, offset);
 	}
 	return value;
 }

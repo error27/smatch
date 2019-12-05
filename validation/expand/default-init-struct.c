@@ -15,7 +15,6 @@ int test_struct(void)
 /*
  * check-name: default-init-struct
  * check-command: test-linearize -Wno-decl -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: phisrc\\..*return.*\\$0
