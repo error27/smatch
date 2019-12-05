@@ -625,8 +625,6 @@ static int expand_addressof(struct expression *expr)
  * Look up a trustable initializer value at the requested offset.
  *
  * Return NULL if no such value can be found or statically trusted.
- *
- * FIXME!! We should check that the size is right!
  */
 static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
@@ -688,11 +686,13 @@ static int expand_dereference(struct expression *expr)
 
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
+		struct symbol *ctype = expr->ctype;
 		struct expression *value = constant_symbol_value(sym, offset);
 
 		/* Const symbol with a constant initializer? */
-		if (value) {
-			/* FIXME! We should check that the size is right! */
+		if (value && value->ctype) {
+			if (ctype->bit_size != value->ctype->bit_size)
+				return UNSAFE;
 			if (value->type == EXPR_VALUE) {
 				if (is_bitfield_type(value->ctype))
 					return UNSAFE;

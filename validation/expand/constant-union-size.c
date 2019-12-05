@@ -13,7 +13,6 @@ static int foo(void)
  * check-name: constant-union-size
  * check description: the size of the initializer doesn't match
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: load\\.
