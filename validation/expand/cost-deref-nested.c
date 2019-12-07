@@ -14,7 +14,6 @@ static int foo(int c)
 /*
  * check-name: cost-deref-nested
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: cbr

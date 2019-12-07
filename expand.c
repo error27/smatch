@@ -737,12 +737,12 @@ static int expand_dereference(struct expression *expr)
 	 * Is it "symbol" or "symbol + offset"?
 	 */
 	offset = 0;
-	if (unop->type == EXPR_BINOP && unop->op == '+') {
+	while (unop->type == EXPR_BINOP && unop->op == '+') {
 		struct expression *right = unop->right;
-		if (right->type == EXPR_VALUE) {
-			offset = right->value;
-			unop = unop->left;
-		}
+		if (right->type != EXPR_VALUE)
+			break;
+		offset += right->value;
+		unop = unop->left;
 	}
 
 	if (unop->type == EXPR_SYMBOL) {
