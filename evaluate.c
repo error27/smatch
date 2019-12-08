@@ -1772,6 +1772,7 @@ static struct symbol *degenerate(struct expression *expr)
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
+		mark_addressable(expr);
 	default:
 		/* nothing */;
 	}

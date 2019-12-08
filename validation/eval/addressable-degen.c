@@ -11,7 +11,6 @@ static int bar(void)
 /*
  * check-name: eval/addressable-degen
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: load\\.
