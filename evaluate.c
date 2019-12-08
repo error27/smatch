@@ -1501,9 +1501,9 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct expression **rp, const char *where)
 {
 	const char *typediff;
-	struct symbol *source = degenerate(*rp);
 
 	if (!check_assignment_types(target, rp, &typediff)) {
+		struct symbol *source = *rp ? (*rp)->ctype : NULL;
 		warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
 		info(expr->pos, "   expected %s", show_typename(target));
 		info(expr->pos, "   got %s", show_typename(source));
