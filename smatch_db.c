@@ -107,7 +107,7 @@ static int print_sql_output(void *unused, int argc, char **argv, char **azColNam
 
 	for (i = 0; i < argc; i++) {
 		if (i != 0)
-			printf(", ");
+			sm_printf(", ");
 		sm_printf("%s", argv[i]);
 	}
 	sm_printf("\n");
