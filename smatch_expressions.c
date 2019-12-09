@@ -85,6 +85,8 @@ struct expression *preop_expression(struct expression *expr, int op)
 
 struct expression *deref_expression(struct expression *expr)
 {
+	if (expr->type == EXPR_BINOP)
+		expr = preop_expression(expr, '(');
 	return preop_expression(expr, '*');
 }
 
