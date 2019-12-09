@@ -495,7 +495,7 @@ static const char *get_name_from_offset(struct symbol *arg, int offset)
 	}
 
 	member = get_member_from_offset(arg, offset);
-	if (!member)
+	if (!member || !member->ident)
 		return NULL;
 
 	snprintf(fullname, sizeof(fullname), "%s->%s", name, member->ident->name);
