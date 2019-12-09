@@ -425,6 +425,7 @@ static struct macro_info macro_table[] = {
 static const char *false_positives[][2] = {
 	{"fs/jffs2/", "->alloc_sem"},
 	{"fs/xfs/", "->b_sema"},
+	{"mm/", "pvmw->ptl"},
 };
 
 static struct stree *start_states;
