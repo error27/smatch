@@ -254,13 +254,15 @@ static struct symbol * examine_array_type(struct symbol *sym)
 static struct symbol *examine_bitfield_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
-	unsigned long bit_size, alignment, modifiers;
+	unsigned long alignment, modifiers;
 
 	if (!base_type)
 		return sym;
-	bit_size = base_type->bit_size;
-	if (sym->bit_size > bit_size)
-		warning(sym->pos, "impossible field-width, %d, for this type",  sym->bit_size);
+	if (sym->bit_size > base_type->bit_size) {
+		sparse_error(sym->pos, "bitfield '%s' is wider (%d) than its type (%s)",
+			show_ident(sym->ident), sym->bit_size, show_typename(base_type));
+		sym->bit_size = -1;
+	}
 
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
