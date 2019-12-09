@@ -15,6 +15,8 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#include <string.h>
+
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
@@ -86,7 +88,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 	}
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (strcmp(check_name(sm->owner), check_arg->string->data) != 0)
+		if (!strstr(check_name(sm->owner), check_arg->string->data))
 			continue;
 		sm_msg("%s", show_sm(sm));
 		found = 1;
