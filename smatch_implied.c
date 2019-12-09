@@ -140,10 +140,13 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 		return 0;
 
 	if (rl_intersection(true_rl, false_rl)) {
-		sm_perror("parsing (%s (%s) %s %s)",
-			sm->name, sm->state->name, show_special(comparison), show_rl(rl));
-		sm_msg("true_rl = %s false_rl = %s intersection = %s",
-		       show_rl(true_rl), show_rl(false_rl), show_rl(rl_intersection(true_rl, false_rl)));
+		/*
+		 * Normally these won't intersect, but one exception is when
+		 * we're dealing with mtags.  We have a long list of mtags and
+		 * then negate the list.  Now it's over the limit for mtag list
+		 * length and we squash it down to 4096-ptr_max.  So then it's
+		 * possible for the true and false rl to overlap.
+		 */
 		return 0;
 	}
 
