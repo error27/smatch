@@ -516,6 +516,16 @@ static void match_local_debug_off(const char *fn, struct expression *expr, void 
 	local_debug = 0;
 }
 
+static void match_debug_db_on(const char *fn, struct expression *expr, void *info)
+{
+	debug_db = 1;
+}
+
+static void match_debug_db_off(const char *fn, struct expression *expr, void *info)
+{
+	debug_db = 0;
+}
+
 static void match_about(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -775,6 +785,8 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
 	add_function_hook("__smatch_local_debug_on", &match_local_debug_on, NULL);
 	add_function_hook("__smatch_local_debug_off", &match_local_debug_off, NULL);
+	add_function_hook("__smatch_debug_db_on", &match_debug_db_on, NULL);
+	add_function_hook("__smatch_debug_db_off", &match_debug_db_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
 	add_implied_return_hook("__smatch_type_rl_helper", &match_type_rl_return, NULL);

@@ -204,6 +204,7 @@ extern int final_pass;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
+extern int debug_db;
 bool debug_implied(void);
 extern int option_info;
 extern int option_spammy;
@@ -236,7 +237,10 @@ extern int sm_nr_errors;
  * sm_msg(): other message (please avoid using this)
  */
 
-#define sm_printf(msg...) do { if (final_pass || option_debug || local_debug) fprintf(sm_outfd, msg); } while (0)
+#define sm_printf(msg...) do {						\
+	if (final_pass || option_debug || local_debug || debug_db)	\
+		fprintf(sm_outfd, msg);					\
+} while (0)
 
 static inline void sm_prefix(void)
 {
@@ -250,7 +254,7 @@ extern bool __silence_warnings_for_stmt;
 #define sm_print_msg(type, msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
-	if (!final_pass && !option_debug && !local_debug)      \
+	if (!final_pass && !option_debug && !local_debug && !debug_db)	  \
 		break;                                         \
 	if (__silence_warnings_for_stmt && !option_debug && !local_debug) \
 		break;					       \
@@ -293,6 +297,7 @@ static inline void print_implied_debug_msg(void)
 }
 
 #define sm_debug(msg...) do { if (option_debug) sm_printf(msg); } while (0)
+#define db_debug(msg...) do { if (option_debug || debug_db) sm_printf(msg); } while (0)
 
 #define sm_info(msg...) do {					\
 	if (option_debug || (option_info && final_pass)) {	\
@@ -895,7 +900,7 @@ do {										\
 	char sql_txt[1024];							\
 										\
 	sqlite3_snprintf(sizeof(sql_txt), sql_txt, sql);			\
-	sm_debug("debug: %s\n", sql_txt);					\
+	db_debug("debug: %s\n", sql_txt);					\
 	sql_exec(db, call_back, data, sql_txt);					\
 } while (0)
 
@@ -929,7 +934,7 @@ do {										\
 			      ignore ? "or ignore " : "", #table);		\
 		p += snprintf(p, buf + sizeof(buf) - p, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
-		sm_debug("mem-db: %s\n", buf);					\
+		db_debug("mem-db: %s\n", buf);					\
 		rc = sqlite3_exec(_db, buf, NULL, NULL, &err);			\
 		if (rc != SQLITE_OK) {						\
 			sm_ierror("SQL error #2: %s", err);			\

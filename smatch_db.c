@@ -27,6 +27,8 @@ struct sqlite3 *smatch_db;
 struct sqlite3 *mem_db;
 struct sqlite3 *cache_db;
 
+int debug_db;
+
 static int return_id;
 
 static void call_return_state_hooks(struct expression *expr);
@@ -122,7 +124,7 @@ void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), v
 	if (!db)
 		return;
 
-	if (option_debug) {
+	if (option_debug || debug_db) {
 		sm_msg("%s", sql);
 		if (strncasecmp(sql, "select", strlen("select")) == 0)
 			sqlite3_exec(db, sql, print_sql_output, NULL, NULL);
