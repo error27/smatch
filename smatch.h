@@ -1004,7 +1004,6 @@ extern char *bin_dir;
 extern char *data_dir;
 extern int option_no_data;
 extern int option_full_path;
-extern int option_param_mapper;
 extern int option_call_tree;
 extern int num_checks;
 
