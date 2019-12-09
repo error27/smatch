@@ -1589,8 +1589,12 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->merged)
 			continue;
+		if (ptr_in_list(tmp, already_handled))
+			continue;
+		add_ptr_list(&already_handled, tmp);
 		nr_possible++;
 	} END_FOR_EACH_PTR(tmp);
+	free_slist(&already_handled);
 	nr_states = get_db_state_count();
 	if (nr_states * nr_possible >= 2000)
 		return 0;
