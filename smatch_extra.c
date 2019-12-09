@@ -1102,13 +1102,6 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto free;
 	}
 
-	if (is_pointer(right) &&
-	    right->type == EXPR_PREOP && right->op == '&' &&
-	    get_address_rl(right, &rl)) {
-		state = alloc_estate_rl(rl);
-		goto done;
-	}
-
 	if (get_implied_value(right, &sval)) {
 		state = alloc_estate_sval(sval_cast(left_type, sval));
 		goto done;
