@@ -1697,8 +1697,6 @@ static int split_positive_from_negative(struct expression *expr)
 
 	if (!get_implied_rl(expr, &rl) || !rl)
 		return 0;
-	if (is_whole_rl(rl) || is_whole_rl_non_zero(rl))
-		return 0;
 	/* Forget about INT_MAX and larger */
 	if (rl_max(rl).value <= 0)
 		return 0;
