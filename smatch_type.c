@@ -77,6 +77,24 @@ static struct symbol *get_binop_type(struct expression *expr)
 	if (!right)
 		return NULL;
 
+	if (type_is_fp(left)) {
+		if (type_is_fp(right)) {
+			if (type_bits(left) > type_bits(right))
+				return left;
+			return right;
+		}
+		return left;
+	}
+
+	if (type_is_fp(right)) {
+		if (type_is_fp(left)) {
+			if (type_bits(right) > type_bits(left))
+				return right;
+			return left;
+		}
+		return right;
+	}
+
 	if (expr->op == '-' &&
 	    (is_ptr_type(left) && is_ptr_type(right)))
 		return ssize_t_ctype;
@@ -423,9 +441,26 @@ int returns_pointer(struct symbol *sym)
 	return 0;
 }
 
+static sval_t fp_max(struct symbol *type)
+{
+	sval_t ret = { .type = type };
+
+	if (type == &float_ctype)
+		ret.fvalue = FLT_MAX;
+	else if (type == &double_ctype)
+		ret.dvalue = DBL_MAX;
+	else
+		ret.ldvalue = LDBL_MAX;
+
+	return ret;
+}
+
 sval_t sval_type_max(struct symbol *base_type)
 {
 	sval_t ret;
+
+	if (type_is_fp(base_type))
+		return fp_max(base_type);
 
 	if (!base_type || !type_bits(base_type))
 		base_type = &llong_ctype;
@@ -435,9 +470,26 @@ sval_t sval_type_max(struct symbol *base_type)
 	return ret;
 }
 
+static sval_t fp_min(struct symbol *type)
+{
+	sval_t ret = { .type = type };
+
+	if (type == &float_ctype)
+		ret.fvalue = FLT_MIN;
+	else if (type == &double_ctype)
+		ret.dvalue = DBL_MIN;
+	else
+		ret.ldvalue = LDBL_MIN;
+
+	return ret;
+}
+
 sval_t sval_type_min(struct symbol *base_type)
 {
 	sval_t ret;
+
+	if (type_is_fp(base_type))
+		return fp_min(base_type);
 
 	if (!base_type || !type_bits(base_type))
 		base_type = &llong_ctype;

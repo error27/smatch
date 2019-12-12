@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <float.h>
 #include <sys/time.h>
 #include <sqlite3.h>
 #include "lib.h"
@@ -35,6 +36,9 @@ typedef struct {
 	union {
 		long long value;
 		unsigned long long uvalue;
+		float fvalue;
+		double dvalue;
+		long double ldvalue;
 	};
 } sval_t;
 
@@ -1116,6 +1120,7 @@ sval_t sval_blank(struct expression *expr);
 sval_t sval_type_val(struct symbol *type, long long val);
 sval_t sval_from_val(struct expression *expr, long long val);
 int sval_is_ptr(sval_t sval);
+bool sval_is_fp(sval_t sval);
 int sval_unsigned(sval_t sval);
 int sval_signed(sval_t sval);
 int sval_bits(sval_t sval);
@@ -1273,6 +1278,14 @@ static inline bool type_is_ptr(struct symbol *type)
 		type->type == SYM_FN);
 }
 
+static inline bool type_is_fp(struct symbol *type)
+{
+	return type &&
+	       (type == &float_ctype ||
+		type == &double_ctype ||
+		type == &ldouble_ctype);
+}
+
 static inline int type_bits(struct symbol *type)
 {
 	if (!type)
@@ -1314,9 +1327,52 @@ static inline int sval_positive_bits(sval_t sval)
 /*
  * Returns -1 if one is smaller, 0 if they are the same and 1 if two is larger.
  */
+
+static inline int fp_cmp(sval_t one, sval_t two)
+{
+	struct symbol *type;
+
+	if (sval_is_fp(one) && sval_is_fp(two))
+		type = type_bits(one.type) > type_bits(two.type) ? one.type : two.type;
+	else if (sval_is_fp(one))
+		type = one.type;
+	else
+		type = two.type;
+
+	one = sval_cast(type, one);
+	two = sval_cast(type, two);
+
+	if (one.type == &float_ctype) {
+		if (one.fvalue < two.fvalue)
+			return -1;
+		if (one.fvalue == two.fvalue)
+			return 0;
+		return 1;
+	}
+	if (one.type == &double_ctype) {
+		if (one.dvalue < two.dvalue)
+			return -1;
+		if (one.dvalue == two.dvalue)
+			return 0;
+		return 1;
+	}
+	if (one.type == &ldouble_ctype) {
+		if (one.ldvalue < two.ldvalue)
+			return -1;
+		if (one.ldvalue == two.ldvalue)
+			return 0;
+		return 1;
+	}
+	sm_perror("bad type in fp_cmp(): %s", type_to_str(type));
+	return 1;
+}
+
 static inline int sval_cmp(sval_t one, sval_t two)
 {
 	struct symbol *type;
+
+	if (sval_is_fp(one) || sval_is_fp(two))
+		return fp_cmp(one, two);
 
 	type = one.type;
 	if (sval_positive_bits(two) > sval_positive_bits(one))

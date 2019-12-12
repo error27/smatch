@@ -1482,6 +1482,18 @@ static struct range_list *cast_to_bool(struct range_list *rl)
 	return ret;
 }
 
+static struct range_list *cast_rl_fp(struct symbol *type, struct range_list *rl)
+{
+	struct range_list *ret = NULL;
+	struct data_range *tmp;
+
+	FOR_EACH_PTR(rl, tmp) {
+		add_range_t(type, &ret, tmp->min, tmp->max);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
@@ -1492,6 +1504,8 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 
 	if (!type)
 		return rl;
+	if (type_is_fp(rl_type(rl)))
+		return cast_rl_fp(type, rl);
 	if (!rl_is_sane(rl))
 		return alloc_whole_rl(type);
 	if (type == rl_type(rl) && rl_type_consistent(rl))
