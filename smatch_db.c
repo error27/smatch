@@ -1652,6 +1652,9 @@ static bool has_possible_negative(struct sm_state *sm)
 {
 	struct sm_state *tmp;
 
+	if (!type_signed(estate_type(sm->state)))
+		return false;
+
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (!estate_rl(tmp->state))
 			continue;
