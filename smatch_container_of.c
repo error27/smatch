@@ -251,15 +251,16 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	}
 
 found:
-	star = true;
-	if (container->type == EXPR_PREOP && container->op == '&') {
+
+	if (container->type == EXPR_DEREF)
+		star = true;
+	else
+		star = false;
+
+	if (container->type == EXPR_PREOP && container->op == '&')
 		container = strip_expr(container->unop);
-		star = false;
-	}
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
+	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_expr(expr->unop);
-		star = false;
-	}
 
 	sym = expr_to_sym(expr);
 	if (!sym)
