@@ -188,6 +188,33 @@ found:
 	return buf;
 }
 
+static char *get_stored_container_name(struct expression *container,
+				       struct expression *expr)
+{
+	struct smatch_state *state;
+	static char buf[64];
+	char *p;
+	int param;
+
+	if (!container || container->type != EXPR_SYMBOL)
+		return NULL;
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return NULL;
+	state = get_state_expr(param_id, expr);
+	if (!state)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "%s", state->name);
+	p = strchr(buf, '|');
+	if (!p)
+		return NULL;
+	*p = '\0';
+	param = atoi(p + 2);
+	if (get_param_sym_from_num(param) == container->symbol)
+		return buf;
+	return NULL;
+}
+
 char *get_container_name(struct expression *container, struct expression *expr)
 {
 	struct symbol *container_sym, *sym;
@@ -196,6 +223,10 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	char *ret, *shared;
 	bool star;
 	int cnt;
+
+	ret = get_stored_container_name(container, expr);
+	if (ret)
+		return ret;
 
 	sym = expr_to_sym(expr);
 	container_sym = expr_to_sym(container);
@@ -242,11 +273,31 @@ found:
 	return buf;
 }
 
+static bool is_fn_ptr(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (!expr)
+		return false;
+	if (expr->type != EXPR_SYMBOL && expr->type != EXPR_DEREF)
+		return false;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_FN)
+		return false;
+	return true;
+}
+
 static void match_call(struct expression *call)
 {
-	struct expression *fn, *arg;
+	struct expression *fn, *arg, *tmp;
+	bool found = false;
+	int fn_param, param;
+	char buf[32];
 	char *name;
-	int param;
 
 	/*
 	 * We're trying to link the function with the parameter.  There are a
@@ -268,17 +319,43 @@ static void match_call(struct expression *call)
 	FOR_EACH_PTR(call->args, arg) {
 		param++;
 
-		name = get_container_name(fn, arg);
+		name = get_container_name(arg, fn);
 		if (!name)
 			continue;
 
+		found = true;
 		sql_insert_caller_info(call, CONTAINER, param, name, "$(-1)");
+	} END_FOR_EACH_PTR(arg);
+
+	if (found)
+		return;
+
+	fn_param = -1;
+	FOR_EACH_PTR(call->args, arg) {
+		fn_param++;
+		if (!is_fn_ptr(arg))
+			continue;
+		param = -1;
+		FOR_EACH_PTR(call->args, tmp) {
+			param++;
+
+			name = get_container_name(tmp, arg);
+			if (!name)
+				continue;
+
+			snprintf(buf, sizeof(buf), "$%d", param);
+			sql_insert_caller_info(call, CONTAINER, fn_param, name, buf);
+			return;
+		} END_FOR_EACH_PTR(tmp);
 	} END_FOR_EACH_PTR(arg);
 }
 
 static void db_passed_container(const char *name, struct symbol *sym, char *key, char *value)
 {
-	set_state(param_id, name, sym, alloc_state_str(key));
+	char buf[64];
+
+	snprintf(buf, sizeof(buf), "%s|%s", key, value);
+	set_state(param_id, name, sym, alloc_state_str(buf));
 }
 
 struct db_info {
@@ -459,15 +536,26 @@ static void load_container_data(struct symbol *arg, const char *info)
 {
 	mtag_t cur_tag, container_tag, arg_tag;
 	int container_offset, arg_offset;
-	char *p = (char *)info;
 	struct sm_state *sm;
 	struct stree *stree;
+	char *p, *cont;
+	char copy[64];
 	bool star = 0;
 
+	snprintf(copy, sizeof(copy), "%s", info);
+	p = strchr(copy, '|');
+	if (!p)
+		return;
+	*p = '\0';
+	cont = p + 1;
+	p = copy;
 	if (p[0] == '*') {
 		star = 1;
 		p += 2;
 	}
+
+	if (strcmp(cont, "$(-1)") != 0)
+		return;
 
 	if (!get_toplevel_mtag(cur_func_sym, &cur_tag))
 		return;
