@@ -250,6 +250,10 @@ char *get_container_name(struct expression *container, struct expression *expr)
 found:
 	container = strip_expr(container);
 	star = true;
+	if (container->type == EXPR_PREOP && container->op == '&') {
+		container = strip_expr(container->unop);
+		star = false;
+	}
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		expr = strip_expr(expr->unop);
 		star = false;
