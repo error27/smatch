@@ -346,6 +346,10 @@ static void match_call(struct expression *call)
 		FOR_EACH_PTR(call->args, tmp) {
 			param++;
 
+			/* the function isn't it's own container */
+			if (arg == tmp)
+				continue;
+
 			name = get_container_name(tmp, arg);
 			if (!name)
 				continue;
