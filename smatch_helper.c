@@ -1066,6 +1066,22 @@ int get_param_num(struct expression *expr)
 	return get_param_num_from_sym(sym);
 }
 
+struct symbol *get_param_sym_from_num(int num)
+{
+	struct symbol *sym;
+	int i;
+
+	if (!cur_func_sym)
+		return NULL;
+
+	i = 0;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, sym) {
+		if (i++ == num)
+			return sym;
+	} END_FOR_EACH_PTR(sym);
+	return NULL;
+}
+
 int ms_since(struct timeval *start)
 {
 	struct timeval end;

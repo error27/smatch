@@ -437,6 +437,7 @@ struct statement *get_prev_statement(void);
 struct expression *get_last_expr_from_expression_stmt(struct expression *expr);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
+struct symbol *get_param_sym_from_num(int num);
 int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);
 int parent_is_gone(struct expression *expr);
