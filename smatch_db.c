@@ -1821,6 +1821,37 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	return 1;
 }
 
+static bool is_kernel_success_fail(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	struct range_list *rl;
+	bool has_zero = false;
+	bool has_neg = false;
+
+	if (!type_signed(estate_type(sm->state)))
+		return false;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		rl = estate_rl(tmp->state);
+		if (!rl)
+			return false;
+		if (rl_min(rl).value == 0 && rl_max(rl).value == 0) {
+			has_zero = true;
+			continue;
+		}
+		has_neg = true;
+		if (rl_min(rl).value >= -4095 && rl_max(rl).value < 0)
+			continue;
+		if (strcmp(tmp->state->name, "s32min-(-1)") == 0)
+			continue;
+		if (strcmp(tmp->state->name, "s32min-(-1),1-s32max") == 0)
+			continue;
+		return false;
+	} END_FOR_EACH_PTR(tmp);
+
+	return has_zero && has_neg;
+}
+
 static int call_return_state_hooks_split_success_fail(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -1837,7 +1868,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 		return 0;
 
 	nr_states = get_db_state_count();
-	if (nr_states > 1500)
+	if (nr_states > 2000)
 		return 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
@@ -1845,16 +1876,11 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 		return 0;
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
 		return 0;
+	if (!is_kernel_success_fail(sm))
+		return 0;
 
 	rl = estate_rl(sm->state);
 	if (!rl)
-		return 0;
-
-	if (rl_min(rl).value < -4095 || rl_min(rl).value >= 0)
-		return 0;
-	if (rl_max(rl).value != 0)
-		return 0;
-	if (!has_possible_zero_null(sm))
 		return 0;
 
 	__push_fake_cur_stree();
