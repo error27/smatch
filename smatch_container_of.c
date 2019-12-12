@@ -151,21 +151,21 @@ static int partial_deref_to_offset_str(struct expression *expr, int cnt, char op
 	return n;
 }
 
-static char *get_shared_str(struct expression *container, struct expression *expr)
+static char *get_shared_str(struct expression *expr, struct expression *container)
 {
 	struct expression *one, *two;
-	int cont, exp, min, ret, n;
+	int exp, cont, min, ret, n;
 	static char buf[48];
 
-	cont = get_deref_count(container);
 	exp = get_deref_count(expr);
-	if (cont < 0 || exp < 0)
+	cont = get_deref_count(container);
+	if (exp < 0 || cont < 0)
 		return NULL;
 
-	min = (cont < exp) ? cont : exp;
+	min = (exp < cont) ? exp : cont;
 	while (min >= 0) {
-		one = get_partial_deref(container, cont - min);
-		two = get_partial_deref(expr, exp - min);
+		one = get_partial_deref(expr, exp - min);
+		two = get_partial_deref(container, cont - min);
 		if (expr_equiv(one, two))
 			goto found;
 		min--;
@@ -174,11 +174,11 @@ static char *get_shared_str(struct expression *container, struct expression *exp
 	return NULL;
 
 found:
-	ret = partial_deref_to_offset_str(container, cont - min, '-', buf, sizeof(buf));
+	ret = partial_deref_to_offset_str(expr, exp - min, '-', buf, sizeof(buf));
 	if (ret < 0)
 		return NULL;
 	n = ret;
-	ret = partial_deref_to_offset_str(expr, exp - min, '+', buf + ret, sizeof(buf) - ret);
+	ret = partial_deref_to_offset_str(container, cont - min, '+', buf + ret, sizeof(buf) - ret);
 	if (ret < 0)
 		return NULL;
 	n += ret;
@@ -193,21 +193,14 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	struct symbol *container_sym, *sym;
 	struct expression *tmp;
 	static char buf[64];
-	char *shared;
+	char *ret, *shared;
 	bool star;
 	int cnt;
 
-	container_sym = expr_to_sym(container);
 	sym = expr_to_sym(expr);
-	if (container_sym && container_sym == sym)
+	container_sym = expr_to_sym(container);
+	if (sym && sym == container_sym)
 		goto found;
-
-	cnt = 0;
-	while ((tmp = get_assigned_expr(expr))) {
-		expr = tmp;
-		if (cnt++ > 3)
-			break;
-	}
 
 	cnt = 0;
 	while ((tmp = get_assigned_expr(container))) {
@@ -216,22 +209,29 @@ char *get_container_name(struct expression *container, struct expression *expr)
 			break;
 	}
 
+	cnt = 0;
+	while ((tmp = get_assigned_expr(expr))) {
+		expr = tmp;
+		if (cnt++ > 3)
+			break;
+	}
+
 found:
-	expr = strip_expr(expr);
+	container = strip_expr(container);
 	star = true;
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		expr = strip_expr(expr->unop);
 		star = false;
 	}
 
-	container_sym = expr_to_sym(container);
-	if (!container_sym)
-		return NULL;
 	sym = expr_to_sym(expr);
-	if (!sym || container_sym != sym)
+	if (!sym)
+		return NULL;
+	container_sym = expr_to_sym(container);
+	if (!container_sym || sym != container_sym)
 		return NULL;
 
-	shared = get_shared_str(container, expr);
+	shared = get_shared_str(expr, container);
 	if (star)
 		snprintf(buf, sizeof(buf), "*(%s)", shared);
 	else
