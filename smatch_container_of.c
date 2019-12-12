@@ -232,6 +232,8 @@ found:
 		return NULL;
 
 	shared = get_shared_str(expr, container);
+	if (!shared)
+		return NULL;
 	if (star)
 		snprintf(buf, sizeof(buf), "*(%s)", shared);
 	else
