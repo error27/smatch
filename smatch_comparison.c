@@ -2704,7 +2704,7 @@ static void filter_by_sm(struct sm_state *sm, int op,
 	if (!sm)
 		return;
 	data = sm->state->data;
-	if (!data || data->comparison == UNKNOWN_COMPARISON)
+	if (!data)
 		goto split;
 	if (data->comparison == IMPOSSIBLE_COMPARISON)
 		return;
