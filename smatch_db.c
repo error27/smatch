@@ -1666,7 +1666,7 @@ static bool has_possible_negative(struct sm_state *sm)
 	return false;
 }
 
-static bool has_possible_zero_null(struct sm_state *sm)
+static bool has_separate_zero_null(struct sm_state *sm)
 {
 	struct sm_state *tmp;
 	sval_t sval;
@@ -1688,8 +1688,8 @@ static int split_positive_from_negative(struct expression *expr)
 	struct range_list *rl;
 	const char *return_ranges;
 	struct range_list *ret_rl;
+	bool separate_zero;
 	int undo;
-	bool has_zero;
 
 	/* We're going to print the states 3 times */
 	if (get_db_state_count() > 10000 / 3)
@@ -1710,9 +1710,9 @@ static int split_positive_from_negative(struct expression *expr)
 		return 0;
 	if (!has_possible_negative(sm))
 		return 0;
-	has_zero = has_possible_zero_null(sm);
+	separate_zero = has_separate_zero_null(sm);
 
-	if (!assume(compare_expression(expr, has_zero ? '>' : SPECIAL_GTE, zero_expr())))
+	if (!assume(compare_expression(expr, separate_zero ? '>' : SPECIAL_GTE, zero_expr())))
 		return 0;
 
 	return_id++;
@@ -1724,7 +1724,7 @@ static int split_positive_from_negative(struct expression *expr)
 
 	end_assume();
 
-	if (has_zero) {
+	if (separate_zero) {
 		undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
 
 		return_id++;
@@ -1781,7 +1781,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 		return 0;
 	if (estate_min(state).value == 0 && estate_max(state).value == 0)
 		return 0;
-	if (!has_possible_zero_null(sm))
+	if (!has_separate_zero_null(sm))
 		return 0;
 
 	nr_states = get_db_state_count();
@@ -2035,7 +2035,7 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	if (!sm)
 		return 0;
 
-	if (!has_possible_zero_null(sm))
+	if (!has_separate_zero_null(sm))
 		return 0;
 
 	nr_possible = ptr_list_size((struct ptr_list *)sm->possible);
