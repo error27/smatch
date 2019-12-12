@@ -224,6 +224,9 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	bool star;
 	int cnt;
 
+	expr = strip_expr(expr);
+	container = strip_expr(container);
+
 	ret = get_stored_container_name(container, expr);
 	if (ret)
 		return ret;
@@ -235,20 +238,19 @@ char *get_container_name(struct expression *container, struct expression *expr)
 
 	cnt = 0;
 	while ((tmp = get_assigned_expr(container))) {
-		container = tmp;
+		container = strip_expr(tmp);
 		if (cnt++ > 3)
 			break;
 	}
 
 	cnt = 0;
 	while ((tmp = get_assigned_expr(expr))) {
-		expr = tmp;
+		expr = strip_expr(tmp);
 		if (cnt++ > 3)
 			break;
 	}
 
 found:
-	container = strip_expr(container);
 	star = true;
 	if (container->type == EXPR_PREOP && container->op == '&') {
 		container = strip_expr(container->unop);
