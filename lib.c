@@ -1137,56 +1137,14 @@ static char **handle_switch_x(char *arg, char **next)
 
 static char **handle_arch(char *arg, char **next)
 {
-	static const struct arch {
-		const char *name;
-		enum machine mach;
-		char bits;
-	} archs[] = {
-		{ "aarch64",	MACH_ARM64,	64, },
-		{ "arm64",	MACH_ARM64,	64, },
-		{ "arm",	MACH_ARM,	32, },
-		{ "i386",	MACH_I386,	32, },
-		{ "m68k",	MACH_M68K,	32, },
-		{ "mips",	MACH_MIPS32,	0,  },
-		{ "powerpc",	MACH_PPC32,	0,  },
-		{ "ppc",	MACH_PPC32,	0,  },
-		{ "riscv",	MACH_RISCV32,	0,  },
-		{ "s390x",	MACH_S390X,	64, },
-		{ "s390",	MACH_S390,	32, },
-		{ "sparc",	MACH_SPARC32,	0,  },
-		{ "x86_64",	MACH_X86_64,	64, },
-		{ "x86-64",	MACH_X86_64,	64, },
-		{ NULL },
-	};
-	const struct arch *p;
+	enum machine mach;
 
 	if (*arg++ != '=')
 		die("missing argument for --arch option");
 
-	for (p = &archs[0]; p->name; p++) {
-		size_t len = strlen(p->name);
-		if (strncmp(p->name, arg, len) == 0) {
-			enum machine mach = p->mach;
-			const char *suf = arg + len;
-			int bits = p->bits;
-
-			if (bits == 0) {
-				if (!strcmp(suf, "") || !strcmp(suf, "32")) {
-					;
-				} else if (!strcmp(suf, "64")) {
-					mach += 1;
-				} else {
-					die("invalid architecture: %s", arg);
-				}
-			} else {
-				if (strcmp(suf, ""))
-					die("invalid architecture: %s", arg);
-			}
-
-			target_config(mach);
-			break;
-		}
-	}
+	mach = target_parse(arg);
+	if (mach != MACH_UNKNOWN)
+		target_config(mach);
 
 	return next;
 }
