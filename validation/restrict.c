@@ -66,7 +66,7 @@ void baz(void)
 
 /*
  * check-name: restrict qualifier
- * check-command: sparse -Wno-decl $file;
+ * check-command: sparse -Wno-decl $file
  *
  * check-error-start
 restrict.c:11:6: error: symbol 'f02' redeclared with different type (originally declared at restrict.c:3) - incompatible argument 1 (different modifiers)
