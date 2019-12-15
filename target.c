@@ -134,7 +134,6 @@ void target_config(enum machine mach)
 	const struct target *target = targets[mach];
 
 	arch_target = target;
-	arch_mach = target->mach;
 	arch_m64 = target->bitness;
 	arch_big_endian = target->big_endian;
 
@@ -179,7 +178,6 @@ void target_init(void)
 		break;
 	}
 	arch_target = target;
-	arch_mach = target->mach;
 
 	if (fpie > fpic)
 		fpic = fpie;
