@@ -196,7 +196,7 @@ void target_init(void)
 	if (target->init)
 		target->init(target);
 
-	if (arch_msize_long) {
+	if (arch_msize_long || target->size_t_long) {
 		size_t_ctype = &ulong_ctype;
 		ssize_t_ctype = &long_ctype;
 	}

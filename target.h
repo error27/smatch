@@ -59,6 +59,7 @@ struct target {
 	enum bitness	bitness;
 	unsigned int	big_endian:1;
 	unsigned int	unsigned_char:1;
+	unsigned int	size_t_long:1;
 
 	struct symbol	*wchar;
 	struct symbol	*wint;
