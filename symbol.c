@@ -460,12 +460,12 @@ static struct symbol *examine_typeof(struct symbol *sym)
 
 	if (!base)
 		base = &bad_ctype;
-	if (is_bitfield_type(base))
-		warning(base->pos, "typeof applied to bitfield type");
 	if (base->type == SYM_NODE) {
 		mod |= base->ctype.modifiers & MOD_TYPEOF;
 		base = base->ctype.base_type;
 	}
+	if (base->type == SYM_BITFIELD)
+		warning(base->pos, "typeof applied to bitfield type");
 	sym->type = SYM_NODE;
 	sym->ctype.modifiers = mod;
 	sym->ctype.base_type = base;
