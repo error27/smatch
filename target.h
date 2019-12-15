@@ -1,6 +1,8 @@
 #ifndef TARGET_H
 #define TARGET_H
 
+#include "machine.h"
+
 extern struct symbol *size_t_ctype;
 extern struct symbol *ssize_t_ctype;
 extern struct symbol *intmax_ctype;
@@ -50,6 +52,48 @@ extern int pointer_alignment;
  */
 extern int bits_in_enum;
 extern int enum_alignment;
+
+
+struct target {
+	enum machine	mach;
+	enum bitness	bitness;
+	unsigned int	big_endian:1;
+	unsigned int	unsigned_char:1;
+
+	struct symbol	*wchar;
+	struct symbol	*wint;
+
+	unsigned int	bits_in_longdouble;
+	unsigned int	max_fp_alignment;
+
+	const struct target *target_32bit;
+	const struct target *target_64bit;
+
+	void (*init)(const struct target *self);
+};
+
+extern const struct target target_default;
+extern const struct target target_arm;
+extern const struct target target_arm64;
+extern const struct target target_m68k;
+extern const struct target target_mips32;
+extern const struct target target_mips64;
+extern const struct target target_ppc32;
+extern const struct target target_ppc64;
+extern const struct target target_riscv32;
+extern const struct target target_riscv64;
+extern const struct target target_s390;
+extern const struct target target_s390x;
+extern const struct target target_sparc32;
+extern const struct target target_sparc64;
+extern const struct target target_i386;
+extern const struct target target_x86_64;
+
+/* target.c */
+extern const struct target *arch_target;
+
+void target_config(enum machine mach);
+void target_init(void);
 
 /*
  * Helper functions for converting bits to bytes and vice versa.

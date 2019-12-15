@@ -314,7 +314,7 @@ unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
 int fshort_wchar = 0;
-int funsigned_char = -1;
+int funsigned_char = 0;
 
 int preprocess_only;
 
@@ -728,6 +728,8 @@ static void handle_arch_finalize(void)
 
 	if (fpie > fpic)
 		fpic = fpie;
+	if (fshort_wchar)
+		wchar_ctype = &ushort_ctype;
 
 	switch (arch_mach) {
 	case MACH_ARM64:
@@ -1137,24 +1139,23 @@ static char **handle_arch(char *arg, char **next)
 {
 	static const struct arch {
 		const char *name;
-		char mach;
+		enum machine mach;
 		char bits;
-		bool big_endian:1;
 	} archs[] = {
-		{ "aarch64",	MACH_ARM64,	64, 0 },
-		{ "arm64",	MACH_ARM64,	64, 0 },
-		{ "arm",	MACH_ARM,	32, 0 },
-		{ "i386",	MACH_I386,	32, 0 },
-		{ "m68k",	MACH_M68K,	32, 0 },
-		{ "mips",	MACH_MIPS32,	0,  1 },
-		{ "powerpc",	MACH_PPC32,	0,  1 },
-		{ "ppc",	MACH_PPC32,	0,  1 },
-		{ "riscv",	MACH_RISCV32,	0,  0 },
-		{ "s390x",	MACH_S390X,	64, 1 },
-		{ "s390",	MACH_S390,	32, 1 },
-		{ "sparc",	MACH_SPARC32,	0,  1 },
-		{ "x86_64",	MACH_X86_64,	64, 0 },
-		{ "x86-64",	MACH_X86_64,	64, 0 },
+		{ "aarch64",	MACH_ARM64,	64, },
+		{ "arm64",	MACH_ARM64,	64, },
+		{ "arm",	MACH_ARM,	32, },
+		{ "i386",	MACH_I386,	32, },
+		{ "m68k",	MACH_M68K,	32, },
+		{ "mips",	MACH_MIPS32,	0,  },
+		{ "powerpc",	MACH_PPC32,	0,  },
+		{ "ppc",	MACH_PPC32,	0,  },
+		{ "riscv",	MACH_RISCV32,	0,  },
+		{ "s390x",	MACH_S390X,	64, },
+		{ "s390",	MACH_S390,	32, },
+		{ "sparc",	MACH_SPARC32,	0,  },
+		{ "x86_64",	MACH_X86_64,	64, },
+		{ "x86-64",	MACH_X86_64,	64, },
 		{ NULL },
 	};
 	const struct arch *p;
@@ -1165,18 +1166,15 @@ static char **handle_arch(char *arg, char **next)
 	for (p = &archs[0]; p->name; p++) {
 		size_t len = strlen(p->name);
 		if (strncmp(p->name, arg, len) == 0) {
+			enum machine mach = p->mach;
 			const char *suf = arg + len;
 			int bits = p->bits;
 
-			arch_mach = p->mach;
 			if (bits == 0) {
-				if (!strcmp(suf, "")) {
-					bits = 32;
-				} else if (!strcmp(suf, "32")) {
-					bits = 32;
+				if (!strcmp(suf, "") || !strcmp(suf, "32")) {
+					;
 				} else if (!strcmp(suf, "64")) {
-					bits = 64;
-					arch_mach += 1;
+					mach += 1;
 				} else {
 					die("invalid architecture: %s", arg);
 				}
@@ -1185,12 +1183,7 @@ static char **handle_arch(char *arg, char **next)
 					die("invalid architecture: %s", arg);
 			}
 
-			// adjust the arch size (but keep x32 & llp64)
-			if (bits == 32)
-				arch_m64 = ARCH_LP32;
-			else if (bits == 64 && arch_m64 == ARCH_LP32)
-				arch_m64 = ARCH_LP64;
-			arch_big_endian = p->big_endian;
+			target_config(mach);
 			break;
 		}
 	}
@@ -1748,6 +1741,9 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	// initialize the default target to the native 'machine'
+	target_config(MACH_NATIVE);
+
 	args = argv;
 	for (;;) {
 		char *arg = *++args;
@@ -1777,7 +1773,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	list = NULL;
 	if (filelist) {
 		// Initialize type system
-		init_target();
+		target_init();
 		handle_arch_finalize();
 		init_ctype();
 

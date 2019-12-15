@@ -310,7 +310,6 @@ extern void init_symbols(void);
 extern void init_builtins(int stream);
 extern void declare_builtins(void);
 extern void init_ctype(void);
-extern void init_target(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
