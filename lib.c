@@ -1275,55 +1275,6 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 		predefined_width(name, bits);
 }
 
-static void predefined_cmodel(void)
-{
-	const char *pre, *suf;
-	const char *def = NULL;
-	switch (arch_mach) {
-	case MACH_ARM64:
-		pre = "__AARCH64_CMODEL_";
-		suf = "__";
-		switch (arch_cmodel) {
-		case CMODEL_LARGE:
-			def = "LARGE";
-			break;
-		case CMODEL_SMALL:
-			def = "SMALL";
-			break;
-		case CMODEL_TINY:
-			def = "TINY";
-			break;
-		default:
-			break;
-		}
-		break;
-	case MACH_RISCV32:
-	case MACH_RISCV64:
-		pre = "__riscv_cmodel_";
-		suf = "";
-		switch (arch_cmodel) {
-		case CMODEL_MEDLOW:
-			def = "medlow";
-			break;
-		case CMODEL_MEDANY:
-			def = "medany";
-			break;
-		case CMODEL_PIC:
-			def = "pic";
-			break;
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	if (!def)
-		return;
-	add_pre_buffer("#weak_define %s%s%s 1\n", pre, def, suf);
-}
-
 static void predefined_macros(void)
 {
 	predefine("__CHECKER__", 0, "1");
@@ -1457,7 +1408,6 @@ static void predefined_macros(void)
 
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);
-	predefined_cmodel();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

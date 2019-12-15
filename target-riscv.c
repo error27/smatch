@@ -13,8 +13,18 @@ static void init_riscv(const struct target *self)
 
 static void predefine_riscv(const struct target *self)
 {
+	static const char *cmodels[CMODEL_LAST] = {
+		[CMODEL_MEDANY] = "medany",
+		[CMODEL_MEDLOW] = "medlow",
+		[CMODEL_PIC]    = "pic",
+	};
+	const char *cmodel = cmodels[arch_cmodel];
+
 	predefine("__riscv", 1, "1");
 	predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
+
+	if (cmodel)
+		add_pre_buffer("#define __riscv_cmodel_%s 1\n", cmodel);
 }
 
 const struct target target_riscv32 = {

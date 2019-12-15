@@ -11,7 +11,17 @@ static void init_arm64(const struct target *self)
 
 static void predefine_arm64(const struct target *self)
 {
+	static const char *cmodels[CMODEL_LAST] = {
+		[CMODEL_LARGE] = "LARGE",
+		[CMODEL_SMALL] = "SMALL",
+		[CMODEL_TINY]  = "TINY",
+	};
+	const char *cmodel = cmodels[arch_cmodel];
+
 	predefine("__aarch64__", 1, "1");
+
+	if (cmodel)
+		add_pre_buffer("#define __AARCH64_CMODEL_%s__ 1\n", cmodel);
 }
 
 const struct target target_arm64 = {

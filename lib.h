@@ -222,6 +222,7 @@ enum {
 	CMODEL_PIC,
 	CMODEL_SMALL,
 	CMODEL_TINY,
+	CMODEL_LAST,
 };
 extern int arch_cmodel;
 
