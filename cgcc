@@ -286,9 +286,9 @@ sub add_specs {
 	return (
 		' --arch=ppc64' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
-    } elsif ($spec eq 'ppc64+be') {
+    } elsif ($spec eq 'ppc64be') {
 	return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
-    } elsif ($spec eq 'ppc64+le') {
+    } elsif ($spec eq 'ppc64le') {
 	return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
     } elsif ($spec eq 's390x') {
 	return (' -D_BIG_ENDIAN' .
@@ -328,7 +328,7 @@ sub add_specs {
 	} elsif ($gccmachine =~ '^i[23456]86-') {
 	    return &add_specs ('i386');
 	} elsif ($gccmachine =~ '^(powerpc|ppc)64le-') {
-	    return &add_specs ('ppc64+le');
+	    return &add_specs ('ppc64le');
 	} elsif ($gccmachine =~ '^s390x-') {
 	    return &add_specs ('s390x');
 	} elsif ($gccmachine eq 'x86_64-linux-gnux32') {
@@ -353,9 +353,9 @@ sub add_specs {
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
 	} elsif ($arch =~ /^(ppc64)$/i) {
-	    return &add_specs ('ppc64+be');
+	    return &add_specs ('ppc64be');
 	} elsif ($arch =~ /^(ppc64le)$/i) {
-	    return &add_specs ('ppc64+le');
+	    return &add_specs ('ppc64le');
 	} elsif ($arch =~ /^(s390x)$/i) {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {
