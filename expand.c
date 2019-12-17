@@ -621,12 +621,70 @@ static int expand_addressof(struct expression *expr)
 	return expand_expression(expr->unop);
 }
 
+///
+// lookup the type of a struct's memeber at the requested offset
+static struct symbol *find_member(struct symbol *sym, int offset)
+{
+	struct ptr_list *head, *list;
+
+	head = (struct ptr_list *) sym->symbol_list;
+	list = head;
+	if (!head)
+		return NULL;
+	do {
+		int nr = list->nr;
+		int i;
+		for (i = 0; i < nr; i++) {
+			struct symbol *ent = (struct symbol *) list->list[i];
+			int curr = ent->offset;
+			if (curr == offset)
+				return ent;
+			if (curr > offset)
+				return NULL;
+		}
+	} while ((list = list->next) != head);
+	return NULL;
+}
+
+///
+// lookup a suitable default initializer value at the requested offset
+static struct expression *default_initializer(struct symbol *sym, int offset)
+{
+	static struct expression value;
+	struct symbol *type;
+
+redo:
+	switch (sym->type) {
+	case SYM_NODE:
+		sym = sym->ctype.base_type;
+		goto redo;
+	case SYM_STRUCT:
+		type = find_member(sym, offset);
+		if (!type)
+			return NULL;
+		break;
+	case SYM_ARRAY:
+		type = sym->ctype.base_type;
+		break;
+	default:
+		return NULL;
+	}
+
+	if (is_integral_type(type))
+		value.type = EXPR_VALUE;
+	else if (is_float_type(type))
+		value.type = EXPR_FVALUE;
+	else
+		return NULL;
+
+	value.ctype = type;
+	return &value;
+}
+
 /*
  * Look up a trustable initializer value at the requested offset.
  *
  * Return NULL if no such value can be found or statically trusted.
- *
- * FIXME!! We should check that the size is right!
  */
 static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 {
@@ -648,10 +706,11 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 			if (entry->init_offset < offset)
 				continue;
 			if (entry->init_offset > offset)
-				return NULL;
+				break;
 			return entry->init_expr;
 		} END_FOR_EACH_PTR(entry);
-		return NULL;
+
+		value = default_initializer(sym, offset);
 	}
 	return value;
 }
@@ -678,22 +737,26 @@ static int expand_dereference(struct expression *expr)
 	 * Is it "symbol" or "symbol + offset"?
 	 */
 	offset = 0;
-	if (unop->type == EXPR_BINOP && unop->op == '+') {
+	while (unop->type == EXPR_BINOP && unop->op == '+') {
 		struct expression *right = unop->right;
-		if (right->type == EXPR_VALUE) {
-			offset = right->value;
-			unop = unop->left;
-		}
+		if (right->type != EXPR_VALUE)
+			break;
+		offset += right->value;
+		unop = unop->left;
 	}
 
 	if (unop->type == EXPR_SYMBOL) {
 		struct symbol *sym = unop->symbol;
+		struct symbol *ctype = expr->ctype;
 		struct expression *value = constant_symbol_value(sym, offset);
 
 		/* Const symbol with a constant initializer? */
-		if (value) {
-			/* FIXME! We should check that the size is right! */
+		if (value && value->ctype) {
+			if (ctype->bit_size != value->ctype->bit_size)
+				return UNSAFE;
 			if (value->type == EXPR_VALUE) {
+				if (!is_integral_type(ctype))
+					return UNSAFE;
 				if (is_bitfield_type(value->ctype))
 					return UNSAFE;
 				expr->type = EXPR_VALUE;
@@ -701,6 +764,8 @@ static int expand_dereference(struct expression *expr)
 				expr->taint = 0;
 				return 0;
 			} else if (value->type == EXPR_FVALUE) {
+				if (!is_float_type(ctype))
+					return UNSAFE;
 				expr->type = EXPR_FVALUE;
 				expr->fvalue = value->fvalue;
 				return 0;
