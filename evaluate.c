@@ -110,6 +110,8 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
 	sym->initializer = initstr;
+	sym->examined = 1;
+	sym->evaluated = 1;
 
 	initstr->ctype = sym;
 	initstr->string = expr->string;
@@ -119,6 +121,8 @@ static struct symbol *evaluate_string(struct expression *expr)
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
+	array->examined = 1;
+	array->evaluated = 1;
 	
 	addr->symbol = sym;
 	addr->ctype = &lazy_ptr_ctype;
@@ -379,10 +383,8 @@ static inline int classify_type(struct symbol *type, struct symbol **base)
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	if (type->type == SYM_TYPEOF) {
-		type = evaluate_expression(type->initializer);
-		if (!type)
-			type = &bad_ctype;
-		else if (type->type == SYM_NODE)
+		type = examine_symbol_type(type);
+		if (type->type == SYM_NODE)
 			type = type->ctype.base_type;
 	}
 	if (type->type == SYM_ENUM)

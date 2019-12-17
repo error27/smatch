@@ -453,6 +453,25 @@ static struct symbol *examine_pointer_type(struct symbol *sym)
 	return sym;
 }
 
+static struct symbol *examine_typeof(struct symbol *sym)
+{
+	struct symbol *base = evaluate_expression(sym->initializer);
+	unsigned long mod = 0;
+
+	if (!base)
+		base = &bad_ctype;
+	if (base->type == SYM_NODE) {
+		mod |= base->ctype.modifiers & MOD_TYPEOF;
+		base = base->ctype.base_type;
+	}
+	if (base->type == SYM_BITFIELD)
+		warning(base->pos, "typeof applied to bitfield type");
+	sym->type = SYM_NODE;
+	sym->ctype.modifiers = mod;
+	sym->ctype.base_type = base;
+	return examine_node_type(sym);
+}
+
 /*
  * Fill in type size and alignment information for
  * regular SYM_TYPE things.
@@ -486,26 +505,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 	case SYM_BASETYPE:
 		/* Size and alignment had better already be set up */
 		return sym;
-	case SYM_TYPEOF: {
-		struct symbol *base = evaluate_expression(sym->initializer);
-		if (base) {
-			unsigned long mod = 0;
-
-			if (is_bitfield_type(base))
-				warning(base->pos, "typeof applied to bitfield type");
-			if (base->type == SYM_NODE) {
-				mod |= base->ctype.modifiers & MOD_TYPEOF;
-				base = base->ctype.base_type;
-			}
-			sym->type = SYM_NODE;
-			sym->ctype.modifiers = mod;
-			sym->ctype.base_type = base;
-			return examine_node_type(sym);
-		}
-		sym->type = SYM_NODE;
-		sym->ctype.base_type = &bad_ctype;
-		return sym;
-	}
+	case SYM_TYPEOF:
+		return examine_typeof(sym);
 	case SYM_PREPROCESSOR:
 		sparse_error(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
