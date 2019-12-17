@@ -69,8 +69,14 @@ void baz(void)
  * check-command: sparse -Wno-decl $file
  *
  * check-error-start
-c11-atomic.c:11:6: error: symbol 'f02' redeclared with different type (originally declared at c11-atomic.c:3) - incompatible argument 1 (different modifiers)
-c11-atomic.c:12:6: error: symbol 'f03' redeclared with different type (originally declared at c11-atomic.c:4) - incompatible argument 1 (different modifiers)
+c11-atomic.c:11:6: error: symbol 'f02' redeclared with different type (incompatible argument 1 (different modifiers)):
+c11-atomic.c:11:6:    void extern [addressable] [toplevel] f02( ... )
+c11-atomic.c:3:6: note: previously declared as:
+c11-atomic.c:3:6:    void extern [addressable] [toplevel] f02( ... )
+c11-atomic.c:12:6: error: symbol 'f03' redeclared with different type (incompatible argument 1 (different modifiers)):
+c11-atomic.c:12:6:    void extern [addressable] [toplevel] f03( ... )
+c11-atomic.c:4:6: note: previously declared as:
+c11-atomic.c:4:6:    void extern [addressable] [toplevel] f03( ... )
 c11-atomic.c:33:13: warning: incorrect type in assignment (different modifiers)
 c11-atomic.c:33:13:    expected int *extern [assigned] puo
 c11-atomic.c:33:13:    got int const *

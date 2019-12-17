@@ -3390,9 +3390,11 @@ void check_duplicates(struct symbol *sym)
 		declared++;
 		typediff = type_difference(&sym->ctype, &next->ctype, 0, 0);
 		if (typediff) {
-			sparse_error(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
-				show_ident(sym->ident),
-				stream_name(next->pos.stream), next->pos.line, typediff);
+			sparse_error(sym->pos, "symbol '%s' redeclared with different type (%s):",
+				show_ident(sym->ident), typediff);
+			info(sym->pos, "   %s", show_typename(sym));
+			info(next->pos, "note: previously declared as:");
+			info(next->pos, "   %s", show_typename(next));
 			return;
 		}
 	}
