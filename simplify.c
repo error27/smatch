@@ -1469,6 +1469,10 @@ static int simplify_unop(struct instruction *insn)
 			src = eval_unop(OP_NOT, insn->size, def->src2);
 			use_pseudo(insn, def->src1, &insn->src2);
 			return replace_pseudo(insn, &insn->src1, src);
+		case OP_NEG:
+			insn->opcode = OP_SUB;	// ~(-x) --> x - 1
+			insn->src2 = value_pseudo(1);
+			return replace_pseudo(insn, &insn->src1, def->src);
 		case OP_NOT:			// ~(~x) --> x
 			return replace_with_pseudo(insn, def->src);
 		case OP_SUB:
