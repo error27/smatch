@@ -465,6 +465,11 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 	return REPEAT_CSE;
 }
 
+static inline int replace_with_value(struct instruction *insn, long long val)
+{
+	return replace_with_pseudo(insn, value_pseudo(val));
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
