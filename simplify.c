@@ -1153,8 +1153,7 @@ static int simplify_constant_binop(struct instruction *insn)
 	if (!res)
 		return 0;
 
-	replace_with_pseudo(insn, res);
-	return REPEAT_CSE;
+	return replace_with_pseudo(insn, res);
 }
 
 static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
@@ -1298,8 +1297,7 @@ static int simplify_constant_unop(struct instruction *insn)
 	mask = 1ULL << (insn->size-1);
 	res &= mask | (mask-1);
 	
-	replace_with_value(insn, res);
-	return REPEAT_CSE;
+	return replace_with_value(insn, res);
 }
 
 static int simplify_unop(struct instruction *insn)
@@ -1554,8 +1552,7 @@ static int simplify_select(struct instruction *insn)
 		take = cond->value ? src1 : src2;
 		kill = cond->value ? &insn->src3 : &insn->src2;
 		kill_use(kill);
-		replace_with_pseudo(insn, take);
-		return REPEAT_CSE;
+		return replace_with_pseudo(insn, take);
 	}
 	if (constant(src1) && constant(src2)) {
 		long long val1 = src1->value;
@@ -1577,8 +1574,7 @@ static int simplify_select(struct instruction *insn)
 	if (cond == src2 && is_zero(src1)) {
 		kill_use(&insn->src1);
 		kill_use(&insn->src3);
-		replace_with_value(insn, 0);
-		return REPEAT_CSE;
+		return replace_with_value(insn, 0);
 	}
 	return 0;
 }
