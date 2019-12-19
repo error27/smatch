@@ -1311,13 +1311,11 @@ static int simplify_unop(struct instruction *insn)
 		struct instruction *def;
 
 	case OP_NOT:
-		def = insn->src->def;
-		if (def && def->opcode == OP_NOT)
+		if (DEF_OPCODE(def, insn->src) == OP_NOT)
 			return replace_with_pseudo(insn, def->src);
 		break;
 	case OP_NEG:
-		def = insn->src->def;
-		if (def && def->opcode == OP_NEG)
+		if (DEF_OPCODE(def, insn->src) == OP_NEG)
 			return replace_with_pseudo(insn, def->src);
 		break;
 	default:
