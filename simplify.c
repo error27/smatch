@@ -83,7 +83,7 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 //	number of element, a positive number if there was
 //	more than expected and a negative one if less.
 //
-// :note: we can't reuse a function like linearize_ptr_list()
+// :note: we can't reuse ptr_list_to_array() for the phi-sources
 //	because any VOIDs in the phi-list must be ignored here
 //	as in this context they mean 'entry has been removed'.
 static int get_phisources(struct instruction *sources[], int nbr, struct instruction *insn)
@@ -116,7 +116,7 @@ static int if_convert_phi(struct instruction *insn)
 	bb = insn->bb;
 	if (get_phisources(array, 2, insn))
 		return 0;
-	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
+	if (ptr_list_to_array(bb->parents, parents, 3) != 2)
 		return 0;
 	p1 = array[0]->phi_src;
 	bb1 = array[0]->bb;

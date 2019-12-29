@@ -84,6 +84,12 @@ extern void __free_ptr_list(struct ptr_list **);
 		(PTRLIST_TYPE(lst)) ptr_list_nth_entry(head, nth);\
 	})
 
+#define ptr_list_to_array(list, array, size) ({				\
+		struct ptr_list* head = (struct ptr_list*)(list);	\
+		CHECK_TYPE(list, *array);				\
+		linearize_ptr_list(head, (void**)array, size);		\
+	})
+
 ////////////////////////////////////////////////////////////////////////
 // API
 #define PREPARE_PTR_LIST(head, ptr) \
