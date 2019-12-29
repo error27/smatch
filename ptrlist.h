@@ -67,6 +67,12 @@ extern void **__add_ptr_list_tag(struct ptr_list **, void *, unsigned long);
 		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);\
 	})
 
+#define pop_ptr_list(l) ({						\
+		PTRLIST_TYPE(*(l)) ptr;					\
+		ptr = delete_ptr_list_last((struct ptr_list**)(l));	\
+		ptr;							\
+	})
+
 extern void __free_ptr_list(struct ptr_list **);
 #define free_ptr_list(list)	do {					\
 		VRFY_PTR_LIST(*(list));					\
