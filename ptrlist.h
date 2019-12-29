@@ -12,7 +12,7 @@
 
 /* Silly type-safety check ;) */
 #define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
-#define TYPEOF(head)			__typeof__(&(head)->list[0])
+#define TYPEOF(head)			__typeof__((head)->list[0])
 #define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
 
 #define LIST_NODE_NR (13)
@@ -251,7 +251,7 @@ extern void __free_ptr_list(struct ptr_list **);
 extern void split_ptr_list_head(struct ptr_list *);
 
 #define DO_INSERT_CURRENT(new, __head, __list, __nr) do {		\
-	TYPEOF(__head) __this, __last;					\
+	TYPEOF(__head) *__this, *__last;				\
 	if (__list->nr == LIST_NODE_NR) {				\
 		split_ptr_list_head((struct ptr_list*)__list);		\
 		if (__nr >= __list->nr) {				\
@@ -270,8 +270,8 @@ extern void split_ptr_list_head(struct ptr_list *);
 } while (0)
 
 #define DO_DELETE_CURRENT(__head, __list, __nr) do {			\
-	TYPEOF(__head) __this = __list->list + __nr;			\
-	TYPEOF(__head) __last = __list->list + __list->nr - 1;		\
+	TYPEOF(__head) *__this = __list->list + __nr;			\
+	TYPEOF(__head) *__last = __list->list + __list->nr - 1;		\
 	while (__this < __last) {					\
 		__this[0] = __this[1];					\
 		__this++;						\
