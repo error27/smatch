@@ -215,7 +215,7 @@ restart:
 
 ///
 // split a ptrlist block
-// @head: the ptrlist block to be splitted
+// @head: the ptrlist block to be split
 //
 // A new block is inserted just after @head and the entries
 // at the half end of @head are moved to this new block.
@@ -363,7 +363,7 @@ out:
 ///
 // remove the last entry of a ptrlist
 // @head: a pointer to the list
-// @return: the last elemant of the list or NULL if the list is empty.
+// @return: the last element of the list or NULL if the list is empty.
 //
 // :note: this doesn't repack the list
 void * undo_ptr_list_last(struct ptr_list **head)
@@ -389,7 +389,7 @@ void * undo_ptr_list_last(struct ptr_list **head)
 ///
 // remove the last entry and repack the list
 // @head: a pointer to the list
-// @return: the last elemant of the list or NULL if the list is empty.
+// @return: the last element of the list or NULL if the list is empty.
 void * delete_ptr_list_last(struct ptr_list **head)
 {
 	void *ptr = NULL;
