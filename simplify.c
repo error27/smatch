@@ -445,23 +445,7 @@ static inline int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_
 static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
 	convert_instruction_target(insn, pseudo);
-
-	switch (insn->opcode) {
-	case OP_SEL:
-	case OP_RANGE:
-		kill_use(&insn->src3);
-	case OP_BINARY ... OP_BINCMP_END:
-		kill_use(&insn->src2);
-	case OP_UNOP ... OP_UNOP_END:
-	case OP_SYMADDR:
-		kill_use(&insn->src1);
-		break;
-
-	default:
-		assert(0);
-	}
-	insn->bb = NULL;
-	return REPEAT_CSE;
+	return kill_instruction(insn);
 }
 
 static inline int replace_with_value(struct instruction *insn, long long val)
