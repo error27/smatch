@@ -44,6 +44,7 @@
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
+#include "simplify.h"
 #include "flow.h"
 #include "symbol.h"
 
