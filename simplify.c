@@ -443,7 +443,7 @@ static inline int replace_pseudo(struct instruction *insn, pseudo_t *pp, pseudo_
 	return REPEAT_CSE;
 }
 
-static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
+int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 {
 	convert_instruction_target(insn, pseudo);
 	return kill_instruction(insn);
