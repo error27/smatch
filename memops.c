@@ -14,6 +14,7 @@
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
+#include "simplify.h"
 #include "flow.h"
 
 /*
@@ -40,7 +41,7 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	 * and convert the load into a LNOP and replace the
 	 * pseudo.
 	 */
-	convert_load_instruction(insn, new);
+	replace_with_pseudo(insn, new);
 	FOR_EACH_PTR(dominators, phi) {
 		kill_instruction(phi->def);
 	} END_FOR_EACH_PTR(phi);
@@ -167,7 +168,7 @@ static void simplify_loads(struct basic_block *bb)
 					if (!compatible_loads(insn, dom))
 						goto next_load;
 					/* Yeehaa! Found one! */
-					convert_load_instruction(insn, dom->target);
+					replace_with_pseudo(insn, dom->target);
 					goto next_load;
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
@@ -181,7 +182,7 @@ static void simplify_loads(struct basic_block *bb)
 				if (!dominators) {
 					if (local) {
 						assert(pseudo->type != PSEUDO_ARG);
-						convert_load_instruction(insn, value_pseudo(0));
+						replace_with_pseudo(insn, value_pseudo(0));
 					}
 					goto next_load;
 				}

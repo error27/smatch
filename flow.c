@@ -16,6 +16,7 @@
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
+#include "simplify.h"
 #include "flow.h"
 #include "target.h"
 #include "flowgraph.h"
@@ -451,12 +452,6 @@ void convert_instruction_target(struct instruction *insn, pseudo_t src)
 	if (has_use_list(src))
 		concat_user_list(target->users, &src->users);
 	target->users = NULL;
-}
-
-void convert_load_instruction(struct instruction *insn, pseudo_t src)
-{
-	convert_instruction_target(insn, src);
-	kill_instruction(insn);
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
