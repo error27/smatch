@@ -723,13 +723,46 @@ void vrfy_flow(struct entrypoint *ep)
 	assert(!entry);
 }
 
+///
+// merge two BBs
+// @top: the first BB to be merged
+// @bot: the second BB to be merged
+static int merge_bb(struct basic_block *top, struct basic_block *bot)
+{
+	struct instruction *insn;
+	struct basic_block *bb;
+
+	if (top == bot)
+		return 0;
+
+	top->children = bot->children;
+	bot->children = NULL;
+	bot->parents = NULL;
+
+	FOR_EACH_PTR(top->children, bb) {
+		replace_bb_in_list(&bb->parents, bot, top, 1);
+	} END_FOR_EACH_PTR(bb);
+
+	kill_instruction(delete_last_instruction(&top->insns));
+	FOR_EACH_PTR(bot->insns, insn) {
+		if (!insn->bb)
+			continue;
+		assert(insn->bb == bot);
+		insn->bb = top;
+		add_instruction(&top->insns, insn);
+	} END_FOR_EACH_PTR(insn);
+	bot->insns = NULL;
+	bot->ep = NULL;
+	return REPEAT_CFG_CLEANUP;
+}
+
 void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *first, *insn;
+		struct instruction *first;
 		struct basic_block *parent, *child, *last;
 
 		if (!bb_reachable(bb))
@@ -786,28 +819,7 @@ out:
 				goto no_merge;
 		} END_FOR_EACH_PTR(child);
 
-		/*
-		 * Merge the two.
-		 */
-		repeat_phase |= REPEAT_CFG_CLEANUP;
-
-		parent->children = bb->children;
-		bb->children = NULL;
-		bb->parents = NULL;
-
-		FOR_EACH_PTR(parent->children, child) {
-			replace_bb_in_list(&child->parents, bb, parent, 0);
-		} END_FOR_EACH_PTR(child);
-
-		kill_instruction(delete_last_instruction(&parent->insns));
-		FOR_EACH_PTR(bb->insns, insn) {
-			if (!insn->bb)
-				continue;
-			assert(insn->bb == bb);
-			insn->bb = parent;
-			add_instruction(&parent->insns, insn);
-		} END_FOR_EACH_PTR(insn);
-		bb->insns = NULL;
+		repeat_phase |= merge_bb(parent, bb);
 
 	no_merge:
 		/* nothing to do */;
