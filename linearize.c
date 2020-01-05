@@ -2065,7 +2065,7 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 	pseudo = linearize_fn_statement(ep, stmt);
 	insn->target = pseudo;
 
-	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
+	insn->func = symbol_pseudo(ep, stmt->inline_fn);
 	bb = ep->active;
 	if (!bb->insns)
 		bb->pos = stmt->pos;
