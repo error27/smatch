@@ -889,6 +889,7 @@ const char *get_param_name(struct sm_state *sm);
 const char *get_mtag_name_var_sym(const char *state_name, struct symbol *sym);
 const char *get_mtag_name_expr(struct expression *expr);
 char *get_data_info_name(struct expression *expr);
+char *sm_to_arg_name(struct expression *expr, struct sm_state *sm);
 int is_recursive_member(const char *param_name);
 
 char *escape_newlines(const char *str);
