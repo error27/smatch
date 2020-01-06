@@ -74,12 +74,32 @@ sval_t sval_type_val(struct symbol *type, long long val)
 	return ret;
 }
 
+sval_t sval_type_fval(struct symbol *type, long double fval)
+{
+	sval_t ret;
+
+	ret.type = &ldouble_ctype;
+	ret.ldvalue = fval;
+	return sval_cast(type, ret);
+}
+
 sval_t sval_from_val(struct expression *expr, long long val)
 {
 	sval_t ret;
 
 	ret = sval_blank(expr);
 	ret.value = val;
+	ret = sval_cast(get_type(expr), ret);
+
+	return ret;
+}
+
+sval_t sval_from_fval(struct expression *expr, long double fval)
+{
+	sval_t ret;
+
+	ret.type = &ldouble_ctype;
+	ret.ldvalue = fval;
 	ret = sval_cast(get_type(expr), ret);
 
 	return ret;
@@ -300,8 +320,12 @@ int sval_too_high(struct symbol *type, sval_t sval)
 
 int sval_fits(struct symbol *type, sval_t sval)
 {
+	/* everything fits into floating point */
 	if (type_is_fp(type))
 		return 1;
+	/* floating points don't fit into int */
+	if (type_is_fp(sval.type))
+		return 0;
 
 	if (sval_too_low(type, sval))
 		return 0;
@@ -358,6 +382,23 @@ static sval_t cast_to_fp(struct symbol *type, sval_t sval)
 	return ret;
 }
 
+static sval_t cast_from_fp(struct symbol *type, sval_t sval)
+{
+	sval_t ret = {};
+
+	ret.type = &llong_ctype;
+	if (sval.type == &float_ctype)
+		ret.value = sval.fvalue;
+	else if (sval.type == &double_ctype)
+		ret.value = sval.dvalue;
+	else if (sval.type == &ldouble_ctype)
+		ret.value = sval.ldvalue;
+	else
+		sm_perror("%s: bad type: %s", __func__, type_to_str(type));
+
+	return sval_cast(type, ret);
+}
+
 sval_t sval_cast(struct symbol *type, sval_t sval)
 {
 	sval_t ret;
@@ -367,6 +408,8 @@ sval_t sval_cast(struct symbol *type, sval_t sval)
 
 	if (type_is_fp(type))
 		return cast_to_fp(type, sval);
+	if (type_is_fp(sval.type))
+		return cast_from_fp(type, sval);
 
 	ret.type = type;
 	switch (sval_bits(ret)) {
@@ -801,6 +844,9 @@ const char *sval_to_str_or_err_ptr(sval_t sval)
 const char *sval_to_numstr(sval_t sval)
 {
 	char buf[30];
+
+	if (type_is_fp(sval.type))
+		return fp_to_str(sval);
 
 	if (sval_unsigned(sval))
 		snprintf(buf, sizeof(buf), "%llu", sval.value);

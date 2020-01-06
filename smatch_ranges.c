@@ -134,6 +134,9 @@ static int truncates_nicely(struct symbol *type, sval_t min, sval_t max)
 	unsigned long long mask;
 	int bits = type_bits(type);
 
+	if (type_is_fp(min.type) && !type_is_fp(type))
+		return 0;
+
 	if (bits >= type_bits(min.type))
 		return 0;
 
@@ -431,6 +434,13 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 {
 	const char *start = c;
 	sval_t ret;
+
+	if (type == &float_ctype)
+		return sval_type_fval(type, strtof(start, (char **)endp));
+	else if (type == &double_ctype)
+		return sval_type_fval(type, strtod(start, (char **)endp));
+	else if (type == &ldouble_ctype)
+		return sval_type_fval(type, strtold(start, (char **)endp));
 
 	if (!strncmp(start, "max", 3)) {
 		ret = sval_type_max(type);
@@ -1482,18 +1492,6 @@ static struct range_list *cast_to_bool(struct range_list *rl)
 	return ret;
 }
 
-static struct range_list *cast_rl_fp(struct symbol *type, struct range_list *rl)
-{
-	struct range_list *ret = NULL;
-	struct data_range *tmp;
-
-	FOR_EACH_PTR(rl, tmp) {
-		add_range_t(type, &ret, tmp->min, tmp->max);
-	} END_FOR_EACH_PTR(tmp);
-
-	return ret;
-}
-
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 {
 	struct data_range *tmp;
@@ -1504,8 +1502,6 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 
 	if (!type)
 		return rl;
-	if (type_is_fp(rl_type(rl)))
-		return cast_rl_fp(type, rl);
 	if (!rl_is_sane(rl))
 		return alloc_whole_rl(type);
 	if (type == rl_type(rl) && rl_type_consistent(rl))

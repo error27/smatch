@@ -1395,6 +1395,9 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	case EXPR_VALUE:
 		sval = sval_from_val(expr, expr->value);
 		break;
+	case EXPR_FVALUE:
+		sval = sval_from_fval(expr, expr->fvalue);
+		break;
 	case EXPR_PREOP:
 		handle_preop_rl(expr, implied, recurse_cnt, &rl, &sval);
 		break;
