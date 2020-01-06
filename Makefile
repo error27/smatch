@@ -226,6 +226,7 @@ SMATCH_OBJS += smatch_extra.o
 SMATCH_OBJS += smatch_files.o
 SMATCH_OBJS += smatch_flow.o
 SMATCH_OBJS += smatch_fn_arg_link.o
+SMATCH_OBJS += smatch_fresh_alloc.o
 SMATCH_OBJS += smatch_function_hooks.o
 SMATCH_OBJS += smatch_function_info.o
 SMATCH_OBJS += smatch_function_ptrs.o
