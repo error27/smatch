@@ -475,11 +475,11 @@ static sval_t fp_min(struct symbol *type)
 	sval_t ret = { .type = type };
 
 	if (type == &float_ctype)
-		ret.fvalue = FLT_MIN;
+		ret.fvalue = -FLT_MAX;
 	else if (type == &double_ctype)
-		ret.dvalue = DBL_MIN;
+		ret.dvalue = -DBL_MAX;
 	else
-		ret.ldvalue = LDBL_MIN;
+		ret.ldvalue = -LDBL_MAX;
 
 	return ret;
 }

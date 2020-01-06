@@ -162,11 +162,11 @@ int sval_is_positive(sval_t sval)
 static bool fp_is_min(sval_t sval)
 {
 	if (sval.type == &float_ctype)
-		return sval.fvalue == FLT_MIN;
+		return sval.fvalue == -FLT_MAX;
 	if (sval.type == &double_ctype)
-		return sval.dvalue == DBL_MIN;
+		return sval.dvalue == -DBL_MAX;
 	if (sval.type == &ldouble_ctype)
-		return sval.ldvalue == LDBL_MIN;
+		return sval.ldvalue == -LDBL_MAX;
 	sm_perror("%s: bad type: '%s'", __func__, type_to_str(sval.type));
 	return false;
 }
