@@ -102,6 +102,12 @@ struct constraint {
 };
 DECLARE_PTR_LIST(constraint_list, struct constraint);
 
+struct alloc_info {
+	const char *fn;
+	int size_param, nr;
+};
+extern struct alloc_info *alloc_funcs;
+
 struct bit_info {
 	unsigned long long set;
 	unsigned long long possible;
