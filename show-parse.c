@@ -300,12 +300,12 @@ deeper:
 		if (as)
 			prepend(name, "%s ", show_as(as));
 
-		if (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM)
+		if (sym && (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM))
 			mod &= ~MOD_SPECIFIER;
 		s = modifier_string(mod);
 		len = strlen(s);
-		name->start -= len;    
-		memcpy(name->start, s, len);  
+		name->start -= len;
+		memcpy(name->start, s, len);
 		mod = 0;
 		as = NULL;
 	}
