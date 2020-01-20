@@ -7,6 +7,7 @@ static void predefine_sparc(const struct target *self)
 {
 	predefine("__sparc__", 1, "1");
 	predefine("__sparc", 1, "1");
+	predefine_nostd("sparc");
 }
 
 
