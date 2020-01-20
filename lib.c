@@ -1401,6 +1401,13 @@ static void predefined_macros(void)
 
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);
+
+	if (arch_os == OS_SUNOS) {
+		predefine("__sun__", 1, "1");
+		predefine("__sun", 1, "1");
+		predefine_nostd("sun");
+		predefine("__svr4__", 1, "1");
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
