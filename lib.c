@@ -1389,6 +1389,8 @@ static void predefined_macros(void)
 		if (arch_m64 != ARCH_LP32) {
 			predefine("__x86_64__", 1, "1");
 			predefine("__x86_64", 1, "1");
+			predefine("__amd64__", 1, "1");
+			predefine("__amd64", 1, "1");
 			break;
 		}
 		/* fall-through */
