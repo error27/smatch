@@ -8,7 +8,7 @@
 #endif
 
 
-enum {
+enum bitness {
 	ARCH_LP32,
 	ARCH_X32,
 	ARCH_LP64,

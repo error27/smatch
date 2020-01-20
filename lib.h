@@ -205,10 +205,10 @@ extern int fpie;
 extern int fshort_wchar;
 extern int funsigned_char;
 
+extern int arch_msize_long;
 extern int arch_m64;
 extern int arch_big_endian;
 extern int arch_fp_abi;
-extern int arch_mach;
 extern int arch_os;
 
 enum {
@@ -221,6 +221,7 @@ enum {
 	CMODEL_PIC,
 	CMODEL_SMALL,
 	CMODEL_TINY,
+	CMODEL_LAST,
 };
 extern int arch_cmodel;
 

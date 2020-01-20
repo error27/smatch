@@ -314,17 +314,16 @@ unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
 int fshort_wchar = 0;
-int funsigned_char = -1;
+int funsigned_char = 0;
 
 int preprocess_only;
 
 enum standard standard = STANDARD_GNU89;
 
-static int arch_msize_long = 0;
+int arch_msize_long = 0;
 int arch_m64 = ARCH_M64_DEFAULT;
 int arch_big_endian = ARCH_BIG_ENDIAN;
 int arch_fp_abi = FP_ABI_NATIVE;
-int arch_mach = MACH_NATIVE;
 int arch_os = OS_NATIVE;
 int arch_cmodel = CMODEL_UNKNOWN;
 
@@ -712,36 +711,6 @@ static char **handle_switch_m(char *arg, char **next)
 	}
 
 	return next;
-}
-
-static void handle_arch_msize_long_finalize(void)
-{
-	if (arch_msize_long) {
-		size_t_ctype = &ulong_ctype;
-		ssize_t_ctype = &long_ctype;
-	}
-}
-
-static void handle_arch_finalize(void)
-{
-	handle_arch_msize_long_finalize();
-
-	if (fpie > fpic)
-		fpic = fpie;
-
-	switch (arch_mach) {
-	case MACH_ARM64:
-		if (arch_cmodel == CMODEL_UNKNOWN)
-			arch_cmodel = CMODEL_SMALL;
-		break;
-	case MACH_RISCV32:
-	case MACH_RISCV64:
-		if (arch_cmodel == CMODEL_UNKNOWN)
-			arch_cmodel = CMODEL_MEDLOW;
-		if (fpic)
-			arch_cmodel = CMODEL_PIC;
-		break;
-	}
 }
 
 static char **handle_switch_o(char *arg, char **next)
@@ -1135,65 +1104,14 @@ static char **handle_switch_x(char *arg, char **next)
 
 static char **handle_arch(char *arg, char **next)
 {
-	static const struct arch {
-		const char *name;
-		char mach;
-		char bits;
-		bool big_endian:1;
-	} archs[] = {
-		{ "aarch64",	MACH_ARM64,	64, 0 },
-		{ "arm64",	MACH_ARM64,	64, 0 },
-		{ "arm",	MACH_ARM,	32, 0 },
-		{ "i386",	MACH_I386,	32, 0 },
-		{ "m68k",	MACH_M68K,	32, 0 },
-		{ "mips",	MACH_MIPS32,	0,  1 },
-		{ "powerpc",	MACH_PPC32,	0,  1 },
-		{ "ppc",	MACH_PPC32,	0,  1 },
-		{ "riscv",	MACH_RISCV32,	0,  0 },
-		{ "s390x",	MACH_S390X,	64, 1 },
-		{ "s390",	MACH_S390,	32, 1 },
-		{ "sparc",	MACH_SPARC32,	0,  1 },
-		{ "x86_64",	MACH_X86_64,	64, 0 },
-		{ "x86-64",	MACH_X86_64,	64, 0 },
-		{ NULL },
-	};
-	const struct arch *p;
+	enum machine mach;
 
 	if (*arg++ != '=')
 		die("missing argument for --arch option");
 
-	for (p = &archs[0]; p->name; p++) {
-		size_t len = strlen(p->name);
-		if (strncmp(p->name, arg, len) == 0) {
-			const char *suf = arg + len;
-			int bits = p->bits;
-
-			arch_mach = p->mach;
-			if (bits == 0) {
-				if (!strcmp(suf, "")) {
-					bits = 32;
-				} else if (!strcmp(suf, "32")) {
-					bits = 32;
-				} else if (!strcmp(suf, "64")) {
-					bits = 64;
-					arch_mach += 1;
-				} else {
-					die("invalid architecture: %s", arg);
-				}
-			} else {
-				if (strcmp(suf, ""))
-					die("invalid architecture: %s", arg);
-			}
-
-			// adjust the arch size (but keep x32 & llp64)
-			if (bits == 32)
-				arch_m64 = ARCH_LP32;
-			else if (bits == 64 && arch_m64 == ARCH_LP32)
-				arch_m64 = ARCH_LP64;
-			arch_big_endian = p->big_endian;
-			break;
-		}
-	}
+	mach = target_parse(arg);
+	if (mach != MACH_UNKNOWN)
+		target_config(mach);
 
 	return next;
 }
@@ -1356,55 +1274,6 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 		predefined_width(name, bits);
 }
 
-static void predefined_cmodel(void)
-{
-	const char *pre, *suf;
-	const char *def = NULL;
-	switch (arch_mach) {
-	case MACH_ARM64:
-		pre = "__AARCH64_CMODEL_";
-		suf = "__";
-		switch (arch_cmodel) {
-		case CMODEL_LARGE:
-			def = "LARGE";
-			break;
-		case CMODEL_SMALL:
-			def = "SMALL";
-			break;
-		case CMODEL_TINY:
-			def = "TINY";
-			break;
-		default:
-			break;
-		}
-		break;
-	case MACH_RISCV32:
-	case MACH_RISCV64:
-		pre = "__riscv_cmodel_";
-		suf = "";
-		switch (arch_cmodel) {
-		case CMODEL_MEDLOW:
-			def = "medlow";
-			break;
-		case CMODEL_MEDANY:
-			def = "medany";
-			break;
-		case CMODEL_PIC:
-			def = "pic";
-			break;
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	if (!def)
-		return;
-	add_pre_buffer("#weak_define %s%s%s 1\n", pre, def, suf);
-}
-
 static void predefined_macros(void)
 {
 	predefine("__CHECKER__", 0, "1");
@@ -1480,16 +1349,8 @@ static void predefined_macros(void)
 	predefined_sizeof("DOUBLE", "", bits_in_double);
 	predefined_sizeof("LONG_DOUBLE", "", bits_in_longdouble);
 
-	switch (arch_mach) {
-	case MACH_ARM64:
-	case MACH_MIPS64:
-	case MACH_PPC64:
-	case MACH_RISCV64:
-	case MACH_S390X:
-	case MACH_SPARC64:
-	case MACH_X86_64:
+	if (arch_target->has_int128)
 		predefined_sizeof("INT128", "", 128);
-	}
 
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
@@ -1527,91 +1388,6 @@ static void predefined_macros(void)
 		break;
 	}
 
-	switch (arch_mach) {
-	case MACH_ARM64:
-		predefine("__aarch64__", 1, "1");
-		break;
-	case MACH_ARM:
-		predefine("__arm__", 1, "1");
-		switch (arch_fp_abi) {
-		case FP_ABI_HARD:
-			predefine("__ARM_PCS_VFP", 1, "1");
-			break;
-		case FP_ABI_SOFT:
-			predefine("__SOFTFP__", 1, "1");
-			/* fall-through */
-		case FP_ABI_HYBRID:
-			predefine("__ARM_PCS", 1, "1");
-			break;
-		}
-		predefine("__VFP_FP__", 1, "1");
-		break;
-	case MACH_M68K:
-		predefine("__m68k__", 1, "1");
-		break;
-	case MACH_MIPS64:
-		predefine("__mips64", 1, "64");
-		/* fall-through */
-	case MACH_MIPS32:
-		predefine("__mips__", 1, "1");
-		predefine("__mips", 1, "%d", ptr_ctype.bit_size);
-		predefine("_MIPS_SZINT", 1, "%d", int_ctype.bit_size);
-		predefine("_MIPS_SZLONG", 1, "%d", long_ctype.bit_size);
-		predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
-		break;
-	case MACH_PPC64:
-		predefine("__powerpc64__", 1, "1");
-		predefine("__ppc64__", 1, "1");
-		predefine("__PPC64__", 1, "1");
-		predefine("_ARCH_PPC64", 1, "1");
-		/* fall-through */
-	case MACH_PPC32:
-		predefine("__powerpc__", 1, "1");
-		predefine("__powerpc", 1, "1");
-		predefine("__ppc__", 1, "1");
-		predefine("__PPC__", 1, "1");
-		predefine("__PPC", 1, "1");
-		predefine("_ARCH_PPC", 1, "1");
-		if (arch_big_endian)
-			predefine("_BIG_ENDIAN", 1, "1");
-		break;
-	case MACH_RISCV64:
-	case MACH_RISCV32:
-		predefine("__riscv", 1, "1");
-		predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
-		break;
-	case MACH_S390X:
-		predefine("__zarch__", 1, "1");
-		predefine("__s390x__", 1, "1");
-	case MACH_S390:
-		predefine("__s390__", 1, "1");
-		break;
-	case MACH_SPARC64:
-		predefine("__sparc_v9__", 1, "1");
-		predefine("__sparcv9__", 1, "1");
-		predefine("__sparcv9", 1, "1");
-		predefine("__sparc64__", 1, "1");
-		predefine("__arch64__", 1, "1");
-		/* fall-through */
-	case MACH_SPARC32:
-		predefine("__sparc__", 1, "1");
-		predefine("__sparc", 1, "1");
-		break;
-	case MACH_X86_64:
-		if (arch_m64 != ARCH_LP32) {
-			predefine("__x86_64__", 1, "1");
-			predefine("__x86_64", 1, "1");
-			predefine("__amd64__", 1, "1");
-			predefine("__amd64", 1, "1");
-			break;
-		}
-		/* fall-through */
-	case MACH_I386:
-		predefine("__i386__", 1, "1");
-		predefine("__i386", 1, "1");
-		break;
-	}
-
 	if (fpic) {
 		predefine("__pic__", 0, "%d", fpic);
 		predefine("__PIC__", 0, "%d", fpic);
@@ -1621,7 +1397,8 @@ static void predefined_macros(void)
 		predefine("__PIE__", 0, "%d", fpie);
 	}
 
-	predefined_cmodel();
+	if (arch_target->predefine)
+		arch_target->predefine(arch_target);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1748,6 +1525,9 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
+	// initialize the default target to the native 'machine'
+	target_config(MACH_NATIVE);
+
 	args = argv;
 	for (;;) {
 		char *arg = *++args;
@@ -1777,8 +1557,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	list = NULL;
 	if (filelist) {
 		// Initialize type system
-		init_target();
-		handle_arch_finalize();
+		target_init();
 		init_ctype();
 
 		predefined_macros();
