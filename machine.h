@@ -105,7 +105,7 @@ enum {
 #define OS_NATIVE	OS_DARWIN
 #elif defined(__CYGWIN__)
 #define OS_NATIVE	OS_CYGWIN
-#elif defined(__sun__) && defined(__sun)
+#elif defined(__sun__) || defined(__sun)
 #define OS_NATIVE	OS_SUNOS
 #else
 #define OS_NATIVE	OS_UNKNOWN
