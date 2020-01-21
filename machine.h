@@ -97,14 +97,14 @@ enum {
 	OS_UNKNOWN,
 };
 
-#if defined(__linux__) || defined(__linux)
-#define OS_NATIVE	OS_LINUX
-#elif defined(__FreeBSD__)
-#define OS_NATIVE	OS_FREEBSD
+#if defined(__CYGWIN__)
+#define OS_NATIVE	OS_CYGWIN
 #elif defined(__APPLE__)
 #define OS_NATIVE	OS_DARWIN
-#elif defined(__CYGWIN__)
-#define OS_NATIVE	OS_CYGWIN
+#elif defined(__FreeBSD__)
+#define OS_NATIVE	OS_FREEBSD
+#elif defined(__linux__) || defined(__linux)
+#define OS_NATIVE	OS_LINUX
 #elif defined(__sun__) || defined(__sun)
 #define OS_NATIVE	OS_SUNOS
 #else
