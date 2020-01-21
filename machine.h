@@ -105,6 +105,10 @@ enum {
 #define OS_NATIVE	OS_FREEBSD
 #elif defined(__linux__) || defined(__linux)
 #define OS_NATIVE	OS_LINUX
+#elif defined(__NetBSD__)
+#define OS_NATIVE	OS_NETBSD
+#elif defined(__OpenBSD__)
+#define OS_NATIVE	OS_OPENBSD
 #elif defined(__sun__) || defined(__sun)
 #define OS_NATIVE	OS_SUNOS
 #else
