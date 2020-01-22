@@ -87,6 +87,8 @@ enum fp_abi {
 
 
 enum {
+	OS_UNKNOWN,
+	OS_UNIX,
 	OS_CYGWIN,
 	OS_DARWIN,
 	OS_FREEBSD,
@@ -94,8 +96,6 @@ enum {
 	OS_NETBSD,
 	OS_OPENBSD,
 	OS_SUNOS,
-	OS_UNIX,
-	OS_UNKNOWN,
 };
 
 #if defined(__CYGWIN__)
