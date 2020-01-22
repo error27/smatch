@@ -930,67 +930,6 @@ free:
 	free_string(name);
 }
 
-static int param_used_callback(void *_container, int argc, char **argv, char **azColName)
-{
-	char **container = _container;
-	static char buf[256];
-
-	snprintf(buf, sizeof(buf), "%s", argv[0]);
-	*container = buf;
-	return 0;
-}
-
-static void print_container_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
-	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
-{
-	struct expression *tmp;
-	char *container = NULL;
-	int offset;
-	int holder_offset;
-	char *p;
-
-	if (!call->fn || call->fn->type != EXPR_SYMBOL || !call->fn->symbol)
-		return;
-
-	/*
-	 * We can't use the in-mem DB because we have to parse the function
-	 * first, then we know if it takes a container, then we know to pass it
-	 * the container data.
-	 *
-	 */
-	run_sql(&param_used_callback, &container,
-		"select key from return_implies where %s and type = %d and key like '%%$(%%' and parameter = %d limit 1;",
-		get_static_filter(call->fn->symbol), CONTAINER, param);
-	if (!container)
-		return;
-
-	p = strchr(container, '-');
-	if (!p)
-		return;
-	offset = atoi(p);
-	p = strchr(p, ')');
-	if (!p)
-		return;
-	p++;
-
-	tmp = get_assigned_expr(expr);
-	if (tmp)
-		expr = tmp;
-
-	if (expr->type != EXPR_PREOP || expr->op != '&')
-		return;
-	expr = strip_expr(expr->unop);
-	holder_offset = get_member_offset_from_deref(expr);
-	if (-holder_offset != offset)
-		return;
-
-	expr = strip_expr(expr->deref);
-	if (expr->type == EXPR_PREOP && expr->op == '*')
-		expr = strip_expr(expr->unop);
-
-	print_struct_members(call, expr, param, holder_offset, stree, callback);
-}
-
 static void match_call_info(struct expression *call)
 {
 	struct member_info_callback *cb;
@@ -1008,7 +947,6 @@ static void match_call_info(struct expression *call)
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
 			print_struct_members(call, arg, i, -1, stree, cb->callback);
-			print_container_struct_members(call, arg, i, stree, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_stree(&stree);
