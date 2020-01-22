@@ -768,16 +768,6 @@ static void match_call_marker(struct expression *expr)
 	sql_insert_caller_info(expr, INTERNAL, -1, "%call_marker%", type_to_str(type));
 }
 
-static char *show_offset(int offset)
-{
-	static char buf[64];
-
-	buf[0] = '\0';
-	if (offset != -1)
-		snprintf(buf, sizeof(buf), "(-%d)", offset);
-	return buf;
-}
-
 int is_recursive_member(const char *name)
 {
 	char buf[256];
@@ -860,7 +850,7 @@ free:
 	return ret;
 }
 
-static void print_struct_members(struct expression *call, struct expression *expr, int param, int offset, struct stree *stree,
+static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
 {
 	struct sm_state *sm;
@@ -902,23 +892,23 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		// FIXME: simplify?
 		if (!add_star && strcmp(name, sm_name) == 0) {
 			if (is_address)
-				snprintf(printed_name, sizeof(printed_name), "*$%s", show_offset(offset));
+				snprintf(printed_name, sizeof(printed_name), "*$");
 			else /* these are already handled. fixme: handle them here */
 				continue;
 		} else if (add_star && strcmp(name, sm_name) == 0) {
-			snprintf(printed_name, sizeof(printed_name), "%s*$%s",
-				 is_address ? "*" : "", show_offset(offset));
+			snprintf(printed_name, sizeof(printed_name), "%s*$",
+				 is_address ? "*" : "");
 		} else if (strncmp(name, sm_name, len) == 0) {
 			if (sm_name[len] != '.' && sm_name[len] != '-')
 				continue;
 			if (is_address)
 				snprintf(printed_name, sizeof(printed_name),
-					 "%s$%s->%s", add_star ? "*" : "",
-					 show_offset(offset), sm_name + len + 1);
+					 "%s$->%s", add_star ? "*" : "",
+					 sm_name + len + 1);
 			else
 				snprintf(printed_name, sizeof(printed_name),
-					 "%s$%s%s", add_star ? "*" : "",
-					 show_offset(offset), sm_name + len);
+					 "%s$%s", add_star ? "*" : "",
+					 sm_name + len);
 		} else {
 			continue;
 		}
@@ -946,7 +936,7 @@ static void match_call_info(struct expression *call)
 		stree = get_all_states_stree(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, -1, stree, cb->callback);
+			print_struct_members(call, arg, i, stree, cb->callback);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_stree(&stree);
