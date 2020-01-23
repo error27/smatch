@@ -29,6 +29,7 @@ static void predefine_i386(const struct target *self)
 {
 	predefine("__i386__", 1, "1");
 	predefine("__i386", 1, "1");
+	predefine_nostd("i386");
 }
 
 const struct target target_i386 = {
