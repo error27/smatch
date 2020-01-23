@@ -1395,6 +1395,14 @@ static void predefined_macros(void)
 		predefine("__i386", 1, "1");
 		break;
 	}
+
+#if defined(__sun__) || defined(__sun)
+	predefine("__sun__", 1, "1");
+	predefine("__sun", 1, "1");
+	predefine_nostd("sun");
+	predefine("__svr4__", 1, "1");
+#endif
+
 }
 
 static void create_builtin_stream(void)
