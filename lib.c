@@ -1303,6 +1303,8 @@ static void predefined_macros(void)
 	if (optimize_size)
 		predefine("__OPTIMIZE_SIZE__", 0, "1");
 
+	predefine("__PRAGMA_REDEFINE_EXTNAME", 1, "1");
+
 	// Temporary hacks
 	predefine("__extension__", 0, NULL);
 	predefine("__pragma__", 0, NULL);
