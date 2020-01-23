@@ -1394,6 +1394,7 @@ static void predefined_macros(void)
 	case MACH_I386:
 		predefine("__i386__", 1, "1");
 		predefine("__i386", 1, "1");
+		predefine_nostd("i386");
 		break;
 	}
 
