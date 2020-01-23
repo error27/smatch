@@ -1396,6 +1396,13 @@ static void predefined_macros(void)
 		break;
 	}
 
+#if defined(__unix__)
+	predefine("__unix__", 1, "1");
+	predefine("__unix", 1, "1");
+	predefine_nostd("unix");
+#endif
+
+
 #if defined(__sun__) || defined(__sun)
 	predefine("__sun__", 1, "1");
 	predefine("__sun", 1, "1");
