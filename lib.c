@@ -1380,6 +1380,7 @@ static void predefined_macros(void)
 	case MACH_SPARC32:
 		predefine("__sparc__", 1, "1");
 		predefine("__sparc", 1, "1");
+		predefine_nostd("sparc");
 		break;
 	case MACH_X86_64:
 		if (arch_m64 != ARCH_LP32) {
