@@ -123,10 +123,31 @@ static void record_alloc_func(int return_id, char *return_ranges, struct express
 	sql_insert_return_states(return_id, return_ranges, FRESH_ALLOC, -1, "$", "");
 }
 
+static void set_unfresh(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return;
+	if (!slist_has_state(sm->possible, &fresh))
+		return;
+	// TODO call unfresh hooks
+	set_state_expr(my_id, expr, &undefined);
+}
+
 static void match_assign(struct expression *expr)
 {
-	if (get_state_expr(my_id, expr->right))
-		set_state_expr(my_id, expr->right, &undefined);
+	set_unfresh(expr->right);
+}
+
+static void match_call(struct expression *expr)
+{
+	struct expression *arg;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		set_unfresh(arg);
+	} END_FOR_EACH_PTR(arg);
 }
 
 static void set_fresh(struct expression *expr)
@@ -170,4 +191,5 @@ void register_fresh_alloc(int id)
 	add_split_return_callback(&record_alloc_func);
 	select_return_states_hook(FRESH_ALLOC, &returns_fresh_alloc);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }
