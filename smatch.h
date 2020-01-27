@@ -1283,6 +1283,8 @@ bool is_nul_terminated(struct expression *expr);
 /* check_kernel.c  */
 bool is_ignored_kernel_data(const char *name);
 
+bool is_fresh_alloc_var_sym(const char *var, struct symbol *sym);
+bool is_fresh_alloc(struct expression *expr);
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&

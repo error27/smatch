@@ -85,6 +85,11 @@ static int fresh_from_db(struct expression *call)
 	return fresh;
 }
 
+bool is_fresh_alloc_var_sym(const char *var, struct symbol *sym)
+{
+	return get_state(my_id, var, sym) == &fresh;
+}
+
 bool is_fresh_alloc(struct expression *expr)
 {
 	sval_t sval;
