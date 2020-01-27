@@ -400,6 +400,7 @@ int sym_name_is(const char *name, struct expression *expr);
 int get_const_value(struct expression *expr, sval_t *sval);
 int get_value(struct expression *expr, sval_t *val);
 int get_implied_value(struct expression *expr, sval_t *val);
+int get_implied_value_fast(struct expression *expr, sval_t *sval);
 int get_implied_min(struct expression *expr, sval_t *sval);
 int get_implied_max(struct expression *expr, sval_t *val);
 int get_hard_max(struct expression *expr, sval_t *sval);

@@ -87,9 +87,13 @@ static int fresh_from_db(struct expression *call)
 
 bool is_fresh_alloc(struct expression *expr)
 {
+	sval_t sval;
 	int i;
 
 	if (!expr)
+		return false;
+
+	if (get_implied_value_fast(expr, &sval) && sval.value == 0)
 		return false;
 
 	if (get_state_expr(my_id, expr) == &fresh)
