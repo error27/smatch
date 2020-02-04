@@ -190,18 +190,22 @@ static struct symbol *report_symbol(usage_t mode, struct expression *expr)
 	return ret;
 }
 
-static inline struct ident *mk_name(struct ident *root, struct ident *node)
+static bool deanon(struct symbol *base, struct ident *node, struct symbol *parent)
 {
+	struct ident *pi = parent ? parent->ident : NULL;
 	char name[256];
 
-	snprintf(name, sizeof(name), "%.*s:%.*s",
-			root ? root->len : 0, root ? root->name : "",
-			node ? node->len : 0, node ? node->name : "");
+	if (!node)
+		return false;
 
-	return built_in_ident(name);
+	snprintf(name, sizeof(name), "%.*s:%.*s",
+		pi ? pi->len : 0, pi ? pi->name : NULL, node->len, node->name);
+
+	base->ident = built_in_ident(name);
+	return true;
 }
 
-static void examine_sym_node(struct symbol *node, struct ident *root)
+static void examine_sym_node(struct symbol *node, struct symbol *parent)
 {
 	struct symbol *base;
 	struct ident *name;
@@ -232,12 +236,12 @@ static void examine_sym_node(struct symbol *node, struct ident *root)
 				return;
 			base->evaluated = 1;
 
-			if (!base->ident && name)
-				base->ident = mk_name(root, name);
-			if (base->ident && reporter->r_symdef)
-				reporter->r_symdef(base);
+			if (base->ident || deanon(base, name, parent)) {
+				if (reporter->r_symdef)
+					reporter->r_symdef(base);
+			}
 			DO_LIST(base->symbol_list, mem,
-				examine_sym_node(mem, base->ident ?: root));
+				examine_sym_node(mem, base->ident ? base : parent));
 		default:
 			return;
 		}
