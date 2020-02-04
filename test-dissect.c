@@ -56,14 +56,13 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 
 static void r_member(unsigned mode, struct position *pos, struct symbol *sym, struct symbol *mem)
 {
-	struct ident *ni, *si, *mi;
+	struct ident *si, *mi;
 
 	print_usage(pos, sym, mode);
 
-	ni = built_in_ident("?");
-	si = sym->ident ?: ni;
+	si = sym->ident ?: built_in_ident("?");
 	/* mem == NULL means entire struct accessed */
-	mi = mem ? (mem->ident ?: ni) : built_in_ident("*");
+	mi = mem ? mem->ident : built_in_ident("*");
 
 	printf("%.*s.%-*.*s %s\n",
 		si->len, si->name,
