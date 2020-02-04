@@ -195,8 +195,10 @@ static bool deanon(struct symbol *base, struct ident *node, struct symbol *paren
 	struct ident *pi = parent ? parent->ident : NULL;
 	char name[256];
 
-	if (!node)
+	if (!node) {
+		base->ident = pi;
 		return false;
+	}
 
 	snprintf(name, sizeof(name), "%.*s:%.*s",
 		pi ? pi->len : 0, pi ? pi->name : NULL, node->len, node->name);
