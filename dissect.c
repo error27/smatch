@@ -135,7 +135,7 @@ static struct symbol *report_member(usage_t mode, struct position *pos,
 {
 	struct symbol *ret = mem->ctype.base_type;
 
-	if (mem->ident && reporter->r_member)
+	if (mem->ident)
 		reporter->r_member(fix_mode(ret, mode), pos, type, mem);
 
 	return ret;
@@ -144,9 +144,6 @@ static struct symbol *report_member(usage_t mode, struct position *pos,
 static void report_implicit(usage_t mode, struct position *pos, struct symbol *type)
 {
 	if (type->type != SYM_STRUCT && type->type != SYM_UNION)
-		return;
-
-	if (!reporter->r_member)
 		return;
 
 	if (type->ident != NULL)
@@ -184,8 +181,7 @@ static struct symbol *report_symbol(usage_t mode, struct expression *expr)
 	if (0 && ret->type == SYM_ENUM)
 		return report_member(mode, &expr->pos, ret, expr->symbol);
 
-	if (reporter->r_symbol)
-		reporter->r_symbol(fix_mode(ret, mode), &expr->pos, sym);
+	reporter->r_symbol(fix_mode(ret, mode), &expr->pos, sym);
 
 	return ret;
 }
@@ -238,10 +234,8 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 				return;
 			base->evaluated = 1;
 
-			if (base->ident || deanon(base, name, parent)) {
-				if (reporter->r_symdef)
-					reporter->r_symdef(base);
-			}
+			if (base->ident || deanon(base, name, parent))
+				reporter->r_symdef(base);
 			DO_LIST(base->symbol_list, mem,
 				examine_sym_node(mem, base->ident ? base : parent));
 		default:
@@ -577,19 +571,15 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 
 static inline struct symbol *do_symbol(struct symbol *sym)
 {
-	struct symbol *type;
+	struct symbol *type = base_type(sym);
 
-	type = base_type(sym);
-
-	if (reporter->r_symdef)
-		reporter->r_symdef(sym);
+	reporter->r_symdef(sym);
 
 	switch (type->type) {
 	default:
 		if (!sym->initializer)
 			break;
-		if (reporter->r_symbol)
-			reporter->r_symbol(U_W_VAL, &sym->pos, sym);
+		reporter->r_symbol(U_W_VAL, &sym->pos, sym);
 		do_initializer(type, sym->initializer);
 
 	break; case SYM_FN:
