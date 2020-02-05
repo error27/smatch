@@ -203,6 +203,12 @@ static bool deanon(struct symbol *base, struct ident *node, struct symbol *paren
 	return true;
 }
 
+static void report_memdef(struct symbol *sym, struct symbol *mem)
+{
+	if (sym && mem->ident)
+		reporter->r_memdef(sym, mem);
+}
+
 static void examine_sym_node(struct symbol *node, struct symbol *parent)
 {
 	struct symbol *base;
@@ -236,8 +242,12 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 
 			if (base->ident || deanon(base, name, parent))
 				reporter->r_symdef(base);
+
+			if (base->ident)
+				parent = base;
 			DO_LIST(base->symbol_list, mem,
-				examine_sym_node(mem, base->ident ? base : parent));
+				examine_sym_node(mem, parent);
+				report_memdef(parent, mem));
 		default:
 			return;
 		}

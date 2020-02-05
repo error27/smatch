@@ -75,10 +75,16 @@ static void r_symdef(struct symbol *sym)
 	r_symbol(-1, &sym->pos, sym);
 }
 
+static void r_memdef(struct symbol *sym, struct symbol *mem)
+{
+	r_member(-1, &mem->pos, sym, mem);
+}
+
 int main(int argc, char **argv)
 {
 	static struct reporter reporter = {
 		.r_symdef = r_symdef,
+		.r_memdef = r_memdef,
 		.r_symbol = r_symbol,
 		.r_member = r_member,
 	};
