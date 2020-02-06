@@ -51,6 +51,8 @@
 
 typedef unsigned usage_t;
 
+struct symbol *dissect_ctx;
+
 static struct reporter *reporter;
 static struct symbol *return_type;
 
@@ -211,7 +213,7 @@ static void report_memdef(struct symbol *sym, struct symbol *mem)
 
 static void examine_sym_node(struct symbol *node, struct symbol *parent)
 {
-	struct symbol *base;
+	struct symbol *base, *dctx;
 	struct ident *name;
 
 	if (node->examined)
@@ -240,6 +242,9 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 				return;
 			base->evaluated = 1;
 
+			dctx = dissect_ctx;
+			dissect_ctx = NULL;
+
 			if (base->ident || deanon(base, name, parent))
 				reporter->r_symdef(base);
 
@@ -248,6 +253,7 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 			DO_LIST(base->symbol_list, mem,
 				examine_sym_node(mem, parent);
 				report_memdef(parent, mem));
+			dissect_ctx = dctx;
 		default:
 			return;
 		}
@@ -582,6 +588,7 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 static inline struct symbol *do_symbol(struct symbol *sym)
 {
 	struct symbol *type = base_type(sym);
+	struct symbol *dctx = dissect_ctx;
 
 	reporter->r_symdef(sym);
 
@@ -590,14 +597,20 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 		if (!sym->initializer)
 			break;
 		reporter->r_symbol(U_W_VAL, &sym->pos, sym);
+		if (!dctx)
+			dissect_ctx = sym;
 		do_initializer(type, sym->initializer);
+		dissect_ctx = dctx;
 
 	break; case SYM_FN:
-		do_sym_list(type->arguments);
+		dissect_ctx = sym;
 		return_type = base_type(type);
+		do_sym_list(type->arguments);
 		do_statement(U_VOID, sym->ctype.modifiers & MOD_INLINE
 					? type->inline_stmt
 					: type->stmt);
+		dissect_ctx = dctx;
+		return_type = NULL;
 	}
 
 	return type;

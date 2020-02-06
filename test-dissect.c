@@ -2,17 +2,6 @@
 
 static unsigned dotc_stream;
 
-static inline char storage(struct symbol *sym)
-{
-	int t = sym->type;
-	unsigned m = sym->ctype.modifiers;
-
-	if (m & MOD_INLINE || t == SYM_STRUCT || t == SYM_UNION /*|| t == SYM_ENUM*/)
-		return sym->pos.stream == dotc_stream ? 's' : 'g';
-
-	return (m & MOD_STATIC) ? 's' : (m & MOD_NONLOCAL) ? 'g' : 'l';
-}
-
 static inline const char *show_mode(unsigned mode)
 {
 	static char str[3];
@@ -32,14 +21,20 @@ static inline const char *show_mode(unsigned mode)
 static void print_usage(struct position *pos, struct symbol *sym, unsigned mode)
 {
 	static unsigned curr_stream = -1;
+	static struct ident null;
+	struct ident *ctx = &null;
 
 	if (curr_stream != pos->stream) {
 		curr_stream = pos->stream;
 		printf("\nFILE: %s\n\n", stream_name(curr_stream));
 	}
 
-	printf("%4d:%-3d %c %-5.3s",
-		pos->line, pos->pos, storage(sym), show_mode(mode));
+	if (dissect_ctx)
+		ctx = dissect_ctx->ident;
+
+	printf("%4d:%-3d %-16.*s %-5.3s",
+		pos->line, pos->pos, ctx->len, ctx->name, show_mode(mode));
+
 }
 
 static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
