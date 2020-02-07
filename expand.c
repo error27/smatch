@@ -910,6 +910,25 @@ static int expand_symbol_call(struct expression *expr, int cost)
 	if (fn->type != EXPR_PREOP)
 		return SIDE_EFFECTS;
 
+	if (ctype->ctype.modifiers & MOD_INLINE) {
+		struct symbol *def;
+
+		def = ctype->definition ? ctype->definition : ctype;
+		if (inline_function(expr, def)) {
+			struct symbol *fn = def->ctype.base_type;
+			struct symbol *curr = current_fn;
+
+			current_fn = fn;
+			evaluate_statement(expr->statement);
+			current_fn = curr;
+
+			fn->expanding = 1;
+			cost = expand_expression(expr);
+			fn->expanding = 0;
+			return cost;
+		}
+	}
+
 	if (ctype->op && ctype->op->expand)
 		return ctype->op->expand(expr, cost);
 

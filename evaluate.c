@@ -3107,22 +3107,6 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->op && ctype->op->evaluate)
 		return ctype->op->evaluate(expr);
 
-	if (ctype->ctype.modifiers & MOD_INLINE) {
-		int ret;
-		struct symbol *curr = current_fn;
-
-		if (ctype->definition)
-			ctype = ctype->definition;
-
-		current_fn = ctype->ctype.base_type;
-
-		ret = inline_function(expr, ctype);
-
-		/* restore the old function */
-		current_fn = curr;
-		return ret;
-	}
-
 	return 0;
 }
 

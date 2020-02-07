@@ -519,8 +519,6 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	if (fn->expanding)
 		return 0;
 
-	fn->expanding = 1;
-
 	name_list = fn->arguments;
 
 	expr->type = EXPR_STATEMENT;
@@ -558,9 +556,6 @@ int inline_function(struct expression *expr, struct symbol *sym)
 
 	unset_replace_list(fn_symbol_list);
 
-	evaluate_statement(stmt);
-
-	fn->expanding = 0;
 	return 1;
 }
 
