@@ -54,7 +54,6 @@ typedef unsigned usage_t;
 struct symbol *dissect_ctx;
 
 static struct reporter *reporter;
-static struct symbol *return_type;
 
 static void do_sym_list(struct symbol_list *list);
 
@@ -489,8 +488,10 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 	break; case STMT_EXPRESSION:
 		ret = do_expression(mode, stmt->expression);
 
-	break; case STMT_RETURN:
-		do_expression(u_lval(return_type), stmt->expression);
+	break; case STMT_RETURN: {
+		struct symbol *type = dissect_ctx->ctype.base_type;
+		do_expression(u_lval(base_type(type)), stmt->expression);
+	}
 
 	break; case STMT_ASM:
 		do_expression(U_R_VAL, stmt->asm_string);
@@ -617,11 +618,9 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 				show_ident(sym->ident));
 
 		dissect_ctx = sym;
-		return_type = base_type(type);
 		do_sym_list(type->arguments);
 		do_statement(U_VOID, stmt);
 		dissect_ctx = dctx;
-		return_type = NULL;
 	}
 
 	return type;
