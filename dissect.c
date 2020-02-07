@@ -589,6 +589,7 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 {
 	struct symbol *type = base_type(sym);
 	struct symbol *dctx = dissect_ctx;
+	struct statement *stmt;
 
 	reporter->r_symdef(sym);
 
@@ -603,12 +604,22 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 		dissect_ctx = dctx;
 
 	break; case SYM_FN:
+		stmt = sym->ctype.modifiers & MOD_INLINE
+			? type->inline_stmt
+			: type->stmt;
+		if (!stmt)
+			break;
+
+		if (dctx)
+			sparse_error(dctx->pos,
+				"dissect_ctx change %.*s -> %s",
+				dctx->ident->len, dctx->ident->name,
+				show_ident(sym->ident));
+
 		dissect_ctx = sym;
 		return_type = base_type(type);
 		do_sym_list(type->arguments);
-		do_statement(U_VOID, sym->ctype.modifiers & MOD_INLINE
-					? type->inline_stmt
-					: type->stmt);
+		do_statement(U_VOID, stmt);
 		dissect_ctx = dctx;
 		return_type = NULL;
 	}
