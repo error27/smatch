@@ -166,7 +166,7 @@ static inline struct symbol *expr_symbol(struct expression *expr)
 			sym = alloc_symbol(expr->pos, SYM_BAD);
 			bind_symbol(sym, expr->symbol_name, NS_SYMBOL);
 			sym->ctype.modifiers = MOD_EXTERN;
-			sym->kind = 'v';
+			sym->kind = expr->op ?: 'v'; /* see EXPR_CALL */
 		}
 	}
 
@@ -374,6 +374,8 @@ again:
 		ret = do_expression(mode, expr->cond_false);
 
 	break; case EXPR_CALL:
+		if (expr->fn->type == EXPR_SYMBOL)
+			expr->fn->op = 'f'; /* for expr_symbol() */
 		ret = do_expression(U_R_PTR, expr->fn);
 		if (is_ptr(ret))
 			ret = ret->ctype.base_type;

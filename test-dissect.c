@@ -55,7 +55,7 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 		goto err;
 
 	case 'f':
-		if (sym->ctype.base_type->type != SYM_FN)
+		if (sym->type != SYM_BAD && sym->ctype.base_type->type != SYM_FN)
 			goto err;
 	case 'v':
 		if (sym->type == SYM_NODE || sym->type == SYM_BAD)
