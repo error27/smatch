@@ -32,7 +32,7 @@ static void print_usage(struct position *pos, struct symbol *sym, unsigned mode)
 	if (dissect_ctx)
 		ctx = dissect_ctx->ident;
 
-	printf("%4d:%-3d %-16.*s %-5.3s",
+	printf("%4d:%-3d %-16.*s %s ",
 		pos->line, pos->pos, ctx->len, ctx->name, show_mode(mode));
 
 }
@@ -44,9 +44,30 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 	if (!sym->ident)
 		sym->ident = built_in_ident("__asm__");
 
-	printf("%-32.*s %s\n",
-		sym->ident->len, sym->ident->name,
+	printf("%c %-32.*s %s\n",
+		sym->kind, sym->ident->len, sym->ident->name,
 		show_typename(sym->ctype.base_type));
+
+	switch (sym->kind) {
+	case 's':
+		if (sym->type == SYM_STRUCT || sym->type == SYM_UNION)
+			break;
+		goto err;
+
+	case 'f':
+		if (sym->ctype.base_type->type != SYM_FN)
+			goto err;
+	case 'v':
+		if (sym->type == SYM_NODE || sym->type == SYM_BAD)
+			break;
+		goto err;
+	default:
+		goto err;
+	}
+
+	return;
+err:
+	warning(*pos, "r_symbol bad sym type=%d kind=%d", sym->type, sym->kind);
 }
 
 static void r_member(unsigned mode, struct position *pos, struct symbol *sym, struct symbol *mem)
@@ -59,10 +80,15 @@ static void r_member(unsigned mode, struct position *pos, struct symbol *sym, st
 	/* mem == NULL means entire struct accessed */
 	mi = mem ? mem->ident : built_in_ident("*");
 
-	printf("%.*s.%-*.*s %s\n",
+	printf("m %.*s.%-*.*s %s\n",
 		si->len, si->name,
 		32-1 - si->len, mi->len, mi->name,
 		show_typename(mem ? mem->ctype.base_type : sym));
+
+	if (sym->ident && sym->kind != 's')
+		warning(*pos, "r_member bad sym type=%d kind=%d", sym->type, sym->kind);
+	if (mem && mem->kind != 'm')
+		warning(*pos, "r_member bad mem->kind = %d", mem->kind);
 }
 
 static void r_symdef(struct symbol *sym)

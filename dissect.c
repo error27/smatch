@@ -123,6 +123,7 @@ static inline struct symbol *no_member(struct ident *name)
 {
 	static struct symbol sym = {
 		.type = SYM_BAD,
+		.kind = 'm',
 	};
 
 	sym.ctype.base_type = &bad_ctype;
@@ -165,6 +166,7 @@ static inline struct symbol *expr_symbol(struct expression *expr)
 			sym = alloc_symbol(expr->pos, SYM_BAD);
 			bind_symbol(sym, expr->symbol_name, NS_SYMBOL);
 			sym->ctype.modifiers = MOD_EXTERN;
+			sym->kind = 'v';
 		}
 	}
 
@@ -206,20 +208,20 @@ static bool deanon(struct symbol *base, struct ident *node, struct symbol *paren
 
 static void report_memdef(struct symbol *sym, struct symbol *mem)
 {
+	mem->kind = 'm';
 	if (sym && mem->ident)
 		reporter->r_memdef(sym, mem);
 }
 
 static void examine_sym_node(struct symbol *node, struct symbol *parent)
 {
+	struct ident *name = node->ident;
 	struct symbol *base, *dctx;
-	struct ident *name;
 
 	if (node->examined)
 		return;
-
 	node->examined = 1;
-	name = node->ident;
+	node->kind = 'v';
 
 	while ((base = node->ctype.base_type) != NULL)
 		switch (base->type) {
@@ -230,16 +232,23 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 
 		case SYM_ARRAY:
 			do_expression(U_R_VAL, base->array_size);
-		case SYM_PTR: case SYM_FN:
+		case SYM_PTR:
+			node = base;
+			break;
+
+		case SYM_FN:
+			node->kind = 'f';
 			node = base;
 			break;
 
 		case SYM_STRUCT: case SYM_UNION: //case SYM_ENUM:
 			if (base->evaluated)
 				return;
+			base->evaluated = 1;
+			base->kind = 's';
+
 			if (!base->symbol_list)
 				return;
-			base->evaluated = 1;
 
 			dctx = dissect_ctx;
 			dissect_ctx = NULL;
