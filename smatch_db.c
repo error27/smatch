@@ -179,15 +179,36 @@ void db_ignore_states(int id)
 	use_states[id] = 0;
 }
 
+unsigned long long __fn_mtag;
+static void set_fn_mtag(struct symbol *sym)
+{
+	char buf[128];
+
+	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
+		snprintf(buf, sizeof(buf), "%s %s", get_base_file(), get_function());
+	else
+		snprintf(buf, sizeof(buf), "extern %s", get_function());
+
+	__fn_mtag = str_to_mtag(buf);
+}
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
+	unsigned long long id;
+
+
 	if (key && strlen(key) >= 80)
 		return;
+	if (__inline_fn)
+		id = (unsigned long)__inline_fn;
+	else
+		id = __fn_mtag;
+
 	return_ranges = replace_return_ranges(return_ranges);
-	sql_insert(return_states, "'%s', '%s', %lu, %d, '%s', %d, %d, %d, '%s', '%s'",
-		   get_base_file(), get_function(), (unsigned long)__inline_fn,
-		   return_id, return_ranges, fn_static(), type, param, key, value);
+	sql_insert(return_states, "'%s', '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
+		   get_base_file(), get_function(), id, return_id,
+		   return_ranges, fn_static(), type, param, key, value);
 }
 
 static struct string_list *common_funcs;
@@ -1146,6 +1167,7 @@ static void match_data_from_db(struct symbol *sym)
 	if (!sym || !sym->ident)
 		return;
 
+	set_fn_mtag(sym);
 	gettimeofday(&data.start_time, NULL);
 
 	__push_fake_cur_stree();
