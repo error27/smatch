@@ -23,6 +23,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 static int my_id;
@@ -152,8 +153,13 @@ static void match_call(struct expression *expr)
 
 static void set_fresh(struct expression *expr)
 {
+	struct range_list *rl;
+
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_SYMBOL)
+		return;
+	get_absolute_rl(expr, &rl);
+	if (!rl_intersection(rl, valid_ptr_rl))
 		return;
 	set_state_expr(my_id, expr, &fresh);
 }
