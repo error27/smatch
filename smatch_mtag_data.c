@@ -81,6 +81,34 @@ static bool is_ignored_macro(struct expression *expr)
 	return false;
 }
 
+static bool is_head_next(struct expression *expr)
+{
+	struct symbol *type;
+
+	/* Smatch thinks head->next == head is always true.  *sad face* */
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	if (expr->type != EXPR_DEREF)
+		return false;
+	if (!expr->member || !expr->member->name ||
+	    strcmp(expr->member->name, "next") != 0)
+		return false;
+
+	type = get_type(expr->deref);
+	if (!type)
+		return false;
+	if (type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (type->type != SYM_STRUCT)
+		return false;
+	if (!type->ident || !type->ident->name ||
+	    strcmp(type->ident->name, "list_head") != 0)
+		return false;
+	return true;
+}
+
 static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 {
 	rl = clone_rl_permanent(rl);
@@ -118,6 +146,8 @@ void update_mtag_data(struct expression *expr, struct smatch_state *state)
 		return;
 	if (is_ignored_macro(expr))
 		return;
+	if (is_head_next(expr))
+		return;
 	name = expr_to_var(expr);
 	if (is_kernel_param(name)) {
 		free_string(name);
@@ -145,6 +175,8 @@ static void match_global_assign(struct expression *expr)
 	char *name;
 
 	if (is_ignored_macro(expr))
+		return;
+	if (is_head_next(expr->left))
 		return;
 	name = expr_to_var(expr->left);
 	if (is_kernel_param(name)) {
