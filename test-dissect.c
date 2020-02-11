@@ -1,7 +1,5 @@
 #include "dissect.h"
 
-static unsigned dotc_stream;
-
 static inline const char *show_mode(unsigned mode)
 {
 	static char str[3];
@@ -119,15 +117,10 @@ int main(int argc, char **argv)
 		.r_symbol = r_symbol,
 		.r_member = r_member,
 	};
+
 	struct string_list *filelist = NULL;
-	char *file;
-
 	sparse_initialize(argc, argv, &filelist);
-
-	FOR_EACH_PTR(filelist, file) {
-		dotc_stream = input_stream_nr;
-		dissect(__sparse(file), &reporter);
-	} END_FOR_EACH_PTR(file);
+	dissect(&reporter, filelist);
 
 	return 0;
 }

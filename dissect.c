@@ -642,8 +642,9 @@ static void do_sym_list(struct symbol_list *list)
 	DO_LIST(list, sym, do_symbol(sym));
 }
 
-void dissect(struct symbol_list *list, struct reporter *rep)
+void dissect(struct reporter *rep, struct string_list *filelist)
 {
 	reporter = rep;
-	do_sym_list(list);
+
+	DO_LIST(filelist, file, do_sym_list(__sparse(file)));
 }

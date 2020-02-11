@@ -32,6 +32,6 @@ static inline bool sym_is_local(struct symbol *sym)
 	return sym->kind == 'v' && !(sym->ctype.modifiers & MOD_TOPLEVEL);
 }
 
-extern void dissect(struct symbol_list *, struct reporter *);
+extern void dissect(struct reporter *, struct string_list *);
 
 #endif
