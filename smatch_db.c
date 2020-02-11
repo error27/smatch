@@ -50,6 +50,7 @@ struct member_info_callback {
 ALLOCATOR(member_info_callback, "caller_info callbacks");
 DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
+static struct member_info_cb_list *member_callbacks_new;
 
 struct returned_state_callback {
 	void (*callback)(int return_id, char *return_ranges, struct expression *return_expr);
@@ -622,6 +623,15 @@ void add_member_info_callback(int owner, void (*callback)(struct expression *cal
 	add_ptr_list(&member_callbacks, member_callback);
 }
 
+void add_caller_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
+{
+	struct member_info_callback *member_callback = __alloc_member_info_callback(0);
+
+	member_callback->owner = owner;
+	member_callback->callback = callback;
+	add_ptr_list(&member_callbacks_new, member_callback);
+}
+
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr))
 {
 	struct returned_state_callback *callback = __alloc_returned_state_callback(0);
@@ -851,7 +861,8 @@ free:
 }
 
 static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
-	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm))
+	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm),
+	bool new)
 {
 	struct sm_state *sm;
 	const char *sm_name;
@@ -891,10 +902,14 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		}
 		// FIXME: simplify?
 		if (!add_star && strcmp(name, sm_name) == 0) {
-			if (is_address)
+			if (is_address) {
 				snprintf(printed_name, sizeof(printed_name), "*$");
-			else /* these are already handled. fixme: handle them here */
-				continue;
+			} else {
+				if (new)
+					snprintf(printed_name, sizeof(printed_name), "$");
+				else
+					continue;
+			}
 		} else if (add_star && strcmp(name, sm_name) == 0) {
 			snprintf(printed_name, sizeof(printed_name), "%s*$",
 				 is_address ? "*" : "");
@@ -936,7 +951,32 @@ static void match_call_info(struct expression *call)
 		stree = get_all_states_stree(cb->owner);
 		i = 0;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, stree, cb->callback);
+			print_struct_members(call, arg, i, stree, cb->callback, 0);
+			i++;
+		} END_FOR_EACH_PTR(arg);
+		free_stree(&stree);
+	} END_FOR_EACH_PTR(cb);
+
+	free_string(name);
+}
+
+static void match_call_info_new(struct expression *call)
+{
+	struct member_info_callback *cb;
+	struct expression *arg;
+	struct stree *stree;
+	char *name;
+	int i;
+
+	name = get_fnptr_name(call->fn);
+	if (!name)
+		return;
+
+	FOR_EACH_PTR(member_callbacks_new, cb) {
+		stree = get_all_states_stree(cb->owner);
+		i = 0;
+		FOR_EACH_PTR(call->args, arg) {
+			print_struct_members(call, arg, i, stree, cb->callback, 1);
 			i++;
 		} END_FOR_EACH_PTR(arg);
 		free_stree(&stree);
@@ -2429,6 +2469,7 @@ static void register_return_replacements(void)
 void register_definition_db_callbacks(int id)
 {
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	add_hook(&match_call_info_new, FUNCTION_CALL_HOOK);
 	add_split_return_callback(match_return_info);
 	add_split_return_callback(print_returned_struct_members);
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
