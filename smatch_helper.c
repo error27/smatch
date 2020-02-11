@@ -358,9 +358,24 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		if (expr->expr_ident)
 			append(buf, expr->expr_ident->name, len);
 		return;
-	default:
+	case EXPR_SELECT:
+	case EXPR_CONDITIONAL:
 		*complicated = 1;
-		//printf("unknown type = %d\n", expr->type);
+		append(buf, "(", len);
+		__get_variable_from_expr(NULL, buf, expr->conditional, len, complicated, no_parens);
+		append(buf, ") ?", len);
+		if (expr->cond_true)
+			__get_variable_from_expr(NULL, buf, expr->cond_true, len, complicated, no_parens);
+		append(buf, ":", len);
+		__get_variable_from_expr(NULL, buf, expr->cond_false, len, complicated, no_parens);
+		return;
+	default: {
+			char tmp[64];
+
+			snprintf(tmp, sizeof(tmp), "$expr_%p(%d)", expr, expr->type);
+			append(buf, tmp, len);
+			*complicated = 1;
+		}
 		return;
 	}
 }
