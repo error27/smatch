@@ -1747,6 +1747,8 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 		return 0;
 	if (estate_min(state).value == 0 && estate_max(state).value == 0)
 		return 0;
+	if (has_possible_negative(sm))
+		return 0;
 	if (!has_separate_zero_null(sm))
 		return 0;
 
