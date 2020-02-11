@@ -126,6 +126,9 @@ int estate_has_hard_max(struct smatch_state *state)
 
 void estate_set_hard_max(struct smatch_state *state)
 {
+	/* pointers don't have a hard max */
+	if (is_ptr_type(estate_type(state)))
+		return;
 	get_dinfo(state)->hard_max = 1;
 }
 
