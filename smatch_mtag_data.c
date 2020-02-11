@@ -109,8 +109,19 @@ static bool is_head_next(struct expression *expr)
 	return true;
 }
 
+mtag_t ignored_mtag;
+static bool is_ignored_tag(mtag_t tag)
+{
+	if (tag == ignored_mtag)
+		return true;
+	return false;
+}
+
 static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 {
+	if (is_ignored_tag(tag))
+		return;
+
 	rl = clone_rl_permanent(rl);
 
 	mem_sql(NULL, NULL, "delete from mtag_data where tag = %lld and offset = %d and type = %d",
@@ -310,6 +321,7 @@ void register_mtag_data(int id)
 {
 	my_id = id;
 
+	ignored_mtag = str_to_mtag("extern boot_params");
 	add_hook(&clear_cache, FUNC_DEF_HOOK);
 
 //	if (!option_info)
