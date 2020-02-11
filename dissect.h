@@ -27,6 +27,11 @@ struct reporter
 
 extern struct symbol *dissect_ctx;
 
+static inline bool sym_is_local(struct symbol *sym)
+{
+	return sym->kind == 'v' && !(sym->ctype.modifiers & MOD_TOPLEVEL);
+}
+
 extern void dissect(struct symbol_list *, struct reporter *);
 
 #endif

@@ -165,7 +165,7 @@ static inline struct symbol *expr_symbol(struct expression *expr)
 		if (!sym) {
 			sym = alloc_symbol(expr->pos, SYM_BAD);
 			bind_symbol(sym, expr->symbol_name, NS_SYMBOL);
-			sym->ctype.modifiers = MOD_EXTERN;
+			sym->ctype.modifiers = MOD_EXTERN | MOD_TOPLEVEL;
 			sym->kind = expr->op ?: 'v'; /* see EXPR_CALL */
 		}
 	}

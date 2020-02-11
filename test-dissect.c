@@ -37,6 +37,16 @@ static void print_usage(struct position *pos, struct symbol *sym, unsigned mode)
 
 }
 
+static char symscope(struct symbol *sym)
+{
+	if (sym_is_local(sym)) {
+		if (!dissect_ctx)
+			warning(sym->pos, "no context");
+		return '.';
+	}
+	return ' ';
+}
+
 static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 {
 	print_usage(pos, sym, mode);
@@ -44,8 +54,8 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 	if (!sym->ident)
 		sym->ident = built_in_ident("__asm__");
 
-	printf("%c %-32.*s %s\n",
-		sym->kind, sym->ident->len, sym->ident->name,
+	printf("%c %c %-32.*s %s\n",
+		symscope(sym), sym->kind, sym->ident->len, sym->ident->name,
 		show_typename(sym->ctype.base_type));
 
 	switch (sym->kind) {
@@ -80,8 +90,8 @@ static void r_member(unsigned mode, struct position *pos, struct symbol *sym, st
 	/* mem == NULL means entire struct accessed */
 	mi = mem ? mem->ident : built_in_ident("*");
 
-	printf("m %.*s.%-*.*s %s\n",
-		si->len, si->name,
+	printf("%c m %.*s.%-*.*s %s\n",
+		symscope(sym), si->len, si->name,
 		32-1 - si->len, mi->len, mi->name,
 		show_typename(mem ? mem->ctype.base_type : sym));
 
