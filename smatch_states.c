@@ -74,6 +74,24 @@ void __print_cur_stree(void)
 	__print_stree(cur_stree);
 }
 
+bool __print_states(const char *owner)
+{
+	struct sm_state *sm;
+	bool found = false;
+
+	if (!owner)
+		return false;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (!strstr(check_name(sm->owner), owner))
+			continue;
+		sm_msg("%s", show_sm(sm));
+		found = true;
+	} END_FOR_EACH_SM(sm);
+
+	return found;
+}
+
 int unreachable(void)
 {
 	if (!cur_stree)

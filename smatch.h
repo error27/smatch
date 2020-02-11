@@ -776,6 +776,7 @@ void __save_gotos(const char *name, struct symbol *sym);
 void __merge_gotos(const char *name, struct symbol *sym);
 
 void __print_cur_stree(void);
+bool __print_states(const char *owner);
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);

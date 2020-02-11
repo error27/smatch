@@ -78,8 +78,6 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 static void match_states(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *check_arg;
-	struct sm_state *sm;
-	int found = 0;
 
 	check_arg = get_argument_from_call_expr(expr->args, 0);
 	if (check_arg->type != EXPR_STRING) {
@@ -87,14 +85,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 		return;
 	}
 
-	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (!strstr(check_name(sm->owner), check_arg->string->data))
-			continue;
-		sm_msg("%s", show_sm(sm));
-		found = 1;
-	} END_FOR_EACH_SM(sm);
-
-	if (found)
+	if (__print_states(check_arg->string->data))
 		return;
 
 	if (!id_from_name(check_arg->string->data))
