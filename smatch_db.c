@@ -2084,6 +2084,24 @@ struct expression *strip_expr_statement(struct expression *expr)
 	return strip_expr(last_stmt->expression);
 }
 
+static bool is_kernel_error_path(struct expression *expr)
+{
+	struct range_list *rl;
+
+	/*
+	 * Splitting up returns requires resources.  It also requires resources
+	 * for the caller.  It doesn't seem worth it to split anything up.
+	 */
+	if (!get_implied_rl(expr, &rl))
+		return false;
+	if (rl_type(rl) != &int_ctype)
+		return false;
+	if (rl_min(rl).value >= -4095 &&
+	    rl_max(rl).value < 0)
+		return true;
+	return false;
+}
+
 static void call_return_state_hooks(struct expression *expr)
 {
 	struct returned_state_callback *cb;
@@ -2108,6 +2126,8 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (call_return_state_hooks_conditional(expr)) {
 		return;
+	} else if (is_kernel_error_path(expr)) {
+		goto vanilla;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
 	} else if (split_positive_from_negative(expr)) {
