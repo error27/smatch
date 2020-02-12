@@ -617,16 +617,13 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 
 	break; case SYM_FN:
 		stmt = sym->ctype.modifiers & MOD_INLINE
-			? type->inline_stmt
-			: type->stmt;
+			? type->inline_stmt : type->stmt;
 		if (!stmt)
 			break;
 
 		if (dctx)
-			sparse_error(dctx->pos,
-				"dissect_ctx change %.*s -> %s",
-				dctx->ident->len, dctx->ident->name,
-				show_ident(sym->ident));
+			sparse_error(dctx->pos, "dissect_ctx change %s -> %s",
+				show_ident(dctx->ident), show_ident(sym->ident));
 
 		dissect_ctx = sym;
 		do_sym_list(type->arguments);
