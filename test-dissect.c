@@ -80,13 +80,14 @@ err:
 
 static void r_member(unsigned mode, struct position *pos, struct symbol *sym, struct symbol *mem)
 {
-	struct ident *si, *mi;
+	struct ident *ni, *si, *mi;
 
 	print_usage(pos, sym, mode);
 
-	si = sym->ident ?: built_in_ident("?");
+	ni = built_in_ident("?");
+	si = sym->ident ?: ni;
 	/* mem == NULL means entire struct accessed */
-	mi = mem ? mem->ident : built_in_ident("*");
+	mi = mem ? (mem->ident ?: ni) : built_in_ident("*");
 
 	printf("%c m %.*s.%-*.*s %s\n",
 		symscope(sym), si->len, si->name,

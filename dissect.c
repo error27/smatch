@@ -123,11 +123,11 @@ static inline struct symbol *no_member(struct ident *name)
 {
 	static struct symbol sym = {
 		.type = SYM_BAD,
+		.ctype.base_type = &bad_ctype,
 		.kind = 'm',
 	};
 
-	sym.ctype.base_type = &bad_ctype;
-	sym.ident = name ?: built_in_ident("?");
+	sym.ident = name;
 
 	return &sym;
 }
@@ -137,7 +137,7 @@ static struct symbol *report_member(usage_t mode, struct position *pos,
 {
 	struct symbol *ret = mem->ctype.base_type;
 
-	if (mem->ident)
+	if (mem->ident || mem->type == SYM_BAD)
 		reporter->r_member(fix_mode(ret, mode), pos, type, mem);
 
 	return ret;
