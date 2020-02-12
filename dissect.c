@@ -119,19 +119,6 @@ static usage_t fix_mode(struct symbol *type, usage_t mode)
 	return mode;
 }
 
-static inline struct symbol *no_member(struct ident *name)
-{
-	static struct symbol sym = {
-		.type = SYM_BAD,
-		.ctype.base_type = &bad_ctype,
-		.kind = 'm',
-	};
-
-	sym.ident = name;
-
-	return &sym;
-}
-
 static struct symbol *report_member(usage_t mode, struct position *pos,
 					struct symbol *type, struct symbol *mem)
 {
@@ -308,8 +295,20 @@ found:
 
 static struct symbol *lookup_member(struct symbol *type, struct ident *name, int *addr)
 {
-	return __lookup_member(type, name, addr)
-		?: no_member(name);
+	struct symbol *mem = __lookup_member(type, name, addr);
+
+	if (!mem) {
+		static struct symbol bad_member = {
+			.type = SYM_BAD,
+			.ctype.base_type = &bad_ctype,
+			.kind = 'm',
+		};
+
+		mem = &bad_member;
+		mem->ident = name;
+	}
+
+	return mem;
 }
 
 static struct expression *peek_preop(struct expression *expr, int op)
