@@ -469,7 +469,7 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
  *
  * Return 0 if it doesn't, and -1 if you don't know.
  */
-int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local)
+int dominates(struct instruction *insn, struct instruction *dom, int local)
 {
 	switch (dom->opcode) {
 	case OP_CALL: case OP_ENTRY:
@@ -486,7 +486,7 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 		return 0;
 	}
 
-	if (dom->src != pseudo) {
+	if (dom->src != insn->src) {
 		if (local)
 			return 0;
 		/* We don't think two explicitly different symbols ever alias */

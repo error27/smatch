@@ -58,7 +58,7 @@ end:
 	repeat_phase |= REPEAT_CSE;
 }
 
-static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
+static int find_dominating_parents(struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
 	int local)
 {
@@ -75,7 +75,7 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 				continue;
 			if (one == insn)
 				goto no_dominance;
-			dominance = dominates(pseudo, insn, one, local);
+			dominance = dominates(insn, one, local);
 			if (dominance < 0) {
 				if (one->opcode == OP_LOAD)
 					continue;
@@ -90,7 +90,7 @@ no_dominance:
 			continue;
 		parent->generation = generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
+		if (!find_dominating_parents(insn, parent, generation, dominators, local))
 			return 0;
 		continue;
 
@@ -160,7 +160,7 @@ static void simplify_loads(struct basic_block *bb)
 				int dominance;
 				if (!dom->bb)
 					continue;
-				dominance = dominates(pseudo, insn, dom, local);
+				dominance = dominates(insn, dom, local);
 				if (dominance) {
 					/* possible partial dominance? */
 					if (dominance < 0)  {
@@ -180,7 +180,7 @@ static void simplify_loads(struct basic_block *bb)
 			generation = ++bb_generation;
 			bb->generation = generation;
 			dominators = NULL;
-			if (find_dominating_parents(pseudo, insn, bb, generation, &dominators, local)) {
+			if (find_dominating_parents(insn, bb, generation, &dominators, local)) {
 				/* This happens with initial assignments to structures etc.. */
 				if (!dominators) {
 					if (local) {
@@ -204,10 +204,10 @@ next_load:
 	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
-static bool try_to_kill_store(pseudo_t pseudo, struct instruction *insn,
+static bool try_to_kill_store(struct instruction *insn,
 			     struct instruction *dom, int local)
 {
-	int dominance = dominates(pseudo, insn, dom, local);
+	int dominance = dominates(insn, dom, local);
 
 	if (dominance) {
 		/* possible partial dominance? */
@@ -250,7 +250,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 			RECURSE_PTR_REVERSE(insn, dom) {
 				if (!dom->bb)
 					continue;
-				if (!try_to_kill_store(pseudo, insn, dom, local))
+				if (!try_to_kill_store(insn, dom, local))
 					goto next_store;
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
@@ -264,7 +264,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 						continue;
 					if (dom == insn)
 						goto next_parent;
-					if (!try_to_kill_store(pseudo, insn, dom, local))
+					if (!try_to_kill_store(insn, dom, local))
 						goto next_parent;
 				} END_FOR_EACH_PTR(dom);
 next_parent:
