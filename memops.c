@@ -59,7 +59,7 @@ end:
 }
 
 static int find_dominating_parents(struct instruction *insn,
-	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
+	struct basic_block *bb, struct pseudo_list **dominators,
 	int local)
 {
 	struct basic_block *parent;
@@ -86,11 +86,11 @@ static int find_dominating_parents(struct instruction *insn,
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
-		if (parent->generation == generation)
+		if (parent->generation == bb->generation)
 			continue;
-		parent->generation = generation;
+		parent->generation = bb->generation;
 
-		if (!find_dominating_parents(insn, parent, generation, dominators, local))
+		if (!find_dominating_parents(insn, parent, dominators, local))
 			return 0;
 		continue;
 
@@ -146,7 +146,6 @@ static void simplify_loads(struct basic_block *bb)
 			pseudo_t pseudo = insn->src;
 			int local = local_pseudo(pseudo);
 			struct pseudo_list *dominators;
-			unsigned long generation;
 
 			if (insn->is_volatile)
 				continue;
@@ -177,10 +176,9 @@ static void simplify_loads(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, go find the parents */
-			generation = ++bb_generation;
-			bb->generation = generation;
+			bb->generation = ++bb_generation;
 			dominators = NULL;
-			if (find_dominating_parents(insn, bb, generation, &dominators, local)) {
+			if (find_dominating_parents(insn, bb, &dominators, local)) {
 				/* This happens with initial assignments to structures etc.. */
 				if (!dominators) {
 					if (local) {
