@@ -1127,9 +1127,6 @@ int negate_comparison(int op);
 int remove_unsigned_from_comparison(int op);
 int param_compare_limit_is_impossible(struct expression *expr, int left_param, char *left_key, char *value);
 void filter_by_comparison(struct range_list **rl, int comparison, struct range_list *right);
-struct sm_state *comparison_implication_hook(struct expression *expr,
-			struct state_list **true_stack,
-			struct state_list **false_stack);
 void __compare_param_limit_hook(struct expression *left_expr, struct expression *right_expr,
 				const char *state_name,
 				struct smatch_state *true_state, struct smatch_state *false_state);
@@ -1201,6 +1198,10 @@ struct sm_state *stored_condition_implication_hook(struct expression *expr,
 struct sm_state *parsed_condition_implication_hook(struct expression *expr,
 			struct state_list **true_stack,
 			struct state_list **false_stack);
+/* smatch_comparison.c */
+struct sm_state *comparison_implication_hook(struct expression *expr,
+					     struct state_list **true_stack,
+					     struct state_list **false_stack);
 
 /* check_string_len.c */
 int get_formatted_string_size(struct expression *call, int arg);

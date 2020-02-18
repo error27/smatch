@@ -535,9 +535,9 @@ struct sm_state *filter_pools(struct sm_state *sm,
 }
 
 static struct stree *filter_stack(struct sm_state *gate_sm,
-				       struct stree *pre_stree,
-				       const struct state_list *remove_stack,
-				       const struct state_list *keep_stack)
+				  struct stree *pre_stree,
+				  const struct state_list *remove_stack,
+				  const struct state_list *keep_stack)
 {
 	struct stree *ret = NULL;
 	struct sm_state *tmp;
@@ -766,13 +766,13 @@ free:
 }
 
 static int handled_by_comparison_hook(struct expression *expr,
-				   struct stree **implied_true,
-				   struct stree **implied_false)
+				      struct stree **implied_true,
+				      struct stree **implied_false)
 {
+	struct sm_state *sm, *true_sm, *false_sm;
 	struct state_list *true_stack = NULL;
 	struct state_list *false_stack = NULL;
 	struct stree *pre_stree;
-	struct sm_state *sm;
 
 	sm = comparison_implication_hook(expr, &true_stack, &false_stack);
 	if (!sm)
@@ -782,6 +782,13 @@ static int handled_by_comparison_hook(struct expression *expr,
 
 	*implied_true = filter_stack(sm, pre_stree, false_stack, true_stack);
 	*implied_false = filter_stack(sm, pre_stree, true_stack, false_stack);
+
+	true_sm = get_sm_state_stree(*implied_true, sm->owner, sm->name, sm->sym);
+	false_sm = get_sm_state_stree(*implied_false, sm->owner, sm->name, sm->sym);
+	if (true_sm && strcmp(true_sm->state->name, "unknown") == 0)
+		delete_state_stree(implied_true, sm->owner, sm->name, sm->sym);
+	if (false_sm && strcmp(false_sm->state->name, "unknown") == 0)
+		delete_state_stree(implied_false, sm->owner, sm->name, sm->sym);
 
 	free_stree(&pre_stree);
 	free_slist(&true_stack);
