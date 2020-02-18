@@ -172,12 +172,17 @@ done:
 static bool in_param_set;
 void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
+	struct expression *faked;
+
 	if (!expr)
 		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
 	set_union_info(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
-	update_mtag_data(expr, state);
+	faked = get_faked_expression();
+	if (!faked ||
+	    (faked->type == EXPR_ASSIGNMENT && is_fresh_alloc(faked->right)))
+		update_mtag_data(expr, state);
 	if (in_param_set &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
