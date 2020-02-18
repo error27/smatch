@@ -394,8 +394,9 @@ void sql_insert_fn_data_link(struct expression *fn, int type, int param, const c
 
 void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_name)
 {
-	sql_insert(mtag_about, "%lld, '%s', '%s', %d, '%s', '%s'",
-		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
+	sql_insert_cache(mtag_about, "%lld, '%s', '%s', %d, '%s', '%s'",
+			 tag, get_filename(), get_function(), get_lineno(),
+			 left_name, right_name);
 }
 
 void sql_insert_mtag_info(mtag_t tag, int type, const char *value)
@@ -2302,6 +2303,7 @@ static void init_cachedb(void)
 		"db/call_implies.schema",
 		"db/return_implies.schema",
 		"db/type_info.schema",
+		"db/mtag_about.schema",
 		"db/mtag_data.schema",
 		"db/mtag_info.schema",
 		"db/sink_info.schema",
