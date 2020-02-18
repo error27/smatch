@@ -995,6 +995,7 @@ void sql_copy_constraint_required(const char *new_limit, const char *old_limit);
 void sql_insert_fn_ptr_data_link(const char *ptr, const char *data);
 void sql_insert_fn_data_link(struct expression *fn, int type, int param, const char *key, const char *value);
 void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_name);
+void sql_insert_mtag_info(mtag_t tag, int type, const char *value);
 void sql_insert_mtag_map(mtag_t container, int container_offset, mtag_t tag, int tag_offset);
 void sql_insert_mtag_alias(mtag_t orig, mtag_t alias);
 int mtag_map_select_container(mtag_t tag, int container_offset, mtag_t *container);

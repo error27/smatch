@@ -398,7 +398,11 @@ void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_
 		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
 }
 
+void sql_insert_mtag_info(mtag_t tag, int type, const char *value)
 {
+	sql_insert_cache(mtag_info, "'%s', %lld, %d, '%s'", get_filename(), tag, type, value);
+}
+
 void sql_insert_mtag_map(mtag_t container, int container_offset, mtag_t tag, int tag_offset)
 {
 	sql_insert(mtag_map, "%lld, %d, %lld, %d", container, container_offset, tag, tag_offset);
@@ -2250,6 +2254,7 @@ static void init_memdb(void)
 		"db/fn_ptr_data_link.schema",
 		"db/fn_data_link.schema",
 		"db/mtag_about.schema",
+		"db/mtag_info.schema",
 		"db/mtag_map.schema",
 		"db/mtag_data.schema",
 		"db/mtag_alias.schema",
@@ -2298,6 +2303,7 @@ static void init_cachedb(void)
 		"db/return_implies.schema",
 		"db/type_info.schema",
 		"db/mtag_data.schema",
+		"db/mtag_info.schema",
 		"db/sink_info.schema",
 	};
 	static char buf[4096];
@@ -2362,13 +2368,20 @@ static int save_cache_data(void *_table, int argc, char **argv, char **azColName
 
 static void dump_cache(struct symbol_list *sym_list)
 {
+	const char *cache_tables[] = {
+		"type_info", "return_implies", "call_implies", "mtag_data",
+		"mtag_info", "mtag_about", "sink_info",
+	};
+	char buf[64];
+	int i;
+
 	if (!option_info)
 		return;
-	cache_sql(&save_cache_data, (char *)"type_info", "select * from type_info;");
-	cache_sql(&save_cache_data, (char *)"return_implies", "select * from return_implies;");
-	cache_sql(&save_cache_data, (char *)"call_implies", "select * from call_implies;");
-	cache_sql(&save_cache_data, (char *)"mtag_data", "select * from mtag_data;");
-	cache_sql(&save_cache_data, (char *)"sink_info", "select * from sink_info;");
+
+	for (i = 0; i < ARRAY_SIZE(cache_tables); i++) {
+		snprintf(buf, sizeof(buf), "select * from %s;", cache_tables[i]);
+		cache_sql(&save_cache_data, (char *)cache_tables[i], buf);
+	}
 }
 
 void open_smatch_db(char *db_file)
