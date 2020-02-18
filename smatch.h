@@ -474,6 +474,7 @@ int nr_bits(struct expression *expr);
 int is_void_pointer(struct expression *expr);
 int is_char_pointer(struct expression *expr);
 int is_string(struct expression *expr);
+bool is_struct_ptr(struct symbol *type);
 int is_static(struct expression *expr);
 bool is_local_variable(struct expression *expr);
 int types_equiv(struct symbol *one, struct symbol *two);

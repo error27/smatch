@@ -551,6 +551,16 @@ int is_string(struct expression *expr)
 	return 0;
 }
 
+bool is_struct_ptr(struct symbol *type)
+{
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return false;
+	return true;
+}
+
 int is_static(struct expression *expr)
 {
 	char *name;
