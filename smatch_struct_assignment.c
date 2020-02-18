@@ -234,7 +234,6 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	struct expression *assign;
 	int op = '.';
 
-
 	if (__in_fake_assign)
 		return;
 	faked_expression = faked;
@@ -242,7 +241,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	left = strip_expr(left);
 	right = strip_expr(right);
 
-	if (left->type == EXPR_PREOP && left->op == '*')
+	if (left->type == EXPR_PREOP && left->op == '*' && is_pointer(left))
 		left = preop_expression(left, '(');
 
 	struct_type = get_struct_type(left);
