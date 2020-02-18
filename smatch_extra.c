@@ -2801,19 +2801,15 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
 	struct symbol *type;
-	char fullname[256];
 	char *key_orig = key;
-	bool add_star = false;
+	char *fullname;
 	sval_t dummy;
 
-	if (key[0] == '*') {
-		add_star = true;
-		key++;
-	}
-
-	snprintf(fullname, 256, "%s%s%s", add_star ? "*" : "", name, key + 1);
-
 	expr = symbol_expression(sym);
+	fullname = get_variable_from_key(expr, key, NULL);
+	if (!fullname)
+		return;
+
 	type = get_member_type_from_key(expr, key_orig);
 	str_to_rl(type, value, &rl);
 	state = alloc_estate_rl(rl);
@@ -2824,17 +2820,16 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 
 static void set_param_fuzzy_max(const char *name, struct symbol *sym, char *key, char *value)
 {
+	struct expression *expr;
 	struct range_list *rl = NULL;
 	struct smatch_state *state;
 	struct symbol *type;
-	char fullname[256];
+	char *fullname;
 	sval_t max;
 
-	if (strcmp(key, "*$") == 0)
-		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strncmp(key, "$", 1) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 1);
-	else
+	expr = symbol_expression(sym);
+	fullname = get_variable_from_key(expr, key, NULL);
+	if (!fullname)
 		return;
 
 	state = get_state(SMATCH_EXTRA, fullname, sym);
@@ -2850,13 +2845,12 @@ static void set_param_fuzzy_max(const char *name, struct symbol *sym, char *key,
 static void set_param_hard_max(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct smatch_state *state;
-	char fullname[256];
+	struct expression *expr;
+	char *fullname;
 
-	if (strcmp(key, "*$") == 0)
-		snprintf(fullname, sizeof(fullname), "*%s", name);
-	else if (strncmp(key, "$", 1) == 0)
-		snprintf(fullname, 256, "%s%s", name, key + 1);
-	else
+	expr = symbol_expression(sym);
+	fullname = get_variable_from_key(expr, key, NULL);
+	if (!fullname)
 		return;
 
 	state = get_state(SMATCH_EXTRA, fullname, sym);

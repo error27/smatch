@@ -943,14 +943,19 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		} else if (strncmp(name, sm_name, len) == 0) {
 			if (sm_name[len] != '.' && sm_name[len] != '-')
 				continue;
-			if (is_address)
+			if (is_address && sm_name[len] == '.') {
 				snprintf(printed_name, sizeof(printed_name),
 					 "%s$->%s", add_star ? "*" : "",
 					 sm_name + len + 1);
-			else
+			} else if (is_address && sm_name[len] == '-') {
+				snprintf(printed_name, sizeof(printed_name),
+					 "%s(*$)%s", add_star ? "*" : "",
+					 sm_name + len);
+			} else {
 				snprintf(printed_name, sizeof(printed_name),
 					 "%s$%s", add_star ? "*" : "",
 					 sm_name + len);
+			}
 		} else {
 			continue;
 		}
@@ -2594,9 +2599,11 @@ char *return_state_to_var_sym(struct expression *expr, int param, const char *ke
 
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
+	struct symbol *type;
 	char buf[256];
 	char *tmp;
 	int star_cnt = 0;
+	bool add_dot = false;
 
 	if (!arg)
 		return NULL;
@@ -2620,12 +2627,37 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		}
 	}
 
+	if (strncmp(key, "(*$)", 4) == 0) {
+		char buf[64];
+
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			arg = strip_expr(arg->unop);
+			snprintf(buf, sizeof(buf), "$%s", key + 4);
+			return get_variable_from_key(arg, buf, sym);
+		} else {
+			tmp = expr_to_var_sym(arg, sym);
+			if (!tmp)
+				return NULL;
+			snprintf(buf, sizeof(buf), "(*%s)%s", tmp, key + 4);
+			free_string(tmp);
+			return alloc_string(buf);
+		}
+	}
+
 	while (key[0] == '*') {
 		star_cnt++;
 		key++;
 	}
 
-	if (arg->type == EXPR_PREOP && arg->op == '&' && star_cnt) {
+	/*
+	 * FIXME:  This is a hack.
+	 * We should be able to parse expressions like (*$)->foo and *$->foo.
+	 */
+	type = get_type(arg);
+	if (is_struct_ptr(type))
+		add_dot = true;
+
+	if (arg->type == EXPR_PREOP && arg->op == '&' && star_cnt && !add_dot) {
 		arg = strip_expr(arg->unop);
 		star_cnt--;
 	}
@@ -2673,6 +2705,14 @@ const char *state_name_to_param_name(const char *state_name, const char *param_n
 	/* ten out of ten stars! */
 	if (star_cnt > 10)
 		return NULL;
+
+	if (strncmp(state_name, "(*", 2) == 0 &&
+	    strncmp(state_name + 2, param_name, name_len) == 0 &&
+	    state_name[name_len + 2] == ')') {
+		snprintf(buf, sizeof(buf), "%.*s(*$)%s", star_cnt, "**********",
+			 state_name + name_len + 3);
+		return alloc_sname(buf);
+	}
 
 	if (strcmp(state_name, param_name) == 0) {
 		snprintf(buf, sizeof(buf), "%.*s$", star_cnt, "**********");

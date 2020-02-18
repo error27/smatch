@@ -176,8 +176,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated, int no_parens)
 {
-
-
+	no_parens = 0;
 	if (!expr) {
 		/* can't happen on valid code */
 		*complicated = 1;

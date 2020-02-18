@@ -242,6 +242,9 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	left = strip_expr(left);
 	right = strip_expr(right);
 
+	if (left->type == EXPR_PREOP && left->op == '*')
+		left = preop_expression(left, '(');
+
 	struct_type = get_struct_type(left);
 	if (!struct_type) {
 		/*
