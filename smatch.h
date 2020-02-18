@@ -845,6 +845,7 @@ enum info_type {
 	STMT_CNT	= 1037,
 	TERMINATED	= 1038,
 	FRESH_ALLOC	= 1044,
+	ALLOCATOR	= 1045,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,
