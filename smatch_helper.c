@@ -1065,8 +1065,23 @@ int get_param_num_from_sym(struct symbol *sym)
 	struct symbol *tmp;
 	int i;
 
-	if (!cur_func_sym)
-		return -1;
+	if (!sym)
+		return UNKNOWN_SCOPE;
+
+	if (sym->ctype.modifiers & MOD_TOPLEVEL) {
+		if (sym->ctype.modifiers & MOD_STATIC)
+			return FILE_SCOPE;
+		return GLOBAL_SCOPE;
+	}
+
+	if (!cur_func_sym) {
+		if (!parse_error) {
+			sm_msg("warn: internal.  problem with scope:  %s",
+			       sym->ident ? sym->ident->name : "<anon var>");
+		}
+		return GLOBAL_SCOPE;
+	}
+
 
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
@@ -1074,7 +1089,7 @@ int get_param_num_from_sym(struct symbol *sym)
 			return i;
 		i++;
 	} END_FOR_EACH_PTR(tmp);
-	return -1;
+	return LOCAL_SCOPE;
 }
 
 int get_param_num(struct expression *expr)
@@ -1083,11 +1098,11 @@ int get_param_num(struct expression *expr)
 	char *name;
 
 	if (!cur_func_sym)
-		return -1;
+		return UNKNOWN_SCOPE;
 	name = expr_to_var_sym(expr, &sym);
 	free_string(name);
 	if (!sym)
-		return -1;
+		return UNKNOWN_SCOPE;
 	return get_param_num_from_sym(sym);
 }
 

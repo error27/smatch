@@ -442,9 +442,16 @@ int positions_eq(struct position pos1, struct position pos2);
 struct statement *get_current_statement(void);
 struct statement *get_prev_statement(void);
 struct expression *get_last_expr_from_expression_stmt(struct expression *expr);
+
+#define RETURN_VAR    -1
+#define LOCAL_SCOPE   -2
+#define FILE_SCOPE    -3
+#define GLOBAL_SCOPE  -4
+#define UNKNOWN_SCOPE -5
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
 struct symbol *get_param_sym_from_num(int num);
+
 int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);
 int parent_is_gone(struct expression *expr);
