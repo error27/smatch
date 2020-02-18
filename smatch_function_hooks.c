@@ -460,6 +460,24 @@ static bool fake_a_param_assignment(struct expression *expr, const char *return_
 	return true;
 }
 
+static void set_fresh_mtag_returns(struct db_callback_info *db_info)
+{
+	struct expression *expr = db_info->expr->left;
+	struct smatch_state *state;
+
+	if (!db_info->ret_state)
+		return;
+
+	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
+	state = get_mtag_return(db_info->expr, state);
+	if (!state)
+		return;
+	set_extra_expr_mod(expr, state);
+
+	db_info->ret_state = NULL;
+	db_info->ret_str = NULL;
+}
+
 static void set_return_assign_state(struct db_callback_info *db_info)
 {
 	struct expression *expr = db_info->expr->left;
@@ -930,6 +948,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
+		set_fresh_mtag_returns(db_info);
 	}
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {

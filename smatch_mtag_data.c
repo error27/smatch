@@ -143,6 +143,16 @@ static bool invalid_type(struct symbol *type)
 	return false;
 }
 
+static bool parent_is_fresh_alloc(struct expression *expr)
+{
+	struct symbol *sym;
+
+	sym = expr_to_sym(expr);
+	if (!sym || !sym->ident)
+		return false;
+	return is_fresh_alloc_var_sym(sym->ident->name, sym);
+}
+
 void update_mtag_data(struct expression *expr, struct smatch_state *state)
 {
 	struct range_list *orig, *new;
@@ -173,7 +183,10 @@ void update_mtag_data(struct expression *expr, struct smatch_state *state)
 	if (offset == 0 && invalid_type(type))
 		return;
 
-	orig = select_orig(tag, offset);
+	if (parent_is_fresh_alloc(expr))
+		orig = NULL;
+	else
+		orig = select_orig(tag, offset);
 	new = rl_union(orig, estate_rl(state));
 	insert_mtag_data(tag, offset, new);
 }
