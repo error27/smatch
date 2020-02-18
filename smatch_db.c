@@ -398,9 +398,10 @@ void sql_insert_mtag_about(mtag_t tag, const char *left_name, const char *right_
 		   tag, get_filename(), get_function(), get_lineno(), left_name, right_name);
 }
 
-void sql_insert_mtag_map(mtag_t tag, int tag_offset, int container_offset, mtag_t container)
 {
-	sql_insert(mtag_map, "%lld, %d, %d, %lld", tag, tag_offset, container_offset, container);
+void sql_insert_mtag_map(mtag_t container, int container_offset, mtag_t tag, int tag_offset)
+{
+	sql_insert(mtag_map, "%lld, %d, %lld, %d", container, container_offset, tag, tag_offset);
 }
 
 void sql_insert_mtag_alias(mtag_t orig, mtag_t alias)
@@ -423,13 +424,13 @@ static int save_mtag(void *_tag, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-int mtag_map_select_container(mtag_t tag, int offset, mtag_t *container)
+int mtag_map_select_container(mtag_t tag, int container_offset, mtag_t *container)
 {
 	mtag_t tmp = 0;
 
 	run_sql(save_mtag, &tmp,
 		"select container from mtag_map where tag = %lld and container_offset = %d and tag_offset = 0;",
-		tag, offset);
+		tag, container_offset);
 
 	if (tmp == 0 || tmp == -1ULL)
 		return 0;
@@ -442,7 +443,7 @@ int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag)
 	mtag_t tmp = 0;
 
 	run_sql(save_mtag, &tmp,
-		"select tag from mtag_map where container = %lld and offset = %d;",
+		"select tag from mtag_map where container = %lld and container_offset = %d;",
 		container, offset);
 
 	if (tmp == 0 || tmp == -1ULL)

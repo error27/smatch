@@ -158,7 +158,7 @@ static void assign_to_alias(struct expression *expr, int param, mtag_t tag, int 
 	// FIXME:  is arg_offset handled correctly?
 	if (expr_to_mtag_offset(gen_expr, &arg_tag, &arg_offset) &&
 	    arg_offset < MTAG_OFFSET_MASK)
-		sql_insert_mtag_map(arg_tag, arg_offset, offset, alias);
+		sql_insert_mtag_map(alias, offset, arg_tag, arg_offset);
 }
 
 static void call_does_mtag_assign(struct expression *expr, int param, char *key, char *value)

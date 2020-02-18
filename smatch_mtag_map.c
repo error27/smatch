@@ -53,7 +53,7 @@ static void match_assign(struct expression *expr)
 	    left_offset >= MTAG_OFFSET_MASK)
 		return;
 
-	sql_insert_mtag_map(right_tag, right_offset, left_offset, left_tag);
+	sql_insert_mtag_map(left_tag, left_offset, right_tag, right_offset);
 }
 
 void register_mtag_map(int id)
