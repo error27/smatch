@@ -58,7 +58,7 @@ static void match_binop2(struct expression *expr)
 
 	if (!get_implied_value(expr->right, &shift))
 		return;
-	if (!get_implied_value(left->right, &mask))
+	if (!get_value(left->right, &mask))
 		return;
 
 	if (mask.uvalue >> shift.uvalue)
