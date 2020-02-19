@@ -40,6 +40,11 @@ struct scope	*block_scope = &builtin_scope,		// regular automatic variables etc
 		*file_scope = &builtin_scope,		// static
 		*global_scope = &builtin_scope;		// externally visible
 
+void set_current_scope(struct symbol *sym)
+{
+	sym->scope = block_scope;
+}
+
 void bind_scope(struct symbol *sym, struct scope *scope)
 {
 	sym->scope = scope;
