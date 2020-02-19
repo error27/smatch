@@ -152,7 +152,6 @@ static inline struct symbol *expr_symbol(struct expression *expr)
 		if (!sym) {
 			sym = alloc_symbol(expr->pos, SYM_BAD);
 			bind_symbol(sym, expr->symbol_name, NS_SYMBOL);
-			sym->ctype.modifiers = MOD_EXTERN | MOD_TOPLEVEL;
 			sym->kind = expr->op ?: 'v'; /* see EXPR_CALL */
 		}
 	}
@@ -238,7 +237,8 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 				return;
 
 			dctx = dissect_ctx;
-			dissect_ctx = NULL;
+			if (toplevel(base->scope))
+				dissect_ctx = NULL;
 
 			if (base->ident || deanon(base, name, parent))
 				reporter->r_symdef(base);

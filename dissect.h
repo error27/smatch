@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "parse.h"
 #include "expression.h"
+#include "scope.h"
 
 #define	U_SHIFT		8
 
@@ -29,7 +30,7 @@ extern struct symbol *dissect_ctx;
 
 static inline bool sym_is_local(struct symbol *sym)
 {
-	return sym->kind == 'v' && !(sym->ctype.modifiers & MOD_TOPLEVEL);
+	return !toplevel(sym->scope);
 }
 
 extern void dissect(struct reporter *, struct string_list *);
