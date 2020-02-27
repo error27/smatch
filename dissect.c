@@ -304,6 +304,9 @@ static struct symbol *lookup_member(struct symbol *type, struct ident *name, int
 			.kind = 'm',
 		};
 
+		if (!type->symbol_list)
+			type->scope = file_scope;
+
 		mem = &bad_member;
 		mem->ident = name;
 	}
