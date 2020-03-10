@@ -66,6 +66,16 @@ struct alloc_info general_allocation_funcs[] = {
 	{},
 };
 
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	struct smatch_state *state;
+	sval_t sval;
+
+	state = get_state(SMATCH_EXTRA, cur->name, cur->sym);
+	if (estate_get_single_value(state, &sval) && sval.value == 0)
+		set_state(my_id, cur->name, cur->sym, &undefined);
+}
+
 static int fresh_callback(void *fresh, int argc, char **argv, char **azColName)
 {
 	*(int *)fresh = 1;
@@ -151,6 +161,7 @@ static void match_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static struct expression *handled;
 static void set_fresh(struct expression *expr)
 {
 	struct range_list *rl;
@@ -158,10 +169,15 @@ static void set_fresh(struct expression *expr)
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_SYMBOL)
 		return;
+	if (expr == handled)
+		return;
+
 	get_absolute_rl(expr, &rl);
-	if (!rl_intersection(rl, valid_ptr_rl))
+	rl = rl_intersection(rl, valid_ptr_rl);
+	if (!rl)
 		return;
 	set_state_expr(my_id, expr, &fresh);
+	handled = expr;
 }
 
 static void returns_fresh_alloc(struct expression *expr, int param, char *key, char *value)
@@ -198,4 +214,6 @@ void register_fresh_alloc(int id)
 	select_return_states_hook(FRESH_ALLOC, &returns_fresh_alloc);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
+
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 }
