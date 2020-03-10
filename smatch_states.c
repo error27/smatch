@@ -109,6 +109,45 @@ void __set_cur_stree_writable(void)
 	read_only--;
 }
 
+DECLARE_PTR_LIST(check_tracker_list, check_tracker_hook *);
+static struct check_tracker_list **tracker_hooks;
+
+void add_check_tracker(const char *check_name, check_tracker_hook *fn)
+{
+	check_tracker_hook **p;
+	int owner;
+
+	owner = id_from_name(check_name);
+	if (!owner) {
+		printf("check not found.  '%s'\n", check_name);
+		return;
+	}
+
+	p = malloc(sizeof(check_tracker_hook *));
+	*p = fn;
+	add_ptr_list(&tracker_hooks[owner], p);
+}
+
+static void call_tracker_hooks(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct check_tracker_list *hooks;
+	check_tracker_hook **fn;
+
+	if ((unsigned short)owner == USHRT_MAX)
+		return;
+
+	hooks = tracker_hooks[owner];
+	FOR_EACH_PTR(hooks, fn) {
+		(*fn)(owner, name, sym, state);
+	} END_FOR_EACH_PTR(fn);
+}
+
+void allocate_tracker_array(int num_checks)
+{
+	tracker_hooks = malloc(num_checks * sizeof(void *));
+	memset(tracker_hooks, 0, num_checks * sizeof(void *));
+}
+
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *ret;
@@ -131,6 +170,8 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 				__func__, check_name(owner), name, show_state(s),
 				show_state(state));
 	}
+
+	call_tracker_hooks(owner, name, sym, state);
 
 	if (owner != -1 && unreachable())
 		return NULL;

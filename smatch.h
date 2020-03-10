@@ -194,6 +194,7 @@ void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
 int get_implied_return(struct expression *expr, struct range_list **rl);
 void allocate_hook_memory(void);
+void allocate_tracker_array(int num_checks);
 
 struct modification_data {
 	struct smatch_state *prev;
@@ -785,6 +786,8 @@ void __merge_gotos(const char *name, struct symbol *sym);
 
 void __print_cur_stree(void);
 bool __print_states(const char *owner);
+typedef void (check_tracker_hook)(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
+void add_check_tracker(const char *check_name, check_tracker_hook *fn);
 
 /* smatch_hooks.c */
 void __pass_to_client(void *data, enum hook_type type);
