@@ -201,6 +201,9 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 	bool capped = false;
 	char *name;
 
+	if (option_project != PROJ_KERNEL)
+		sm_msg("no user data for project = '%s'", option_project_str);
+
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
 
