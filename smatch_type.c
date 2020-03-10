@@ -605,6 +605,23 @@ int types_equiv(struct symbol *one, struct symbol *two)
 	return 1;
 }
 
+bool type_fits(struct symbol *type, struct symbol *test)
+{
+	if (!type || !test)
+		return false;
+
+	if (type == test)
+		return true;
+
+	if (type_bits(test) > type_bits(type))
+		return false;
+	if (type_signed(test) && !type_signed(type))
+		return false;
+	if (type_positive_bits(test) > type_positive_bits(type))
+		return false;
+	return true;
+}
+
 int fn_static(void)
 {
 	return !!(cur_func_sym->ctype.modifiers & MOD_STATIC);

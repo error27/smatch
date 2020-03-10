@@ -486,6 +486,7 @@ bool is_struct_ptr(struct symbol *type);
 int is_static(struct expression *expr);
 bool is_local_variable(struct expression *expr);
 int types_equiv(struct symbol *one, struct symbol *two);
+bool type_fits(struct symbol *type, struct symbol *test);
 int fn_static(void);
 const char *global_static();
 struct symbol *cur_func_return_type(void);
