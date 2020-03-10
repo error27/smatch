@@ -408,6 +408,9 @@ static void get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	if (sym_ptr)
 		*sym_ptr = tmp_sym;
 
+	if (expr->smatch_flags & Tmp)
+		return;
+
 	cached[idx].expr = expr;
 	strncpy(cached[idx].str, buf, VAR_LEN);
 	cached[idx].sym = tmp_sym;
