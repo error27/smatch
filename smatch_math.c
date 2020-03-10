@@ -1234,7 +1234,7 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 	if (sym_name_is("strlen", expr->fn))
 		return handle_strlen(expr, implied, recurse_cnt, res, res_sval);
 
-	if (implied == RL_EXACT || implied == RL_HARD || implied == RL_FUZZY)
+	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
 
 	if (custom_handle_variable) {
