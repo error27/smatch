@@ -19,6 +19,7 @@ graph
 obfuscate
 sparse
 sparse-llvm
+sindex
 test-dissect
 test-inspect
 test-lexing

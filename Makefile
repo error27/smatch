@@ -140,6 +140,17 @@ else
 $(warning Your system does not have libxml, disabling c2xml)
 endif
 
+HAVE_SQLITE := $(shell $(PKG_CONFIG) --exists sqlite3 2>/dev/null && echo 'yes')
+ifeq ($(HAVE_SQLITE),yes)
+PROGRAMS += sindex
+INST_PROGRAMS += sindex
+INST_MAN1 += sindex.1
+sindex-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
+sindex-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
+else
+$(warning Your system does not have sqlite3, disabling sindex)
+endif
+
 # Can we use gtk (needed for test-inspect)
 GTK_VERSION:=3.0
 HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
@@ -227,7 +238,6 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 	$(Q)CHECK=./sparse ./cgcc -no-compile $(CHECKER_FLAGS) $(cflags) -c $<
 
 selfcheck: $(OBJS:.o=.sc)
-
 
 SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
 lib.o: version.h
