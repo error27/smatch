@@ -48,6 +48,7 @@ static struct ident_list *macros;	// only needed for -dD
 static int false_nesting = 0;
 static int counter_macro = 0;		// __COUNTER__ expansion
 static int include_level = 0;
+static int expanding = 0;
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -232,8 +233,13 @@ static int expand_one_symbol(struct token **list)
 		sym->expander(token);
 		return 1;
 	} else {
+		int rc;
+
 		sym->used_in = file_scope;
-		return expand(list, sym);
+		expanding = 1;
+		rc = expand(list, sym);
+		expanding = 0;
+		return rc;
 	}
 }
 
@@ -271,8 +277,6 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 	while (!eof_token(next = scan_next(p))) {
 		if (next->pos.newline && match_op(next, '#')) {
 			if (!next->pos.noexpand) {
-				warning(next->pos,
-					     "directive in macro's argument list");
 				preprocessor_line(stream, p);
 				__free_token(next);	/* Free the '#' token */
 				continue;
@@ -2073,6 +2077,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 	int (*handler)(struct stream *, struct token **, struct token *);
 	struct token *token = start->next;
 	int is_normal = 1;
+	int is_cond = 0;	// is one of {is,ifdef,ifndef,elif,else,endif}
 
 	if (eof_token(token))
 		return;
@@ -2082,6 +2087,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		if (sym) {
 			handler = sym->handler;
 			is_normal = sym->normal;
+			is_cond = !sym->normal;
 		} else {
 			handler = handle_nondirective;
 		}
@@ -2095,6 +2101,11 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		dirty_stream(stream);
 		if (false_nesting)
 			goto out;
+	}
+
+	if (expanding) {
+		if (!is_cond || Wpedantic)
+			warning(start->pos, "directive in macro's argument list");
 	}
 	if (!handler(stream, line, token))	/* all set */
 		return;

@@ -17,7 +17,7 @@ define_struct(a, {
  * check-description: Directives are not allowed within a macro argument list,
  * although cpp deals with it to treat macro more like C functions.
  *
- * check-command: sparse -E $file
+ * check-command: sparse -pedantic -E $file
  *
  * check-error-start
 preprocessor/preprocessor22.c:6:1: warning: directive in macro's argument list
