@@ -309,6 +309,7 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 		next->pos.stream = pos->stream;
 		next->pos.line = pos->line;
 		next->pos.pos = pos->pos;
+		next->pos.newline = 0;
 		p = &next->next;
 	}
 	*p = &eof_token_entry;

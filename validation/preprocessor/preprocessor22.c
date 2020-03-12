@@ -28,8 +28,6 @@ preprocessor/preprocessor22.c:12:1: warning: directive in macro's argument list
  *
  * check-output-start
 
-struct {
-int b;
-} a;;
+struct { int b; } a;;
  * check-output-end
  */

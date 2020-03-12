@@ -26,12 +26,8 @@ f(1
  *
  * check-output-start
 
-1
-a
-d
-3
-1
-3
+1 a d 3
+1 3
  * check-output-end
  *
  * check-error-start
