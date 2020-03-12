@@ -20,10 +20,10 @@ define_struct(a, {
  * check-command: sparse -E $file
  *
  * check-error-start
-preprocessor/preprocessor22.c:6:1: error: directive in macro's argument list
-preprocessor/preprocessor22.c:8:1: error: directive in macro's argument list
-preprocessor/preprocessor22.c:10:1: error: directive in macro's argument list
-preprocessor/preprocessor22.c:12:1: error: directive in macro's argument list
+preprocessor/preprocessor22.c:6:1: warning: directive in macro's argument list
+preprocessor/preprocessor22.c:8:1: warning: directive in macro's argument list
+preprocessor/preprocessor22.c:10:1: warning: directive in macro's argument list
+preprocessor/preprocessor22.c:12:1: warning: directive in macro's argument list
  * check-error-end
  *
  * check-output-start
