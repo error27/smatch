@@ -760,6 +760,7 @@ static int expand(struct token **list, struct symbol *sym)
 	struct token *token = *list;
 	struct ident *expanding = token->ident;
 	struct token **tail;
+	struct token *expansion = sym->expansion;
 	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
 	struct arg args[nargs];
 
@@ -779,7 +780,7 @@ static int expand(struct token **list, struct symbol *sym)
 	expanding->tainted = 1;
 
 	last = token->next;
-	tail = substitute(list, sym->expansion, args);
+	tail = substitute(list, expansion, args);
 	/*
 	 * Note that it won't be eof - at least TOKEN_UNTAINT will be there.
 	 * We still can lose the newline flag if the sucker expands to nothing,
