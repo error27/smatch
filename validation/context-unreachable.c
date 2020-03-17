@@ -12,5 +12,4 @@ static void foo(void)
 
 /*
  * check-name: context-unreachable
- * check-known-to-fail
  */

@@ -2536,12 +2536,19 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
  * Builtin functions
  */
 
+static pseudo_t linearize_unreachable(struct entrypoint *ep, struct expression *exp)
+{
+	add_unreachable(ep);
+	return VOID;
+}
+
 static struct sym_init {
 	const char *name;
 	pseudo_t (*linearize)(struct entrypoint *, struct expression*);
 	struct symbol_op op;
 } builtins_table[] = {
 	// must be declared in builtin.c:declare_builtins[]
+	{ "__builtin_unreachable", linearize_unreachable },
 	{ }
 };
 

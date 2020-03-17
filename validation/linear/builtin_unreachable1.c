@@ -12,7 +12,6 @@ int foo(int c)
  * check-name: builtin_unreachable1
  * check-command: test-linearize -Wno-decl $file
  *
- * check-known-to-fail
  * check-output-start
 foo:
 .L0:

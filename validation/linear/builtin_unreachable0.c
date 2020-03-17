@@ -8,7 +8,6 @@ int foo(int p)
 /*
  * check-name: builtin_unreachable0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 foo:
