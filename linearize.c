@@ -183,6 +183,7 @@ static const char *opcodes[] = {
 	[OP_BR] = "br",
 	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
+	[OP_UNREACH] = "unreachable",
 	[OP_COMPUTEDGOTO] = "jmp *",
 	
 	/* Binary */
@@ -399,6 +400,8 @@ const char *show_instruction(struct instruction *insn)
 		} END_FOR_EACH_PTR(jmp);
 		break;
 	}
+	case OP_UNREACH:
+		break;
 
 	case OP_PHISOURCE: {
 		struct instruction *phi;

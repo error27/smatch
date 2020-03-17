@@ -47,6 +47,9 @@ Terminators
 	* .type: type of .cond, must be an integral type
 	* .multijmp_list: pairs of case-value - destination basic block
 
+.. op:: OP_UNREACH
+	Mark code as unreachable
+
 .. op:: OP_COMPUTEDGOTO
 	Computed goto / branch to register
 
