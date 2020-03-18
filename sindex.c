@@ -53,6 +53,13 @@ static char *sindex_search_path = NULL;
 static char *sindex_search_symbol = NULL;
 static const char *sindex_search_format = "(%m) %f\t%l\t%c\t%C\t%s";
 
+#define EXPLAIN_LOCATION 1
+#define USAGE_BY_LOCATION 2
+static int sindex_search_by_location;
+static char *sindex_search_filename;
+static int sindex_search_line;
+static int sindex_search_column;
+
 static sqlite3 *sindex_db = NULL;
 static sqlite3_stmt *lock_stmt = NULL;
 static sqlite3_stmt *unlock_stmt = NULL;
@@ -150,6 +157,7 @@ static void show_help_search(int ret)
 {
 	printf(
 	    "Usage: %1$s search [options] [pattern]\n"
+	    "   or: %1$s search [options] (-e|-l) filename[:linenr[:column]]\n"
 	    "\n"
 	    "Utility searches information about symbol by pattern.\n"
 	    "The pattern is a glob(7) wildcard pattern.\n"
@@ -159,6 +167,8 @@ static void show_help_search(int ret)
 	    "  -p, --path=PATTERN     Search symbols only in specified directories;\n"
 	    "  -m, --mode=MODE        Search only the specified type of access;\n"
 	    "  -k, --kind=KIND        Specify a kind of symbol;\n"
+	    "  -e, --explain          Show what happens in the specified file position;\n"
+	    "  -l, --location         Show usage of symbols from a specific file position;\n"
 	    "  -v, --verbose          Show information about what is being done;\n"
 	    "  -h, --help             Show this text and exit.\n"
 	    "\n"
@@ -339,8 +349,10 @@ static void parse_cmdline_rm(int argc, char **argv)
 static void parse_cmdline_search(int argc, char **argv)
 {
 	static const struct option long_options[] = {
+		{ "explain", no_argument, NULL, 'e' },
 		{ "format", required_argument, NULL, 'f' },
 		{ "path", required_argument, NULL, 'p' },
+		{ "location", no_argument, NULL, 'l' },
 		{ "mode", required_argument, NULL, 'm' },
 		{ "kind", required_argument, NULL, 'k' },
 		{ "verbose", no_argument, NULL, 'v' },
@@ -349,8 +361,14 @@ static void parse_cmdline_search(int argc, char **argv)
 	};
 	int c;
 
-	while ((c = getopt_long(argc, argv, "+f:m:k:p:vh", long_options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "+ef:m:k:p:lvh", long_options, NULL)) != -1) {
 		switch (c) {
+			case 'e':
+				sindex_search_by_location = EXPLAIN_LOCATION;
+				break;
+			case 'l':
+				sindex_search_by_location = USAGE_BY_LOCATION;
+				break;
 			case 'f':
 				sindex_search_format = optarg;
 				break;
@@ -371,7 +389,32 @@ static void parse_cmdline_search(int argc, char **argv)
 		}
 	}
 
-	if (optind < argc)
+	if (sindex_search_by_location) {
+		char *str;
+
+		if (optind == argc)
+			sindex_error(1, 0, "one argument required");
+
+		str = argv[optind];
+
+		while (str) {
+			char *ptr;
+
+			if ((ptr = strchr(str, ':')) != NULL)
+				*ptr++ = '\0';
+
+			if (*str != '\0') {
+				if (!sindex_search_filename) {
+					sindex_search_filename = str;
+				} else if (!sindex_search_line) {
+					sindex_search_line = atoi(str);
+				} else if (!sindex_search_column) {
+					sindex_search_column = atoi(str);
+				}
+			}
+			str = ptr;
+		}
+	} else if (optind < argc)
 		sindex_search_symbol = argv[optind++];
 }
 
@@ -1013,6 +1056,33 @@ static void command_search(int argc, char **argv)
 
 	if (sindex_search_path) {
 		if (query_appendf(query, " AND file.name GLOB %Q", sindex_search_path) < 0)
+			goto fail;
+	}
+
+	if (sindex_search_by_location == EXPLAIN_LOCATION) {
+		if (query_appendf(query, " AND file.name == %Q", sindex_search_filename) < 0)
+			goto fail;
+		if (sindex_search_line &&
+		    query_appendf(query, " AND sindex.line == %d", sindex_search_line) < 0)
+			goto fail;
+		if (sindex_search_column &&
+		    query_appendf(query, " AND sindex.column == %d", sindex_search_column) < 0)
+			goto fail;
+	} else if (sindex_search_by_location == USAGE_BY_LOCATION) {
+		if (query_appendf(query, " AND sindex.symbol IN (") < 0)
+			goto fail;
+		if (query_appendf(query,
+		                 "SELECT sindex.symbol FROM sindex, file WHERE"
+				 " sindex.file == file.id AND"
+		                 " file.name == %Q", sindex_search_filename) < 0)
+			goto fail;
+		if (sindex_search_line &&
+		    query_appendf(query, " AND sindex.line == %d", sindex_search_line) < 0)
+			goto fail;
+		if (sindex_search_column &&
+		    query_appendf(query, " AND sindex.column == %d", sindex_search_column) < 0)
+			goto fail;
+		if (query_appendf(query, ")") < 0)
 			goto fail;
 	}
 
