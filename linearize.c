@@ -1509,6 +1509,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	fn = expr->fn;
 	fntype = fn->ctype;
+
+	// handle builtins
+	if (fntype->op && fntype->op->linearize)
+		return fntype->op->linearize(ep, expr);
+
 	ctype = &fntype->ctype;
 	if (fntype->type == SYM_NODE)
 		fntype = fntype->ctype.base_type;
@@ -2525,4 +2530,31 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN)
 		return linearize_fn(sym, base_type);
 	return NULL;
+}
+
+/*
+ * Builtin functions
+ */
+
+static struct sym_init {
+	const char *name;
+	pseudo_t (*linearize)(struct entrypoint *, struct expression*);
+	struct symbol_op op;
+} builtins_table[] = {
+	// must be declared in builtin.c:declare_builtins[]
+	{ }
+};
+
+void init_linearized_builtins(int stream)
+{
+	struct sym_init *ptr;
+
+	for (ptr = builtins_table; ptr->name; ptr++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
+		if (!sym->op)
+			sym->op = &ptr->op;
+		sym->op->type |= KW_BUILTIN;
+		ptr->op.linearize = ptr->linearize;
+	}
 }

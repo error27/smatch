@@ -418,6 +418,8 @@ void init_builtins(int stream)
 		sym->op = ptr->op;
 		sym->builtin = 1;
 	}
+
+	init_linearized_builtins(stream);
 }
 
 static void declare_builtin(const char *name, struct symbol *rtype, int variadic, ...)
