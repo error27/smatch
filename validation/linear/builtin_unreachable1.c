@@ -1,15 +1,15 @@
-void function_that_never_returns(void);
+void die(void);
 
 int foo(int c)
 {
 	if (c)
 		return 1;
-	function_that_never_returns();
+	die();
 	__builtin_unreachable();
 }
 
 /*
- * check-name: __builtin_unreachable()
+ * check-name: builtin_unreachable1
  * check-command: test-linearize -Wno-decl $file
  *
  * check-known-to-fail
@@ -19,12 +19,12 @@ foo:
 	<entry-point>
 	cbr         %arg1, .L3, .L2
 
-.L2:
-	call        function_that_never_returns
-	unreach
-
 .L3:
 	ret.32      $1
+
+.L2:
+	call        die
+	unreachable
 
 
  * check-output-end
