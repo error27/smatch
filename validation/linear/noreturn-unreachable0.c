@@ -9,7 +9,6 @@ int foo(void)
 /*
  * check-name: noreturn-unreachable0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 foo:

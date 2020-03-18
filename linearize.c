@@ -657,6 +657,13 @@ static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 	}
 }
 
+static void add_unreachable(struct entrypoint *ep)
+{
+	struct instruction *insn = alloc_instruction(OP_UNREACH, 0);
+	add_one_insn(ep, insn);
+	ep->active = NULL;
+}
+
 static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 {
 	if (!bb_terminated(ep->active))
@@ -1551,6 +1558,9 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
+
+		if (ctype->modifiers & MOD_NORETURN)
+			add_unreachable(ep);
 	}
 
 	return retval;
