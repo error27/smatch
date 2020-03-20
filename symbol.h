@@ -78,7 +78,7 @@ enum keyword {
 	KW_MODIFIER	= 1 << 1,
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
-     // KW UNUSED	= 1 << 4,
+	KW_BUILTIN	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
      // KW UNUSED	= 1 << 7,
@@ -112,11 +112,15 @@ struct decl_state {
 	unsigned char is_ext_visible;
 };
 
+struct pseudo;
+struct entrypoint;
+
 struct symbol_op {
 	enum keyword type;
 	int (*evaluate)(struct expression *);
 	int (*expand)(struct expression *, int);
 	int (*args)(struct expression *);
+	struct pseudo *(*linearize)(struct entrypoint *, struct expression *);
 
 	/* keywords */
 	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
@@ -308,6 +312,7 @@ extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
 extern void init_builtins(int stream);
+extern void init_linearized_builtins(int stream);
 extern void declare_builtins(void);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);

@@ -183,6 +183,7 @@ static const char *opcodes[] = {
 	[OP_BR] = "br",
 	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
+	[OP_UNREACH] = "unreachable",
 	[OP_COMPUTEDGOTO] = "jmp *",
 	
 	/* Binary */
@@ -399,6 +400,8 @@ const char *show_instruction(struct instruction *insn)
 		} END_FOR_EACH_PTR(jmp);
 		break;
 	}
+	case OP_UNREACH:
+		break;
 
 	case OP_PHISOURCE: {
 		struct instruction *phi;
@@ -652,6 +655,13 @@ static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 		insn->bb = bb;
 		add_instruction(&bb->insns, insn);
 	}
+}
+
+static void add_unreachable(struct entrypoint *ep)
+{
+	struct instruction *insn = alloc_instruction(OP_UNREACH, 0);
+	add_one_insn(ep, insn);
+	ep->active = NULL;
 }
 
 static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
@@ -1499,6 +1509,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	fn = expr->fn;
 	fntype = fn->ctype;
+
+	// handle builtins
+	if (fntype->op && fntype->op->linearize)
+		return fntype->op->linearize(ep, expr);
+
 	ctype = &fntype->ctype;
 	if (fntype->type == SYM_NODE)
 		fntype = fntype->ctype.base_type;
@@ -1548,6 +1563,9 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
+
+		if (ctype->modifiers & MOD_NORETURN)
+			add_unreachable(ep);
 	}
 
 	return retval;
@@ -2512,4 +2530,38 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN)
 		return linearize_fn(sym, base_type);
 	return NULL;
+}
+
+/*
+ * Builtin functions
+ */
+
+static pseudo_t linearize_unreachable(struct entrypoint *ep, struct expression *exp)
+{
+	add_unreachable(ep);
+	return VOID;
+}
+
+static struct sym_init {
+	const char *name;
+	pseudo_t (*linearize)(struct entrypoint *, struct expression*);
+	struct symbol_op op;
+} builtins_table[] = {
+	// must be declared in builtin.c:declare_builtins[]
+	{ "__builtin_unreachable", linearize_unreachable },
+	{ }
+};
+
+void init_linearized_builtins(int stream)
+{
+	struct sym_init *ptr;
+
+	for (ptr = builtins_table; ptr->name; ptr++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
+		if (!sym->op)
+			sym->op = &ptr->op;
+		sym->op->type |= KW_BUILTIN;
+		ptr->op.linearize = ptr->linearize;
+	}
 }
