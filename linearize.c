@@ -695,8 +695,6 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 static void remove_parent(struct basic_block *child, struct basic_block *parent)
 {
 	remove_bb_from_list(&child->parents, parent, 1);
-	if (!child->parents)
-		repeat_phase |= REPEAT_CFG_CLEANUP;
 }
 
 /* Change a "switch" or a conditional branch into a branch */
