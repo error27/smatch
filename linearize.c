@@ -692,11 +692,6 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-static void remove_parent(struct basic_block *child, struct basic_block *parent)
-{
-	remove_bb_from_list(&child->parents, parent, 1);
-}
-
 /* Change a "switch" or a conditional branch into a branch */
 void insert_branch(struct instruction *jmp, struct basic_block *target)
 {
@@ -720,7 +715,7 @@ void insert_branch(struct instruction *jmp, struct basic_block *target)
 			continue;
 		}
 		DELETE_CURRENT_PTR(child);
-		remove_parent(child, bb);
+		remove_bb_from_list(&child->parents, bb, 1);
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
 	repeat_phase |= REPEAT_CFG_CLEANUP;
