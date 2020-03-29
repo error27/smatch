@@ -696,18 +696,14 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 void insert_branch(struct instruction *jmp, struct basic_block *target)
 {
 	struct basic_block *bb = jmp->bb;
-	struct instruction *br, *old;
 	struct basic_block *child;
 
-	/* Remove the switch */
-	old = delete_last_instruction(&bb->insns);
-	assert(old == jmp);
-	kill_instruction(old);
-
-	br = alloc_instruction(OP_BR, 0);
-	br->bb = bb;
-	br->bb_true = target;
-	add_instruction(&bb->insns, br);
+	kill_use(&jmp->cond);
+	jmp->bb_true = target;
+	jmp->bb_false = NULL;
+	jmp->cond = NULL;
+	jmp->size = 0;
+	jmp->opcode = OP_BR;
 
 	FOR_EACH_PTR(bb->children, child) {
 		if (child == target) {
