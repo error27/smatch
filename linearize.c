@@ -692,32 +692,6 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-/* Change a "switch" or a conditional branch into a branch */
-void insert_branch(struct instruction *jmp, struct basic_block *target)
-{
-	struct basic_block *bb = jmp->bb;
-	struct basic_block *child;
-
-	kill_use(&jmp->cond);
-	jmp->bb_true = target;
-	jmp->bb_false = NULL;
-	jmp->cond = NULL;
-	jmp->size = 0;
-	jmp->opcode = OP_BR;
-
-	FOR_EACH_PTR(bb->children, child) {
-		if (child == target) {
-			target = NULL;	/* Trigger just once */
-			continue;
-		}
-		DELETE_CURRENT_PTR(child);
-		remove_bb_from_list(&child->parents, bb, 1);
-	} END_FOR_EACH_PTR(child);
-	PACK_PTR_LIST(&bb->children);
-	repeat_phase |= REPEAT_CFG_CLEANUP;
-}
-	
-
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t if_true, pseudo_t if_false)
 {
 	pseudo_t target;

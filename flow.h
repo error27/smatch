@@ -18,6 +18,7 @@ extern void simplify_symbol_usage(struct entrypoint *ep);
 extern void simplify_memops(struct entrypoint *ep);
 extern void pack_basic_blocks(struct entrypoint *ep);
 extern int simplify_cfg_early(struct entrypoint *ep);
+extern void insert_branch(struct instruction *insn, struct basic_block *target);
 
 extern void convert_instruction_target(struct instruction *insn, pseudo_t src);
 extern void remove_dead_insns(struct entrypoint *);
