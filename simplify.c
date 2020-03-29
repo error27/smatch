@@ -2441,7 +2441,7 @@ static int simplify_branch(struct instruction *insn)
 
 	/* Constant conditional */
 	if (constant(cond)) {
-		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
+		insert_branch(insn, cond->value ? insn->bb_true : insn->bb_false);
 		return REPEAT_CSE;
 	}
 
@@ -2473,11 +2473,11 @@ static int simplify_branch(struct instruction *insn)
 				long long val1 = def->src2->value;
 				long long val2 = def->src3->value;
 				if (!val1 && !val2) {
-					insert_branch(insn->bb, insn, insn->bb_false);
+					insert_branch(insn, insn->bb_false);
 					return REPEAT_CSE;
 				}
 				if (val1 && val2) {
-					insert_branch(insn->bb, insn, insn->bb_true);
+					insert_branch(insn, insn->bb_true);
 					return REPEAT_CSE;
 				}
 				if (val2) {
@@ -2515,7 +2515,7 @@ static int simplify_switch(struct instruction *insn)
 	return 0;
 
 found:
-	insert_branch(insn->bb, insn, jmp->target);
+	insert_branch(insn, jmp->target);
 	return REPEAT_CSE;
 }
 

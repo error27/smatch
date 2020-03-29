@@ -700,8 +700,9 @@ static void remove_parent(struct basic_block *child, struct basic_block *parent)
 }
 
 /* Change a "switch" or a conditional branch into a branch */
-void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
+void insert_branch(struct instruction *jmp, struct basic_block *target)
 {
+	struct basic_block *bb = jmp->bb;
 	struct instruction *br, *old;
 	struct basic_block *child;
 
