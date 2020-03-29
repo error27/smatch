@@ -711,10 +711,11 @@ void vrfy_flow(struct entrypoint *ep)
 
 ///
 // change a switch or a conditional branch into a branch
-void insert_branch(struct instruction *insn, struct basic_block *target)
+int insert_branch(struct instruction *insn, struct basic_block *target)
 {
 	struct basic_block *bb = insn->bb;
 	struct basic_block *child;
+	int changed = REPEAT_CSE;
 
 	kill_use(&insn->cond);
 	insn->bb_true = target;
@@ -730,9 +731,11 @@ void insert_branch(struct instruction *insn, struct basic_block *target)
 		}
 		DELETE_CURRENT_PTR(child);
 		remove_bb_from_list(&child->parents, bb, 1);
+		changed |= REPEAT_CFG_CLEANUP;
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
-	repeat_phase |= REPEAT_CFG_CLEANUP;
+	repeat_phase |= changed;
+	return changed;
 }
 
 static int retarget_parents(struct basic_block *bb, struct basic_block *target)
