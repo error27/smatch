@@ -43,6 +43,25 @@ static int rewrite_branch(struct basic_block *bb,
 	return 1;
 }
 
+///
+// returns the phi-node corresponding to a phi-source
+static struct instruction *get_phinode(struct instruction *phisrc)
+{
+	struct pseudo_user *pu;
+
+	FOR_EACH_PTR(phisrc->target->users, pu) {
+		struct instruction *user;
+
+		if (!pu)
+			continue;
+		user = pu->insn;
+		assert(user->opcode == OP_PHI);
+		return user;
+	} END_FOR_EACH_PTR(pu);
+	assert(0);
+}
+
+
 /*
  * Return the known truth value of a pseudo, or -1 if
  * it's not known.
@@ -723,6 +742,24 @@ void vrfy_flow(struct entrypoint *ep)
 	assert(!entry);
 }
 
+static void remove_merging_phisrc(struct basic_block *top, struct instruction *insn)
+{
+	struct instruction *user = get_phinode(insn);
+	pseudo_t phi;
+
+	FOR_EACH_PTR(user->phi_list, phi) {
+		struct instruction *phisrc;
+
+		if (phi == VOID)
+			continue;
+		phisrc = phi->def;
+		if (phisrc->bb != top)
+			continue;
+		REPLACE_CURRENT_PTR(phi, VOID);
+		kill_instruction(phisrc);
+	} END_FOR_EACH_PTR(phi);
+}
+
 ///
 // merge two BBs
 // @top: the first BB to be merged
@@ -748,6 +785,11 @@ static int merge_bb(struct basic_block *top, struct basic_block *bot)
 		if (!insn->bb)
 			continue;
 		assert(insn->bb == bot);
+		switch (insn->opcode) {
+		case OP_PHISOURCE:
+			remove_merging_phisrc(top, insn);
+			break;
+		}
 		insn->bb = top;
 		add_instruction(&top->insns, insn);
 	} END_FOR_EACH_PTR(insn);

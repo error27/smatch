@@ -16,7 +16,6 @@ int select(void)
 /*
  * check-name: merge_bbe-adjust_phi
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: phisrc\\.
