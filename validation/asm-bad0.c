@@ -16,7 +16,7 @@ static void icons(void)
 	asm("template" : [out] "=r" (var): [in] string (0));
 }
 
-static void oexpr(oid)
+static void oexpr(void)
 {
 	asm("template" : [out] "=" (var[) : [in] "r" (0));
 }
