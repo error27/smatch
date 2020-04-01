@@ -34,6 +34,7 @@ struct scope {
 
 extern struct scope
 		*block_scope,
+		*label_scope,
 		*function_scope,
 		*file_scope,
 		*global_scope;
@@ -52,6 +53,9 @@ extern void end_block_scope(void);
 
 extern void start_function_scope(void);
 extern void end_function_scope(void);
+
+extern void start_label_scope(void);
+extern void end_label_scope(void);
 
 extern void set_current_scope(struct symbol *);
 extern void bind_scope(struct symbol *, struct scope *);

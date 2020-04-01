@@ -36,6 +36,7 @@
 static struct scope builtin_scope = { .next = &builtin_scope };
 
 struct scope	*block_scope = &builtin_scope,		// regular automatic variables etc
+		*label_scope = NULL,			// expr-stmt labels
 		*function_scope = &builtin_scope,	// labels, arguments etc
 		*file_scope = &builtin_scope,		// static
 		*global_scope = &builtin_scope;		// externally visible
@@ -91,8 +92,9 @@ void start_block_scope(void)
 
 void start_function_scope(void)
 {
-	start_scope(&function_scope);
 	start_scope(&block_scope);
+	start_scope(&label_scope);
+	function_scope = label_scope;
 }
 
 static void remove_symbol_scope(struct symbol *sym)
@@ -137,7 +139,18 @@ void end_block_scope(void)
 void end_function_scope(void)
 {
 	end_scope(&block_scope);
-	end_scope(&function_scope);
+	end_label_scope();
+	function_scope = label_scope;
+}
+
+void start_label_scope(void)
+{
+	start_scope(&label_scope);
+}
+
+void end_label_scope(void)
+{
+	end_scope(&label_scope);
 }
 
 int is_outer_scope(struct scope *scope)
