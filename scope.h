@@ -47,8 +47,8 @@ extern void start_file_scope(void);
 extern void end_file_scope(void);
 extern void new_file_scope(void);
 
-extern void start_symbol_scope(void);
-extern void end_symbol_scope(void);
+extern void start_block_scope(void);
+extern void end_block_scope(void);
 
 extern void start_function_scope(void);
 extern void end_function_scope(void);

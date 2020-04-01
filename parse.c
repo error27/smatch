@@ -2230,7 +2230,7 @@ static void start_iterator(struct statement *stmt)
 {
 	struct symbol *cont, *brk;
 
-	start_symbol_scope();
+	start_block_scope();
 	cont = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(cont, &continue_ident, NS_ITERATOR);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
@@ -2245,7 +2245,7 @@ static void start_iterator(struct statement *stmt)
 
 static void end_iterator(struct statement *stmt)
 {
-	end_symbol_scope();
+	end_block_scope();
 }
 
 static struct statement *start_function(struct symbol *sym)
@@ -2290,7 +2290,7 @@ static void start_switch(struct statement *stmt)
 {
 	struct symbol *brk, *switch_case;
 
-	start_symbol_scope();
+	start_block_scope();
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
@@ -2310,7 +2310,7 @@ static void end_switch(struct statement *stmt)
 {
 	if (!stmt->switch_case->symbol_list)
 		warning(stmt->pos, "switch with no cases");
-	end_symbol_scope();
+	end_block_scope();
 }
 
 static void add_case_statement(struct statement *stmt)
@@ -2662,9 +2662,9 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 struct token *compound_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_COMPOUND;
-	start_symbol_scope();
+	start_block_scope();
 	token = statement_list(token, &stmt->stmts);
-	end_symbol_scope();
+	end_block_scope();
 	return token;
 }
 

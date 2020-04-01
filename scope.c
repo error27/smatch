@@ -84,7 +84,7 @@ void start_file_scope(void)
 	block_scope = scope;
 }
 
-void start_symbol_scope(void)
+void start_block_scope(void)
 {
 	start_scope(&block_scope);
 }
@@ -129,7 +129,7 @@ void new_file_scope(void)
 	start_file_scope();
 }
 
-void end_symbol_scope(void)
+void end_block_scope(void)
 {
 	end_scope(&block_scope);
 }
