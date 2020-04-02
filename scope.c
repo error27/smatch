@@ -162,3 +162,12 @@ int is_outer_scope(struct scope *scope)
 	return 1;
 }
 
+int is_in_scope(struct scope *outer, struct scope *inner)
+{
+	while (inner != outer) {
+		if (inner == function_scope)
+			return 0;
+		inner = inner->next;
+	}
+	return 1;
+}
