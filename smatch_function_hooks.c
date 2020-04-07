@@ -472,6 +472,8 @@ static void set_fresh_mtag_returns(struct db_callback_info *db_info)
 	state = get_mtag_return(db_info->expr, state);
 	if (!state)
 		return;
+
+	set_real_absolute(expr, state);
 	set_extra_expr_mod(expr, state);
 
 	db_info->ret_state = NULL;

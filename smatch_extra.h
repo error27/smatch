@@ -101,6 +101,7 @@ struct range_list *rl_truncate_cast(struct symbol *type, struct range_list *rl);
 struct range_list *cast_rl(struct symbol *type, struct range_list *rl);
 int get_implied_rl(struct expression *expr, struct range_list **rl);
 int get_absolute_rl(struct expression *expr, struct range_list **rl);
+void set_real_absolute(struct expression *expr, struct smatch_state *state);
 int get_real_absolute_rl(struct expression *expr, struct range_list **rl);
 struct range_list *var_to_absolute_rl(struct expression *expr);
 int custom_get_absolute_rl(struct expression *expr,
