@@ -873,7 +873,7 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 	if (*tree && match_op(token, '?')) {
 		struct expression *expr = alloc_expression(token->pos, EXPR_CONDITIONAL);
 		expr->op = token->special;
-		expr->left = *tree;
+		expr->conditional = *tree;
 		*tree = expr;
 		token = parse_expression(token->next, &expr->cond_true);
 		token = expect(token, ':', "in conditional expression");
