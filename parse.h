@@ -72,6 +72,7 @@ struct statement {
 		};
 		struct /* labeled_struct */ {
 			struct symbol *label_identifier;
+			struct scope *label_scope;
 			struct statement *label_statement;
 		};
 		struct /* case_struct */ {

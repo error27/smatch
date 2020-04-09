@@ -2488,7 +2488,12 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 		token = parse_expression(token->next, &stmt->goto_expression);
 		add_statement(&function_computed_goto_list, stmt);
 	} else if (token_type(token) == TOKEN_IDENT) {
-		stmt->goto_label = label_symbol(token);
+		struct symbol *label = label_symbol(token);
+		stmt->goto_label = label;
+		if (!label->stmt && !label->label_scope) {
+			label->label_scope = label_scope;
+			label->label_pos = stmt->pos;
+		}
 		token = token->next;
 	} else {
 		sparse_error(token->pos, "Expected identifier or goto expression");
@@ -2549,6 +2554,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 			}
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = s;
+			stmt->label_scope = label_scope;
 			s->stmt = stmt;
 			return statement(token, &stmt->label_statement);
 		}
