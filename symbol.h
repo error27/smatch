@@ -171,6 +171,7 @@ struct symbol {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
+					bogus_linear:1,
 					variadic:1,
 					initialized:1,
 					examined:1,

@@ -2480,7 +2480,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	pseudo_t result;
 	int i;
 
-	if (!stmt)
+	if (!stmt || sym->bogus_linear)
 		return NULL;
 
 	ep = alloc_entrypoint();
