@@ -3750,6 +3750,7 @@ static void evaluate_goto_statement(struct statement *stmt)
 
 	if (label->namespace == NS_LABEL && !label->stmt) {
 		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
+		current_fn->bogus_linear = 1;
 	}
 }
 
