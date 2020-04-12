@@ -3,6 +3,7 @@
 static void f(void)
 {
 	barrier();
+	goto l;
 l:
 	barrier();
 }

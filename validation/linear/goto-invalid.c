@@ -9,11 +9,11 @@ void bar(void)
 }
 
 /*
- * check-name: invalid-labels0
+ * check-name: goto-invalid
  * check-command: test-linearize -Wno-decl $file
  * check-known-to-fail
  *
+ * check-error-ignore
  * check-output-ignore
  * check-output-excludes: END
- * check-error-ignore
  */

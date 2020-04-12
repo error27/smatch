@@ -18,11 +18,11 @@ a:
 }
 
 /*
- * check-name: goto-and-expr-stmt0
+ * check-name: goto-stmt-expr-conditional
  * check-command: test-linearize -Wno-decl $file
  * check-known-to-fail
  *
+ * check-error-ignore
  * check-output-ignore
  * check-output-excludes: END
- * check-error-ignore
  */
