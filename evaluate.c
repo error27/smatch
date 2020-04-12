@@ -3747,7 +3747,8 @@ static void evaluate_goto_statement(struct statement *stmt)
 		evaluate_expression(stmt->goto_expression);
 		return;
 	}
-	if (!label->stmt && label->ident && !lookup_keyword(label->ident, NS_KEYWORD)) {
+
+	if (label->namespace == NS_LABEL && !label->stmt) {
 		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
 	}
 }
