@@ -122,9 +122,8 @@ static struct symbol *handle_func(struct token *token)
 	decl->ctype.modifiers = MOD_STATIC;
 	decl->endpos = token->pos;
 
-	/* function-scope, but in NS_SYMBOL */
-	bind_symbol(decl, ident, NS_LABEL);
-	decl->namespace = NS_SYMBOL;
+	/* NS_SYMBOL but in function-scope */
+	bind_symbol_with_scope(decl, ident, NS_SYMBOL, function_scope);
 
 	len = current_fn->ident->len;
 	string = __alloc_string(len + 1);
