@@ -2569,8 +2569,7 @@ static struct token *label_statement(struct token *token)
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *sym = alloc_symbol(token->pos, SYM_LABEL);
 		/* it's block-scope, but we want label namespace */
-		bind_symbol(sym, token->ident, NS_SYMBOL);
-		sym->namespace = NS_LABEL;
+		bind_symbol_with_scope(sym, token->ident, NS_LABEL, block_scope);
 		fn_local_symbol(sym);
 		token = token->next;
 		if (!match_op(token, ','))
