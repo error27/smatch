@@ -918,7 +918,7 @@ static int expand_symbol_call(struct expression *expr, int cost)
 			struct symbol *fn = def->ctype.base_type;
 			struct symbol *curr = current_fn;
 
-			current_fn = fn;
+			current_fn = def;
 			evaluate_statement(expr->statement);
 			current_fn = curr;
 

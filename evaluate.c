@@ -3422,7 +3422,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 		if (sym->definition && sym->definition != sym)
 			return evaluate_symbol(sym->definition);
 
-		current_fn = base_type;
+		current_fn = sym;
 
 		examine_fn_arguments(base_type);
 		if (!base_type->stmt && base_type->inline_stmt)
@@ -3453,7 +3453,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	struct symbol *fntype, *rettype;
 
 	evaluate_expression(expr);
-	fntype = current_fn;
+	fntype = current_fn->ctype.base_type;
 	rettype = fntype->ctype.base_type;
 	if (!rettype || rettype == &void_ctype) {
 		if (expr && expr->ctype != &void_ctype)
