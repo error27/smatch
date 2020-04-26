@@ -691,6 +691,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 				sym->ctype.modifiers |= MOD_ADDRESSABLE;
 				add_symbol(&function_computed_target_list, sym);
 			}
+			check_label_usage(sym, token->pos);
 			label->flags = CEF_ADDR;
 			label->label_symbol = sym;
 			*tree = label;
