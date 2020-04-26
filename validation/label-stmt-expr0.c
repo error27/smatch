@@ -26,7 +26,6 @@ l:		 1;
 /*
  * check-name: label-stmt-expr0
  * check-command: sparse -Wno-decl $file
- * check-known-to-fail
  *
  * check-error-start
 label-stmt-expr0.c:6:9: error: label 'l' used outside statement expression

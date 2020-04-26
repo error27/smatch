@@ -18,7 +18,6 @@ l:
 
 /*
  * check-name: label-stmt-expr1
- * check-known-to-fail
  *
  * check-error-start
 label-stmt-expr1.c:3:9: error: label 'l' used outside statement expression

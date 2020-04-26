@@ -23,7 +23,6 @@ a:
 
 /*
  * check-name: label-scope2
- * check-known-to-fail
  *
  * check-error-start
 label-scope2.c:20:17: error: label 'a' used outside statement expression

@@ -2480,6 +2480,27 @@ static struct token *parse_switch_statement(struct token *token, struct statemen
 	return token;
 }
 
+static void warn_label_usage(struct position def, struct position use, struct ident *ident)
+{
+	const char *id = show_ident(ident);
+	sparse_error(use, "label '%s' used outside statement expression", id);
+	info(def, "   label '%s' defined here", id);
+	current_fn->bogus_linear = 1;
+}
+
+void check_label_usage(struct symbol *label, struct position use_pos)
+{
+	struct statement *def = label->stmt;
+
+	if (def) {
+		if (!is_in_scope(def->label_scope, label_scope))
+			warn_label_usage(def->pos, use_pos, label->ident);
+	} else if (!label->label_scope) {
+		label->label_scope = label_scope;
+		label->label_pos = use_pos;
+	}
+}
+
 static struct token *parse_goto_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_GOTO;
@@ -2490,10 +2511,7 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 	} else if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *label = label_symbol(token);
 		stmt->goto_label = label;
-		if (!label->stmt && !label->label_scope) {
-			label->label_scope = label_scope;
-			label->label_pos = stmt->pos;
-		}
+		check_label_usage(label, stmt->pos);
 		token = token->next;
 	} else {
 		sparse_error(token->pos, "Expected identifier or goto expression");
@@ -2555,6 +2573,10 @@ static struct token *statement(struct token *token, struct statement **tree)
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = s;
 			stmt->label_scope = label_scope;
+			if (s->label_scope) {
+				if (!is_in_scope(label_scope, s->label_scope))
+					warn_label_usage(stmt->pos, s->label_pos, s->ident);
+			}
 			s->stmt = stmt;
 			return statement(token, &stmt->label_statement);
 		}
