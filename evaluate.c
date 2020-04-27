@@ -3344,6 +3344,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 	case EXPR_LABEL:
 		expr->ctype = &ptr_ctype;
+		check_label_declaration(expr->pos, expr->label_symbol);
 		return &ptr_ctype;
 
 	case EXPR_TYPE:

@@ -3,7 +3,6 @@
 /*
  * check-name: linear/label-scope-cgoto
  * check-command: test-linearize -Wno-decl -I. $file
- * check-known-to-fail
  *
  * check-error-ignore
  * check-output-ignore

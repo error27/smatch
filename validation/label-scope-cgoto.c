@@ -65,7 +65,6 @@ l:		 1;
 /*
  * check-name: label-scope-cgoto
  * check-command: sparse -Wno-decl $file
- * check-known-to-fail
  *
  * check-error-start
 label-scope-cgoto.c:12:19: error: label 'l' used outside statement expression
