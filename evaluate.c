@@ -3257,6 +3257,21 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 	return size_t_ctype;
 }
 
+static void check_label_declaration(struct position pos, struct symbol *label)
+{
+	switch (label->namespace) {
+	case NS_LABEL:
+		if (label->stmt)
+			break;
+		sparse_error(pos, "label '%s' was not declared", show_ident(label->ident));
+		/* fallthrough */
+	case NS_NONE:
+		current_fn->bogus_linear = 1;
+	default:
+		break;
+	}
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -3748,12 +3763,7 @@ static void evaluate_goto_statement(struct statement *stmt)
 		return;
 	}
 
-	if (label->namespace == NS_LABEL && !label->stmt) {
-		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
-		current_fn->bogus_linear = 1;
-	}
-	if (label->namespace == NS_NONE)
-		current_fn->bogus_linear = 1;
+	check_label_declaration(stmt->pos, label);
 }
 
 struct symbol *evaluate_statement(struct statement *stmt)
