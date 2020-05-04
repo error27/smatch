@@ -244,6 +244,8 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 		return 0;
 	if (estate_treat_untagged(one) != estate_treat_untagged(two))
 		return 0;
+	if (estate_has_hard_max(one) != estate_has_hard_max(two))
+		return 0;
 	if (estate_new(one) != estate_new(two))
 		return 0;
 	if (strcmp(one->name, two->name) == 0)
