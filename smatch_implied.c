@@ -70,6 +70,8 @@ bool implications_off;
 
 bool debug_implied(void)
 {
+	if (option_debug)
+		return true;
 	return implied_debug;
 }
 
