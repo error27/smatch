@@ -91,6 +91,13 @@ static struct range_list *tmp_range_list(struct symbol *type, long long num)
 	return my_list;
 }
 
+static const char *show_comparison(int op)
+{
+	if (op == PARAM_LIMIT)
+		return "<lim>";
+	return show_special(op);
+}
+
 static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 {
 	if (!implied_debug && !option_debug)
@@ -115,6 +122,18 @@ static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 	}
 }
 
+void split_comparison_helper(struct range_list *left_orig, int op, struct range_list *right_orig,
+		struct range_list **left_true_rl, struct range_list **left_false_rl)
+{
+	if (op == PARAM_LIMIT) {
+		*left_true_rl = rl_intersection(left_orig, right_orig);
+		*left_false_rl = rl_filter(left_orig, right_orig);
+		return;
+	}
+
+	split_comparison_rl(left_orig, op, right_orig, left_true_rl, left_false_rl, NULL, NULL);
+}
+
 static int create_fake_history(struct sm_state *sm, int comparison, struct range_list *rl)
 {
 	struct range_list *orig_rl;
@@ -131,7 +150,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 		return 0;
 
 	orig_rl = cast_rl(rl_type(rl), estate_rl(sm->state));
-	split_comparison_rl(orig_rl, comparison, rl, &true_rl, &false_rl, NULL, NULL);
+	split_comparison_helper(orig_rl, comparison, rl, &true_rl, &false_rl);
 
 	true_rl = rl_truncate_cast(estate_type(sm->state), true_rl);
 	false_rl = rl_truncate_cast(estate_type(sm->state), false_rl);
@@ -154,7 +173,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 
 	if (implied_debug)
 		sm_msg("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
-		       sm->name, show_rl(rl), sm->state->name, show_special(comparison), show_rl(rl),
+		       sm->name, show_rl(rl), sm->state->name, show_comparison(comparison), show_rl(rl),
 		       show_rl(true_rl), show_rl(false_rl));
 
 	true_sm = clone_sm(sm);
@@ -233,6 +252,32 @@ static int remove_pool(struct state_list **pools, struct stree *remove)
 	return ret;
 }
 
+static bool possibly_true_helper(struct range_list *var_rl, int comparison, struct range_list *rl)
+{
+	if (comparison == PARAM_LIMIT) {
+		struct range_list *intersect;
+
+		intersect = rl_intersection(var_rl, rl);
+		if (intersect)
+			return true;
+		return false;
+	}
+	return possibly_true_rl(var_rl, comparison, rl);
+}
+
+static bool possibly_false_helper(struct range_list *var_rl, int comparison, struct range_list *rl)
+{
+	if (comparison == PARAM_LIMIT) {
+		struct range_list *intersect;
+
+		intersect = rl_intersection(var_rl, rl);
+		if (!rl_equiv(var_rl, intersect))
+			return true;
+		return false;
+	}
+	return possibly_false_rl(var_rl, comparison, rl);
+}
+
 /*
  * If 'foo' == 99 add it that pool to the true pools.  If it's false, add it to
  * the false pools.  If we're not sure, then we don't add it to either.
@@ -252,8 +297,8 @@ static void do_compare(struct sm_state *sm, int comparison, struct range_list *r
 
 	var_rl = cast_rl(rl_type(rl), estate_rl(sm->state));
 
-	istrue = !possibly_false_rl(var_rl, comparison, rl);
-	isfalse = !possibly_true_rl(var_rl, comparison, rl);
+	istrue = !possibly_false_helper(var_rl, comparison, rl);
+	isfalse = !possibly_true_helper(var_rl, comparison, rl);
 
 	print_debug_tf(sm, istrue, isfalse);
 
@@ -315,7 +360,7 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 	if (diff.tv_sec >= 1) {
 		if (implied_debug) {
 			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
-			       __func__, sm->state->name, show_special(comparison), show_rl(rl));
+			       __func__, sm->state->name, show_comparison(comparison), show_rl(rl));
 		}
 		if (mixed)
 			*mixed = 1;
@@ -592,7 +637,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	gettimeofday(&time_before, NULL);
 
 	DIMPLIED("checking implications: (%s (%s) %s %s)\n",
-		 sm->name, sm->state->name, show_special(comparison), show_rl(rl));
+		 sm->name, sm->state->name, show_comparison(comparison), show_rl(rl));
 
 	if (!is_merged(sm)) {
 		DIMPLIED("%d '%s' from line %d is not merged.\n", get_lineno(), sm->name, sm->line);
@@ -958,9 +1003,9 @@ static void set_extra_implied_states(struct expression *expr)
 	set_implied_states(NULL);
 }
 
-void param_limit_implications(struct expression *expr, int param, char *key, char *value)
+void param_limit_implications(struct expression *expr, int param, char *key, char *value, struct stree **implied)
 {
-	struct expression *arg;
+	struct expression *orig_expr, *arg;
 	struct symbol *compare_type;
 	char *name;
 	struct symbol *sym;
@@ -969,10 +1014,14 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	struct stree *implied_true = NULL;
 	struct stree *implied_false = NULL;
 	struct range_list *orig, *limit;
+	char *left_name = NULL;
+	struct symbol *left_sym = NULL;
+	int mixed = 0;
 
 	if (time_parsing_function() > 40)
 		return;
 
+	orig_expr = expr;
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
@@ -1004,9 +1053,25 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 
 	call_results_to_rl(expr, compare_type, value, &limit);
 
-	separate_and_filter(sm, SPECIAL_EQUAL, limit, __get_cur_stree(), &implied_true, &implied_false, NULL);
+	separate_and_filter(sm, PARAM_LIMIT, limit, __get_cur_stree(), &implied_true, &implied_false, &mixed);
+
+	if (orig_expr->type == EXPR_ASSIGNMENT)
+		left_name = expr_to_var_sym(orig_expr->left, &left_sym);
 
 	FOR_EACH_SM(implied_true, tmp) {
+		/*
+		 * What we're trying to do here is preserve the sm state so that
+		 * smatch extra doesn't create a new sm state when it parses the
+		 * PARAM_LIMIT.
+		 */
+		if (!mixed && tmp->sym == sym &&
+		    strcmp(tmp->name, name) == 0 &&
+		    (!left_name || strcmp(left_name, name) != 0)) {
+			overwrite_sm_state_stree(implied, tmp);
+			continue;
+		}
+
+		// TODO why can't this just be __set_sm()?
 		__set_sm_fake_stree(tmp);
 	} END_FOR_EACH_SM(tmp);
 
