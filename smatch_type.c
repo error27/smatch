@@ -712,6 +712,8 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, co
 struct symbol *get_member_type_from_key(struct expression *expr, const char *key)
 {
 	struct symbol *sym;
+	int star = 0;
+	int i;
 
 	if (strcmp(key, "$") == 0)
 		return get_type(expr);
@@ -729,11 +731,26 @@ struct symbol *get_member_type_from_key(struct expression *expr, const char *key
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
 
-	key = key + 1;
+	while (*key == '*') {
+		key++;
+		star++;
+	}
+
+	if (*key != '$')
+		return NULL;
+	key++;
+
 	sym = get_member_from_string(sym->symbol_list, key);
 	if (!sym)
 		return NULL;
-	return get_real_base_type(sym);
+	if (sym->type == SYM_RESTRICT || sym->type == SYM_NODE)
+		sym = get_real_base_type(sym);
+	for (i = 0; i < star; i++) {
+		if (!sym || sym->type != SYM_PTR)
+			return NULL;
+		sym = get_real_base_type(sym);
+	}
+	return sym;
 }
 
 struct symbol *get_arg_type_from_key(struct expression *fn, int param, struct expression *arg, const char *key)
