@@ -385,6 +385,7 @@ struct smatch_state *merge_str_state(struct smatch_state *s1, struct smatch_stat
 struct smatch_state *alloc_state_expr(struct expression *expr);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
+struct expression *get_array_expr(struct expression *expr);
 
 char *expr_to_var(struct expression *expr);
 struct symbol *expr_to_sym(struct expression *expr);

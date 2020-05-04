@@ -147,7 +147,7 @@ struct expression *get_argument_from_call_expr(struct expression_list *args,
 	return NULL;
 }
 
-static struct expression *get_array_expr(struct expression *expr)
+struct expression *get_array_expr(struct expression *expr)
 {
 	struct expression *parent;
 	struct symbol *type;
