@@ -528,7 +528,7 @@ static struct stree *load_tag_info_sym(mtag_t tag, struct symbol *arg, int arg_o
 			tag, arg_offset, DATA_VALUE);
 	} else {  /* presumably the parameter is a struct pointer */
 		run_sql(save_vals, &db_info,
-			"select offset, value from mtag_data where tag = %lld and type = %d;",
+			"select offset, value from mtag_data where tag = %lld and type = %d order by offset;",
 			tag, DATA_VALUE);
 	}
 
