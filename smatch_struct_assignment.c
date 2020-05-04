@@ -151,6 +151,9 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 	struct symbol *type;
 	struct expression *assign;
 
+	while (right && right->type == EXPR_ASSIGNMENT)
+		right = strip_parens(right->left);
+
 	type = get_type(left);
 	if (!type)
 		return;
