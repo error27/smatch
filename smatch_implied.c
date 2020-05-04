@@ -750,7 +750,7 @@ static int handle_zero_comparison(struct expression *expr,
 	if (!name || !sym)
 		goto free;
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
-	if (!sm)
+	if (!sm || !sm->merged)
 		goto free;
 
 	separate_and_filter(sm, SPECIAL_NOTEQUAL, tmp_range_list(estate_type(sm->state), 0), __get_cur_stree(), implied_true, implied_false, &mixed);
