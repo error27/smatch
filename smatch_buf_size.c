@@ -454,7 +454,7 @@ static int get_stored_size_end_struct_bytes(struct expression *expr)
 		return 0;
 
 	state = get_state(my_size_id, sym->ident->name, sym);
-	if (!estate_to_size(state))
+	if (!estate_to_size(state) || estate_to_size(state) == -1)
 		return 0;
 
 	return estate_to_size(state) - type_bytes(base_sym) + type_bytes(get_type(expr));
