@@ -36,7 +36,6 @@
 
 static int my_id;
 static int link_id;
-extern int check_assigned_expr_id;
 
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr);
 
