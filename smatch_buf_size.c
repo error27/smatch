@@ -269,6 +269,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 {
 	struct expression *call;
 	struct range_list *rl;
+	sval_t sval;
 
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
@@ -276,6 +277,8 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 
 	call_results_to_rl(call, &int_ctype, math, &rl);
 	rl = cast_rl(&int_ctype, rl);
+	if (rl_to_sval(rl, &sval) && sval.value == 0)
+		return;
 	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
 }
 
