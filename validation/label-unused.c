@@ -15,7 +15,6 @@ l:
 
 /*
  * check-name: label-unused
- * check-known-to-fail
  *
  * check-error-start
 label-unused.c:3:1: warning: unused label 'l'

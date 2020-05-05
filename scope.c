@@ -150,6 +150,14 @@ void start_label_scope(void)
 
 void end_label_scope(void)
 {
+	struct symbol *sym;
+
+	FOR_EACH_PTR(label_scope->symbols, sym) {
+		if (!sym->stmt || sym->used)
+			continue;
+		warning(sym->pos, "unused label '%s'", show_ident(sym->ident));
+	} END_FOR_EACH_PTR(sym);
+
 	end_scope(&label_scope);
 }
 
