@@ -1082,6 +1082,7 @@ struct range_list *var_user_rl(struct expression *expr);
 void print_held_locks();
 
 /* check_assigned_expr.c */
+extern int check_assigned_expr_id;
 struct expression *get_assigned_expr(struct expression *expr);
 struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym);
 /* smatch_return_to_param.c */
