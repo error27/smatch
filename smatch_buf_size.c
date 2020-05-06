@@ -713,15 +713,16 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	store_alloc(expr->left, rl);
 }
 
-static void match_calloc(const char *fn, struct expression *expr, void *unused)
+static void match_calloc(const char *fn, struct expression *expr, void *_param)
 {
 	struct expression *right;
 	struct expression *size, *nr, *mult;
 	struct range_list *rl;
+	int param = PTR_INT(_param);
 
 	right = strip_expr(expr->right);
-	nr = get_argument_from_call_expr(right->args, 0);
-	size = get_argument_from_call_expr(right->args, 1);
+	nr = get_argument_from_call_expr(right->args, param);
+	size = get_argument_from_call_expr(right->args, param + 1);
 	mult = binop_expression(nr, '*', size);
 	if (get_implied_rl(mult, &rl))
 		store_alloc(expr->left, rl);
@@ -912,12 +913,12 @@ void register_buf_size(int id)
 		add_allocation_function("kzalloc", &match_alloc, 0);
 		add_allocation_function("kzalloc_node", &match_alloc, 0);
 		add_allocation_function("vmalloc", &match_alloc, 0);
+		add_allocation_function("vzalloc", &match_alloc, 0);
 		add_allocation_function("__vmalloc", &match_alloc, 0);
 		add_allocation_function("kvmalloc", &match_alloc, 0);
 		add_allocation_function("kcalloc", &match_calloc, 0);
 		add_allocation_function("kmalloc_array", &match_calloc, 0);
-		add_allocation_function("drm_malloc_ab", &match_calloc, 0);
-		add_allocation_function("drm_calloc_large", &match_calloc, 0);
+		add_allocation_function("devm_kmalloc_array", &match_calloc, 1);
 		add_allocation_function("sock_kmalloc", &match_alloc, 1);
 		add_allocation_function("kmemdup", &match_alloc, 1);
 		add_allocation_function("kmemdup_user", &match_alloc, 1);
