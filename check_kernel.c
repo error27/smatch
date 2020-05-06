@@ -139,12 +139,9 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
-	if (estate_rl(pre_state)) {
-		rl = estate_rl(pre_state);
-		rl = remove_range(rl, err_ptr_min, err_ptr_max);
-	} else {
-		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
-	}
+	if (pre_state)
+		return;
+	rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	rl = cast_rl(get_type(arg), rl);
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
@@ -163,6 +160,14 @@ static void match_err(const char *fn, struct expression *call_expr,
 		rl = alloc_rl(err_ptr_min, err_ptr_max);
 	rl = rl_intersection(rl, alloc_rl(err_ptr_min, err_ptr_max));
 	rl = cast_rl(get_type(arg), rl);
+	if (pre_state && rl) {
+		/*
+		 * Ideally this would all be handled by smatch_implied.c
+		 * but it doesn't work very well for impossible paths.
+		 *
+		 */
+		return;
+	}
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
