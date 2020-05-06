@@ -639,7 +639,11 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	rl = clone_rl(rl); // FIXME!!!
 	if (!rl)
 		rl = size_to_rl(UNKNOWN_SIZE);
-	set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
+
+	if (rl_min(rl).value != UNKNOWN_SIZE ||
+	    rl_max(rl).value != UNKNOWN_SIZE ||
+	    get_state_expr(my_size_id, expr))
+		set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
 
 	type = get_type(expr);
 	if (!type)
@@ -815,6 +819,9 @@ static void match_call(struct expression *expr)
 			continue;
 		rl = get_array_size_bytes_rl(arg);
 		if (!rl)
+			continue;
+		if (rl_min(rl).value == UNKNOWN_SIZE &&
+		    rl_max(rl).value == UNKNOWN_SIZE)
 			continue;
 		if (is_whole_rl(rl))
 			continue;
