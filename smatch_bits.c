@@ -111,6 +111,23 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return alloc_bstate(0, possible);
 }
 
+static bool is_loop_iterator(struct expression *expr)
+{
+	struct statement *pre_stmt, *loop_stmt;
+
+	pre_stmt = expr_get_parent_stmt(expr);
+	if (!pre_stmt || pre_stmt->type != STMT_EXPRESSION)
+		return false;
+
+	loop_stmt = stmt_get_parent_stmt(pre_stmt);
+	if (!loop_stmt || loop_stmt->type != STMT_ITERATOR)
+		return false;
+	if (loop_stmt->iterator_pre_statement != pre_stmt)
+		return false;
+
+	return true;
+}
+
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	// FIXME: we really need to store the type
@@ -281,23 +298,6 @@ static void match_compare(struct expression *expr)
 	set_true_false_states_expr(my_id, expr->left,
 			(expr->op == SPECIAL_EQUAL) ? alloc_bstate(val.uvalue, val.uvalue) : NULL,
 			(expr->op == SPECIAL_EQUAL) ? NULL : alloc_bstate(val.uvalue, val.uvalue));
-}
-
-static bool is_loop_iterator(struct expression *expr)
-{
-	struct statement *pre_stmt, *loop_stmt;
-
-	pre_stmt = expr_get_parent_stmt(expr);
-	if (!pre_stmt || pre_stmt->type != STMT_EXPRESSION)
-		return false;
-
-	loop_stmt = stmt_get_parent_stmt(pre_stmt);
-	if (!loop_stmt || loop_stmt->type != STMT_ITERATOR)
-		return false;
-	if (loop_stmt->iterator_pre_statement != pre_stmt)
-		return false;
-
-	return true;
 }
 
 static void match_assign(struct expression *expr)
