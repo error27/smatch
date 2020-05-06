@@ -269,8 +269,6 @@ static int match_fls(struct expression *call, void *unused, struct range_list **
 	return 1;
 }
 
-
-
 static void find_module_init_exit(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
@@ -418,6 +416,22 @@ static void match__read_once_size(const char *fn, struct expression *call,
 	__in_fake_assign--;
 }
 
+static void match_closure_call(const char *name, struct expression *call,
+			       void *unused)
+{
+	struct expression *cl, *fn, *fake_call;
+	struct expression_list *args = NULL;
+
+	cl = get_argument_from_call_expr(call->args, 0);
+	fn = get_argument_from_call_expr(call->args, 1);
+	if (!fn || !cl)
+		return;
+
+	add_ptr_list(&args, cl);
+	fake_call = call_expression(fn, args);
+	__split_expr(fake_call);
+}
+
 bool is_ignored_kernel_data(const char *name)
 {
 	if (option_project != PROJ_KERNEL)
@@ -467,6 +481,8 @@ void check_kernel(int id)
 
 	add_function_hook("__read_once_size", &match__read_once_size, NULL);
 	add_function_hook("__read_once_size_nocheck", &match__read_once_size, NULL);
+
+	add_function_hook("closure_call", &match_closure_call, NULL);
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
