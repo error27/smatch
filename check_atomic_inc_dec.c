@@ -121,8 +121,10 @@ static void db_inc_dec(struct expression *expr, int param, const char *key, cons
 	if (inc_dec == ATOMIC_INC) {
 		if (!start_sm)
 			set_start_state(name, sym, &dec);
+		set_refcount_inc(name, sym);
 		set_state(my_id, name, sym, &inc);
 	} else {
+		set_refcount_dec(name, sym);
 		if (!start_sm)
 			set_start_state(name, sym, &inc);
 

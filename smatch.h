@@ -873,6 +873,7 @@ enum info_type {
 	SET_FS		= 8022,
 	ATOMIC_INC	= 8023,
 	ATOMIC_DEC	= 8024,
+	REFCOUNT	= 9025,
 	NO_SIDE_EFFECT  = 8025,
 	FN_ARG_LINK	= 8028,
 	DATA_VALUE	= 8029,
@@ -1255,10 +1256,14 @@ void __get_state_hook(int owner, const char *name, struct symbol *sym);
 /* smatch_buf_comparison.c */
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
 
+struct range_list *get_fs(void);
+
 struct stree *get_all_return_states(void);
 struct stree_stack *get_all_return_strees(void);
 int on_atomic_dec_path(void);
 int was_inced(const char *name, struct symbol *sym);
+void set_refcount_inc(char *name, struct symbol *sym);
+void set_refcount_dec(char *name, struct symbol *sym);
 
 /* smatch_constraints.c */
 char *get_constraint_str(struct expression *expr);
