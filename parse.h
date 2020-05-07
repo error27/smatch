@@ -124,7 +124,7 @@ extern struct symbol_list *function_computed_target_list;
 extern struct statement_list *function_computed_goto_list;
 
 extern struct token *parse_expression(struct token *, struct expression **);
-extern struct symbol *label_symbol(struct token *token);
+extern struct symbol *label_symbol(struct token *token, int used);
 extern void check_label_usage(struct symbol *label, struct position use_pos);
 
 extern int show_statement(struct statement *);
