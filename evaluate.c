@@ -3450,13 +3450,14 @@ void evaluate_symbol_list(struct symbol_list *list)
 static struct symbol *evaluate_return_expression(struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
-	struct symbol *fntype;
+	struct symbol *fntype, *rettype;
 
 	evaluate_expression(expr);
-	fntype = current_fn->ctype.base_type;
-	if (!fntype || fntype == &void_ctype) {
+	fntype = current_fn;
+	rettype = fntype->ctype.base_type;
+	if (!rettype || rettype == &void_ctype) {
 		if (expr && expr->ctype != &void_ctype)
-			expression_error(expr, "return expression in %s function", fntype?"void":"typeless");
+			expression_error(expr, "return expression in %s function", rettype?"void":"typeless");
 		if (expr && Wreturn_void)
 			warning(stmt->pos, "returning void-valued expression");
 		return NULL;
@@ -3468,7 +3469,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	}
 	if (!expr->ctype)
 		return NULL;
-	compatible_assignment_types(expr, fntype, &stmt->expression, "return expression");
+	compatible_assignment_types(expr, rettype, &stmt->expression, "return expression");
 	return NULL;
 }
 
