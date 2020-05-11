@@ -292,7 +292,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	int fouled = 0;
 
 deeper:
-	if (!sym || (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
+	if (sym && (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
 		     sym->type != SYM_BITFIELD)) {
 		const char *s;
 		size_t len;
