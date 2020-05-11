@@ -1642,7 +1642,7 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 {
 	struct sm_state *sm;
 
-	if (!expr || expr_equal_to_param(expr, -1))
+	if (!expr)
 		return 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
