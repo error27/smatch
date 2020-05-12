@@ -661,6 +661,16 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	info_record_alloction(expr, rl);
 }
 
+static bool is_array_base(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (type && type->type == SYM_ARRAY)
+		return true;
+	return false;
+}
+
 static void match_array_assignment(struct expression *expr)
 {
 	struct expression *left;
@@ -671,11 +681,15 @@ static void match_array_assignment(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
+
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
 
 	if (!is_pointer(left))
+		return;
+	/* char buf[24] = "str"; */
+	if (is_array_base(left))
 		return;
 	if (is_allocation_function(right))
 		return;
