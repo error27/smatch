@@ -261,6 +261,8 @@ struct symbol {
 #define MOD_FUN_ATTR	(MOD_PURE|MOD_NORETURN)
 /* like cvr-qualifiers but 'reversed' (OK: source <= target) */
 #define MOD_REV_QUAL	(MOD_PURE|MOD_NORETURN)
+/* do not warn when these are duplicated */
+#define MOD_DUP_OK	0
 
 
 /* Current parsing/evaluation function */
