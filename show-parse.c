@@ -140,6 +140,7 @@ const char *modifier_string(unsigned long mod)
 		{MOD_TLS,		"[tls]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
 		{MOD_UNSIGNED,		"[unsigned]"},
+		{MOD_UNUSED,		"[unused]"},
 		{MOD_USERTYPE,		"[usertype]"},
 	};
 
