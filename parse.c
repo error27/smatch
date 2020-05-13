@@ -2554,6 +2554,15 @@ static struct token *parse_range_statement(struct token *token, struct statement
 	return expect(token, ';', "after range statement");
 }
 
+static struct token *handle_label_attributes(struct token *token, struct symbol *label)
+{
+	struct decl_state ctx = { };
+
+	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+	label->label_modifiers = ctx.ctype.modifiers;
+	return token;
+}
+
 static struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token->pos, STMT_NONE);
@@ -2566,7 +2575,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 
 		if (match_op(token->next, ':')) {
 			struct symbol *s = label_symbol(token, 0);
-			token = skip_attributes(token->next->next);
+			token = handle_label_attributes(token->next->next, s);
 			if (s->stmt) {
 				sparse_error(stmt->pos, "label '%s' redefined", show_ident(s->ident));
 				// skip the label to avoid multiple definitions

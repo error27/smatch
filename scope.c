@@ -155,6 +155,8 @@ void end_label_scope(void)
 	FOR_EACH_PTR(label_scope->symbols, sym) {
 		if (!sym->stmt || sym->used)
 			continue;
+		if (sym->label_modifiers & MOD_UNUSED)
+			continue;
 		warning(sym->pos, "unused label '%s'", show_ident(sym->ident));
 	} END_FOR_EACH_PTR(sym);
 

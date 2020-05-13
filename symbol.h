@@ -170,6 +170,7 @@ struct symbol {
 		struct /* NS_LABEL */ {
 			struct scope *label_scope;
 			struct position label_pos;
+			unsigned long label_modifiers;
 		};
 		struct /* NS_SYMBOL */ {
 			unsigned long	offset;

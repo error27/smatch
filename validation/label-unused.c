@@ -13,6 +13,12 @@ l:
 	});
 }
 
+static void baz(void)
+{
+l: __attribute__((unused));
+	return;
+}
+
 /*
  * check-name: label-unused
  *
