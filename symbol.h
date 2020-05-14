@@ -263,6 +263,9 @@ struct symbol {
 #define MOD_REV_QUAL	(MOD_PURE|MOD_NORETURN)
 /* do not warn when these are duplicated */
 #define MOD_DUP_OK	(MOD_UNUSED)
+/* must be part of the declared symbol, not its type */
+#define MOD_DECLARE	(MOD_STORAGE|MOD_UNUSED|MOD_PURE|MOD_NORETURN|MOD_EXT_VISIBLE)
+
 
 
 /* Current parsing/evaluation function */

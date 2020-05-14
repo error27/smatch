@@ -1386,7 +1386,7 @@ static const char *storage_class[] =
 	[SForced] = "[force]"
 };
 
-static unsigned long storage_modifiers(struct decl_state *ctx)
+static unsigned long decl_modifiers(struct decl_state *ctx)
 {
 	static unsigned long mod[SMax] =
 	{
@@ -1395,9 +1395,11 @@ static unsigned long storage_modifiers(struct decl_state *ctx)
 		[SStatic] = MOD_STATIC,
 		[SRegister] = MOD_REGISTER
 	};
+	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
+	ctx->ctype.modifiers &= ~MOD_DECLARE;
 	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
 		| (ctx->is_tls ? MOD_TLS : 0)
-		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0);
+		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0) | mods;
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
@@ -1674,7 +1676,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 		}
 		token = token->next;
-		if (s->op->declarator)
+		if (s->op->declarator)	// Note: this eats attributes
 			token = s->op->declarator(token, ctx);
 		if (s->op->type & KW_EXACT) {
 			ctx->ctype.base_type = s->ctype.base_type;
@@ -2001,7 +2003,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 	unsigned long mod;
 
 	token = declaration_specifiers(token, &ctx);
-	mod = storage_modifiers(&ctx);
+	mod = decl_modifiers(&ctx);
 	saved = ctx.ctype;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
@@ -2054,7 +2056,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
-	sym->ctype.modifiers |= storage_modifiers(&ctx);
+	sym->ctype.modifiers |= decl_modifiers(&ctx);
 	sym->endpos = token->pos;
 	sym->forced_arg = ctx.storage_class == SForced;
 	return token;
@@ -2957,7 +2959,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctx);
-	mod = storage_modifiers(&ctx);
+	mod = decl_modifiers(&ctx);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
