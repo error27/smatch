@@ -32,7 +32,7 @@ Core
   ```
 
 Testsuite
---------
+---------
 * there are more than 50 failing tests. They should be fixed
   (but most are non-trivial to fix).
 
@@ -84,9 +84,13 @@ Longer term/to investigate
 * should support "-Werror=..." ?
 * All warning messages should include the option how to disable it.
   For example:
+
   	"warning: Variable length array is used."
+
   should be something like:
+
 	"warning: Variable length array is used. (-Wno-vla)"
+
 * ptrlists must have elements be removed while being iterated but this
   is hard to insure it is not done.
 * having 'struct symbol' used to represent symbols *and* types is
