@@ -269,7 +269,7 @@ if __name__ == '__main__':
 	dump_doc(extract(sys.stdin, '<stdin>'))
 
 
-from sphinx.ext.autodoc import AutodocReporter
+from sphinx.util.docutils import switch_source_input
 import docutils
 import os
 class CDocDirective(docutils.parsers.rst.Directive):
@@ -294,13 +294,13 @@ class CDocDirective(docutils.parsers.rst.Directive):
 
 		## let parse this new reST content
 		memo = self.state.memo
-		save = memo.reporter, memo.title_styles, memo.section_level
-		memo.reporter = AutodocReporter(lst, memo.reporter)
+		save = memo.title_styles, memo.section_level
 		node = docutils.nodes.section()
 		try:
-			self.state.nested_parse(lst, 0, node, match_titles=1)
+			with switch_source_input(self.state, lst):
+				self.state.nested_parse(lst, 0, node, match_titles=1)
 		finally:
-			memo.reporter, memo.title_styles, memo.section_level = save
+			memo.title_styles, memo.section_level = save
 		return node.children
 
 def setup(app):
