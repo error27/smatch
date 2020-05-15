@@ -24,12 +24,6 @@ Core
   - add the sym into a list and
   - recalculate the addressability before memops's SSA conversion
 * bool_ctype should be split into internal 1-bit / external 8-bit
-* Previous declarations and the definition need to be merged. For example,
-  in the code here below, the function definition is **not** static:
-  ```
-	static void foo(void);
-	void foo(void) { ... }
-  ```
 
 Testsuite
 ---------
