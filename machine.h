@@ -113,7 +113,7 @@ enum {
 #elif defined(__sun__) || defined(__sun)
 #define OS_NATIVE	OS_SUNOS
 #elif defined(__unix__) || defined(__unix)
-#define OS_UNIX		OS_UNIX
+#define OS_NATIVE	OS_UNIX
 #else
 #define OS_NATIVE	OS_UNKNOWN
 #endif
