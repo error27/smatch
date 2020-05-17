@@ -590,6 +590,8 @@ static struct init_keyword {
 	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
+	{"gnu_inline",	NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
+	{"__gnu_inline__",NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
 	{"externally_visible",	NS_KEYWORD,	.op = &ext_visible_op },
 	{"__externally_visible__",	NS_KEYWORD,	.op = &ext_visible_op },
 
