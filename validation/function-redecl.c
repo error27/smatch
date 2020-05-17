@@ -51,11 +51,11 @@ void arg_vararg(int a, ...) { }			/* check-should-fail */
 function-redecl.c:5:6: error: symbol 'ret_type' redeclared with different type (different base types):
 function-redecl.c:5:6:    void extern [addressable] [toplevel] ret_type( ... )
 function-redecl.c:4:5: note: previously declared as:
-function-redecl.c:4:5:    int extern [signed] [addressable] [toplevel] ret_type( ... )
+function-redecl.c:4:5:    int extern [addressable] [signed] [toplevel] ret_type( ... )
 function-redecl.c:9:11: error: symbol 'ret_const' redeclared with different type (different modifiers):
-function-redecl.c:9:11:    int extern const [signed] [addressable] [toplevel] ret_const( ... )
+function-redecl.c:9:11:    int extern const [addressable] [signed] [toplevel] ret_const( ... )
 function-redecl.c:8:5: note: previously declared as:
-function-redecl.c:8:5:    int extern [signed] [addressable] [toplevel] ret_const( ... )
+function-redecl.c:8:5:    int extern [addressable] [signed] [toplevel] ret_const( ... )
 function-redecl.c:13:13: error: symbol 'ret_as' redeclared with different type (different address spaces):
 function-redecl.c:13:13:    void <asn:1> *extern [addressable] [toplevel] ret_as( ... )
 function-redecl.c:12:6: note: previously declared as:
