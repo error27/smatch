@@ -1127,11 +1127,16 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 	return token;
 }
 
+static void apply_mod(struct position *pos, unsigned long *mods, unsigned long mod)
+{
+	if (*mods & mod)
+		warning(*pos, "duplicate %s", modifier_string(mod));
+	*mods |= mod;
+}
+
 static void apply_qualifier(struct position *pos, struct ctype *ctx, unsigned long qual)
 {
-	if (ctx->modifiers & qual)
-		warning(*pos, "duplicate %s", modifier_string(qual));
-	ctx->modifiers |= qual;
+	apply_mod(pos, &ctx->modifiers, qual);
 }
 
 static struct token *attribute_modifier(struct token *token, struct symbol *attr, struct decl_state *ctx)
@@ -1142,10 +1147,7 @@ static struct token *attribute_modifier(struct token *token, struct symbol *attr
 
 static struct token *attribute_function(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	unsigned long mod = attr->ctype.modifiers;
-	if (ctx->f_modifiers & mod)
-		warning(token->pos, "duplicate %s", modifier_string(mod));
-	ctx->f_modifiers |= mod;
+	apply_mod(&token->pos, &ctx->f_modifiers, attr->ctype.modifiers);
 	return token;
 }
 
