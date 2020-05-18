@@ -109,7 +109,6 @@ struct decl_state {
 	struct symbol_op *mode;
 	unsigned long f_modifiers;		// function attributes
 	unsigned char prefer_abstract, storage_class;
-	unsigned char is_ext_visible;
 	unsigned char autotype;
 };
 

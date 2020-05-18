@@ -6,5 +6,4 @@ int arr[2] __visible;
 /*
  * check-name: attr-visible-after
  * check-command: sparse -Wdecl $file
- * check-known-to-fail
  */

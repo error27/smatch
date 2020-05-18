@@ -84,7 +84,6 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
 	attribute_function,
-	attribute_ext_visible,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
 	attribute_designated_init,
@@ -389,10 +388,6 @@ static struct symbol_op attr_fun_op = {
 	.attribute = attribute_function,
 };
 
-static struct symbol_op ext_visible_op = {
-	.attribute = attribute_ext_visible,
-};
-
 static struct symbol_op attr_bitwise_op = {
 	.attribute = attribute_bitwise,
 };
@@ -573,6 +568,8 @@ static struct init_keyword {
 	{ "__safe__",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
 	{ "unused",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
 	{ "__unused__",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
+	{ "externally_visible",	NS_KEYWORD, MOD_EXT_VISIBLE,.op = &attr_mod_op },
+	{ "__externally_visible__", NS_KEYWORD,MOD_EXT_VISIBLE,.op = &attr_mod_op },
 	{ "force",	NS_KEYWORD,	.op = &attr_force_op },
 	{ "__force__",	NS_KEYWORD,	.op = &attr_force_op },
 	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
@@ -592,8 +589,6 @@ static struct init_keyword {
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"gnu_inline",	NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
 	{"__gnu_inline__",NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
-	{"externally_visible",	NS_KEYWORD,	.op = &ext_visible_op },
-	{"__externally_visible__",	NS_KEYWORD,	.op = &ext_visible_op },
 
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
@@ -1155,12 +1150,6 @@ static struct token *attribute_function(struct token *token, struct symbol *attr
 	return token;
 }
 
-static struct token *attribute_ext_visible(struct token *token, struct symbol *attr, struct decl_state *ctx)
-{
-	ctx->is_ext_visible = 1;
-	return token;
-}
-
 static struct token *attribute_bitwise(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	if (Wbitwise)
@@ -1399,8 +1388,7 @@ static unsigned long decl_modifiers(struct decl_state *ctx)
 	};
 	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
 	ctx->ctype.modifiers &= ~MOD_DECLARE;
-	return mod[ctx->storage_class]
-		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0) | mods;
+	return mod[ctx->storage_class] | mods;
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
