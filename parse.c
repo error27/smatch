@@ -1399,7 +1399,7 @@ static unsigned long decl_modifiers(struct decl_state *ctx)
 	};
 	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
 	ctx->ctype.modifiers &= ~MOD_DECLARE;
-	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
+	return mod[ctx->storage_class]
 		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0) | mods;
 }
 
@@ -1475,7 +1475,7 @@ static struct token *attribute_force(struct token *token, struct symbol *attr, s
 
 static struct token *inline_specifier(struct token *next, struct decl_state *ctx)
 {
-	ctx->is_inline = 1;
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_INLINE);
 	return next;
 }
 
