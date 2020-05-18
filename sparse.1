@@ -428,6 +428,14 @@ However, this behavior can lead to subtle errors.
 
 Sparse does not issue these warnings by default.
 .
+.TP
+.B \-Wuniversal\-initializer
+Do not suppress warnings about 0 used to initialize a null-pointer
+when using '{ 0 }' as initializer.
+
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-universal\-initializer\fR.
+.
 .SH MISC OPTIONS
 .TP
 .B \-\-arch=\fIARCH\fR
