@@ -1400,14 +1400,14 @@ static unsigned long decl_modifiers(struct decl_state *ctx)
 	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
 	ctx->ctype.modifiers &= ~MOD_DECLARE;
 	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
-		| (ctx->is_tls ? MOD_TLS : 0)
 		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0) | mods;
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
 {
+	int is_tls = ctx->ctype.modifiers & MOD_TLS;
 	/* __thread can be used alone, or with extern or static */
-	if (ctx->is_tls && (class != SStatic && class != SExtern)) {
+	if (is_tls && (class != SStatic && class != SExtern)) {
 		sparse_error(*pos, "__thread can only be used alone, or with "
 				"extern or static");
 		return;
@@ -1458,7 +1458,7 @@ static struct token *thread_specifier(struct token *next, struct decl_state *ctx
 	/* This GCC extension can be used alone, or with extern or static */
 	if (!ctx->storage_class || ctx->storage_class == SStatic
 			|| ctx->storage_class == SExtern) {
-		ctx->is_tls = 1;
+		apply_qualifier(&next->pos, &ctx->ctype, MOD_TLS);
 	} else {
 		sparse_error(next->pos, "__thread can only be used alone, or "
 				"with extern or static");
