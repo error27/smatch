@@ -15,6 +15,8 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
