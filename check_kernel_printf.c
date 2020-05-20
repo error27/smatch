@@ -209,7 +209,7 @@ qualifier:
 		return ++fmt - start;
 
 	case 's':
-		if (qualifier)
+		if (qualifier && qualifier != 'l')
 			sm_warning("qualifier '%c' ignored for %%s specifier", qualifier);
 
 		spec->type = FORMAT_TYPE_STR;
