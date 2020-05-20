@@ -674,6 +674,12 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 			vaidx, type_to_str(type));
 		return;
 	}
+
+	/* error pointers */
+	if (*fmt == 'e')
+		fmt++;
+
+
 	/* Just plain %p, nothing to check. */
 	if (!isalnum(*fmt))
 		return;
