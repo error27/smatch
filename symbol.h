@@ -166,10 +166,16 @@ struct symbol {
 			int (*handler)(struct stream *, struct token **, struct token *);
 			int normal;
 		};
+		struct /* NS_LABEL */ {
+			struct scope *label_scope;
+			struct position label_pos;
+			unsigned long label_modifiers;
+		};
 		struct /* NS_SYMBOL */ {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
+					bogus_linear:1,
 					variadic:1,
 					initialized:1,
 					examined:1,
@@ -330,6 +336,7 @@ extern void show_type_list(struct symbol *);
 extern void show_symbol_list(struct symbol_list *, const char *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
+extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);

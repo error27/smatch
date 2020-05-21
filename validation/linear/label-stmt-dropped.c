@@ -11,11 +11,13 @@ start:
 	r += a;
 	r += b;
 
+	if (!r)
+		goto start;
 	return r;
 }
 
 /*
- * check-name: discarded-label-statement
+ * check-name: label-stmt-dropped
  * check-command: test-linearize $file
  *
  * check-output-ignore

@@ -3257,6 +3257,21 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 	return size_t_ctype;
 }
 
+static void check_label_declaration(struct position pos, struct symbol *label)
+{
+	switch (label->namespace) {
+	case NS_LABEL:
+		if (label->stmt)
+			break;
+		sparse_error(pos, "label '%s' was not declared", show_ident(label->ident));
+		/* fallthrough */
+	case NS_NONE:
+		current_fn->bogus_linear = 1;
+	default:
+		break;
+	}
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -3329,6 +3344,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 	case EXPR_LABEL:
 		expr->ctype = &ptr_ctype;
+		check_label_declaration(expr->pos, expr->label_symbol);
 		return &ptr_ctype;
 
 	case EXPR_TYPE:
@@ -3422,7 +3438,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 		if (sym->definition && sym->definition != sym)
 			return evaluate_symbol(sym->definition);
 
-		current_fn = base_type;
+		current_fn = sym;
 
 		examine_fn_arguments(base_type);
 		if (!base_type->stmt && base_type->inline_stmt)
@@ -3450,13 +3466,14 @@ void evaluate_symbol_list(struct symbol_list *list)
 static struct symbol *evaluate_return_expression(struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
-	struct symbol *fntype;
+	struct symbol *fntype, *rettype;
 
 	evaluate_expression(expr);
 	fntype = current_fn->ctype.base_type;
-	if (!fntype || fntype == &void_ctype) {
+	rettype = fntype->ctype.base_type;
+	if (!rettype || rettype == &void_ctype) {
 		if (expr && expr->ctype != &void_ctype)
-			expression_error(expr, "return expression in %s function", fntype?"void":"typeless");
+			expression_error(expr, "return expression in %s function", rettype?"void":"typeless");
 		if (expr && Wreturn_void)
 			warning(stmt->pos, "returning void-valued expression");
 		return NULL;
@@ -3468,7 +3485,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	}
 	if (!expr->ctype)
 		return NULL;
-	compatible_assignment_types(expr, fntype, &stmt->expression, "return expression");
+	compatible_assignment_types(expr, rettype, &stmt->expression, "return expression");
 	return NULL;
 }
 
@@ -3741,10 +3758,13 @@ static void evaluate_goto_statement(struct statement *stmt)
 {
 	struct symbol *label = stmt->goto_label;
 
-	if (label && !label->stmt && label->ident && !lookup_keyword(label->ident, NS_KEYWORD))
-		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
+	if (!label) {
+		// no label associated, may be a computed goto
+		evaluate_expression(stmt->goto_expression);
+		return;
+	}
 
-	evaluate_expression(stmt->goto_expression);
+	check_label_declaration(stmt->pos, label);
 }
 
 struct symbol *evaluate_statement(struct statement *stmt)

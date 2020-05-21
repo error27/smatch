@@ -721,12 +721,14 @@ static struct symbol * alloc_indirect_symbol(struct position pos, struct ctype *
  * it also ends up using function scope instead of the
  * regular symbol scope.
  */
-struct symbol *label_symbol(struct token *token)
+struct symbol *label_symbol(struct token *token, int used)
 {
 	struct symbol *sym = lookup_symbol(token->ident, NS_LABEL);
 	if (!sym) {
 		sym = alloc_symbol(token->pos, SYM_LABEL);
 		bind_symbol(sym, token->ident, NS_LABEL);
+		if (used)
+			sym->used = 1;
 		fn_local_symbol(sym);
 	}
 	return sym;
@@ -2127,7 +2129,7 @@ static struct token *parse_asm_labels(struct token *token, struct statement *stm
 		token = token->next; /* skip ':' and ',' */
 		if (token_type(token) != TOKEN_IDENT)
 			return token;
-		label = label_symbol(token);
+		label = label_symbol(token, 1);
 		add_symbol(labels, label);
 		token = token->next;
 	} while (match_op(token, ','));
@@ -2218,7 +2220,7 @@ static void start_iterator(struct statement *stmt)
 {
 	struct symbol *cont, *brk;
 
-	start_symbol_scope();
+	start_block_scope();
 	cont = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(cont, &continue_ident, NS_ITERATOR);
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
@@ -2233,7 +2235,7 @@ static void start_iterator(struct statement *stmt)
 
 static void end_iterator(struct statement *stmt)
 {
-	end_symbol_scope();
+	end_block_scope();
 }
 
 static struct statement *start_function(struct symbol *sym)
@@ -2278,7 +2280,7 @@ static void start_switch(struct statement *stmt)
 {
 	struct symbol *brk, *switch_case;
 
-	start_symbol_scope();
+	start_block_scope();
 	brk = alloc_symbol(stmt->pos, SYM_NODE);
 	bind_symbol(brk, &break_ident, NS_ITERATOR);
 
@@ -2298,7 +2300,7 @@ static void end_switch(struct statement *stmt)
 {
 	if (!stmt->switch_case->symbol_list)
 		warning(stmt->pos, "switch with no cases");
-	end_symbol_scope();
+	end_block_scope();
 }
 
 static void add_case_statement(struct statement *stmt)
@@ -2468,6 +2470,27 @@ static struct token *parse_switch_statement(struct token *token, struct statemen
 	return token;
 }
 
+static void warn_label_usage(struct position def, struct position use, struct ident *ident)
+{
+	const char *id = show_ident(ident);
+	sparse_error(use, "label '%s' used outside statement expression", id);
+	info(def, "   label '%s' defined here", id);
+	current_fn->bogus_linear = 1;
+}
+
+void check_label_usage(struct symbol *label, struct position use_pos)
+{
+	struct statement *def = label->stmt;
+
+	if (def) {
+		if (!is_in_scope(def->label_scope, label_scope))
+			warn_label_usage(def->pos, use_pos, label->ident);
+	} else if (!label->label_scope) {
+		label->label_scope = label_scope;
+		label->label_pos = use_pos;
+	}
+}
+
 static struct token *parse_goto_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_GOTO;
@@ -2476,7 +2499,9 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 		token = parse_expression(token->next, &stmt->goto_expression);
 		add_statement(&function_computed_goto_list, stmt);
 	} else if (token_type(token) == TOKEN_IDENT) {
-		stmt->goto_label = label_symbol(token);
+		struct symbol *label = label_symbol(token, 1);
+		stmt->goto_label = label;
+		check_label_usage(label, stmt->pos);
 		token = token->next;
 	} else {
 		sparse_error(token->pos, "Expected identifier or goto expression");
@@ -2517,6 +2542,15 @@ static struct token *parse_range_statement(struct token *token, struct statement
 	return expect(token, ';', "after range statement");
 }
 
+static struct token *handle_label_attributes(struct token *token, struct symbol *label)
+{
+	struct decl_state ctx = { };
+
+	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+	label->label_modifiers = ctx.ctype.modifiers;
+	return token;
+}
+
 static struct token *statement(struct token *token, struct statement **tree)
 {
 	struct statement *stmt = alloc_statement(token->pos, STMT_NONE);
@@ -2528,8 +2562,8 @@ static struct token *statement(struct token *token, struct statement **tree)
 			return s->op->statement(token, stmt);
 
 		if (match_op(token->next, ':')) {
-			struct symbol *s = label_symbol(token);
-			token = skip_attributes(token->next->next);
+			struct symbol *s = label_symbol(token, 0);
+			token = handle_label_attributes(token->next->next, s);
 			if (s->stmt) {
 				sparse_error(stmt->pos, "label '%s' redefined", show_ident(s->ident));
 				// skip the label to avoid multiple definitions
@@ -2537,17 +2571,18 @@ static struct token *statement(struct token *token, struct statement **tree)
 			}
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = s;
+			stmt->label_scope = label_scope;
+			if (s->label_scope) {
+				if (!is_in_scope(label_scope, s->label_scope))
+					warn_label_usage(stmt->pos, s->label_pos, s->ident);
+			}
 			s->stmt = stmt;
 			return statement(token, &stmt->label_statement);
 		}
 	}
 
 	if (match_op(token, '{')) {
-		stmt->type = STMT_COMPOUND;
-		start_symbol_scope();
 		token = compound_statement(token->next, stmt);
-		end_symbol_scope();
-		
 		return expect(token, '}', "at end of compound statement");
 	}
 			
@@ -2561,8 +2596,7 @@ static struct token *label_statement(struct token *token)
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *sym = alloc_symbol(token->pos, SYM_LABEL);
 		/* it's block-scope, but we want label namespace */
-		bind_symbol(sym, token->ident, NS_SYMBOL);
-		sym->namespace = NS_LABEL;
+		bind_symbol_with_scope(sym, token->ident, NS_LABEL, block_scope);
 		fn_local_symbol(sym);
 		token = token->next;
 		if (!match_op(token, ','))
@@ -2654,7 +2688,10 @@ static struct token *parameter_type_list(struct token *token, struct symbol *fn)
 
 struct token *compound_statement(struct token *token, struct statement *stmt)
 {
+	stmt->type = STMT_COMPOUND;
+	start_block_scope();
 	token = statement_list(token, &stmt->stmts);
+	end_block_scope();
 	return token;
 }
 
@@ -2806,15 +2843,15 @@ static struct token *parse_function_body(struct token *token, struct symbol *dec
 		decl->ctype.modifiers |= MOD_EXTERN;
 
 	stmt = start_function(decl);
-
 	*p = stmt;
+
 	FOR_EACH_PTR (base_type->arguments, arg) {
 		declare_argument(arg, base_type);
 	} END_FOR_EACH_PTR(arg);
 
-	token = compound_statement(token->next, stmt);
-
+	token = statement_list(token->next, &stmt->stmts);
 	end_function(decl);
+
 	if (!(decl->ctype.modifiers & MOD_INLINE))
 		add_symbol(list, decl);
 	check_declaration(decl);

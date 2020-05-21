@@ -36,6 +36,7 @@
 static struct scope builtin_scope = { .next = &builtin_scope };
 
 struct scope	*block_scope = &builtin_scope,		// regular automatic variables etc
+		*label_scope = NULL,			// expr-stmt labels
 		*function_scope = &builtin_scope,	// labels, arguments etc
 		*file_scope = &builtin_scope,		// static
 		*global_scope = &builtin_scope;		// externally visible
@@ -68,7 +69,6 @@ void rebind_scope(struct symbol *sym, struct scope *new)
 static void start_scope(struct scope **s)
 {
 	struct scope *scope = __alloc_scope(0);
-	memset(scope, 0, sizeof(*scope));
 	scope->next = *s;
 	*s = scope;
 }
@@ -77,7 +77,6 @@ void start_file_scope(void)
 {
 	struct scope *scope = __alloc_scope(0);
 
-	memset(scope, 0, sizeof(*scope));
 	scope->next = &builtin_scope;
 	file_scope = scope;
 
@@ -86,15 +85,16 @@ void start_file_scope(void)
 	block_scope = scope;
 }
 
-void start_symbol_scope(void)
+void start_block_scope(void)
 {
 	start_scope(&block_scope);
 }
 
 void start_function_scope(void)
 {
-	start_scope(&function_scope);
 	start_scope(&block_scope);
+	start_scope(&label_scope);
+	function_scope = label_scope;
 }
 
 static void remove_symbol_scope(struct symbol *sym)
@@ -131,7 +131,7 @@ void new_file_scope(void)
 	start_file_scope();
 }
 
-void end_symbol_scope(void)
+void end_block_scope(void)
 {
 	end_scope(&block_scope);
 }
@@ -139,7 +139,28 @@ void end_symbol_scope(void)
 void end_function_scope(void)
 {
 	end_scope(&block_scope);
-	end_scope(&function_scope);
+	end_label_scope();
+	function_scope = label_scope;
+}
+
+void start_label_scope(void)
+{
+	start_scope(&label_scope);
+}
+
+void end_label_scope(void)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(label_scope->symbols, sym) {
+		if (!sym->stmt || sym->used)
+			continue;
+		if (sym->label_modifiers & MOD_UNUSED)
+			continue;
+		warning(sym->pos, "unused label '%s'", show_ident(sym->ident));
+	} END_FOR_EACH_PTR(sym);
+
+	end_scope(&label_scope);
 }
 
 int is_outer_scope(struct scope *scope)
@@ -151,3 +172,12 @@ int is_outer_scope(struct scope *scope)
 	return 1;
 }
 
+int is_in_scope(struct scope *outer, struct scope *inner)
+{
+	while (inner != outer) {
+		if (inner == function_scope)
+			return 0;
+		inner = inner->next;
+	}
+	return 1;
+}

@@ -2,22 +2,35 @@
 
 static void test_safe(void)
 {
-	int __safe obj, *ptr;
-	typeof(obj) var = obj;
-	typeof(ptr) ptr2 = ptr;
+	int obj;
+	int __safe *ptr;
+
+	int __safe *ptr2 = ptr;
+	typeof(ptr) ptr3 = ptr;
 	typeof(*ptr) var2 = obj;
-	typeof(*ptr) *ptr3 = ptr;
-	typeof(obj) *ptr4 = ptr;
+	int __safe  var3 = obj;
+	int *ptr4 = &obj;
+	int *ptr5 = ptr;		// KO
+
+	typeof(*ptr) sobj;
+	typeof(&sobj) ptr6 = &obj;
+	typeof(&sobj) ptr7 = ptr;	// KO
+
 	obj = obj;
 	ptr = ptr;
-	ptr = &obj;
 	obj = *ptr;
+	ptr = (int __safe *) &obj;
 }
 
 /*
  * check-name: typeof-safe
- * check-known-to-fail
  *
  * check-error-start
+typeof-safe.c:13:21: warning: incorrect type in initializer (different modifiers)
+typeof-safe.c:13:21:    expected int *ptr5
+typeof-safe.c:13:21:    got int [safe] *ptr
+typeof-safe.c:17:30: warning: incorrect type in initializer (different modifiers)
+typeof-safe.c:17:30:    expected int *ptr7
+typeof-safe.c:17:30:    got int [safe] *ptr
  * check-error-end
  */

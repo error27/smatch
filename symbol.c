@@ -671,9 +671,8 @@ static void inherit_static(struct symbol *sym)
 	}
 }
 
-void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
+void bind_symbol_with_scope(struct symbol *sym, struct ident *ident, enum namespace ns, struct scope *scope)
 {
-	struct scope *scope;
 	if (sym->bound) {
 		sparse_error(sym->pos, "internal error: symbol type already bound");
 		return;
@@ -690,7 +689,6 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 	sym->ident = ident;
 	sym->bound = 1;
 
-	scope = block_scope;
 	if (ns == NS_SYMBOL && toplevel(scope)) {
 		unsigned mod = MOD_ADDRESSABLE | MOD_TOPLEVEL;
 
@@ -704,11 +702,18 @@ void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
 		}
 		sym->ctype.modifiers |= mod;
 	}
+	bind_scope(sym, scope);
+}
+
+void bind_symbol(struct symbol *sym, struct ident *ident, enum namespace ns)
+{
+	struct scope *scope = block_scope;;
+
 	if (ns == NS_MACRO)
 		scope = file_scope;
 	if (ns == NS_LABEL)
 		scope = function_scope;
-	bind_scope(sym, scope);
+	bind_symbol_with_scope(sym, ident, ns, scope);
 }
 
 struct symbol *create_symbol(int stream, const char *name, int type, int namespace)
