@@ -2783,6 +2783,13 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 {
 	struct expression *expr;
 
+	// '{ 0 }' is equivalent to '{ }' unless wanting all possible
+	// warnings about using '0' to initialize a null-pointer.
+	if (!Wuniversal_initializer) {
+		if (match_token_zero(token) && match_op(token->next, '}'))
+			token = token->next;
+	}
+
 	for (;;) {
 		token = single_initializer(&expr, token);
 		if (!expr)
