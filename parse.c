@@ -84,7 +84,6 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 static attr_t
 	attribute_packed, attribute_aligned, attribute_modifier,
 	attribute_function,
-	attribute_ext_visible,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
 	attribute_designated_init,
@@ -389,10 +388,6 @@ static struct symbol_op attr_fun_op = {
 	.attribute = attribute_function,
 };
 
-static struct symbol_op ext_visible_op = {
-	.attribute = attribute_ext_visible,
-};
-
 static struct symbol_op attr_bitwise_op = {
 	.attribute = attribute_bitwise,
 };
@@ -571,6 +566,10 @@ static struct init_keyword {
 	{ "__noderef__",NS_KEYWORD,	MOD_NODEREF,	.op = &attr_mod_op },
 	{ "safe",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
 	{ "__safe__",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
+	{ "unused",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
+	{ "__unused__",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
+	{ "externally_visible",	NS_KEYWORD, MOD_EXT_VISIBLE,.op = &attr_mod_op },
+	{ "__externally_visible__", NS_KEYWORD,MOD_EXT_VISIBLE,.op = &attr_mod_op },
 	{ "force",	NS_KEYWORD,	.op = &attr_force_op },
 	{ "__force__",	NS_KEYWORD,	.op = &attr_force_op },
 	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
@@ -588,8 +587,8 @@ static struct init_keyword {
 	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
 	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"externally_visible",	NS_KEYWORD,	.op = &ext_visible_op },
-	{"__externally_visible__",	NS_KEYWORD,	.op = &ext_visible_op },
+	{"gnu_inline",	NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
+	{"__gnu_inline__",NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
 
 	{ "mode",	NS_KEYWORD,	.op = &mode_op },
 	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
@@ -1127,11 +1126,16 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 	return token;
 }
 
+static void apply_mod(struct position *pos, unsigned long *mods, unsigned long mod)
+{
+	if (*mods & mod & ~MOD_DUP_OK)
+		warning(*pos, "duplicate %s", modifier_string(mod));
+	*mods |= mod;
+}
+
 static void apply_qualifier(struct position *pos, struct ctype *ctx, unsigned long qual)
 {
-	if (ctx->modifiers & qual)
-		warning(*pos, "duplicate %s", modifier_string(qual));
-	ctx->modifiers |= qual;
+	apply_mod(pos, &ctx->modifiers, qual);
 }
 
 static struct token *attribute_modifier(struct token *token, struct symbol *attr, struct decl_state *ctx)
@@ -1142,16 +1146,7 @@ static struct token *attribute_modifier(struct token *token, struct symbol *attr
 
 static struct token *attribute_function(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	unsigned long mod = attr->ctype.modifiers;
-	if (ctx->f_modifiers & mod)
-		warning(token->pos, "duplicate %s", modifier_string(mod));
-	ctx->f_modifiers |= mod;
-	return token;
-}
-
-static struct token *attribute_ext_visible(struct token *token, struct symbol *attr, struct decl_state *ctx)
-{
-	ctx->is_ext_visible = 1;
+	apply_mod(&token->pos, &ctx->f_modifiers, attr->ctype.modifiers);
 	return token;
 }
 
@@ -1382,7 +1377,7 @@ static const char *storage_class[] =
 	[SForced] = "[force]"
 };
 
-static unsigned long storage_modifiers(struct decl_state *ctx)
+static unsigned long decl_modifiers(struct decl_state *ctx)
 {
 	static unsigned long mod[SMax] =
 	{
@@ -1391,15 +1386,16 @@ static unsigned long storage_modifiers(struct decl_state *ctx)
 		[SStatic] = MOD_STATIC,
 		[SRegister] = MOD_REGISTER
 	};
-	return mod[ctx->storage_class] | (ctx->is_inline ? MOD_INLINE : 0)
-		| (ctx->is_tls ? MOD_TLS : 0)
-		| (ctx->is_ext_visible ? MOD_EXT_VISIBLE : 0);
+	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
+	ctx->ctype.modifiers &= ~MOD_DECLARE;
+	return mod[ctx->storage_class] | mods;
 }
 
 static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
 {
+	int is_tls = ctx->ctype.modifiers & MOD_TLS;
 	/* __thread can be used alone, or with extern or static */
-	if (ctx->is_tls && (class != SStatic && class != SExtern)) {
+	if (is_tls && (class != SStatic && class != SExtern)) {
 		sparse_error(*pos, "__thread can only be used alone, or with "
 				"extern or static");
 		return;
@@ -1450,7 +1446,7 @@ static struct token *thread_specifier(struct token *next, struct decl_state *ctx
 	/* This GCC extension can be used alone, or with extern or static */
 	if (!ctx->storage_class || ctx->storage_class == SStatic
 			|| ctx->storage_class == SExtern) {
-		ctx->is_tls = 1;
+		apply_qualifier(&next->pos, &ctx->ctype, MOD_TLS);
 	} else {
 		sparse_error(next->pos, "__thread can only be used alone, or "
 				"with extern or static");
@@ -1467,7 +1463,7 @@ static struct token *attribute_force(struct token *token, struct symbol *attr, s
 
 static struct token *inline_specifier(struct token *next, struct decl_state *ctx)
 {
-	ctx->is_inline = 1;
+	apply_qualifier(&next->pos, &ctx->ctype, MOD_INLINE);
 	return next;
 }
 
@@ -1670,7 +1666,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 			}
 		}
 		token = token->next;
-		if (s->op->declarator)
+		if (s->op->declarator)	// Note: this eats attributes
 			token = s->op->declarator(token, ctx);
 		if (s->op->type & KW_EXACT) {
 			ctx->ctype.base_type = s->ctype.base_type;
@@ -1997,7 +1993,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 	unsigned long mod;
 
 	token = declaration_specifiers(token, &ctx);
-	mod = storage_modifiers(&ctx);
+	mod = decl_modifiers(&ctx);
 	saved = ctx.ctype;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
@@ -2050,7 +2046,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
-	sym->ctype.modifiers |= storage_modifiers(&ctx);
+	sym->ctype.modifiers |= decl_modifiers(&ctx);
 	sym->endpos = token->pos;
 	sym->forced_arg = ctx.storage_class == SForced;
 	return token;
@@ -2953,7 +2949,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	/* Parse declaration-specifiers, if any */
 	token = declaration_specifiers(token, &ctx);
-	mod = storage_modifiers(&ctx);
+	mod = decl_modifiers(&ctx);
 	decl = alloc_symbol(token->pos, SYM_NODE);
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {

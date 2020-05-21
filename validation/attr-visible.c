@@ -9,5 +9,4 @@ int flag __visible;
 /*
  * check-name: attr-visible
  * check-command: sparse -Wdecl $file
- * check-known-to-fail
  */

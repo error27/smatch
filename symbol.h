@@ -108,8 +108,7 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	unsigned long f_modifiers;		// function attributes
-	unsigned char prefer_abstract, is_inline, storage_class, is_tls;
-	unsigned char is_ext_visible;
+	unsigned char prefer_abstract, storage_class;
 	unsigned char autotype;
 };
 
@@ -229,14 +228,14 @@ struct symbol {
 #define MOD_UNSIGNED		0x00004000
 #define MOD_EXPLICITLY_SIGNED	0x00008000
 
-     // MOD UNUSED		0x00010000
+#define MOD_GNU_INLINE		0x00010000
 #define MOD_USERTYPE		0x00020000
      // MOD UNUSED		0x00040000
      // MOD UNUSED		0x00080000
      // MOD UNUSED		0x00100000
      // MOD UNUSED		0x00200000
-     // MOD UNUSED		0x00400000
 
+#define MOD_UNUSED		0x00400000
 #define MOD_SAFE		0x00800000	// non-null/non-trapping pointer
 #define MOD_PURE		0x01000000
 #define MOD_BITWISE		0x02000000
@@ -252,7 +251,7 @@ struct symbol {
 #define MOD_ESIGNED	(MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SPECIFIER	MOD_SIGNEDNESS
-#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE)
+#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE | MOD_UNUSED | MOD_GNU_INLINE)
 #define MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT)
 #define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_ATOMIC | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
@@ -261,6 +260,11 @@ struct symbol {
 #define MOD_FUN_ATTR	(MOD_PURE|MOD_NORETURN)
 /* like cvr-qualifiers but 'reversed' (OK: source <= target) */
 #define MOD_REV_QUAL	(MOD_PURE|MOD_NORETURN)
+/* do not warn when these are duplicated */
+#define MOD_DUP_OK	(MOD_UNUSED|MOD_GNU_INLINE)
+/* must be part of the declared symbol, not its type */
+#define MOD_DECLARE	(MOD_STORAGE|MOD_INLINE|MOD_TLS|MOD_GNU_INLINE|MOD_UNUSED|MOD_PURE|MOD_NORETURN|MOD_EXT_VISIBLE)
+
 
 
 /* Current parsing/evaluation function */
