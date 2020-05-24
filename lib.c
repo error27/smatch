@@ -272,6 +272,7 @@ int Wenum_mismatch = 1;
 int Wexternal_function_has_definition = 1;
 int Wsparse_error = 0;
 int Wmemcpy_max_count = 1;
+int Wnewline_eof = 1;
 int Wnon_pointer_null = 1;
 int Wold_initializer = 1;
 int Wold_style_definition = 1;
@@ -761,6 +762,7 @@ static const struct flag warnings[] = {
 	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
 	{ "memcpy-max-count", &Wmemcpy_max_count },
 	{ "non-pointer-null", &Wnon_pointer_null },
+	{ "newline-eof", &Wnewline_eof },
 	{ "old-initializer", &Wold_initializer },
 	{ "old-style-definition", &Wold_style_definition },
 	{ "one-bit-signed-bitfield", &Wone_bit_signed_bitfield },

@@ -161,6 +161,7 @@ extern int Wimplicit_int;
 extern int Winit_cstring;
 extern int Wint_to_pointer_cast;
 extern int Wmemcpy_max_count;
+extern int Wnewline_eof;
 extern int Wnon_pointer_null;
 extern int Wold_initializer;
 extern int Wold_style_definition;

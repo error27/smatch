@@ -280,6 +280,13 @@ The limit can be changed with \fB\-fmemcpy\-max\-count=COUNT\fR,
 the default being \fB100000\fR.
 .
 .TP
+.B \-Wnewline\-eof
+Warn if the input file doesn't end with a newline.
+
+Sparse issues these warnings by default.  To turn them off, use
+\fB\-Wno\-newline\-eof\fR.
+.
+.TP
 .B \-Wnon\-pointer\-null
 Warn about the use of 0 as a NULL pointer.
 
