@@ -70,7 +70,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 
 	if (!sym)
 		return;
-	fprintf(stderr, "%.*s%s%3d:%lu %s %s (as: %s) %p (%s:%d:%d) %s\n",
+	fprintf(stderr, "%.*s%s%3d:%lu %s%s (as: %s) %p (%s:%d:%d) %s\n",
 		indent, indent_string, typestr[sym->type],
 		sym->bit_size, sym->ctype.alignment,
 		modifier_string(sym->ctype.modifiers), show_ident(sym->ident),
