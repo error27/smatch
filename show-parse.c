@@ -107,7 +107,7 @@ void debug_symbol(struct symbol *sym)
  * Symbol type printout. The type system is by far the most
  * complicated part of C - everything else is trivial.
  */
-const char *modifier_string(unsigned long mod)
+static const char *show_modifiers(unsigned long mod, int term)
 {
 	static char buffer[100];
 	int len = 0;
@@ -155,8 +155,24 @@ const char *modifier_string(unsigned long mod)
 			buffer[len++] = ' ';
 		}
 	}
+	if (len && !term)		// strip the trailing space
+		--len;
 	buffer[len] = 0;
 	return buffer;
+}
+
+///
+// show the modifiers, terminated by a space if not empty
+const char *modifier_string(unsigned long mod)
+{
+	return show_modifiers(mod, 1);
+}
+
+///
+// show the modifiers, without an ending space
+const char *modifier_name(unsigned long mod)
+{
+	return show_modifiers(mod, 0);
 }
 
 static void show_struct_member(struct symbol *sym)
