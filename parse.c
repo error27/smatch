@@ -1151,7 +1151,7 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 static void apply_mod(struct position *pos, unsigned long *mods, unsigned long mod)
 {
 	if (*mods & mod & ~MOD_DUP_OK)
-		warning(*pos, "duplicate %s", modifier_string(mod));
+		warning(*pos, "duplicate %s", modifier_name(mod));
 	*mods |= mod;
 }
 
