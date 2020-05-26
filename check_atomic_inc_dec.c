@@ -259,6 +259,16 @@ static void match_implies_atomic_dec(const char *fn, struct expression *call_exp
 	db_inc_dec(call_expr, PTR_INT(param), "$->counter", "", ATOMIC_DEC);
 }
 
+static bool is_maybe_dec(struct sm_state *sm)
+{
+	if (sm->state == &dec)
+		return true;
+	if (slist_has_state(sm->possible, &dec) &&
+	    !slist_has_state(sm->possible, &inc))
+		return true;
+	return false;
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *sm;
@@ -269,8 +279,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 		return;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state != &inc &&
-		    sm->state != &dec)
+		if (sm->state != &inc && !is_maybe_dec(sm))
 			continue;
 		if (parent_is_gone_var_sym(sm->name, sm->sym))
 			continue;
