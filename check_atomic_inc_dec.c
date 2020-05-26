@@ -281,6 +281,8 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (sm->state != &inc && !is_maybe_dec(sm))
 			continue;
+		if (sm->state == get_state_stree(start_states, my_id, sm->name, sm->sym))
+			continue;
 		if (parent_is_gone_var_sym(sm->name, sm->sym))
 			continue;
 		param = get_param_num_from_sym(sm->sym);
