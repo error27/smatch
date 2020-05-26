@@ -24,7 +24,7 @@
 static int my_id;
 
 STATE(inc);
-STATE(orig);
+STATE(start_state);
 STATE(dec);
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
@@ -129,7 +129,7 @@ static void db_inc_dec(struct expression *expr, int param, const char *key, cons
 			set_start_state(name, sym, &inc);
 
 		if (start_sm && start_sm->state == &inc)
-			set_state(my_id, name, sym, &orig);
+			set_state(my_id, name, sym, &start_state);
 		else
 			set_state(my_id, name, sym, &dec);
 	}
@@ -237,6 +237,7 @@ static void check_counter(const char *name, struct symbol *sym)
 	int inc_buckets[NUM_BUCKETS] = {};
 	int dec_buckets[NUM_BUCKETS] = {};
 	struct stree *stree, *orig_stree;
+	struct smatch_state *state;
 	struct sm_state *return_sm;
 	struct sm_state *sm;
 	sval_t line = sval_type_val(&int_ctype, 0);
@@ -257,21 +258,23 @@ static void check_counter(const char *name, struct symbol *sym)
 			goto swap_stree;
 
 		sm = get_sm_state(my_id, name, sym);
-		if (!sm)
-			goto swap_stree;
+		if (sm)
+			state = sm->state;
+		else
+			state = &start_state;
 
-		if (sm->state != &inc &&
-		    sm->state != &dec &&
-		    sm->state != &orig)
+		if (state != &inc &&
+		    state != &dec &&
+		    state != &start_state)
 			goto swap_stree;
 
 		bucket = success_fail_positive(estate_rl(return_sm->state));
 
-		if (sm->state == &inc) {
+		if (state == &inc) {
 			add_range(&inc_lines, line, line);
 			inc_buckets[bucket] = true;
 		}
-		if (sm->state == &dec || sm->state == &orig) {
+		if (state == &dec || state == &start_state) {
 			add_range(&dec_lines, line, line);
 			dec_buckets[bucket] = true;
 		}
