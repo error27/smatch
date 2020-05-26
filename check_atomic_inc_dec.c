@@ -328,6 +328,11 @@ static void check_counter(const char *name, struct symbol *sym)
 	sval_t line = sval_type_val(&int_ctype, 0);
 	int bucket;
 
+	/* static variable are probably just counters */
+	if (sym->ctype.modifiers & MOD_STATIC &&
+	    !(sym->ctype.modifiers & MOD_TOPLEVEL))
+		return;
+
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
 		orig_stree = __swap_cur_stree(stree);
 
