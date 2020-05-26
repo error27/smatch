@@ -265,6 +265,9 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	const char *param_name;
 	int param;
 
+	if (is_impossible_path())
+		return;
+
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (sm->state != &inc &&
 		    sm->state != &dec)
