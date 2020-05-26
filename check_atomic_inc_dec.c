@@ -306,7 +306,7 @@ static int success_fail_positive(struct range_list *rl)
 	if (!rl)
 		return EMPTY;
 
-	if (sval_is_negative(rl_min(rl)))
+	if (!is_whole_rl(rl) && sval_is_negative(rl_min(rl)))
 		return NEGATIVE;
 
 	if (rl_min(rl).value == 0)
