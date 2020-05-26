@@ -94,7 +94,7 @@ static struct sm_state *get_best_match(const char *key)
 	return NULL;
 }
 
-static void db_inc_dec(struct expression *expr, int param, const char *key, const char *value, int inc_dec)
+static void db_inc_dec(struct expression *expr, int param, const char *key, int inc_dec)
 {
 	struct sm_state *start_sm;
 	struct expression *arg;
@@ -193,24 +193,24 @@ static void db_inc(struct expression *expr, int param, char *key, char *value)
 {
 	if (is_inc_dec_primitive(expr))
 		return;
-	db_inc_dec(expr, param, key, value, ATOMIC_INC);
+	db_inc_dec(expr, param, key, ATOMIC_INC);
 }
 
 static void db_dec(struct expression *expr, int param, char *key, char *value)
 {
 	if (is_inc_dec_primitive(expr))
 		return;
-	db_inc_dec(expr, param, key, value, ATOMIC_DEC);
+	db_inc_dec(expr, param, key, ATOMIC_DEC);
 }
 
 static void match_atomic_inc(const char *fn, struct expression *expr, void *_unused)
 {
-	db_inc_dec(expr, 0, "$->counter", "", ATOMIC_INC);
+	db_inc_dec(expr, 0, "$->counter", ATOMIC_INC);
 }
 
 static void match_atomic_dec(const char *fn, struct expression *expr, void *_unused)
 {
-	db_inc_dec(expr, 0, "$->counter", "", ATOMIC_DEC);
+	db_inc_dec(expr, 0, "$->counter", ATOMIC_DEC);
 }
 
 static void match_atomic_add(const char *fn, struct expression *expr, void *_unused)
@@ -220,43 +220,43 @@ static void match_atomic_add(const char *fn, struct expression *expr, void *_unu
 
 	amount = get_argument_from_call_expr(expr->args, 0);
 	if (get_implied_value(amount, &sval) && sval_is_negative(sval)) {
-		db_inc_dec(expr, 1, "$->counter", "", ATOMIC_DEC);
+		db_inc_dec(expr, 1, "$->counter", ATOMIC_DEC);
 		return;
 	}
 
-	db_inc_dec(expr, 1, "$->counter", "", ATOMIC_INC);
+	db_inc_dec(expr, 1, "$->counter", ATOMIC_INC);
 }
 
 static void match_atomic_sub(const char *fn, struct expression *expr, void *_unused)
 {
-	db_inc_dec(expr, 1, "$->counter", "", ATOMIC_DEC);
+	db_inc_dec(expr, 1, "$->counter", ATOMIC_DEC);
 }
 
 static void refcount_inc(const char *fn, struct expression *expr, void *param)
 {
-	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", "", ATOMIC_INC);
+	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", ATOMIC_INC);
 }
 
 static void refcount_dec(const char *fn, struct expression *expr, void *param)
 {
-	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", "", ATOMIC_DEC);
+	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", ATOMIC_DEC);
 }
 
 static void pm_runtime_get_sync(const char *fn, struct expression *expr, void *param)
 {
-	db_inc_dec(expr, PTR_INT(param), "$->power.usage_count.counter", "", ATOMIC_INC);
+	db_inc_dec(expr, PTR_INT(param), "$->power.usage_count.counter", ATOMIC_INC);
 }
 
 static void match_implies_inc(const char *fn, struct expression *call_expr,
 			      struct expression *assign_expr, void *param)
 {
-	db_inc_dec(call_expr, PTR_INT(param), "$->ref.counter", "", ATOMIC_INC);
+	db_inc_dec(call_expr, PTR_INT(param), "$->ref.counter", ATOMIC_INC);
 }
 
 static void match_implies_atomic_dec(const char *fn, struct expression *call_expr,
 			      struct expression *assign_expr, void *param)
 {
-	db_inc_dec(call_expr, PTR_INT(param), "$->counter", "", ATOMIC_DEC);
+	db_inc_dec(call_expr, PTR_INT(param), "$->counter", ATOMIC_DEC);
 }
 
 static bool is_maybe_dec(struct sm_state *sm)
