@@ -29,9 +29,17 @@ STATE(dec);
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	if (parent_is_gone_var_sym(sm->name, sm->sym))
+	/*
+	 * We default to decremented.  For example, say we have:
+	 * 	if (p)
+	 *		atomic_dec(p);
+	 *      <- p is decreemented.
+	 *
+	 */
+	if ((sm->state == &dec) &&
+	    parent_is_gone_var_sym(sm->name, sm->sym))
 		return sm->state;
-	return &undefined;
+	return &start_state;
 }
 
 static struct stree *start_states;
