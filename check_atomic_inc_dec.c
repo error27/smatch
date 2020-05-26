@@ -242,6 +242,23 @@ static void refcount_dec(const char *fn, struct expression *expr, void *param)
 	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", "", ATOMIC_DEC);
 }
 
+static void pm_runtime_get_sync(const char *fn, struct expression *expr, void *param)
+{
+	db_inc_dec(expr, PTR_INT(param), "$->power.usage_count.counter", "", ATOMIC_INC);
+}
+
+static void match_implies_inc(const char *fn, struct expression *call_expr,
+			      struct expression *assign_expr, void *param)
+{
+	db_inc_dec(call_expr, PTR_INT(param), "$->ref.counter", "", ATOMIC_INC);
+}
+
+static void match_implies_atomic_dec(const char *fn, struct expression *call_expr,
+			      struct expression *assign_expr, void *param)
+{
+	db_inc_dec(call_expr, PTR_INT(param), "$->counter", "", ATOMIC_DEC);
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct sm_state *sm;
@@ -402,9 +419,14 @@ void check_atomic_inc_dec(int id)
 	add_function_hook("atomic_add_return", &match_atomic_add, NULL);
 	add_function_hook("atomic_sub_return", &match_atomic_sub, NULL);
 	add_function_hook("atomic_sub_and_test", &match_atomic_sub, NULL);
+	add_function_hook("atomic_long_sub_and_test", &match_atomic_sub, NULL);
+	add_function_hook("atomic64_sub_and_test", &match_atomic_sub, NULL);
 	add_function_hook("atomic_dec_and_test", &match_atomic_dec, NULL);
+	add_function_hook("atomic_long_dec_and_test", &match_atomic_dec, NULL);
+	add_function_hook("atomic64_dec_and_test", &match_atomic_dec, NULL);
 	add_function_hook("_atomic_dec_and_lock", &match_atomic_dec, NULL);
 	add_function_hook("atomic_dec", &match_atomic_dec, NULL);
+	add_function_hook("atomic_dec_return", &match_atomic_dec, NULL);
 	add_function_hook("atomic_long_inc", &match_atomic_inc, NULL);
 	add_function_hook("atomic_long_dec", &match_atomic_dec, NULL);
 	add_function_hook("atomic_inc", &match_atomic_inc, NULL);
@@ -413,10 +435,16 @@ void check_atomic_inc_dec(int id)
 	add_function_hook("refcount_inc", &refcount_inc, INT_PTR(0));
 	add_function_hook("refcount_dec", &refcount_dec, INT_PTR(0));
 	add_function_hook("refcount_add", &refcount_inc, INT_PTR(1));
-	add_function_hook("refcount_add_not_zero", &refcount_inc, INT_PTR(1));
-	add_function_hook("refcount_inc_not_zero", &refcount_inc, INT_PTR(0));
+
+	return_implies_state("refcount_add_not_zero", 1, 1, &match_implies_inc, INT_PTR(1));
+	return_implies_state("refcount_inc_not_zero", 1, 1, &match_implies_inc, INT_PTR(0));
+
+	return_implies_state("atomic_dec_if_positive", 0, INT_MAX, &match_implies_atomic_dec, INT_PTR(0));
+
 	add_function_hook("refcount_sub_and_test", &refcount_dec, INT_PTR(1));
 	add_function_hook("refcount_dec_and_test", &refcount_dec, INT_PTR(0));
+
+	add_function_hook("pm_runtime_get_sync", &pm_runtime_get_sync, INT_PTR(0));
 
 	add_hook(&match_check_missed, END_FUNC_HOOK);
 
