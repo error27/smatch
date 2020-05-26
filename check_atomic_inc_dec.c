@@ -147,13 +147,59 @@ free:
 		free_string(name);
 }
 
+static const char *primitive_funcs[] = {
+	"atomic_inc_return",
+	"atomic_add_return",
+	"atomic_sub_return",
+	"atomic_sub_and_test",
+	"atomic_dec_and_test",
+	"_atomic_dec_and_lock",
+	"atomic_dec",
+	"atomic_long_inc",
+	"atomic_long_dec",
+	"atomic_inc",
+	"atomic_sub",
+	"refcount_inc",
+	"refcount_dec",
+	"refcount_add",
+	"refcount_add_not_zero",
+	"refcount_inc_not_zero",
+	"refcount_sub_and_test",
+	"refcount_dec_and_test",
+	"atomic_dec_if_positive",
+};
+
+static bool is_inc_dec_primitive(struct expression *expr)
+{
+	int i;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return false;
+
+	if (expr->fn->type != EXPR_SYMBOL)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(primitive_funcs); i++) {
+		if (sym_name_is(primitive_funcs[i], expr->fn))
+			return true;
+	}
+
+	return false;
+}
+
 static void db_inc(struct expression *expr, int param, char *key, char *value)
 {
+	if (is_inc_dec_primitive(expr))
+		return;
 	db_inc_dec(expr, param, key, value, ATOMIC_INC);
 }
 
 static void db_dec(struct expression *expr, int param, char *key, char *value)
 {
+	if (is_inc_dec_primitive(expr))
+		return;
 	db_inc_dec(expr, param, key, value, ATOMIC_DEC);
 }
 
