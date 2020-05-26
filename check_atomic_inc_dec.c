@@ -336,6 +336,9 @@ static void check_counter(const char *name, struct symbol *sym)
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
 		orig_stree = __swap_cur_stree(stree);
 
+		if (is_impossible_path())
+			goto swap_stree;
+
 		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
 		if (!return_sm)
 			goto swap_stree;
