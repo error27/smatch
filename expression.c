@@ -44,6 +44,8 @@
 #include "target.h"
 #include "char.h"
 
+ALLOCATOR(type_expression, "type-expr-maps");
+
 static int match_oplist(int op, ...)
 {
 	va_list args;
@@ -380,6 +382,40 @@ Enoint:
 	error_die(expr->pos, "constant %s is not a valid number", show_token(token));
 }
 
+static struct token *generic_selection(struct token *token, struct expression **tree)
+{
+	struct expression *expr = alloc_expression(token->pos, EXPR_GENERIC);
+	struct type_expression **last = &expr->map;
+
+	token = expect(token, '(', "after '_Generic'");
+	token = assignment_expression(token, &expr->control);
+	if (!match_op(token, ',')) {
+		goto end;
+	}
+	while (match_op(token, ',')) {
+		token = token->next;
+		if (lookup_type(token)) {
+			struct type_expression *map = __alloc_type_expression(0);
+			token = typename(token, &map->type, NULL);
+			token = expect(token, ':', "after typename");
+			token = assignment_expression(token, &map->expr);
+			*last = map;
+			last = &map->next;
+		} else if (match_ident(token, &default_ident)) {
+			if (expr->def) {
+				warning(token->pos, "multiple default in generic expression");
+				info(expr->def->pos, "note: previous was here");
+			}
+			token = token->next;
+			token = expect(token, ':', "after typename");
+			token = assignment_expression(token, &expr->def);
+		}
+	}
+end:
+	*tree = expr;
+	return expect(token, ')', "after expression");
+}
+
 struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
@@ -421,6 +457,10 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 			}
 			if (token->ident == &__builtin_offsetof_ident) {
 				token = builtin_offsetof_expr(token, &expr);
+				break;
+			}
+			if (token->ident == &_Generic_ident) {
+				token = generic_selection(token->next, &expr);
 				break;
 			}
 		} else if (sym->enum_member) {

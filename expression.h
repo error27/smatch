@@ -64,6 +64,7 @@ enum expression_type {
 	EXPR_FVALUE,
 	EXPR_SLICE,
 	EXPR_OFFSETOF,
+	EXPR_GENERIC,
 };
 
 
@@ -146,6 +147,14 @@ struct asm_operand {
 	unsigned int is_register:1;
 	unsigned int is_memory:1;
 };
+
+struct type_expression {
+	struct symbol *type;
+	struct expression *expr;
+	struct type_expression *next;
+};
+
+DECLARE_ALLOCATOR(type_expression);
 
 struct expression {
 	enum expression_type type:8;
@@ -245,6 +254,13 @@ struct expression {
 				struct ident *ident;
 				struct expression *index;
 			};
+		};
+		// EXPR_GENERIC
+		struct {
+			struct expression *control;
+			struct expression *def;
+			struct type_expression *map;
+			struct expression *result;
 		};
 	};
 };

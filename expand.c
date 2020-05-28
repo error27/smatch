@@ -1180,6 +1180,7 @@ static int expand_expression(struct expression *expr)
 	case EXPR_POS:
 		return expand_pos_expression(expr);
 
+	case EXPR_GENERIC:
 	case EXPR_SIZEOF:
 	case EXPR_PTRSIZEOF:
 	case EXPR_ALIGNOF:

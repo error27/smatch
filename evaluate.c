@@ -3272,6 +3272,39 @@ static void check_label_declaration(struct position pos, struct symbol *label)
 	}
 }
 
+static int type_selection(struct symbol *ctrl, struct symbol *type)
+{
+	struct ctype c = { .base_type = ctrl };
+	struct ctype t = { .base_type = type };
+
+	return !type_difference(&c, &t, 0, 0);
+}
+
+struct symbol *evaluate_generic_selection(struct expression *expr)
+{
+	struct type_expression *map;
+	struct expression *res;
+	struct symbol *ctrl;
+
+	if (!(ctrl = evaluate_expression(expr->control)))
+		return NULL;
+
+	for (map = expr->map; map; map = map->next) {
+		if (!evaluate_symbol(map->type))
+			continue;
+		if (!type_selection(ctrl, map->type))
+			continue;
+
+		res = map->expr;
+		goto end;
+	}
+	res = expr->def;
+
+end:
+	*expr = *res;
+	return evaluate_expression(expr);
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -3356,6 +3389,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 	case EXPR_OFFSETOF:
 		return evaluate_offsetof(expr);
+
+	case EXPR_GENERIC:
+		return evaluate_generic_selection(expr);
 
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:

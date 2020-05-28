@@ -1180,6 +1180,9 @@ int show_expression(struct expression *expr)
 	case EXPR_TYPE:
 		warning(expr->pos, "unable to show type expression");
 		return 0;
+	case EXPR_GENERIC:
+		warning(expr->pos, "unable to show generic expression");
+		return 0;
 	}
 	return 0;
 }
