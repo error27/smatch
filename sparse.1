@@ -437,11 +437,13 @@ Sparse does not issue these warnings by default.
 .
 .TP
 .B \-Wuniversal\-initializer
-Do not suppress warnings about 0 used to initialize a null-pointer
-when using '{ 0 }' as initializer.
+Do not suppress warnings caused by using '{ 0 }' instead of '{ }' on
+aggregate types, ignoring its special status as universal initializer.
+The concerned warnings are, for exemple, those trigered by
+\fB\-Wdesignated\-init\fR or \fB\-Wnon\-pointer\-null\fR.
 
-Sparse issues these warnings by default.  To turn them off, use
-\fB\-Wno\-universal\-initializer\fR.
+Sparse does not issue these warnings by default, processing '{ 0 }'
+the same as '{ }'.
 .
 .SH MISC OPTIONS
 .TP
