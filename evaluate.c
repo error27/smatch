@@ -3280,7 +3280,7 @@ static int type_selection(struct symbol *ctrl, struct symbol *type)
 	return !type_difference(&c, &t, 0, 0);
 }
 
-struct symbol *evaluate_generic_selection(struct expression *expr)
+static struct symbol *evaluate_generic_selection(struct expression *expr)
 {
 	struct type_expression *map;
 	struct expression *res;
