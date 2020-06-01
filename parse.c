@@ -2783,13 +2783,6 @@ static struct token *initializer_list(struct expression_list **list, struct toke
 {
 	struct expression *expr;
 
-	// '{ 0 }' is equivalent to '{ }' unless wanting all possible
-	// warnings about using '0' to initialize a null-pointer.
-	if (!Wuniversal_initializer) {
-		if (match_token_zero(token) && match_op(token->next, '}'))
-			token = token->next;
-	}
-
 	for (;;) {
 		token = single_initializer(&expr, token);
 		if (!expr)
@@ -2807,6 +2800,16 @@ struct token *initializer(struct expression **tree, struct token *token)
 	if (match_op(token, '{')) {
 		struct expression *expr = alloc_expression(token->pos, EXPR_INITIALIZER);
 		*tree = expr;
+		if (!Wuniversal_initializer) {
+			struct token *next = token->next;
+			// '{ 0 }' is equivalent to '{ }' except for some
+			// warnings, like using 0 to initialize a null-pointer.
+			if (match_token_zero(next)) {
+				if (match_op(next->next, '}'))
+					expr->zero_init = 1;
+			}
+		}
+
 		token = initializer_list(&expr->expr_list, token->next);
 		return expect(token, '}', "at end of initializer");
 	}

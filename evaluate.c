@@ -2608,6 +2608,9 @@ static void handle_list_initializer(struct expression *expr,
 	struct expression *e, *last = NULL, *top = NULL, *next;
 	int jumped = 0;
 
+	if (expr->zero_init)
+		free_ptr_list(&expr->expr_list);
+
 	FOR_EACH_PTR(expr->expr_list, e) {
 		struct expression **v;
 		struct symbol *type;

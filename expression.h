@@ -159,6 +159,7 @@ DECLARE_ALLOCATOR(type_expression);
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
+	unsigned zero_init:1;
 	int op;
 	struct position pos;
 	struct symbol *ctype;
