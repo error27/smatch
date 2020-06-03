@@ -3299,11 +3299,15 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 			continue;
 
 		res = map->expr;
-		goto end;
+		goto found;
 	}
 	res = expr->def;
+	if (!res) {
+		sparse_error(expr->pos, "no generic selection for '%s'", show_typename(ctrl));
+		return NULL;
+	}
 
-end:
+found:
 	*expr = *res;
 	return evaluate_expression(expr);
 }
