@@ -1426,7 +1426,7 @@ void predefine(const char *name, int weak, const char *fmt, ...)
 		va_end(ap);
 
 		value = __alloc_token(0);
-		if (isdigit(buf[0])) {
+		if (isdigit((unsigned char)buf[0])) {
 			token_type(value) = TOKEN_NUMBER;
 			value->number = xstrdup(buf);
 		} else {
