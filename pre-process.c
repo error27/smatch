@@ -1585,8 +1585,6 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	return preprocessor_if(stream, token, arg);
 }
 
-static const char *show_token_sequence(struct token *token, int quote);
-
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
  * due to special treatment of "defined".
