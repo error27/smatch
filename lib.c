@@ -1596,7 +1596,6 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		predefined_macros();
 		create_builtin_stream();
 		init_builtins(0);
-		declare_builtins();
 
 		list = sparse_initial();
 
