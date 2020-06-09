@@ -613,4 +613,9 @@ void declare_builtins(void)
 	declare_builtin("__builtin_bfin_csync", &void_ctype, 0, NULL);
 	declare_builtin("__builtin_bfin_ssync", &void_ctype, 0, NULL);
 	declare_builtin("__builtin_bfin_norm_fr1x32", &int_ctype, 0, &int_ctype, NULL);
+
+	// Nios-II-specific
+	declare_builtin("__builtin_rdctl", &int_ctype, 0, &int_ctype, NULL);
+	declare_builtin("__builtin_wrctl", &void_ctype, 0, &int_ctype, &int_ctype, NULL);
+	declare_builtin("__builtin_custom_ini", &int_ctype, 0, &int_ctype, NULL);
 }
