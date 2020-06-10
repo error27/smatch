@@ -70,6 +70,7 @@ LIB_OBJS += target-arm64.o
 LIB_OBJS += target-default.o
 LIB_OBJS += target-m68k.o
 LIB_OBJS += target-mips.o
+LIB_OBJS += target-nios2.o
 LIB_OBJS += target-ppc.o
 LIB_OBJS += target-riscv.o
 LIB_OBJS += target-s390.o

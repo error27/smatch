@@ -578,11 +578,6 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__builtin_bfin_ssync", &void_ctype, 0 },
 	{ "__builtin_bfin_norm_fr1x32", &int_ctype, 0, { &int_ctype }},
 
-	// Nios-II-specific
-	{ "__builtin_rdctl", &int_ctype, 0, { &int_ctype }},
-	{ "__builtin_wrctl", &void_ctype, 0, { &int_ctype, &int_ctype }},
-	{ "__builtin_custom_ini", &int_ctype, 0, { &int_ctype }},
-
 	{ }
 };
 
