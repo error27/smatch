@@ -573,11 +573,6 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__builtin_alpha_insql", &long_ctype, 0, { &long_ctype, &long_ctype }},
 	{ "__builtin_alpha_inswl", &long_ctype, 0, { &long_ctype, &long_ctype }},
 
-	// Blackfin-specific stuff
-	{ "__builtin_bfin_csync", &void_ctype, 0 },
-	{ "__builtin_bfin_ssync", &void_ctype, 0 },
-	{ "__builtin_bfin_norm_fr1x32", &int_ctype, 0, { &int_ctype }},
-
 	{ }
 };
 

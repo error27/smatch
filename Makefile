@@ -67,6 +67,7 @@ LIB_OBJS += symbol.o
 LIB_OBJS += target.o
 LIB_OBJS += target-arm.o
 LIB_OBJS += target-arm64.o
+LIB_OBJS += target-bfin.o
 LIB_OBJS += target-default.o
 LIB_OBJS += target-m68k.o
 LIB_OBJS += target-mips.o
