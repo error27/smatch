@@ -391,6 +391,9 @@ static void declare_builtin(int stream, const struct builtin_fn *entry)
 
 static void declare_builtins(int stream, const struct builtin_fn tbl[])
 {
+	if (!tbl)
+		return;
+
 	while (tbl->name)
 		declare_builtin(stream, tbl++);
 }
@@ -586,5 +589,6 @@ static const struct builtin_fn builtins_common[] = {
 void init_builtins(int stream)
 {
 	declare_builtins(stream, builtins_common);
+	declare_builtins(stream, arch_target->builtins);
 	init_linearized_builtins(stream);
 }

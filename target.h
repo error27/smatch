@@ -54,6 +54,8 @@ extern int bits_in_enum;
 extern int enum_alignment;
 
 
+struct builtin_fn;
+
 struct target {
 	enum machine	mach;
 	enum bitness	bitness;
@@ -70,6 +72,8 @@ struct target {
 
 	const struct target *target_32bit;
 	const struct target *target_64bit;
+
+	const struct builtin_fn *builtins;
 
 	void (*init)(const struct target *self);
 	void (*predefine)(const struct target *self);
