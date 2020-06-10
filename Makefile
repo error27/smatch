@@ -15,7 +15,8 @@ CFLAGS ?= -g
 DESTDIR ?=
 PREFIX ?= $(HOME)
 BINDIR ?= $(PREFIX)/bin
-MANDIR ?= $(PREFIX)/share/man
+SHAREDIR ?= $(PREFIX)/share
+MANDIR ?= $(SHAREDIR)/man
 
 PKG_CONFIG ?= pkg-config
 
@@ -103,9 +104,11 @@ PROGRAMS += test-parsing
 PROGRAMS += test-show-type
 PROGRAMS += test-unssa
 
-INST_PROGRAMS=smatch sparse cgcc
-INST_MAN1=sparse.1 cgcc.1
-
+INST_PROGRAMS = smatch sparse cgcc
+INST_MAN1 = sparse.1 cgcc.1
+INST_ASSETS = $(wildcard smatch_data/db/*.schema)
+INST_ASSETS += $(wildcard smatch_data/*)
+INST_ASSETS += $(wildcard smatch_data/db/kernel.*)
 
 all:
 
@@ -124,6 +127,7 @@ cflags += -DMULTIARCH_TRIPLET=\"$(MULTIARCH_TRIPLET)\"
 
 bindir := $(DESTDIR)$(BINDIR)
 man1dir := $(DESTDIR)$(MANDIR)/man1
+smatch_datadir := $(DESTDIR)$(SHAREDIR)/smatch
 
 ########################################################################
 # target specificities
@@ -233,8 +237,6 @@ V := @
 Q := $(V:1=)
 
 ########################################################################
-
-SMATCHDATADIR=$(INSTALL_PREFIX)/share/smatch
 
 SMATCH_OBJS :=
 SMATCH_OBJS += avl.o
@@ -355,7 +357,7 @@ check_list_local.h:
 	touch check_list_local.h
 
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
-	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(SMATCHDATADIR)"'
+	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(smatch_datadir)"'
 
 $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
 
@@ -412,14 +414,15 @@ clean-check:
 	                  \) -exec rm {} \;
 
 
-install: install-bin install-man
+install: install-bin install-man install-assets
 install-bin: $(INST_PROGRAMS:%=$(bindir)/%)
 install-man: $(INST_MAN1:%=$(man1dir)/%)
+install-assets: $(INST_ASSETS:%=$(smatch_datadir)/%)
 
 $(bindir)/%: %
 	@echo "  INSTALL $@"
 	$(Q)install -D        $< $@ || exit 1;
-$(man1dir)/%: %
+$(man1dir)/% $(smatch_datadir)/%: %
 	@echo "  INSTALL $@"
 	$(Q)install -D -m 644 $< $@ || exit 1;
 
