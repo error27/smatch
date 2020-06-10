@@ -80,6 +80,7 @@ struct target {
 };
 
 extern const struct target target_default;
+extern const struct target target_alpha;
 extern const struct target target_arm;
 extern const struct target target_arm64;
 extern const struct target target_bfin;

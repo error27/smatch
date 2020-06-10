@@ -65,6 +65,7 @@ LIB_OBJS += stats.o
 LIB_OBJS += storage.o
 LIB_OBJS += symbol.o
 LIB_OBJS += target.o
+LIB_OBJS += target-alpha.o
 LIB_OBJS += target-arm.o
 LIB_OBJS += target-arm64.o
 LIB_OBJS += target-bfin.o

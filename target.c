@@ -57,6 +57,7 @@ int enum_alignment = 4;
 
 
 static const struct target *targets[] = {
+	[MACH_ALPHA] =		&target_alpha,
 	[MACH_ARM] =		&target_arm,
 	[MACH_ARM64] =		&target_arm64,
 	[MACH_I386] =		&target_i386,
@@ -85,6 +86,7 @@ enum machine target_parse(const char *name)
 		enum machine mach;
 		char bits;
 	} archs[] = {
+		{ "alpha",	MACH_ALPHA,	64, },
 		{ "aarch64",	MACH_ARM64,	64, },
 		{ "arm64",	MACH_ARM64,	64, },
 		{ "arm",	MACH_ARM,	32, },

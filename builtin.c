@@ -564,15 +564,6 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__sync_val_compare_and_swap", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_xor_and_fetch", &int_ctype, 1, { &ptr_ctype }},
 
-	// Alpha-specific
-	{ "__builtin_alpha_cmpbge", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_extbl", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_extwl", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_insbl", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_inslh", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_insql", &long_ctype, 0, { &long_ctype, &long_ctype }},
-	{ "__builtin_alpha_inswl", &long_ctype, 0, { &long_ctype, &long_ctype }},
-
 	{ }
 };
 

@@ -32,6 +32,7 @@ enum machine {
 	MACH_RISCV32,	MACH_RISCV64,
 	MACH_SPARC32,	MACH_SPARC64,
 	MACH_S390,	MACH_S390X,
+	MACH_ALPHA,
 	MACH_BFIN,
 	MACH_M68K,
 	MACH_NIOS2,
@@ -40,6 +41,8 @@ enum machine {
 
 #if defined(__aarch64__)
 #define MACH_NATIVE	MACH_ARM64
+#elif defined(__alpha__) || defined(__alpha)
+#define	MACH_NATIVE	MACH_ALPHA
 #elif defined(__arm__)
 #define	MACH_NATIVE	MACH_ARM
 #elif defined(__x86_64__) || defined(__x86_64)
