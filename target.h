@@ -54,6 +54,8 @@ extern int bits_in_enum;
 extern int enum_alignment;
 
 
+struct builtin_fn;
+
 struct target {
 	enum machine	mach;
 	enum bitness	bitness;
@@ -71,16 +73,21 @@ struct target {
 	const struct target *target_32bit;
 	const struct target *target_64bit;
 
+	const struct builtin_fn *builtins;
+
 	void (*init)(const struct target *self);
 	void (*predefine)(const struct target *self);
 };
 
 extern const struct target target_default;
+extern const struct target target_alpha;
 extern const struct target target_arm;
 extern const struct target target_arm64;
+extern const struct target target_bfin;
 extern const struct target target_m68k;
 extern const struct target target_mips32;
 extern const struct target target_mips64;
+extern const struct target target_nios2;
 extern const struct target target_ppc32;
 extern const struct target target_ppc64;
 extern const struct target target_riscv32;

@@ -57,12 +57,15 @@ int enum_alignment = 4;
 
 
 static const struct target *targets[] = {
+	[MACH_ALPHA] =		&target_alpha,
 	[MACH_ARM] =		&target_arm,
 	[MACH_ARM64] =		&target_arm64,
 	[MACH_I386] =		&target_i386,
+	[MACH_BFIN] =		&target_bfin,
 	[MACH_X86_64] =		&target_x86_64,
 	[MACH_MIPS32] =		&target_mips32,
 	[MACH_MIPS64] =		&target_mips64,
+	[MACH_NIOS2] =		&target_nios2,
 	[MACH_PPC32] =		&target_ppc32,
 	[MACH_PPC64] =		&target_ppc64,
 	[MACH_RISCV32] =	&target_riscv32,
@@ -83,12 +86,15 @@ enum machine target_parse(const char *name)
 		enum machine mach;
 		char bits;
 	} archs[] = {
+		{ "alpha",	MACH_ALPHA,	64, },
 		{ "aarch64",	MACH_ARM64,	64, },
 		{ "arm64",	MACH_ARM64,	64, },
 		{ "arm",	MACH_ARM,	32, },
 		{ "i386",	MACH_I386,	32, },
+		{ "bfin",	MACH_BFIN,	32, },
 		{ "m68k",	MACH_M68K,	32, },
 		{ "mips",	MACH_MIPS32,	0,  },
+		{ "nios2",	MACH_NIOS2,	32, },
 		{ "powerpc",	MACH_PPC32,	0,  },
 		{ "ppc",	MACH_PPC32,	0,  },
 		{ "riscv",	MACH_RISCV32,	0,  },

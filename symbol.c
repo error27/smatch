@@ -783,7 +783,6 @@ void init_symbols(void)
 #include "ident-list.h"
 
 	init_parser(stream);
-	init_builtins(stream);
 }
 
 // For fix-sized types
