@@ -96,11 +96,11 @@ extern struct context *alloc_context(void);
 DECLARE_PTR_LIST(context_list, struct context);
 
 struct ctype {
+	struct symbol *base_type;
 	unsigned long modifiers;
 	unsigned long alignment;
 	struct context_list *contexts;
 	struct ident *as;
-	struct symbol *base_type;
 };
 
 struct decl_state {
