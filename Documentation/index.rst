@@ -22,7 +22,6 @@ Developer documentation
    dev-options
    api
    IR
-   doc-guide
    types
 
 How to contribute
@@ -32,6 +31,13 @@ How to contribute
 
    submitting-patches
    TODO
+
+Documentation
+-------------
+.. toctree::
+   :maxdepth: 1
+
+   doc-guide
 
 Indices and tables
 ==================
