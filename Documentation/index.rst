@@ -39,6 +39,13 @@ Documentation
 
    doc-guide
 
+Release Notes
+-------------
+.. toctree::
+   :maxdepth: 1
+
+   release-notes/index
+
 Indices and tables
 ==================
 
