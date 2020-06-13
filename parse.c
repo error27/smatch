@@ -1742,6 +1742,20 @@ static struct token *parameter_type_list(struct token *, struct symbol *);
 static struct token *identifier_list(struct token *, struct symbol *);
 static struct token *declarator(struct token *token, struct decl_state *ctx);
 
+static struct token *handle_asm_name(struct token *token, struct decl_state *ctx)
+{
+	struct symbol *keyword;
+
+	if (token_type(token) != TOKEN_IDENT)
+		return token;
+	keyword = lookup_keyword(token->ident, NS_KEYWORD);
+	if (!keyword || keyword->type != SYM_KEYWORD)
+		return token;
+	if (!(keyword->op->type & KW_ASM))
+		return token;
+	return keyword->op->declarator(token->next, ctx);
+}
+
 static struct token *skip_attribute(struct token *token)
 {
 	token = token->next;
@@ -1798,7 +1812,6 @@ static struct token *handle_attributes(struct token *token, struct decl_state *c
 		if (!(keyword->op->type & keywords))
 			break;
 		token = keyword->op->declarator(token->next, ctx);
-		keywords &= KW_ATTRIBUTE;
 	}
 	return token;
 }
@@ -3018,7 +3031,8 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	saved = ctx.ctype;
 	token = declarator(token, &ctx);
-	token = handle_attributes(token, &ctx, KW_ATTRIBUTE | KW_ASM);
+	token = handle_asm_name(token, &ctx);
+	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 	apply_modifiers(token->pos, &ctx);
 
 	decl->ctype = ctx.ctype;
@@ -3142,7 +3156,8 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		ctx.ctype = saved;
 		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 		token = declarator(token, &ctx);
-		token = handle_attributes(token, &ctx, KW_ATTRIBUTE | KW_ASM);
+		token = handle_asm_name(token, &ctx);
+		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
 		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
