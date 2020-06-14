@@ -338,7 +338,7 @@ do_test()
 	# do we want a timeout?
 	pre_cmd=""
 	if [ $check_timeout -ne 0 ]; then
-		pre_cmd="timeout -k 1s $check_timeout"
+		pre_cmd="timeout $check_timeout"
 	fi
 
 	shift
