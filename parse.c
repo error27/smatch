@@ -937,7 +937,11 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 	while (token_type(token) == TOKEN_IDENT) {
 		struct expression *expr = NULL;
 		struct token *next = token->next;
+		struct decl_state ctx = { };
 		struct symbol *sym;
+
+		// FIXME: only 'deprecated' should be accepted
+		next = handle_attributes(next, &ctx, KW_ATTRIBUTE);
 
 		if (match_op(next, '=')) {
 			next = constant_expression(next->next, &expr);
