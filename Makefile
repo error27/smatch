@@ -145,11 +145,17 @@ endif
 
 HAVE_SQLITE := $(shell $(PKG_CONFIG) --exists sqlite3 2>/dev/null && echo 'yes')
 ifeq ($(HAVE_SQLITE),yes)
+SQLITE_VERSION:=$(shell $(PKG_CONFIG) --modversion sqlite3)
+SQLITE_VNUMBER:=$(shell printf '%d%02d%02d' $(subst ., ,$(SQLITE_VERSION)))
+ifeq ($(shell expr "$(SQLITE_VNUMBER)" '>=' 32400),1)
 PROGRAMS += sindex
 INST_PROGRAMS += sindex
 INST_MAN1 += sindex.1
 sindex-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
 sindex-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
+else
+$(warning Your SQLite3 version ($(SQLITE_VERSION)) is too old, 3.24.0 or later is required.)
+endif
 else
 $(warning Your system does not have sqlite3, disabling sindex)
 endif
