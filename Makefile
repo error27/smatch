@@ -153,6 +153,7 @@ INST_PROGRAMS += sindex
 INST_MAN1 += sindex.1
 sindex-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
 sindex-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
+sindex-cflags += -std=gnu99
 else
 $(warning Your SQLite3 version ($(SQLITE_VERSION)) is too old, 3.24.0 or later is required.)
 endif
