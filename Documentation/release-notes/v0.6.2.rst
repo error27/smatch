@@ -10,7 +10,7 @@ V0.6.2
 * add support for _Generic
 
 * fully propagate declarations downward
-  For exemple, it means that code like:
+  For example, it means that code like:
 
         static int foo(void);
         int foo(void) { return 0; }
@@ -21,7 +21,7 @@ V0.6.2
   * allow a single sparse executable to be used for multiple architectures
   * add support for -mcmodel & -f{pic,PIC,pie,PIE}, mainly for RISC-V
   * add new option, --arch=$ARCH, to specify the target architecture
-  * move all arch-specifc code in separated files (target-$ARCH.c) 
+  * move all arch-specific code into separate files (target-$ARCH.c)
   * try to support the various floating-point ABIs on ARM
   * fix wchar_t & wint_t for openbsd
   * add missing predefines for PPC
@@ -72,7 +72,7 @@ V0.6.2
   * define _BIG_ENDIAN when needed
   * remove definition of _STRING_ARCH_unaligned (defined by glibc)
   * removed unneeded predefines for integers (now defined by sparse)
-  * better mult-arch support by using --arch=$ARCH
+  * better multi-arch support by using --arch=$ARCH
 
 * testsuite:
   * avoid standard includes in the tests
@@ -90,7 +90,7 @@ V0.6.2
 
 * misc:
   * add support for '-std=c17/c18'
-  * simplify testng of which version of the standard is used
+  * simplify testing of which version of the standard is used
   * various improvements to the 'dissect' tool
   * simplify the parsing of type specifiers
   * improve diagnostic messages concerning bitfields

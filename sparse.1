@@ -437,22 +437,22 @@ Sparse does not issue these warnings by default.
 .
 .TP
 .B \-Wuniversal\-initializer
-Do not suppress warnings caused by using '{ 0 }' instead of '{ }' on
+Do not suppress warnings caused by using '{\ 0\ }' instead of '{\ }' on
 aggregate types, ignoring its special status as universal initializer.
-The concerned warnings are, for exemple, those trigered by
+The concerned warnings are, for example, those triggered by
 \fB\-Wdesignated\-init\fR or \fB\-Wnon\-pointer\-null\fR.
 
-Sparse does not issue these warnings by default, processing '{ 0 }'
-the same as '{ }'.
+Sparse does not issue these warnings by default, processing '{\ 0\ }'
+the same as '{\ }'.
 .
 .SH MISC OPTIONS
 .TP
 .B \-\-arch=\fIARCH\fR
 Specify the target architecture.
 For architectures having both a 32-bit and a 64-bit variant (mips, powerpc,
-riscv & sparc) the architecture name can be suffixed with \fI32\fR or \fI64\fR.
+riscv and sparc) the architecture name can be suffixed with \fI32\fR or \fI64\fR.
 
-The default architecture & size is the one of the machine used to build Sparse.
+The default architecture and size is the one of the machine used to build Sparse.
 .
 .TP
 .B \-gcc-base-dir \fIdir\fR
@@ -502,7 +502,7 @@ http://www.kernel.org/pub/software/devel/sparse/
 .SH MAILING LIST
 linux-sparse@vger.kernel.org
 .
-.SH CONTRIBUTINGS AND REPORTING BUGS
+.SH CONTRIBUTING AND REPORTING BUGS
 Submission of patches and reporting of bugs, as well as discussions
 related to Sparse, should be done via the mailing list (linux-sparse@vger.kernel.org)
 where the development and maintenance is primarily done.
