@@ -10,7 +10,7 @@ V0.6.2
 * add support for _Generic
 
 * fully propagate declarations downward.
-    For example, it means that code like:
+    For example, it means that code like::
 
         static int foo(void);
         int foo(void) { return 0; }
