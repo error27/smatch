@@ -1,4 +1,4 @@
-VERSION=0.6.2-rc2
+VERSION=0.6.2
 
 ########################################################################
 # The following variables can be overwritten from the command line
