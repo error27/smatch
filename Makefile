@@ -6,6 +6,7 @@ OS = linux
 
 
 CC = gcc
+CXX = g++
 LD = $(CC)
 AR = ar
 
@@ -189,7 +190,7 @@ LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
 LLVM_VERSION_MAJOR:=$(firstword $(subst ., ,$(LLVM_VERSION)))
 ifeq ($(shell expr "$(LLVM_VERSION_MAJOR)" '>=' 3),1)
 LLVM_PROGS := sparse-llvm
-$(LLVM_PROGS): LD := g++
+$(LLVM_PROGS): LD := $(CXX)
 LLVM_LDFLAGS := $(shell $(LLVM_CONFIG) --ldflags)
 LLVM_CFLAGS := $(shell $(LLVM_CONFIG) --cppflags)
 LLVM_LIBS := $(shell $(LLVM_CONFIG) --libs)
