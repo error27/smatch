@@ -13,7 +13,7 @@ For the purpose of this document, things can be simplified into:
 		struct ctype {
 			struct symbol *base_type;
 			unsigned long modifiers;
-			unsigned long alignement;
+			unsigned long alignment;
 			struct context_list *contexts;
 			struct indent *as;
 		};
@@ -68,7 +68,7 @@ have their own modifiers, address_space, contexts or alignment
 as well as the declaration's identifier.
 
 Usage:
-  * .ctype.base_type points to the unmodified type (wich must not
+  * .ctype.base_type points to the unmodified type (which must not
     be a SYM_NODE itself)
   * .ctype.modifiers, .as, .alignment, .contexts will contains
     the 'variation' (MOD_CONST, the attributes, ...).
