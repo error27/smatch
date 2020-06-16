@@ -1,0 +1,54 @@
+v0.1 (2006-11-06)
+=================
+
+I have tagged and tarballed a 0.1 release of Sparse, now available
+from http://ftp.be.debian.org/pub/software/devel/sparse/dist/, with sha1sum 9e0a4d5abb8e8a4be4cf8d9fe632c69dbec3e242.
+
+As discussed in [http://marc.info/?l=linux-sparse&m=116231992212971 Re: Official releases?],
+I've taken maintainership of sparse.  Thanks to Linus Torvalds for his
+previous maintainership.  As a result, this release comes from my sparse Git
+repository.  You can find more information about obtaining sparse via Git at
+the [https://www.kernel.org/pub/linux/kernel/people/josh/sparse/ new sparse homepage].
+
+In addition to all the work in the
+[https://www.kernel.org/pub/scm/devel/sparse/sparse.git/ previous Sparse repository],
+this release includes the following changes:
+
+Adam DiCarlo (1):
+   * Add type information to enum mismatch warning
+
+Al Viro (2):
+   * added a bunch of gcc builtins
+   * switch to hash-based get_one_special()
+
+Josh Triplett (15):
+   * "Initializer entry defined twice" should not trigger with zero-size fields
+   * Fix incorrect symbol in comment on #endif for multiple-inclusion guard
+   * Add -Wno-uninitialized
+   * graph: Show position in basic block nodes
+   * bb_terminated: Use boundary values rather than specific opcodes
+   * Turn on -Wcontext by default
+   * Merge branch 'fix-defined-twice-error-on-empty-struct' into staging
+   * Merge branch 'graph' into staging
+   * merge branch 'more-warning-flags' into staging and fix conflicts
+   * merge branch 'no-semantic-h' into staging and fix conflicts
+   * Merge branch 'Wcontext-default' into staging
+   * Add test cases to validation/context.c for the Linux __cond_lock macro
+   * Merge branch 'context-test-cases-for-cond-lock' into josh
+   * Rename test case bad-assignement.c to bad-assignment.c, fixing the typo.
+   * Stop building and installing libsparse.so
+
+Josh Triplett and Pavel Roskin (1):
+   * Recognize and ignore __alias__ and __visibility__
+
+Pavel Roskin (4):
+   * Compile sparse executable under it's own name, not as "check"
+   * Add support for __builtin_strpbrk()
+   * Typo fixes
+   * Install cgcc on "make install", refactor installation code
+
+Known issue with this release:
+
+* Sparse does not produce the expected set of warnings for several of the validation programs, included in the sparse source in the directory 'validation/'.  Some scripts should provoke warnings but don't, and others provoke warnings they shouldn't.
+
+-- Josh Triplett

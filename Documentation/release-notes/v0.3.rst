@@ -1,0 +1,111 @@
+v0.3 (2007-05-01)
+=================
+
+I have tagged and tarballed a 0.3 release of Sparse, now available from
+http://ftp.be.debian.org/pub/software/devel/sparse/dist/ with sha1sum 1d868b29234176abd5f3f5463aad1f11d5268dc2.
+
+Note that the Sparse Git repository has moved to:
+
+ https://git.kernel.org/cgit/devel/sparse/sparse.git
+
+The old repository location will continue to work for now, but please update
+any references you have to the old location.
+
+Thanks to Christopher Li for contributing heavily to this release, including
+several notable new features.  See the full changelog for details.
+
+In addition to numerous bug fixes, cleanups, and new test cases, this release
+includes several new visible features:
+
+* A Sparse-based implementation of ctags, thanks to Christopher Li.  Now you can have a ctags that 'actually parses C'.
+* Sparse now correctly supports annotations on inline functions.
+* The new '-ventry' option will make Sparse dump its internal linearized   bytecode format.
+* Sparse now parses the '__regparm__' attribute just like 'regparm', fixing a warning with pthreads from glibc 2.5.
+* Sparse now interprets the integer size attributes 'QI', 'SI', 'HI', and 'DI', and their double-underscore variants.
+* Sparse now supports attributes on labels, sometimes used to specify 'unused' labels.
+* Sparse now handles structure attributes between the structure keyword and the name, fixing many parse errors.
+* Sparse now supports more than one command-line include file.
+* The pkg-config file gets installed to its correct location under 'lib', rather than under 'share'.
+
+Notable internal changes:
+
+* Fully table-driven attribute parsing.  This simplifies the C parser and makes it far easier to add new attributes to Sparse.
+* Many internal cleanups, more information preserved for backends, more useful formats for that information, and lower memory usage.
+* Fixed Sparse warnings about itself.
+
+Full changelog:
+
+Christopher Li (24):
+   * Sparse-based Ctags implementation
+   * Change the symbol access list to a pseudo list
+   * Add instruction to pseudo user tracking.
+   * Update usage chain for dead instructions
+   * Update usage chain for dead branch instruction.
+   * Allow more than one command line include file.
+   * Enhance debug information.
+   * Another attempt to fix the attribute parsing.
+   * Marking anonymous string.
+   * Bug fix in pointer modifier inheritance at function degeneration.
+   * Handle structure attributes between the structure keyword and the name
+   * Fix the segfault when initializer has unknown symbol
+   * Fix double semicolon in struct declaration
+   * Make the ptrlist using the sparse allocator.
+   * Fix core dump on anonymous symbol.
+   * Fix a bug that match_idents forget to end with NULL
+   * Adding debug option for showing the linearized instruction.
+   * Fix core dump on huge switch
+   * Introduce expression_error
+   * Disable liveness "dead" instruction by default.
+   * Add annotation for inline function call.
+   * Introduce keyword driven attribute parsing
+   * Fix the annotated inline call position
+   * handle label attributes
+
+Christopher Li and Josh Triplett (4):
+   * Introduce top level parsing for asm parsing.
+   * Introducing statement keywords
+   * Free up some special bits in modifiers.
+   * Moving statement parsing into smaller functions.
+
+James Westby (2):
+   * Fix mistaken comparison that becomes a no-op.
+   * Update the information in README about using the library.
+
+Josh Triplett (30):
+   * Add ctags to .gitignore
+   * Add a return in the last case of a switch; redundant but less error-prone.
+   * Coding style fix: in a pointer type, * goes with the name, not the type.
+   * Add missing #include "allocate.h" in linearize.h for DECLARE_ALLOCATOR.
+   * Add test case for function pointer modifier inheritance
+   * Add test case for structure attribute placement.
+   * Add test case for double semicolon in structure declaration.
+   * Coding style fix: use parentheses with sizeof
+   * Move pkg-config file to lib, rather than share
+   * Add static to declarations in test cases, to remove unrelated warnings.
+   * Fix typo in symbol.h: s/keywrods/keywords/
+   * Fix typos in comments
+   * Use GCC format and sentinel attributes on appropriate functions
+   * Fix two potential NULL pointer dereferences in dissect.c
+   * Avoid returning an uninitialized pointer from dup_list of an empty list
+   * Remove stray space from expand_compare in expand.c
+   * Prevent potential NULL pointer dereference in expand_compare
+   * Add test case for basic address_space annotations.
+   * Use noreturn on die() and error_die()
+   * Parse and ignore the __regparm__ attribute, just like regparm.
+   * Fix comment to reference #weak_define rather than #ifndef, matching code
+   * Teach cgcc about -Wtransparent-union and -Wno-transparent-union
+   * Declare die_if_error extern in lib.h
+   * Remove unused variable "include" from lib.c
+   * Declare do_error static
+   * Declare gcc_patchlevel extern in lib.h
+   * compile-i386.c: Declare regs_in_use static
+   * simplify.c: Declare delete_pseudo_user_list_entry static
+   * linearize: DECLARE_ALLOCATOR for asm_constraint and asm_rules
+   * Fix most -Wshadow warnings in Sparse.
+
+Oleg Nesterov (3):
+   * dissect: cleanup report_implicit()
+   * dissect: fix multidimensional array initializer
+   * dissect: simplify lookup_member()
+
+-- Josh Triplett

@@ -1,0 +1,48 @@
+v0.2 (2006-12-05)
+=================
+
+I have tagged and tarballed a 0.2 release of Sparse, now available from http://ftp.be.debian.org/pub/software/devel/sparse/dist/, with sha1sum 1762fc609fe436e74b87356a52690b5f7bb40c81.
+
+In addition to plenty of bug fixes, this release includes several notable new
+features:
+
+* -Wall, thanks to Pavel Roskin
+* '#strong_define' and '#strong_undef', thanks to Oleg Nesterov
+* Argument parsing functions no longer mangle the argv passed to them, thanks to Christopher Li
+* static library and header files now installed, along with a pkg-config file to find them
+* Makefile now supports DESTDIR, useful for packagers
+
+Full changelog:
+
+Christopher Li (4):
+   * trivial fix for seg fault.
+   * Fix warning on self check.
+   * delay removing file scope
+   * cleanup write to argument array hack
+
+Damien Lespiau (1):
+   * trivial: more .gitignore stuff
+
+Josh Triplett (5):
+   * Update the FAQ: add sparse website and gitweb, update git URL, remove old BK url
+   * Rename "check.c" to "sparse.c" to match program name; update .gitignore
+   * Install static library and header files
+   * Generate and install a pkg-config file.  Add DESTDIR support to Makefile.
+   * Remove old SCCS target from Makefile.
+
+Nicolas Kaiser (1):
+   * double inclusions
+
+Oleg Nesterov (7):
+   * use lookup_macro() in handle_undef()
+   * kill NS_INVISIBLEMACRO, introduce NS_UNDEF
+   * fix redefine of #weak_define
+   * fix 'weak' attribute loss
+   * prepare for #strong_{define,undef}
+   * implement #strong_define
+   * implement #strong_undef
+
+Pavel Roskin (1):
+   * Support -Wall flag
+
+-- Josh Triplett

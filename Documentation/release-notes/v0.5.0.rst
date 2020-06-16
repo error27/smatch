@@ -1,0 +1,248 @@
+v0.5.0 (2014-04-01)
+===================
+
+As a lot of you have already noticed. The sparse 0.5.0 has been
+tagged and upload to the kernel.org for a while.
+
+One of the most noticeable change of the sparse 0.5.0 is the
+license. The sparse project has finally move to the MIT license.
+Thanks for the hard work of Dan Carpenter and Franz Schrober,
+who contact and collect permissions from the sparse developers.
+We actually manage to get *all* developer's blessing on the MIT
+license.
+
+This release also has some enhancement matching the latest
+kernel source annotations. It will reduce the noise level of the sparse
+warnings.
+
+So there you have it. The official announcement of the sparse 0.5.0.
+
+Chris
+---
+
+Al Viro (9):
+   * Fix handling of __func__
+   * Fix tab handling in nextchar_slow()
+   * Fix ,##__VA_ARGS__ kludge
+   * Gentler handling of bitwise warnings in unary operations
+   * simplify handling of newline/whitespace flags in expand()
+   * fix handling of -include
+   * massage handling of wide string literals/character constants in tokenizer
+   * switch to delayed handling of escape sequences
+   * L ## 'a' is valid; so's L ## "a"
+
+Benjamin Herrenschmidt (1):
+   * sparse, llvm: Fix varargs functions
+
+Christopher Li (19):
+   * Limit usage of g++ to llvm related programs.
+   * Merge branch 'sparse-llvm' of git://github.com/penberg/sparse-llvm.git
+   * Adding default for m64/m32 handle
+   * Merge branch 'for-chris' of git://github.com/penberg/sparse-llvm
+   * Merge branch 'llvm/core' of github.com:penberg/sparse-llvm
+   * remove weak define x86_64
+   * Merge git://git.kernel.org/pub/scm/linux/kernel/git/viro/sparse into marge
+   * Clean up some test case error.
+   * Fix segfault cause by fucntion without ident.
+   * Get rid of gcc warning about enum values
+   * Larger buffer size for token concatenation
+   * Proper variable length array warning
+   * Allow forced attribute in function argument
+   * Trivial: Remove redundant Makefile variable
+   * Merge branch 'llvmcore'
+   * Merge branch 'Novafora' of git://git.zytor.com/users/hpa/sparse/sparse
+     into license
+   * Sparse 0.5.0 rc1
+   * Fix make dist failure
+   * Sparse 0.5.0
+
+Emilio G. Cota (1):
+   * gitignore: add 'version.h'
+
+Ethan Jackson (1):
+   * sparse: Add 'leaf' to ignored attributes.
+
+Franz Schrober (5):
+   * Revert "Update the information in README about using the library."
+   * Revert "Fix mistaken comparison that becomes a no-op."
+   * sparse: Relicense under the MIT license
+   * FAQ: Remove outdated sections about the license
+   * sparse: Also check bit_offset when checking implicit casts
+
+Frederic Crozat (1):
+   * Add __builtin_stpcpy, __sync_synchronize, __sync_bool_compare_and_swap
+     to declare_builtin_functions
+
+James Westby (1):
+   * Update the information in README about using the library.
+
+Jan Pokorný (2):
+   * unssa: track use of newly added pseudo
+   * simplify: conservative handling of casts with pointers
+
+Jeff Garzik (15):
+   * sparse, llvm: if-else code generation
+   * sparse-llvm: OP_SEL
+   * sparse-llvm: OP_SWITCH
+   * sparse-llvm: OP_LOAD
+   * sparse-llvm OP_PHISOURCE: replace copy with target=src pointer operation
+   * sparse, llvm: replace FIXME comment with assert(), following
+existing style
+   * sparse, llvm: implement OP_CALL
+   * sparse, llvm: move OP_PHI code from switch statement to separate function
+   * sparse, llvm: move OP_CAST code to separate func.  support FP casts.
+   * sparse, llvm: create helper for obtaining instruction's type
+   * sparse, llvm: store module-local functions on function reference list
+   * sparse, llvm: move OP_COPY support to separate function.  Add FP support.
+   * sparse, llvm: support OP_STORE
+   * sparse, llvm: Fix loops, by properly handling OP_PHI forward references
+   * sparse, llvm: add loop testcase
+
+Jeff Layton (1):
+   * sparse: add __builtin_va_arg_pack() and __builtin_va_arg_pack_len()
+
+Joe Perches (1):
+   * There's no current way to know the version of sparse. Add --version to see it.
+
+Jonathan Neuschäfer (9):
+   * FAQ: update the website address and call it Wiki
+   * ptrlist.c: fix a typo in a comment
+   * sparse, llvm: 'Verify' the LLVM module before writing it
+   * sparse, llvm: convert the condition of branch/select to bool
+   * sparse, llvm: Fix type of loaded values
+   * sparse, llvm: Fix resulting type of store address calculations
+   * sparse, llvm: de-duplicate load/store address calculation code
+   * sparse, llvm: base load/store address type on insn_symbol_type()
+   * sparse, llvm: add a struct access test case
+
+Josh Triplett (2):
+   * Define __SIZEOF_POINTER__
+   * Support #pragma once
+
+KOSAKI Motohiro (2):
+   * sparse: Add '__vector_size__' to ignored attributes
+   * sparse: Add 'error' to ignored attributes
+
+Kamil Dudka (2):
+   * cse: treat PHI-nodes as other instructions
+   * cse: update PHI users when throwing away an instruction
+Kim Phillips (2):
+   * sparse: add built-in byte swap identifiers
+   * sparse: add built-in atomic memory access identifiers
+
+Linus Torvalds (1):
+   * sparse, llvm: Make function declaration accessible to backend
+
+Masatake YAMATO (3):
+   * Warn about initialization of a char array with a too long
+constant C string.
+   * Test case for -Winit-cstring option
+   * Add description for -Winit-cstring option
+
+Mauro Dreissig (1):
+   * Fix wrong array size expression
+
+Pekka Enberg (69):
+   * sparse, llvm: Initial commit
+   * sparse, llvm: Fix assert() in sparse code
+   * sparse, llvm: Fix global variable initialization
+   * sparse, llvm: Fix 'sparsec' when it's not in PATH
+   * llvm, sparse: Separate entry and exit basic blocks
+   * sparse, llvm: Add switch statement to output_insn()
+   * sparse, llvm: OP_RET/PSEUDO_VAL code generation
+   * sparse, llvm: Add support for OP_RET/PSEUDO_ARG
+   * sparse, llvm: Introduce 'struct function' to clean up code
+   * sparse, llvm: Add output_op_binary() stub
+   * sparse, llvm: Implement OP_ADD
+   * sparse, llvm: Add support for more binary ops
+   * sparse, llvm: Implement some binary comparison ops
+   * sparse, llvm: Move binop tests to validation/backend
+   * sparse, llvm: Implement OP_CAST
+   * sparse, llvm: Floating point support for binops
+   * sparse, llvm: Reorganize code generation tests
+   * sparse, llvm: Bitwise not operator codegen
+   * sparse, llvm: Kill ifdef'd unssa() call
+   * sparse, llvm: Kill debugging code
+   * Merge pull request #1 from jgarzik/hacks
+   * Merge pull request #2 from jgarzik/hacks
+   * sparse, llvm: Warn the user when we fall back to GCC
+   * sparse, llvm: Code generation for string constants
+   * sparse, llvm: Cleanup output_data()
+   * sparse, llvm: Fix OP_CAST to use zero-extend
+   * sparse, llvm: Improve sparsec front-end
+   * sparse, llvm: Fix PSEUDO_OP code generation
+   * sparse, llvm: Don't redefine module local functions
+   * Revert "sparse, llvm: Don't redefine module local functions"
+   * sparse, llvm: Fix code generation for casts
+   * sparse, llvm: Fix pseudo_type() for PSEUDO_ARG
+   * Merge pull request #3 from jgarzik/hacks
+   * Merge branch 'master' of github.com:penberg/sparse-llvm
+   * llvm, sparse: Fix symbol_is_fp_type() goof
+   * Merge pull request #4 from jgarzik/hacks
+   * sparse, llvm: Fix code generation for 'long double' data type
+   * sparse, llvm: Add support for struct types
+   * sparse, llvm: Add support for symbol initializers
+   * sparse: Bump up sizeof(_Bool) to 8 bits
+   * sparse, llvm: Add support for logical ops
+   * sparse, llvm: Fix 'void \*' pointer code generation
+   * sparse, llvm: Use new LLVM type system API for structs
+   * sparse, llvm: Fix struct code generation
+   * sparse, llvm: Fix symbol_type() for bitfields and enums
+   * sparse, llvm: Add support for array types
+   * sparse, llvm: Add support for union types
+   * sparse, llvm: Make 'sparsec' error handling more robust
+   * sparse, llvm: Function pointer code generation
+   * sparse, llvm: Fix symbol initializer code generation
+   * sparse, llvm: Fix 'extern' symbol code generation
+   * sparse, llvm: Make llc output to stdout in sparsec
+   * sparse, llvm: Pointer cast code generation
+   * sparse, llvm: OP_SET_B and OP_SET_A code generation
+   * sparse, llvm: More comparison ops code generation
+   * sparse, llvm: Simplify comparison op code generation
+   * sparse, llvm: FP comparison op code generation
+   * Merge pull request #6 from jgarzik/hacks
+   * sparse, llvm: Don't fail the build if LLVM is too old
+   * sparse, llvm: Use LLVMInt1Type() in sym_basetype_type()
+   * sparse, llvm: Add test case for <stdbool.h> type
+   * Revert "sparse: Bump up sizeof(_Bool) to 8 bits"
+   * sparse, llvm: Add _Bool to cast validation test
+   * sparse, llvm: Simplify output_data() type logic
+   * sparse, llvm: Fix string initializer code generation
+   * sparse, llvm: Fix global string access code generation
+   * sparse, llvm: Fix SIGSEGV for extern symbols
+   * sparse, llvm: Fix 'void' return type code generation
+   * sparse, llvm: Use LLVM_HOSTTRIPLE
+
+Ramsay Jones (2):
+   * char.c: Fix parsing of escapes
+   * symbol.c: Set correct size of array from parenthesized string initializer
+
+Randy Dunlap (1):
+   * sparse patch v2: add noclone as an ignored attribute
+
+Robert Bedichek (1):
+   * Novafora license grant using MIT license.
+
+Shakthi Kannan (1):
+   * I have updated the sparse.1 man page including the __bitwise
+     relevant content, and created Documentation/sparse.txt with the
+     complete comparison between __nocast vs __bitwise.
+
+Xi Wang (17):
+   * compile-i386: fix use-after-free in func_cleanup()
+   * check missing or duplicate goto labels
+   * fix casting constant to _Bool
+   * fix SIGFPE caused by signed division overflow
+   * sparse, llvm: fix link errors
+   * sparse, llvm: fix phi generation
+   * sparse, llvm: simplify function generation
+   * sparse, llvm: improve pointer arithmetic handling
+   * sparse, llvm: set target specification
+   * sparse, llvm: use LLVM_DEFAULT_TARGET_TRIPLE
+   * sparse, llvm: fix array size
+   * sparse, llvm: cache symbol_type() result
+   * sparse, llvm: fix struct name generation
+   * sparse, llvm: set more data attributes
+   * sparse, llvm: die if error
+   * Fix result type of relational and logical operators
+   * Fix expression type for floating point negation ('!')

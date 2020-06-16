@@ -1,0 +1,1044 @@
+v0.6.0 (2018-12-26)
+===================
+
+The source code can be found at its usual repository:
+  git://git.kernel.org/pub/scm/devel/sparse/sparse.git v0.6.0
+
+The tarballs are found at:
+    https://www.kernel.org/pub/software/devel/sparse/dist/
+
+Many thanks to people who have contributed to the 888 non-merge
+patches of this release:
+
+    Ramsay Jones, Randy Dunlap, Uwe Kleine-König, Joey Pabalinas,
+    John Levon, Ben Dooks, Jann Horn, Logan Gunthorpe, Vincenzo
+    Frascino and Tycho Andersen.
+
+Special thanks to Ramsay Jones who has reviewed numerous of my
+patches, tested many of my series and found many of my typos.
+
+
+Best wishes for 2019
+-- Luc Van Oostenryck
+
+
+The changes since the pre-release (v0.6.0-rc1) are:
+
+* add -Wbitwise-pointer to warn on casts to/from bitwise pointers
+* beautify how types are displayed:
+* no more <noident> 
+* no more redundant type specifiers
+* remove double space
+* some cleanup of the build system:
+* only need includedir from llvm-config
+* check if sparse-llvm needs libc++
+* remove -finline-functions from CFLAGS
+* some random cleanup:
+* remove unneeded declarations in "compat.h"
+* remove unused arg in add_branch()
+* allocate BBs after the guards
+* remove redundant check of _Bool bitsize
+* remove unused regno()
+* remove self-assignment of base_type
+* some documentation:
+* update comment for struct-expression::cast_expression
+* fix list formatting in inline doc
+* document that identifiers are now OK for address spaces
+* add TODO list.
+
+The main changes since the previous release (v0.5.2) are:
+
+* by default, disable warnings about unknown attributes
+* no more warnings about sizeof(void) unless -Wpointer-arith is given
+* add support for __has_attribute() & __has_builtin()
+* many fixes for type evaluation/checking
+* the build should be more friendly for distros
+* a huge number of testcases have been added to the testsuite
+* the handling of cast instructions has been completely revamped
+* the SSA conversion has been is now corrected and has been rewritten with a variant of the classical algorithm
+* documentation is now handled with Sphinx and inline doc is extracted from the code.
+* online documentation can be found at https://sparse-doc.readthedocs.io/en/master/
+
+A more complete list of changes is:
+
+* add predefined macros for __INTMAX_TYPE__, __INT_MAX__, ...
+* prepare to identify & display the address spaces by name
+* fix linearization of non-constant switch-cases
+* manpage: update maintainer info
+* manpage: add AUTHORS section
+* fixes for -dD
+* add support for -dM
+* remove more complex phi-nodes
+* fix linearization/SSA when missing a return
+* fix linearization/SSA of (nested) logical expressions
+* fix linearization of unreachable switch + label
+* add support for __has_attribute()
+* consolidate instruction's properties into an opcode table
+* fix: do not optimize away accesses to volatile bitfields
+* support mode(__pointer__) and mode(__byte__)
+* do 'classical' SSA conversion (via the iterated dominance frontier).
+* fix buggy recursion in kill_dead_stores()
+* kill dead stores again after memops simplification is done.
+* simplify TRUNC((x & M') | y, N)
+* simplify AND(SHIFT(a | b, S), M)
+* simplify TRUNC(SHIFT(a | b, S), N)
+* add simplification of TRUNC(TRUNC((x))
+* add simplification of SHL(LSR(x), S), S)
+* generate integer-wide OP_ADD & OP_SUB in linearize_inc_dec()
+* simplify mask instructions & bitfield accesses
+* fix a few bugs related to the linearization of logical expressions
+* simplify those logical expressions.
+* add optimized version of some list operations
+* some simplifications of OP_SETNE & OP_SETEQ with 0 and 1
+* several simplifications involving casts and/or bitfields
+* give a correct & sensible warning on negative or over-sized shifts.
+* add conservative simplification of such shifts.
+* do not optimize the meaningless shift:
+
+    * any shift with a negative count
+    * OP_ASRs with an over-sized shift count.
+
+* try to give a correct negative/too-big error message during simplification.
+* simplify chains of shifts.
+* simplify ZEXT + ASR into ZEXT + LSR
+* cse: try the next pair instead of keeping the first instruction
+* cse: compare casts only by kind a size, not by C type.
+* optimize away OP_UTPTR & OP_PTRTU which are nops.
+* cleanup of list walking macros:
+
+    * make untagged pointers the normal case
+    * use structurally equivalent struct for all pointer lists to avoid needless casting to and fro struct ptrlist
+    * simplify PREPARE/NEXT/RESET logic by using common PTR_NEXT()
+
+* add validation of the IR.
+* improve expansion of builtin dynamic macros (__FILE__, ...)
+* add support for __INCLUDE_LEVEL__ & __BASE_FILE__
+* improve generation of predefined macros
+* add support for builtins doing overflow checking.
+* add support for the __has_builtin() macro.
+* improve Sphinx doc for IR instructions
+
+    * have those instructions in the index
+    * have a nicer presentation of the generated doc thanks to not having to use level-4 headings anymore
+
+* fixes & improvements to the testsuite; mainly:
+
+    * allow to run the testsuite on all the tests of a subdir
+    * teach 'format' to directly append to the testcase
+    * validate the 'check-...' tags
+
+
+Shortlog
+--------
+
+Ben Dooks (1):
+   * tokenize: check show_string() for NULL pointer
+
+Jann Horn (1):
+   * fix accesses through incorrect union members
+
+Joey Pabalinas (2):
+   * doc: copy-edit text related to applying sizeof to a _Bool
+   * sparse: add -Wpointer-arith flag to toggle sizeof(void) warnings
+
+John Levon (2):
+   * Ignore #ident directives
+   * Conditionalize 'warning: non-ANSI function ...'
+
+Logan Gunthorpe (1):
+   * add __builtin functions for isinf_sign, isfinite and isnan
+
+Luc Van Oostenryck (857):
+   * use long for all mem stats
+   * diet: use smaller LIST_NODE_NR (29 -> 13)
+   * diet: remove unused struct scope::token
+   * diet: remove unused struct symbol::arg_count
+   * option: add helper to parse/match command line options
+   * option: rename 'struct warning' to 'struct flag'
+   * option: let handle_simple_switch() handle an array of flags
+   * option: extract OPTION_NUMERIC() from handle_switch_fmemcpy_max_count()
+   * option: add support for options with 'zero is infinity'
+   * option: add support for '-<some-option>=unlimited'
+   * option: use OPTION_NUMERIC() for handle_switch_fmemcpy_max_count()
+   * option: constify match_option()
+   * option: handle switches by table
+   * dump-ir: add defines for the compilation passes
+   * testsuite: 'echo -n' may not be interpreted as '-n'
+   * testsuite: allow to test a few cases at once
+   * testsuite: move verbose() & error()
+   * testsuite: better message for pattern nbr checking
+   * testsuite: better message for pattern absence/presence
+   * use shorter name for constexpr tests
+   * testsuite: new eq/min/max syntax for pattern checking
+   * testsuite: obsolete old pattern checking syntax
+   * testsuite: convert to the new pattern syntax
+   * use a specific struct for asm operands
+   * fix: missing evaluate with '-include' : add testcase
+   * fix: missing evaluate with '-include'
+   * fix test case kill-phi-ttsb
+   * add test case for incomplete type
+   * add test case for bad return type
+   * diet: remove unused struct symbol::value
+   * cclass: char is wide enough
+   * cclass: cleanup
+   * remove prototype extern int is_ptr_type()
+   * remove prototype for nonexistent examine_simple_symbol_type()
+   * graph: do not scan removed instructions
+   * build: fix effectiveness of generated dependencies
+   * build: remove unused support for pkgconfig
+   * cgcc: teach cgcc about freebsd & netbsd
+   * testsuite: clearer result summary
+   * testsuite: check error messages first
+   * testsuite: saner handling of 'must_fail'
+   * testsuite: allow to parse several options
+   * testsuite: add support for -q|--quiet
+   * testsuite: add support for -a|--abort
+   * testsuite: get options from env too
+   * testsuite: allow --format & --single
+   * testsuite: remove useless selftest
+   * testsuite: remove useless test-be.c
+   * testsuite: extract disable()
+   * testsuite: simplify documentation
+   * testsuite: allow arch-specific tests
+   * testsuite: save screen real estate
+   * testsuite: add a blank line before format
+   * testsuite: 'quiet' must be initialized earlier
+   * testsuite: move up arg_file()
+   * testsuite: make do_format() more self-contained
+   * testsuite: format: saner defaults handling
+   * testsuite: format: strip .c from default name
+   * testsuite: add support for 'format -f'
+   * testsuite: add support for 'format -l'
+   * remove never-used MOD_TYPEDEF
+   * MOD_ACCESSED is not a type modifier ...
+   * reorganize the definition of the modifiers
+   * remove redundancy in MOD_STORAGE
+   * define MOD_QUALIFIER for (MOD_CONST | MOD_VOLATILE)
+   * associate MOD_RESTRICT with restrict-qualified variables
+   * add support for C11's _Atomic as type qualifier
+   * build: use '-objs' instead of '_EXTRA_DEPS'
+   * build: use '-ldlibs' instead of '_EXTRA_OBJS'
+   * build: allow target-specific CFLAGS, CPPFLAGS, LDFLAGS & LDLIBS
+   * build: allow CFLAGS & friends from command line
+   * build: avoid rule-specific CFLAGS
+   * build: use $LIBS directly in the dependency list
+   * build: no need to use wildcards for generated dependencies
+   * build: reuse rule for ALL_OBJS
+   * build: CHECKER_FLAGS=-Wno-vla for all targets
+   * build: move tests near their use
+   * build: add note about overwritable vars
+   * build: remove references to nonexistent pre-process.h
+   * build: move clean & clean-check together
+   * build: make clean targets quieter
+   * build: remove rule for shared lib, it's unused
+   * build: normalize rules
+   * build: remove the dist rule since unused
+   * build: use one line per item
+   * build: allow the name 'local.mk' to be configurable via the environment
+   * build: use standard rules for install
+   * build: remove unused QUIET_INST_SH
+   * build: let quiet commands use less indentation
+   * build: simplify quiet commands
+   * build: simplify clean pattern
+   * build: add \*.o to clean-check pattern
+   * build: avoid foreach
+   * build: reorg & add comment
+   * build: use a single space before assignments
+   * build: add rule to run a single test
+   * build: let -fno-strict-aliasing be a mandatory flag
+   * volatile loads are side-effects too
+   * define MOD_ACCESS for (MOD_ASSIGNED | MOD_ADDRESSABLE)
+   * fix 'simplification' of float-to-int casts
+   * fix description setval & symaddr
+   * flush stdout when warning
+   * add test case for bogus volatile simplification
+   * fix: volatile stores must not be simplified
+   * dump-ir: add testcase for option parsing corner case
+   * dump-ir: allow to specify the passes to execute via cli's options
+   * dump-ir: activate/deactivate pass 'mem2reg'
+   * dump-ir: allow to skip the optimization pass(es)
+   * dump-ir: saner use of fdump_linearize
+   * dump-ir: rename -fdump-linearize to -fdump-ir
+   * dump-ir: make it more flexible
+   * dump-ir: activate -fdump-ir=mem2reg
+   * add test case for using multiple input files
+   * add test case for VLA sizeof
+   * add test case for memory to register problem
+   * add test case for conditionally undefined var
+   * add test case for incomplete type
+   * add test case bitfields in K&R decl
+   * add test case storage specifier in struct member
+   * add test case using sizeof on incomplete type
+   * add test case for bad layout of bool in bitfields
+   * add test case for missed overflow detection
+   * add test cases for canonicalization of add/sub chains
+   * add test case for compound literals
+   * add testcase for __builtin_unreachable()
+   * add test cases for canonicalization of mul chains
+   * add test case for pre-processor extra tokens warning
+   * add testcase for return & inline
+   * add test cases for simplification of equivalent to 'x == 0' or 'x != 0'
+   * add test case for superfluous cast with volatiles
+   * add testcase for mem2reg/SSA conversion
+   * add test cases for canonicalization of boolean expressions
+   * add test case for missing conversion to select
+   * show OP_PHI without VOID
+   * don't output value of anonymous symbol's pointer
+   * add table to "negate" some opcode
+   * use opcode table for compare_opcode()
+   * canonicalize binops before simplification
+   * canonicalize compare instructions
+   * add is_signed_type()
+   * fix usage of inlined calls
+   * inlined calls should not block BB packing
+   * give a type to all function arguments
+   * give a type to OP_PHISOURCEs
+   * give a type to OP_SELs, always
+   * give a type to OP_SWITCHs
+   * add doc about sparse's instructions/IR
+   * add support for wider type in switch-case
+   * llvm: remove unneeded arg 'module'
+   * llvm: remove unneeded 'generation'
+   * llvm: remove unneeded function::type
+   * llvm: reduce scope of 'bb_nr'
+   * llvm: use pseudo_list_size() instead of open coding it
+   * llvm: give arguments a name
+   * llvm: give a name to call's return values
+   * llvm: avoid useless temp variable
+   * llvm: extract get_sym_value() from pseudo_to_value()
+   * llvm: fix test of floating-point type
+   * llvm: fix translation of PSEUDO_VALs into a ValueRefs
+   * llvm: fix output_op_store() which modify its operand
+   * llvm: fix output_op_[ptr]cast()
+   * llvm: add test cases for symbol's address
+   * llvm: add test cases for pointers passed as argument
+   * llvm: add test cases for arrays passed as argument
+   * llvm: add test cases for degenerated pointers
+   * llvm: add support for OP_NEG
+   * llvm: add support for OP_SETVAL with floats
+   * llvm: add support for OP_SETVAL with labels
+   * llvm: ignore OP_INLINED_CALL
+   * llvm: fix pointer/float mixup in comparisons
+   * llvm: fix type in comparison with an address constant
+   * llvm: give correct type to binops
+   * llvm: adjust OP_RET's type
+   * llvm: variadic functions are not being marked as such
+   * llvm: fix type of switch constants
+   * llvm: make pseudo_name() more flexible
+   * llvm: give a name to all values
+   * llvm: add support for OP_SWITCH with a range
+   * llvm: fix OP_SWITCH has no target
+   * llvm: make value_to_pvalue() more flexible
+   * llvm: make value_to_ivalue() more flexible
+   * llvm: add test case pointer compare with cast
+   * llvm: let pseudo_to_value() directly use the type
+   * llvm: add small script to test LLVM generated bytecode
+   * llvm: add testcase for calling variadic functions
+   * llvm: fix variadic calls with constants
+   * llvm: take care of degenerated rvalues
+   * llvm: fix mutating function pointer
+   * llvm: fix mutated OP_RET
+   * llvm: fix mutated OP_SEL
+   * llvm: fix mutated OP_SWITCH
+   * llvm: fix mutated OP_PHISOURCE
+   * llvm: fix mutated OP_[PTR]CAST
+   * llvm: add support for restricted types
+   * llvm: fix get value from initialized symbol
+   * llvm: fix get value from non-anonymous symbol
+   * llvm: fix type of bitfields
+   * llvm: add support for OP_FPCAST
+   * llvm: add support for cast from floats
+   * llvm: cleanup of output_[ptr]cast()
+   * llvm: fix creation of sparsec's tmp files
+   * llvm: give names easier to debug
+   * llvm: gracefully catch impossible type/value
+   * llvm: warn instead of assert on global inits
+   * llvm: add support for float initializer
+   * llvm: only compare void pointers
+   * fix linearize_inc_dec() with floats
+   * add test case for boolean negation on float
+   * fix support of floating-point compare
+   * add support of floating-point specific arithmetic ops
+   * testsuite: fix: remove unneeded './' before commands
+   * fix: build sparse-llvm on i686s too.
+   * add more testcases for using addresses in conditionals
+   * add testcases linearization of degenerated arrays/functions
+   * fix: add missing degenerate() for logical not
+   * testsuite: make the '%.t' rule depends on PROGRAMS too
+   * testsuite: fix a few more incorrect check-commands
+   * testsuite: convert to the new pattern syntax
+   * testsuite: remove old ugly pattern syntax
+   * testsuite: move verbose/error() before get_tag_value()
+   * testsuite: add & use warning()
+   * testsuite: reset 'quiet' at the start of each testcase
+   * testsuite: fix invalid 'check-...' tags
+   * testsuite: validate the 'check-...' tags
+   * testsuite: early return in getopt loop
+   * testsuite: move do_test_suite out of the getopt loop
+   * testsuite: move no-arg out of the getopt loop
+   * testsuite: change do_usage text
+   * testsuite: allow to test only a subdir
+   * testsuite: default to shift in the getopt loop
+   * testsuite: add support for 'format -a'
+   * add testcase for 'sparse -D M...'
+   * fix: accept 'sparse -D M...'
+   * testsuite: add test case for quoting of command's arguments
+   * testsuite: process extra options without exec
+   * testsuite: respect command line's quotes & whitespaces
+   * testsuite: allow default args from environment for test commands
+   * add test case for space within command line
+   * fix: spaces in macro definition on the command line
+   * add testcases for unexamined base type
+   * fix: evaluate_dereference() unexamined base type
+   * add testcases for the linearization of calls
+   * simplify linearize_call_expression()
+   * fix linearize (\*fun)()
+   * add testcases for multiple deref of calls
+   * avoid unneeded alloc on error path
+   * dereference of a function is a no-op
+   * add testcase for constant bitfield dereference
+   * fix expansion of constant bitfield dereference
+   * add testcase for CSE of floating-point compares
+   * fix: restore CSE on floating-point compares
+   * llvm: fix: previous function ref MUST be reused
+   * llvm: use LLVMModuleRef for get_sym_value()
+   * llvm: add declares for function prototypes
+   * testcases: add missing return statements
+   * warn on empty parenthesized expressions
+   * fix crash on bad expression in linearize_switch()
+   * llvm: simplify emit of null pointers
+   * llvm: default init of arrays & structs
+   * add more testcases for function designator dereference
+   * add testcases for type comparison
+   * fix implicit size of unsized arrays
+   * let handle_switches() also handle reverse logic
+   * add support for '-f[no-][un]signed-char'
+   * fix: dereference null-type
+   * teach sparse about '-fmax-warnings'
+   * give a type to builtin functions
+   * ctags: avoid null deref
+   * cleanup: make some functions static
+   * cleanup: remove unused & obsolete symbol_is_typename()
+   * cleanup: remove unused delete_last_basic_block()
+   * cleanup: remove declaration of unused merge_phi_sources
+   * add OP_SETFVAL
+   * CSE: support CSE of floating-point literal
+   * doc: fix manpage formatting
+   * report type & size on non-power-of-2 pointer subtraction
+   * remove warning "call with no type"
+   * add testcases for duplicated warning about invalid types
+   * fix error in bad conditional
+   * early return if null ctype in evaluate_conditional()
+   * add helper: valid_type()
+   * use valid_type to avoid to warn twice on conditionals
+   * add helpers: valid_expr_type() & valid_subexpr_type()
+   * do not report bad types twice
+   * always evaluate both operands
+   * fix examination of bad typeof
+   * extract extract eval_insn() from simplify_constant_binop()
+   * add testcase of dead dominator
+   * fix dead dominator
+   * fix missing checks for deleted instructions
+   * add testcase for bad killing of dominated stores
+   * add helper for pseudo's user-list's size
+   * add helper: has_users()
+   * use has_users() in dead_insn() too
+   * let kill_instruction() report if changes were made
+   * add testcases for converted loads
+   * fix killing of converted loads
+   * fix usage of deadborn loads
+   * kill dead loads
+   * kill dead stores when simplifying symbols
+   * By default disable the warning flag '-Wunknown-attribute'
+   * no repetition in unknown attribute warning message
+   * cleanup: remove unused 'struct pseudo_ptr_list'
+   * llvm: use list_size() to count the numbers of arguments
+   * llvm: initialize at declaration time
+   * show_pseudo(): protect against NULL ->sym
+   * use show_pseudo() for OP_SYMADDR's symbol
+   * let struct access_data use a single type
+   * rename base_type() to bitfield_base_type()
+   * builtin: add ctype for const {void,char} *
+   * builtin: make builtins more builtin
+   * builtin: extract eval_args() from arguments_choose()
+   * builtin: add typechecking of isnan(), isinf(), ...
+   * builtin: add testcases for expansion of special FP constants
+   * builtin: add testcases for expansion of FP classification
+   * unsigned multiplication is also associative
+   * no need for signed & unsigned multiplication
+   * use '%lld' for printing long longs
+   * build: add -MP for generated dependencies
+   * build: use -MMD for generated dependencies
+   * ban use of 'true' or 'false'
+   * 'amd64' is also ok for sparse-llvm
+   * testsuite: fix typo with 'test-suite format -a'
+   * rename variable 'optimize' to 'optimize_level'
+   * move the optimization loop in its own file
+   * cse: untangle simplification & hashing
+   * extract cse_eliminate() from cleanup_and_cse()
+   * expose interface to CSE
+   * move liveness interface to its own header
+   * move inner optimization loop into optimize.c
+   * move the inner optimization loop into the main loop
+   * remove unneeded cast in calls to free_ptr_list()
+   * testsuite: add testcase for some random crash
+   * testsuite: add testcase about CSE problem
+   * IR: fix typo in IR doc
+   * IR: remove now unused OP_LNOP & OP_SNOP
+   * IR: remove never-generated instructions
+   * IR: let .cond unionize with .src and not .target
+   * IR: let OP_COMPUTEGOTO use .src instead of .target
+   * llvm: normalize sparse-llvm-dis' output
+   * llvm: fix typo for constant addresses
+   * testsuite: fix problem with double-escaping in patterns
+   * add a field 'tainted' to struct instruction
+   * taint: let check_access() warn just once
+   * fix address_taken()
+   * fix symbol cleanup
+   * cleanup deadborn phi-sources
+   * optim: add some more optimization tests
+   * optim: add testcase for internal infinite loop
+   * optim: add timeout for infinite optim loop tests
+   * optim: kill unreachable BBS after CFG simplification
+   * optim: no need to kill_unreachable_bbs() after main loop
+   * optim: fix optimization loop's condition
+   * optim: pack bb must set REPEAT_CFG
+   * optim: load simplification should repeat optimization
+   * optim: fix REPEAT_CFG_CLEANUP
+   * add an helper to test the value of a pseudo against zero
+   * optim: simplify null select
+   * make remove_usage() more generic
+   * add remove_use()
+   * show_label: add (and use) show_label()
+   * extract alloc_phisrc() from alloc_phi()
+   * small code reorg of add_store()
+   * alloc: add missing #include "compat.h"
+   * defer initialization of bb::context
+   * fix-return: remove special case for single return
+   * avoid deadborn loads & stores
+   * doc: options.md is for development
+   * doc: document the debug flags
+   * fix missing handling of OP_FNEG
+   * graph: do not use insn->symbol for memops
+   * use -Wpointer-arith for tests
+   * default to LP64 for all and only for 64 bit ABIs
+   * fix alignment of 64 bit integers on LLP64
+   * add testcases for verifying ABI's integer size & align
+   * use an enum for ARCH_LP32 & friends
+   * add a flag -mx32 ILP32 env on 64 bit archs
+   * add testcase for enum / int type difference
+   * add testcase for array size type difference
+   * add testcase for typedef redefinition
+   * export check_duplicates()
+   * fix: warn on typedef redefinition
+   * do not to ignore old preprocessor testcases
+   * use also __x86_64 when __x86_64__ is used
+   * build: use a variable for $(shell uname -m)
+   * build: use 'filter' to do pattern matching inside the Makefile
+   * build: disable LLVM on x86-64-x32
+   * let cgcc use sparse's predefines for i386 & x86-64
+   * build: use --dirty with 'git describe'
+   * fix build on Hurd which doesn't define PATH_MAX
+   * testsuite: add check-cp-if
+   * testsuite: add check-assert
+   * teach sparse about _Floatn and _Floatnx
+   * add test case bug expand union
+   * alloc: check if size is too big
+   * fix: don't dump pointer value in error message
+   * fix missing checks for deleted instructions
+   * fix comment about PSEUDO_SYM usage
+   * fix: remove usage when killing symaddr (part 1)
+   * fix: remove usage when killing symaddr (part 2)
+   * OP_SYMADDR is simply an unop
+   * use function-like syntax for __range__
+   * increment the version number suffix it with -dev
+   * doc: fix markdown syntax
+   * doc: fix headings
+   * doc: add minimal support for sphinx-doc
+   * doc: add logo
+   * doc: automatically set the copyright date
+   * doc: automatically get the version
+   * doc: set primary domain to C
+   * doc: allow .md with py3-sphinx
+   * doc: move sparse.txt to markdown and rename it
+   * doc: the testsuite doc in reST
+   * doc: format dev-options.md as a man page
+   * doc: use reST for manpages
+   * api: move evaluate interface to its own header file
+   * doc: add structured doc to ptrlist.c
+   * autodoc: extract doc from the C files
+   * autodoc: convert extracted doc to reST
+   * autodoc: add a sphinx c:autodoc directive for the extracted doc
+   * autodoc: add doc from ptrlist.c
+   * autodoc: add markup to argument's references
+   * autodoc: doc the doc
+   * autodoc: by default disable syntax highlighting
+   * autodoc: add a small cheatsheet for reST markup
+   * autodoc: support muti-line param & return descriptions
+   * autodoc: document a few more APIs to test multiline
+   * autodoc: add autodoc tests in the testsuite
+   * doc: convert IR.md to reST
+   * doc: add sphinx domain for IR instruction indexation
+   * add helper for new parsing errors: unexpected()
+   * context: fix parsing of attribute 'context'
+   * context: __context__(...) expect a constant expression
+   * context: fix crashes while parsing '__context__;' or '__context__(;'
+   * context: stricter syntax for __context__ statement
+   * context: extra warning for __context__() & friends
+   * label: add testcase for label redefinition
+   * label: avoid multiple definitions
+   * vla-sizeof: add test cases
+   * vla-sizeof: add support for sizeof of VLAs
+   * fix typing of __builtin_expect()
+   * fix crash on 'goto <reserved word>'
+   * give a position to end-of-input
+   * avoid multiple error message after parsing error
+   * add test for integer-const-expr-ness
+   * dyn-macro: add testcase for __LINE__ & friends
+   * dyn-macro: use a table to expand __DATE__, __FILE__, ...
+   * dyn-macro: add support for __INCLUDE_LEVEL__
+   * dyn-macro: add real support for __BASE_FILE__
+   * utils: add xmemdup() & xstrdup()
+   * utils: convert alloc + copy to {mem,str}dup_alloc()
+   * builtin: add testcase for builtin macro expansion
+   * builtin: extract do_define() from do_handle_define()
+   * builtin: add builtin types {u,}{int,long,long}_ptr_ctype
+   * builtin: declare __builtin_[us]{add,sub,mul}{,l,ll}_overflow()
+   * builtin: rename arguments_choose() to args_triadic()
+   * builtin: add support for __builtin_{add,sub,mul}_overflow(), ...
+   * extract replace_with_bool() from replace_with_defined()
+   * builtin: add support for __has_builtin()
+   * builtin: add predefine()
+   * builtin: directly predefine builtin macros
+   * builtin: consolidate predefined_macros()
+   * doc: API before IR
+   * builtin: switch calling order of predefined_macros() & friends
+   * builtin: merge declare_builtin_function() with declare_builtins()
+   * teach sparse about -m16
+   * ptrlist: specialize __add_ptr_list() for tag/notag
+   * ptrlist: remove now unneeded add_ptr_list_notag()
+   * ptrlist: add helper PTR_UNTAG()
+   * ptrlist: rename PTR_ENTRY() to PTR_ENTRY_UNTAG()
+   * ptrlist: make explicit when tagged pointers are used.
+   * ptrlist: let FOR_EACH_PTR() ignore tags
+   * utils: add xasprintf() & xvasprintf()
+   * add support for -fdiagnostic-prefix[=prefix]
+   * doc: add doc for the -vcompound flag
+   * testsuite: fix missing return
+   * keep the debug flags alphabetically sorted
+   * testsuite: allow extra/default options to test commands
+   * ir-validate: add framework for IR validation
+   * ir-validate: validate pseudo's defining instruction
+   * ir-validate: add validation of (nbr of) phi operands
+   * ir-validate: add more validation points
+   * sparsec: simplify & portable use of mktemp
+   * add predefines for __INT_WIDTH__ & friends
+   * ptrlist: remove the now unneeded FOR_EACH_PTR_NOTAG()
+   * ptrlist: let {first,last}_ptr_list() return the raw pointer
+   * ptrlist: let sort_list() use the raw pointer
+   * ptrlist: let all pointer lists have the same parameterized structure
+   * ptrlist: when possible use the real type of the list
+   * ptrlist: remove now unneeded CHECK_TYPE()
+   * ptrlist: make add_ptr_list() more readable
+   * ptrlist: make free_ptr_list() more readable
+   * ptrlist: remove some unneeded arg from internal macros.
+   * ptrlist: remove extra ident level
+   * ptrlist: simplify loop nesting
+   * ptrlist: simplify DO_NEXT
+   * ptrlist: simplify PREPARE/NEXT
+   * ptrlist: shorter continuated lines
+   * ptrlist: remove ptr_list_empty()
+   * ptrlist: make {first,last}_ptr_list() out-of-line functions
+   * ptrlist: move semi-private prototypes close to their user
+   * ptrlist: use VRFY_PTR_LIST() for sanity check
+   * ptrlist: keep declaration of head-list-nr together
+   * ptrlist: make clear what is API and what is implementation.
+   * ptrlist: move DO_SPLIT() into DO_INSERT_CURRENT()
+   * ptrlist: add missing doc for some functions
+   * add testcase for bad fpcast simplification
+   * fix bad fpcast simplification
+   * avoid useless deref in simplify_cond_branch()
+   * new helper: replace_pseudo()
+   * remove unused arg in simplify_cond_branch()
+   * add_uniop() should take a type, not an expression
+   * rename add_uniop() to add_unop()
+   * add missing entry for OP_FNEG in kill_insn() & validate_insn()
+   * ir: define an \OP_.. range for unops
+   * ir: case OP_UNOP ... OP_UNOP_END
+   * cast: reorg testcases related to casts
+   * cast: add testcase for bad implicit casts to struct/union
+   * cast: add testcase for cast to bad typeof
+   * cast: add tests for warnings issued by sparse -v
+   * cast: rename evaluate_cast()'s vars with slightly more meaningful names
+   * cast: force_cast are OK on non-scalar values
+   * cast: prepare finer grained cast instructions
+   * cast: specialize FPCAST into [USF]CVTF
+   * cast: handle NO-OP casts
+   * cast: specialize floats to integer conversion
+   * cast: specialize casts from unsigned to pointers
+   * cast: make [u]intptr_ctype alias of [s]size_t_ctype
+   * cast: make pointer casts always size preserving
+   * cast: temporary simplify handling cast to/from void*
+   * cast: specialize cast from pointers
+   * cast: add support for -Wpointer-to-int-cast
+   * cast: make casts from pointer always size preserving
+   * cast: specialize integer casts
+   * cast: accept null casts
+   * cast: do not try to linearize illegal casts
+   * cse: add testcase for missed opportunity
+   * new helper: def_opcode()
+   * cast: simplify simplify_cast()
+   * cast: merge simplification of constant casts with constant unops
+   * cast: prepare for more cast simplifications
+   * cast: keep instruction sizes consistent
+   * cse: move to next comparable instruction
+   * cast: simplify TRUNC + ZEXT to AND
+   * add simple testcases for internal infinite loops
+   * simplify 'x | ~0' to '~0'
+   * simplify 'x & ~0' to 'x'
+   * simplify 'x ^ ~0' to '~x'
+   * bool: add testcase for bool simplification
+   * bool: fix add missing check in simplify_seteq_setne()
+   * bool: simplify ZEXT in bool -> int -> bool
+   * bool: fix missing boolean context for floats
+   * bool: generate plain OP_{AND,OR} instead of OP_{AND,OR}_BOOL
+   * bool: remove OP_{AND,OR}_BOOL instructions
+   * cast: reorganize testcases for cast optimization
+   * cast: optimize away casts to/from pointers
+   * cse: let equivalent casts hash & compare identically
+   * fix killing OP_SWITCH
+   * fix: remove dead OP_{SETVAL,SETFVAL,SLICE}
+   * kds: add testcases for kill_dead_stores()
+   * kds: add explanation to kill_dead_stores()
+   * kds: rename kill_dead_stores() to kill_dead_stores_bb()
+   * kds: add interface for kill_dead_stores()
+   * kds: kill dead stores after memops simplification
+   * kds: shortcut for kill_dead_stores()
+   * kds: fix recursion in kill_dead_stores_bb()
+   * kds: clarify kill_dead_stores_bb()
+   * testsuite: reorganize tests for compound literals
+   * testsuite: add a few more tests catching quadratic behaviour
+   * testsuite: improve mem2reg testcases
+   * testsuite: remove useless test for loop-linearization
+   * graph: build the CFG reverse postorder traversal
+   * graph: add debugging for (reverse) postorder traversal
+   * dom: calculate the dominance tree
+   * dom: add some debugging for the dominance tree
+   * dom: add support for dominance queries
+   * dom: build the domtree before optimization
+   * dom: use domtree for bb_dominates()
+   * sset: add implementation of sparse sets
+   * idf: compute the iterated dominance frontier
+   * idf: add test/debug/example
+   * add new helper: is_integral_type()
+   * add PSEUDO_UNDEF & undef_pseudo()
+   * add insert_phi_node()
+   * ptrmap: core implementation
+   * ptrmap: add type-safe interface
+   * ssa: phase 1: phi-nodes placement
+   * ssa: phase 2: rename load & stores
+   * ssa: phase 3: rename phi-nodes
+   * ssa: activate the new SSA conversion
+   * ssa: remove unused simplify_symbol_usage()
+   * ssa: phi worklist
+   * remove unused finish_address_gen()
+   * remove unused struct access_data::pos
+   * no need to assign ad->type for EXPR_POS
+   * remove obsolete comment: /\* Dummy pseudo allocator \*/
+   * big-shift: add test for shifts with bad count
+   * big-shift: mark out-of-range OP_{ASR,LSR,SHL} as tainted
+   * big-shift: do not evaluate negative or over-sized shifts
+   * big-shift: don't take the modulo at expand time
+   * big-shift: move the check into check_shift_count()
+   * big-shift: use the base type for shift-too-big warning
+   * big-shift: also check shift count of shift-assignment
+   * big-shift: do not simplify over-sized OP_ASR to zero
+   * big-shift: reorder the tests in simplify_asr()
+   * big-shift: reuse simplify_asr() for LSR & SHL
+   * big-shift: simplify over-sized OP_LSRs
+   * big-shift: simplify over-sized OP_SHLs
+   * big-shift: use the type width for too big shift
+   * big-shift: fix warning message for negative shift count
+   * big-shift: fix evaluation of shift-assign
+   * big-shift: do not truncate the count when checking it
+   * big-shift: add -Wshift-count-{negative,overflow}
+   * extract nbr_users() from unssa.c
+   * add testcases for casts & bitfield insertion/extraction
+   * bitfield: extract linearize_bitfield_extract()
+   * bitfield: extract linearize_bitfield_insert()
+   * cast: simplify [SZ]EXT + TRUNC to original size
+   * cast: simplify [SZ]EXT + TRUNC to a smaller/greater size
+   * cast: fix shift signedness in cast simplification
+   * cast: do not compare sizes, test the opcode
+   * cast: use a switch to handle TRUNC(AND(x,M),N) in simplify_cast()
+   * cast: preserve the sizes of TRUNC(AND(x,M),N)
+   * cast: simplify [ZS]EXT(AND(x,M),N)
+   * cast: simplify AND(ZEXT(x,M),N)
+   * cast: simplify SEXT(SEXT(x,N),N')
+   * cast: simplify ZEXT(ZEXT(x,N),N')
+   * cast: simplify SEXT(ZEXT(x,N),N')
+   * bits: add helpers for zero & sign-extension
+   * big-shift: add testcases for simplification of over-sized shifts
+   * big-shift: add testcases for simplification of negative shifts
+   * big-shift: move shift count check in a separate function
+   * big-shift: fix warning message for negative or over-sized shifts
+   * big-shift: do not optimize negative shifts
+   * big-shift: do not optimize over-sized ASRs
+   * use "%Le" to display floats
+   * add copy_ptr_list()
+   * testcases: add testcase for missing detection of out-of-bound stores
+   * testcases: missing evaluation of side effects in typeof(VLA)
+   * kill dead OP_FADD & friends
+   * add ptr_list_empty()
+   * add ptr_list_multiple()
+   * add lookup_ptr_list_entry()
+   * shift: simplify LSR(LSR(x,N),N') & friends
+   * shift: simplify ASR(LSR(x,N),N')
+   * shift: avoid simplification of ASR(LSR(x,0),N)
+   * shift: simplify ASR(ZEXT(X, N), C)
+   * testcase for SET{EQ,NE}([SZ]EXT(x, N),{0,1})'s simplification
+   * cleanup of simplify_seteq_setne(): remove tmp vars
+   * simplify SET{EQ,NE}(ZEXT(x, N),{0,1})
+   * simplify SET{EQ,NE}(SEXT(x, N),{0,1})
+   * simplify 'x != 0' or 'x == 1' to 'x'
+   * add testcase for linearize_logical()
+   * fix size corruption when simplifying 'x != 0' to 'x'
+   * protect add_convert_to_bool() against bad types / invalid expressions
+   * conditional branches can't accept arbitrary expressions
+   * fix linearize_conditional() for logical ops
+   * expand linearize_conditional() into  linearize_logical()
+   * simplify linearize_logical()
+   * simplify SETNE(AND(X,1),0) to AND(X,1)
+   * simplify SETNE(TRUNC(x,N),{0,1})
+   * simplify ZEXT(SETCC(x,y), N)
+   * simplify SEXT(SETCC(x,y), N)
+   * simplify TRUNC(SETCC(x,y), N)
+   * simplify AND(SETCC(x,y), M)
+   * boolean conversion of boolean value is a no-op
+   * cast: fix warning position in cast_pseudo()
+   * limit the mask used for bitfield insertion
+   * expand linearize_position() into linearize_initializer()
+   * put back the bitfield base type into struct access_data
+   * fix instruction size & type in linearize_inc_dec()
+   * fix bad indentation in linearize_inc_dec()
+   * avoid infinite simplification loops of the second kind
+   * optim: add a few more testcases for shift & mask
+   * use multi_users() instead on nbr_users()
+   * reorg code for shift-shift simplification
+   * simplify ((x & M') | y ) & M into (y & M) when (M' & M) == 0
+   * simplify ((x & M) | y) >> S to (y >> S) when (M >> S) == 0
+   * simplify (x << S) >> S into x & (-1 >> S)
+   * simplify (x & M) >> S to (x >> S) & (M >> S)
+   * rename testcase for ((x << S) >> S) simplification
+   * add testcase for ((x >> S) << S) simplification
+   * add testcase for TRUNC(TRUNC(x)) simplification
+   * simpler guard in LSR-SHL simplification
+   * reorganize shift-shift simplification
+   * simplify ((x >> S) << S)
+   * reorganize simplification of ZEXT(TRUNC(x))
+   * simplify TRUNC(TRUNC(x))
+   * doc: simplify the creation of the viewlist
+   * doc: automatically insert the blank line for lists
+   * doc: convert existing simplify.c doc into ReST autodoc
+   * doc: reword doc for replace_pseudo()
+   * doc: add doc for simplification notation
+   * add testcase for (((x & M') | (y & M'')) & M)
+   * add testcases for bitfield & AND/OR simplification
+   * unify simplify_lsr_or() & simplify_and_or_mask()
+   * add simplify_mask_or()
+   * use better names for simplify_mask_or_and() vars
+   * document simplify_mask_or() & simplify_mask_or_and()
+   * switch return order in simplify_mask_or_and()
+   * allow simplification of OP(((x & y) | (a & M')), K)
+   * move opcode test inside simplify_mask_or_and()
+   * simplify OP(((x & M') | y), K) when (M' & M) == M
+   * simplify OP(((x & M') | y), K) when (M' & M) != M'
+   * simplify OP((x | C), K) when (C & M) == 0
+   * simplify OP((x | C), K) when (C & M) == M
+   * simplify OP((x | C), K) when (C & M) != C
+   * simplify SHL((x & M') | y, S)
+   * add testcases for {LSR,SHL}(AND(x, M), S) with shared AND(x, M)
+   * use an intermediate mask in simplify_shift()
+   * simplify ((x & M) >> S) when (M >> S) == 0
+   * simplify ((x & M) >> S) when (M >> S) == (-1 >> S)
+   * simplify ((x & M) << S) when (M << S) == 0
+   * simplify ((x & M) << S) when (M << S) == (-1 << S)
+   * simplify TRUNC((x & M') | y, N)
+   * doc: extend simplification notation
+   * prepare simplification of MASK(SHIFT(a | b, S), M)
+   * simplify AND(SHIFT(a | b, S), M)
+   * simplify TRUNC(SHIFT(a | b, S), N)
+   * mode keywords don't need MOD_{CHAR,LONG,...}
+   * add support for mode __pointer__
+   * add support for mode __byte__
+   * add a testcase for enum using a mode
+   * remove superfluous newline in 'unknown mode attribute' error message
+   * testsuite: remove useless test for loop-linearization
+   * symaddr: s/insn->symbol/insn->src/
+   * add testcase for accesses to volatile bitfields
+   * split memops from unops
+   * add a flag for volatile memops
+   * fix: do not optimize away accesses to volatile bitfields
+   * opcode: centralize opcode definition
+   * opcode: add arity info
+   * opcode: add OPF_TARGET
+   * add a function to remove deadborn instructions
+   * fix missing declarations
+   * has-attr: add testcase for __has_attribute()
+   * has-attr: move 'mode' next to '__mode__'
+   * has-attr: add __designated_init__ & transparent_union
+   * has-attr: add support for __has_attribute()
+   * ir-validate: add validation branch to dead BB
+   * ir-validate: ignore dead phis
+   * ir-validate: validate return value
+   * add testcase for unreachable label in switch
+   * fix linearization of unreachable switch (with reachable label).
+   * move DEF_OPCODE() to header file
+   * trivial-phi: add testcase for unneeded trivial phi-nodes
+   * trivial-phi: make clean_up_phi() more sequential
+   * trivial-phi: extract trivial_phi() from clean_up_phi()
+   * trivial-phi: early return
+   * trivial-phi: use a temp var for the real source
+   * trivial-phi: directly return the unique value
+   * trivial-phi: remove more complex trivial phi-nodes
+   * stricter warning for explicit cast to ulong
+   * add linearization as a pass
+   * add testcases for missing return in last block
+   * use a temp var for function's upper-level statement
+   * topasm: top-level asm is special
+   * specialize linearize_compound_statement()
+   * there is always an active BB after linearize_fn_statement()
+   * the return BB is never terminated
+   * extract add_return() from linearize_return()
+   * use UNDEF for missing returns
+   * use a temp var for the return type/symbol
+   * return nothing only in void functions
+   * add testcases for wrong ordering in phi-nodes
+   * fix ordering of phi-node operand
+   * add tests for nested logical expr
+   * fix linearization of nested logical expr
+   * add testcase for non-constant switch-case
+   * fix linearization of non-constant switch-cases
+   * test: make test Waddress-space-strict succeed on 32-bit
+   * test: use integers of different sizes, even on 32-bit
+   * test: make 32-bit version of failed test
+   * ssa: relax what can be promoted
+   * doc: is_int_type() returns false for SYM_RESTRICTs
+   * enum: add testcase for UB in oversized shift
+   * enum: fix UB when rshifting by full width
+   * enum: add testcase for type of enum members
+   * enum: add testcase for base & enumerator type
+   * enum: fix cast_enum_list()
+   * enum: use the smallest type that fit
+   * enum: use the values to determine the base type
+   * enum: only warn (once) when mixing bitwiseness
+   * enum: warn when mixing different restricted types
+   * enum: warn on bad enums
+   * enum: rewrite bound checking
+   * enum: keep enumerators as int if they fit
+   * enum: default to unsigned
+   * enum: more specific error message for empty enum
+   * __attribute__((fallthrough)) can't simply be ignored
+   * ptrlist: add ptr_list_nth_entry()
+   * add testcase for missing function designator expansion
+   * fix expansion of function designator
+   * teach sparse about '-o <file>'
+   * teach sparse about '-x <language>'
+   * cgcc: add support to ignore argument(s) of options
+   * cgcc: teach about '-o <file>'
+   * cgcc: teach about '-x c'
+   * dump-macro: break the loop at TOKEN_UNTAINT
+   * dump-macro: simplify processing of whitespace
+   * fix implicit K&R argument types
+   * Use -Wimplicit-int when warning about missing K&R argument types
+   * Accept comma-separated list for function declarations.
+   * cgcc: use 'i386' for the arch instead of 'i86'
+   * add testcase for missing deliminator ' or "
+   * man: add section about reporting bugs
+   * man: add AUTHORS section
+   * man: update maintainer info
+   * don't allow newlines inside string literals
+   * multi-buffer for idents
+   * as-name: add and use show_as()
+   * as-name: use idents for address spaces
+   * as-name: allow ident as address_space
+   * as-name: check for multiple address spaces at parsing time
+   * as-named: warn on bad address space
+   * add detection of native platform
+   * Consolidate 'machine detection' into "machine.h"
+   * test endianness with __BYTE_ORDER__
+   * testsuite: test predef macros on LP32/LP64/LLP64
+   * fix '__SIZE_TYPE__' for LLP64
+   * allow optional "_T" suffix to __SIZEOF_XXX__
+   * use bits_mask() for predefined_max()
+   * add builtin_type_suffix()
+   * teach sparse about asm inline
+   * remove duplicates from gcc-attr-list.h
+   * show-parse: strip do_show_type()'s trailing space
+   * make predefined_type_size() more generic
+   * give a type to wchar
+   * use the type for predefined_max()
+   * add predefined macros for wint_t
+   * add predefined macros for [u]intptr
+   * add predefined macros for [u]intmax
+   * add predefined macros for [u]int{8,16}_t
+   * add predefined macros for [u]int64_t
+   * add predefined macros for [u]int32_t
+   * add predefined macros for char{16,32}_t
+   * fix the size of long double
+   * add predefine for __CHAR_UNSIGNED__
+   * add predefine_min() and use it for __{WCHAR,WINT}_MIN__
+   * add a flag to warn on casts to/from bitwise pointers
+   * show-parse: don't display null ident in show_typename()
+   * show-parse: do not display base type's redundant specifiers
+   * show-parse: remove string_ctype from typenames
+   * VERSION=0.6.0-rc1
+   * build: only need includedir from llvm-config
+   * build: check if sparse-llvm needs libc++
+   * remove unneeded declarations in "compat.h"
+   * remove unused arg in add_branch()
+   * allocate BBs after the guards
+   * remove redundant check of _Bool bitsize
+   * remove unused regno()
+   * remove -finline-functions from CFLAGS
+   * remove self-assignment of base_type
+   * doc: fix list formatting
+   * as-name: document that identifiers are OK for address spaces
+   * add TODO list.
+   * Sparse v0.6.0
+
+Ramsay Jones (9):
+   * Makefile: use locally built sparse in the selfcheck target
+   * sparsec: use a compatible exception model on cygwin
+   * sparsei: add the --[no-]jit options
+   * constant: add -Wconstant-suffix warning
+   * pre-process: suppress trailing space when dumping macros
+   * pre-process: print macros containing # and ## correctly
+   * pre-process: don't put spaces in macro parameter list
+   * pre-process: print variable argument macros correctly
+   * pre-process: add the -dM option to dump macro definitions
+
+Randy Dunlap (6):
+   * sparse: minor manpage corrections
+   * Documentation: make data-structures.txt easier to read
+   * Documentation: editing fixes in test-suite
+   * lib.c: early return from handle_onoff_switch()
+   * sparse: ignore indirect_branch attribute
+   * sparse: option to print compound global data symbol info
+
+Thiebaud Weksteen (1):
+   * Add testcases for bitwise cast on pointer
+
+Tycho Andersen (1):
+   * expression.h: update comment to include other cast types
+
+Uwe Kleine-König (6):
+   * build: make PREFIX overwritable from the environment
+   * build: put comment about local.mk to the place where it is included
+   * build: drop BASIC_CFLAGS and ALL_CFLAGS
+   * build: drop -g from LDFLAGS
+   * build: pass CPPFLAGS to compiler
+   * build: only generate version.h when needed
+
+Vincenzo Frascino (1):
+   * print address space number for cast-from-AS warnings

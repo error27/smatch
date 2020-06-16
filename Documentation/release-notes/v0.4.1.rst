@@ -1,0 +1,29 @@
+v0.4.1 (2007-11-13)
+===================
+
+I have tagged and tarballed Sparse 0.4.1, now available from http://ftp.be.debian.org/pub/software/devel/sparse/dist/ with sha1sum 14085c5317cd7f2c8392fb762969906fa91888ef.
+
+This bugfix release fixes a Sparse assertion which recent Linux kernels started
+triggering, along with a few other fixes.
+
+Full changelog:
+
+Christopher Li (1):
+   * Perform local label lookup
+
+Emil Medve (1):
+   * Handle ignored attribute malloc
+
+Josh Triplett (4):
+   * Add comment on taint flags enum referencing expr->taint
+   * Add test-suite metadata to validation/local-label.c
+   * Add known-to-fail test case for a static forward declaration
+   * Makefile: VERSION=0.4.1
+
+Mike Frysinger (1):
+   * fix install perms of manpages
+
+Tilman Sauerbeck (1):
+   * Added a prototype for mempcpy().
+
+-- Josh Triplett
