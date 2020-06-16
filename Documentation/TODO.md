@@ -84,8 +84,8 @@ Longer term/to investigate
 
 	"warning: Variable length array is used. (-Wno-vla)"
 
-* ptrlists must have elements be removed while being iterated but this
-  is hard to insure it is not done.
+* ptrlists must not have elements removed while being iterated;
+  this should somehow be enforced.
 * having 'struct symbol' used to represent symbols *and* types is
   quite handy but it also creates lots of problems and complications
 * Possible mixup of symbol for a function designator being not a pointer?
