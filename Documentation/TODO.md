@@ -34,7 +34,6 @@ Misc
 ----
 * GCC's -Wenum-compare / clangs's -Wenum-conversion -Wassign-enum
 * parse __attribute_((fallthrough))
-* add support for __builtin_unreachable()
 * add support for format(printf())  (WIP by Ben Dooks)
 * make use of UNDEFs (issues warnings, simplification, ... ?)
 * add a pass to inline small functions during simplification.
