@@ -182,7 +182,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 	if (!faked ||
 	    (faked->type == EXPR_ASSIGNMENT && is_fresh_alloc(faked->right)))
 		update_mtag_data(expr, state);
-	if (in_param_set &&
+	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
 	set_state(SMATCH_EXTRA, name, sym, state);
