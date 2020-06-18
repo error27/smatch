@@ -13,7 +13,7 @@ For the purpose of this document, things can be simplified into:
 		struct ctype {
 			struct symbol *base_type;
 			unsigned long modifiers;
-			unsigned long alignement;
+			unsigned long alignment;
 			struct context_list *contexts;
 			struct indent *as;
 		};
@@ -30,16 +30,16 @@ Some bits, also related to the type, are in struct symbol itself:
   * accessed
   * transparent_union
 
-* ```base_type``` is used for the associated base type.
-* ```modifiers``` is a bit mask for type specifiers (MOD_UNSIGNED, ...),
+* ``base_type`` is used for the associated base type.
+* ``modifiers`` is a bit mask for type specifiers (MOD_UNSIGNED, ...),
   type qualifiers (MOD_CONST, MOD_VOLATILE),
   storage classes (MOD_STATIC, MOD_EXTERN, ...), as well for various
   attributes. It's also used internally to keep track of some states
   (MOD_ACCESS or MOD_ADDRESSABLE).
-* ```alignment``` is used for the alignment, in bytes.
-* ```contexts``` is used to store the informations associated with the
-  attribute ```context()```.
-* ```as``` is used to hold the identifier of the attribute ```address_space()```.
+* ``alignment`` is used for the alignment, in bytes.
+* ``contexts`` is used to store the informations associated with the
+  attribute ``context()``.
+* ``as`` is used to hold the identifier of the attribute ``address_space()``.
 
 Kind of types
 =============
@@ -49,11 +49,11 @@ SYM_BASETYPE
 Used by integer, floating-point, void, 'type', 'incomplete' & bad types.
 
 For integer types:
-  * .ctype.base_type points to ```int_ctype```, the generic/abstract integer type
+  * .ctype.base_type points to ``int_ctype``, the generic/abstract integer type
   * .ctype.modifiers has MOD_UNSIGNED/SIGNED/EXPLICITLY_SIGNED set accordingly.
 
 For floating-point types:
-  * .ctype.base_type points to ```fp_ctype```, the generic/abstract float type
+  * .ctype.base_type points to ``fp_ctype``, the generic/abstract float type
   * .ctype.modifiers is zero.
 
 For the other base types:
@@ -68,7 +68,7 @@ have their own modifiers, address_space, contexts or alignment
 as well as the declaration's identifier.
 
 Usage:
-  * .ctype.base_type points to the unmodified type (wich must not
+  * .ctype.base_type points to the unmodified type (which must not
     be a SYM_NODE itself)
   * .ctype.modifiers, .as, .alignment, .contexts will contains
     the 'variation' (MOD_CONST, the attributes, ...).
@@ -131,7 +131,7 @@ Used for bitwise types (aka 'restricted' types):
 SYM_FOULED
 ----------
 Used for bitwise types when the negation op (~) is
-used and the bit_size is smaller than an ```int```.
+used and the bit_size is smaller than an ``int``.
 There is a 1-to-1 mapping between a fouled type and
 its parent bitwise type.
 
