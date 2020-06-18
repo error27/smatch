@@ -114,6 +114,7 @@ struct decl_state {
 
 struct pseudo;
 struct entrypoint;
+struct arg;
 
 struct symbol_op {
 	enum keyword type;
@@ -160,7 +161,8 @@ struct symbol {
 			struct token *expansion;
 			struct token *arglist;
 			struct scope *used_in;
-			void (*expander)(struct token *);
+			void (*expand_simple)(struct token *);
+			bool (*expand)(struct token *, struct arg *args);
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
