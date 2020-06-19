@@ -3293,9 +3293,11 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 		return NULL;
 
 	for (map = expr->map; map; map = map->next) {
-		if (!evaluate_symbol(map->type))
+		struct symbol *stype = map->type;
+
+		if (!evaluate_symbol(stype))
 			continue;
-		if (!type_selection(ctrl, map->type))
+		if (!type_selection(ctrl, stype))
 			continue;
 
 		res = map->expr;
