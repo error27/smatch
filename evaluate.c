@@ -3299,9 +3299,29 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 	source.ctype.modifiers &= ~(MOD_QUALIFIER|MOD_ATOMIC);
 	for (map = expr->map; map; map = map->next) {
 		struct symbol *stype = map->type;
+		struct symbol *base;
 
 		if (!evaluate_symbol(stype))
 			continue;
+
+		if (stype->type == SYM_NODE)
+			base = stype->ctype.base_type;
+
+		if (base->type == SYM_ARRAY && base->array_size) {
+			get_expression_value_silent(base->array_size);
+			if (base->array_size->type == EXPR_VALUE)
+				continue;
+			sparse_error(stype->pos, "variable length array type in generic selection");
+			continue;
+		}
+		if (is_func_type(stype)) {
+			sparse_error(stype->pos, "function type in generic selection");
+			continue;
+		}
+		if (stype->bit_size <= 0 || is_void_type(stype)) {
+			sparse_error(stype->pos, "incomplete type in generic selection");
+			continue;
+		}
 		if (!type_selection(&source, stype))
 			continue;
 
