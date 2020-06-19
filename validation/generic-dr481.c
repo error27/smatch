@@ -7,7 +7,6 @@ static char const* f = _Generic(+(int const){ 0 }, int const: "blu");
 
 /*
  * check-name: generic-dr481
- * check-known-to-fail
  *
  * check-error-start
 generic-dr481.c:2:32: error: no generic selection for 'char *'

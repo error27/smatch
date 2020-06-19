@@ -3290,7 +3290,9 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 	struct symbol source;
 	struct symbol *ctrl;
 
-	if (!(ctrl = evaluate_expression(expr->control)))
+	if (!evaluate_expression(expr->control))
+		return NULL;
+	if (!(ctrl = degenerate(expr->control)))
 		return NULL;
 
 	source = *ctrl;
