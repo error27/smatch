@@ -3287,17 +3287,20 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 {
 	struct type_expression *map;
 	struct expression *res;
+	struct symbol source;
 	struct symbol *ctrl;
 
 	if (!(ctrl = evaluate_expression(expr->control)))
 		return NULL;
 
+	source = *ctrl;
+	source.ctype.modifiers &= ~(MOD_QUALIFIER|MOD_ATOMIC);
 	for (map = expr->map; map; map = map->next) {
 		struct symbol *stype = map->type;
 
 		if (!evaluate_symbol(stype))
 			continue;
-		if (!type_selection(ctrl, stype))
+		if (!type_selection(&source, stype))
 			continue;
 
 		res = map->expr;
