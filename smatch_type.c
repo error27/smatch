@@ -578,10 +578,20 @@ free:
 	return ret;
 }
 
+static struct expression *get_symbol_expr(struct expression *expr)
+{
+	if (!expr)
+		return NULL;
+	while (expr && expr->type == EXPR_DEREF && expr->op == '.')
+		expr = strip_expr(expr->deref);
+	return expr;
+}
+
 bool is_local_variable(struct expression *expr)
 {
 	struct symbol *sym;
 
+	expr = get_symbol_expr(expr);
 	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
 		return false;
 	sym = expr->symbol;
