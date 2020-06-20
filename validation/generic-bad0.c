@@ -18,6 +18,10 @@ void foo(int n)
 generic-bad0.c:5:33: warning: multiple default in generic expression
 generic-bad0.c:5:30: note: previous was here
 generic-bad0.c:6:25: warning: Variable length array is used.
+generic-bad0.c:6:21: error: variable length array type in generic selection
+generic-bad0.c:7:21: error: incomplete type in generic selection
+generic-bad0.c:8:21: error: incomplete type in generic selection
+generic-bad0.c:9:21: error: function type in generic selection
 generic-bad0.c:11:17: error: no generic selection for 'int [addressable] n'
  * check-error-end
  */
