@@ -754,28 +754,18 @@ static long long check_shift_count(struct instruction *insn, unsigned long long 
 	unsigned int size = insn->size;
 	long long sval = uval;
 
+	if (insn->tainted)
+		return -1;
+
 	if (uval < size)
 		return uval;
 
+	insn->tainted = 1;
 	sval = sign_extend_safe(sval, size);
 	sval = sign_extend_safe(sval, bits_in_int);
 	if (sval < 0)
 		insn->src2 = value_pseudo(sval);
-	if (insn->tainted)
-		return sval;
-
-	if (sval < 0 && Wshift_count_negative)
-		warning(insn->pos, "shift count is negative (%lld)", sval);
-	if (sval > 0 && Wshift_count_overflow) {
-		struct symbol *ctype = insn->type;
-		const char *tname;
-		if (ctype->type == SYM_NODE)
-			ctype = ctype->ctype.base_type;
-		tname = show_typename(ctype);
-		warning(insn->pos, "shift too big (%llu) for type %s", sval, tname);
-	}
-	insn->tainted = 1;
-	return sval;
+	return -1;
 }
 
 static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long value)

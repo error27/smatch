@@ -56,9 +56,9 @@ rneg:
  * check-output-end
  *
  * check-error-start
-expand/bad-shift.c:5:18: warning: shift too big (32) for type int
-expand/bad-shift.c:10:18: warning: shift count is negative (-1)
-expand/bad-shift.c:15:18: warning: shift too big (32) for type int
-expand/bad-shift.c:20:18: warning: shift count is negative (-1)
+expand/bad-shift.c:5:21: warning: shift too big (32) for type int
+expand/bad-shift.c:10:21: warning: shift count is negative (-1)
+expand/bad-shift.c:15:21: warning: shift too big (32) for type int
+expand/bad-shift.c:20:21: warning: shift count is negative (-1)
  * check-error-end
  */
