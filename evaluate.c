@@ -3304,9 +3304,7 @@ static struct symbol *evaluate_generic_selection(struct expression *expr)
 		if (!evaluate_symbol(stype))
 			continue;
 
-		if (stype->type == SYM_NODE)
-			base = stype->ctype.base_type;
-
+		base = stype->ctype.base_type;
 		if (base->type == SYM_ARRAY && base->array_size) {
 			get_expression_value_silent(base->array_size);
 			if (base->array_size->type == EXPR_VALUE)
