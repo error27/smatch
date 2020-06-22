@@ -474,7 +474,7 @@ do_format()
 	linear=0
 	fail=0
 
-	while [ $# -gt 1 ] ; do
+	while [ $# -gt 0 ] ; do
 		case "$1" in
 		-a)
 			append=1 ;;
@@ -492,6 +492,11 @@ do_format()
 		shift
 		continue
 	done
+
+	if [ $# -lt 1 -o $# -gt 3 ]; then
+		do_format_help
+		return 0
+	fi
 
 	arg_file "$1" || return 1
 
