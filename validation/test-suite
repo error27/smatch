@@ -458,6 +458,7 @@ echo "options:"
 echo "    -a                         append the created test to the input file"
 echo "    -f                         write a test known to fail"
 echo "    -l                         write a test for linearized code"
+echo "    -p                         write a test for pre-processing"
 echo
 echo "argument(s):"
 echo "    file                       file containing the test case(s)"
@@ -483,6 +484,9 @@ do_format()
 		-l)
 			def_cmd='test-linearize -Wno-decl $file'
 			linear=1 ;;
+		-p)
+			def_cmd='sparse -E $file' ;;
+
 		help|-*)
 			do_format_help
 			return 0
