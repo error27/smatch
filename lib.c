@@ -311,6 +311,7 @@ int dbg_ir = 0;
 int dbg_postorder = 0;
 
 unsigned long fdump_ir;
+int fhosted = 1;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
@@ -994,6 +995,8 @@ static int handle_fmax_warnings(const char *arg, const char *opt, const struct f
 static struct flag fflags[] = {
 	{ "diagnostic-prefix",	NULL,	handle_fdiagnostic_prefix },
 	{ "dump-ir",		NULL,	handle_fdump_ir },
+	{ "freestanding",	&fhosted, NULL, OPT_INVERSE },
+	{ "hosted",		&fhosted },
 	{ "linearize",		NULL,	handle_fpasses,	PASS_LINEARIZE },
 	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
@@ -1300,6 +1303,7 @@ static void predefined_macros(void)
 	predefine("__GNUC_PATCHLEVEL__", 1, "%d", gcc_patchlevel);
 
 	predefine("__STDC__", 1, "1");
+	predefine("__STDC_HOSTED__", 0, fhosted ? "1" : "0");
 	switch (standard) {
 	default:
 		break;

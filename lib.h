@@ -202,6 +202,7 @@ extern int dbg_postorder;
 extern unsigned int fmax_warnings;
 extern int fmem_report;
 extern unsigned long fdump_ir;
+extern int fhosted;
 extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
 extern int fpic;
