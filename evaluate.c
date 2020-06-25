@@ -3130,6 +3130,10 @@ static struct symbol *evaluate_call(struct expression *expr)
 
 	if (ctype->type != SYM_FN) {
 		struct expression *arg;
+
+		if (fn->ctype == &bad_ctype)
+			return NULL;
+
 		expression_error(expr, "not a function %s",
 			     show_ident(sym->ident));
 		/* do typechecking in arguments */
