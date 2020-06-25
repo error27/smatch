@@ -19,6 +19,11 @@ static void predefine_arm(const struct target *self)
 		predefine("__ARM_PCS", 1, "1");
 		break;
 	}
+
+	if (arch_big_endian)
+		predefine("__ARMEB__", 0, "1");
+	else
+		predefine("__ARMEL__", 0, "1");
 }
 
 const struct target target_arm = {
