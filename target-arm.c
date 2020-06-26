@@ -3,6 +3,14 @@
 #include "machine.h"
 
 
+static void init_arm(const struct target *self)
+{
+	if (arch_os == OS_NONE) {
+		int32_ctype = &long_ctype;
+		uint32_ctype = &ulong_ctype;
+	}
+}
+
 static void predefine_arm(const struct target *self)
 {
 	predefine("__arm__", 1, "1");
@@ -32,5 +40,6 @@ const struct target target_arm = {
 	.bits_in_longdouble = 64,
 	.max_fp_alignment = 8,
 
+	.init = init_arm,
 	.predefine = predefine_arm,
 };
