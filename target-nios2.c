@@ -6,13 +6,18 @@
 
 static void predefine_nios2(const struct target *self)
 {
+	predefine("__NIOS2", 1, "1");
 	predefine("__NIOS2__", 1, "1");
+	predefine("__nios2", 1, "1");
 	predefine("__nios2__", 1, "1");
 
-	if (arch_big_endian)
+	if (arch_big_endian) {
+		predefine("__nios2_big_endian", 1, "1");
 		predefine("__nios2_big_endian__", 1, "1");
-	else
+	} else {
+		predefine("__nios2_little_endian", 1, "1");
 		predefine("__nios2_little_endian__", 1, "1");
+	}
 }
 
 static const struct builtin_fn builtins_nios2[] = {
