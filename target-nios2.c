@@ -26,6 +26,8 @@ const struct target target_nios2 = {
 	.mach = MACH_NIOS2,
 	.bitness = ARCH_LP32,
 
+	.bits_in_longdouble = 64,
+
 	.predefine = predefine_nios2,
 	.builtins = builtins_nios2,
 };
