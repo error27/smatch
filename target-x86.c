@@ -29,6 +29,8 @@ static void init_x86_common(const struct target *target)
 		wint_ctype = &int_ctype;
 		break;
 	case OS_OPENBSD:
+		size_t_ctype = &ulong_ctype;
+		ssize_t_ctype = &long_ctype;
 		wchar_ctype = &int_ctype;
 		wint_ctype = &int_ctype;
 		break;
@@ -71,6 +73,15 @@ static void init_x86_64(const struct target *target)
 		wint_ctype = &int_ctype;
 		break;
 	case OS_FREEBSD:
+		break;
+	case OS_NETBSD:
+		wint_ctype = &int_ctype;
+		break;
+	case OS_OPENBSD:
+		int64_ctype = &llong_ctype;
+		uint64_ctype = &ullong_ctype;
+		intmax_ctype = &llong_ctype;
+		uintmax_ctype = &ullong_ctype;
 		break;
 	}
 }
