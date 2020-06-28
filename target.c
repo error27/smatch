@@ -15,6 +15,14 @@ struct symbol *int32_ctype = &int_ctype;
 struct symbol *uint32_ctype = &uint_ctype;
 struct symbol *wchar_ctype = &int_ctype;
 struct symbol *wint_ctype = &uint_ctype;
+struct symbol *least8_ctype = &schar_ctype;
+struct symbol *uleast8_ctype = &uchar_ctype;
+struct symbol *least16_ctype = &short_ctype;
+struct symbol *uleast16_ctype = &ushort_ctype;
+struct symbol *least32_ctype = &int_ctype;
+struct symbol *uleast32_ctype = &uint_ctype;
+struct symbol *least64_ctype = &llong_ctype;
+struct symbol *uleast64_ctype = &ullong_ctype;
 
 /*
  * For "__attribute__((aligned))"

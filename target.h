@@ -13,6 +13,14 @@ extern struct symbol *int32_ctype;
 extern struct symbol *uint32_ctype;
 extern struct symbol *wchar_ctype;
 extern struct symbol *wint_ctype;
+extern struct symbol *least8_ctype;
+extern struct symbol *uleast8_ctype;
+extern struct symbol *least16_ctype;
+extern struct symbol *uleast16_ctype;
+extern struct symbol *least32_ctype;
+extern struct symbol *uleast32_ctype;
+extern struct symbol *least64_ctype;
+extern struct symbol *uleast64_ctype;
 
 /*
  * For "__attribute__((aligned))"

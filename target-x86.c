@@ -82,6 +82,8 @@ static void init_x86_64(const struct target *target)
 		uint64_ctype = &ullong_ctype;
 		intmax_ctype = &llong_ctype;
 		uintmax_ctype = &ullong_ctype;
+		least64_ctype = &long_ctype;
+		uleast64_ctype = &ulong_ctype;
 		break;
 	}
 }
