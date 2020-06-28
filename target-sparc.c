@@ -19,6 +19,11 @@ static void predefine_sparc(const struct target *self)
 
 static void init_sparc32(const struct target *target)
 {
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+
 	if (!sparc_version)
 		sparc_version = 8;
 

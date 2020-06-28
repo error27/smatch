@@ -31,6 +31,14 @@ static const char *asm_constraint_ppc(struct asm_operand *op, int c, const char 
 }
 
 
+static void init_ppc32(const struct target *self)
+{
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+}
+
 static void predefine_ppc32(const struct target *self)
 {
 	predefine_ppc(self);
@@ -46,6 +54,7 @@ const struct target target_ppc32 = {
 
 	.target_64bit = &target_ppc64,
 
+	.init = init_ppc32,
 	.predefine = predefine_ppc32,
 	.asm_constraint = asm_constraint_ppc,
 };

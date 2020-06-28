@@ -154,6 +154,15 @@ void predefined_macros(void)
 	predefined_ctype("INT_LEAST64",   int64_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINT_LEAST64", uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 
+	predefined_ctype("INT_FAST8",    fast8_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST8",  ufast8_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST16",  fast16_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST16",ufast16_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST32",  fast32_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST32",ufast32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST64",  fast64_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST64",ufast64_ctype, PTYPE_MAX|PTYPE_TYPE);
+
 	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);

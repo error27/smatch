@@ -5,6 +5,11 @@
 
 static void init_xtensa(const struct target *self)
 {
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+
 	wchar_ctype = &long_ctype;
 }
 

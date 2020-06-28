@@ -87,6 +87,16 @@ static void init_riscv(const struct target *self)
 		riscv_flags = self->flags;
 }
 
+static void init_riscv32(const struct target *self)
+{
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+
+	init_riscv(self);
+}
+
 static void predefine_riscv(const struct target *self)
 {
 	static const char *cmodels[CMODEL_LAST] = {
@@ -131,7 +141,7 @@ const struct target target_riscv32 = {
 
 	.target_64bit = &target_riscv64,
 
-	.init = init_riscv,
+	.init = init_riscv32,
 	.predefine = predefine_riscv,
 	.parse_march = parse_march_riscv,
 };

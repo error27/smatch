@@ -4,6 +4,14 @@
 #include "expression.h"
 
 
+static void init_s390(const struct target *self)
+{
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+}
+
 static void predefine_s390(const struct target *self)
 {
 	predefine("__s390__", 1, "1");
@@ -31,6 +39,7 @@ const struct target target_s390 = {
 
 	.target_64bit = &target_s390x,
 
+	.init = init_s390,
 	.predefine = predefine_s390,
 	.asm_constraint = asm_constraint_s390,
 };

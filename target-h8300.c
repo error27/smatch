@@ -8,6 +8,11 @@ static void init_h8300(const struct target *self)
 	ssize_t_ctype = &long_ctype;
 	size_t_ctype = &ulong_ctype;
 	wchar_ctype = &ushort_ctype;
+
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
 }
 
 static void predefine_h8300(const struct target *self)

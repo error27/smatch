@@ -33,6 +33,8 @@ static void init_x86_common(const struct target *target)
 		ssize_t_ctype = &long_ctype;
 		wchar_ctype = &int_ctype;
 		wint_ctype = &int_ctype;
+		fast16_ctype = &short_ctype;
+		ufast16_ctype = &ushort_ctype;
 		break;
 	}
 }
@@ -40,6 +42,11 @@ static void init_x86_common(const struct target *target)
 
 static void init_i386(const struct target *target)
 {
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+
 	init_x86_common(target);
 }
 
@@ -71,13 +78,31 @@ static void init_x86_64(const struct target *target)
 		int64_ctype = &llong_ctype;
 		uint64_ctype = &ullong_ctype;
 		wint_ctype = &int_ctype;
+		fast16_ctype = &short_ctype;
+		ufast16_ctype = &ushort_ctype;
+		fast32_ctype = &int_ctype;
+		ufast32_ctype = &uint_ctype;
+		fast64_ctype = &llong_ctype;
+		ufast64_ctype = &ullong_ctype;
 		break;
 	case OS_FREEBSD:
+		fast16_ctype = &short_ctype;
+		ufast16_ctype = &ushort_ctype;
+		fast32_ctype = &int_ctype;
+		ufast32_ctype = &uint_ctype;
 		break;
 	case OS_NETBSD:
+		fast8_ctype = &int_ctype;
+		ufast8_ctype = &uint_ctype;
+		fast16_ctype = &int_ctype;
+		ufast16_ctype = &uint_ctype;
+		fast32_ctype = &int_ctype;
+		ufast32_ctype = &uint_ctype;
 		wint_ctype = &int_ctype;
 		break;
 	case OS_OPENBSD:
+		fast32_ctype = &int_ctype;
+		ufast32_ctype = &uint_ctype;
 		int64_ctype = &llong_ctype;
 		uint64_ctype = &ullong_ctype;
 		intmax_ctype = &llong_ctype;

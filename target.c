@@ -23,6 +23,14 @@ struct symbol *least32_ctype = &int_ctype;
 struct symbol *uleast32_ctype = &uint_ctype;
 struct symbol *least64_ctype = &llong_ctype;
 struct symbol *uleast64_ctype = &ullong_ctype;
+struct symbol *fast8_ctype = &schar_ctype;
+struct symbol *ufast8_ctype = &uchar_ctype;
+struct symbol *fast16_ctype = &long_ctype;
+struct symbol *ufast16_ctype = &ulong_ctype;
+struct symbol *fast32_ctype = &long_ctype;
+struct symbol *ufast32_ctype = &ulong_ctype;
+struct symbol *fast64_ctype = &long_ctype;
+struct symbol *ufast64_ctype = &ulong_ctype;
 
 /*
  * For "__attribute__((aligned))"
@@ -214,6 +222,8 @@ void target_init(void)
 		uint64_ctype = &ullong_ctype;
 		intmax_ctype = &llong_ctype;
 		uintmax_ctype = &ullong_ctype;
+		fast64_ctype = &llong_ctype;
+		ufast64_ctype = &ullong_ctype;
 		if (target->target_32bit)
 			target = target->target_32bit;
 		break;

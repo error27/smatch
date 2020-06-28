@@ -21,6 +21,14 @@ extern struct symbol *least32_ctype;
 extern struct symbol *uleast32_ctype;
 extern struct symbol *least64_ctype;
 extern struct symbol *uleast64_ctype;
+extern struct symbol *fast8_ctype;
+extern struct symbol *ufast8_ctype;
+extern struct symbol *fast16_ctype;
+extern struct symbol *ufast16_ctype;
+extern struct symbol *fast32_ctype;
+extern struct symbol *ufast32_ctype;
+extern struct symbol *fast64_ctype;
+extern struct symbol *ufast64_ctype;
 
 /*
  * For "__attribute__((aligned))"

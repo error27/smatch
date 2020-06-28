@@ -5,9 +5,16 @@
 
 static void init_arm(const struct target *self)
 {
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+
 	if (arch_os == OS_NONE) {
 		int32_ctype = &long_ctype;
 		uint32_ctype = &ulong_ctype;
+		fast8_ctype = &int_ctype;
+		ufast8_ctype = &uint_ctype;
 	}
 }
 
