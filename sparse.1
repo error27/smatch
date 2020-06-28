@@ -464,6 +464,16 @@ Look for system headers in the multiarch subdirectory \fIdir\fR.
 The \fIdir\fR name would normally take the form of the target's
 normalized GNU triplet. (e.g. i386-linux-gnu).
 .
+.TP
+.B --os=\fIOS\fR
+Specify the target Operating System.
+This only makes a few differences with the predefined types.
+The accepted values are: linux, unix, freebsd, netbsd, opensd, sunos, darwin
+and cygwin.
+
+The default OS is the one of the machine used to build Sparse if it can be
+detected, otherwise some generic settings are used.
+.
 .SH DEBUG OPTIONS
 .TP
 .B \-fmem-report

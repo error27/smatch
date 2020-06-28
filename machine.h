@@ -94,6 +94,7 @@ enum fp_abi {
 
 enum {
 	OS_UNKNOWN,
+	OS_NONE,
 	OS_UNIX,
 	OS_CYGWIN,
 	OS_DARWIN,

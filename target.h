@@ -105,6 +105,7 @@ extern const struct target target_x86_64;
 extern const struct target *arch_target;
 
 enum machine target_parse(const char *name);
+void target_os(const char *name);
 void target_config(enum machine mach);
 void target_init(void);
 

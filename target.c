@@ -136,6 +136,35 @@ enum machine target_parse(const char *name)
 	return MACH_UNKNOWN;
 }
 
+void target_os(const char *name)
+{
+	static const struct os {
+		const char *name;
+		int os;
+	} oses[] = {
+		{ "cygwin",	OS_CYGWIN },
+		{ "darwin",	OS_DARWIN },
+		{ "freebsd",	OS_FREEBSD },
+		{ "linux",	OS_LINUX },
+		{ "native",	OS_NATIVE, },
+		{ "netbsd",	OS_NETBSD },
+		{ "none",	OS_NONE },
+		{ "openbsd",	OS_OPENBSD },
+		{ "sunos",	OS_SUNOS },
+		{ "unix",	OS_UNIX },
+		{ NULL },
+	}, *p;
+
+	for (p = &oses[0]; p->name; p++) {
+		if (!strcmp(p->name, name)) {
+			arch_os = p->os;
+			return;
+		}
+	}
+
+	die("invalid os: %s", name);
+}
+
 
 void target_config(enum machine mach)
 {
