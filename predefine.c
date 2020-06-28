@@ -216,10 +216,16 @@ void predefined_macros(void)
 		predefine_nostd("unix");
 	}
 
-	if (arch_os == OS_SUNOS) {
+	switch (arch_os) {
+	case OS_LINUX:
+		predefine("__linux__", 1, "1");
+		predefine("__linux", 1, "1");
+		break;
+	case OS_SUNOS:
 		predefine("__sun__", 1, "1");
 		predefine("__sun", 1, "1");
 		predefine_nostd("sun");
 		predefine("__svr4__", 1, "1");
+		break;
 	}
 }
