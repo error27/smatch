@@ -170,6 +170,7 @@ void predefined_macros(void)
 	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("SIZE",      size_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("POINTER",     &ptr_ctype, PTYPE_SIZEOF);
+	predefined_ctype("SIG_ATOMIC", sig_atomic_ctype, PTYPE_MAX|PTYPE_MIN|PTYPE_TYPE|PTYPE_WIDTH);
 
 	predefined_sizeof("FLOAT", "", bits_in_float);
 	predefined_sizeof("DOUBLE", "", bits_in_double);

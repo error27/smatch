@@ -31,6 +31,7 @@ struct symbol *fast32_ctype = &long_ctype;
 struct symbol *ufast32_ctype = &ulong_ctype;
 struct symbol *fast64_ctype = &long_ctype;
 struct symbol *ufast64_ctype = &ulong_ctype;
+struct symbol *sig_atomic_ctype = &int_ctype;
 
 /*
  * For "__attribute__((aligned))"

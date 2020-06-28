@@ -29,6 +29,7 @@ extern struct symbol *fast32_ctype;
 extern struct symbol *ufast32_ctype;
 extern struct symbol *fast64_ctype;
 extern struct symbol *ufast64_ctype;
+extern struct symbol *sig_atomic_ctype;
 
 /*
  * For "__attribute__((aligned))"
