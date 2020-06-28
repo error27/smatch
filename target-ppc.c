@@ -14,6 +14,10 @@ static void predefine_ppc(const struct target *self)
 	predefine("_ARCH_PPC", 1, "1");
 	if (arch_big_endian)
 		predefine("_BIG_ENDIAN", 1, "1");
+	if (ldouble_ctype.bit_size == 128) {
+		predefine("__LONGDOUBLE128", 1, "1");
+		predefine("__LONG_DOUBLE_128__", 1, "1");
+	}
 }
 
 static const char *asm_constraint_ppc(struct asm_operand *op, int c, const char *str)
