@@ -140,4 +140,6 @@ extern int inline_function(struct expression *expr, struct symbol *sym);
 extern void uninline(struct symbol *sym);
 extern void init_parser(int);
 
+struct token *expect(struct token *, int, const char *);
+
 #endif /* PARSE_H */

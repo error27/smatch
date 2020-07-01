@@ -50,44 +50,6 @@
 #include "bits.h"
 
 
-struct token *skip_to(struct token *token, int op)
-{
-	while (!match_op(token, op) && !eof_token(token))
-		token = token->next;
-	return token;
-}
-
-static struct token bad_token = { .pos.type = TOKEN_BAD };
-struct token *expect(struct token *token, int op, const char *where)
-{
-	if (!match_op(token, op)) {
-		if (token != &bad_token) {
-			bad_token.next = token;
-			sparse_error(token->pos, "Expected %s %s", show_special(op), where);
-			sparse_error(token->pos, "got %s", show_token(token));
-		}
-		if (op == ';')
-			return skip_to(token, op);
-		return &bad_token;
-	}
-	return token->next;
-}
-
-///
-// issue an error message on new parsing errors
-// @token: the current token
-// @errmsg: the error message
-// If the current token is from a previous error, an error message
-// has already been issued, so nothing more is done.
-// Otherwise, @errmsg is displayed followed by the current token.
-void unexpected(struct token *token, const char *errmsg)
-{
-	if (token == &bad_token)
-		return;
-	sparse_error(token->pos, "%s", errmsg);
-	sparse_error(token->pos, "got %s", show_token(token));
-}
-
 unsigned int hexval(unsigned int c)
 {
 	int retval = 256;
