@@ -1220,6 +1220,12 @@ static char **handle_switch(char *arg, char **next)
 	return next;
 }
 
+static void handle_switch_finalize(void)
+{
+	handle_switch_v_finalize();
+	handle_switch_W_finalize();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Predefines
 
@@ -1576,8 +1582,7 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 		}
 		add_ptr_list(filelist, arg);
 	}
-	handle_switch_W_finalize();
-	handle_switch_v_finalize();
+	handle_switch_finalize();
 
 	// Redirect stdout if needed
 	if (dump_macro_defs || preprocess_only)
