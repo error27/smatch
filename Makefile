@@ -52,6 +52,7 @@ LIB_OBJS += liveness.o
 LIB_OBJS += memops.o
 LIB_OBJS += opcode.o
 LIB_OBJS += optimize.o
+LIB_OBJS += options.o
 LIB_OBJS += parse.o
 LIB_OBJS += pre-process.o
 LIB_OBJS += ptrlist.o
