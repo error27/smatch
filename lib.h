@@ -48,6 +48,7 @@ extern int die_if_error;
 extern int repeat_phase;
 extern int do_output;
 extern int gcc_major, gcc_minor, gcc_patchlevel;
+extern unsigned int tabstop;
 
 extern const char *base_filename;
 
