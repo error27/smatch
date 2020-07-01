@@ -8,6 +8,23 @@
 #include <stdio.h>
 
 
+unsigned int hexval(unsigned int c)
+{
+	int retval = 256;
+	switch (c) {
+	case '0'...'9':
+		retval = c - '0';
+		break;
+	case 'a'...'f':
+		retval = c - 'a' + 10;
+		break;
+	case 'A'...'F':
+		retval = c - 'A' + 10;
+		break;
+	}
+	return retval;
+}
+
 void *xmemdup(const void *src, size_t len)
 {
 	return memcpy(__alloc_bytes(len), src, len);

@@ -50,23 +50,6 @@
 #include "bits.h"
 
 
-unsigned int hexval(unsigned int c)
-{
-	int retval = 256;
-	switch (c) {
-	case '0'...'9':
-		retval = c - '0';
-		break;
-	case 'a'...'f':
-		retval = c - 'a' + 10;
-		break;
-	case 'A'...'F':
-		retval = c - 'A' + 10;
-		break;
-	}
-	return retval;
-}
-
 static void do_warn(const char *type, struct position pos, const char * fmt, va_list args)
 {
 	static char buffer[512];

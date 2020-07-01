@@ -45,8 +45,6 @@
 #endif
 
 
-extern unsigned int hexval(unsigned int c);
-
 struct position {
 	unsigned int type:6,
 		     stream:14,
