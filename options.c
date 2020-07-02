@@ -18,20 +18,33 @@
 #include <string.h>
 
 
-int verbose, optimize_level, optimize_size, preprocessing;
-int die_if_error = 0;
-int has_error = 0;
-int do_output = 1;
-
 #ifndef __GNUC__
 # define __GNUC__ 2
 # define __GNUC_MINOR__ 95
 # define __GNUC_PATCHLEVEL__ 0
 #endif
 
+enum flag_type {
+	FLAG_OFF,
+	FLAG_ON,
+	FLAG_FORCE_OFF
+};
+
+int die_if_error = 0;
+int do_output = 1;
 int gcc_major = __GNUC__;
 int gcc_minor = __GNUC_MINOR__;
 int gcc_patchlevel = __GNUC_PATCHLEVEL__;
+int has_error = 0;
+int optimize_level;
+int optimize_size;
+int preprocess_only;
+int preprocessing;
+int verbose;
+
+#define CMDLINE_INCLUDE 20
+int cmdline_include_nr = 0;
+char *cmdline_include[CMDLINE_INCLUDE];
 
 const char *base_filename;
 const char *diag_prefix = "";
@@ -39,11 +52,35 @@ const char *gcc_base_dir = GCC_BASE;
 const char *multiarch_dir = MULTIARCH_TRIPLET;
 const char *outfile = NULL;
 
-enum flag_type {
-	FLAG_OFF,
-	FLAG_ON,
-	FLAG_FORCE_OFF
-};
+enum standard standard = STANDARD_GNU89;
+
+int arch_big_endian = ARCH_BIG_ENDIAN;
+int arch_cmodel = CMODEL_UNKNOWN;
+int arch_fp_abi = FP_ABI_NATIVE;
+int arch_m64 = ARCH_M64_DEFAULT;
+int arch_msize_long = 0;
+int arch_os = OS_NATIVE;
+
+int dbg_compound = 0;
+int dbg_dead = 0;
+int dbg_domtree = 0;
+int dbg_entry = 0;
+int dbg_ir = 0;
+int dbg_postorder = 0;
+
+int dump_macro_defs = 0;
+int dump_macros_only = 0;
+
+unsigned long fdump_ir;
+int fhosted = 1;
+unsigned int fmax_warnings = 100;
+int fmem_report = 0;
+unsigned long long fmemcpy_max_count = 100000;
+unsigned long fpasses = ~0UL;
+int fpic = 0;
+int fpie = 0;
+int fshort_wchar = 0;
+int funsigned_char = 0;
 
 int Waddress = 0;
 int Waddress_space = 1;
@@ -60,11 +97,11 @@ int Wdeclarationafterstatement = -1;
 int Wdefault_bitfield_sign = 0;
 int Wdesignated_init = 1;
 int Wdo_while = 0;
+int Wenum_mismatch = 1;
+int Wexternal_function_has_definition = 1;
 int Wimplicit_int = 1;
 int Winit_cstring = 0;
 int Wint_to_pointer_cast = 1;
-int Wenum_mismatch = 1;
-int Wexternal_function_has_definition = 1;
 int Wmemcpy_max_count = 1;
 int Wnewline_eof = 1;
 int Wnon_pointer_null = 1;
@@ -94,43 +131,6 @@ int Wuninitialized = 1;
 int Wuniversal_initializer = 0;
 int Wunknown_attribute = 0;
 int Wvla = 1;
-
-int dump_macro_defs = 0;
-int dump_macros_only = 0;
-
-int dbg_compound = 0;
-int dbg_dead = 0;
-int dbg_domtree = 0;
-int dbg_entry = 0;
-int dbg_ir = 0;
-int dbg_postorder = 0;
-
-unsigned long fdump_ir;
-int fhosted = 1;
-unsigned int fmax_warnings = 100;
-int fmem_report = 0;
-unsigned long long fmemcpy_max_count = 100000;
-unsigned long fpasses = ~0UL;
-int fpic = 0;
-int fpie = 0;
-int fshort_wchar = 0;
-int funsigned_char = 0;
-
-int preprocess_only;
-
-enum standard standard = STANDARD_GNU89;
-
-int arch_msize_long = 0;
-int arch_m64 = ARCH_M64_DEFAULT;
-int arch_big_endian = ARCH_BIG_ENDIAN;
-int arch_fp_abi = FP_ABI_NATIVE;
-int arch_os = OS_NATIVE;
-int arch_cmodel = CMODEL_UNKNOWN;
-
-
-#define CMDLINE_INCLUDE 20
-int cmdline_include_nr = 0;
-char *cmdline_include[CMDLINE_INCLUDE];
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers for option parsing
