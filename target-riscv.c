@@ -24,7 +24,7 @@ static void predefine_riscv(const struct target *self)
 	predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
 
 	if (cmodel)
-		add_pre_buffer("#define __riscv_cmodel_%s 1\n", cmodel);
+		predefine_strong("__riscv_cmodel_%s", cmodel);
 }
 
 const struct target target_riscv32 = {
