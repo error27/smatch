@@ -52,7 +52,7 @@ static void predefined_min(const char *name, struct symbol *type)
 	snprintf(buf, sizeof(buf), "__%s_MIN__", name);
 
 	if (is_signed_type(type))
-		predefine(buf, 1, "(-__%s_MAX__ - 1)", name);
+		add_pre_buffer("#weak_define %s (-__%s_MAX__ - 1)\n", buf, name);
 	else
 		predefine(buf, 1, "0%s", suffix);
 }
