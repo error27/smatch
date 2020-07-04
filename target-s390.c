@@ -1,11 +1,22 @@
 #include "symbol.h"
 #include "target.h"
 #include "machine.h"
+#include "expression.h"
 
 
 static void predefine_s390(const struct target *self)
 {
 	predefine("__s390__", 1, "1");
+}
+
+static const char *asm_constraint_s390(struct asm_operand *op, int c, const char *str)
+{
+	switch (c) {
+	case 'R': case 'S': case 'T':
+		op->is_memory = true;
+		break;
+	}
+	return str;
 }
 
 const struct target target_s390 = {
@@ -21,6 +32,7 @@ const struct target target_s390 = {
 	.target_64bit = &target_s390x,
 
 	.predefine = predefine_s390,
+	.asm_constraint = asm_constraint_s390,
 };
 
 
@@ -45,4 +57,5 @@ const struct target target_s390x = {
 	.target_32bit = &target_s390,
 
 	.predefine = predefine_s390x,
+	.asm_constraint = asm_constraint_s390,
 };
