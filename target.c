@@ -5,6 +5,9 @@
 #include "target.h"
 #include "machine.h"
 
+struct symbol *ptrdiff_ctype;
+struct symbol *intptr_ctype;
+struct symbol *uintptr_ctype;
 struct symbol *size_t_ctype = &ulong_ctype;
 struct symbol *ssize_t_ctype = &long_ctype;
 struct symbol *intmax_ctype = &long_ctype;

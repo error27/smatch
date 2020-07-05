@@ -899,4 +899,11 @@ void init_ctype(void)
 		char_ctype.ctype.modifiers |= MOD_UNSIGNED;
 		char_ctype.ctype.modifiers &= ~MOD_SIGNED;
 	}
+
+	if (!ptrdiff_ctype)
+		ptrdiff_ctype = ssize_t_ctype;
+	if (!intptr_ctype)
+		intptr_ctype = ssize_t_ctype;
+	if (!uintptr_ctype)
+		uintptr_ctype = size_t_ctype;
 }

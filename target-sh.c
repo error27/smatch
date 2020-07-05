@@ -7,6 +7,8 @@ static void init_sh(const struct target *self)
 {
 	int64_ctype = &llong_ctype;
 	uint64_ctype = &ullong_ctype;
+	intptr_ctype = &int_ctype;
+	uintptr_ctype = &uint_ctype;
 
 	fast16_ctype = &int_ctype;
 	ufast16_ctype = &uint_ctype;

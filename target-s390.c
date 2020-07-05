@@ -6,6 +6,9 @@
 
 static void init_s390(const struct target *self)
 {
+	intptr_ctype = &int_ctype;
+	uintptr_ctype = &uint_ctype;
+
 	fast16_ctype = &int_ctype;
 	ufast16_ctype = &uint_ctype;
 	fast32_ctype = &int_ctype;

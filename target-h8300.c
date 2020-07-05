@@ -5,6 +5,8 @@
 
 static void init_h8300(const struct target *self)
 {
+	intptr_ctype = &int_ctype;
+	uintptr_ctype = &uint_ctype;
 	ssize_t_ctype = &long_ctype;
 	size_t_ctype = &ulong_ctype;
 	wchar_ctype = &ushort_ctype;
