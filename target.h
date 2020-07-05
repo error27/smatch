@@ -53,7 +53,7 @@ extern int pointer_alignment;
 extern int bits_in_enum;
 extern int enum_alignment;
 
-
+struct asm_operand;
 struct builtin_fn;
 
 struct target {
@@ -77,6 +77,7 @@ struct target {
 
 	void (*init)(const struct target *self);
 	void (*predefine)(const struct target *self);
+	const char *(*asm_constraint)(struct asm_operand *op, int c, const char *str);
 };
 
 extern const struct target target_default;

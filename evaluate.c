@@ -3642,7 +3642,10 @@ static void parse_asm_constraint(struct asm_operand *op)
 			return;
 
 		default:
-			// FIXME: arch-specific (and multi-letter) constraints
+			if (arch_target->asm_constraint)
+				str = arch_target->asm_constraint(op, c, str);
+
+			// FIXME: multi-letter constraints
 			break;
 		}
 	}

@@ -1,6 +1,7 @@
 #include "symbol.h"
 #include "target.h"
 #include "machine.h"
+#include "expression.h"
 
 
 static void predefine_ppc(const struct target *self)
@@ -13,6 +14,16 @@ static void predefine_ppc(const struct target *self)
 	predefine("_ARCH_PPC", 1, "1");
 	if (arch_big_endian)
 		predefine("_BIG_ENDIAN", 1, "1");
+}
+
+static const char *asm_constraint_ppc(struct asm_operand *op, int c, const char *str)
+{
+	switch (c) {
+	case 'Z':
+		op->is_memory = true;
+		break;
+	}
+	return str;
 }
 
 
@@ -32,6 +43,7 @@ const struct target target_ppc32 = {
 	.target_64bit = &target_ppc64,
 
 	.predefine = predefine_ppc32,
+	.asm_constraint = asm_constraint_ppc,
 };
 
 
@@ -55,4 +67,5 @@ const struct target target_ppc64 = {
 	.target_32bit = &target_ppc32,
 
 	.predefine = predefine_ppc64,
+	.asm_constraint = asm_constraint_ppc,
 };
