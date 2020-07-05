@@ -63,6 +63,7 @@ struct target {
 	unsigned int	unsigned_char:1;
 	unsigned int	size_t_long:1;
 	unsigned int	has_int128:1;
+	unsigned long	flags;
 
 	struct symbol	*wchar;
 	struct symbol	*wint;
