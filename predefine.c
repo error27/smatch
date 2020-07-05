@@ -221,6 +221,15 @@ void predefined_macros(void)
 		predefine("__CYGWIN__", 1, "1");
 		if (arch_m64 == ARCH_LP32)
 			predefine("__CYGWIN32__", 1, "1");
+		add_pre_buffer("#define __cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define __declspec(x) __attribute__((x))\n");
+		add_pre_buffer("#define __fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define __stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define __thiscall __attribute__((__thiscall__))\n");
+		add_pre_buffer("#define _cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define _fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define _stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define _thiscall __attribute__((__thiscall__))\n");
 		break;
 	case OS_DARWIN:
 		predefine("__APPLE__", 1, "1");
