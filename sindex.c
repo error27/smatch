@@ -970,8 +970,8 @@ static int search_query_callback(void *data, int argc, char **argv, char **colna
 					print_file_line(argv[0], atoi(argv[1]));
 					fmt++;
 					break;
-				case -1:
-print_string:
+
+				print_string:
 					if (n) {
 						printf("%.*s", n, buf);
 						n = 0;
@@ -979,6 +979,9 @@ print_string:
 					printf("%s", argv[colnum]);
 					fmt++;
 					break;
+				default:
+					break;
+
 			}
 
 			if (pos == fmt)
