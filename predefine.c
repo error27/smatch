@@ -217,9 +217,28 @@ void predefined_macros(void)
 	}
 
 	switch (arch_os) {
+	case OS_CYGWIN:
+		predefine("__CYGWIN__", 1, "1");
+		if (arch_m64 == ARCH_LP32)
+			predefine("__CYGWIN32__", 1, "1");
+		break;
+	case OS_DARWIN:
+		predefine("__APPLE__", 1, "1");
+		predefine("__APPLE_CC__", 1, "1");
+		predefine("__MACH__", 1, "1");
+		break;
+	case OS_FREEBSD:
+		predefine("__FreeBSD__", 1, "1");
+		break;
 	case OS_LINUX:
 		predefine("__linux__", 1, "1");
 		predefine("__linux", 1, "1");
+		break;
+	case OS_NETBSD:
+		predefine("__NetBSD__", 1, "1");
+		break;
+	case OS_OPENBSD:
+		predefine("__OpenBSD__", 1, "1");
 		break;
 	case OS_SUNOS:
 		predefine("__sun__", 1, "1");
