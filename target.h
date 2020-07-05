@@ -86,6 +86,7 @@ extern const struct target target_arm;
 extern const struct target target_arm64;
 extern const struct target target_bfin;
 extern const struct target target_m68k;
+extern const struct target target_microblaze;
 extern const struct target target_mips32;
 extern const struct target target_mips64;
 extern const struct target target_nios2;
