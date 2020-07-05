@@ -213,10 +213,17 @@ void target_init(void)
 	const struct target *target = arch_target;
 
 	switch (arch_m64) {
+	case ARCH_X32:
+		if (target->target_x32bit)
+			target = target->target_x32bit;
+		goto case_32bit;
+
 	case ARCH_LP32:
 		max_int_alignment = 4;
+		if (target->target_32bit)
+			target = target->target_32bit;
 		/* fallthrough */
-	case ARCH_X32:
+	case_32bit:
 		bits_in_long = 32;
 		bits_in_pointer = 32;
 		pointer_alignment = 4;
@@ -228,8 +235,6 @@ void target_init(void)
 		uintmax_ctype = &ullong_ctype;
 		fast64_ctype = &llong_ctype;
 		ufast64_ctype = &ullong_ctype;
-		if (target->target_32bit)
-			target = target->target_32bit;
 		break;
 
 	case ARCH_LLP64:

@@ -67,6 +67,37 @@ const struct target target_i386 = {
 };
 
 
+static void init_x86_x32(const struct target *target)
+{
+	init_x86_common(target);
+
+	max_int_alignment = 8;
+
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+	wchar_ctype = &long_ctype;
+}
+
+static const struct target target_x86_x32 = {
+	.mach = MACH_X86_64,
+	.bitness = ARCH_X32,
+	.big_endian = 0,
+	.unsigned_char = 0,
+	.has_int128 = 1,
+
+	.bits_in_longdouble = 128,
+	.max_fp_alignment = 16,
+
+	.target_32bit = &target_i386,
+	.target_64bit = &target_x86_64,
+
+	.init = init_x86_x32,
+	.predefine = predefine_x86_64,
+};
+
+
 static void init_x86_64(const struct target *target)
 {
 	init_x86_common(target);
@@ -124,6 +155,7 @@ const struct target target_x86_64 = {
 	.max_fp_alignment = 16,
 
 	.target_32bit = &target_i386,
+	.target_x32bit = &target_x86_x32,
 
 	.init = init_x86_64,
 	.predefine = predefine_x86_64,

@@ -92,6 +92,7 @@ struct target {
 	unsigned int	max_fp_alignment;
 
 	const struct target *target_32bit;
+	const struct target *target_x32bit;
 	const struct target *target_64bit;
 
 	const struct builtin_fn *builtins;
