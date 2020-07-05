@@ -76,6 +76,7 @@ struct target {
 	const struct builtin_fn *builtins;
 
 	void (*init)(const struct target *self);
+	void (*parse_march)(const char *arg);
 	void (*predefine)(const struct target *self);
 	const char *(*asm_constraint)(struct asm_operand *op, int c, const char *str);
 };
