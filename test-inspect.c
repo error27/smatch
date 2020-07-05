@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <locale.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -31,6 +32,7 @@ int main(int argc, char **argv)
 	struct symbol_list *view_syms = NULL;
 
 	gtk_init(&argc,&argv);
+	setlocale(LC_ALL, "C");
 	expand_symbols(sparse_initialize(argc, argv, &filelist));
 	FOR_EACH_PTR(filelist, file) {
 		struct symbol_list *syms = sparse(file);
