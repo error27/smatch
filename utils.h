@@ -9,6 +9,10 @@
 #include <stdarg.h>
 
 ///
+// return the value coresponding to an hexadecimal digit
+unsigned int hexval(unsigned int c);
+
+///
 // duplicate a memory buffer in a newly allocated buffer.
 // @src: a pointer to the memory buffer to be duplicated
 // @len: the size of the memory buffer to be duplicated
