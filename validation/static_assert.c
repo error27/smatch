@@ -53,6 +53,10 @@ _Static_assert(1, );
 _Static_assert(, "");
 _Static_assert(,);
 
+// C2x's version: without message
+_Static_assert(1);
+_Static_assert(0);
+
 /*
  * check-name: static assertion
  *
@@ -67,5 +71,6 @@ static_assert.c:52:19: error: string literal expected for _Static_assert()
 static_assert.c:53:16: error: Expected constant expression
 static_assert.c:54:16: error: Expected constant expression
 static_assert.c:54:17: error: string literal expected for _Static_assert()
+static_assert.c:58:16: error: static assertion failed
  * check-error-end
  */
