@@ -101,6 +101,7 @@ extern const struct target target_sparc32;
 extern const struct target target_sparc64;
 extern const struct target target_i386;
 extern const struct target target_x86_64;
+extern const struct target target_xtensa;
 
 /* target.c */
 extern const struct target *arch_target;

@@ -77,6 +77,7 @@ static const struct target *targets[] = {
 	[MACH_SPARC32] =	&target_sparc32,
 	[MACH_SPARC64] =	&target_sparc64,
 	[MACH_X86_64] =		&target_x86_64,
+	[MACH_XTENSA] =		&target_xtensa,
 	[MACH_UNKNOWN] =	&target_default,
 };
 const struct target *arch_target = &target_default;
@@ -107,6 +108,7 @@ enum machine target_parse(const char *name)
 		{ "sparc",	MACH_SPARC32,	0,  },
 		{ "x86_64",	MACH_X86_64,	64, },
 		{ "x86-64",	MACH_X86_64,	64, },
+		{ "xtensa",	MACH_XTENSA,	32, },
 		{ NULL },
 	};
 	const struct arch *p;
