@@ -1,0 +1,27 @@
+#include "symbol.h"
+#include "target.h"
+#include "machine.h"
+
+
+static void init_h8300(const struct target *self)
+{
+	ssize_t_ctype = &long_ctype;
+	size_t_ctype = &ulong_ctype;
+	wchar_ctype = &ushort_ctype;
+}
+
+static void predefine_h8300(const struct target *self)
+{
+	predefine("__H8300H__", 1, "1");
+}
+
+const struct target target_h8300 = {
+	.mach = MACH_H8300,
+	.bitness = ARCH_LP32,
+	.big_endian = true,
+
+	.bits_in_longdouble = 64,
+
+	.init = init_h8300,
+	.predefine = predefine_h8300,
+};
