@@ -21,7 +21,7 @@ static void predefine_arm64(const struct target *self)
 	predefine("__aarch64__", 1, "1");
 
 	if (cmodel)
-		add_pre_buffer("#define __AARCH64_CMODEL_%s__ 1\n", cmodel);
+		predefine_strong("__AARCH64_CMODEL_%s__", cmodel);
 }
 
 const struct target target_arm64 = {

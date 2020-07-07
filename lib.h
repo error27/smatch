@@ -123,6 +123,8 @@ enum phase {
 
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 extern void predefine(const char *name, int weak, const char *fmt, ...) FORMAT_ATTR(3);
+extern void predefine_strong(const char *name, ...) FORMAT_ATTR(1);
+extern void predefine_weak(const char *name, ...) FORMAT_ATTR(1);
 extern void predefine_nostd(const char *name);
 extern void predefined_macros(void);
 

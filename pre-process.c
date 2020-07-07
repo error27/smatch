@@ -1439,6 +1439,32 @@ void predefine_nostd(const char *name)
 		predefine(name, 1, "1");
 }
 
+static void predefine_fmt(const char *fmt, int weak, va_list ap)
+{
+	static char buf[256];
+
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	predefine(buf, weak, "1");
+}
+
+void predefine_strong(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	predefine_fmt(fmt, 0, ap);
+	va_end(ap);
+}
+
+void predefine_weak(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	predefine_fmt(fmt, 1, ap);
+	va_end(ap);
+}
+
 static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int attr)
 {
 	struct token *arglist, *expansion;

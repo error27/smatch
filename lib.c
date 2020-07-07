@@ -173,7 +173,7 @@ void die(const char *fmt, ...)
 ////////////////////////////////////////////////////////////////////////////////
 
 static struct token *pre_buffer_begin = NULL;
-static struct token *pre_buffer_end = NULL;
+static struct token **pre_buffer_next = &pre_buffer_begin;
 
 void add_pre_buffer(const char *fmt, ...)
 {
@@ -186,11 +186,8 @@ void add_pre_buffer(const char *fmt, ...)
 	size = vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 	begin = tokenize_buffer(buffer, size, &end);
-	if (!pre_buffer_begin)
-		pre_buffer_begin = begin;
-	if (pre_buffer_end)
-		pre_buffer_end->next = begin;
-	pre_buffer_end = end;
+	*pre_buffer_next = begin;
+	pre_buffer_next = &end->next;
 }
 
 static void create_builtin_stream(void)
