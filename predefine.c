@@ -210,7 +210,7 @@ void predefined_macros(void)
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);
 
-	if (arch_os >= OS_UNIX) {
+	if (arch_os >= OS_UNIX && arch_os != OS_DARWIN) {
 		predefine("__unix__", 1, "1");
 		predefine("__unix", 1, "1");
 		predefine_nostd("unix");
