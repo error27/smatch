@@ -99,6 +99,25 @@ static void predefine_riscv(const struct target *self)
 	predefine("__riscv", 1, "1");
 	predefine("__riscv_xlen", 1, "%d", ptr_ctype.bit_size);
 
+	if (riscv_flags & RISCV_ATOMIC)
+		predefine("__riscv_atomic", 1, "1");
+	if (riscv_flags & RISCV_COMP)
+		predefine("__riscv_compressed", 1, "1");
+	if (riscv_flags & RISCV_DIV)
+		predefine("__riscv_div", 1, "1");
+	if (riscv_flags & RISCV_EMBD)
+		predefine("__riscv_32e", 1, "1");
+	if (riscv_flags & RISCV_FPU)
+		predefine("__riscv_flen", 1, "%d", (riscv_flags & RISCV_DOUBLE) ? 64 : 32);
+	if (riscv_flags & RISCV_FDIV)
+		predefine("__riscv_fdiv", 1, "1");
+	if (riscv_flags & RISCV_FDIV)
+		predefine("__riscv_fsqrt", 1, "1");
+	if (riscv_flags & RISCV_MUL)
+		predefine("__riscv_mul", 1, "1");
+	if ((riscv_flags & RISCV_MUL) && (riscv_flags & RISCV_DIV))
+		predefine("__riscv_muldiv", 1, "1");
+
 	if (cmodel)
 		predefine_strong("__riscv_cmodel_%s", cmodel);
 }
