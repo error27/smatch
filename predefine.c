@@ -25,12 +25,12 @@ static void predefined_sizeof(const char *name, const char *suffix, unsigned bit
 	predefine(buf, 1, "%d", bits/8);
 }
 
-static void predefined_width(const char *name, unsigned bits)
+static void predefined_width(const char *name, struct symbol *type)
 {
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "__%s_WIDTH__", name);
-	predefine(buf, 1, "%d", bits);
+	predefine(buf, 1, "%d", type->bit_size);
 }
 
 static void predefined_max(const char *name, struct symbol *type)
@@ -78,7 +78,7 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 	if (flags & PTYPE_TYPE)
 		predefined_type(name, type);
 	if (flags & PTYPE_WIDTH)
-		predefined_width(name, bits);
+		predefined_width(name, type);
 }
 
 void predefined_macros(void)
