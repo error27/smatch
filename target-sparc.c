@@ -19,6 +19,8 @@ static void init_sparc32(const struct target *target)
 
 		bits_in_longdouble = 128;
 		max_fp_alignment = 16;
+
+		funsigned_char = 0;
 	}
 }
 
