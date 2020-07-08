@@ -467,6 +467,25 @@ static struct init_keyword {
 	struct symbol *type;
 	unsigned long mods;
 } typedefs[] = {
+	/* Storage classes */
+	{ "auto",		&auto_op },
+	{ "register",		&register_op },
+	{ "static",		&static_op },
+	{ "extern",		&extern_op },
+	{ "__thread",		&thread_op },
+	{ "_Thread_local",	&thread_op },
+
+	{ "inline",		&inline_op },
+	{ "__inline__",		&inline_op },
+	{ "__inline",		&inline_op },
+
+	/* Typedef ... */
+	{ "typedef",		&typedef_op },
+	{ "typeof",		&typeof_op },
+	{ "__typeof__",		&typeof_op },
+	{ "__typeof",		&typeof_op },
+	{ "__auto_type",	&autotype_op },
+
 	/* Type qualifiers */
 	{ "const",		&const_op },
 	{ "__const__",		&const_op },
@@ -477,12 +496,19 @@ static struct init_keyword {
 	{ "restrict",		&restrict_op },
 	{ "__restrict__",	&restrict_op },
 	{ "__restrict",		&restrict_op },
-	{ "_Atomic",		&atomic_op },
 
-	/* Typedef.. */
-	{ "typedef",		&typedef_op },
+	{ "_Atomic",		&atomic_op },
+	{ "_Noreturn",		&noreturn_op },
+	{ "_Alignas",		&alignas_op },
+
+	{ "__attribute__",	&attribute_op },
+	{ "__attribute",	&attribute_op },
 
 	/* Type specifiers */
+	{ "struct",		&struct_op },
+	{ "union",		&union_op },
+	{ "enum",		&enum_op },
+
 	{ "void",		&spec_op,	.type = &void_ctype },
 	{ "char",		&char_op },
 	{ "short",		&short_op },
@@ -507,39 +533,8 @@ static struct init_keyword {
 	{ "_Float64",		&spec_op,	.type = &float64_ctype },
 	{ "_Float64x",		&spec_op,	.type = &float64x_ctype },
 	{ "_Float128",		&spec_op,	.type = &float128_ctype },
-
-	/* Extended types */
-	{ "typeof",		&typeof_op },
-	{ "__typeof__",		&typeof_op },
-	{ "__typeof",		&typeof_op },
-	{ "__auto_type",	&autotype_op },
-
-	{ "__attribute",	&attribute_op },
-	{ "__attribute__",	&attribute_op },
-
-	{ "struct",		&struct_op },
-	{ "union",		&union_op },
-	{ "enum",		&enum_op },
-
-	{ "inline",		&inline_op },
-	{ "__inline__",		&inline_op },
-	{ "__inline",		&inline_op },
-
-	{ "_Noreturn",		&noreturn_op },
-
-	{ "_Alignas",		&alignas_op },
-
-
-	/* Storage class */
-	{ "auto",		&auto_op },
-	{ "register",		&register_op },
-	{ "static",		&static_op },
-	{ "extern",		&extern_op },
-	{ "__thread",		&thread_op },
-	{ "_Thread_local",	&thread_op },
-
 }, keywords[] = {
-	/* Statement */
+	/* Statements */
 	{ "if",			&if_op },
 	{ "return",		&return_op },
 	{ "break",		&loop_iter_op },
@@ -551,15 +546,15 @@ static struct init_keyword {
 	{ "while",		&while_op },
 	{ "do",			&do_op },
 	{ "goto",		&goto_op },
-	{ "context",		&context_op },
-	{ "__context__",	&__context___op },
-	{ "__range__",		&range_op },
 	{ "asm",		&asm_op },
 	{ "__asm__",		&asm_op },
 	{ "__asm",		&asm_op },
+	{ "context",		&context_op },
+	{ "__context__",	&__context___op },
+	{ "__range__",		&range_op },
 	{ "_Static_assert",	&static_assert_op },
 
-	/* Attribute */
+	/* Attributes */
 	{ "packed",		&packed_op },
 	{ "__packed__",		&packed_op },
 	{ "aligned",		&aligned_op },
@@ -594,6 +589,7 @@ static struct init_keyword {
 	{ "gnu_inline",		&attr_fun_op,		.mods = MOD_GNU_INLINE },
 	{ "__gnu_inline__",	&attr_fun_op,		.mods = MOD_GNU_INLINE },
 
+	/* Modes */
 	{ "mode",		&mode_op },
 	{ "__mode__",		&mode_op },
 	{ "QI",			&mode_QI_op },
