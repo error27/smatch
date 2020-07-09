@@ -3,5 +3,4 @@ static const int (*p)[3] = a;
 
 /*
  * check-name: array-quals0
- * check-known-to-fail
  */

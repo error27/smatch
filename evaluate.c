@@ -1444,8 +1444,8 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 		}
 		b1 = examine_pointer_target(t);
 		b2 = examine_pointer_target(s);
-		mod1 = target_qualifiers(t);
-		mod2 = target_qualifiers(s);
+		mod1 = t->ctype.modifiers & MOD_IGN;
+		mod2 = s->ctype.modifiers & MOD_IGN;
 		if (whitelist_pointers(b1, b2)) {
 			/*
 			 * assignments to/from void * are OK, provided that

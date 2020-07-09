@@ -25,7 +25,6 @@ static          void *const ko_vi__a = &vi__a;
 
 /*
  * check-name: array-quals1
- * check-known-to-fail
  *
  * check-error-start
 eval/array-quals1.c:12:38: warning: incorrect type in initializer (different modifiers)
