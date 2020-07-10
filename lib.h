@@ -35,6 +35,7 @@
 #include "ptrlist.h"
 #include "utils.h"
 #include "bits.h"
+#include "options.h"
 
 #define DO_STRINGIFY(x) #x
 #define STRINGIFY(x) DO_STRINGIFY(x)
@@ -43,16 +44,7 @@
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 #endif
 
-extern int verbose, optimize_level, optimize_size, preprocessing;
-extern int die_if_error;
 extern int parse_error;
-extern int repeat_phase;
-extern int do_output;
-extern int gcc_major, gcc_minor, gcc_patchlevel;
-
-extern const char *base_filename;
-
-extern unsigned int hexval(unsigned int c);
 
 struct position {
 	unsigned int type:6,
@@ -68,6 +60,7 @@ struct ident;
 struct token;
 struct symbol;
 struct statement;
+struct asm_operand;
 struct expression;
 struct basic_block;
 struct entrypoint;
@@ -77,6 +70,7 @@ struct pseudo;
 
 DECLARE_PTR_LIST(symbol_list, struct symbol);
 DECLARE_PTR_LIST(statement_list, struct statement);
+DECLARE_PTR_LIST(asm_operand_list, struct asm_operand);
 DECLARE_PTR_LIST(expression_list, struct expression);
 DECLARE_PTR_LIST(basic_block_list, struct basic_block);
 DECLARE_PTR_LIST(instruction_list, struct instruction);
@@ -86,10 +80,6 @@ DECLARE_PTR_LIST(ident_list, struct ident);
 DECLARE_PTR_LIST(string_list, char);
 
 typedef struct pseudo *pseudo_t;
-
-struct token *skip_to(struct token *, int);
-struct token *expect(struct token *, int, const char *);
-void unexpected(struct token *, const char *errmsg);
 
 #ifdef __GNUC__
 #define FORMAT_ATTR(pos) __attribute__ ((__format__ (__printf__, pos, pos+1)))
@@ -134,92 +124,11 @@ enum phase {
 
 extern void add_pre_buffer(const char *fmt, ...) FORMAT_ATTR(1);
 extern void predefine(const char *name, int weak, const char *fmt, ...) FORMAT_ATTR(3);
+
+extern void predefine_strong(const char *name, ...) FORMAT_ATTR(1);
+extern void predefine_weak(const char *name, ...) FORMAT_ATTR(1);
 extern void predefine_nostd(const char *name);
-
-extern int preprocess_only;
-
-extern int Waddress;
-extern int Waddress_space;
-extern int Wbitwise;
-extern int Wbitwise_pointer;
-extern int Wcast_from_as;
-extern int Wcast_to_as;
-extern int Wcast_truncate;
-extern int Wconstant_suffix;
-extern int Wconstexpr_not_const;
-extern int Wcontext;
-extern int Wdecl;
-extern int Wdeclarationafterstatement;
-extern int Wdefault_bitfield_sign;
-extern int Wdesignated_init;
-extern int Wdo_while;
-extern int Wenum_mismatch;
-extern int Wexternal_function_has_definition;
-extern int Wsparse_error;
-extern int Wimplicit_int;
-extern int Winit_cstring;
-extern int Wint_to_pointer_cast;
-extern int Wmemcpy_max_count;
-extern int Wnon_pointer_null;
-extern int Wold_initializer;
-extern int Wold_style_definition;
-extern int Wone_bit_signed_bitfield;
-extern int Woverride_init;
-extern int Woverride_init_all;
-extern int Woverride_init_whole_range;
-extern int Wparen_string;
-extern int Wpointer_arith;
-extern int Wpointer_to_int_cast;
-extern int Wptr_subtraction_blows;
-extern int Wreturn_void;
-extern int Wshadow;
-extern int Wshift_count_negative;
-extern int Wshift_count_overflow;
-extern int Wsizeof_bool;
-extern int Wstrict_prototypes;
-extern int Wtautological_compare;
-extern int Wtransparent_union;
-extern int Wtypesign;
-extern int Wundef;
-extern int Wuninitialized;
-extern int Wunknown_attribute;
-extern int Wvla;
-
-extern int dump_macro_defs;
-extern int dump_macros_only;
-
-extern int dbg_compound;
-extern int dbg_dead;
-extern int dbg_domtree;
-extern int dbg_entry;
-extern int dbg_ir;
-extern int dbg_postorder;
-
-extern unsigned int fmax_warnings;
-extern int fmem_report;
-extern unsigned long fdump_ir;
-extern unsigned long long fmemcpy_max_count;
-extern unsigned long fpasses;
-extern int funsigned_char;
-
-extern int arch_m64;
-extern int arch_msize_long;
-extern int arch_big_endian;
-extern int arch_mach;
-
-enum standard {
-	STANDARD_NONE,
-	STANDARD_GNU,
-	STANDARD_C89,
-	STANDARD_GNU89 = STANDARD_C89 | STANDARD_GNU,
-	STANDARD_C94,
-	STANDARD_GNU94 = STANDARD_C94 | STANDARD_GNU,
-	STANDARD_C99,
-	STANDARD_GNU99 = STANDARD_C99 | STANDARD_GNU,
-	STANDARD_C11,
-	STANDARD_GNU11 = STANDARD_C11 | STANDARD_GNU,
-};
-extern enum standard standard;
+extern void predefined_macros(void);
 
 extern void dump_macro_definitions(void);
 extern struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list **files);

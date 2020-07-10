@@ -64,9 +64,7 @@ enum type {
 	SYM_STRUCT,
 	SYM_UNION,
 	SYM_ENUM,
-	SYM_TYPEDEF,
 	SYM_TYPEOF,
-	SYM_MEMBER,
 	SYM_BITFIELD,
 	SYM_LABEL,
 	SYM_RESTRICT,
@@ -80,11 +78,11 @@ enum keyword {
 	KW_MODIFIER	= 1 << 1,
 	KW_QUALIFIER	= 1 << 2,
 	KW_ATTRIBUTE	= 1 << 3,
-	KW_STATEMENT	= 1 << 4,
+	KW_BUILTIN	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
-	KW_SHORT	= 1 << 7,
-	KW_LONG		= 1 << 8,
+     // KW UNUSED	= 1 << 7,
+     // KW UNUSED	= 1 << 8,
 	KW_EXACT	= 1 << 9,
 };
 
@@ -98,26 +96,32 @@ extern struct context *alloc_context(void);
 DECLARE_PTR_LIST(context_list, struct context);
 
 struct ctype {
+	struct symbol *base_type;
 	unsigned long modifiers;
 	unsigned long alignment;
 	struct context_list *contexts;
 	struct ident *as;
-	struct symbol *base_type;
 };
 
 struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
 	struct symbol_op *mode;
-	unsigned char prefer_abstract, is_inline, storage_class, is_tls;
-	unsigned char is_ext_visible;
+	unsigned long f_modifiers;		// function attributes
+	unsigned char prefer_abstract, storage_class;
+	unsigned char autotype;
 };
+
+struct pseudo;
+struct entrypoint;
+struct arg;
 
 struct symbol_op {
 	enum keyword type;
 	int (*evaluate)(struct expression *);
 	int (*expand)(struct expression *, int);
 	int (*args)(struct expression *);
+	struct pseudo *(*linearize)(struct entrypoint *, struct expression *);
 
 	/* keywords */
 	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
@@ -157,16 +161,23 @@ struct symbol {
 			struct token *expansion;
 			struct token *arglist;
 			struct scope *used_in;
-			void (*expander)(struct token *);
+			void (*expand_simple)(struct token *);
+			bool (*expand)(struct token *, struct arg *args);
 		};
 		struct /* NS_PREPROCESSOR */ {
 			int (*handler)(struct stream *, struct token **, struct token *);
 			int normal;
 		};
+		struct /* NS_LABEL */ {
+			struct scope *label_scope;
+			struct position label_pos;
+			unsigned long label_modifiers;
+		};
 		struct /* NS_SYMBOL */ {
 			unsigned long	offset;
 			int		bit_size;
 			unsigned int	bit_offset:8,
+					bogus_linear:1,
 					variadic:1,
 					initialized:1,
 					examined:1,
@@ -179,6 +190,7 @@ struct symbol {
 					builtin:1,
 					torename:1,
 					transparent_union:1;
+			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
@@ -224,14 +236,14 @@ struct symbol {
 #define MOD_UNSIGNED		0x00004000
 #define MOD_EXPLICITLY_SIGNED	0x00008000
 
-#define MOD_TYPE		0x00010000
+#define MOD_GNU_INLINE		0x00010000
 #define MOD_USERTYPE		0x00020000
-#define MOD_CHAR		0x00040000
-#define MOD_SHORT		0x00080000
-#define MOD_LONG		0x00100000
-#define MOD_LONGLONG		0x00200000
-#define MOD_LONGLONGLONG	0x00400000
+     // MOD UNUSED		0x00040000
+     // MOD UNUSED		0x00080000
+     // MOD UNUSED		0x00100000
+     // MOD UNUSED		0x00200000
 
+#define MOD_UNUSED		0x00400000
 #define MOD_SAFE		0x00800000	// non-null/non-trapping pointer
 #define MOD_PURE		0x01000000
 #define MOD_BITWISE		0x02000000
@@ -244,15 +256,23 @@ struct symbol {
 #define MOD_ACCESS	(MOD_ASSIGNED | MOD_ADDRESSABLE)
 #define MOD_NONLOCAL	(MOD_EXTERN | MOD_TOPLEVEL)
 #define MOD_STORAGE	(MOD_AUTO | MOD_REGISTER | MOD_STATIC | MOD_EXTERN | MOD_INLINE | MOD_TOPLEVEL)
+#define MOD_ESIGNED	(MOD_SIGNED | MOD_EXPLICITLY_SIGNED)
 #define MOD_SIGNEDNESS	(MOD_SIGNED | MOD_UNSIGNED | MOD_EXPLICITLY_SIGNED)
-#define MOD_LONG_ALL	(MOD_LONG | MOD_LONGLONG | MOD_LONGLONGLONG)
-#define MOD_SPECIFIER	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL | MOD_SIGNEDNESS)
-#define MOD_SIZE	(MOD_CHAR | MOD_SHORT | MOD_LONG_ALL)
-#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE)
-#define	MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT | MOD_ATOMIC)
-#define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
+#define MOD_SPECIFIER	MOD_SIGNEDNESS
+#define MOD_IGNORE	(MOD_STORAGE | MOD_ACCESS | MOD_USERTYPE | MOD_EXPLICITLY_SIGNED | MOD_EXT_VISIBLE | MOD_UNUSED | MOD_GNU_INLINE)
+#define MOD_QUALIFIER	(MOD_CONST | MOD_VOLATILE | MOD_RESTRICT)
+#define MOD_PTRINHERIT	(MOD_QUALIFIER | MOD_ATOMIC | MOD_NODEREF | MOD_NORETURN | MOD_NOCAST)
 /* modifiers preserved by typeof() operator */
-#define MOD_TYPEOF	(MOD_QUALIFIER | MOD_NOCAST | MOD_SPECIFIER)
+#define MOD_TYPEOF	(MOD_QUALIFIER | MOD_ATOMIC | MOD_NOCAST | MOD_SPECIFIER)
+/* modifiers for function attributes */
+#define MOD_FUN_ATTR	(MOD_PURE|MOD_NORETURN)
+/* like cvr-qualifiers but 'reversed' (OK: source <= target) */
+#define MOD_REV_QUAL	(MOD_PURE|MOD_NORETURN)
+/* do not warn when these are duplicated */
+#define MOD_DUP_OK	(MOD_UNUSED|MOD_GNU_INLINE)
+/* must be part of the declared symbol, not its type */
+#define MOD_DECLARE	(MOD_STORAGE|MOD_INLINE|MOD_TLS|MOD_GNU_INLINE|MOD_UNUSED|MOD_PURE|MOD_NORETURN|MOD_EXT_VISIBLE)
+
 
 
 /* Current parsing/evaluation function */
@@ -269,11 +289,12 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			int_ctype, sint_ctype, uint_ctype,
 			long_ctype, slong_ctype, ulong_ctype,
 			llong_ctype, sllong_ctype, ullong_ctype,
-			lllong_ctype, slllong_ctype, ulllong_ctype,
+			int128_ctype, sint128_ctype, uint128_ctype,
 			float_ctype, double_ctype, ldouble_ctype,
 			string_ctype, ptr_ctype, lazy_ptr_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
+extern struct symbol	autotype_ctype;
 extern struct symbol	int_ptr_ctype, uint_ptr_ctype;
 extern struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 extern struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
@@ -305,9 +326,8 @@ extern struct symbol *lookup_symbol(struct ident *, enum namespace);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
 extern void init_builtins(int stream);
-extern void declare_builtins(void);
+extern void init_linearized_builtins(int stream);
 extern void init_ctype(void);
-extern void init_target(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
 extern const char *modifier_string(unsigned long mod);
@@ -317,6 +337,7 @@ extern void show_type_list(struct symbol *);
 extern void show_symbol_list(struct symbol_list *, const char *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
+extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
@@ -375,7 +396,7 @@ static inline int is_signed_type(struct symbol *sym)
 
 static inline int is_type_type(struct symbol *type)
 {
-	return (type->ctype.modifiers & MOD_TYPE) != 0;
+	return type == &type_ctype;
 }
 
 static inline int is_ptr_type(struct symbol *type)

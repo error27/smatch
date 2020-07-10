@@ -1,0 +1,151 @@
+.\" Sindex manpage by Alexey Gladkov
+.TH sindex "1"
+.
+.SH NAME
+sindex \- Semantic Indexer for C
+.
+.SH SYNOPSIS
+.B sindex
+[\fIoptions\fR]
+.br
+.B sindex
+[\fIoptions\fR] \fIadd\fR [\fIcommand options\fR] [\fI--\fR] [\fIcompiler options\fR] [\fIfiles...\fR]
+.br
+.B sindex
+[\fIoptions\fR] \fIrm\fR [\fIcommand options\fR] \fIpattern\fR
+.br
+.B sindex
+[\fIoptions\fR] \fIsearch\fR [\fIcommand options\fR] [\fIpattern\fR]
+.br
+.B sindex [\fIoptions\fR] \fIsearch\fR [\fIcommand options\fR] (\fI-e\fR|\fI-l\fR) \fIfilename\fR:\fIlinenr\fR:\fIcolumn\fR
+.br
+.SH DESCRIPTION
+.P
+sindex is the simple to use cscope-like tool based on sparse/dissect.  Unlike
+cscope it runs after pre-processor and thus it can't index the code filtered out
+by ifdef's, but otoh it understands how the symbol is used and it can track the
+usage of struct members.
+.
+.SH SUBCOMMANDS
+.TP
+\fBadd\fR
+generates or updates semantic index file.
+.TP
+\fBrm\fR
+removes files from the index by \fIpattern\fR. The \fIpattern\fR is a
+.BR glob (7)
+wildcard pattern.
+.TP
+\fBsearch\fR
+queries information about symbol by \fIpattern\fR. The \fIpattern\fR is a
+.BR glob (7)
+wildcard pattern.
+.
+.SH COMMON OPTIONS
+.TP
+\fB-D\fR, \fB--database=FILE\fR
+specify database file (default: ./sindex.sqlite).
+.TP
+\fB-v\fR, \fB--verbose\fR
+show information about what is being done.
+.TP
+\fB-h\fR, \fB--help\fR
+show this text and exit.
+.
+.SH ADD OPTIONS
+.TP
+\fB--include-local-syms\fR
+include into the index local symbols.
+.
+.SH SEARCH OPTIONS
+.TP
+\fB-f\fR, \fB--format=STRING\fR
+specify an output format. Default: '(%m) %f\\t%l\\t%c\\t%C\\t%s' (see
+.BR FORMAT
+below).
+.TP
+\fB-p\fR, \fB--path=PATTERN\fR
+search symbols only in specified directories.
+.TP
+\fB-m\fR, \fB--mode=MODE\fR
+search only the specified type of access (see
+.BR MODE
+below).
+.TP
+\fB-k\fR, \fB--kind=KIND\fR
+specify a kind of symbol (see
+.BR KIND
+below).
+.TP
+\fB-e\fR, \fB--explain\fR
+Show what happens in the specified file position;
+.TP
+\fB-l\fR, \fB--location\fR
+Show usage of symbols from a specific file position;
+.TP
+\fB-v\fR, \fB--verbose\fR
+show information about what is being done;
+.TP
+\fB-h\fR, \fB--help\fR
+show this text and exit.
+.
+.SH FORMAT
+.TP
+\fB%m\fR
+access mode in human readable form (see
+.BR MODE
+below).
+.TP
+\fB%f\fR
+file name.
+.TP
+\fB%l\fR
+line number.
+.TP
+\fB%c\fR
+column number.
+.TP
+\fB%C\fR
+the name of the function in which the symbol occurs.
+.TP
+\fB%n\fR
+symbol name.
+.TP
+\fB%s\fR
+source code line. Indexer does not save source code lines. They are read from
+the file during the search.
+.
+.SH KIND
+.TP
+\fBf\fR
+function
+.TP
+\fBs\fR
+strict
+.TP
+\fBm\fR
+struct member
+.
+.SH MODE
+The \fBMODE\fR is dumped as a 3-letter string. The first letter denotes address
+of part, 2-nd - access by value, 3-rd - access by pointer. A special value
+\'\fIdef\fR\' means a symbol definition.
+.TP
+\fBr\fR
+read
+.TP
+\fBw\fR
+write
+.TP
+\fBm\fR
+read and write
+.
+.SH SEE ALSO
+.BR sparse (1)
+.
+.SH HOMEPAGE
+http://www.kernel.org/pub/software/devel/sparse/
+.
+.SH MAILING LIST
+linux-sparse@vger.kernel.org
+.

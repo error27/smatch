@@ -110,6 +110,8 @@ static struct symbol *evaluate_string(struct expression *expr)
 	sym->ctype.modifiers = MOD_STATIC;
 	sym->ctype.base_type = array;
 	sym->initializer = initstr;
+	sym->examined = 1;
+	sym->evaluated = 1;
 
 	initstr->ctype = sym;
 	initstr->string = expr->string;
@@ -119,6 +121,8 @@ static struct symbol *evaluate_string(struct expression *expr)
 	array->ctype.alignment = 1;
 	array->ctype.modifiers = MOD_STATIC;
 	array->ctype.base_type = &char_ctype;
+	array->examined = 1;
+	array->evaluated = 1;
 	
 	addr->symbol = sym;
 	addr->ctype = &lazy_ptr_ctype;
@@ -150,7 +154,7 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 		return &int_ctype;
 
 	/* If char/short has as many bits as int, it still gets "promoted" */
-	if (mod & (MOD_CHAR | MOD_SHORT)) {
+	if (type->rank < 0) {
 		if (mod & MOD_UNSIGNED)
 			return &uint_ctype;
 		return &int_ctype;
@@ -196,7 +200,7 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	if ((lmod ^ rmod) & MOD_UNSIGNED) {
 		if (lmod & MOD_UNSIGNED)
 			goto left;
-	} else if ((lmod & ~rmod) & (MOD_LONG_ALL))
+	} else if (left->rank > right->rank)
 		goto left;
 right:
 	left = right;
@@ -283,9 +287,9 @@ warn_for_different_enum_types (struct position pos,
 		return;
 
 	if (typea->type == SYM_ENUM && typeb->type == SYM_ENUM) {
-		warning(pos, "mixing different enum types");
-		info(pos, "    %s versus", show_typename(typea));
-		info(pos, "    %s", show_typename(typeb));
+		warning(pos, "mixing different enum types:");
+		info(pos, "   %s", show_typename(typea));
+		info(pos, "   %s", show_typename(typeb));
 	}
 }
 
@@ -379,10 +383,8 @@ static inline int classify_type(struct symbol *type, struct symbol **base)
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
 	if (type->type == SYM_TYPEOF) {
-		type = evaluate_expression(type->initializer);
-		if (!type)
-			type = &bad_ctype;
-		else if (type->type == SYM_NODE)
+		type = examine_symbol_type(type);
+		if (type->type == SYM_NODE)
 			type = type->ctype.base_type;
 	}
 	if (type->type == SYM_ENUM)
@@ -413,16 +415,16 @@ static struct symbol *bad_expr_type(struct expression *expr)
 	case EXPR_COMPARE:
 		if (!valid_subexpr_type(expr))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   left side has type %s", show_typename(expr->left->ctype));
-		info(expr->pos, "   right side has type %s", show_typename(expr->right->ctype));
+		sparse_error(expr->pos, "incompatible types for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->left->ctype));
+		info(expr->pos, "   %s", show_typename(expr->right->ctype));
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
 		if (!valid_expr_type(expr->unop))
 			break;
-		sparse_error(expr->pos, "incompatible types for operation (%s)", show_special(expr->op));
-		info(expr->pos, "   argument has type %s", show_typename(expr->unop->ctype));
+		sparse_error(expr->pos, "incompatible type for operation (%s):", show_special(expr->op));
+		info(expr->pos, "   %s", show_typename(expr->unop->ctype));
 		break;
 	default:
 		break;
@@ -557,9 +559,7 @@ Normal:
 		else
 			return rtype;
 	} else if (rclass & TYPE_FLOAT) {
-		unsigned long lmod = ltype->ctype.modifiers;
-		unsigned long rmod = rtype->ctype.modifiers;
-		if (rmod & ~lmod & (MOD_LONG_ALL))
+		if (rtype->rank > ltype->rank)
 			return rtype;
 		else
 			return ltype;
@@ -658,7 +658,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 
 static void examine_fn_arguments(struct symbol *fn);
 
-#define MOD_IGN (MOD_QUALIFIER | MOD_PURE)
+#define MOD_IGN (MOD_QUALIFIER | MOD_FUN_ATTR)
 
 const char *type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2)
@@ -798,11 +798,11 @@ const char *type_difference(struct ctype *c1, struct ctype *c2,
 				return "different address spaces";
 			if (base1 != base2)
 				return "different base types";
+			if (t1->rank != t2->rank)
+				return "different type sizes";
 			diff = (mod1 ^ mod2) & ~MOD_IGNORE;
 			if (!diff)
 				return NULL;
-			if (diff & MOD_SIZE)
-				return "different type sizes";
 			else if (diff & ~MOD_SIGNEDNESS)
 				return "different modifiers";
 			else
@@ -910,8 +910,8 @@ static struct symbol *evaluate_conditional(struct expression *expr, int iterator
 		if (Waddress)
 			warning(expr->pos, "the address of %s will always evaluate as true", "an array");
 	} else if (!is_scalar_type(ctype)) {
-		sparse_error(expr->pos, "incorrect type in conditional (non-scalar type)");
-		info(expr->pos, "   got %s", show_typename(ctype));
+		sparse_error(expr->pos, "non-scalar type in conditional:");
+		info(expr->pos, "   %s", show_typename(ctype));
 		return NULL;
 	}
 
@@ -1096,11 +1096,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 			goto OK;
 		}
 		if (is_null1 && (rclass & TYPE_PTR)) {
-			left = cast_to(left, rtype);
+			expr->left = cast_to(left, rtype);
 			goto OK;
 		}
 		if (is_null2 && (lclass & TYPE_PTR)) {
-			right = cast_to(right, ltype);
+			expr->right = cast_to(right, ltype);
 			goto OK;
 		}
 	}
@@ -1116,11 +1116,11 @@ static struct symbol *evaluate_compare(struct expression *expr)
 	if (expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) {
 		if (ltype->ctype.as == rtype->ctype.as) {
 			if (lbase == &void_ctype) {
-				right = cast_to(right, ltype);
+				expr->right = cast_to(right, ltype);
 				goto OK;
 			}
 			if (rbase == &void_ctype) {
-				left = cast_to(left, rtype);
+				expr->left = cast_to(left, rtype);
 				goto OK;
 			}
 		}
@@ -1178,20 +1178,22 @@ static struct symbol *evaluate_conditional_expression(struct expression *expr)
 	expr->flags = (expr->conditional->flags & (*cond)->flags &
 			expr->cond_false->flags & ~CEF_CONST_MASK);
 	/*
-	 * A conditional operator yields a particular constant
-	 * expression type only if all of its three subexpressions are
-	 * of that type [6.6(6), 6.6(8)].
-	 * As an extension, relax this restriction by allowing any
-	 * constant expression type for the condition expression.
-	 *
-	 * A conditional operator never yields an address constant
-	 * [6.6(9)].
-	 * However, as an extension, if the condition is any constant
-	 * expression, and the true and false expressions are both
-	 * address constants, mark the result as an address constant.
+	 * In the standard, it is defined that an integer constant expression
+	 * shall only have operands that are themselves constant [6.6(6)].
+	 * While this definition is very clear for expressions that need all
+	 * their operands to be evaluated, for conditional expressions with a
+	 * constant condition things are much less obvious.
+	 * So, as an extension, do the same as GCC seems to do:
+	 *	Consider a conditional expression with a constant condition
+	 *	as having the same constantness as the argument corresponding
+	 *	to the truth value (including in the case of address constants
+	 *	which are defined more stricly [6.6(9)]).
 	 */
-	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR))
-		expr->flags = (*cond)->flags & expr->cond_false->flags & ~CEF_CONST_MASK;
+	if (expr->conditional->flags & (CEF_ACE | CEF_ADDR)) {
+		int is_true = expr_truth_value(expr->conditional);
+		struct expression *arg = is_true ? *cond : expr->cond_false;
+		expr->flags = arg->flags & ~CEF_CONST_MASK;
+	}
 
 	lclass = classify_type(ltype, &ltype);
 	rclass = classify_type(rtype, &rtype);
@@ -1389,9 +1391,9 @@ static int whitelist_pointers(struct symbol *t1, struct symbol *t2)
 		return 0;
 	if (t1 == t2)
 		return 1;
-	if (t1->ctype.modifiers & t2->ctype.modifiers & MOD_CHAR)
+	if (t1->rank == -2 && t2->rank == -2)
 		return 1;
-	if ((t1->ctype.modifiers ^ t2->ctype.modifiers) & MOD_SIZE)
+	if (t1->rank != t2->rank)
 		return 0;
 	return !Wtypesign;
 }
@@ -1427,6 +1429,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 
 	if (tclass == TYPE_PTR) {
 		unsigned long mod1, mod2;
+		unsigned long modl, modr;
 		struct symbol *b1, *b2;
 		// NULL pointer is always OK
 		int is_null = is_null_pointer_constant(*rp);
@@ -1462,14 +1465,17 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 			 */
 			if (b1->type == SYM_FN)
 				mod1 |= MOD_CONST;
-			if (mod2 & ~mod1) {
+			if (mod2 & ~mod1 & ~MOD_FUN_ATTR) {
 				*typediff = "different modifiers";
 				return 0;
 			}
 			goto Cast;
 		}
 		/* It's OK if the target is more volatile or const than the source */
-		*typediff = type_difference(&t->ctype, &s->ctype, 0, mod1);
+		/* It's OK if the source is more pure/noreturn than the target */
+		modr = mod1 & ~MOD_REV_QUAL;
+		modl = mod2 &  MOD_REV_QUAL;
+		*typediff = type_difference(&t->ctype, &s->ctype, modl, modr);
 		if (*typediff)
 			return 0;
 		return 1;
@@ -1497,9 +1503,9 @@ static int compatible_assignment_types(struct expression *expr, struct symbol *t
 	struct expression **rp, const char *where)
 {
 	const char *typediff;
-	struct symbol *source = degenerate(*rp);
 
 	if (!check_assignment_types(target, rp, &typediff)) {
+		struct symbol *source = *rp ? (*rp)->ctype : NULL;
 		warning(expr->pos, "incorrect type in %s (%s)", where, typediff);
 		info(expr->pos, "   expected %s", show_typename(target));
 		info(expr->pos, "   got %s", show_typename(source));
@@ -1534,6 +1540,16 @@ static int compatible_argument_type(struct expression *expr, struct symbol *targ
 		return 1;
 
 	return compatible_assignment_types(expr, target, rp, where);
+}
+
+static void mark_addressable(struct expression *expr)
+{
+	while (expr->type == EXPR_BINOP && expr->op == '+')
+		expr = expr->left;
+	if (expr->type == EXPR_SYMBOL) {
+		struct symbol *sym = expr->symbol;
+		sym->ctype.modifiers |= MOD_ADDRESSABLE;
+	}
 }
 
 static void mark_assigned(struct expression *expr)
@@ -1758,6 +1774,7 @@ static struct symbol *degenerate(struct expression *expr)
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
+		mark_addressable(expr);
 	default:
 		/* nothing */;
 	}
@@ -1776,10 +1793,7 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 	ctype = op->ctype;
 	*expr = *op->unop;
 
-	if (expr->type == EXPR_SYMBOL) {
-		struct symbol *sym = expr->symbol;
-		sym->ctype.modifiers |= MOD_ADDRESSABLE;
-	}
+	mark_addressable(expr);
 
 	/*
 	 * symbol expression evaluation is lazy about the type
@@ -1813,7 +1827,6 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		ctype = ctype->ctype.base_type;
 
 	target = ctype->ctype.base_type;
-	examine_symbol_type(target);
 
 	switch (ctype->type) {
 	default:
@@ -1823,6 +1836,7 @@ static struct symbol *evaluate_dereference(struct expression *expr)
 		*expr = *op;
 		return expr->ctype;
 	case SYM_PTR:
+		examine_symbol_type(target);
 		node = alloc_symbol(expr->pos, SYM_NODE);
 		node->ctype.modifiers = target->ctype.modifiers & MOD_SPECIFIER;
 		merge_type(node, ctype);
@@ -2342,8 +2356,7 @@ static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
 			if (is_int(class)) {
 				*p = cast_to(expr, integer_promotion(type));
 			} else if (class & TYPE_FLOAT) {
-				unsigned long mod = type->ctype.modifiers;
-				if (!(mod & (MOD_LONG_ALL)))
+				if (type->rank < 0)
 					*p = cast_to(expr, &double_ctype);
 			} else if (class & TYPE_PTR) {
 				if (expr->ctype == &null_ctype)
@@ -2594,6 +2607,9 @@ static void handle_list_initializer(struct expression *expr,
 {
 	struct expression *e, *last = NULL, *top = NULL, *next;
 	int jumped = 0;
+
+	if (expr->zero_init)
+		free_ptr_list(&expr->expr_list);
 
 	FOR_EACH_PTR(expr->expr_list, e) {
 		struct expression **v;
@@ -2935,6 +2951,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * initializer, in which case we need to pass
 	 * the type value down to that initializer rather
 	 * than trying to evaluate it as an expression
+	 * (cfr. compound literals: C99 & C11 6.5.2.5).
 	 *
 	 * A more complex case is when the initializer is
 	 * dereferenced as part of a post-fix expression.
@@ -3093,22 +3110,6 @@ static int evaluate_symbol_call(struct expression *expr)
 	if (ctype->op && ctype->op->evaluate)
 		return ctype->op->evaluate(expr);
 
-	if (ctype->ctype.modifiers & MOD_INLINE) {
-		int ret;
-		struct symbol *curr = current_fn;
-
-		if (ctype->definition)
-			ctype = ctype->definition;
-
-		current_fn = ctype->ctype.base_type;
-
-		ret = inline_function(expr, ctype);
-
-		/* restore the old function */
-		current_fn = curr;
-		return ret;
-	}
-
 	return 0;
 }
 
@@ -3129,6 +3130,10 @@ static struct symbol *evaluate_call(struct expression *expr)
 
 	if (ctype->type != SYM_FN) {
 		struct expression *arg;
+
+		if (fn->ctype == &bad_ctype)
+			return NULL;
+
 		expression_error(expr, "not a function %s",
 			     show_ident(sym->ident));
 		/* do typechecking in arguments */
@@ -3259,6 +3264,83 @@ static struct symbol *evaluate_offsetof(struct expression *expr)
 	return size_t_ctype;
 }
 
+static void check_label_declaration(struct position pos, struct symbol *label)
+{
+	switch (label->namespace) {
+	case NS_LABEL:
+		if (label->stmt)
+			break;
+		sparse_error(pos, "label '%s' was not declared", show_ident(label->ident));
+		/* fallthrough */
+	case NS_NONE:
+		current_fn->bogus_linear = 1;
+	default:
+		break;
+	}
+}
+
+static int type_selection(struct symbol *ctrl, struct symbol *type)
+{
+	struct ctype c = { .base_type = ctrl };
+	struct ctype t = { .base_type = type };
+
+	return !type_difference(&c, &t, 0, 0);
+}
+
+static struct symbol *evaluate_generic_selection(struct expression *expr)
+{
+	struct type_expression *map;
+	struct expression *res;
+	struct symbol source;
+	struct symbol *ctrl;
+
+	if (!evaluate_expression(expr->control))
+		return NULL;
+	if (!(ctrl = degenerate(expr->control)))
+		return NULL;
+
+	source = *ctrl;
+	source.ctype.modifiers &= ~(MOD_QUALIFIER|MOD_ATOMIC);
+	for (map = expr->map; map; map = map->next) {
+		struct symbol *stype = map->type;
+		struct symbol *base;
+
+		if (!evaluate_symbol(stype))
+			continue;
+
+		base = stype->ctype.base_type;
+		if (base->type == SYM_ARRAY && base->array_size) {
+			get_expression_value_silent(base->array_size);
+			if (base->array_size->type == EXPR_VALUE)
+				continue;
+			sparse_error(stype->pos, "variable length array type in generic selection");
+			continue;
+		}
+		if (is_func_type(stype)) {
+			sparse_error(stype->pos, "function type in generic selection");
+			continue;
+		}
+		if (stype->bit_size <= 0 || is_void_type(stype)) {
+			sparse_error(stype->pos, "incomplete type in generic selection");
+			continue;
+		}
+		if (!type_selection(&source, stype))
+			continue;
+
+		res = map->expr;
+		goto found;
+	}
+	res = expr->def;
+	if (!res) {
+		sparse_error(expr->pos, "no generic selection for '%s'", show_typename(ctrl));
+		return NULL;
+	}
+
+found:
+	*expr = *res;
+	return evaluate_expression(expr);
+}
+
 struct symbol *evaluate_expression(struct expression *expr)
 {
 	if (!expr)
@@ -3331,6 +3413,7 @@ struct symbol *evaluate_expression(struct expression *expr)
 
 	case EXPR_LABEL:
 		expr->ctype = &ptr_ctype;
+		check_label_declaration(expr->pos, expr->label_symbol);
 		return &ptr_ctype;
 
 	case EXPR_TYPE:
@@ -3343,6 +3426,9 @@ struct symbol *evaluate_expression(struct expression *expr)
 	case EXPR_OFFSETOF:
 		return evaluate_offsetof(expr);
 
+	case EXPR_GENERIC:
+		return evaluate_generic_selection(expr);
+
 	/* These can not exist as stand-alone expressions */
 	case EXPR_INITIALIZER:
 	case EXPR_IDENTIFIER:
@@ -3352,9 +3438,6 @@ struct symbol *evaluate_expression(struct expression *expr)
 		return NULL;
 	case EXPR_SLICE:
 		expression_error(expr, "internal front-end error: SLICE re-evaluated");
-		return NULL;
-	case EXPR_ASM_OPERAND:
-		expression_error(expr, "internal front-end error: ASM_OPERAND evaluated");
 		return NULL;
 	}
 	return NULL;
@@ -3379,9 +3462,11 @@ void check_duplicates(struct symbol *sym)
 		declared++;
 		typediff = type_difference(&sym->ctype, &next->ctype, 0, 0);
 		if (typediff) {
-			sparse_error(sym->pos, "symbol '%s' redeclared with different type (originally declared at %s:%d) - %s",
-				show_ident(sym->ident),
-				stream_name(next->pos.stream), next->pos.line, typediff);
+			sparse_error(sym->pos, "symbol '%s' redeclared with different type (%s):",
+				show_ident(sym->ident), typediff);
+			info(sym->pos, "   %s", show_typename(sym));
+			info(next->pos, "note: previously declared as:");
+			info(next->pos, "   %s", show_typename(next));
 			return;
 		}
 	}
@@ -3425,7 +3510,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 		if (sym->definition && sym->definition != sym)
 			return evaluate_symbol(sym->definition);
 
-		current_fn = base_type;
+		current_fn = sym;
 
 		examine_fn_arguments(base_type);
 		if (!base_type->stmt && base_type->inline_stmt)
@@ -3453,13 +3538,14 @@ void evaluate_symbol_list(struct symbol_list *list)
 static struct symbol *evaluate_return_expression(struct statement *stmt)
 {
 	struct expression *expr = stmt->expression;
-	struct symbol *fntype;
+	struct symbol *fntype, *rettype;
 
 	evaluate_expression(expr);
 	fntype = current_fn->ctype.base_type;
-	if (!fntype || fntype == &void_ctype) {
+	rettype = fntype->ctype.base_type;
+	if (!rettype || rettype == &void_ctype) {
 		if (expr && expr->ctype != &void_ctype)
-			expression_error(expr, "return expression in %s function", fntype?"void":"typeless");
+			expression_error(expr, "return expression in %s function", rettype?"void":"typeless");
 		if (expr && Wreturn_void)
 			warning(stmt->pos, "returning void-valued expression");
 		return NULL;
@@ -3471,7 +3557,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	}
 	if (!expr->ctype)
 		return NULL;
-	compatible_assignment_types(expr, fntype, &stmt->expression, "return expression");
+	compatible_assignment_types(expr, rettype, &stmt->expression, "return expression");
 	return NULL;
 }
 
@@ -3495,48 +3581,134 @@ static void evaluate_iterator(struct statement *stmt)
 	evaluate_statement(stmt->iterator_post_statement);
 }
 
-static void verify_output_constraint(struct expression *expr, const char *constraint)
+
+static void parse_asm_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
+	struct expression *constraint = op->constraint;
+	const char *str = constraint->string->data;
+	int c;
+
+	switch (str[0]) {
+	case '\0':
+		sparse_error(constraint->pos, "invalid ASM constraint (\"\")");
 		break;
-	default:
-		expression_error(expr, "output constraint is not an assignment constraint (\"%s\")", constraint);
+	case '+':
+		op->is_modify = true;
+		/* fall-through */
+	case '=':
+		op->is_assign = true;
+		str++;
+		break;
 	}
+
+	while ((c = *str++)) {
+		switch (c) {
+		case '=':
+		case '+':
+			sparse_error(constraint->pos, "invalid ASM constraint '%c'", c);
+			break;
+
+		case '&':
+			op->is_earlyclobber = true;
+			break;
+		case '%':
+			op->is_commutative = true;
+			break;
+		case 'r':
+			op->is_register = true;
+			break;
+
+		case 'm':
+		case 'o':
+		case 'V':
+		case 'Q':
+			op->is_memory = true;
+			break;
+
+		case '<':
+		case '>':
+			// FIXME: ignored for now
+			break;
+
+		case ',':
+			// FIXME: multiple alternative constraints
+			break;
+
+		case '0' ... '9':
+			// FIXME: numeric  matching constraint?
+			break;
+		case '[':
+			// FIXME: symbolic matching constraint
+			return;
+
+		default:
+			if (arch_target->asm_constraint)
+				str = arch_target->asm_constraint(op, c, str);
+
+			// FIXME: multi-letter constraints
+			break;
+		}
+	}
+
+	// FIXME: how to deal with multi-constraint?
+	if (op->is_register)
+		op->is_memory = 0;
 }
 
-static void verify_input_constraint(struct expression *expr, const char *constraint)
+static void verify_output_constraint(struct asm_operand *op)
 {
-	switch (*constraint) {
-	case '=':	/* Assignment */
-	case '+':	/* Update */
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (!op->is_assign)
+		expression_error(expr, "output constraint is not an assignment constraint (\"%s\")", constraint);
+}
+
+static void verify_input_constraint(struct asm_operand *op)
+{
+	struct expression *expr = op->constraint;
+	const char *constraint = expr->string->data;
+
+	if (op->is_assign)
 		expression_error(expr, "input constraint with assignment (\"%s\")", constraint);
+}
+
+static void evaluate_asm_memop(struct asm_operand *op)
+{
+	if (op->is_memory) {
+		struct expression *expr = op->expr;
+		struct expression *addr;
+
+		// implicit addressof
+		addr = alloc_expression(expr->pos, EXPR_PREOP);
+		addr->op = '&';
+		addr->unop = expr;
+
+		evaluate_addressof(addr);
+		op->expr = addr;
+	} else {
+		evaluate_expression(op->expr);
+		degenerate(op->expr);
 	}
 }
 
 static void evaluate_asm_statement(struct statement *stmt)
 {
 	struct expression *expr;
-	struct expression *op;
+	struct asm_operand *op;
 	struct symbol *sym;
 
-	expr = stmt->asm_string;
-	if (!expr || expr->type != EXPR_STRING) {
-		sparse_error(stmt->pos, "need constant string for inline asm");
+	if (!stmt->asm_string)
 		return;
-	}
 
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm output constraint is not a string");
-			op->constraint = NULL;
-		} else
-			verify_output_constraint(expr, expr->string->data);
+		if (op->constraint) {
+			parse_asm_constraint(op);
+			verify_output_constraint(op);
+		}
 
 		/* Expression */
 		expr = op->expr;
@@ -3545,22 +3717,22 @@ static void evaluate_asm_statement(struct statement *stmt)
 		if (!lvalue_expression(expr))
 			warning(expr->pos, "asm output is not an lvalue");
 		evaluate_assign_to(expr, expr->ctype);
+		evaluate_asm_memop(op);
 	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_inputs, op) {
 		/* Identifier */
 
 		/* Constraint */
-		expr = op->constraint;
-		if (!expr || expr->type != EXPR_STRING) {
-			sparse_error(expr ? expr->pos : stmt->pos, "asm input constraint is not a string");
-			op->constraint = NULL;
-		} else
-			verify_input_constraint(expr, expr->string->data);
+		if (op->constraint) {
+			parse_asm_constraint(op);
+			verify_input_constraint(op);
+		}
 
 		/* Expression */
 		if (!evaluate_expression(op->expr))
 			return;
+		evaluate_asm_memop(op);
 	} END_FOR_EACH_PTR(op);
 
 	FOR_EACH_PTR(stmt->asm_clobbers, expr) {
@@ -3661,10 +3833,13 @@ static void evaluate_goto_statement(struct statement *stmt)
 {
 	struct symbol *label = stmt->goto_label;
 
-	if (label && !label->stmt && label->ident && !lookup_keyword(label->ident, NS_KEYWORD))
-		sparse_error(stmt->pos, "label '%s' was not declared", show_ident(label->ident));
+	if (!label) {
+		// no label associated, may be a computed goto
+		evaluate_expression(stmt->goto_expression);
+		return;
+	}
 
-	evaluate_expression(stmt->goto_expression);
+	check_label_declaration(stmt->pos, label);
 }
 
 struct symbol *evaluate_statement(struct statement *stmt)

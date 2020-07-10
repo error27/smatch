@@ -36,6 +36,7 @@ struct scope {
 
 extern struct scope
 		*block_scope,
+		*label_scope,
 		*function_scope,
 		*file_scope,
 		*global_scope;
@@ -49,14 +50,20 @@ extern void start_file_scope(void);
 extern void end_file_scope(void);
 extern void new_file_scope(void);
 
-extern void start_symbol_scope(struct position pos);
-extern void end_symbol_scope(void);
+extern void start_block_scope(struct position pos);
+extern void end_block_scope(void);
 
 extern void start_function_scope(struct position pos);
 extern void end_function_scope(void);
 
+extern void start_label_scope(struct position pos);
+extern void end_label_scope(void);
+
+extern void set_current_scope(struct symbol *);
 extern void bind_scope(struct symbol *, struct scope *);
 extern void rebind_scope(struct symbol *, struct scope *);
 
 extern int is_outer_scope(struct scope *);
+extern int is_in_scope(struct scope *outer, struct scope *inner);
+
 #endif

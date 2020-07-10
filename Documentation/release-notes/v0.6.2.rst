@@ -1,0 +1,104 @@
+v0.6.2 (2020-06-21)
+===================
+
+* add a new tool: sindex - the semantic utility
+    Sindex is a simple to use cscope-like tool but understanding
+    how symbols are used and which can track struct members.
+
+* add support for GCC's __auto_type
+
+* add support for _Generic
+
+* fully propagate declarations downward.
+    For example, it means that code like::
+
+        static int foo(void);
+        int foo(void) { return 0; }
+
+    now behaves as expected: foo() is effectively static.
+
+* multi-arch:
+    * allow a single sparse executable to be used for multiple architectures
+    * add support for -mcmodel & -f{pic,PIC,pie,PIE}, mainly for RISC-V
+    * add new option, --arch=$ARCH, to specify the target architecture
+    * move all arch-specific code into separate files (target-$ARCH.c)
+    * try to support the various floating-point ABIs on ARM
+    * fix wchar_t & wint_t for openbsd
+    * add missing predefines for PPC
+    * add missing predefines: __amd64 & __amd64__
+    * sparc32 on SunOS/Solaris uses 128-bit long double
+    * fix wchar_t & wint_t on SunOS/Solaris
+    * teach sparse about -fshort-wchar
+    * keep cygwin specifics with i386/x86-64 specifics
+    * keep BSD & Darwin specifics with i386/x86-64 specifics
+    * fix the signedness of plain chars
+    * add support for s390 (ILP32)
+    * add predefine for __mips__
+    * predefine "i386" if needed
+    * pre-define __unix__ and friends
+    * add necessary defined for sunos-derived systems
+    * improved detection of the native OS
+
+* warnings:
+    * improve diagnostic message about wrong redeclaration
+    * conditionally accept { 0 } without warnings
+    * add -Wexternal-function-has-definition
+    * display the bitfield name in error messages
+    * oversized bitfields are now errors
+    * add an option to suppress warning 'no newline at EOF'
+    * warn when jumping into statement expressions
+    * warn when using undefined labels
+    * warn on defined but unused labels
+
+* attributes:
+    * allows '__<attribute-name>__' for all attributes.
+    * improve handling of function attributes
+    * separate modifiers into type/declaration
+    * add support for attributes 'unused' & 'gnu_inline'
+    * simplify parsing of inline/__tls/__visible
+    * better handle function-only attributes
+    * teach sparse about gnu_inline
+    * parse enum attributes and, for now, ignore them
+
+* cgcc:
+    * use -fshort-char for Cygwin
+    * add support for riscv32 & riscv64
+    * don't define __CYGWIN32__ on 64-bit
+    * filter-out sparse-specific -msize-long & -msize-llp64
+    * use -mfloat-abi=hard for armhf
+    * define _BIG_ENDIAN when needed
+    * remove definition of _STRING_ARCH_unaligned (defined by glibc)
+    * removed unneeded predefines for integers (now defined by sparse)
+    * better multi-arch support by using --arch=$ARCH
+
+* testsuite:
+    * avoid standard includes in the tests
+    * fix testcase with non-constant initializer
+    
+* IR
+    * add support for the linearization of builtins
+    * generate OP_UNREACH from  __builtin_unreachable()
+    * add OP_UNREACH after calls to __noreturn functions
+
+* doc:
+    * do not use obsolete sphinx's AutodocReporter
+    * Sphinx's minimal version is now 1.7
+    * add basic doc about the type system
+    * doc is now accessible as: https://sparse.docs.kernel.org
+    * release notes (old and current ones) have been added to the doc
+    * now using the sphinx_rtd_theme instead of the classic theme
+
+* misc:
+    * add support for '-std=c17/c18'
+    * simplify testing of which version of the standard is used
+    * ensure that typeofs are evaluated before using show_typename()
+    * use a single way to expand typeofs
+    * various improvements to the 'dissect' tool
+    * simplify the parsing of type specifiers
+    * improve diagnostic messages concerning bitfields
+    * fix premature examination of dereferenced object
+    * various fixes for the expansion of constant symbols
+    * fix type compatibility of _Atomic types
+    * add support for builtin macros with argument
+    * add support for __has_feature() & __has_extension()
+

@@ -574,18 +574,18 @@ static void unop_expr(struct expression *expr)
 
 static void asm_expr(struct statement *stmt)
 {
-	struct expression *expr;
+	struct asm_operand *op;
 	struct range_list *rl;
 	char *member;
 
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		member = get_member_name(expr->expr);
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		member = get_member_name(op->expr);
 		if (!member)
 			continue;
-		rl = alloc_whole_rl(get_type(expr->expr));
+		rl = alloc_whole_rl(get_type(op->expr));
 		add_type_val(member, rl);
 		free_string(member);
-	} END_FOR_EACH_PTR(expr);
+	} END_FOR_EACH_PTR(op);
 }
 
 static void db_param_add(struct expression *expr, int param, char *key, char *value)

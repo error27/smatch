@@ -51,8 +51,9 @@
 
 typedef unsigned usage_t;
 
+struct symbol *dissect_ctx;
+
 static struct reporter *reporter;
-static struct symbol *return_type;
 
 static void do_sym_list(struct symbol_list *list);
 
@@ -118,24 +119,12 @@ static usage_t fix_mode(struct symbol *type, usage_t mode)
 	return mode;
 }
 
-static inline struct symbol *no_member(struct ident *name)
-{
-	static struct symbol sym = {
-		.type = SYM_BAD,
-	};
-
-	sym.ctype.base_type = &bad_ctype;
-	sym.ident = name;
-
-	return &sym;
-}
-
 static struct symbol *report_member(usage_t mode, struct position *pos,
 					struct symbol *type, struct symbol *mem)
 {
 	struct symbol *ret = mem->ctype.base_type;
 
-	if (reporter->r_member)
+	if (mem->ident || mem->type == SYM_BAD)
 		reporter->r_member(fix_mode(ret, mode), pos, type, mem);
 
 	return ret;
@@ -144,9 +133,6 @@ static struct symbol *report_member(usage_t mode, struct position *pos,
 static void report_implicit(usage_t mode, struct position *pos, struct symbol *type)
 {
 	if (type->type != SYM_STRUCT && type->type != SYM_UNION)
-		return;
-
-	if (!reporter->r_member)
 		return;
 
 	if (type->ident != NULL)
@@ -166,7 +152,7 @@ static inline struct symbol *expr_symbol(struct expression *expr)
 		if (!sym) {
 			sym = alloc_symbol(expr->pos, SYM_BAD);
 			bind_symbol(sym, expr->symbol_name, NS_SYMBOL);
-			sym->ctype.modifiers = MOD_EXTERN;
+			sym->kind = expr->op ?: 'v'; /* see EXPR_CALL */
 		}
 	}
 
@@ -184,33 +170,44 @@ static struct symbol *report_symbol(usage_t mode, struct expression *expr)
 	if (0 && ret->type == SYM_ENUM)
 		return report_member(mode, &expr->pos, ret, expr->symbol);
 
-	if (reporter->r_symbol)
-		reporter->r_symbol(fix_mode(ret, mode), &expr->pos, sym);
+	reporter->r_symbol(fix_mode(ret, mode), &expr->pos, sym);
 
 	return ret;
 }
 
-static inline struct ident *mk_name(struct ident *root, struct ident *node)
+static bool deanon(struct symbol *base, struct ident *node, struct symbol *parent)
 {
+	struct ident *pi = parent ? parent->ident : NULL;
 	char name[256];
 
-	snprintf(name, sizeof(name), "%.*s:%.*s",
-			root ? root->len : 0, root ? root->name : "",
-			node ? node->len : 0, node ? node->name : "");
+	if (!node) {
+		base->ident = pi;
+		return false;
+	}
 
-	return built_in_ident(name);
+	snprintf(name, sizeof(name), "%.*s:%.*s",
+		pi ? pi->len : 0, pi ? pi->name : NULL, node->len, node->name);
+
+	base->ident = built_in_ident(name);
+	return true;
 }
 
-static void examine_sym_node(struct symbol *node, struct ident *root)
+static void report_memdef(struct symbol *sym, struct symbol *mem)
 {
-	struct symbol *base;
-	struct ident *name;
+	mem->kind = 'm';
+	if (sym && mem->ident)
+		reporter->r_memdef(sym, mem);
+}
+
+static void examine_sym_node(struct symbol *node, struct symbol *parent)
+{
+	struct ident *name = node->ident;
+	struct symbol *base, *dctx;
 
 	if (node->examined)
 		return;
-
 	node->examined = 1;
-	name = node->ident;
+	node->kind = 'v';
 
 	while ((base = node->ctype.base_type) != NULL)
 		switch (base->type) {
@@ -221,23 +218,37 @@ static void examine_sym_node(struct symbol *node, struct ident *root)
 
 		case SYM_ARRAY:
 			do_expression(U_R_VAL, base->array_size);
-		case SYM_PTR: case SYM_FN:
+		case SYM_PTR:
+			node = base;
+			break;
+
+		case SYM_FN:
+			node->kind = 'f';
 			node = base;
 			break;
 
 		case SYM_STRUCT: case SYM_UNION: //case SYM_ENUM:
 			if (base->evaluated)
 				return;
+			base->evaluated = 1;
+			base->kind = 's';
+
 			if (!base->symbol_list)
 				return;
-			base->evaluated = 1;
 
-			if (!base->ident && name)
-				base->ident = mk_name(root, name);
-			if (base->ident && reporter->r_symdef)
+			dctx = dissect_ctx;
+			if (toplevel(base->scope))
+				dissect_ctx = NULL;
+
+			if (base->ident || deanon(base, name, parent))
 				reporter->r_symdef(base);
+
+			if (base->ident)
+				parent = base;
 			DO_LIST(base->symbol_list, mem,
-				examine_sym_node(mem, base->ident ?: root));
+				examine_sym_node(mem, parent);
+				report_memdef(parent, mem));
+			dissect_ctx = dctx;
 		default:
 			return;
 		}
@@ -284,8 +295,23 @@ found:
 
 static struct symbol *lookup_member(struct symbol *type, struct ident *name, int *addr)
 {
-	return __lookup_member(type, name, addr)
-		?: no_member(name);
+	struct symbol *mem = __lookup_member(type, name, addr);
+
+	if (!mem) {
+		static struct symbol bad_member = {
+			.type = SYM_BAD,
+			.ctype.base_type = &bad_ctype,
+			.kind = 'm',
+		};
+
+		if (!type->symbol_list)
+			type->scope = file_scope;
+
+		mem = &bad_member;
+		mem->ident = name;
+	}
+
+	return mem;
 }
 
 static struct expression *peek_preop(struct expression *expr, int op)
@@ -350,6 +376,8 @@ again:
 		ret = do_expression(mode, expr->cond_false);
 
 	break; case EXPR_CALL:
+		if (expr->fn->type == EXPR_SYMBOL)
+			expr->fn->op = 'f'; /* for expr_symbol() */
 		ret = do_expression(U_R_PTR, expr->fn);
 		if (is_ptr(ret))
 			ret = ret->ctype.base_type;
@@ -450,13 +478,9 @@ again:
 	return ret;
 }
 
-static void do_asm_xputs(usage_t mode, struct expression_list *xputs)
+static void do_asm_xputs(usage_t mode, struct asm_operand_list *xputs)
 {
-	int nr = 0;
-
-	DO_LIST(xputs, expr,
-		if (++nr % 3 == 0)
-			do_expression(U_W_AOF | mode, expr));
+	DO_LIST(xputs, op, do_expression(U_W_AOF | mode, op->expr));
 }
 
 static struct symbol *do_statement(usage_t mode, struct statement *stmt)
@@ -477,8 +501,10 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 	break; case STMT_EXPRESSION:
 		ret = do_expression(mode, stmt->expression);
 
-	break; case STMT_RETURN:
-		do_expression(u_lval(return_type), stmt->expression);
+	break; case STMT_RETURN: {
+		struct symbol *type = dissect_ctx->ctype.base_type;
+		do_expression(u_lval(base_type(type)), stmt->expression);
+	}
 
 	break; case STMT_ASM:
 		do_expression(U_R_VAL, stmt->asm_string);
@@ -575,27 +601,36 @@ static struct symbol *do_initializer(struct symbol *type, struct expression *exp
 
 static inline struct symbol *do_symbol(struct symbol *sym)
 {
-	struct symbol *type;
+	struct symbol *type = base_type(sym);
+	struct symbol *dctx = dissect_ctx;
+	struct statement *stmt;
 
-	type = base_type(sym);
-
-	if (reporter->r_symdef)
-		reporter->r_symdef(sym);
+	reporter->r_symdef(sym);
 
 	switch (type->type) {
 	default:
 		if (!sym->initializer)
 			break;
-		if (reporter->r_symbol)
-			reporter->r_symbol(U_W_VAL, &sym->pos, sym);
+		reporter->r_symbol(U_W_VAL, &sym->pos, sym);
+		if (!dctx)
+			dissect_ctx = sym;
 		do_initializer(type, sym->initializer);
+		dissect_ctx = dctx;
 
 	break; case SYM_FN:
+		stmt = sym->ctype.modifiers & MOD_INLINE
+			? type->inline_stmt : type->stmt;
+		if (!stmt)
+			break;
+
+		if (dctx)
+			sparse_error(dctx->pos, "dissect_ctx change %s -> %s",
+				show_ident(dctx->ident), show_ident(sym->ident));
+
+		dissect_ctx = sym;
 		do_sym_list(type->arguments);
-		return_type = base_type(type);
-		do_statement(U_VOID, sym->ctype.modifiers & MOD_INLINE
-					? type->inline_stmt
-					: type->stmt);
+		do_statement(U_VOID, stmt);
+		dissect_ctx = dctx;
 	}
 
 	return type;
@@ -606,8 +641,9 @@ static void do_sym_list(struct symbol_list *list)
 	DO_LIST(list, sym, do_symbol(sym));
 }
 
-void dissect(struct symbol_list *list, struct reporter *rep)
+void dissect(struct reporter *rep, struct string_list *filelist)
 {
 	reporter = rep;
-	do_sym_list(list);
+
+	DO_LIST(filelist, file, do_sym_list(__sparse(file)));
 }

@@ -73,19 +73,13 @@ static void match_access_ok(const char *fn, struct expression *expr, void *data)
 	match_size(size_expr);
 }
 
-static void split_asm_constraints(struct expression_list *expr_list)
+static void split_asm_constraints(struct statement *stmt)
 {
-	struct expression *expr;
-	int i;
+	struct asm_operand *op;
 
-	i = 0;
-        FOR_EACH_PTR(expr_list, expr) {
-		i++;
-		if (expr->type != EXPR_ASM_OPERAND)
-			continue;
-		if (i == 1)
-			match_size(expr->expr);
-        } END_FOR_EACH_PTR(expr);
+        FOR_EACH_PTR(stmt->asm_inputs, op) {
+		match_size(op->constraint);
+        } END_FOR_EACH_PTR(op);
 }
 
 static void match_asm_stmt(struct statement *stmt)
@@ -95,7 +89,7 @@ static void match_asm_stmt(struct statement *stmt)
 	name = get_macro_name(stmt->pos);
 	if (!name || strcmp(name, "access_ok") != 0)
 		return;
-	split_asm_constraints(stmt->asm_inputs);
+	split_asm_constraints(stmt);
 }
 
 void check_access_ok_math(int id)

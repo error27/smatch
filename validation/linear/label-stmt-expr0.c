@@ -3,12 +3,12 @@ int foo(void)
 {
 	int r;
 
-	r = ({ label: 1; });
+	r = ({ goto label; label: 1; });
 	return r;
 }
 
 /*
- * check-name: label-expr
+ * check-name: label-stmt-expr0
  * check-command: test-linearize $file
  * check-output-ignore
  *

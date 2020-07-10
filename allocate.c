@@ -141,6 +141,7 @@ ALLOCATOR(ident, "identifiers");
 ALLOCATOR(token, "tokens");
 ALLOCATOR(context, "contexts");
 ALLOCATOR(symbol, "symbols");
+ALLOCATOR(asm_operand, "asmops");
 ALLOCATOR(expression, "expressions");
 ALLOCATOR(statement, "statements");
 ALLOCATOR(string, "strings");

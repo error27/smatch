@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "parse.h"
 #include "expression.h"
+#include "scope.h"
 
 #define	U_SHIFT		8
 
@@ -19,11 +20,19 @@
 struct reporter
 {
 	void (*r_symdef)(struct symbol *);
+	void (*r_memdef)(struct symbol *, struct symbol *);
 
 	void (*r_symbol)(unsigned, struct position *, struct symbol *);
 	void (*r_member)(unsigned, struct position *, struct symbol *, struct symbol *);
 };
 
-extern void dissect(struct symbol_list *, struct reporter *);
+extern struct symbol *dissect_ctx;
+
+static inline bool sym_is_local(struct symbol *sym)
+{
+	return !toplevel(sym->scope);
+}
+
+extern void dissect(struct reporter *, struct string_list *);
 
 #endif

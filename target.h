@@ -1,6 +1,8 @@
 #ifndef TARGET_H
 #define TARGET_H
 
+#include "machine.h"
+
 extern struct symbol *size_t_ctype;
 extern struct symbol *ssize_t_ctype;
 extern struct symbol *intmax_ctype;
@@ -50,6 +52,61 @@ extern int pointer_alignment;
  */
 extern int bits_in_enum;
 extern int enum_alignment;
+
+struct asm_operand;
+struct builtin_fn;
+
+struct target {
+	enum machine	mach;
+	enum bitness	bitness;
+	unsigned int	big_endian:1;
+	unsigned int	unsigned_char:1;
+	unsigned int	size_t_long:1;
+	unsigned int	has_int128:1;
+
+	struct symbol	*wchar;
+	struct symbol	*wint;
+
+	unsigned int	bits_in_longdouble;
+	unsigned int	max_fp_alignment;
+
+	const struct target *target_32bit;
+	const struct target *target_64bit;
+
+	const struct builtin_fn *builtins;
+
+	void (*init)(const struct target *self);
+	void (*predefine)(const struct target *self);
+	const char *(*asm_constraint)(struct asm_operand *op, int c, const char *str);
+};
+
+extern const struct target target_default;
+extern const struct target target_alpha;
+extern const struct target target_arm;
+extern const struct target target_arm64;
+extern const struct target target_bfin;
+extern const struct target target_m68k;
+extern const struct target target_microblaze;
+extern const struct target target_mips32;
+extern const struct target target_mips64;
+extern const struct target target_nios2;
+extern const struct target target_ppc32;
+extern const struct target target_ppc64;
+extern const struct target target_riscv32;
+extern const struct target target_riscv64;
+extern const struct target target_s390;
+extern const struct target target_s390x;
+extern const struct target target_sparc32;
+extern const struct target target_sparc64;
+extern const struct target target_i386;
+extern const struct target target_x86_64;
+
+/* target.c */
+extern const struct target *arch_target;
+
+enum machine target_parse(const char *name);
+void target_config(enum machine mach);
+void target_init(void);
 
 /*
  * Helper functions for converting bits to bytes and vice versa.

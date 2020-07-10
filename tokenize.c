@@ -416,7 +416,7 @@ got_eof:
 		c = '\\';
 		goto out;
 	}
-	if (stream->pos)
+	if (stream->pos & Wnewline_eof)
 		warning(stream_pos(stream), "no newline at end of file");
 	else if (spliced)
 		warning(stream_pos(stream), "backslash-newline at end of file");

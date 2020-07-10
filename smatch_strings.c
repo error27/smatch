@@ -55,7 +55,7 @@ struct expression *fake_string_from_mtag(mtag_t tag)
 	str = get_string_from_mtag(tag);
 	if (!str)
 		return NULL;
-	return string_expression(str);
+	return gen_string_expression(str);
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)

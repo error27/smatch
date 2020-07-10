@@ -1,4 +1,4 @@
-VERSION=0.6.1-rc1
+VERSION=0.6.2
 
 ########################################################################
 # The following variables can be overwritten from the command line
@@ -6,6 +6,7 @@ OS = linux
 
 
 CC ?= gcc
+CXX = g++
 LD = $(CC)
 AR = ar
 
@@ -51,7 +52,9 @@ LIB_OBJS += liveness.o
 LIB_OBJS += memops.o
 LIB_OBJS += opcode.o
 LIB_OBJS += optimize.o
+LIB_OBJS += options.o
 LIB_OBJS += parse.o
+LIB_OBJS += predefine.o
 LIB_OBJS += pre-process.o
 LIB_OBJS += ptrlist.o
 LIB_OBJS += ptrmap.o
@@ -65,6 +68,20 @@ LIB_OBJS += stats.o
 LIB_OBJS += storage.o
 LIB_OBJS += symbol.o
 LIB_OBJS += target.o
+LIB_OBJS += target-alpha.o
+LIB_OBJS += target-arm.o
+LIB_OBJS += target-arm64.o
+LIB_OBJS += target-bfin.o
+LIB_OBJS += target-default.o
+LIB_OBJS += target-m68k.o
+LIB_OBJS += target-microblaze.o
+LIB_OBJS += target-mips.o
+LIB_OBJS += target-nios2.o
+LIB_OBJS += target-ppc.o
+LIB_OBJS += target-riscv.o
+LIB_OBJS += target-s390.o
+LIB_OBJS += target-sparc.o
+LIB_OBJS += target-x86.o
 LIB_OBJS += tokenize.o
 LIB_OBJS += unssa.o
 LIB_OBJS += utils.o
@@ -83,6 +100,7 @@ PROGRAMS += test-dissect
 PROGRAMS += test-lexing
 PROGRAMS += test-linearize
 PROGRAMS += test-parsing
+PROGRAMS += test-show-type
 PROGRAMS += test-unssa
 
 INST_PROGRAMS=smatch sparse cgcc
@@ -132,6 +150,24 @@ else
 $(warning Your system does not have libxml, disabling c2xml)
 endif
 
+HAVE_SQLITE := $(shell $(PKG_CONFIG) --exists sqlite3 2>/dev/null && echo 'yes')
+ifeq ($(HAVE_SQLITE),yes)
+SQLITE_VERSION:=$(shell $(PKG_CONFIG) --modversion sqlite3)
+SQLITE_VNUMBER:=$(shell printf '%d%02d%02d' $(subst ., ,$(SQLITE_VERSION)))
+ifeq ($(shell expr "$(SQLITE_VNUMBER)" '>=' 32400),1)
+PROGRAMS += sindex
+INST_PROGRAMS += sindex
+INST_MAN1 += sindex.1
+sindex-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
+sindex-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
+sindex-cflags += -std=gnu99
+else
+$(warning Your SQLite3 version ($(SQLITE_VERSION)) is too old, 3.24.0 or later is required.)
+endif
+else
+$(warning Your system does not have sqlite3, disabling sindex)
+endif
+
 # Can we use gtk (needed for test-inspect)
 GTK_VERSION:=3.0
 HAVE_GTK:=$(shell $(PKG_CONFIG) --exists gtk+-$(GTK_VERSION) 2>/dev/null && echo 'yes')
@@ -164,11 +200,12 @@ arch := x32
 endif
 ifneq ($(filter ${arch},i386 i486 i586 i686 x86_64 amd64),)
 LLVM_VERSION:=$(shell $(LLVM_CONFIG) --version)
-ifeq ($(shell expr "$(LLVM_VERSION)" : '[3-9]\.'),2)
+LLVM_VERSION_MAJOR:=$(firstword $(subst ., ,$(LLVM_VERSION)))
+ifeq ($(shell expr "$(LLVM_VERSION_MAJOR)" '>=' 3),1)
 LLVM_PROGS := sparse-llvm
-$(LLVM_PROGS): LD := g++
+$(LLVM_PROGS): LD := $(CXX)
 LLVM_LDFLAGS := $(shell $(LLVM_CONFIG) --ldflags)
-LLVM_CFLAGS := -I$(shell $(LLVM_CONFIG) --includedir)
+LLVM_CFLAGS := $(shell $(LLVM_CONFIG) --cppflags)
 LLVM_LIBS := $(shell $(LLVM_CONFIG) --libs)
 LLVM_LIBS += $(shell $(LLVM_CONFIG) --system-libs 2>/dev/null)
 LLVM_LIBS += $(shell $(LLVM_CONFIG) --cxxflags | grep -F -q -e '-stdlib=libc++' && echo -lc++)
@@ -345,7 +382,6 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 	$(Q)CHECK=./sparse ./cgcc -no-compile $(CHECKER_FLAGS) $(cflags) -c $<
 
 selfcheck: $(OBJS:.o=.sc)
-
 
 SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
 lib.o: version.h

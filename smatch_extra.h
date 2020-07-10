@@ -216,7 +216,7 @@ struct expression *assign_expression(struct expression *left, int op, struct exp
 struct expression *binop_expression(struct expression *left, int op, struct expression *right);
 struct expression *array_element_expression(struct expression *array, struct expression *offset);
 struct expression *symbol_expression(struct symbol *sym);
-struct expression *string_expression(char *str);
+struct expression *gen_string_expression(char *str);
 struct expression *compare_expression(struct expression *left, int op, struct expression *right);
 struct expression *call_expression(struct expression *fn, struct expression_list *args);
 struct expression *unknown_value_expression(struct expression *expr);

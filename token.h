@@ -253,4 +253,11 @@ static inline int match_ident(struct token *token, struct ident *id)
 	return token->pos.type == TOKEN_IDENT && token->ident == id;
 }
 
+static inline int match_token_zero(struct token *token)
+{
+	if (token_type(token) != TOKEN_NUMBER)
+		return false;
+	return token->number[0] == '0' && !token->number[1];
+}
+
 #endif

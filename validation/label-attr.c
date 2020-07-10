@@ -1,6 +1,6 @@
 static int foo(void)
 {
-       return 0;
+       goto rtattr_failure;
 rtattr_failure: __attribute__ ((unused))
        return -1;
 }

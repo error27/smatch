@@ -1,0 +1,12 @@
+v0.4.5-rc1 (2013-05-09)
+=======================
+
+I just push the tag for sparse 0.4.5-rc1
+
+It is about time to cut a new release. There have been a lot of
+small improvements. It produces less warning on the recent kernel
+check.
+
+Please give it a good test.
+
+Chris

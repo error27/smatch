@@ -39,6 +39,7 @@ case "$(uname -s)" in
 *CYGWIN*)
 	# cygwin uses the sjlj (setjmp-longjmp) exception model
 	LLC_ARCH_OPTS="-exception-model=sjlj"
+	LLC_ARCH_OPTS="$LLC_ARCH_OPTS -mtriple=$(llvm-config --host-target)"
 	;;
 *)
 	;;

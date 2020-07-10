@@ -50,6 +50,7 @@ static struct ident_list *macros;	// only needed for -dD
 static int false_nesting = 0;
 static int counter_macro = 0;		// __COUNTER__ expansion
 static int include_level = 0;
+static int expanding = 0;
 
 #define INCLUDEPATHS 300
 const char *includepath[INCLUDEPATHS+1] = {
@@ -161,18 +162,6 @@ static void replace_with_defined(struct token *token)
 	replace_with_bool(token, token_defined(token));
 }
 
-static void replace_with_has_builtin(struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, NS_SYMBOL);
-	replace_with_bool(token, sym && sym->builtin);
-}
-
-static void replace_with_has_attribute(struct token *token)
-{
-	struct symbol *sym = lookup_symbol(token->ident, NS_KEYWORD);
-	replace_with_bool(token, sym && sym->op && sym->op->attribute);
-}
-
 static void expand_line(struct token *token)
 {
 	replace_with_integer(token, token->pos.line);
@@ -231,12 +220,17 @@ static int expand_one_symbol(struct token **list)
 	if (!sym)
 		return 1;
 	store_macro_pos(token);
-	if (sym->expander) {
-		sym->expander(token);
+	if (sym->expand_simple) {
+		sym->expand_simple(token);
 		return 1;
 	} else {
+		int rc;
+
 		sym->used_in = file_scope;
-		return expand(list, sym);
+		expanding = 1;
+		rc = expand(list, sym);
+		expanding = 0;
+		return rc;
 	}
 }
 
@@ -274,8 +268,6 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 	while (!eof_token(next = scan_next(p))) {
 		if (next->pos.newline && match_op(next, '#')) {
 			if (!next->pos.noexpand) {
-				sparse_error(next->pos,
-					     "directive in argument list");
 				preprocessor_line(stream, p);
 				__free_token(next);	/* Free the '#' token */
 				continue;
@@ -308,6 +300,7 @@ static struct token *collect_arg(struct token *prev, int vararg, struct position
 		next->pos.stream = pos->stream;
 		next->pos.line = pos->line;
 		next->pos.pos = pos->pos;
+		next->pos.newline = 0;
 		p = &next->next;
 	}
 	*p = &eof_token_entry;
@@ -758,6 +751,7 @@ static int expand(struct token **list, struct symbol *sym)
 	struct token *token = *list;
 	struct ident *expanding = token->ident;
 	struct token **tail;
+	struct token *expansion = sym->expansion;
 	int nargs = sym->arglist ? sym->arglist->count.normal : 0;
 	struct arg args[nargs];
 
@@ -774,10 +768,13 @@ static int expand(struct token **list, struct symbol *sym)
 		expand_arguments(nargs, args);
 	}
 
+	if (sym->expand)
+		return sym->expand(token, args) ? 0 : 1;
+
 	expanding->tainted = 1;
 
 	last = token->next;
-	tail = substitute(list, sym->expansion, args);
+	tail = substitute(list, expansion, args);
 	/*
 	 * Note that it won't be eof - at least TOKEN_UNTAINT will be there.
 	 * We still can lose the newline flag if the sucker expands to nothing,
@@ -1554,7 +1551,7 @@ void predefine(const char *name, int weak, const char *fmt, ...)
 		va_end(ap);
 
 		value = __alloc_token(0);
-		if (isdigit(buf[0])) {
+		if (isdigit((unsigned char)buf[0])) {
 			token_type(value) = TOKEN_NUMBER;
 			value->number = xstrdup(buf);
 		} else {
@@ -1574,6 +1571,32 @@ void predefine_nostd(const char *name)
 {
 	if ((standard & STANDARD_GNU) || (standard == STANDARD_NONE))
 		predefine(name, 1, "1");
+}
+
+static void predefine_fmt(const char *fmt, int weak, va_list ap)
+{
+	static char buf[256];
+
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	predefine(buf, weak, "1");
+}
+
+void predefine_strong(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	predefine_fmt(fmt, 0, ap);
+	va_end(ap);
+}
+
+void predefine_weak(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	predefine_fmt(fmt, 1, ap);
+	va_end(ap);
 }
 
 static int do_handle_define(struct stream *stream, struct token **line, struct token *token, int attr)
@@ -1713,8 +1736,6 @@ static int handle_ifndef(struct stream *stream, struct token **line, struct toke
 	return preprocessor_if(stream, token, arg);
 }
 
-static const char *show_token_sequence(struct token *token, int quote);
-
 /*
  * Expression handling for #if and #elif; it differs from normal expansion
  * due to special treatment of "defined".
@@ -1734,14 +1755,6 @@ static int expression_value(struct token **where)
 				break;
 			if (p->ident == &defined_ident) {
 				state = 1;
-				beginning = list;
-				break;
-			} else if (p->ident == &__has_builtin_ident) {
-				state = 4;
-				beginning = list;
-				break;
-			} else if (p->ident == &__has_attribute_ident) {
-				state = 6;
 				beginning = list;
 				break;
 			}
@@ -1772,38 +1785,6 @@ static int expression_value(struct token **where)
 			state = 0;
 			if (!match_op(p, ')'))
 				sparse_error(p->pos, "missing ')' after \"defined\"");
-			*list = p->next;
-			continue;
-
-		// __has_builtin(x) or __has_attribute(x)
-		case 4: case 6:
-			if (match_op(p, '(')) {
-				state++;
-			} else {
-				sparse_error(p->pos, "missing '(' after \"__has_%s\"",
-					state == 4 ? "builtin" : "attribute");
-				state = 0;
-			}
-			*beginning = p;
-			break;
-		case 5: case 7:
-			if (token_type(p) != TOKEN_IDENT) {
-				sparse_error(p->pos, "identifier expected");
-				state = 0;
-				break;
-			}
-			if (!match_op(p->next, ')'))
-				sparse_error(p->pos, "missing ')' after \"__has_%s\"",
-					state == 5 ? "builtin" : "attribute");
-			if (state == 5)
-				replace_with_has_builtin(p);
-			else
-				replace_with_has_attribute(p);
-			state = 8;
-			*beginning = p;
-			break;
-		case 8:
-			state = 0;
 			*list = p->next;
 			continue;
 		}
@@ -2130,6 +2111,116 @@ static int handle_nondirective(struct stream *stream, struct token **line, struc
 	return 1;
 }
 
+static bool expand_has_attribute(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct symbol *sym;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	sym = lookup_symbol(arg->ident, NS_KEYWORD);
+	replace_with_bool(token, sym && sym->op && sym->op->attribute);
+	return true;
+}
+
+static bool expand_has_builtin(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct symbol *sym;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	sym = lookup_symbol(arg->ident, NS_SYMBOL);
+	replace_with_bool(token, sym && sym->builtin);
+	return true;
+}
+
+static bool expand_has_extension(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct ident *ident;
+	bool val = false;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	ident = arg->ident;
+	if (ident == &c_alignas_ident)
+		val = true;
+	else if (ident == &c_alignof_ident)
+		val = true;
+	else if (ident == &c_generic_selections_ident)
+		val = true;
+	else if (ident == &c_static_assert_ident)
+		val = true;
+
+	replace_with_bool(token, val);
+	return 1;
+}
+
+static bool expand_has_feature(struct token *token, struct arg *args)
+{
+	struct token *arg = args[0].expanded;
+	struct ident *ident;
+	bool val = false;
+
+	if (token_type(arg) != TOKEN_IDENT) {
+		sparse_error(arg->pos, "identifier expected");
+		return false;
+	}
+
+	ident = arg->ident;
+	if (standard >= STANDARD_C11) {
+		if (ident == &c_alignas_ident)
+			val = true;
+		else if (ident == &c_alignof_ident)
+			val = true;
+		else if (ident == &c_generic_selections_ident)
+			val = true;
+		else if (ident == &c_static_assert_ident)
+			val = true;
+	}
+
+	replace_with_bool(token, val);
+	return 1;
+}
+
+static void create_arglist(struct symbol *sym, int count)
+{
+	struct token *token;
+	struct token **next;
+
+	if (!count)
+		return;
+
+	token = __alloc_token(0);
+	token_type(token) = TOKEN_ARG_COUNT;
+	token->count.normal = count;
+	sym->arglist = token;
+	next = &token->next;
+
+	while (count--) {
+		struct token *id, *uses;
+		id = __alloc_token(0);
+		token_type(id) = TOKEN_IDENT;
+		uses = __alloc_token(0);
+		token_type(uses) = TOKEN_ARG_COUNT;
+		uses->count.normal = 1;
+
+		*next = id;
+		id->next = uses;
+		next = &uses->next;
+	}
+	*next = &eof_token_entry;
+}
 
 static void init_preprocessor(void)
 {
@@ -2170,7 +2261,8 @@ static void init_preprocessor(void)
 	};
 	static struct {
 		const char *name;
-		void (*expander)(struct token *);
+		void (*expand_simple)(struct token *);
+		bool (*expand)(struct token *, struct arg *args);
 	} dynamic[] = {
 		{ "__LINE__",		expand_line },
 		{ "__FILE__",		expand_file },
@@ -2179,6 +2271,10 @@ static void init_preprocessor(void)
 		{ "__TIME__",		expand_time },
 		{ "__COUNTER__",	expand_counter },
 		{ "__INCLUDE_LEVEL__",	expand_include_level },
+		{ "__has_attribute",	NULL, expand_has_attribute },
+		{ "__has_builtin",	NULL, expand_has_builtin },
+		{ "__has_extension",	NULL, expand_has_extension },
+		{ "__has_feature",	NULL, expand_has_feature },
 	};
 
 	for (i = 0; i < ARRAY_SIZE(normal); i++) {
@@ -2196,7 +2292,9 @@ static void init_preprocessor(void)
 	for (i = 0; i < ARRAY_SIZE(dynamic); i++) {
 		struct symbol *sym;
 		sym = create_symbol(stream, dynamic[i].name, SYM_NODE, NS_MACRO);
-		sym->expander = dynamic[i].expander;
+		sym->expand_simple = dynamic[i].expand_simple;
+		if ((sym->expand = dynamic[i].expand) != NULL)
+			create_arglist(sym, 1);
 	}
 
 	counter_macro = 0;
@@ -2207,6 +2305,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 	int (*handler)(struct stream *, struct token **, struct token *);
 	struct token *token = start->next;
 	int is_normal = 1;
+	int is_cond = 0;	// is one of {is,ifdef,ifndef,elif,else,endif}
 
 	if (eof_token(token))
 		return;
@@ -2216,6 +2315,7 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		if (sym) {
 			handler = sym->handler;
 			is_normal = sym->normal;
+			is_cond = !sym->normal;
 		} else {
 			handler = handle_nondirective;
 		}
@@ -2229,6 +2329,11 @@ static void handle_preprocessor_line(struct stream *stream, struct token **line,
 		dirty_stream(stream);
 		if (false_nesting)
 			goto out;
+	}
+
+	if (expanding) {
+		if (!is_cond || Wpedantic)
+			warning(start->pos, "directive in macro's argument list");
 	}
 	if (!handler(stream, line, token))	/* all set */
 		return;

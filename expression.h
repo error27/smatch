@@ -64,7 +64,7 @@ enum expression_type {
 	EXPR_FVALUE,
 	EXPR_SLICE,
 	EXPR_OFFSETOF,
-	EXPR_ASM_OPERAND,
+	EXPR_GENERIC,
 };
 
 
@@ -142,10 +142,31 @@ enum {
 	Taint_comma = 1,
 }; /* for expr->taint */
 
+struct asm_operand {
+	struct ident *name;
+	struct expression *constraint;
+	struct expression *expr;
+	unsigned int is_assign:1;
+	unsigned int is_modify:1;
+	unsigned int is_earlyclobber:1;
+	unsigned int is_commutative:1;
+	unsigned int is_register:1;
+	unsigned int is_memory:1;
+};
+
+struct type_expression {
+	struct symbol *type;
+	struct expression *expr;
+	struct type_expression *next;
+};
+
+DECLARE_ALLOCATOR(type_expression);
+
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
 	unsigned smatch_flags:16;
+	unsigned zero_init:1;
 	int op;
 	struct position pos;
 	struct symbol *ctype;
@@ -244,11 +265,12 @@ struct expression {
 				struct expression *index;
 			};
 		};
-		// EXPR_ASM_OPERAND
+		// EXPR_GENERIC
 		struct {
-			struct ident *name;
-			struct expression *constraint;
-			struct expression *expr;
+			struct expression *control;
+			struct expression *def;
+			struct type_expression *map;
+			struct expression *result;
 		};
 	};
 };
@@ -279,6 +301,7 @@ struct token *parse_expression(struct token *token, struct expression **tree);
 struct token *conditional_expression(struct token *token, struct expression **tree);
 struct token *primary_expression(struct token *token, struct expression **tree);
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where);
+struct token *string_expression(struct token *token, struct expression **expr, const char *where);
 struct token *assignment_expression(struct token *token, struct expression **tree);
 
 extern void evaluate_symbol_list(struct symbol_list *list);

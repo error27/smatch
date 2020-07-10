@@ -37,7 +37,9 @@ int test(void)
 	TEST_SIZEOF(INT, int);
 	TEST_SIZEOF(LONG, long);
 	TEST_SIZEOF(LONG_LONG, long long);
+#ifdef __SIZEOF_INT128__
 	TEST_SIZEOF(INT128, __int128);
+#endif
 	TEST_SIZEOF(PTRDIFF_T, __PTRDIFF_TYPE__);
 	TEST_SIZEOF(SIZE_T, __SIZE_TYPE__);
 	TEST_SIZEOF(POINTER, void*);

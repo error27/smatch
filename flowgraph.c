@@ -166,6 +166,10 @@ void domtree_build(struct entrypoint *ep)
 		} END_FOR_EACH_PTR(b);
 	} while (changed);
 
+	FOR_EACH_PTR(ep->bbs, bb) {
+		free_ptr_list(&bb->doms);
+	} END_FOR_EACH_PTR(bb);
+
 	// set the idom links
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct basic_block *idom = doms[bb->postorder_nr];

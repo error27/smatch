@@ -58,9 +58,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		[SYM_STRUCT] = "strt",
 		[SYM_UNION] = "unin",
 		[SYM_ENUM] = "enum",
-		[SYM_TYPEDEF] = "tdef",
 		[SYM_TYPEOF] = "tpof",
-		[SYM_MEMBER] = "memb",
 		[SYM_BITFIELD] = "bitf",
 		[SYM_LABEL] = "labl",
 		[SYM_RESTRICT] = "rstr",
@@ -121,34 +119,30 @@ const char *modifier_string(unsigned long mod)
 
 	static struct mod_name mod_names[] = {
 		{MOD_AUTO,		"auto"},
+		{MOD_EXTERN,		"extern"},
 		{MOD_REGISTER,		"register"},
 		{MOD_STATIC,		"static"},
-		{MOD_EXTERN,		"extern"},
-		{MOD_CONST,		"const"},
-		{MOD_VOLATILE,		"volatile"},
-		{MOD_RESTRICT,		"restrict"},
-		{MOD_ATOMIC,		"[atomic]"},
-		{MOD_SIGNED,		"[signed]"},
-		{MOD_UNSIGNED,		"[unsigned]"},
-		{MOD_CHAR,		"[char]"},
-		{MOD_SHORT,		"[short]"},
-		{MOD_LONG,		"[long]"},
-		{MOD_LONGLONG,		"[long long]"},
-		{MOD_LONGLONGLONG,	"[long long long]"},
-		{MOD_TLS,		"[tls]"},
 		{MOD_INLINE,		"inline"},
+		{MOD_CONST,		"const"},
+		{MOD_RESTRICT,		"restrict"},
+		{MOD_VOLATILE,		"volatile"},
 		{MOD_ADDRESSABLE,	"[addressable]"},
+		{MOD_ASSIGNED,		"[assigned]"},
+		{MOD_ATOMIC,		"[atomic]"},
+		{MOD_BITWISE,		"[bitwise]"},
+		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
+		{MOD_GNU_INLINE,	"[gnu_inline]"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
-		{MOD_TOPLEVEL,		"[toplevel]"},
-		{MOD_ASSIGNED,		"[assigned]"},
-		{MOD_TYPE,		"[type]"},
-		{MOD_SAFE,		"[safe]"},
-		{MOD_USERTYPE,		"[usertype]"},
 		{MOD_NORETURN,		"[noreturn]"},
-		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
-		{MOD_BITWISE,		"[bitwise]"},
 		{MOD_PURE,		"[pure]"},
+		{MOD_SAFE,		"[safe]"},
+		{MOD_SIGNED,		"[signed]"},
+		{MOD_TLS,		"[tls]"},
+		{MOD_TOPLEVEL,		"[toplevel]"},
+		{MOD_UNSIGNED,		"[unsigned]"},
+		{MOD_UNUSED,		"[unused]"},
+		{MOD_USERTYPE,		"[usertype]"},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(mod_names); i++) {
@@ -243,9 +237,9 @@ static struct ctype_name {
 	{ & llong_ctype, "long long", "LL" },
 	{ &sllong_ctype, "signed long long", "LL" },
 	{ &ullong_ctype, "unsigned long long", "ULL" },
-	{ & lllong_ctype, "long long long", "LLL" },
-	{ &slllong_ctype, "signed long long long", "LLL" },
-	{ &ulllong_ctype, "unsigned long long long", "ULLL" },
+	{ & int128_ctype, "__int128", "" },
+	{ &sint128_ctype, "signed __int128", "" },
+	{ &uint128_ctype, "unsigned __int128", "" },
 
 	{ &void_ctype,   "void", "" },
 	{ &bool_ctype,   "bool", "" },
@@ -300,7 +294,7 @@ static void do_show_type(struct symbol *sym, struct type_name *name)
 	int fouled = 0;
 
 deeper:
-	if (!sym || (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
+	if (sym && (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
 		     sym->type != SYM_BITFIELD)) {
 		const char *s;
 		size_t len;
@@ -308,12 +302,12 @@ deeper:
 		if (as)
 			prepend(name, "%s ", show_as(as));
 
-		if (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM)
+		if (sym && (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM))
 			mod &= ~MOD_SPECIFIER;
 		s = modifier_string(mod);
 		len = strlen(s);
-		name->start -= len;    
-		memcpy(name->start, s, len);  
+		name->start -= len;
+		memcpy(name->start, s, len);
 		mod = 0;
 		as = NULL;
 	}
@@ -337,6 +331,7 @@ deeper:
 		mod = sym->ctype.modifiers;
 		as = sym->ctype.as;
 		was_ptr = 1;
+		examine_pointer_target(sym);
 		break;
 
 	case SYM_FN:
@@ -1185,8 +1180,8 @@ int show_expression(struct expression *expr)
 	case EXPR_TYPE:
 		warning(expr->pos, "unable to show type expression");
 		return 0;
-	case EXPR_ASM_OPERAND:
-		warning(expr->pos, "unable to show asm operand expression");
+	case EXPR_GENERIC:
+		warning(expr->pos, "unable to show generic expression");
 		return 0;
 	}
 	return 0;

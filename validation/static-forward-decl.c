@@ -1,13 +1,14 @@
-static int f(void);
+int fref(void);
+int fref(void) { return 0; }
 
-int f(void)
-{
-	return 0;
-}
+static
+int floc(void);
+int floc(void) { return 0; }
+
+static
+int oloc;
+int oloc = 0;
+
 /*
  * check-name: static forward declaration
- *
- * check-error-start
-static-forward-decl.c:3:5: warning: symbol 'f' was not declared. Should it be static?
- * check-error-end
  */

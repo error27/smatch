@@ -47,6 +47,9 @@ Terminators
 	* .type: type of .cond, must be an integral type
 	* .multijmp_list: pairs of case-value - destination basic block
 
+.. op:: OP_UNREACH
+	Mark code as unreachable
+
 .. op:: OP_COMPUTEDGOTO
 	Computed goto / branch to register
 
@@ -56,7 +59,7 @@ Terminators
 Arithmetic binops
 -----------------
 They all follow the same signature:
-	* .src1, .src1: operands (types must be compatible with .target)
+	* .src1, .src2: operands (types must be compatible with .target)
 	* .target: result of the operation (must be an integral type)
 	* .type: type of .target
 
@@ -93,7 +96,7 @@ They all follow the same signature:
 Floating-point binops
 ---------------------
 They all follow the same signature:
-	* .src1, .src1: operands (types must be compatible with .target)
+	* .src1, .src2: operands (types must be compatible with .target)
 	* .target: result of the operation (must be a floating-point type)
 	* .type: type of .target
 

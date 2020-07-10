@@ -61,11 +61,11 @@ static_assert.c:19:16: error: static assertion failed: "expected assertion failu
 static_assert.c:22:16: error: bad constant expression
 static_assert.c:25:16: error: bad constant expression
 static_assert.c:27:16: error: bad constant expression
-static_assert.c:35:19: error: bad or missing string literal
+static_assert.c:35:19: error: string literal expected for _Static_assert()
 static_assert.c:37:18: error: bad constant expression
-static_assert.c:52:19: error: bad or missing string literal
+static_assert.c:52:19: error: string literal expected for _Static_assert()
 static_assert.c:53:16: error: Expected constant expression
 static_assert.c:54:16: error: Expected constant expression
-static_assert.c:54:17: error: bad or missing string literal
+static_assert.c:54:17: error: string literal expected for _Static_assert()
  * check-error-end
  */

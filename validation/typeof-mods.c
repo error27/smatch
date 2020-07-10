@@ -102,7 +102,7 @@ static void test_static(void)
 
 static void test_tls(void)
 {
-	__thread int obj, *ptr;
+	static __thread int obj, *ptr;
 	typeof(obj) var = obj;
 	typeof(ptr) ptr2 = ptr;
 	typeof(*ptr) var2 = obj;

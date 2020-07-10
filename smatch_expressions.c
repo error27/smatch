@@ -145,7 +145,7 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 	return expr;
 }
 
-struct expression *string_expression(char *str)
+struct expression *gen_string_expression(char *str)
 {
 	struct expression *ret;
 	struct string *string;

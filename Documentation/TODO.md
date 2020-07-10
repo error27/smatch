@@ -24,15 +24,9 @@ Core
   - add the sym into a list and
   - recalculate the addressability before memops's SSA conversion
 * bool_ctype should be split into internal 1-bit / external 8-bit
-* Previous declarations and the definition need to be merged. For example,
-  in the code here below, the function definition is **not** static:
-  ```
-	static void foo(void);
-	void foo(void) { ... }
-  ```
 
 Testsuite
---------
+---------
 * there are more than 50 failing tests. They should be fixed
   (but most are non-trivial to fix).
 
@@ -40,7 +34,6 @@ Misc
 ----
 * GCC's -Wenum-compare / clangs's -Wenum-conversion -Wassign-enum
 * parse __attribute_((fallthrough))
-* add support for __builtin_unreachable()
 * add support for format(printf())  (WIP by Ben Dooks)
 * make use of UNDEFs (issues warnings, simplification, ... ?)
 * add a pass to inline small functions during simplification.
@@ -84,11 +77,15 @@ Longer term/to investigate
 * should support "-Werror=..." ?
 * All warning messages should include the option how to disable it.
   For example:
+
   	"warning: Variable length array is used."
+
   should be something like:
+
 	"warning: Variable length array is used. (-Wno-vla)"
-* ptrlists must have elements be removed while being iterated but this
-  is hard to insure it is not done.
+
+* ptrlists must not have elements removed while being iterated;
+  this should somehow be enforced.
 * having 'struct symbol' used to represent symbols *and* types is
   quite handy but it also creates lots of problems and complications
 * Possible mixup of symbol for a function designator being not a pointer?

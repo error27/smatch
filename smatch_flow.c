@@ -741,23 +741,13 @@ static int last_stmt_on_same_line(void)
 	return 0;
 }
 
-static void split_asm_constraints(struct expression_list *expr_list)
+static void split_asm_ops(struct asm_operand_list *ops)
 {
-	struct expression *expr;
-	int state = 0;
+	struct asm_operand *op;
 
-	FOR_EACH_PTR(expr_list, expr) {
-		switch (state) {
-		case 0: /* identifier */
-		case 1: /* constraint */
-			state++;
-			continue;
-		case 2: /* expression */
-			state = 0;
-			__split_expr(expr);
-			continue;
-		}
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(ops, op) {
+		__split_expr(op->expr);
+	} END_FOR_EACH_PTR(op);
 }
 
 static int is_case_val(struct statement *stmt, sval_t sval)
@@ -1197,9 +1187,9 @@ void __split_stmt(struct statement *stmt)
 		find_asm_gotos(stmt);
 		__pass_to_client(stmt, ASM_HOOK);
 		__split_expr(stmt->asm_string);
-		split_asm_constraints(stmt->asm_outputs);
-		split_asm_constraints(stmt->asm_inputs);
-		split_asm_constraints(stmt->asm_clobbers);
+		split_asm_ops(stmt->asm_outputs);
+		split_asm_ops(stmt->asm_inputs);
+		split_expr_list(stmt->asm_clobbers, NULL);
 		break;
 	case STMT_CONTEXT:
 		break;

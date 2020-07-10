@@ -6,6 +6,6 @@ void foo(void)
 }
 
 /*
- * check-name: fsigned-char
+ * check-name: funsigned-char
  * check-command: sparse -funsigned-char -Wno-decl $file
  */

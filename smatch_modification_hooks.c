@@ -218,13 +218,11 @@ static void match_call(struct expression *expr)
 
 static void asm_expr(struct statement *stmt, int late)
 {
-	struct expression *expr;
+	struct asm_operand *op;
 
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		if (expr->type != EXPR_ASM_OPERAND)
-			continue;
-		call_modification_hooks(expr->expr, NULL, late);
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		call_modification_hooks(op->expr, NULL, late);
+	} END_FOR_EACH_PTR(op);
 }
 
 static void match_assign_early(struct expression *expr)

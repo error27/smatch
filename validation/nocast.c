@@ -26,8 +26,8 @@ static ulong_nc_t good_deref(ulong_nc_t *t)
 
 /* assign value */
 static ulong_nc_t t;
-static ulong_nc_t good_assign_self = t;
-static unsigned long good_assign_sametype = t;
+
+
 
 /* assign pointer */
 static ulong_nc_t *good_ptr = &t;
@@ -148,6 +148,12 @@ static ulong_nc_t bad_tocast(unsigned long v)
 static unsigned long bad_fromcast(ulong_nc_t v)
 {
 	return (unsigned long) v;
+}
+
+static void assign_value(void)
+{
+	ulong_nc_t good_assign_self = t;
+	unsigned long good_assign_sametype = t;
 }
 
 /*

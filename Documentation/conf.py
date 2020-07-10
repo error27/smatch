@@ -21,7 +21,7 @@ import datetime
 
 # -- General configuration ------------------------------------------------
 
-needs_sphinx = '1.3'
+needs_sphinx = '1.7'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -100,7 +100,14 @@ cdoc_srcdir = '..'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'classic'
+try:
+	html_theme = 'sphinx_rtd_theme'
+	import sphinx_rtd_theme
+	html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+except:
+	sys.stderr.write("Warning: theme '%s' not found\n" % html_theme)
+	html_theme = 'classic'
+
 # html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -113,12 +120,7 @@ html_theme = 'classic'
 #
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-	'**': [
-	    'relations.html',  # needs 'show_related': True theme option to display
-	    'searchbox.html',
-	]
-}
+html_sidebars = { }
 
 html_logo = 'logo.svg'
 

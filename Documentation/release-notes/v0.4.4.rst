@@ -1,0 +1,89 @@
+v0.4.4 (2011-11-25)
+===================
+
+This is a long due release. The sparse 0.4.4 can be downloaded from:
+
+https://www.kernel.org/pub/software/devel/sparse/dist/
+
+The new sparse has a lot of bugs fixes. It will report less noise
+while checking the new kernel tree. It compiles better with the
+new gcc as well.
+
+The sparse project is in the process of moving to the MIT license.
+Dan is coordinating the efforts. Most sparse developers sign off
+the MIT license already. If you haven't done so, please contact
+Dan off the list regarding the new license.
+
+Here is the short summery of the changes in this release.
+
+Have a nice long week end.
+
+Chris
+
+Ben Pfaff (1):
+   * evaluate: Allow sizeof(_Bool) to succeed.
+
+Christopher Li (13):
+   * inspect: adding function arugument list
+   * Allow overwrite CFLAGS from command line
+   * Ignore attribute vector_size
+   * Remove set but not used variable
+   * inspect: Add switch statement and more
+   * validation: inline switch statement
+   * Fix inlining switch statement.
+   * Sparse 0.4.4-rc1
+   * Add test case for empty asm clobbers
+   * Fix parsing empty asm clobber
+   * Sparse 0.4.4-rc2
+   * Add test case for binary constants
+   * sparse 0.4.4
+
+Dan Carpenter (1):
+   * recognize binary constants
+
+Diego Elio Pettenò (3):
+   * build: allow easy override of GCC_BASE
+   * build: add an all-installable target that builds the targets to install.
+   * Fix build with GCC 4.6 series.
+
+Florian Fainelli (1):
+   * Makefile: warn user when libxml and/or libgtk2 are not available
+
+Jan Pokorný (4):
+   * remove unused "container" macro
+   * flow.c: make comment for 'dominates' reflect code
+   * use ARRAY_SIZE() when possible (continued)
+   * parse.c: "if(" -> "if (" adjustment
+
+Jonathan Neuschäfer (3):
+   * fix a memory leak in compile-i386.c
+   * FAQ: fix a typo ("because or")
+   * fix common misspellings with codespell
+
+Kamil Dudka (2):
+   * cse: treat PHI-nodes as other instructions
+   * cse: update PHI users when throwing away an instruction
+
+Linus Torvalds (5):
+   * Add new streams to a hash-list based on their names
+   * Teach 'already_tokenized()' to use the stream name hash table
+   * Make 'linearize_iterator()' helper function
+   * Make 'linearize_switch()' helper function
+   * Make 'linearize_return()' helper function
+
+Michael Stefaniuc (1):
+   * Ignore the ms_hook_prologue attribute.
+
+Namhyung Kim (3):
+   * use ARRAY_SIZE() when possible
+   * Fix tokenizer for octal escape sequences
+   * Update the validation check for escape sequences
+
+Nicolas Kaiser (1):
+   * memops.c: always true expression
+
+Pekka Enberg (4):
+   * sparse: Add 'artifical' to ignore attributes
+   * sparse: Enable unhandled validation tests
+   * Show expected vs. actual output on test failure
+   * sparse: Fix __builtin_safe_p for pure and const functions

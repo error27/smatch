@@ -183,6 +183,7 @@ static const char *opcodes[] = {
 	[OP_BR] = "br",
 	[OP_CBR] = "cbr",
 	[OP_SWITCH] = "switch",
+	[OP_UNREACH] = "unreachable",
 	[OP_COMPUTEDGOTO] = "jmp *",
 	
 	/* Binary */
@@ -399,6 +400,8 @@ const char *show_instruction(struct instruction *insn)
 		} END_FOR_EACH_PTR(jmp);
 		break;
 	}
+	case OP_UNREACH:
+		break;
 
 	case OP_PHISOURCE: {
 		struct instruction *phi;
@@ -652,6 +655,13 @@ static void add_one_insn(struct entrypoint *ep, struct instruction *insn)
 		insn->bb = bb;
 		add_instruction(&bb->insns, insn);
 	}
+}
+
+static void add_unreachable(struct entrypoint *ep)
+{
+	struct instruction *insn = alloc_instruction(OP_UNREACH, 0);
+	add_one_insn(ep, insn);
+	ep->active = NULL;
 }
 
 static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
@@ -1499,6 +1509,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	fn = expr->fn;
 	fntype = fn->ctype;
+
+	// handle builtins
+	if (fntype->op && fntype->op->linearize)
+		return fntype->op->linearize(ep, expr);
+
 	ctype = &fntype->ctype;
 	if (fntype->type == SYM_NODE)
 		fntype = fntype->ctype.base_type;
@@ -1548,6 +1563,9 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 				add_one_insn(ep, insn);
 			}
 		} END_FOR_EACH_PTR(context);
+
+		if (ctype->modifiers & MOD_NORETURN)
+			add_unreachable(ep);
 	}
 
 	return retval;
@@ -1764,7 +1782,7 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 {
 	pseudo_t cond;
 
-	if (!expr || !bb_reachable(ep->active))
+	if (!expr || !valid_type(expr->ctype) || !bb_reachable(ep->active))
 		return VOID;
 
 	switch (expr->type) {
@@ -1864,7 +1882,7 @@ static void linearize_argument(struct entrypoint *ep, struct symbol *arg, int nr
 
 static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *expr)
 {
-	if (!expr)
+	if (!expr || !valid_type(expr->ctype))
 		return VOID;
 
 	current_pos = expr->pos;
@@ -2075,41 +2093,45 @@ static pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
 ALLOCATOR(asm_rules, "asm rules");
 ALLOCATOR(asm_constraint, "asm constraints");
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
-	const char *constraint, const struct ident *ident)
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
-	pseudo_t pseudo = linearize_expression(ep, expr);
+	pseudo_t pseudo = linearize_expression(ep, op->expr);
 	struct asm_constraint *rule = __alloc_asm_constraint(0);
 
-	rule->ident = ident;
-	rule->constraint = constraint;
+	rule->ident = op->name;
+	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->inputs, rule);
 }
 
-static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct expression *expr,
-	const char *constraint, const struct ident *ident)
+static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
-	pseudo_t pseudo = alloc_pseudo(insn);
+	pseudo_t pseudo;
 	struct asm_constraint *rule;
 
-	if (!expr || !linearize_address_gen(ep, expr, &ad))
-		return;
-	linearize_store_gen(ep, pseudo, &ad);
+	if (op->is_memory) {
+		pseudo = linearize_expression(ep, op->expr);
+	} else {
+		if (!linearize_address_gen(ep, op->expr, &ad))
+			return;
+		pseudo = alloc_pseudo(insn);
+		linearize_store_gen(ep, pseudo, &ad);
+	}
 	rule = __alloc_asm_constraint(0);
-	rule->ident = ident;
-	rule->constraint = constraint;
+	rule->is_memory = op->is_memory;
+	rule->ident = op->name;
+	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
 	add_ptr_list(&insn->asm_rules->outputs, rule);
 }
 
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
-	struct expression *expr;
 	struct instruction *insn;
+	struct expression *expr;
 	struct asm_rules *rules;
-	const char *constraint;
+	struct asm_operand *op;
 
 	insn = alloc_instruction(OP_ASM, 0);
 	expr = stmt->asm_string;
@@ -2123,18 +2145,16 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	insn->asm_rules = rules;
 
 	/* Gather the inputs.. */
-	FOR_EACH_PTR(stmt->asm_inputs, expr) {
-		constraint = expr->constraint ? expr->constraint->string->data : "";
-		add_asm_input(ep, insn, expr->expr, constraint, expr->name);
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		add_asm_input(ep, insn, op);
+	} END_FOR_EACH_PTR(op);
 
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		constraint = expr->constraint ? expr->constraint->string->data : "";
-		add_asm_output(ep, insn, expr->expr, constraint, expr->name);
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		add_asm_output(ep, insn, op);
+	} END_FOR_EACH_PTR(op);
 
 	return VOID;
 }
@@ -2417,6 +2437,10 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 		bb_true = alloc_basic_block(ep, stmt->pos);
 		bb_false = endif = alloc_basic_block(ep, stmt->pos);
 
+		// If the condition is invalid, the following
+		// statement(s) are not evaluated.
+		if (!cond || !valid_type(cond->ctype))
+			return VOID;
  		linearize_cond_branch(ep, cond, bb_true, bb_false);
 
 		set_activeblock(ep, bb_true);
@@ -2456,7 +2480,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	pseudo_t result;
 	int i;
 
-	if (!stmt)
+	if (!stmt || sym->bogus_linear)
 		return NULL;
 
 	ep = alloc_entrypoint();
@@ -2506,4 +2530,38 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
 	if (base_type->type == SYM_FN)
 		return linearize_fn(sym, base_type);
 	return NULL;
+}
+
+/*
+ * Builtin functions
+ */
+
+static pseudo_t linearize_unreachable(struct entrypoint *ep, struct expression *exp)
+{
+	add_unreachable(ep);
+	return VOID;
+}
+
+static struct sym_init {
+	const char *name;
+	pseudo_t (*linearize)(struct entrypoint *, struct expression*);
+	struct symbol_op op;
+} builtins_table[] = {
+	// must be declared in builtin.c:declare_builtins[]
+	{ "__builtin_unreachable", linearize_unreachable },
+	{ }
+};
+
+void init_linearized_builtins(int stream)
+{
+	struct sym_init *ptr;
+
+	for (ptr = builtins_table; ptr->name; ptr++) {
+		struct symbol *sym;
+		sym = create_symbol(stream, ptr->name, SYM_NODE, NS_SYMBOL);
+		if (!sym->op)
+			sym->op = &ptr->op;
+		sym->op->type |= KW_BUILTIN;
+		ptr->op.linearize = ptr->linearize;
+	}
 }

@@ -267,13 +267,13 @@ static void match_param_assign(struct expression *expr)
 
 static void match_param_assign_in_asm(struct statement *stmt)
 {
-
-	struct expression *tmp, *expr;
+	struct expression *expr;
+	struct asm_operand *op;
 	struct symbol *type;
 	int param;
 
-	FOR_EACH_PTR(stmt->asm_inputs, tmp) {
-		expr = strip_expr(tmp->expr);
+	FOR_EACH_PTR(stmt->asm_inputs, op) {
+		expr = strip_expr(op->expr);
 		type = get_type(expr);
 		if (!type || type->type != SYM_PTR)
 			continue;
@@ -281,7 +281,7 @@ static void match_param_assign_in_asm(struct statement *stmt)
 		if (param < 0)
 			continue;
 		set_state_expr(my_id, expr, &untracked);
-	} END_FOR_EACH_PTR(tmp);
+	} END_FOR_EACH_PTR(op);
 }
 
 static void match_inline_start(struct expression *expr)

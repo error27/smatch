@@ -52,7 +52,7 @@ while (@ARGV) {
 
     $m32 = 1 if /^-m32$/;
     $m64 = 1 if /^-m64$/;
-    $gendeps = 1 if /^-(M|MM|MD|MMD)$/;
+    $gendeps = 1 if /^-(M|MM)$/;
 
     if (/^-target=(.*)$/) {
 	$check .= &add_specs ($1);
@@ -131,6 +131,7 @@ sub check_only_option {
     return 1 if $arg =~ /^-v(no-?)?(entry|dead)$/;
     return 1 if $arg =~ /^-f(dump-ir|memcpy-max-count|diagnostic-prefix)(=\S*)?$/;
     return 1 if $arg =~ /^-f(mem2reg|optim)(-enable|-disable|=last)?$/;
+    return 1 if $arg =~ /^-msize-(long|llp64)$/;
     return 0;
 }
 
@@ -144,30 +145,6 @@ sub quote_arg {
 		 map {
 		     m|^[-a-zA-Z0-9._/,=]+$| ? $_ : "\\" . $_;
 		 } (split (//, $arg)));
-}
-
-# -----------------------------------------------------------------------------
-
-sub integer_types {
-    my ($char,@dummy) = @_;
-
-    my %pow2m1 =
-	(8 => '127',
-	 16 => '32767',
-	 32 => '2147483647',
-	 64 => '9223372036854775807',
-	 128 => '170141183460469231731687303715884105727',
-	 );
-    my @types = (['SCHAR',''], ['SHRT',''], ['INT',''], ['LONG','L'], ['LONG_LONG','LL'], ['LONG_LONG_LONG','LLL']);
-
-    my $result = " -D__CHAR_BIT__=$char";
-    while (@types && @_) {
-	my $bits = shift @_;
-	my ($name,$suffix) = @{ shift @types };
-	die "$0: weird number of bits." unless exists $pow2m1{$bits};
-	$result .= " -D__${name}_MAX__=" . $pow2m1{$bits} . $suffix;
-    }
-    return $result;
 }
 
 # -----------------------------------------------------------------------------
@@ -241,14 +218,6 @@ sub float_types {
 
 # -----------------------------------------------------------------------------
 
-sub define_size_t {
-    my ($text) = @_;
-    # We have to undef in order to override check's internal definition.
-    return ' -U__SIZE_TYPE__ ' . &quote_arg ("-D__SIZE_TYPE__=$text");
-}
-
-# -----------------------------------------------------------------------------
-
 sub add_specs {
     my ($spec) = @_;
     if ($spec eq 'sunos') {
@@ -261,7 +230,7 @@ sub add_specs {
 	    ' -DNULL="((void *)0)"';
     } elsif ($spec eq 'linux') {
 	return &add_specs ('unix') .
-	    ' -D__linux__=1 -D__linux=1 -Dlinux=linux';
+	    ' -D__linux__=1 -D__linux=1 -Dlinux=1';
     } elsif ($spec eq 'gnu/kfreebsd') {
 	return &add_specs ('unix') .
 	    ' -D__FreeBSD_kernel__=1';
@@ -284,7 +253,9 @@ sub add_specs {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
 	return &add_specs ('unix') .
-	    ' -D__CYGWIN__=1 -D__CYGWIN32__=1' .
+	    ' -fshort-wchar' .
+	    ' -D__CYGWIN__=1' .
+	    ($m32 ? ' -D__CYGWIN32__=1' : '') .
 	    " -D'_cdecl=__attribute__((__cdecl__))'" .
 	    " -D'__cdecl=__attribute__((__cdecl__))'" .
 	    " -D'_stdcall=__attribute__((__stdcall__))'" .
@@ -293,48 +264,49 @@ sub add_specs {
 	    " -D'__fastcall=__attribute__((__fastcall__))'" .
 	    " -D'__declspec(x)=__attribute__((x))'";
     } elsif ($spec eq 'i386') {
+	$m32 = 1;
 	return (
+		' --arch=i386' .
 		&float_types (1, 1, 21, [24,8], [53,11], [64,15]));
     } elsif ($spec eq 'sparc') {
 	return (
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		' --arch=sparc' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'sparc64') {
 	return (
-		&integer_types (8, 16, 32, 64, 64, 128) .
-		&float_types (1, 1, 33, [24,8], [53,11], [113,15]) .
-		&define_size_t ("long unsigned int") .
-		' -D__SIZEOF_POINTER__=8');
+		' --arch=sparc64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'x86_64') {
-	return &float_types (1, 1, 33, [24,8], [53,11], [113,15]);
+	return (' --arch=x86_64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'ppc') {
-	return (' -D_BIG_ENDIAN -D_STRING_ARCH_unaligned=1' .
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 21, [24,8], [53,11], [113,15]) .
-		&define_size_t ($m64 ? "long unsigned int" : "unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
-    } elsif ($spec eq 'ppc64') {
-	return (' -D_STRING_ARCH_unaligned=1 -m64' .
+	return (' --arch=ppc' .
 		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
-    } elsif ($spec eq 'ppc64+be') {
+    } elsif ($spec eq 'ppc64') {
+	return (
+		' --arch=ppc64' .
+		&float_types (1, 1, 21, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'ppc64be') {
 	return &add_specs ('ppc64') . ' -mbig-endian -D_CALL_ELF=1';
-    } elsif ($spec eq 'ppc64+le') {
+    } elsif ($spec eq 'ppc64le') {
 	return &add_specs ('ppc64') . ' -mlittle-endian -D_CALL_ELF=2';
     } elsif ($spec eq 's390x') {
 	return (' -D_BIG_ENDIAN' .
-		&integer_types (8, 16, 32, $m64 ? 64 : 32, 64) .
-		&float_types (1, 1, 36, [24,8], [53,11], [113,15]) .
-		&define_size_t ("long unsigned int") .
-		' -D__SIZEOF_POINTER__=' . ($m64 ? '8' : '4'));
+		' --arch=s390x' .
+		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'riscv32') {
+	return (' --arch=riscv32' .
+		&float_types (1, 1, 33, [24,8], [53,11], [53,11]));
+    } elsif ($spec eq 'riscv64') {
+	return (' --arch=riscv64' .
+		&float_types (1, 1, 33, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'arm') {
-	return (' -m32' .
+	return (' --arch=arm' .
 		&float_types (1, 1, 36, [24,8], [53,11], [53, 11]));
     } elsif ($spec eq 'arm+hf') {
-	return &add_specs ('arm') . ' -D__ARM_PCS_VFP=1';
+	return &add_specs ('arm') . ' -mfloat-abi=hard';
     } elsif ($spec eq 'aarch64') {
-	return (' -m64' .
+	return (' --arch=aarch64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
@@ -356,7 +328,7 @@ sub add_specs {
 	} elsif ($gccmachine =~ '^i[23456]86-') {
 	    return &add_specs ('i386');
 	} elsif ($gccmachine =~ '^(powerpc|ppc)64le-') {
-	    return &add_specs ('ppc64+le');
+	    return &add_specs ('ppc64le');
 	} elsif ($gccmachine =~ '^s390x-') {
 	    return &add_specs ('s390x');
 	} elsif ($gccmachine eq 'x86_64-linux-gnux32') {
@@ -381,9 +353,9 @@ sub add_specs {
 	} elsif ($arch =~ /^(ppc)$/i) {
 	    return &add_specs ('ppc');
 	} elsif ($arch =~ /^(ppc64)$/i) {
-	    return &add_specs ('ppc64+be');
+	    return &add_specs ('ppc64be');
 	} elsif ($arch =~ /^(ppc64le)$/i) {
-	    return &add_specs ('ppc64+le');
+	    return &add_specs ('ppc64le');
 	} elsif ($arch =~ /^(s390x)$/i) {
 	    return &add_specs ('s390x');
 	} elsif ($arch =~ /^(sparc64)$/i) {

@@ -44,6 +44,8 @@
 #include "target.h"
 #include "char.h"
 
+ALLOCATOR(type_expression, "type-expr-maps");
+
 static int match_oplist(int op, ...)
 {
 	va_list args;
@@ -71,9 +73,9 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 		struct statement *stmt = alloc_statement(token->pos, STMT_COMPOUND);
 		*expr = e;
 		e->statement = stmt;
-		start_symbol_scope(e->pos);
+		start_label_scope(token->pos);
 		token = compound_statement(token->next, stmt);
-		end_symbol_scope();
+		end_label_scope();
 		token = expect(token, '}', "at end of statement expression");
 	} else
 		token = parse_expression(token, expr);
@@ -81,6 +83,17 @@ struct token *parens_expression(struct token *token, struct expression **expr, c
 	if (token == p)
 		sparse_error(token->pos, "an expression is expected before ')'");
 	return expect(token, ')', where);
+}
+
+struct token *string_expression(struct token *token, struct expression **expr, const char *where)
+{
+	struct token *next = primary_expression(token, expr);
+
+	if (!*expr || (*expr)->type != EXPR_STRING) {
+		sparse_error(token->pos, "string literal expected for %s", where);
+		*expr = NULL;
+	}
+	return next;
 }
 
 /*
@@ -113,9 +126,8 @@ static struct symbol *handle_func(struct token *token)
 	decl->ctype.modifiers = MOD_STATIC;
 	decl->endpos = token->pos;
 
-	/* function-scope, but in NS_SYMBOL */
-	bind_symbol(decl, ident, NS_LABEL);
-	decl->namespace = NS_SYMBOL;
+	/* NS_SYMBOL but in function-scope */
+	bind_symbol_with_scope(decl, ident, NS_SYMBOL, function_scope);
 
 	len = current_fn->ident->len;
 	string = __alloc_string(len + 1);
@@ -370,6 +382,40 @@ Enoint:
 	error_die(expr->pos, "constant %s is not a valid number", show_token(token));
 }
 
+static struct token *generic_selection(struct token *token, struct expression **tree)
+{
+	struct expression *expr = alloc_expression(token->pos, EXPR_GENERIC);
+	struct type_expression **last = &expr->map;
+
+	token = expect(token, '(', "after '_Generic'");
+	token = assignment_expression(token, &expr->control);
+	if (!match_op(token, ',')) {
+		goto end;
+	}
+	while (match_op(token, ',')) {
+		token = token->next;
+		if (lookup_type(token)) {
+			struct type_expression *map = __alloc_type_expression(0);
+			token = typename(token, &map->type, NULL);
+			token = expect(token, ':', "after typename");
+			token = assignment_expression(token, &map->expr);
+			*last = map;
+			last = &map->next;
+		} else if (match_ident(token, &default_ident)) {
+			if (expr->def) {
+				warning(token->pos, "multiple default in generic expression");
+				info(expr->def->pos, "note: previous was here");
+			}
+			token = token->next;
+			token = expect(token, ':', "after typename");
+			token = assignment_expression(token, &expr->def);
+		}
+	}
+end:
+	*tree = expr;
+	return expect(token, ')', "after expression");
+}
+
 struct token *primary_expression(struct token *token, struct expression **tree)
 {
 	struct expression *expr = NULL;
@@ -411,6 +457,10 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 			}
 			if (token->ident == &__builtin_offsetof_ident) {
 				token = builtin_offsetof_expr(token, &expr);
+				break;
+			}
+			if (token->ident == &_Generic_ident) {
+				token = generic_selection(token->next, &expr);
 				break;
 			}
 		} else if (sym->enum_member) {
@@ -677,11 +727,12 @@ static struct token *unary_expression(struct token *token, struct expression **t
 		if (match_op(token, SPECIAL_LOGICAL_AND) &&
 		    token_type(token->next) == TOKEN_IDENT) {
 			struct expression *label = alloc_expression(token->pos, EXPR_LABEL);
-			struct symbol *sym = label_symbol(token->next);
+			struct symbol *sym = label_symbol(token->next, 1);
 			if (!(sym->ctype.modifiers & MOD_ADDRESSABLE)) {
 				sym->ctype.modifiers |= MOD_ADDRESSABLE;
 				add_symbol(&function_computed_target_list, sym);
 			}
+			check_label_usage(sym, token->pos);
 			label->flags = CEF_ADDR;
 			label->label_symbol = sym;
 			*tree = label;
@@ -863,7 +914,7 @@ struct token *conditional_expression(struct token *token, struct expression **tr
 	if (*tree && match_op(token, '?')) {
 		struct expression *expr = alloc_expression(token->pos, EXPR_CONDITIONAL);
 		expr->op = token->special;
-		expr->left = *tree;
+		expr->conditional = *tree;
 		*tree = expr;
 		token = parse_expression(token->next, &expr->cond_true);
 		token = expect(token, ':', "in conditional expression");

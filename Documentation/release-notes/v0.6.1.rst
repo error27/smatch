@@ -1,0 +1,30 @@
+v0.6.1 (2019-10-14)
+===================
+
+It's a small, 74 patches, release containing mainly small
+fixes and improvements:
+
+* improve build & test support for distros, mainly Debian
+* stop warning on externally_visible functions without a prototype
+* accept casts of __user/__iomem/... pointers to/from uintptr_t
+* fix the underlying type of some enumeration values
+* fix a build problem for sparse-llvm by using 'llvm-config --cppflags'
+* conditionals (?:) may now be considered as constants if the condition is
+* some error messages are now clearer or more coherent
+* add missing expansion of compound literals
+* improve parsing & checking of asm operands
+* add missing expansion of asm operands
+* expand some more builtins with constant operands (ffs, clz, ...)
+* fix sparsec with recent version of cygwin
+* fix crashes with some tools on toplevel asm.
+
+Many thanks to people who have contributed to this release:
+Uwe Kleine-König, Ramsay Jones, Randy Dunlap, Thomas Weißschuh,
+Dan Carpenter, Jann Horn, Ben Dooks, Vegard Nossum, Aurelien Aptel,
+Oliver Hartkopp, Linus Torvalds and Ilya Maximets.
+
+The source code can be found at its usual repository:
+    git://git.kernel.org/pub/scm/devel/sparse/sparse.git v0.6.1
+
+The tarballs are found at:
+    https://www.kernel.org/pub/software/devel/sparse/dist/

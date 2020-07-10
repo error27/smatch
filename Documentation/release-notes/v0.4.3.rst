@@ -1,0 +1,85 @@
+v0.4.3 (2010-11-02)
+===================
+
+Hi,
+
+It is final there. The sparse version 0.4.3 is released.
+
+Mostly small fix up. It can parse the recent kernel better, less noise.
+
+For people interested in the sparse internals, there is a sparse inspecting
+tools now. Currently it has limited knowledge of AST. It is very easy to
+extent though.
+
+Thanks every one for the contribution.
+
+Chris
+
+--
+
+Bernd Petrovitsch (1):
+   * Fix a typo - "typdef" is neither C nor plain English
+
+Christopher (3):
+   * evaluate: check for NULL type inside typeof
+   * Add test case for builtin_unreachable()
+   * inspect: add some expression inspection
+
+Christopher Li (15):
+   * Make MOD_NORETURN fits into 32 bit
+   * Move noreturn attribute out of ignore attr area
+   * Declare ignored attributres into a list of string.
+   * Simplify Makefile using static pattern rules
+   * Adding test case for "x && y && z" .
+   * Pointer don't inherent the alignment from base type
+   * Allow parsing L'\0'
+   * Parsing wide char string
+   * Adding asm goto label test case
+   * inspect: add custom ast treeview model
+   * inspect: add some example inspect for symbol and statement
+   * inspect: Add test-inspect program
+   * inspect: cast expression
+   * Fixup and cleanup modifier_string() function.
+   * sparse 0.4.3 finial
+
+Damien Lespiau (1):
+   * Ignore the may_alias GCC attribute
+
+Dan Carpenter (1):
+   * add test-inspect to .gitignore
+
+Dan McGee (1):
+   * Makefile: fix permissions mixup on install
+
+Daniel De Graaf (1):
+   * Fix incorrect linearization of "x && y && z"
+
+Jiri Slaby (3):
+   * parser: add support for asm goto
+   * parser: fix and simplify support of asm goto
+   * parser: define __builtin_unreachable
+
+Joel Soete (1):
+   * possible fix to cgcc issue in sparse 0.4.2:
+
+Josh Triplett (2):
+   * Rename -Wall to Wsparse-all, so it doesn't get turned on unintentionally
+   * New attribute designated_init: mark a struct as requiring designated init
+
+Kamil Dudka (1):
+   * do not ignore attribute 'noreturn'...
+
+Michael Buesch (2):
+   * ignore attributes "externally_visible" and "signal"
+   * Ignore "naked" attribute
+
+Michael Stefaniuc (3):
+   * Ignore the ms_abi/sysv_abi attributes.
+   * Ignore the alloc_size attribute.
+   * Handle __builtin_ms_va_list.
+
+Mike Frysinger (1):
+   * parser: add Blackfin gcc info
+
+Morten Welinder (1):
+   * skip may_alias and declare builtin_fabs

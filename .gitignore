@@ -1,7 +1,8 @@
 # generic
+*.a
 *.o
 *.o.d
-*.a
+*.pyc
 *.so
 *~
 .*.swp
@@ -14,16 +15,21 @@
 version.h
 
 # programs
-test-inspect
-test-lexing
-test-parsing
+c2xml
+compile
+ctags
+example
+graph
 obfuscate
 sparse
-compile
-graph
+sparse-llvm
+sindex
 test-dissect
+test-inspect
+test-lexing
 test-linearize
-example
+test-parsing
+test-show-type
 test-unssa
 ctags
 c2xml

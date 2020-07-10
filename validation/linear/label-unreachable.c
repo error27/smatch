@@ -10,9 +10,10 @@ label:
 }
 
 /*
- * check-name: unreachable-label0
+ * check-name: label-unreachable
  * check-command: test-linearize $file
  *
+ * check-error-ignore
  * check-output-ignore
  * check-output-contains: ret\\.
  * check-output-excludes: END

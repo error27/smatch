@@ -1,14 +1,23 @@
 
-static __attribute__((__pure__)) int pure1(void)
+static __attribute__((__pure__)) int pure_int(int v)
 {
-	int i = 0;
+	int i = v;
 	return i;
 }
 
-static __attribute__((__pure__)) void *pure2(void)
+static __attribute__((__pure__)) void *pure_ptr(void *p)
 {
-    void *i = (void *)0;
+    void *i = p;
     return i;
+}
+
+static void foo(int v, void *p)
+{
+	int   val = pure_int(v);
+	void *ptr = pure_ptr(p);
+
+	(void)val;
+	(void)ptr;
 }
 
 /*

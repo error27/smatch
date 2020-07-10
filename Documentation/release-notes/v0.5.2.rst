@@ -1,0 +1,99 @@
+v0.5.2 (2018-04-30)
+===================
+
+The latest release of sparse have been pushed to the official
+repository. It's a smaller release than the previous one but
+it contains some important changes to not be flooded by unimportant
+warnings while compiling the kernel.
+
+The most notable changes are:
+
+* better tracking and handling of expression constness
+* fix bug with variadic macros
+* less warnings on unknown attributes (none by default now)
+* teach sparse about __builtin_{isinf_sign,isfinite,isnan}
+* various update to the documentation
+* do selfcheck with the locally built sparse
+* some fixes or improvements for build (armhf, GNU/kfreebsd, ...)
+* also evaluate files included via -include
+
+
+Many thanks to everyone involved.
+
+Luc Van Oostenryck
+
+---
+
+Al Viro (1):
+   * Sparse preprocessing bug with zero-arg variadic macros
+
+Christopher Li (8):
+   * gcc attr: add nonstring warn_if_not_aligned
+   * Makefile: provide CFLAGS for command line override.
+   * Give the constant pseudo value a size
+   * sparse-llvm: use pseudo->size to select llvm integer type
+   * Update gcc attribute list
+   * Fix crash cause by previous pseudo size change
+
+Jacob Keller (1):
+   * sparse: document that -Wbitwise is default
+
+Logan Gunthorpe (1):
+   * add __builtin functions for isinf_sign, isfinite and isnan
+
+Luc Van Oostenryck (13):
+   * constexpr: rename handle_simple_initializer() to handle_initializer()
+   * constexpr: collect storage modifiers of initializers
+   * return an error if too few args
+   * give default return type in evaluate_call()
+   * constexpr: flag __builtin_bswap() as constexpr
+   * build: disable sparse-llvm on non-x86
+   * fix cgcc ELF version for ppc64/pcc64le
+   * fix: missing evaluate with '-include' : add testcase
+   * fix: missing evaluate with '-include'
+   * Revert "Give the constant pseudo value a size"
+   * By default disable the warning flag '-Wunknown-attribute'
+   * bump up version to 0.5.2-RC1
+   * Sparse v0.5.2
+
+Martin Kepplinger (2):
+   * compile-i386.c: fix a memory leak in sort_array()
+   * compile-i386: make use of expression_list_size()
+
+Nicolai Stange (20):
+   * constexpr: introduce additional expression constness tracking flags
+   * constexpr: init flags at expression allocation
+   * constexpr: examine constness of casts at evaluation only
+   * constexpr: examine constness of binops and alike at evaluation only
+   * constexpr: examine constness of preops at evaluation only
+   * constexpr: examine constness of conditionals at evaluation only
+   * constexpr: add support for tagging arithmetic constant expressions
+   * constexpr: add support for tagging address constants
+   * constexpr: check static storage duration objects' intializers' constness
+   * constexpr: recognize static objects as address constants
+   * constexpr: recognize address constants created through casts
+   * constexpr: recognize address constants created through pointer arithmetic
+   * constexpr: recognize members of static compound objects as address constants
+   * constexpr: recognize string literals as address constants
+   * constexpr: recognize references to labels as address constants
+   * constexpr: examine constness of __builtin_offsetof at evaluation only
+   * constexpr: flag builtins constant_p, safe_p and warning as constexprs
+   * constexpr: relax some constant expression rules for pointer expressions
+   * constexpr: support compound literals as address constants
+   * constexpr: treat comparisons between types as integer constexpr
+
+Ramsay Jones (1):
+   * Makefile: use locally built sparse in the selfcheck target
+
+Randy Dunlap (5):
+   * sparse: minor manpage corrections
+   * Documentation: make data-structures.txt easier to read
+   * Documentation: editing fixes in test-suite
+   * test-suite: handle format with filename.c not existing
+   * sparse: ignore indirect_branch attribute
+
+Uwe Kleine-König (4):
+   * build: remove version.h in clean target
+   * cgcc: teach cgcc about GNU/kFreeBSD
+   * compile-i386: Use SPARSE_VERSION instead of __DATE__
+   * cgcc: provide __ARM_PCS_VFP for armhf

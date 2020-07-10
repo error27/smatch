@@ -1319,18 +1319,13 @@ static void unop_expr(struct expression *expr)
 
 static void asm_expr(struct statement *stmt)
 {
-
-	struct expression *expr;
+	struct asm_operand *op;
 	struct symbol *type;
 
-	FOR_EACH_PTR(stmt->asm_outputs, expr) {
-		if (expr->type != EXPR_ASM_OPERAND) {
-			sm_perror("unexpected asm param type %d", expr->type);
-			continue;
-		}
-		type = get_type(strip_expr(expr->expr));
-		set_extra_expr_mod(expr->expr, alloc_estate_whole(type));
-	} END_FOR_EACH_PTR(expr);
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		type = get_type(strip_expr(op->expr));
+		set_extra_expr_mod(op->expr, alloc_estate_whole(type));
+	} END_FOR_EACH_PTR(op);
 }
 
 static void check_dereference(struct expression *expr)

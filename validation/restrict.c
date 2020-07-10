@@ -66,11 +66,17 @@ void baz(void)
 
 /*
  * check-name: restrict qualifier
- * check-command: sparse -Wno-decl $file;
+ * check-command: sparse -Wno-decl $file
  *
  * check-error-start
-restrict.c:11:6: error: symbol 'f02' redeclared with different type (originally declared at restrict.c:3) - incompatible argument 1 (different modifiers)
-restrict.c:12:6: error: symbol 'f03' redeclared with different type (originally declared at restrict.c:4) - incompatible argument 1 (different modifiers)
+restrict.c:11:6: error: symbol 'f02' redeclared with different type (incompatible argument 1 (different modifiers)):
+restrict.c:11:6:    void extern [addressable] [toplevel] f02( ... )
+restrict.c:3:6: note: previously declared as:
+restrict.c:3:6:    void extern [addressable] [toplevel] f02( ... )
+restrict.c:12:6: error: symbol 'f03' redeclared with different type (incompatible argument 1 (different modifiers)):
+restrict.c:12:6:    void extern [addressable] [toplevel] f03( ... )
+restrict.c:4:6: note: previously declared as:
+restrict.c:4:6:    void extern [addressable] [toplevel] f03( ... )
 restrict.c:33:13: warning: incorrect type in assignment (different modifiers)
 restrict.c:33:13:    expected void **extern [assigned] pup
 restrict.c:33:13:    got void *const *
