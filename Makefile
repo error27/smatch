@@ -77,6 +77,7 @@ LIB_OBJS += target-h8300.o
 LIB_OBJS += target-m68k.o
 LIB_OBJS += target-microblaze.o
 LIB_OBJS += target-mips.o
+LIB_OBJS += target-nds32.o
 LIB_OBJS += target-nios2.o
 LIB_OBJS += target-ppc.o
 LIB_OBJS += target-riscv.o
