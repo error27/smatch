@@ -98,6 +98,7 @@ extern const struct target target_riscv32;
 extern const struct target target_riscv64;
 extern const struct target target_s390;
 extern const struct target target_s390x;
+extern const struct target target_sh;
 extern const struct target target_sparc32;
 extern const struct target target_sparc64;
 extern const struct target target_i386;

@@ -82,6 +82,7 @@ LIB_OBJS += target-nios2.o
 LIB_OBJS += target-ppc.o
 LIB_OBJS += target-riscv.o
 LIB_OBJS += target-s390.o
+LIB_OBJS += target-sh.o
 LIB_OBJS += target-sparc.o
 LIB_OBJS += target-x86.o
 LIB_OBJS += target-xtensa.o
