@@ -92,6 +92,7 @@ extern const struct target target_mips32;
 extern const struct target target_mips64;
 extern const struct target target_nds32;
 extern const struct target target_nios2;
+extern const struct target target_openrisc;
 extern const struct target target_ppc32;
 extern const struct target target_ppc64;
 extern const struct target target_riscv32;

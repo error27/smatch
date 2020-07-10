@@ -79,6 +79,7 @@ LIB_OBJS += target-microblaze.o
 LIB_OBJS += target-mips.o
 LIB_OBJS += target-nds32.o
 LIB_OBJS += target-nios2.o
+LIB_OBJS += target-openrisc.o
 LIB_OBJS += target-ppc.o
 LIB_OBJS += target-riscv.o
 LIB_OBJS += target-s390.o
