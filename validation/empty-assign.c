@@ -6,7 +6,6 @@ static int foo(int a)
 
 /*
  * check-name: empty-assign
- * check-known-to-fail
  *
  * check-error-start
 empty-assign.c:3:11: error: expression expected before ';'

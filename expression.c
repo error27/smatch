@@ -937,10 +937,14 @@ struct token *assignment_expression(struct token *token, struct expression **tre
 		for (i = 0; i < ARRAY_SIZE(assignments); i++)
 			if (assignments[i] == op) {
 				struct expression * expr = alloc_expression(token->pos, EXPR_ASSIGNMENT);
+				struct token *next = token->next;
 				expr->left = *tree;
 				expr->op = op;
 				*tree = expr;
-				return assignment_expression(token->next, &expr->right);
+				token = assignment_expression(next, &expr->right);
+				if (token == next)
+					expression_error(expr, "expression expected before '%s'", show_token(token));
+				return token;
 			}
 	}
 	return token;
