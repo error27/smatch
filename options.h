@@ -72,6 +72,7 @@ extern int dump_macros_only;
 
 extern unsigned long fdump_ir;
 extern int fhosted;
+extern unsigned int fmax_errors;
 extern unsigned int fmax_warnings;
 extern int fmem_report;
 extern unsigned long long fmemcpy_max_count;

@@ -90,7 +90,7 @@ static void do_error(struct position pos, const char * fmt, va_list args)
 		return;
 	/* Shut up warnings after an error */
 	has_error |= ERROR_CURR_PHASE;
-	if (errors > 100) {
+	if (errors > fmax_errors) {
 		static int once = 0;
 		show_info = 0;
 		if (once)

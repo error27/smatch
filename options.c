@@ -73,6 +73,7 @@ int dump_macros_only = 0;
 
 unsigned long fdump_ir;
 int fhosted = 1;
+unsigned int fmax_errors = 100;
 unsigned int fmax_warnings = 100;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
@@ -492,6 +493,12 @@ static int handle_fmemcpy_max_count(const char *arg, const char *opt, const stru
 	return 1;
 }
 
+static int handle_fmax_errors(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	opt_uint(arg, opt, &fmax_errors, OPTNUM_UNLIMITED);
+	return 1;
+}
+
 static int handle_fmax_warnings(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	opt_uint(arg, opt, &fmax_warnings, OPTNUM_UNLIMITED);
@@ -504,6 +511,7 @@ static struct flag fflags[] = {
 	{ "freestanding",	&fhosted, NULL, OPT_INVERSE },
 	{ "hosted",		&fhosted },
 	{ "linearize",		NULL,	handle_fpasses,	PASS_LINEARIZE },
+	{ "max-errors=",	NULL,	handle_fmax_errors },
 	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
