@@ -60,22 +60,27 @@ static const struct target *targets[] = {
 	[MACH_ALPHA] =		&target_alpha,
 	[MACH_ARM] =		&target_arm,
 	[MACH_ARM64] =		&target_arm64,
-	[MACH_I386] =		&target_i386,
 	[MACH_BFIN] =		&target_bfin,
-	[MACH_X86_64] =		&target_x86_64,
+	[MACH_H8300] =		&target_h8300,
+	[MACH_I386] =		&target_i386,
+	[MACH_M68K] =		&target_m68k,
 	[MACH_MICROBLAZE] =	&target_microblaze,
 	[MACH_MIPS32] =		&target_mips32,
 	[MACH_MIPS64] =		&target_mips64,
+	[MACH_NDS32] =		&target_nds32,
 	[MACH_NIOS2] =		&target_nios2,
+	[MACH_OPENRISC] =	&target_openrisc,
 	[MACH_PPC32] =		&target_ppc32,
 	[MACH_PPC64] =		&target_ppc64,
 	[MACH_RISCV32] =	&target_riscv32,
 	[MACH_RISCV64] =	&target_riscv64,
 	[MACH_S390] =		&target_s390,
 	[MACH_S390X] =		&target_s390x,
+	[MACH_SH] =		&target_sh,
 	[MACH_SPARC32] =	&target_sparc32,
 	[MACH_SPARC64] =	&target_sparc64,
-	[MACH_M68K] =		&target_m68k,
+	[MACH_X86_64] =		&target_x86_64,
+	[MACH_XTENSA] =		&target_xtensa,
 	[MACH_UNKNOWN] =	&target_default,
 };
 const struct target *arch_target = &target_default;
@@ -91,12 +96,15 @@ enum machine target_parse(const char *name)
 		{ "aarch64",	MACH_ARM64,	64, },
 		{ "arm64",	MACH_ARM64,	64, },
 		{ "arm",	MACH_ARM,	32, },
-		{ "i386",	MACH_I386,	32, },
 		{ "bfin",	MACH_BFIN,	32, },
+		{ "h8300",	MACH_H8300,	32, },
+		{ "i386",	MACH_I386,	32, },
 		{ "m68k",	MACH_M68K,	32, },
 		{ "microblaze",	MACH_MICROBLAZE,32, },
 		{ "mips",	MACH_MIPS32,	0,  },
+		{ "nds32",	MACH_NDS32,	32, },
 		{ "nios2",	MACH_NIOS2,	32, },
+		{ "openrisc",	MACH_OPENRISC,	32, },
 		{ "powerpc",	MACH_PPC32,	0,  },
 		{ "ppc",	MACH_PPC32,	0,  },
 		{ "riscv",	MACH_RISCV32,	0,  },
@@ -105,6 +113,8 @@ enum machine target_parse(const char *name)
 		{ "sparc",	MACH_SPARC32,	0,  },
 		{ "x86_64",	MACH_X86_64,	64, },
 		{ "x86-64",	MACH_X86_64,	64, },
+		{ "sh",		MACH_SH,	32, },
+		{ "xtensa",	MACH_XTENSA,	32, },
 		{ NULL },
 	};
 	const struct arch *p;
@@ -134,6 +144,35 @@ enum machine target_parse(const char *name)
 	}
 
 	return MACH_UNKNOWN;
+}
+
+void target_os(const char *name)
+{
+	static const struct os {
+		const char *name;
+		int os;
+	} oses[] = {
+		{ "cygwin",	OS_CYGWIN },
+		{ "darwin",	OS_DARWIN },
+		{ "freebsd",	OS_FREEBSD },
+		{ "linux",	OS_LINUX },
+		{ "native",	OS_NATIVE, },
+		{ "netbsd",	OS_NETBSD },
+		{ "none",	OS_NONE },
+		{ "openbsd",	OS_OPENBSD },
+		{ "sunos",	OS_SUNOS },
+		{ "unix",	OS_UNIX },
+		{ NULL },
+	}, *p;
+
+	for (p = &oses[0]; p->name; p++) {
+		if (!strcmp(p->name, name)) {
+			arch_os = p->os;
+			return;
+		}
+	}
+
+	die("invalid os: %s", name);
 }
 
 

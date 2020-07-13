@@ -63,6 +63,7 @@ struct target {
 	unsigned int	unsigned_char:1;
 	unsigned int	size_t_long:1;
 	unsigned int	has_int128:1;
+	unsigned long	flags;
 
 	struct symbol	*wchar;
 	struct symbol	*wint;
@@ -76,6 +77,7 @@ struct target {
 	const struct builtin_fn *builtins;
 
 	void (*init)(const struct target *self);
+	void (*parse_march)(const char *arg);
 	void (*predefine)(const struct target *self);
 	const char *(*asm_constraint)(struct asm_operand *op, int c, const char *str);
 };
@@ -85,26 +87,32 @@ extern const struct target target_alpha;
 extern const struct target target_arm;
 extern const struct target target_arm64;
 extern const struct target target_bfin;
+extern const struct target target_h8300;
 extern const struct target target_m68k;
 extern const struct target target_microblaze;
 extern const struct target target_mips32;
 extern const struct target target_mips64;
+extern const struct target target_nds32;
 extern const struct target target_nios2;
+extern const struct target target_openrisc;
 extern const struct target target_ppc32;
 extern const struct target target_ppc64;
 extern const struct target target_riscv32;
 extern const struct target target_riscv64;
 extern const struct target target_s390;
 extern const struct target target_s390x;
+extern const struct target target_sh;
 extern const struct target target_sparc32;
 extern const struct target target_sparc64;
 extern const struct target target_i386;
 extern const struct target target_x86_64;
+extern const struct target target_xtensa;
 
 /* target.c */
 extern const struct target *arch_target;
 
 enum machine target_parse(const char *name);
+void target_os(const char *name);
 void target_config(enum machine mach);
 void target_init(void);
 

@@ -1,0 +1,31 @@
+#include "symbol.h"
+#include "target.h"
+#include "machine.h"
+
+
+static void init_xtensa(const struct target *self)
+{
+	wchar_ctype = &long_ctype;
+}
+
+static void predefine_xtensa(const struct target *self)
+{
+	predefine("__XTENSA__", 1, "1");
+	predefine("__xtensa__", 1, "1");
+
+	if (arch_big_endian)
+		predefine("__XTENSA_EB__", 1, "1");
+	else
+		predefine("__XTENSA_EL__", 1, "1");
+}
+
+const struct target target_xtensa = {
+	.mach = MACH_XTENSA,
+	.bitness = ARCH_LP32,
+	.big_endian = true,
+
+	.bits_in_longdouble = 64,
+
+	.init = init_xtensa,
+	.predefine = predefine_xtensa,
+};

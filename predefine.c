@@ -210,16 +210,50 @@ void predefined_macros(void)
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);
 
-	if (arch_os >= OS_UNIX) {
+	if (arch_os >= OS_UNIX && arch_os != OS_DARWIN) {
 		predefine("__unix__", 1, "1");
 		predefine("__unix", 1, "1");
 		predefine_nostd("unix");
 	}
 
-	if (arch_os == OS_SUNOS) {
+	switch (arch_os) {
+	case OS_CYGWIN:
+		predefine("__CYGWIN__", 1, "1");
+		if (arch_m64 == ARCH_LP32)
+			predefine("__CYGWIN32__", 1, "1");
+		add_pre_buffer("#define __cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define __declspec(x) __attribute__((x))\n");
+		add_pre_buffer("#define __fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define __stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define __thiscall __attribute__((__thiscall__))\n");
+		add_pre_buffer("#define _cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define _fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define _stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define _thiscall __attribute__((__thiscall__))\n");
+		break;
+	case OS_DARWIN:
+		predefine("__APPLE__", 1, "1");
+		predefine("__APPLE_CC__", 1, "1");
+		predefine("__MACH__", 1, "1");
+		break;
+	case OS_FREEBSD:
+		predefine("__FreeBSD__", 1, "1");
+		break;
+	case OS_LINUX:
+		predefine("__linux__", 1, "1");
+		predefine("__linux", 1, "1");
+		break;
+	case OS_NETBSD:
+		predefine("__NetBSD__", 1, "1");
+		break;
+	case OS_OPENBSD:
+		predefine("__OpenBSD__", 1, "1");
+		break;
+	case OS_SUNOS:
 		predefine("__sun__", 1, "1");
 		predefine("__sun", 1, "1");
 		predefine_nostd("sun");
 		predefine("__svr4__", 1, "1");
+		break;
 	}
 }
