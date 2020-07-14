@@ -443,6 +443,36 @@ static void match_closure_call(const char *name, struct expression *call,
 	__split_expr(fake_call);
 }
 
+static void match_kernel_param(struct symbol *sym)
+{
+	struct expression *var;
+	struct symbol *type;
+
+	/* This was designed to parse the module_param_named() macro */
+
+	if (!sym->ident ||
+	    !sym->initializer ||
+	    sym->initializer->type != EXPR_INITIALIZER)
+		return;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_STRUCT || !type->ident)
+		return;
+	if (strcmp(type->ident->name, "kernel_param") != 0)
+		return;
+
+	var = last_ptr_list((struct ptr_list *)sym->initializer->expr_list);
+	if (!var || var->type != EXPR_INITIALIZER)
+		return;
+	var = first_ptr_list((struct ptr_list *)var->expr_list);
+	if (!var || var->type != EXPR_PREOP || var->op != '&')
+		return;
+	var = strip_expr(var->unop);
+
+	type = get_type(var);
+	update_mtag_data(var, alloc_estate_whole(type));
+}
+
 bool is_ignored_kernel_data(const char *name)
 {
 	if (option_project != PROJ_KERNEL)
@@ -494,6 +524,8 @@ void check_kernel(int id)
 	add_function_hook("__read_once_size_nocheck", &match__read_once_size, NULL);
 
 	add_function_hook("closure_call", &match_closure_call, NULL);
+
+	add_hook(&match_kernel_param, BASE_HOOK);
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
