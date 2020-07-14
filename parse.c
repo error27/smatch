@@ -2223,17 +2223,25 @@ static struct token *parse_static_assert(struct token *token, struct symbol_list
 	token = constant_expression(token, &cond);
 	if (!cond)
 		sparse_error(token->pos, "Expected constant expression");
-	token = expect(token, ',', "after conditional expression in _Static_assert");
-	token = string_expression(token, &message, "_Static_assert()");
-	if (!message)
-		cond = NULL;
+	if (match_op(token, ',')) {
+		token = token->next;
+		token = string_expression(token, &message, "_Static_assert()");
+		if (!message)
+			cond = NULL;
+	}
 	token = expect(token, ')', "after diagnostic message in _Static_assert");
-
 	token = expect(token, ';', "after _Static_assert()");
 
-	if (cond && !const_expression_value(cond) && cond->type == EXPR_VALUE)
-		sparse_error(cond->pos, "static assertion failed: %s",
-			     show_string(message->string));
+	if (cond && !const_expression_value(cond) && cond->type == EXPR_VALUE) {
+		const char *sep = "", *msg = "";
+
+		if (message) {
+			sep = ": ";
+			msg = show_string(message->string);
+		}
+		sparse_error(cond->pos, "static assertion failed%s%s", sep, msg);
+	}
+
 	return token;
 }
 
