@@ -455,159 +455,132 @@ static struct symbol_op mode_word_op = {
 	.to_mode = to_word_mode
 };
 
-/* Using NS_TYPEDEF will also make the keyword a reserved one */
+/*
+ * Define the keyword and their effects.
+ * The entries in the 'typedef' and put in NS_TYPEDEF and
+ * are automatically set as reserved keyword while the ones
+ * in the 'keyword' table are just put in NS_KEYWORD.
+ *
+ * The entries are added via the 3 macros:
+ *   N() for entries with "name" only,
+ *   D() for entries with "name" & "__name__",
+ *   A() for entries with "name", "__name" & "__name__",
+ *   U() for entries with "__name" & "__name__".
+ */
 static struct init_keyword {
 	const char *name;
-	enum namespace ns;
-	unsigned long modifiers;
 	struct symbol_op *op;
 	struct symbol *type;
-} keyword_table[] = {
-	/* Type qualifiers */
-	{ "const",	NS_TYPEDEF, .op = &const_op },
-	{ "__const",	NS_TYPEDEF, .op = &const_op },
-	{ "__const__",	NS_TYPEDEF, .op = &const_op },
-	{ "volatile",	NS_TYPEDEF, .op = &volatile_op },
-	{ "__volatile",		NS_TYPEDEF, .op = &volatile_op },
-	{ "__volatile__", 	NS_TYPEDEF, .op = &volatile_op },
-	{ "restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict",	NS_TYPEDEF, .op = &restrict_op},
-	{ "__restrict__",	NS_TYPEDEF, .op = &restrict_op},
-	{ "_Atomic",	NS_TYPEDEF, .op = &atomic_op},
+	unsigned long mods;
+} typedefs[] = {
+#define N(I, O,...)	{ I, O,##__VA_ARGS__ }
+#define D(I, O,...)	N(I,O,##__VA_ARGS__ ),		\
+			N("__" I "__",O,##__VA_ARGS__)
+#define A(I, O,...)	N(I,O,##__VA_ARGS__ ),		\
+			N("__" I,O,##__VA_ARGS__),	\
+			N("__" I "__",O,##__VA_ARGS__)
+#define U(I, O,...)	N("__" I,O,##__VA_ARGS__),	\
+			N("__" I "__",O,##__VA_ARGS__)
+	/* Storage classes */
+	N("auto",		&auto_op),
+	N("register",		&register_op),
+	N("static",		&static_op),
+	N("extern",		&extern_op),
+	N("__thread",		&thread_op),
+	N("_Thread_local",	&thread_op),
 
-	/* Typedef.. */
-	{ "typedef",	NS_TYPEDEF, .op = &typedef_op },
+	A("inline",		&inline_op),
+
+	/* Typedef ... */
+	N("typedef",		&typedef_op),
+	A("typeof",		&typeof_op),
+	N("__auto_type",	&autotype_op),
+
+	/* Type qualifiers */
+	A("const",		&const_op),
+	A("volatile",		&volatile_op),
+	A("restrict",		&restrict_op),
+
+	N("_Atomic",		&atomic_op),
+	N("_Noreturn",		&noreturn_op),
+	N("_Alignas",		&alignas_op),
+
+	U("attribute",		&attribute_op),
 
 	/* Type specifiers */
-	{ "void",	NS_TYPEDEF, .type = &void_ctype, .op = &spec_op},
-	{ "char",	NS_TYPEDEF, .op = &char_op },
-	{ "short",	NS_TYPEDEF, .op = &short_op },
-	{ "int",	NS_TYPEDEF, .op = &int_op },
-	{ "long",	NS_TYPEDEF, .op = &long_op },
-	{ "float",	NS_TYPEDEF, .op = &float_op },
-	{ "double",	NS_TYPEDEF, .op = &double_op },
-	{ "signed",	NS_TYPEDEF, .op = &signed_op },
-	{ "__signed",	NS_TYPEDEF, .op = &signed_op },
-	{ "__signed__",	NS_TYPEDEF, .op = &signed_op },
-	{ "unsigned",	NS_TYPEDEF, .op = &unsigned_op },
-	{ "__int128",	NS_TYPEDEF, .op = &int128_op },
-	{ "_Bool",	NS_TYPEDEF, .type = &bool_ctype, .op = &spec_op },
+	N("struct",		&struct_op),
+	N("union",		&union_op),
+	N("enum",		&enum_op),
+
+	N("void",		&spec_op,	.type = &void_ctype),
+	N("char",		&char_op),
+	N("short",		&short_op),
+	N("int",		&int_op),
+	N("long",		&long_op),
+	N("float",		&float_op),
+	N("double",		&double_op),
+	A("signed",		&signed_op),
+	N("unsigned",		&unsigned_op),
+	N("__int128",		&int128_op),
+	N("_Bool",		&spec_op,	.type = &bool_ctype),
 
 	/* Predeclared types */
-	{ "__builtin_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
-	{ "__builtin_ms_va_list", NS_TYPEDEF, .type = &ptr_ctype, .op = &spec_op },
-	{ "__int128_t",	NS_TYPEDEF, .type = &sint128_ctype, .op = &spec_op },
-	{ "__uint128_t",NS_TYPEDEF, .type = &uint128_ctype, .op = &spec_op },
-	{ "_Float32",	NS_TYPEDEF, .type = &float32_ctype, .op = &spec_op },
-	{ "_Float32x",	NS_TYPEDEF, .type = &float32x_ctype, .op = &spec_op },
-	{ "_Float64",	NS_TYPEDEF, .type = &float64_ctype, .op = &spec_op },
-	{ "_Float64x",	NS_TYPEDEF, .type = &float64x_ctype, .op = &spec_op },
-	{ "_Float128",	NS_TYPEDEF, .type = &float128_ctype, .op = &spec_op },
+	N("__builtin_va_list",	&spec_op,	.type = &ptr_ctype),
+	N("__builtin_ms_va_list",&spec_op,	.type = &ptr_ctype),
+	N("__int128_t",		&spec_op,	.type = &sint128_ctype),
+	N("__uint128_t",	&spec_op,	.type = &uint128_ctype),
+	N("_Float32",		&spec_op,	.type = &float32_ctype),
+	N("_Float32x",		&spec_op,	.type = &float32x_ctype),
+	N("_Float64",		&spec_op,	.type = &float64_ctype),
+	N("_Float64x",		&spec_op,	.type = &float64x_ctype),
+	N("_Float128",		&spec_op,	.type = &float128_ctype),
+}, keywords[] = {
+	/* Statements */
+	N("if",			&if_op),
+	N("return",		&return_op),
+	N("break",		&loop_iter_op),
+	N("continue",		&loop_iter_op),
+	N("default",		&default_op),
+	N("case",		&case_op),
+	N("switch",		&switch_op),
+	N("for",		&for_op),
+	N("while",		&while_op),
+	N("do",			&do_op),
+	N("goto",		&goto_op),
+	A("asm",		&asm_op),
+	N("context",		&context_op),
+	N("__context__",	&__context___op),
+	N("__range__",		&range_op),
+	N("_Static_assert",	&static_assert_op),
 
-	/* Extended types */
-	{ "typeof", 	NS_TYPEDEF, .op = &typeof_op },
-	{ "__typeof", 	NS_TYPEDEF, .op = &typeof_op },
-	{ "__typeof__",	NS_TYPEDEF, .op = &typeof_op },
-	{ "__auto_type",NS_TYPEDEF, .op = &autotype_op },
+	/* Attributes */
+	D("packed",		&packed_op),
+	D("aligned",		&aligned_op),
+	D("nocast",		&attr_mod_op,		.mods = MOD_NOCAST),
+	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
+	D("safe",		&attr_mod_op,		.mods = MOD_SAFE),
+	D("unused",		&attr_mod_op,		.mods = MOD_UNUSED),
+	D("externally_visible",	&attr_mod_op,		.mods = MOD_EXT_VISIBLE),
+	D("force",		&attr_force_op),
+	D("bitwise",		&attr_bitwise_op,	.mods = MOD_BITWISE),
+	D("address_space",	&address_space_op),
+	D("designated_init",	&designated_init_op),
+	D("transparent_union",	&transparent_union_op),
+	D("noreturn",		&attr_fun_op,		.mods = MOD_NORETURN),
+	D("pure",		&attr_fun_op,		.mods = MOD_PURE),
+	A("const",		&attr_fun_op,		.mods = MOD_PURE),
+	D("gnu_inline",		&attr_fun_op,		.mods = MOD_GNU_INLINE),
 
-	{ "__attribute",   NS_TYPEDEF, .op = &attribute_op },
-	{ "__attribute__", NS_TYPEDEF, .op = &attribute_op },
-
-	{ "struct",	NS_TYPEDEF, .op = &struct_op },
-	{ "union", 	NS_TYPEDEF, .op = &union_op },
-	{ "enum", 	NS_TYPEDEF, .op = &enum_op },
-
-	{ "inline",	NS_TYPEDEF, .op = &inline_op },
-	{ "__inline",	NS_TYPEDEF, .op = &inline_op },
-	{ "__inline__",	NS_TYPEDEF, .op = &inline_op },
-
-	{ "_Noreturn",	NS_TYPEDEF, .op = &noreturn_op },
-
-	{ "_Alignas",	NS_TYPEDEF, .op = &alignas_op },
-
-	/* Static assertion */
-	{ "_Static_assert", NS_KEYWORD, .op = &static_assert_op },
-
-	/* Storage class */
-	{ "auto",	NS_TYPEDEF, .op = &auto_op },
-	{ "register",	NS_TYPEDEF, .op = &register_op },
-	{ "static",	NS_TYPEDEF, .op = &static_op },
-	{ "extern",	NS_TYPEDEF, .op = &extern_op },
-	{ "__thread",	NS_TYPEDEF, .op = &thread_op },
-	{ "_Thread_local",	NS_TYPEDEF, .op = &thread_op },
-
-	/* Statement */
-	{ "if",		NS_KEYWORD, .op = &if_op },
-	{ "return",	NS_KEYWORD, .op = &return_op },
-	{ "break",	NS_KEYWORD, .op = &loop_iter_op },
-	{ "continue",	NS_KEYWORD, .op = &loop_iter_op },
-	{ "default",	NS_KEYWORD, .op = &default_op },
-	{ "case",	NS_KEYWORD, .op = &case_op },
-	{ "switch",	NS_KEYWORD, .op = &switch_op },
-	{ "for",	NS_KEYWORD, .op = &for_op },
-	{ "while",	NS_KEYWORD, .op = &while_op },
-	{ "do",		NS_KEYWORD, .op = &do_op },
-	{ "goto",	NS_KEYWORD, .op = &goto_op },
-	{ "context",	NS_KEYWORD, .op = &context_op },
-	{ "__context__",NS_KEYWORD, .op = &__context___op },
-	{ "__range__",	NS_KEYWORD, .op = &range_op },
-	{ "asm",	NS_KEYWORD, .op = &asm_op },
-	{ "__asm",	NS_KEYWORD, .op = &asm_op },
-	{ "__asm__",	NS_KEYWORD, .op = &asm_op },
-
-	/* Attribute */
-	{ "packed",	NS_KEYWORD, .op = &packed_op },
-	{ "__packed__",	NS_KEYWORD, .op = &packed_op },
-	{ "aligned",	NS_KEYWORD, .op = &aligned_op },
-	{ "__aligned__",NS_KEYWORD, .op = &aligned_op },
-	{ "nocast",	NS_KEYWORD,	MOD_NOCAST,	.op = &attr_mod_op },
-	{ "__nocast__",	NS_KEYWORD,	MOD_NOCAST,	.op = &attr_mod_op },
-	{ "noderef",	NS_KEYWORD,	MOD_NODEREF,	.op = &attr_mod_op },
-	{ "__noderef__",NS_KEYWORD,	MOD_NODEREF,	.op = &attr_mod_op },
-	{ "safe",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
-	{ "__safe__",	NS_KEYWORD,	MOD_SAFE, 	.op = &attr_mod_op },
-	{ "unused",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
-	{ "__unused__",	NS_KEYWORD,	MOD_UNUSED,	.op = &attr_mod_op },
-	{ "externally_visible",	NS_KEYWORD, MOD_EXT_VISIBLE,.op = &attr_mod_op },
-	{ "__externally_visible__", NS_KEYWORD,MOD_EXT_VISIBLE,.op = &attr_mod_op },
-	{ "force",	NS_KEYWORD,	.op = &attr_force_op },
-	{ "__force__",	NS_KEYWORD,	.op = &attr_force_op },
-	{ "bitwise",	NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
-	{ "__bitwise__",NS_KEYWORD,	MOD_BITWISE,	.op = &attr_bitwise_op },
-	{ "address_space",NS_KEYWORD,	.op = &address_space_op },
-	{ "__address_space__",NS_KEYWORD,	.op = &address_space_op },
-	{ "designated_init",	NS_KEYWORD,	.op = &designated_init_op },
-	{ "__designated_init__",	NS_KEYWORD,	.op = &designated_init_op },
-	{ "transparent_union",	NS_KEYWORD,	.op = &transparent_union_op },
-	{ "__transparent_union__",	NS_KEYWORD,	.op = &transparent_union_op },
-	{ "noreturn",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_fun_op },
-	{ "__noreturn__",	NS_KEYWORD,	MOD_NORETURN,	.op = &attr_fun_op },
-	{ "pure",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"__pure__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"__const",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"__const__",	NS_KEYWORD,	MOD_PURE,	.op = &attr_fun_op },
-	{"gnu_inline",	NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
-	{"__gnu_inline__",NS_KEYWORD,	MOD_GNU_INLINE,	.op = &attr_fun_op },
-
-	{ "mode",	NS_KEYWORD,	.op = &mode_op },
-	{ "__mode__",	NS_KEYWORD,	.op = &mode_op },
-	{ "QI",		NS_KEYWORD,	.op = &mode_QI_op },
-	{ "__QI__",	NS_KEYWORD,	.op = &mode_QI_op },
-	{ "HI",		NS_KEYWORD,	.op = &mode_HI_op },
-	{ "__HI__",	NS_KEYWORD,	.op = &mode_HI_op },
-	{ "SI",		NS_KEYWORD,	.op = &mode_SI_op },
-	{ "__SI__",	NS_KEYWORD,	.op = &mode_SI_op },
-	{ "DI",		NS_KEYWORD,	.op = &mode_DI_op },
-	{ "__DI__",	NS_KEYWORD,	.op = &mode_DI_op },
-	{ "TI",		NS_KEYWORD,	.op = &mode_TI_op },
-	{ "__TI__",	NS_KEYWORD,	.op = &mode_TI_op },
-	{ "byte",	NS_KEYWORD,	.op = &mode_QI_op },
-	{ "__byte__",	NS_KEYWORD,	.op = &mode_QI_op },
-	{ "pointer",	NS_KEYWORD,	.op = &mode_pointer_op },
-	{ "__pointer__",NS_KEYWORD,	.op = &mode_pointer_op },
-	{ "word",	NS_KEYWORD,	.op = &mode_word_op },
-	{ "__word__",	NS_KEYWORD,	.op = &mode_word_op },
+	/* Modes */
+	D("mode",		&mode_op),
+	D("QI",			&mode_QI_op),
+	D("HI",			&mode_HI_op),
+	D("SI",			&mode_SI_op),
+	D("DI",			&mode_DI_op),
+	D("TI",			&mode_TI_op),
+	D("byte",		&mode_QI_op),
+	D("pointer",		&mode_pointer_op),
+	D("word",		&mode_word_op),
 };
 
 
@@ -629,19 +602,24 @@ static const char *ignored_attributes[] = {
 };
 
 
+static void init_keyword(int stream, struct init_keyword *kw, enum namespace ns)
+{
+	struct symbol *sym = create_symbol(stream, kw->name, SYM_KEYWORD, ns);
+	sym->ident->keyword = 1;
+	sym->ident->reserved |= (ns == NS_TYPEDEF);
+	sym->ctype.modifiers = kw->mods;
+	sym->ctype.base_type = kw->type;
+	sym->op = kw->op;
+}
+
 void init_parser(int stream)
 {
 	int i;
-	for (i = 0; i < ARRAY_SIZE(keyword_table); i++) {
-		struct init_keyword *ptr = keyword_table + i;
-		struct symbol *sym = create_symbol(stream, ptr->name, SYM_KEYWORD, ptr->ns);
-		sym->ident->keyword = 1;
-		if (ptr->ns == NS_TYPEDEF)
-			sym->ident->reserved = 1;
-		sym->ctype.modifiers = ptr->modifiers;
-		sym->ctype.base_type = ptr->type;
-		sym->op = ptr->op;
-	}
+
+	for (i = 0; i < ARRAY_SIZE(typedefs); i++)
+		init_keyword(stream, &typedefs[i], NS_TYPEDEF);
+	for (i = 0; i < ARRAY_SIZE(keywords); i++)
+		init_keyword(stream, &keywords[i], NS_KEYWORD);
 
 	for (i = 0; i < ARRAY_SIZE(ignored_attributes); i++) {
 		const char * name = ignored_attributes[i];
