@@ -353,6 +353,45 @@ static bool max_is_unknown_max(struct range_list *rl)
 	return sval_is_max(rl_max(rl));
 }
 
+static bool handle_add_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+{
+	struct range_list *left_rl = NULL;
+	struct range_list *right_rl = NULL;
+	struct range_list *valid;
+	struct symbol *type;
+	sval_t min, max;
+
+	type = get_type(expr);
+
+	get_rl_internal(expr->left, implied, recurse_cnt, &left_rl);
+	left_rl = cast_rl(type, left_rl);
+	get_rl_internal(expr->right, implied, recurse_cnt, &right_rl);
+	right_rl = cast_rl(type, right_rl);
+
+	if (!left_rl)
+		return false;
+
+	if (type_is_ptr(type) && !var_user_rl(expr->right)) {
+		valid = rl_intersection(left_rl, valid_ptr_rl);
+		if (valid && rl_equiv(valid, left_rl))
+			return valid_ptr_rl;
+	}
+
+	if (!right_rl)
+		return false;
+
+	if (sval_binop_overflows(rl_min(left_rl), expr->op, rl_min(right_rl)))
+		return false;
+	if (sval_binop_overflows(rl_max(left_rl), expr->op, rl_max(right_rl)))
+		return false;
+
+	min = sval_binop(rl_min(left_rl), expr->op, rl_min(right_rl));
+	max = sval_binop(rl_max(left_rl), expr->op, rl_max(right_rl));
+
+	*res = alloc_rl(min, max);
+	return true;
+}
+
 static bool handle_subtract_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
 {
 	struct symbol *type;
@@ -647,8 +686,6 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 	left_rl = cast_rl(type, left_rl);
 	get_rl_internal(expr->right, implied, recurse_cnt, &right_rl);
 	right_rl = cast_rl(type, right_rl);
-	if (!left_rl && !right_rl)
-		return false;
 
 	rl = handle_implied_binop(left_rl, expr->op, right_rl);
 	if (rl) {
@@ -668,6 +705,8 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 		return handle_right_shift(expr, implied, recurse_cnt, res);
 	case SPECIAL_LEFTSHIFT:
 		return handle_left_shift(expr, implied, recurse_cnt, res);
+	case '+':
+		return handle_add_rl(expr, implied, recurse_cnt, res);
 	case '-':
 		return handle_subtract_rl(expr, implied, recurse_cnt, res);
 	case '/':
