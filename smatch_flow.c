@@ -553,16 +553,15 @@ after_assign:
 		__split_expr(expr->fn);
 		split_args(expr);
 		if (is_inline_func(expr->fn))
-			add_inline_function(expr->fn->symbol);
+			add_inline_function(expr->fn->symbol->definition);
 		if (inlinable(expr->fn))
 			__inline_call = 1;
 		__process_post_op_stack();
 		__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
 		__pass_to_client(expr, FUNCTION_CALL_HOOK);
 		__inline_call = 0;
-		if (inlinable(expr->fn)) {
+		if (inlinable(expr->fn))
 			parse_inline(expr);
-		}
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
