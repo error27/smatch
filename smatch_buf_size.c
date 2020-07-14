@@ -476,6 +476,9 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	sval_t sval;
 	int size;
 
+	if (is_fake_call(expr))
+		return NULL;
+
 	expr = remove_addr_fluff(expr);
 	if (!expr)
 		return NULL;
