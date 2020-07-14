@@ -39,12 +39,15 @@ delete from return_states where function='sprintf' and type = 8017;
 /* because of recursion it gets passed to everything and is impossible to debug */
 delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
 delete from caller_info where function = '__netdev_start_xmit' and type = 8017;
+delete from caller_info where function = '(struct net_device_ops)->ndo_start_xmit' and type = 8017;
 delete from caller_info where function = '(struct packet_type)->func' and type = 8017;
 delete from caller_info where function = '(struct bio)->bi_end_io' and type = 8017;
+delete from caller_info where function = '(struct mISDNchannel)->recv' and type = 8017;
 delete from caller_info where type = 8017 and key = '*\$->bi_private';
 delete from caller_info where type = 8017 and key = '\$->bi_private';
 delete from caller_info where caller = 'NF_HOOK_COND' and type = 8017;
 delete from caller_info where caller = 'NF_HOOK' and type = 8017;
+delete from caller_info where caller = 'bus_for_each_drv' and type = 8017;
 /* comparison doesn't deal with chunks, I guess.  */
 delete from return_states where function='get_tty_driver' and type = 8017;
 delete from caller_info where caller = 'snd_ctl_elem_write' and function = '(struct snd_kcontrol)->put' and type = 8017;
@@ -53,6 +56,13 @@ delete from caller_info where function = 'nf_tables_newexpr' and type = 8017 and
 delete from caller_info where caller = 'fb_set_var' and function = '(struct fb_ops)->fb_set_par' and type = 8017 and parameter = 0;
 delete from return_states where function = 'tty_lookup_driver' and parameter = 2 and type = 8017;
 delete from caller_info where function = 'iomap_apply' and type = 8017 and key = '*\$';
+delete from caller_info where function = 'vfs_write' and type = 8017 and parameter = 0;
+delete from caller_info where function = '__vfs_write' and type = 8017 and parameter = 0;
+delete from caller_info where function = 'vfs_read' and type = 8017 and parameter = 0;
+delete from caller_info where function = '__vfs_read' and type = 8017 and parameter = 0;
+delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 9018;
+delete from caller_info where function = 'do_dentry_open param 2' and type = 8017;
+delete from caller_info where function = 'do_dentry_open param 2' and type = 9018;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');

@@ -867,6 +867,8 @@ enum info_type {
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,
 	USER_DATA_SET	= 9017,
+	USER_PTR	= 9018,
+	USER_PTR_SET	= 9019,
 	NO_OVERFLOW	= 8018,
 	NO_OVERFLOW_SIMPLE = 8019,
 	LOCKED		= 8020,
@@ -1089,6 +1091,12 @@ int is_user_rl(struct expression *expr);
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl);
 bool user_rl_capped(struct expression *expr);
 struct range_list *var_user_rl(struct expression *expr);
+bool we_pass_user_data(struct expression *call);
+/* smatch_points_to_user_data.c */
+bool is_user_data_fn(struct symbol *fn);
+bool is_skb_data(struct expression *expr);
+bool points_to_user_data(struct expression *expr);
+void set_points_to_user_data(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();
