@@ -27,6 +27,8 @@
 
 int __in_fake_assign;
 int __in_fake_struct_assign;
+int __in_fake_var_assign;
+int __fake_state_cnt;
 int in_fake_env;
 int final_pass;
 int __inline_call;
@@ -69,6 +71,8 @@ int in_expression_statement(void) { return !!__expr_stmt_count; }
 static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list, struct expression *parent);
+static void split_args(struct expression *expr);
+static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *expr);
 static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 
@@ -165,12 +169,28 @@ int is_assigned_call(struct expression *expr)
 	return 0;
 }
 
-static int is_inline_func(struct expression *expr)
+int is_fake_assigned_call(struct expression *expr)
+{
+	struct expression *parent = expr_get_fake_parent_expr(expr);
+
+	if (parent &&
+	    parent->type == EXPR_ASSIGNMENT &&
+	    parent->op == '=' &&
+	    strip_expr(parent->right) == expr)
+		return 1;
+
+	return 0;
+}
+
+static bool is_inline_func(struct expression *expr)
 {
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
-		return 0;
-	if (expr->symbol->ctype.modifiers & MOD_INLINE)
-		return 1;
+		return false;
+	if (!expr->symbol->definition)
+		return false;
+	if (expr->symbol->definition->ctype.modifiers & MOD_INLINE)
+		return true;
+
 	return 0;
 }
 
@@ -531,7 +551,7 @@ after_assign:
 		if (handle__builtin_choose_expr(expr))
 			break;
 		__split_expr(expr->fn);
-		split_expr_list(expr->args, expr);
+		split_args(expr);
 		if (is_inline_func(expr->fn))
 			add_inline_function(expr->fn->symbol);
 		if (inlinable(expr->fn))
@@ -954,6 +974,22 @@ static void fake_a_return(void)
 	}
 }
 
+static void split_ret_value(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (!expr)
+		return;
+
+	type = get_real_base_type(cur_func_sym);
+	type = get_real_base_type(type);
+	expr = fake_a_variable_assign(type, expr);
+
+	__in_fake_var_assign++;
+	__split_expr(expr);
+	__in_fake_var_assign--;
+}
+
 static void fake_an_empty_default(struct position pos)
 {
 	static struct statement none = {};
@@ -1040,6 +1076,7 @@ static void find_asm_gotos(struct statement *stmt)
 
 void __split_stmt(struct statement *stmt)
 {
+	static int indent_cnt;
 	sval_t sval;
 
 	if (!stmt)
@@ -1065,6 +1102,8 @@ void __split_stmt(struct statement *stmt)
 		return;
 	}
 
+	indent_cnt++;
+
 	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
 	set_position(stmt->pos);
@@ -1077,7 +1116,7 @@ void __split_stmt(struct statement *stmt)
 	case STMT_RETURN:
 		expr_set_parent_stmt(stmt->ret_value, stmt);
 
-		__split_expr(stmt->ret_value);
+		split_ret_value(stmt->ret_value);
 		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		__process_post_op_stack();
 		nullify_path();
@@ -1200,6 +1239,8 @@ void __split_stmt(struct statement *stmt)
 		break;
 	}
 	__pass_to_client(stmt, STMT_HOOK_AFTER);
+	if (--indent_cnt == 0)
+		__discard_fake_states();
 out:
 	__process_post_op_stack();
 }
@@ -1213,6 +1254,114 @@ static void split_expr_list(struct expression_list *expr_list, struct expression
 		__split_expr(expr);
 		__process_post_op_stack();
 	} END_FOR_EACH_PTR(expr);
+}
+
+static bool cast_arg(struct symbol *type, struct expression *arg)
+{
+	struct symbol *orig;
+
+	if (!type)
+		return false;
+
+	arg = strip_parens(arg);
+	if (arg != strip_expr(arg))
+		return true;
+
+	orig = get_type(arg);
+	if (!orig)
+		return true;
+	if (orig == type)
+		return false;
+
+	/*
+	 * I would have expected that we could just do use (orig == type) but I
+	 * guess for pointers we need to get the basetype to do that comparison.
+	 *
+	 */
+
+	if (orig->type != SYM_PTR ||
+	    type->type != SYM_PTR) {
+		if (type_fits(type, orig))
+			return false;
+		return true;
+	}
+	orig = get_real_base_type(orig);
+	type = get_real_base_type(type);
+	if (orig == type)
+		return false;
+
+	return true;
+}
+
+static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *expr)
+{
+	struct expression *var, *assign, *parent;
+	char buf[64];
+	sval_t sval;
+	bool cast;
+
+	if (!expr)
+		return NULL;
+
+	if (expr->type == EXPR_ASSIGNMENT)
+		return expr;
+
+	cast = cast_arg(type, expr);
+	/*
+	 * Using expr_to_sym() here is a hack.  We want to say that we don't
+	 * need to assign frob(foo) or frob(foo->bar) if the types are right.
+	 * It turns out faking these assignments is way more expensive than I
+	 * would have imagined.  I'm not sure why exactly.
+	 *
+	 */
+	if (!cast) {
+		/*
+		 * if the code is "return *p;" where "p" is a user pointer then
+		 * we want to create a fake assignment so that it sets the state
+		 * in check_kernel_user_data.c.
+		 *
+		 */
+		if (expr->type != EXPR_PREOP &&
+		    expr->op != '*' && expr->op != '&' &&
+		    expr_to_sym(expr))
+			return expr;
+		if (get_value(expr, &sval))
+			return expr;
+	}
+
+	snprintf(buf, sizeof(buf), "__sm_fake_%p", expr);
+	var = fake_variable(type, buf);
+	assign = assign_expression(var, '=', expr);
+	assign->smatch_flags |= Fake;
+
+	parent = expr_get_parent_expr(expr);
+	expr_set_parent_expr(assign, parent);
+	expr_set_parent_expr(expr, assign);
+
+	__fake_state_cnt++;
+
+	return assign;
+}
+
+static void split_args(struct expression *expr)
+{
+	struct expression *arg, *tmp;
+	struct symbol *type;
+	int i;
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+		expr_set_parent_expr(arg, expr);
+		type = get_arg_type(expr->fn, i);
+		tmp = fake_a_variable_assign(type, arg);
+		if (tmp != arg)
+			__in_fake_var_assign++;
+		__split_expr(tmp);
+		if (tmp != arg)
+			__in_fake_var_assign--;
+		__process_post_op_stack();
+	} END_FOR_EACH_PTR(arg);
 }
 
 static void split_sym(struct symbol *sym)

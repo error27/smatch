@@ -25,7 +25,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	sval_t sval;
 	char *str;
 
-	if (expr->type != EXPR_ASSIGNMENT)
+	if (expr->type != EXPR_ASSIGNMENT || __in_fake_var_assign)
 		return;
 	if (!is_fresh_alloc(expr->right))
 		return;

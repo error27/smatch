@@ -121,6 +121,8 @@ out:
 
 static void match_alloc(const char *fn, struct expression *expr, void *unused)
 {
+	if (__in_fake_var_assign)
+		return;
 	if (!is_local(expr->left))
 		return;
 	if (is_param(expr->left))

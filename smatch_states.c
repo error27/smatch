@@ -1236,3 +1236,28 @@ void __merge_gotos(const char *name, struct symbol *sym)
 	if (stree)
 		merge_stree(&cur_stree, *stree);
 }
+
+void __discard_fake_states(void)
+{
+	struct stree *new = NULL;
+	struct sm_state *sm;
+
+	if (__fake_state_cnt == 0)
+		return;
+
+	/*
+	 * This is just a best effort type of thing.  There could be
+	 * fake states in the true/false trees already.  They might
+	 * eventually get cleared out too because we call after probably
+	 * 50% of function calls.  But the point is that I don't want to
+	 * waste resources tracking them.
+	 */
+	FOR_EACH_SM(cur_stree, sm) {
+		if (strncmp(sm->name, "__sm_fake_", 10) != 0)
+			avl_insert(&new, sm);
+	} END_FOR_EACH_SM(sm);
+
+	free_stree(&cur_stree);
+	cur_stree = new;
+	__fake_state_cnt = 0;
+}

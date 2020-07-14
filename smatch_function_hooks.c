@@ -1225,7 +1225,7 @@ static void db_return_states_call(struct expression *expr)
 	if (unreachable())
 		return;
 
-	if (is_assigned_call(expr))
+	if (is_assigned_call(expr) || is_fake_assigned_call(expr))
 		return;
 	if (is_condition_call(expr))
 		return;

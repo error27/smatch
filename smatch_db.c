@@ -52,6 +52,18 @@ DECLARE_PTR_LIST(member_info_cb_list, struct member_info_callback);
 static struct member_info_cb_list *member_callbacks;
 static struct member_info_cb_list *member_callbacks_new;
 
+struct return_info_callback {
+	int owner;
+	void (*callback)(int return_id, char *return_ranges,
+			 struct expression *returned_expr,
+			 int param,
+			 const char *printed_name,
+			 struct sm_state *sm);
+};
+ALLOCATOR(return_info_callback, "return_info callbacks");
+DECLARE_PTR_LIST(return_info_cb_list, struct return_info_callback);
+static struct return_info_cb_list *return_callbacks;
+
 struct returned_state_callback {
 	void (*callback)(int return_id, char *return_ranges, struct expression *return_expr);
 };
@@ -659,6 +671,20 @@ void add_caller_info_callback(int owner, void (*callback)(struct expression *cal
 	add_ptr_list(&member_callbacks_new, member_callback);
 }
 
+void add_return_info_callback(int owner,
+			      void (*callback)(int return_id, char *return_ranges,
+					       struct expression *returned_expr,
+					       int param,
+					       const char *printed_name,
+					       struct sm_state *sm))
+{
+	struct return_info_callback *return_callback = __alloc_return_info_callback(0);
+
+	return_callback->owner = owner;
+	return_callback->callback = callback;
+	add_ptr_list(&return_callbacks, return_callback);
+}
+
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr))
 {
 	struct returned_state_callback *callback = __alloc_returned_state_callback(0);
@@ -716,14 +742,12 @@ static int db_return_callback(void *_ret_info, int argc, char **argv, char **azC
 struct range_list *db_return_vals(struct expression *expr)
 {
 	struct return_info ret_info = {};
-	char buf[64];
 	struct sm_state *sm;
 
 	if (is_fake_call(expr))
 		return NULL;
 
-	snprintf(buf, sizeof(buf), "return %p", expr);
-	sm = get_sm_state(SMATCH_EXTRA, buf, NULL);
+	sm = get_extra_sm_state(expr);
 	if (sm)
 		return clone_rl(estate_rl(sm->state));
 	ret_info.static_returns_call = expr;
@@ -887,7 +911,8 @@ free:
 	return ret;
 }
 
-static void print_struct_members(struct expression *call, struct expression *expr, int param, struct stree *stree,
+static void print_struct_members(struct expression *call, struct expression *expr, int param,
+	int owner,
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm),
 	bool new)
 {
@@ -905,7 +930,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	if (!expr)
 		return;
 	type = get_type(expr);
-	if (type && type_bits(type) < type_bits(&ulong_ctype))
+	if (!new && type && type_bits(type) < type_bits(&ulong_ctype))
 		return;
 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
@@ -918,8 +943,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		goto free;
 
 	len = strlen(name);
-	FOR_EACH_SM(stree, sm) {
-		if (sm->sym != sym)
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->owner != owner || sm->sym != sym)
 			continue;
 		sm_name = sm->name;
 		add_star = false;
@@ -971,50 +996,44 @@ static void match_call_info(struct expression *call)
 {
 	struct member_info_callback *cb;
 	struct expression *arg;
-	struct stree *stree;
-	char *name;
 	int i;
 
-	name = get_fnptr_name(call->fn);
-	if (!name)
-		return;
-
 	FOR_EACH_PTR(member_callbacks, cb) {
-		stree = get_all_states_stree(cb->owner);
-		i = 0;
+		i = -1;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, stree, cb->callback, 0);
 			i++;
+			print_struct_members(call, arg, i, cb->owner, cb->callback, 0);
 		} END_FOR_EACH_PTR(arg);
-		free_stree(&stree);
 	} END_FOR_EACH_PTR(cb);
+}
 
-	free_string(name);
+static struct expression *get_fake_variable(struct expression *expr)
+{
+	struct expression *tmp;
+
+	tmp = expr_get_fake_parent_expr(expr);
+	if (!tmp || tmp->type != EXPR_ASSIGNMENT)
+		return NULL;
+
+	return tmp->left;
 }
 
 static void match_call_info_new(struct expression *call)
 {
 	struct member_info_callback *cb;
-	struct expression *arg;
-	struct stree *stree;
-	char *name;
+	struct expression *arg, *tmp;
 	int i;
 
-	name = get_fnptr_name(call->fn);
-	if (!name)
-		return;
-
 	FOR_EACH_PTR(member_callbacks_new, cb) {
-		stree = get_all_states_stree(cb->owner);
-		i = 0;
+		i = -1;
 		FOR_EACH_PTR(call->args, arg) {
-			print_struct_members(call, arg, i, stree, cb->callback, 1);
 			i++;
+			tmp = get_fake_variable(arg);
+			if (!tmp)
+				tmp = arg;
+			print_struct_members(call, tmp, i, cb->owner, cb->callback, 1);
 		} END_FOR_EACH_PTR(arg);
-		free_stree(&stree);
 	} END_FOR_EACH_PTR(cb);
-
-	free_string(name);
 }
 
 static int get_param(int param, char **name, struct symbol **sym)
@@ -1617,12 +1636,16 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(clone_rl(rl)));
-		if (!rl_to_sval(rl, &sval)) {
-			compare_str = get_return_compare_str(expr);
-			if (compare_str) {
-				snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
-				return_ranges = alloc_sname(buf);
-			}
+		compare_str = get_return_compare_str(expr);
+		/* ignore obvious stuff like 0 <= param */
+		/* Is this worthile when we have PARAM_COMPARE? */
+		if (compare_str &&
+		    strncmp(compare_str, "[=", 2) != 0 &&
+		    rl_to_sval(rl, &sval))
+			compare_str = NULL;
+		if (compare_str) {
+			snprintf(buf, sizeof(buf), "%s%s", return_ranges, compare_str);
+			return_ranges = alloc_sname(buf);
 		}
 
 		return_id++;
@@ -1640,12 +1663,20 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 
 static int call_return_state_hooks_split_possible(struct expression *expr)
 {
+	struct expression *fake;
 	struct sm_state *sm;
 
 	if (!expr)
 		return 0;
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	if (!sm) {
+		fake = expr_get_fake_parent_expr(expr);
+		if (!fake || fake->type != EXPR_ASSIGNMENT || fake->op != '=')
+			return 0;
+		fake = fake->left;
+		sm = get_sm_state_expr(SMATCH_EXTRA, fake);
+	}
 	return split_possible_helper(sm, expr);
 }
 
@@ -1934,12 +1965,10 @@ static int is_boolean(struct expression *expr)
 static int splitable_function_call(struct expression *expr)
 {
 	struct sm_state *sm;
-	char buf[64];
 
 	if (!expr || expr->type != EXPR_CALL)
 		return 0;
-	snprintf(buf, sizeof(buf), "return %p", expr);
-	sm = get_sm_state(SMATCH_EXTRA, buf, NULL);
+	sm = get_extra_sm_state(expr);
 	return split_possible_helper(sm, expr);
 }
 
@@ -2174,7 +2203,6 @@ vanilla:
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct returned_member_callback *cb;
-	struct stree *stree;
 	struct sm_state *sm;
 	struct symbol *type;
 	char *name;
@@ -2188,13 +2216,9 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	if (!name)
 		return;
 
-	member_name[sizeof(member_name) - 1] = '\0';
-	strcpy(member_name, "$");
-
 	len = strlen(name);
 	FOR_EACH_PTR(returned_member_callbacks, cb) {
-		stree = __get_cur_stree();
-		FOR_EACH_MY_SM(cb->owner, stree, sm) {
+		FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
 			if (sm->name[0] == '*' && strcmp(sm->name + 1, name) == 0) {
 				strcpy(member_name, "*$");
 				cb->callback(return_id, return_ranges, expr, member_name, sm->state);
@@ -2210,6 +2234,48 @@ static void print_returned_struct_members(int return_id, char *return_ranges, st
 	} END_FOR_EACH_PTR(cb);
 
 	free_string(name);
+}
+
+static void print_return_struct_info(int return_id, char *return_ranges,
+				     struct expression *expr,
+				     struct symbol *sym,
+				     struct return_info_callback *cb)
+{
+	struct sm_state *sm;
+	const char *printed_name;
+	int param;
+
+	FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
+		if (sm->sym && sm->sym == sym) {
+			param = -1;
+		} else {
+			param = get_param_num_from_sym(sm->sym);
+			if (param < 0)
+				continue;
+		}
+
+		printed_name = get_param_name(sm);
+		if (!printed_name)
+			continue;
+
+		cb->callback(return_id, return_ranges, expr, param, printed_name, sm);
+	} END_FOR_EACH_SM(sm);
+}
+
+static void print_return_info(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct return_info_callback *cb;
+	struct expression *tmp;
+	struct symbol *sym;
+
+	tmp = get_fake_variable(expr);
+	if (tmp)
+		expr = tmp;
+	sym = expr_to_sym(expr);
+
+	FOR_EACH_PTR(return_callbacks, cb) {
+		print_return_struct_info(return_id, return_ranges, expr, sym, cb);
+	} END_FOR_EACH_PTR(cb);
 }
 
 static void reset_memdb(struct symbol *sym)
@@ -2537,6 +2603,7 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_call_info_new, FUNCTION_CALL_HOOK);
 	add_split_return_callback(match_return_info);
 	add_split_return_callback(print_returned_struct_members);
+	add_split_return_callback(print_return_info);
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);

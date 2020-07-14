@@ -537,6 +537,8 @@ int in_condition(void);
 extern int __in_fake_assign;
 extern int __in_fake_parameter_assign;
 extern int __in_fake_struct_assign;
+extern int __in_fake_var_assign;
+extern int __fake_state_cnt;
 extern int in_fake_env;
 void smatch (struct string_list *filelist);
 int inside_loop(void);
@@ -558,6 +560,7 @@ extern struct expression_list *big_expression_stack;
 extern struct expression_list *big_condition_stack;
 extern struct statement_list *big_statement_stack;
 int is_assigned_call(struct expression *expr);
+int is_fake_assigned_call(struct expression *expr);
 int inlinable(struct expression *expr);
 extern int __inline_call;
 extern struct expression *__inline_fn;
@@ -786,6 +789,8 @@ void __discard_conditions(void);
 void __save_gotos(const char *name, struct symbol *sym);
 void __merge_gotos(const char *name, struct symbol *sym);
 
+void __discard_fake_states(void);
+
 void __print_cur_stree(void);
 bool __print_states(const char *owner);
 typedef void (check_tracker_hook)(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
@@ -898,6 +903,12 @@ void db_ignore_states(int id);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_caller_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
+void add_return_info_callback(int owner,
+			      void (*callback)(int return_id, char *return_ranges,
+					       struct expression *returned_expr,
+					       int param,
+					       const char *printed_name,
+					       struct sm_state *sm));
 void add_split_return_callback(void (*fn)(int return_id, char *return_ranges, struct expression *returned_expr));
 void add_returned_member_callback(int owner, void (*callback)(int return_id, char *return_ranges, struct expression *expr, char *printed_name, struct smatch_state *state));
 void select_call_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value));

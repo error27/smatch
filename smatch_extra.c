@@ -2858,11 +2858,29 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	estate_set_hard_max(state);
 }
 
+static struct sm_state *get_sm_from_call(struct expression *expr)
+{
+	char buf[32];
+
+	if (is_fake_call(expr))
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "return %p", expr);
+	return get_sm_state(SMATCH_EXTRA, buf, NULL);
+}
+
 struct sm_state *get_extra_sm_state(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
 	struct sm_state *ret = NULL;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return NULL;
+
+	if (expr->type == EXPR_CALL)
+		return get_sm_from_call(expr);
 
 	name = expr_to_known_chunk_sym(expr, &sym);
 	if (!name)
