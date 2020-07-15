@@ -1816,7 +1816,7 @@ static struct token *handle_attributes(struct token *token, struct decl_state *c
 			break;
 		if (!(keyword->op->type & KW_ATTRIBUTE))
 			break;
-		token = keyword->op->declarator(token->next, ctx);
+		token = attribute_specifier(token->next, ctx);
 	}
 	return token;
 }
