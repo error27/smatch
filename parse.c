@@ -54,7 +54,7 @@ static struct token *handle_attributes(struct token *token, struct decl_state *c
 typedef struct token *declarator_t(struct token *, struct decl_state *);
 static declarator_t
 	struct_specifier, union_specifier, enum_specifier,
-	attribute_specifier, typeof_specifier, parse_asm_declarator,
+	attribute_specifier, typeof_specifier,
 	typedef_specifier, inline_specifier, auto_specifier,
 	register_specifier, static_specifier, extern_specifier,
 	thread_specifier, const_qualifier, volatile_qualifier;
@@ -363,7 +363,6 @@ static struct symbol_op range_op = {
 
 static struct symbol_op asm_op = {
 	.type = KW_ASM,
-	.declarator = parse_asm_declarator,
 	.statement = parse_asm_statement,
 	.toplevel = toplevel_asm_declaration,
 };
@@ -1744,6 +1743,7 @@ static struct token *declarator(struct token *token, struct decl_state *ctx);
 
 static struct token *handle_asm_name(struct token *token, struct decl_state *ctx)
 {
+	struct expression *expr;
 	struct symbol *keyword;
 
 	if (token_type(token) != TOKEN_IDENT)
@@ -1753,7 +1753,12 @@ static struct token *handle_asm_name(struct token *token, struct decl_state *ctx
 		return token;
 	if (!(keyword->op->type & KW_ASM))
 		return token;
-	return keyword->op->declarator(token->next, ctx);
+
+	token = token->next;
+	token = expect(token, '(', "after asm");
+	token = string_expression(token, &expr, "asm name");
+	token = expect(token, ')', "after asm");
+	return token;
 }
 
 static struct token *skip_attribute(struct token *token)
@@ -2179,15 +2184,6 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 		token = parse_asm_labels(token, stmt, &stmt->asm_labels);
 	token = expect(token, ')', "after asm");
 	return expect(token, ';', "at end of asm-statement");
-}
-
-static struct token *parse_asm_declarator(struct token *token, struct decl_state *ctx)
-{
-	struct expression *expr;
-	token = expect(token, '(', "after asm");
-	token = string_expression(token, &expr, "inline asm");
-	token = expect(token, ')', "after asm");
-	return token;
 }
 
 static struct token *parse_static_assert(struct token *token, struct symbol_list **unused)
