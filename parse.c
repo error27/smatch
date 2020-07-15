@@ -49,7 +49,7 @@ struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
 
 static struct token *statement(struct token *token, struct statement **tree);
-static struct token *handle_attributes(struct token *token, struct decl_state *ctx, unsigned int keywords);
+static struct token *handle_attributes(struct token *token, struct decl_state *ctx);
 
 typedef struct token *declarator_t(struct token *, struct decl_state *);
 static declarator_t
@@ -756,7 +756,7 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct symbol *sym;
 	struct position *repos;
 
-	token = handle_attributes(token, ctx, KW_ATTRIBUTE);
+	token = handle_attributes(token, ctx);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
@@ -956,7 +956,7 @@ static struct token *parse_enum_declaration(struct token *token, struct symbol *
 		struct symbol *sym;
 
 		// FIXME: only 'deprecated' should be accepted
-		next = handle_attributes(next, &ctx, KW_ATTRIBUTE);
+		next = handle_attributes(next, &ctx);
 
 		if (match_op(next, '=')) {
 			next = constant_expression(next->next, &expr);
@@ -1805,7 +1805,7 @@ static struct token *skip_attributes(struct token *token)
 	return token;
 }
 
-static struct token *handle_attributes(struct token *token, struct decl_state *ctx, unsigned int keywords)
+static struct token *handle_attributes(struct token *token, struct decl_state *ctx)
 {
 	struct symbol *keyword;
 	for (;;) {
@@ -1814,7 +1814,7 @@ static struct token *handle_attributes(struct token *token, struct decl_state *c
 		keyword = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
 		if (!keyword || keyword->type != SYM_KEYWORD)
 			break;
-		if (!(keyword->op->type & keywords))
+		if (!(keyword->op->type & KW_ATTRIBUTE))
 			break;
 		token = keyword->op->declarator(token->next, ctx);
 	}
@@ -1903,8 +1903,7 @@ static struct token *direct_declarator(struct token *token, struct decl_state *c
 	    is_nested(token, &next, ctx->prefer_abstract)) {
 		struct symbol *base_type = ctype->base_type;
 		if (token->next != next)
-			next = handle_attributes(token->next, ctx,
-						  KW_ATTRIBUTE);
+			next = handle_attributes(token->next, ctx);
 		token = declarator(next, ctx);
 		token = expect(token, ')', "in nested declarator");
 		while (ctype->base_type != base_type)
@@ -2027,7 +2026,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		if (match_op(token, ':'))
 			token = handle_bitfield(token, &ctx);
 
-		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+		token = handle_attributes(token, &ctx);
 		apply_modifiers(token->pos, &ctx);
 
 		decl->ctype = ctx.ctype;
@@ -2067,7 +2066,7 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	token = declaration_specifiers(token, &ctx);
 	ctx.ident = &sym->ident;
 	token = declarator(token, &ctx);
-	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+	token = handle_attributes(token, &ctx);
 	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
 	sym->ctype.modifiers |= decl_modifiers(&ctx);
@@ -2567,7 +2566,7 @@ static struct token *handle_label_attributes(struct token *token, struct symbol 
 {
 	struct decl_state ctx = { };
 
-	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+	token = handle_attributes(token, &ctx);
 	label->label_modifiers = ctx.ctype.modifiers;
 	return token;
 }
@@ -3028,7 +3027,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	saved = ctx.ctype;
 	token = declarator(token, &ctx);
 	token = handle_asm_name(token, &ctx);
-	token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+	token = handle_attributes(token, &ctx);
 	apply_modifiers(token->pos, &ctx);
 
 	decl->ctype = ctx.ctype;
@@ -3150,10 +3149,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		ident = NULL;
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		ctx.ctype = saved;
-		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+		token = handle_attributes(token, &ctx);
 		token = declarator(token, &ctx);
 		token = handle_asm_name(token, &ctx);
-		token = handle_attributes(token, &ctx, KW_ATTRIBUTE);
+		token = handle_attributes(token, &ctx);
 		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
