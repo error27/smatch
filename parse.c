@@ -1761,6 +1761,20 @@ static struct token *handle_asm_name(struct token *token, struct decl_state *ctx
 	return token;
 }
 
+///
+// test if @token is '__attribute__' (or one of its variant)
+static bool match_attribute(struct token *token)
+{
+	struct symbol *sym;
+
+	if (token_type(token) != TOKEN_IDENT)
+		return false;
+	sym = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
+	if (!sym || sym->type != SYM_KEYWORD)
+		return false;
+	return sym->op->type & KW_ATTRIBUTE;
+}
+
 static struct token *skip_attribute(struct token *token)
 {
 	token = token->next;
@@ -1782,15 +1796,7 @@ static struct token *skip_attribute(struct token *token)
 
 static struct token *skip_attributes(struct token *token)
 {
-	struct symbol *keyword;
-	for (;;) {
-		if (token_type(token) != TOKEN_IDENT)
-			break;
-		keyword = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
-		if (!keyword || keyword->type != SYM_KEYWORD)
-			break;
-		if (!(keyword->op->type & KW_ATTRIBUTE))
-			break;
+	while (match_attribute(token)) {
 		token = expect(token->next, '(', "after attribute");
 		token = expect(token, '(', "after attribute");
 		while (token_type(token) == TOKEN_IDENT) {
@@ -1807,17 +1813,8 @@ static struct token *skip_attributes(struct token *token)
 
 static struct token *handle_attributes(struct token *token, struct decl_state *ctx)
 {
-	struct symbol *keyword;
-	for (;;) {
-		if (token_type(token) != TOKEN_IDENT)
-			break;
-		keyword = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
-		if (!keyword || keyword->type != SYM_KEYWORD)
-			break;
-		if (!(keyword->op->type & KW_ATTRIBUTE))
-			break;
+	while (match_attribute(token))
 		token = attribute_specifier(token->next, ctx);
-	}
 	return token;
 }
 
