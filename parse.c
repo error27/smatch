@@ -1769,7 +1769,7 @@ static bool match_attribute(struct token *token)
 
 	if (token_type(token) != TOKEN_IDENT)
 		return false;
-	sym = lookup_keyword(token->ident, NS_KEYWORD | NS_TYPEDEF);
+	sym = lookup_keyword(token->ident, NS_TYPEDEF);
 	if (!sym || sym->type != SYM_KEYWORD)
 		return false;
 	return sym->op->type & KW_ATTRIBUTE;
