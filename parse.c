@@ -1618,7 +1618,7 @@ struct symbol *ctype_integer(int size, int want_unsigned)
 static struct token *handle_qualifiers(struct token *t, struct decl_state *ctx)
 {
 	while (token_type(t) == TOKEN_IDENT) {
-		struct symbol *s = lookup_symbol(t->ident, NS_TYPEDEF);
+		struct symbol *s = lookup_keyword(t->ident, NS_TYPEDEF);
 		if (!s)
 			break;
 		if (s->type != SYM_KEYWORD)
