@@ -609,6 +609,13 @@ static char **handle_switch_M(char *arg, char **next)
 	return next;
 }
 
+static int handle_march(const char *opt, const char *arg, const struct flag *flag, int options)
+{
+	if (arch_target->parse_march)
+		arch_target->parse_march(arg);
+	return 1;
+}
+
 static int handle_mcmodel(const char *opt, const char *arg, const struct flag *flag, int options)
 {
 	static const struct val_map cmodels[] = {
@@ -650,6 +657,7 @@ static const struct flag mflags[] = {
 	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
 	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
 	{ "size-long", &arch_msize_long },
+	{ "arch=", NULL, handle_march },
 	{ "big-endian", &arch_big_endian, NULL },
 	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
 	{ "cmodel", &arch_cmodel, handle_mcmodel },
@@ -925,6 +933,16 @@ static char **handle_param(char *arg, char **next)
 	return next;
 }
 
+static char **handle_os(char *arg, char **next)
+{
+	if (*arg++ != '=')
+		die("missing argument for --os option");
+
+	target_os(arg);
+
+	return next;
+}
+
 static char **handle_version(char *arg, char **next)
 {
 	printf("%s\n", SPARSE_VERSION);
@@ -941,6 +959,7 @@ static char **handle_long_options(char *arg, char **next)
 {
 	static struct switches cmd[] = {
 		{ "arch", handle_arch, 1 },
+		{ "os",   handle_os, 1 },
 		{ "param", handle_param, 1 },
 		{ "version", handle_version },
 		{ NULL, NULL }

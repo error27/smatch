@@ -221,48 +221,32 @@ sub float_types {
 sub add_specs {
     my ($spec) = @_;
     if ($spec eq 'sunos') {
-	return &add_specs ('unix') .
-	    ' -D__sun__=1 -D__sun=1 -Dsun=1' .
-	    ' -D__svr4__=1 -DSVR4=1' .
+	return " --os=$spec" .
+	    ' -DSVR4=1' .
 	    ' -D__STDC__=0' .
 	    ' -D_REENTRANT' .
 	    ' -D_SOLARIS_THREADS' .
 	    ' -DNULL="((void *)0)"';
     } elsif ($spec eq 'linux') {
-	return &add_specs ('unix') .
-	    ' -D__linux__=1 -D__linux=1 -Dlinux=1';
+	return " --os=$spec";
     } elsif ($spec eq 'gnu/kfreebsd') {
 	return &add_specs ('unix') .
 	    ' -D__FreeBSD_kernel__=1';
     } elsif ($spec eq 'openbsd') {
-	return &add_specs ('unix') .
-	    ' -D__OpenBSD__=1';
+	return " --os=$spec";
     } elsif ($spec eq 'freebsd') {
-	return &add_specs ('unix') .
-	    ' -D__FreeBSD__=1';
+	return " --os=$spec";
     } elsif ($spec eq 'netbsd') {
-	return &add_specs ('unix') .
-	    ' -D__NetBSD__=1';
+	return " --os=$spec";
     } elsif ($spec eq 'darwin') {
-	return
-	    ' -D__APPLE__=1 -D__APPLE_CC__=1 -D__MACH__=1';
+	return " --os=$spec";
     } elsif ($spec eq 'gnu') {		# Hurd
 	return &add_specs ('unix') .	# So, GNU is Unix, uh?
 	    ' -D__GNU__=1 -D__gnu_hurd__=1 -D__MACH__=1';
     } elsif ($spec eq 'unix') {
 	return ' -Dunix=1 -D__unix=1 -D__unix__=1';
     } elsif ( $spec =~ /^cygwin/) {
-	return &add_specs ('unix') .
-	    ' -fshort-wchar' .
-	    ' -D__CYGWIN__=1' .
-	    ($m32 ? ' -D__CYGWIN32__=1' : '') .
-	    " -D'_cdecl=__attribute__((__cdecl__))'" .
-	    " -D'__cdecl=__attribute__((__cdecl__))'" .
-	    " -D'_stdcall=__attribute__((__stdcall__))'" .
-	    " -D'__stdcall=__attribute__((__stdcall__))'" .
-	    " -D'_fastcall=__attribute__((__fastcall__))'" .
-	    " -D'__fastcall=__attribute__((__fastcall__))'" .
-	    " -D'__declspec(x)=__attribute__((x))'";
+	return ' --os=cygwin';
     } elsif ($spec eq 'i386') {
 	$m32 = 1;
 	return (

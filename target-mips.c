@@ -10,6 +10,16 @@ static void predefine_mips(const struct target *self)
 	predefine("_MIPS_SZINT", 1, "%d", int_ctype.bit_size);
 	predefine("_MIPS_SZLONG", 1, "%d", long_ctype.bit_size);
 	predefine("_MIPS_SZPTR", 1, "%d", ptr_ctype.bit_size);
+
+	if (arch_big_endian) {
+		predefine("_MIPSEB", 1, "1");
+		predefine("__MIPSEB", 1, "1");
+		predefine("__MIPSEB__", 1, "1");
+	} else {
+		predefine("_MIPSEL", 1, "1");
+		predefine("__MIPSEL", 1, "1");
+		predefine("__MIPSEL__", 1, "1");
+	}
 }
 
 

@@ -20,6 +20,11 @@ static void predefine_arm64(const struct target *self)
 
 	predefine("__aarch64__", 1, "1");
 
+	if (arch_big_endian)
+		predefine("__AARCH64EB__", 0, "1");
+	else
+		predefine("__AARCH64EL__", 0, "1");
+
 	if (cmodel)
 		predefine_strong("__AARCH64_CMODEL_%s__", cmodel);
 }
