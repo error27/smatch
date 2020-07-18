@@ -776,7 +776,7 @@ struct symbol	zero_int;
 
 void init_symbols(void)
 {
-	int stream = init_stream("builtin", -1, includepath);
+	int stream = init_stream("builtin", -1, includepath, -1);
 
 #define __IDENT(n,str,res) \
 	hash_ident(&n)

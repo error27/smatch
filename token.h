@@ -49,7 +49,7 @@ enum constantfile {
 extern const char *includepath[];
 
 struct stream {
-	int fd;
+	int fd, prev;
 	const char *name;
 	const char *path;    // input-file path - see set_stream_include_path()
 	const char **next_path;
@@ -214,7 +214,8 @@ static inline struct token *containing_token(struct token **p)
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 
-extern int init_stream(const char *, int fd, const char **next_path);
+extern int init_stream(const char *, int fd, const char **next_path, int prev_stream);
+extern int stream_prev(int stream);
 extern const char *stream_name(int stream);
 extern struct ident *hash_ident(struct ident *);
 extern struct ident *built_in_ident(const char *);
@@ -224,7 +225,7 @@ extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
 extern const char *quote_token(const struct token *);
-extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
+extern struct token * tokenize(const char *, int, int, struct token *, const char **next_path);
 extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 
 extern void show_identifier_stats(void);

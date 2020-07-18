@@ -894,7 +894,7 @@ static void set_stream_include_path(struct stream *stream)
 #define PATH_MAX 4096	// for Hurd where it's not defined
 #endif
 
-static int try_include(const char *path, const char *filename, int flen, struct token **where, const char **next_path)
+static int try_include(struct position pos, const char *path, const char *filename, int flen, struct token **where, const char **next_path)
 {
 	int fd;
 	int plen = strlen(path);
@@ -911,7 +911,7 @@ static int try_include(const char *path, const char *filename, int flen, struct 
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
 		char *streamname = xmemdup(fullname, plen + flen);
-		*where = tokenize(streamname, fd, *where, next_path);
+		*where = tokenize(streamname, fd, pos.stream, *where, next_path);
 		close(fd);
 		return 1;
 	}
@@ -923,7 +923,7 @@ static int do_include_path(const char **pptr, struct token **list, struct token 
 	const char *path;
 
 	while ((path = *pptr++) != NULL) {
-		if (!try_include(path, filename, flen, list, pptr))
+		if (!try_include(token->pos, path, filename, flen, list, pptr))
 			continue;
 		return 1;
 	}
@@ -966,7 +966,7 @@ static int handle_include_path(struct stream *stream, struct token **list, struc
 
 	/* Absolute path? */
 	if (filename[0] == '/') {
-		if (try_include("", filename, flen, list, includepath))
+		if (try_include(token->pos, "", filename, flen, list, includepath))
 			return 0;
 		goto out;
 	}
@@ -2091,7 +2091,7 @@ static void create_arglist(struct symbol *sym, int count)
 static void init_preprocessor(void)
 {
 	int i;
-	int stream = init_stream("preprocessor", -1, includepath);
+	int stream = init_stream("preprocessor", -1, includepath, -1);
 	static struct {
 		const char *name;
 		int (*handler)(struct stream *, struct token **, struct token *);

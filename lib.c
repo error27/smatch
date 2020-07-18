@@ -49,22 +49,98 @@
 #include "version.h"
 #include "bits.h"
 
+static int prettify(const char **fnamep)
+{
+	const char *name = *fnamep;
+	int len = strlen(name);
+
+	if (len > 2 && !memcmp(name, "./", 2)) {
+		name += 2;
+		len -= 2;
+	}
+
+	*fnamep = name;
+	return len;
+}
+
+static const char *show_include_chain(int stream, const char *base)
+{
+	static char buffer[200];
+	int len = 0;
+
+	while ((stream = stream_prev(stream)) >= 0) {
+		const char *p = stream_name(stream);
+		int pretty_len;
+
+		if (p == base)
+			break;
+
+		pretty_len = prettify(&p);
+		if (pretty_len <= 0)
+			break;
+
+		/*
+		 * At worst, we'll need " (through %s, ...)" in addition to the
+		 * new filename
+		 */
+		if (pretty_len + len + 20 > sizeof(buffer)) {
+			if (!len)
+				return "";
+			memcpy(buffer+len, ", ...", 5);
+			len += 5;
+			break;
+		}
+
+		if (!len) {
+			memcpy(buffer, " (through ", 10);
+			len = 10;
+		} else {
+			buffer[len++] = ',';
+			buffer[len++] = ' ';
+		}
+
+		memcpy(buffer+len, p, pretty_len);
+		len += pretty_len;
+	}
+	if (!len)
+		return "";
+
+	buffer[len] = ')';
+	buffer[len+1] = 0;
+	return buffer;
+}
+
+static const char *show_stream_name(struct position pos)
+{
+	const char *name = stream_name(pos.stream);
+	static const char *last;
+
+	if (name == base_filename)
+		return name;
+	if (name == last)
+		return name;
+	last = name;
+
+	fprintf(stderr, "%s: note: in included file%s:\n",
+		base_filename,
+		show_include_chain(pos.stream, base_filename));
+	return name;
+}
 
 static void do_warn(const char *type, struct position pos, const char * fmt, va_list args)
 {
 	static char buffer[512];
-	const char *name;
 
 	/* Shut up warnings if position is bad_token.pos */
 	if (pos.type == TOKEN_BAD)
 		return;
 
 	vsprintf(buffer, fmt, args);	
-	name = stream_name(pos.stream);
-		
+
 	fflush(stdout);
 	fprintf(stderr, "%s:%d:%d: %s%s%s\n",
-		name, pos.line, pos.pos, diag_prefix, type, buffer);
+		show_stream_name(pos), pos.line, pos.pos,
+		diag_prefix, type, buffer);
 }
 
 static int show_info = 1;
@@ -275,7 +351,7 @@ static struct symbol_list *sparse_file(const char *filename)
 	base_filename = filename;
 
 	// Tokenize the input stream
-	token = tokenize(filename, fd, NULL, includepath);
+	token = tokenize(filename, fd, -1, NULL, includepath);
 	close(fd);
 
 	return sparse_tokenstream(token);
