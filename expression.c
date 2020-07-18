@@ -379,7 +379,10 @@ Float:
 	return;
 
 Enoint:
-	error_die(expr->pos, "constant %s is not a valid number", show_token(token));
+	sparse_error(expr->pos, "constant %s is not a valid number", show_token(token));
+	expr->type = EXPR_VALUE;
+	expr->value = 0;
+	expr->ctype = &int_ctype;
 }
 
 static struct token *generic_selection(struct token *token, struct expression **tree)
