@@ -66,7 +66,7 @@ int stream_prev(int stream)
 {
 	if (stream < 0 || stream > input_stream_nr)
 		return -1;
-	return input_streams[stream].prev;
+	return input_streams[stream].pos.stream;
 }
 
 static struct position stream_pos(stream_t *stream)
@@ -307,7 +307,7 @@ int *hash_stream(const char *name)
 	return input_stream_hashes + hash;
 }
 
-int init_stream(const char *name, int fd, const char **next_path, int prev_stream)
+int init_stream(const struct position *pos, const char *name, int fd, const char **next_path)
 {
 	int stream = input_stream_nr, *hash;
 	struct stream *current;
@@ -326,7 +326,10 @@ int init_stream(const char *name, int fd, const char **next_path, int prev_strea
 	current->next_path = next_path;
 	current->path = NULL;
 	current->constant = CONSTANT_FILE_MAYBE;
-	current->prev = prev_stream;
+	if (pos)
+		current->pos = *pos;
+	else
+		current->pos.stream = -1;
 	input_stream_nr = stream+1;
 	hash = hash_stream(name);
 	current->next_stream = *hash;
@@ -1014,14 +1017,14 @@ struct token * tokenize_buffer(void *buffer, unsigned long size, struct token **
 	return begin;
 }
 
-struct token * tokenize(const char *name, int fd, int prev_stream, struct token *endtoken, const char **next_path)
+struct token * tokenize(const struct position *pos, const char *name, int fd, struct token *endtoken, const char **next_path)
 {
 	struct token *begin, *end;
 	stream_t stream;
 	unsigned char buffer[BUFSIZE];
 	int idx;
 
-	idx = init_stream(name, fd, next_path, prev_stream);
+	idx = init_stream(pos, name, fd, next_path);
 	if (idx < 0) {
 		// info(endtoken->pos, "File %s is const", name);
 		return endtoken;

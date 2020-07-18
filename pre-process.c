@@ -911,7 +911,7 @@ static int try_include(struct position pos, const char *path, const char *filena
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
 		char *streamname = xmemdup(fullname, plen + flen);
-		*where = tokenize(streamname, fd, pos.stream, *where, next_path);
+		*where = tokenize(&pos, streamname, fd, *where, next_path);
 		close(fd);
 		return 1;
 	}
@@ -2091,7 +2091,7 @@ static void create_arglist(struct symbol *sym, int count)
 static void init_preprocessor(void)
 {
 	int i;
-	int stream = init_stream("preprocessor", -1, includepath, -1);
+	int stream = init_stream(NULL, "preprocessor", -1, includepath);
 	static struct {
 		const char *name;
 		int (*handler)(struct stream *, struct token **, struct token *);

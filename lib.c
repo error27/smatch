@@ -351,7 +351,7 @@ static struct symbol_list *sparse_file(const char *filename)
 	base_filename = filename;
 
 	// Tokenize the input stream
-	token = tokenize(filename, fd, -1, NULL, includepath);
+	token = tokenize(NULL, filename, fd, NULL, includepath);
 	close(fd);
 
 	return sparse_tokenstream(token);
