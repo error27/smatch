@@ -3103,7 +3103,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	for (;;) {
 		if (!is_typedef && match_op(token, '=')) {
-			token = initializer(&decl->initializer, token->next);
+			struct token *next = token->next;
+			token = initializer(&decl->initializer, next);
+			if (token == next)
+				sparse_error(token->pos, "expression expected before '%s'", show_token(token));
 		}
 		if (!is_typedef) {
 			if (validate_decl)
