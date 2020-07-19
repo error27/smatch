@@ -2160,7 +2160,7 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 	stmt->type = STMT_ASM;
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *s = lookup_keyword(token->ident, NS_TYPEDEF);
-		if (s && s->op  && s->op->asm_modifier)
+		if (s && s->op->asm_modifier)
 			s->op->asm_modifier(token, &mods);
 		else if (token->ident == &goto_ident)
 			asm_modifier(token, &mods, MOD_ASM_GOTO);
