@@ -1620,8 +1620,6 @@ static struct token *handle_qualifiers(struct token *t, struct decl_state *ctx)
 		struct symbol *s = lookup_keyword(t->ident, NS_TYPEDEF);
 		if (!s)
 			break;
-		if (s->type != SYM_KEYWORD)
-			break;
 		if (!(s->op->type & (KW_ATTRIBUTE | KW_QUALIFIER)))
 			break;
 		t = t->next;
@@ -1749,7 +1747,7 @@ static struct token *handle_asm_name(struct token *token, struct decl_state *ctx
 	if (token_type(token) != TOKEN_IDENT)
 		return token;
 	keyword = lookup_keyword(token->ident, NS_KEYWORD);
-	if (!keyword || keyword->type != SYM_KEYWORD)
+	if (!keyword)
 		return token;
 	if (!(keyword->op->type & KW_ASM))
 		return token;
@@ -1770,7 +1768,7 @@ static bool match_attribute(struct token *token)
 	if (token_type(token) != TOKEN_IDENT)
 		return false;
 	sym = lookup_keyword(token->ident, NS_TYPEDEF);
-	if (!sym || sym->type != SYM_KEYWORD)
+	if (!sym)
 		return false;
 	return sym->op->type & KW_ATTRIBUTE;
 }
