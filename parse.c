@@ -116,10 +116,6 @@ enum {
 	CInt = 0, CSInt, CUInt, CReal,
 };
 
-enum {
-	SNone = 0, STypedef, SAuto, SRegister, SExtern, SStatic, SForced, SMax,
-};
-
 static void asm_modifier(struct token *token, unsigned long *mods, unsigned long mod)
 {
 	if (*mods & mod)
@@ -1389,85 +1385,67 @@ static struct token *attribute_specifier(struct token *token, struct decl_state 
 	return token;
 }
 
-static const char *storage_class[] = 
-{
-	[STypedef] = "typedef",
-	[SAuto] = "auto",
-	[SExtern] = "extern",
-	[SStatic] = "static",
-	[SRegister] = "register",
-	[SForced] = "[force]"
-};
-
 static unsigned long decl_modifiers(struct decl_state *ctx)
 {
-	static unsigned long mod[SMax] =
-	{
-		[SAuto] = MOD_AUTO,
-		[SExtern] = MOD_EXTERN,
-		[SStatic] = MOD_STATIC,
-		[SRegister] = MOD_REGISTER
-	};
 	unsigned long mods = ctx->ctype.modifiers & MOD_DECLARE;
 	ctx->ctype.modifiers &= ~MOD_DECLARE;
-	return mod[ctx->storage_class] | mods;
+	return ctx->storage_class | mods;
 }
 
-static void set_storage_class(struct position *pos, struct decl_state *ctx, int class)
+static void set_storage_class(struct position *pos, struct decl_state *ctx, unsigned long class)
 {
 	int is_tls = ctx->ctype.modifiers & MOD_TLS;
+	const char *storage = modifier_string(class);
+
 	/* __thread can be used alone, or with extern or static */
-	if (is_tls && (class != SStatic && class != SExtern)) {
+	if (is_tls && (class & ~(MOD_STATIC|MOD_EXTERN))) {
 		sparse_error(*pos, "__thread can only be used alone, or with "
 				"extern or static");
 		return;
 	}
 
-	if (!ctx->storage_class) {
+	if (!ctx->storage_class)
 		ctx->storage_class = class;
-		return;
-	}
-	if (ctx->storage_class == class)
-		sparse_error(*pos, "duplicate %s", storage_class[class]);
+	else if (ctx->storage_class == class)
+		sparse_error(*pos, "duplicate %s", storage);
 	else
 		sparse_error(*pos, "multiple storage classes");
 }
 
 static struct token *typedef_specifier(struct token *next, struct decl_state *ctx)
 {
-	set_storage_class(&next->pos, ctx, STypedef);
+	set_storage_class(&next->pos, ctx, MOD_USERTYPE);
 	return next;
 }
 
 static struct token *auto_specifier(struct token *next, struct decl_state *ctx)
 {
-	set_storage_class(&next->pos, ctx, SAuto);
+	set_storage_class(&next->pos, ctx, MOD_AUTO);
 	return next;
 }
 
 static struct token *register_specifier(struct token *next, struct decl_state *ctx)
 {
-	set_storage_class(&next->pos, ctx, SRegister);
+	set_storage_class(&next->pos, ctx, MOD_REGISTER);
 	return next;
 }
 
 static struct token *static_specifier(struct token *next, struct decl_state *ctx)
 {
-	set_storage_class(&next->pos, ctx, SStatic);
+	set_storage_class(&next->pos, ctx, MOD_STATIC);
 	return next;
 }
 
 static struct token *extern_specifier(struct token *next, struct decl_state *ctx)
 {
-	set_storage_class(&next->pos, ctx, SExtern);
+	set_storage_class(&next->pos, ctx, MOD_EXTERN);
 	return next;
 }
 
 static struct token *thread_specifier(struct token *next, struct decl_state *ctx)
 {
 	/* This GCC extension can be used alone, or with extern or static */
-	if (!ctx->storage_class || ctx->storage_class == SStatic
-			|| ctx->storage_class == SExtern) {
+	if (!(ctx->storage_class & ~(MOD_STATIC|MOD_EXTERN))) {
 		apply_qualifier(&next->pos, &ctx->ctype, MOD_TLS);
 	} else {
 		sparse_error(next->pos, "__thread can only be used alone, or "
@@ -1479,7 +1457,7 @@ static struct token *thread_specifier(struct token *next, struct decl_state *ctx
 
 static struct token *attribute_force(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	set_storage_class(&token->pos, ctx, SForced);
+	ctx->forced = 1;
 	return token;
 }
 
@@ -2070,14 +2048,14 @@ static struct token *parameter_declaration(struct token *token, struct symbol *s
 	sym->ctype = ctx.ctype;
 	sym->ctype.modifiers |= decl_modifiers(&ctx);
 	sym->endpos = token->pos;
-	sym->forced_arg = ctx.storage_class == SForced;
+	sym->forced_arg = ctx.forced;
 	return token;
 }
 
 struct token *typename(struct token *token, struct symbol **p, int *forced)
 {
 	struct decl_state ctx = {.prefer_abstract = 1};
-	int class;
+	unsigned long class;
 	struct symbol *sym = alloc_symbol(token->pos, SYM_NODE);
 	*p = sym;
 	token = declaration_specifiers(token, &ctx);
@@ -2086,16 +2064,11 @@ struct token *typename(struct token *token, struct symbol **p, int *forced)
 	sym->ctype = ctx.ctype;
 	sym->endpos = token->pos;
 	class = ctx.storage_class;
-	if (forced) {
-		*forced = 0;
-		if (class == SForced) {
-			*forced = 1;
-			class = 0;
-		}
-	}
+	if (forced)
+		*forced = ctx.forced;
 	if (class)
-		warning(sym->pos, "storage class in typename (%s %s)",
-			storage_class[class], show_typename(sym));
+		warning(sym->pos, "storage class in typename (%s%s)",
+			modifier_string(class), show_typename(sym));
 	return token;
 }
 
@@ -3048,7 +3021,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	}
 
 	/* type define declaration? */
-	is_typedef = ctx.storage_class == STypedef;
+	is_typedef = ctx.storage_class == MOD_USERTYPE;
 
 	/* Typedefs don't have meaningful storage */
 	if (is_typedef)

@@ -108,8 +108,10 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	unsigned long f_modifiers;		// function attributes
-	unsigned char prefer_abstract, storage_class;
+	unsigned long storage_class;
+	unsigned char prefer_abstract;
 	unsigned char autotype;
+	unsigned char forced;
 };
 
 struct pseudo;
