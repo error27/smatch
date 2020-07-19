@@ -120,16 +120,6 @@ static void asm_modifier(struct token *token, unsigned long *mods, unsigned long
 	*mods |= mod;
 }
 
-static void asm_modifier_volatile(struct token *token, unsigned long *mods)
-{
-	asm_modifier(token, mods, MOD_VOLATILE);
-}
-
-static void asm_modifier_inline(struct token *token, unsigned long *mods)
-{
-	asm_modifier(token, mods, MOD_INLINE);
-}
-
 static struct symbol_op typedef_op = {
 	.type = KW_MODIFIER,
 	.declarator = storage_specifier,
@@ -138,7 +128,7 @@ static struct symbol_op typedef_op = {
 static struct symbol_op inline_op = {
 	.type = KW_MODIFIER,
 	.declarator = generic_qualifier,
-	.asm_modifier = asm_modifier_inline,
+	.asm_modifier = asm_modifier,
 };
 
 static struct symbol_op noreturn_op = {
@@ -185,7 +175,7 @@ static struct symbol_op const_op = {
 static struct symbol_op volatile_op = {
 	.type = KW_QUALIFIER,
 	.declarator = generic_qualifier,
-	.asm_modifier = asm_modifier_volatile,
+	.asm_modifier = asm_modifier,
 };
 
 static struct symbol_op restrict_op = {
@@ -2076,7 +2066,7 @@ static struct token *parse_asm_statement(struct token *token, struct statement *
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *s = lookup_keyword(token->ident, NS_TYPEDEF);
 		if (s && s->op  && s->op->asm_modifier)
-			s->op->asm_modifier(token, &mods);
+			s->op->asm_modifier(token, &mods, s->ctype.modifiers);
 		else if (token->ident == &goto_ident)
 			asm_modifier(token, &mods, MOD_ASM_GOTO);
 		token = token->next;
