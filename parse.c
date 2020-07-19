@@ -1287,7 +1287,7 @@ static struct token *attribute_mode(struct token *token, struct symbol *attr, st
 	token = expect(token, '(', "after mode attribute");
 	if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *mode = lookup_keyword(token->ident, NS_KEYWORD);
-		if (mode && mode->op->type == KW_MODE)
+		if (mode && mode->op->type & KW_MODE)
 			ctx->mode = mode->op;
 		else
 			sparse_error(token->pos, "unknown mode attribute %s", show_ident(token->ident));
