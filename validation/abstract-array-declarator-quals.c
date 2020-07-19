@@ -18,5 +18,4 @@ void ok7(int a[const volatile restrict static N]);
 
 /*
  * check-name: abstract-array-declarator-quals
- * check-known-to-fail
  */

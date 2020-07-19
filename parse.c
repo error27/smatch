@@ -171,7 +171,7 @@ static struct symbol_op register_op = {
 };
 
 static struct symbol_op static_op = {
-	.type = KW_MODIFIER,
+	.type = KW_MODIFIER|KW_STATIC,
 	.declarator = static_specifier,
 };
 
@@ -1721,28 +1721,20 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 	return token;
 }
 
-static struct token *abstract_array_static_declarator(struct token *token, int *has_static)
-{
-	while (token->ident == &static_ident) {
-		if (*has_static)
-			sparse_error(token->pos, "duplicate array static declarator");
-
-		*has_static = 1;
-		token = token->next;
-	}
-	return token;
-
-}
-
 static struct token *abstract_array_declarator(struct token *token, struct symbol *sym)
 {
 	struct expression *expr = NULL;
 	int has_static = 0;
 
-	token = abstract_array_static_declarator(token, &has_static);
-
-	if (match_idents(token, &restrict_ident, &__restrict_ident, &__restrict___ident, NULL))
-		token = abstract_array_static_declarator(token->next, &has_static);
+	while (token_type(token) == TOKEN_IDENT) {
+		struct symbol *sym = lookup_keyword(token->ident, NS_TYPEDEF);
+		if (!sym || !(sym->op->type & (KW_STATIC|KW_QUALIFIER)))
+			break;
+		if (has_static && (sym->op->type & KW_STATIC))
+			sparse_error(token->pos, "duplicate array static declarator");
+		has_static |= (sym->op->type & KW_STATIC);
+		token = token->next;
+	}
 	token = assignment_expression(token, &expr);
 	sym->array_size = expr;
 	return token;
