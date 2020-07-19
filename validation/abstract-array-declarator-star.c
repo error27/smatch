@@ -5,5 +5,4 @@ void ok9(int a[const volatile restrict *]);
 
 /*
  * check-name: abstract-array-declarator-star
- * check-known-to-fail
  */

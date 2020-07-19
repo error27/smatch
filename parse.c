@@ -1717,7 +1717,12 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 		has_static |= (sym->op->type & KW_STATIC);
 		token = token->next;
 	}
-	token = assignment_expression(token, &expr);
+	if (match_op(token, '*') && match_op(token->next, ']')) {
+		// FIXME: '[*]' is treated like '[]'
+		token = token->next;
+	} else {
+		token = assignment_expression(token, &expr);
+	}
 	sym->array_size = expr;
 	return token;
 }
