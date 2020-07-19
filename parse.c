@@ -678,24 +678,6 @@ static void fn_local_symbol(struct symbol *sym)
 		add_symbol(function_symbol_list, sym);
 }
 
-static int SENTINEL_ATTR match_idents(struct token *token, ...)
-{
-	va_list args;
-	struct ident * next;
-
-	if (token_type(token) != TOKEN_IDENT)
-		return 0;
-
-	va_start(args, token);
-	do {
-		next = va_arg(args, struct ident *);
-	} while (next && token->ident != next);
-	va_end(args);
-
-	return next && token->ident == next;
-}
-
-
 struct statement *alloc_statement(struct position pos, int type)
 {
 	struct statement *stmt = __alloc_statement(0);
