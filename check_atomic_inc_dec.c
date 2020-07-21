@@ -27,6 +27,59 @@ STATE(inc);
 STATE(start_state);
 STATE(dec);
 
+struct ref_func_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	func_hook *call_back;
+	bool implied;
+	long long implies_start, implies_end;
+};
+
+static void match_atomic_add(const char *fn, struct expression *expr, void *_unused);
+
+static struct ref_func_info func_table[] = {
+	{ "atomic_inc", ATOMIC_INC, 0, "$->counter" },
+	{ "atomic_long_inc", ATOMIC_INC, 0, "$->counter" },
+	{ "atomic_inc_return", ATOMIC_INC, 0, "$->counter" },
+
+	{ "atomic_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
+
+	{ "atomic_dec", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic_dec_return", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic_long_dec", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic_long_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic64_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
+	{ "_atomic_dec_and_lock", ATOMIC_DEC, 0, "$->counter" },
+
+	{ "atomic_sub", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic_sub_return", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic_long_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic64_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
+
+	{ "refcount_inc", ATOMIC_INC, 0, "$->ref.counter" },
+	{ "refcount_dec", ATOMIC_DEC, 0, "$->ref.counter" },
+	{ "refcount_dec_and_test", ATOMIC_DEC, 0, "$->ref.counter" },
+	{ "refcount_add", ATOMIC_INC, 1, "$->ref.counter" },
+	{ "refcount_sub_and_test", ATOMIC_DEC, 1, "$->ref.counter" },
+
+	{ "pm_runtime_get_sync", ATOMIC_INC, 0, "$->power.usage_count.counter" },
+	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+
+	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->ref.counter", NULL, true, 1, 1},
+	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->ref.counter", NULL, true, 1, 1},
+
+	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
+
+	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.ref.counter" },
+	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+	{ "of_get_parent", ATOMIC_INC, -1, "$->kobj.kref.refcount.ref.counter" },
+	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+};
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	/*
@@ -147,28 +200,6 @@ free:
 		free_string(name);
 }
 
-static const char *primitive_funcs[] = {
-	"atomic_inc_return",
-	"atomic_add_return",
-	"atomic_sub_return",
-	"atomic_sub_and_test",
-	"atomic_dec_and_test",
-	"_atomic_dec_and_lock",
-	"atomic_dec",
-	"atomic_long_inc",
-	"atomic_long_dec",
-	"atomic_inc",
-	"atomic_sub",
-	"refcount_inc",
-	"refcount_dec",
-	"refcount_add",
-	"refcount_add_not_zero",
-	"refcount_inc_not_zero",
-	"refcount_sub_and_test",
-	"refcount_dec_and_test",
-	"atomic_dec_if_positive",
-};
-
 static bool is_inc_dec_primitive(struct expression *expr)
 {
 	int i;
@@ -181,8 +212,8 @@ static bool is_inc_dec_primitive(struct expression *expr)
 	if (expr->fn->type != EXPR_SYMBOL)
 		return false;
 
-	for (i = 0; i < ARRAY_SIZE(primitive_funcs); i++) {
-		if (sym_name_is(primitive_funcs[i], expr->fn))
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		if (sym_name_is(func_table[i].name, expr->fn))
 			return true;
 	}
 
@@ -203,16 +234,6 @@ static void db_dec(struct expression *expr, int param, char *key, char *value)
 	db_inc_dec(expr, param, key, ATOMIC_DEC);
 }
 
-static void match_atomic_inc(const char *fn, struct expression *expr, void *_unused)
-{
-	db_inc_dec(expr, 0, "$->counter", ATOMIC_INC);
-}
-
-static void match_atomic_dec(const char *fn, struct expression *expr, void *_unused)
-{
-	db_inc_dec(expr, 0, "$->counter", ATOMIC_DEC);
-}
-
 static void match_atomic_add(const char *fn, struct expression *expr, void *_unused)
 {
 	struct expression *amount;
@@ -227,36 +248,20 @@ static void match_atomic_add(const char *fn, struct expression *expr, void *_unu
 	db_inc_dec(expr, 1, "$->counter", ATOMIC_INC);
 }
 
-static void match_atomic_sub(const char *fn, struct expression *expr, void *_unused)
+static void refcount_function(const char *fn, struct expression *expr, void *data)
 {
-	db_inc_dec(expr, 1, "$->counter", ATOMIC_DEC);
+	struct ref_func_info *info = data;
+
+	db_inc_dec(expr, info->param, info->key, info->type);
 }
 
-static void refcount_inc(const char *fn, struct expression *expr, void *param)
+static void refcount_implied(const char *fn, struct expression *call_expr,
+			     struct expression *assign_expr, void *data)
 {
-	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", ATOMIC_INC);
-}
+	struct ref_func_info *info = data;
 
-static void refcount_dec(const char *fn, struct expression *expr, void *param)
-{
-	db_inc_dec(expr, PTR_INT(param), "$->ref.counter", ATOMIC_DEC);
-}
 
-static void pm_runtime_get_sync(const char *fn, struct expression *expr, void *param)
-{
-	db_inc_dec(expr, PTR_INT(param), "$->power.usage_count.counter", ATOMIC_INC);
-}
-
-static void match_implies_inc(const char *fn, struct expression *call_expr,
-			      struct expression *assign_expr, void *param)
-{
-	db_inc_dec(call_expr, PTR_INT(param), "$->ref.counter", ATOMIC_INC);
-}
-
-static void match_implies_atomic_dec(const char *fn, struct expression *call_expr,
-			      struct expression *assign_expr, void *param)
-{
-	db_inc_dec(call_expr, PTR_INT(param), "$->counter", ATOMIC_DEC);
+	db_inc_dec(call_expr, info->param, info->key, info->type);
 }
 
 static bool is_maybe_dec(struct sm_state *sm)
@@ -426,6 +431,9 @@ static void match_after_func(struct symbol *sym)
 
 void check_atomic_inc_dec(int id)
 {
+	struct ref_func_info *info;
+	int i;
+
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
@@ -437,36 +445,19 @@ void check_atomic_inc_dec(int id)
 	select_return_states_hook(ATOMIC_INC, &db_inc);
 	select_return_states_hook(ATOMIC_DEC, &db_dec);
 
-	add_function_hook("atomic_inc_return", &match_atomic_inc, NULL);
-	add_function_hook("atomic_add_return", &match_atomic_add, NULL);
-	add_function_hook("atomic_sub_return", &match_atomic_sub, NULL);
-	add_function_hook("atomic_sub_and_test", &match_atomic_sub, NULL);
-	add_function_hook("atomic_long_sub_and_test", &match_atomic_sub, NULL);
-	add_function_hook("atomic64_sub_and_test", &match_atomic_sub, NULL);
-	add_function_hook("atomic_dec_and_test", &match_atomic_dec, NULL);
-	add_function_hook("atomic_long_dec_and_test", &match_atomic_dec, NULL);
-	add_function_hook("atomic64_dec_and_test", &match_atomic_dec, NULL);
-	add_function_hook("_atomic_dec_and_lock", &match_atomic_dec, NULL);
-	add_function_hook("atomic_dec", &match_atomic_dec, NULL);
-	add_function_hook("atomic_dec_return", &match_atomic_dec, NULL);
-	add_function_hook("atomic_long_inc", &match_atomic_inc, NULL);
-	add_function_hook("atomic_long_dec", &match_atomic_dec, NULL);
-	add_function_hook("atomic_inc", &match_atomic_inc, NULL);
-	add_function_hook("atomic_sub", &match_atomic_sub, NULL);
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
 
-	add_function_hook("refcount_inc", &refcount_inc, INT_PTR(0));
-	add_function_hook("refcount_dec", &refcount_dec, INT_PTR(0));
-	add_function_hook("refcount_add", &refcount_inc, INT_PTR(1));
-
-	return_implies_state("refcount_add_not_zero", 1, 1, &match_implies_inc, INT_PTR(1));
-	return_implies_state("refcount_inc_not_zero", 1, 1, &match_implies_inc, INT_PTR(0));
-
-	return_implies_state("atomic_dec_if_positive", 0, INT_MAX, &match_implies_atomic_dec, INT_PTR(0));
-
-	add_function_hook("refcount_sub_and_test", &refcount_dec, INT_PTR(1));
-	add_function_hook("refcount_dec_and_test", &refcount_dec, INT_PTR(0));
-
-	add_function_hook("pm_runtime_get_sync", &pm_runtime_get_sync, INT_PTR(0));
+		if (info->call_back) {
+			add_function_hook(info->name, info->call_back, info);
+		} else if (info->implied) {
+			return_implies_state(info->name,
+					info->implies_start, info->implies_end,
+					&refcount_implied, info);
+		} else {
+			add_function_hook(info->name, &refcount_function, info);
+		}
+	}
 
 	add_hook(&match_check_missed, END_FUNC_HOOK);
 
