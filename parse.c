@@ -1362,18 +1362,8 @@ static struct token *attribute_specifier(struct token *token, struct decl_state 
 	token = expect(token, '(', "after attribute");
 	token = expect(token, '(', "after attribute");
 
-	for (;;) {
-		struct ident *attribute_name;
-		struct symbol *attr;
-
-		if (eof_token(token))
-			break;
-		if (match_op(token, ';'))
-			break;
-		if (token_type(token) != TOKEN_IDENT)
-			break;
-		attribute_name = token->ident;
-		attr = lookup_keyword(attribute_name, NS_KEYWORD);
+	while (token_type(token) == TOKEN_IDENT) {
+		struct symbol *attr = lookup_keyword(token->ident, NS_KEYWORD);
 		if (attr && attr->op->attribute)
 			token = attr->op->attribute(token->next, attr, ctx);
 		else
@@ -1784,13 +1774,7 @@ static struct token *skip_attributes(struct token *token)
 			break;
 		token = expect(token->next, '(', "after attribute");
 		token = expect(token, '(', "after attribute");
-		for (;;) {
-			if (eof_token(token))
-				break;
-			if (match_op(token, ';'))
-				break;
-			if (token_type(token) != TOKEN_IDENT)
-				break;
+		while (token_type(token) == TOKEN_IDENT) {
 			token = skip_attribute(token);
 			if (!match_op(token, ','))
 				break;
