@@ -1743,7 +1743,7 @@ static struct token *abstract_array_declarator(struct token *token, struct symbo
 
 	if (match_idents(token, &restrict_ident, &__restrict_ident, &__restrict___ident, NULL))
 		token = abstract_array_static_declarator(token->next, &has_static);
-	token = parse_expression(token, &expr);
+	token = assignment_expression(token, &expr);
 	sym->array_size = expr;
 	return token;
 }
