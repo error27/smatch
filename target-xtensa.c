@@ -17,11 +17,6 @@ static void predefine_xtensa(const struct target *self)
 {
 	predefine("__XTENSA__", 1, "1");
 	predefine("__xtensa__", 1, "1");
-
-	if (arch_big_endian)
-		predefine("__XTENSA_EB__", 1, "1");
-	else
-		predefine("__XTENSA_EL__", 1, "1");
 }
 
 const struct target target_xtensa = {
