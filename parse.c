@@ -1382,12 +1382,11 @@ static struct token *storage_specifier(struct token *next, struct symbol *sym, s
 {
 	int is_tls = ctx->ctype.modifiers & MOD_TLS;
 	unsigned long class = sym->ctype.modifiers;
-	const char *storage = modifier_string(class);
+	const char *storage = modifier_name(class);
 
 	/* __thread can be used alone, or with extern or static */
 	if (is_tls && (class & ~(MOD_STATIC|MOD_EXTERN))) {
-		sparse_error(next->pos, "__thread can only be used alone, or with "
-				"extern or static");
+		sparse_error(next->pos, "__thread cannot be used with '%s'", storage);
 		return next;
 	}
 
@@ -1406,8 +1405,8 @@ static struct token *thread_specifier(struct token *next, struct symbol *sym, st
 	if (!(ctx->storage_class & ~(MOD_STATIC|MOD_EXTERN))) {
 		apply_qualifier(&next->pos, &ctx->ctype, MOD_TLS);
 	} else {
-		sparse_error(next->pos, "__thread can only be used alone, or "
-				"with extern or static");
+		sparse_error(next->pos, "__thread cannot be used with '%s'",
+			modifier_name(ctx->storage_class));
 	}
 
 	return next;
