@@ -261,7 +261,6 @@ struct expression {
 			struct expression *control;
 			struct expression *def;
 			struct type_expression *map;
-			struct expression *result;
 		};
 	};
 };
