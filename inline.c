@@ -274,6 +274,14 @@ static struct expression * copy_expression(struct expression *expr)
 		}
 		break;
 	}
+	case EXPR_GENERIC:
+		expr = dup_expression(expr);
+		expr->control = copy_expression(expr->control);
+		if (!evaluate_expression(expr))
+			return NULL;
+		expr = copy_expression(expr);
+		break;
+
 	default:
 		warning(expr->pos, "trying to copy expression type %d", expr->type);
 	}
