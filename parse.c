@@ -1385,12 +1385,9 @@ static struct token *storage_specifier(struct token *next, struct symbol *sym, s
 	const char *storage = modifier_name(class);
 
 	/* __thread can be used alone, or with extern or static */
-	if (is_tls && (class & ~(MOD_STATIC|MOD_EXTERN))) {
+	if (is_tls && (class & ~(MOD_STATIC|MOD_EXTERN)))
 		sparse_error(next->pos, "__thread cannot be used with '%s'", storage);
-		return next;
-	}
-
-	if (!ctx->storage_class)
+	else if (!ctx->storage_class)
 		ctx->storage_class = class;
 	else if (ctx->storage_class == class)
 		sparse_error(next->pos, "duplicate %s", storage);
