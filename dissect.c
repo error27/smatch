@@ -342,6 +342,7 @@ again:
 	case EXPR_TYPE:		// [struct T]; Why ???
 	case EXPR_VALUE:
 	case EXPR_FVALUE:
+	case EXPR_GENERIC:
 
 	break; case EXPR_LABEL:
 		ret = &label_ctype;
