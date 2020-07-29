@@ -383,6 +383,8 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	char **args;
 	struct symbol_list *list;
 
+	base_filename = "command-line";
+
 	// Initialize symbol stream first, so that we can add defines etc
 	init_symbols();
 
