@@ -204,9 +204,9 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 	struct ident *name = node->ident;
 	struct symbol *base, *dctx;
 
-	if (node->examined)
+	if (node->visited)
 		return;
-	node->examined = 1;
+	node->visited = 1;
 	node->kind = 'v';
 
 	while ((base = node->ctype.base_type) != NULL)
@@ -228,9 +228,9 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 			break;
 
 		case SYM_STRUCT: case SYM_UNION: //case SYM_ENUM:
-			if (base->evaluated)
+			if (base->inspected)
 				return;
-			base->evaluated = 1;
+			base->inspected = 1;
 			base->kind = 's';
 
 			if (!base->symbol_list)

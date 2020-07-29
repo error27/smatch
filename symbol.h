@@ -206,9 +206,10 @@ struct symbol {
 	union /* backend */ {
 		struct basic_block *bb_target;	/* label */
 		void *aux;			/* Auxiliary info, e.g. backend information */
-		struct {			/* sparse ctags */
-			char kind;
+		struct {
+			char kind;		/* used by ctags & dissect */
 			unsigned char visited:1;
+			unsigned char inspected:1;
 		};
 	};
 	pseudo_t pseudo;
