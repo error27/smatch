@@ -342,7 +342,6 @@ again:
 	case EXPR_TYPE:		// [struct T]; Why ???
 	case EXPR_VALUE:
 	case EXPR_FVALUE:
-	case EXPR_GENERIC:
 
 	break; case EXPR_LABEL:
 		ret = &label_ctype;
@@ -470,6 +469,17 @@ again:
 				in = in->ctype.base_type;
 			}
 		} while ((expr = expr->down));
+	}
+
+	break; case EXPR_GENERIC: {
+		struct type_expression *map;
+
+		do_expression(U_VOID, expr->control);
+
+		for (map = expr->map; map; map = map->next)
+			ret = do_expression(mode, map->expr);
+		if (expr->def)
+			ret = do_expression(mode, expr->def);
 	}
 
 	break; case EXPR_SYMBOL:
