@@ -26,7 +26,7 @@ Getting Sparse
 --------------
 
 You can find tarballs of released versions of Sparse at
-http://www.kernel.org/pub/software/devel/sparse/dist/.
+https://www.kernel.org/pub/software/devel/sparse/dist/.
 
 The most recent version can be obtained directly from the Git
 repository with the command::
@@ -60,8 +60,8 @@ archives at https://marc.info/?l=linux-sparse.
 To subscribe to the list, send an email with
 ``subscribe linux-sparse`` in the body to ``majordomo@vger.kernel.org``.
 
-Bugs can also be reported and tracked via the Linux kernel's bugzilla:
-http://bugzilla.kernel.org/enter_bug.cgi?component=Sparse&product=Tools.
+Bugs can also be reported and tracked via the `Linux kernel's bugzilla for sparse
+<https://bugzilla.kernel.org/enter_bug.cgi?component=Sparse&product=Tools>`_.
 
 User documentation
 ------------------
