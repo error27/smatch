@@ -101,11 +101,13 @@ static void show_help(int ret)
 	    "\n"
 	    "Options:\n"
 	    "  -D, --database=FILE    Specify database file (default: %2$s);\n"
+	    "  -B, --basedir=DIR      Define project top directory (default is the current directory);\n"
 	    "  -v, --verbose          Show information about what is being done;\n"
 	    "  -h, --help             Show this text and exit.\n"
 	    "\n"
 	    "Environment:\n"
 	    "  SINDEX_DATABASE        Database file location.\n"
+	    "  SINDEX_BASEDIR         Project top directory.\n"
 	    "\n"
 	    "Report bugs to authors.\n"
 	    "\n",
@@ -124,9 +126,6 @@ static void show_help_add(int ret)
 	    "  --include-local-syms   Include into the index local symbols;\n"
 	    "  -v, --verbose          Show information about what is being done;\n"
 	    "  -h, --help             Show this text and exit.\n"
-	    "\n"
-	    "Environment:\n"
-	    "  SINDEX_BASEDIRE        Project top directory.\n"
 	    "\n"
 	    "Report bugs to authors.\n"
 	    "\n",
@@ -251,20 +250,25 @@ static void parse_cmdline(int argc, char **argv)
 {
 	static const struct option long_options[] = {
 		{ "database", required_argument, NULL, 'D' },
+		{ "basedir", required_argument, NULL, 'B' },
 		{ "verbose", no_argument, NULL, 'v' },
 		{ "help", no_argument, NULL, 'h' },
 		{ NULL }
 	};
 	int c;
+	char *basedir = getenv("SINDEX_BASEDIR");
 	char *env;
 
 	if ((env = getenv("SINDEX_DATABASE")) != NULL)
 		sindex_dbfile = env;
 
-	while ((c = getopt_long(argc, argv, "+D:vh", long_options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "+B:D:vh", long_options, NULL)) != -1) {
 		switch (c) {
 			case 'D':
 				sindex_dbfile = optarg;
+				break;
+			case 'B':
+				basedir = optarg;
 				break;
 			case 'v':
 				sindex_verbose++;
@@ -277,6 +281,12 @@ static void parse_cmdline(int argc, char **argv)
 	if (optind == argc) {
 		message("command required");
 		show_usage();
+	}
+
+	if (basedir) {
+		if (!realpath(basedir, cwd))
+			sindex_error(1, errno, "unable to get project base directory");
+		n_cwd = strlen(cwd);
 	}
 }
 
@@ -1015,6 +1025,9 @@ static void command_search(int argc, char **argv)
 	char *sql;
 	char *dberr = NULL;
 	sqlite3_str *query = sqlite3_str_new(sindex_db);
+
+	if (chdir(cwd) < 0)
+		sindex_error(1, errno, "unable to change directory: %s", cwd);
 
 	if (query_appendf(query,
 	                  "SELECT"
