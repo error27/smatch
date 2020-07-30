@@ -782,6 +782,12 @@ static char **handle_switch_s(const char *arg, char **next)
 static char **handle_switch_U(char *arg, char **next)
 {
 	const char *name = arg + 1;
+
+	if (*name == '\0') {
+		name = *++next;
+		if (!name)
+			die("argument to `-U' is missing");
+	}
 	add_pre_buffer("#undef %s\n", name);
 	return next;
 }
