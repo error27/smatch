@@ -68,6 +68,7 @@ User documentation
 .. toctree::
    :maxdepth: 1
 
+   annotations
    nocast-vs-bitwise
 
 Developer documentation
