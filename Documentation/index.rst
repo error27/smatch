@@ -69,7 +69,6 @@ User documentation
    :maxdepth: 1
 
    annotations
-   nocast-vs-bitwise
 
 Developer documentation
 -----------------------
