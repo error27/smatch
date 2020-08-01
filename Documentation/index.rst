@@ -63,42 +63,28 @@ To subscribe to the list, send an email with
 Bugs can also be reported and tracked via the Linux kernel's bugzilla:
 http://bugzilla.kernel.org/enter_bug.cgi?component=Sparse&product=Tools.
 
-User documentation
-------------------
+
 .. toctree::
+   :caption: Documentation
    :maxdepth: 1
 
    annotations
-
-Developer documentation
------------------------
-.. toctree::
-   :maxdepth: 1
-
-   test-suite
    dev-options
+   types
    api
    IR
-   types
+   test-suite
+   doc-guide
 
-How to contribute
------------------
 .. toctree::
+   :caption: How to contribute
    :maxdepth: 1
 
    submitting-patches
    TODO
 
-Documentation
--------------
 .. toctree::
-   :maxdepth: 1
-
-   doc-guide
-
-Release Notes
--------------
-.. toctree::
+   :caption: Release Notes
    :maxdepth: 1
 
    release-notes/index
