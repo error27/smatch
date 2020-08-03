@@ -76,6 +76,7 @@ CK(register_fresh_alloc)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)
+CK(register_points_to_user_data)
 
 CK(check_debug)
 
