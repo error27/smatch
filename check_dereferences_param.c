@@ -31,6 +31,14 @@ STATE(derefed);
 STATE(ignore);
 STATE(param);
 
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	if (cur->state == &derefed || other->state != &derefed)
+		return;
+	if (is_impossible_path())
+		set_state(my_id, cur->name, cur->sym, &derefed);
+}
+
 static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state == &derefed)
@@ -52,25 +60,62 @@ static void match_function_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static int is_ignored_param(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	if (param_was_set(expr))
+		return 1;
+
+	sm = get_sm_state_expr(my_id, expr);
+	if (sm && slist_has_state(sm->possible, &ignore))
+		return 1;
+	return 0;
+}
+
 static void check_deref(struct expression *expr)
 {
 	struct expression *tmp;
-	struct sm_state *sm;
+
+	if (is_impossible_path())
+		return;
 
 	tmp = get_assigned_expr(expr);
 	if (tmp)
 		expr = tmp;
+
+	if (expr->type == EXPR_PREOP &&
+	    expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		if (expr->type != EXPR_DEREF)
+			return;
+		expr = strip_expr(expr->deref);
+		if (expr->type != EXPR_PREOP ||
+		    expr->op != '*')
+			return;
+		expr = strip_expr(expr->unop);
+	}
+
 	expr = strip_expr(expr);
+	if (!expr)
+		return;
 
 	if (get_param_num(expr) < 0)
+		return;
+
+	if (is_ignored_param(expr))
 		return;
 
 	if (param_was_set(expr))
 		return;
 
-	sm = get_sm_state_expr(my_id, expr);
-	if (sm && slist_has_state(sm->possible, &ignore))
+	/*
+	 * At this point we really only care about potential NULL dereferences.
+	 * Potentially in the future we will care about everything.
+	 */
+	if (implied_not_equal(expr, 0))
 		return;
+
 	set_state_expr(my_id, expr, &derefed);
 }
 
@@ -81,12 +126,36 @@ static void match_dereference(struct expression *expr)
 	check_deref(expr->unop);
 }
 
+static void find_inner_dereferences(struct expression *expr)
+{
+	while (expr->type == EXPR_PREOP) {
+		if (expr->op == '*')
+			check_deref(expr->unop);
+		expr = strip_expr(expr->unop);
+	}
+}
+
 static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
-	/* XXX FIXME: param_implies has more information now */
-	if (strcmp(key, "$") != 0)
-		return;
+	struct symbol *sym;
+	char *name;
+
 	check_deref(arg);
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		goto free;
+	if (is_ignored_param(symbol_expression(sym)))
+		goto free;
+	if (get_param_num_from_sym(sym) < 0)
+		goto free;
+	if (param_was_set_var_sym(name, sym))
+		goto free;
+
+	set_state(my_id, name, sym, &derefed);
+	find_inner_dereferences(arg);
+free:
+	free_string(name);
 }
 
 static void process_states(void)
@@ -125,6 +194,7 @@ void check_dereferences_param(int id)
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &set_ignore);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 
 	all_return_states_hook(&process_states);
 }
