@@ -563,7 +563,6 @@ static void match_assign(struct expression *expr)
 	struct symbol *left_type, *right_type;
 	struct range_list *rl;
 	static struct expression *handled;
-	static struct expression *ignore;
 	struct smatch_state *state;
 	struct expression *faked;
 	bool is_capped = false;
@@ -574,11 +573,6 @@ static void match_assign(struct expression *expr)
 		return;
 
 	faked = get_faked_expression();
-	if (0 && ignore && faked == ignore) {
-		if (local_debug)
-			sm_msg("%s: ignored = '%s'", __func__, expr_to_str(faked));
-		return;
-	}
 
 	/* FIXME: handle fake array assignments frob(&user_array[x]); */
 
@@ -591,9 +585,6 @@ static void match_assign(struct expression *expr)
 		is_new = true;
 		goto set;
 	}
-
-	if (local_debug)
-		sm_msg("%s: expr = '%s'", __func__, expr_to_str(expr));
 
 	if (faked && faked == handled)
 		return;
@@ -627,10 +618,6 @@ set:
 		right_type = get_type(expr->right);
 		if (right_type && right_type->type == SYM_ARRAY)
 			set_points_to_user_data(expr->left);
-		if (faked)
-			ignore = faked;
-		else
-			ignore = expr;
 		return;
 	}
 
@@ -656,13 +643,8 @@ clear_old_state:
 	 * the problem is that handling "pointer = array;" assignments is
 	 * handled in this function instead of in kernel_points_to_user_data.c.
 	 */
-	if (type_is_ptr(left_type)) {
-		if (faked)
-			ignore = faked;
-		else
-			ignore = expr;
+	if (type_is_ptr(left_type))
 		return;
-	}
 
 	if (get_state_expr(my_id, expr->left))
 		set_state_expr(my_id, expr->left, alloc_estate_empty());
