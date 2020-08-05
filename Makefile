@@ -157,17 +157,17 @@ ifeq ($(HAVE_SQLITE),yes)
 SQLITE_VERSION:=$(shell $(PKG_CONFIG) --modversion sqlite3)
 SQLITE_VNUMBER:=$(shell printf '%d%02d%02d' $(subst ., ,$(SQLITE_VERSION)))
 ifeq ($(shell expr "$(SQLITE_VNUMBER)" '>=' 32400),1)
-PROGRAMS += sindex
-INST_PROGRAMS += sindex
-INST_MAN1 += sindex.1
-sindex-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
-sindex-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
-sindex-cflags += -std=gnu99
+PROGRAMS += semind
+INST_PROGRAMS += semind
+INST_MAN1 += semind.1
+semind-ldlibs := $(shell $(PKG_CONFIG) --libs sqlite3)
+semind-cflags := $(shell $(PKG_CONFIG) --cflags sqlite3)
+semind-cflags += -std=gnu99
 else
 $(warning Your SQLite3 version ($(SQLITE_VERSION)) is too old, 3.24.0 or later is required.)
 endif
 else
-$(warning Your system does not have sqlite3, disabling sindex)
+$(warning Your system does not have sqlite3, disabling semind)
 endif
 
 # Can we use gtk (needed for test-inspect)
