@@ -13,7 +13,6 @@ u64 u64s32(u64 a, s32 b) { a >>= b; return a; }
 /*
  * check-name: shift-assign2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 s64s16:
