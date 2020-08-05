@@ -1342,8 +1342,12 @@ static int evaluate_assign_op(struct expression *expr)
 				return 1;
 		} else if (op == SPECIAL_SHR_ASSIGN || op == SPECIAL_SHL_ASSIGN) {
 			// shifts do integer promotions, but that's it.
+			unrestrict(expr->left, tclass, &t);
+			target = integer_promotion(t);
+
 			unrestrict(expr->right, sclass, &s);
-			target = integer_promotion(s);
+			source = integer_promotion(s);
+			expr->right = cast_to(expr->right, source);
 			goto Cast;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto usual;

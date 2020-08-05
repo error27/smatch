@@ -140,23 +140,23 @@ shift-undef.c:32:11: warning: shift too big (100) for type int
 shift-undef.c:33:11: warning: shift too big (101) for type unsigned int
 shift-undef.c:34:11: warning: shift too big (102) for type unsigned int
 shift-undef.c:35:11: warning: shift count is negative (-1)
-shift-undef.c:36:11: warning: shift count is negative (-2)
-shift-undef.c:37:11: warning: shift count is negative (-3)
+shift-undef.c:36:11: warning: shift too big (4294967294) for type unsigned int
+shift-undef.c:37:11: warning: shift too big (4294967293) for type unsigned int
 shift-undef.c:38:25: warning: shift too big (103) for type int
 shift-undef.c:39:25: warning: shift too big (104) for type unsigned int
 shift-undef.c:40:25: warning: shift too big (105) for type unsigned int
 shift-undef.c:41:25: warning: shift count is negative (-4)
-shift-undef.c:42:25: warning: shift count is negative (-5)
-shift-undef.c:43:25: warning: shift count is negative (-6)
+shift-undef.c:42:25: warning: shift too big (4294967291) for type unsigned int
+shift-undef.c:43:25: warning: shift too big (4294967290) for type unsigned int
 shift-undef.c:44:30: warning: shift too big (106) for type int
 shift-undef.c:45:30: warning: shift too big (107) for type unsigned int
 shift-undef.c:46:30: warning: shift too big (108) for type unsigned int
 shift-undef.c:47:30: warning: shift count is negative (-7)
-shift-undef.c:48:30: warning: shift count is negative (-8)
-shift-undef.c:49:30: warning: shift count is negative (-9)
+shift-undef.c:48:30: warning: shift too big (4294967288) for type unsigned int
+shift-undef.c:49:30: warning: shift too big (4294967287) for type unsigned int
 shift-undef.c:50:26: warning: shift too big (109) for type int
-shift-undef.c:51:26: warning: shift too big (110) for type int
-shift-undef.c:52:26: warning: shift too big (111) for type int
+shift-undef.c:51:26: warning: shift too big (110) for type unsigned int
+shift-undef.c:52:26: warning: shift too big (111) for type unsigned int
 shift-undef.c:53:26: warning: shift count is negative (-10)
 shift-undef.c:54:26: warning: shift count is negative (-11)
 shift-undef.c:55:26: warning: shift count is negative (-12)

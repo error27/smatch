@@ -45,7 +45,6 @@ u64 u64u64(u64 a, u64 b) { a >>= b; return a; }
 /*
  * check-name: shift-assign1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 s16s16:
