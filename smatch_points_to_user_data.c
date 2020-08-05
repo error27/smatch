@@ -162,7 +162,7 @@ void set_points_to_user_data(struct expression *expr)
 	set_state_expr(my_id, expr, &user_data);
 }
 
-static void handle_memcpy_fake_assignments(struct expression *expr)
+static bool handle_memcpy_fake_assignments(struct expression *expr)
 {
 	struct expression *left = strip_parens(expr->left);
 	struct expression *right = strip_parens(expr->right);
@@ -170,14 +170,17 @@ static void handle_memcpy_fake_assignments(struct expression *expr)
 	/* memcpy(array, src, sizeof(array)) gets turned into *array = *src; */
 
 	if (left->type != EXPR_PREOP || left->op != '*')
-		return;
+		return false;
 	if (right->type != EXPR_PREOP || right->op != '*')
-		return;
+		return false;
 	left = strip_expr(left->unop);
 	right = strip_expr(right->unop);
 
-	if (points_to_user_data(right))
+	if (points_to_user_data(right)) {
 		set_points_to_user_data(left);
+		return true;
+	}
+	return false;
 }
 
 static void match_assign(struct expression *expr)
@@ -190,7 +193,11 @@ static void match_assign(struct expression *expr)
 		return;
 	}
 
-	handle_memcpy_fake_assignments(expr);
+	if (handle_memcpy_fake_assignments(expr))
+		return;
+
+	if (get_state_expr(my_id, expr->left))
+		set_state_expr(my_id, expr->left, &undefined);
 }
 
 static void return_info_callback(int return_id, char *return_ranges,
