@@ -145,6 +145,16 @@ static bool user_rl_known(struct expression *expr)
 	return true;
 }
 
+static bool is_array_index_mask_nospec(struct expression *expr)
+{
+	struct expression *orig;
+
+	orig = get_assigned_expr(expr);
+	if (!orig || orig->type != EXPR_CALL)
+		return false;
+	return sym_name_is("array_index_mask_nospec", orig->fn);
+}
+
 static bool binop_capped(struct expression *expr)
 {
 	struct range_list *left_rl;
@@ -164,6 +174,8 @@ static bool binop_capped(struct expression *expr)
 		bool left_user, left_capped, right_user, right_capped;
 
 		if (!get_value(expr->right, &sval) && is_capped(expr->right))
+			return true;
+		if (is_array_index_mask_nospec(expr->right))
 			return true;
 		if (is_capped(expr->left))
 			return true;
