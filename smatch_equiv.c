@@ -168,19 +168,6 @@ void remove_from_equiv(const char *name, struct symbol *sym)
 	} END_FOR_EACH_PTR(rel);
 }
 
-void remove_from_equiv_expr(struct expression *expr)
-{
-	char *name;
-	struct symbol *sym;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-	remove_from_equiv(name, sym);
-free:
-	free_string(name);
-}
-
 void set_related(struct smatch_state *estate, struct related_list *rlist)
 {
 	if (!estate_related(estate) && !rlist)
