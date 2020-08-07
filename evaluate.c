@@ -2333,14 +2333,13 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
+int evaluate_arguments(struct symbol_list *argtypes, struct expression_list *head)
 {
 	struct expression *expr;
-	struct symbol_list *argument_types = fn->arguments;
 	struct symbol *argtype;
 	int i = 1;
 
-	PREPARE_PTR_LIST(argument_types, argtype);
+	PREPARE_PTR_LIST(argtypes, argtype);
 	FOR_EACH_PTR (head, expr) {
 		struct expression **p = THIS_ADDRESS(expr);
 		struct symbol *ctype, *target;
@@ -3149,7 +3148,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 		if (!sym->op->args(expr))
 			return NULL;
 	} else {
-		if (!evaluate_arguments(ctype, arglist))
+		if (!evaluate_arguments(ctype->arguments, arglist))
 			return NULL;
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
