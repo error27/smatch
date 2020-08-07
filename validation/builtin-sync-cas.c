@@ -16,7 +16,6 @@ static _Bool boz(_Bool *ptr)
 
 /*
  * check-name: builtin-sync-cas
- * check-known-to-fail
  *
  * check-error-start
 builtin-sync-cas.c:9:49: warning: incorrect type in argument 2 (different base types)
