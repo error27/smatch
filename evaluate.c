@@ -1342,8 +1342,17 @@ static int evaluate_assign_op(struct expression *expr)
 				return 1;
 		} else if (op == SPECIAL_SHR_ASSIGN || op == SPECIAL_SHL_ASSIGN) {
 			// shifts do integer promotions, but that's it.
+			unrestrict(expr->left, tclass, &t);
+			target = integer_promotion(t);
+
 			unrestrict(expr->right, sclass, &s);
-			target = integer_promotion(s);
+			source = integer_promotion(s);
+			expr->right = cast_to(expr->right, source);
+
+			// both gcc & clang seems to do this, so ...
+			if (target->bit_size > source->bit_size)
+				expr->right = cast_to(expr->right, &uint_ctype);
+
 			goto Cast;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto usual;

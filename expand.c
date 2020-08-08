@@ -170,22 +170,6 @@ Float:
 	expr->type = EXPR_FVALUE;
 }
 
-static void warn_shift_count(struct expression *expr, struct symbol *ctype, long long count)
-{
-	if (count < 0) {
-		if (!Wshift_count_negative)
-			return;
-		warning(expr->pos, "shift count is negative (%lld)", count);
-		return;
-	}
-	if (ctype->type == SYM_NODE)
-		ctype = ctype->ctype.base_type;
-
-	if (!Wshift_count_overflow)
-		return;
-	warning(expr->pos, "shift too big (%llu) for type %s", count, show_typename(ctype));
-}
-
 /* Return true if constant shift size is valid */
 static bool check_shift_count(struct expression *expr, struct expression *right)
 {
@@ -194,8 +178,6 @@ static bool check_shift_count(struct expression *expr, struct expression *right)
 
 	if (count >= 0 && count < ctype->bit_size)
 		return true;
-	if (!conservative)
-		warn_shift_count(expr, ctype, count);
 	return false;
 }
 

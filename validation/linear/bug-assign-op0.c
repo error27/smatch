@@ -46,7 +46,6 @@ unsigned int sldivu(unsigned int u, long s)
 /*
  * check-name: bug-assign-op0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-start
 asr:
