@@ -102,9 +102,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 	struct expression *initstr = alloc_expression(expr->pos, EXPR_STRING);
 	unsigned int length = expr->string->length;
+	struct symbol *char_type = expr->wide ? wchar_ctype : &char_ctype;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = bytes_to_bits(length);
+	sym->bit_size = length * char_type->bit_size;
 	sym->ctype.alignment = 1;
 	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -117,10 +118,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = bytes_to_bits(length);
-	array->ctype.alignment = 1;
+	array->bit_size = sym->bit_size;
+	array->ctype.alignment = char_type->ctype.alignment;
 	array->ctype.modifiers = MOD_STATIC;
-	array->ctype.base_type = &char_ctype;
+	array->ctype.base_type = char_type;
 	array->examined = 1;
 	array->evaluated = 1;
 	
