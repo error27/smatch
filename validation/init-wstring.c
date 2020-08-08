@@ -32,7 +32,6 @@ static const __WCHAR_TYPE__ ko2[2] = L"abc";
 /*
  * check-name: init-wstring
  * check-command: sparse -Winit-cstring $file
- * check-known-to-fail
  *
  * check-error-start
 init-wstring.c:29:38: warning: too long initializer-string for array of char(no space for nul char)

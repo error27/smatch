@@ -406,7 +406,10 @@ static inline int is_string_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return type->type == SYM_ARRAY && is_byte_type(type->ctype.base_type);
+	if (type->type != SYM_ARRAY)
+		return 0;
+	type = type->ctype.base_type;
+	return is_byte_type(type) || is_wchar_type(type);
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
