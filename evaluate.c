@@ -2841,10 +2841,12 @@ String:
 	*p = *e;
 	type = evaluate_expression(p);
 	if (ctype->bit_size != -1) {
-		if (ctype->bit_size + bits_in_char < type->bit_size)
+		struct symbol *char_type = e->wide ? wchar_ctype : &char_ctype;
+		unsigned int size_with_null = ctype->bit_size + char_type->bit_size;
+		if (size_with_null < type->bit_size)
 			warning(e->pos,
 				"too long initializer-string for array of char");
-		else if (Winit_cstring && ctype->bit_size + bits_in_char == type->bit_size) {
+		else if (Winit_cstring && size_with_null == type->bit_size) {
 			warning(e->pos,
 				"too long initializer-string for array of char(no space for nul char)");
 		}
