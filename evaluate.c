@@ -2764,7 +2764,6 @@ static struct expression *handle_scalar(struct expression *e, int nested)
 static int handle_initializer(struct expression **ep, int nested,
 		int class, struct symbol *ctype, unsigned long mods)
 {
-	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
 	struct symbol *type;
 
@@ -2798,7 +2797,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	 * pathologies, so we don't need anything fancy here.
 	 */
 	if (e->type == EXPR_INITIALIZER) {
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			struct expression *v = NULL;
 			int count = 0;
 
@@ -2819,7 +2818,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	/* string */
 	if (is_string_literal(&e)) {
 		/* either we are doing array of char, or we'll have to dig in */
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			*ep = e;
 			goto String;
 		}
