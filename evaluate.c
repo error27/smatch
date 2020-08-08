@@ -102,9 +102,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 	struct expression *initstr = alloc_expression(expr->pos, EXPR_STRING);
 	unsigned int length = expr->string->length;
+	struct symbol *char_type = expr->wide ? wchar_ctype : &char_ctype;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = bytes_to_bits(length);
+	sym->bit_size = length * char_type->bit_size;
 	sym->ctype.alignment = 1;
 	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -117,10 +118,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = bytes_to_bits(length);
-	array->ctype.alignment = 1;
+	array->bit_size = sym->bit_size;
+	array->ctype.alignment = char_type->ctype.alignment;
 	array->ctype.modifiers = MOD_STATIC;
-	array->ctype.base_type = &char_ctype;
+	array->ctype.base_type = char_type;
 	array->examined = 1;
 	array->evaluated = 1;
 	
@@ -405,7 +406,10 @@ static inline int is_string_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return type->type == SYM_ARRAY && is_byte_type(type->ctype.base_type);
+	if (type->type != SYM_ARRAY)
+		return 0;
+	type = type->ctype.base_type;
+	return is_byte_type(type) || is_wchar_type(type);
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
@@ -2768,7 +2772,6 @@ static struct expression *handle_scalar(struct expression *e, int nested)
 static int handle_initializer(struct expression **ep, int nested,
 		int class, struct symbol *ctype, unsigned long mods)
 {
-	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
 	struct symbol *type;
 
@@ -2802,7 +2805,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	 * pathologies, so we don't need anything fancy here.
 	 */
 	if (e->type == EXPR_INITIALIZER) {
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			struct expression *v = NULL;
 			int count = 0;
 
@@ -2823,7 +2826,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	/* string */
 	if (is_string_literal(&e)) {
 		/* either we are doing array of char, or we'll have to dig in */
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			*ep = e;
 			goto String;
 		}
@@ -2848,10 +2851,12 @@ String:
 	*p = *e;
 	type = evaluate_expression(p);
 	if (ctype->bit_size != -1) {
-		if (ctype->bit_size + bits_in_char < type->bit_size)
+		struct symbol *char_type = e->wide ? wchar_ctype : &char_ctype;
+		unsigned int size_with_null = ctype->bit_size + char_type->bit_size;
+		if (size_with_null < type->bit_size)
 			warning(e->pos,
 				"too long initializer-string for array of char");
-		else if (Winit_cstring && ctype->bit_size + bits_in_char == type->bit_size) {
+		else if (Winit_cstring && size_with_null == type->bit_size) {
 			warning(e->pos,
 				"too long initializer-string for array of char(no space for nul char)");
 		}

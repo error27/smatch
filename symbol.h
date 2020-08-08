@@ -430,6 +430,13 @@ static inline int is_byte_type(struct symbol *type)
 	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
 }
 
+static inline int is_wchar_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type == wchar_ctype;
+}
+
 static inline int is_void_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
