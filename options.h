@@ -112,6 +112,7 @@ extern int Woverride_init;
 extern int Woverride_init_all;
 extern int Woverride_init_whole_range;
 extern int Wparen_string;
+extern int Wpast_deep_designator;
 extern int Wpedantic;
 extern int Wpointer_arith;
 extern int Wpointer_to_int_cast;

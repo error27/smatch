@@ -113,6 +113,7 @@ int Woverride_init = 1;
 int Woverride_init_all = 0;
 int Woverride_init_whole_range = 0;
 int Wparen_string = 0;
+int Wpast_deep_designator = 0;
 int Wpedantic = 0;
 int Wpointer_arith = 0;
 int Wpointer_to_int_cast = 1;
@@ -850,6 +851,7 @@ static const struct flag warnings[] = {
 	{ "override-init", &Woverride_init },
 	{ "override-init-all", &Woverride_init_all },
 	{ "paren-string", &Wparen_string },
+	{ "past-deep-designator", &Wpast_deep_designator },
 	{ "pedantic", &Wpedantic },
 	{ "pointer-to-int-cast", &Wpointer_to_int_cast },
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
