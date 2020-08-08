@@ -66,7 +66,10 @@ int stream_prev(int stream)
 {
 	if (stream < 0 || stream > input_stream_nr)
 		return -1;
-	return input_streams[stream].pos.stream;
+	stream = input_streams[stream].pos.stream;
+	if (stream > input_stream_nr)
+		return -1;
+	return stream;
 }
 
 static struct position stream_pos(stream_t *stream)
