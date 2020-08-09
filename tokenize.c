@@ -625,12 +625,7 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 		warning(stream_pos(stream), "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
-	if (delim == '\'' && len <= 4) {
-		if (len == 0) {
-			sparse_error(stream_pos(stream),
-				"empty character constant");
-			return nextchar(stream);
-		}
+	if (delim == '\'' && len && len <= 4) {
 		token_type(token) = type + len;
 		memset(buffer + len, '\0', 4 - len);
 		memcpy(token->embedded, buffer, 4);
