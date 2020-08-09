@@ -108,8 +108,10 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	unsigned long f_modifiers;		// function attributes
-	unsigned char prefer_abstract, storage_class;
+	unsigned long storage_class;
+	unsigned char prefer_abstract;
 	unsigned char autotype;
+	unsigned char forced;
 };
 
 struct pseudo;
@@ -124,12 +126,12 @@ struct symbol_op {
 	struct pseudo *(*linearize)(struct entrypoint *, struct expression *);
 
 	/* keywords */
-	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
+	struct token *(*declarator)(struct token *token, struct symbol *, struct decl_state *ctx);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
 	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
 	struct symbol *(*to_mode)(struct symbol *);
-	void          (*asm_modifier)(struct token *token, unsigned long *mods);
+	void (*asm_modifier)(struct token *token, unsigned long *mods, unsigned long mod);
 
 	int test, set, class;
 };
@@ -328,6 +330,7 @@ extern void init_linearized_builtins(int stream);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
+extern const char *modifier_name(unsigned long mod);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern int show_symbol_expr_init(struct symbol *sym);
