@@ -64,22 +64,22 @@ Bugs can also be reported and tracked via the `Linux kernel's bugzilla for spars
 
 
 .. toctree::
-   :caption: Documentation
+   :caption: User Documentation
    :maxdepth: 1
 
    annotations
-   dev-options
-   types
-   api
-   IR
-   test-suite
-   doc-guide
 
 .. toctree::
-   :caption: How to contribute
+   :caption: Development
    :maxdepth: 1
 
    submitting-patches
+   types
+   api
+   dev-options
+   IR
+   test-suite
+   doc-guide
    TODO
 
 .. toctree::
