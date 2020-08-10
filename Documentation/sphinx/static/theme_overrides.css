@@ -1,3 +1,7 @@
+.wy-menu-vertical a, .wy-menu-vertical li.current > a, .wy-menu-vertical p.caption {
+	padding: 0.2em 1.2em;
+}
+
 .wy-side-nav-search > a img.logo {
 	width: 60%;
 }
