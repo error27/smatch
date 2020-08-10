@@ -25,9 +25,6 @@ by Christopher Li in 2009 and by Luc Van Oostenryck in late 2018.
 Getting Sparse
 --------------
 
-You can find tarballs of released versions of Sparse at
-https://www.kernel.org/pub/software/devel/sparse/dist/.
-
 The most recent version can be obtained directly from the Git
 repository with the command::
 
@@ -35,6 +32,8 @@ repository with the command::
 
 You can also `browse the Git repository <https://git.kernel.org/pub/scm/devel/sparse/sparse.git>`_
 or use the mirror at https://github.com/lucvoo/sparse.
+The tarballs of released versions of Sparse and their signatures can be found at
+https://www.kernel.org/pub/software/devel/sparse/dist/.
 
 Once you have the sources, to build Sparse and install it in your ~/bin
 directory, just do::
