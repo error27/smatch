@@ -69,6 +69,11 @@ Bugs can also be reported and tracked via the `Linux kernel's bugzilla for spars
 
    annotations
 
+Some interesting external documentation:
+
+* `Sparse: a look under the hood <https://lwn.net/Articles/689907/>`_
+* `Sparse: a short overview <https://sil2.osadl.org/events/ewc-2019-hands-on/sparse_slides.pdf>`_
+
 .. toctree::
    :caption: Development
    :maxdepth: 1
