@@ -1177,8 +1177,12 @@ static void expand_const_expression(struct expression *expr, const char *where)
 {
 	if (expr) {
 		expand_expression(expr);
-		if (expr->type != EXPR_VALUE)
+		if (expr->type != EXPR_VALUE) {
 			expression_error(expr, "Expected constant expression in %s", where);
+			expr->ctype = &int_ctype;
+			expr->type = EXPR_VALUE;
+			expr->value = 0;
+		}
 	}
 }
 
