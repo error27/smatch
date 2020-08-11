@@ -99,6 +99,8 @@ db_types = {   0: "INTERNAL",
 
             8017: "USER_DATA",
             9017: "USER_DATA_SET",
+            9018: "USER_PTR",
+            9019: "USER_PTR_SET",
             8018: "NO_OVERFLOW",
             8019: "NO_OVERFLOW_SIMPLE",
             8020: "LOCKED",
