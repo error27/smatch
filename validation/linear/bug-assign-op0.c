@@ -10,7 +10,7 @@ unsigned int lsr(unsigned int u)
 	return u;
 }
 
-int divr(int s, unsigned long u)
+int divr(int s, unsigned long long u)
 {
 	extern int use(int, unsigned);
 	int t = s;
@@ -19,25 +19,25 @@ int divr(int s, unsigned long u)
 	return use(s, u);
 }
 
-int sdivul(int s, unsigned long u)
+int sdivul(int s, unsigned long long u)
 {
 	s /= u;			// divu
 	return s;
 }
 
-unsigned int udivsl(unsigned int u, long s)
+unsigned int udivsl(unsigned int u, long long s)
 {
 	u /= s;			// divs
 	return u;
 }
 
-int uldivs(int s, unsigned long u)
+int uldivs(int s, unsigned long long u)
 {
 	u /= s;			// divu
 	return u;
 }
 
-unsigned int sldivu(unsigned int u, long s)
+unsigned int sldivu(unsigned int u, long long s)
 {
 	s /= u;			// divs
 	return s;
