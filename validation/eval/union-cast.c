@@ -16,7 +16,6 @@ static union u bar(long a)
 /*
  * check-name: union-cast
  * check-command: sparse -Wunion-cast $file
- * check-known-to-fail
  *
  * check-error-start
 eval/union-cast.c:8:17: warning: cast to union type

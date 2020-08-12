@@ -16,7 +16,6 @@ static union u bar(long l)
 /*
  * check-name: union-cast-no
  * check-command: sparse -Wno-union-cast $file
- * check-known-to-fail
  *
  * check-error-start
 eval/union-cast-no.c:13:17: warning: cast to non-scalar

@@ -2948,6 +2948,26 @@ static int cast_flags(struct expression *expr, struct expression *old)
 	return flags;
 }
 
+///
+// check if a type matches one of the members of a union type
+// @utype: the union type
+// @type: to type to check
+// @return: to identifier of the matching type in the union.
+static struct symbol *find_member_type(struct symbol *utype, struct symbol *type)
+{
+	struct symbol *t, *member;
+
+	if (utype->type != SYM_UNION)
+		return NULL;
+
+	FOR_EACH_PTR(utype->symbol_list, member) {
+		classify_type(member, &t);
+		if (type == t)
+			return member;
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
 static struct symbol *evaluate_compound_literal(struct expression *expr, struct expression *source)
 {
 	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
@@ -2973,6 +2993,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	struct expression *source = expr->cast_expression;
 	struct symbol *ctype;
 	struct symbol *ttype, *stype;
+	struct symbol *member;
 	int tclass, sclass;
 	struct ident *tas = NULL, *sas = NULL;
 
@@ -3022,8 +3043,32 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (expr->type == EXPR_FORCE_CAST)
 		goto out;
 
-	if (tclass & (TYPE_COMPOUND | TYPE_FN))
+	if (tclass & (TYPE_COMPOUND | TYPE_FN)) {
+		/*
+		 * Special case: cast to union type (GCC extension)
+		 * The effect is similar to a compound literal except
+		 * that the result is a rvalue.
+		 */
+		if ((member = find_member_type(ttype, stype))) {
+			struct expression *item, *init;
+
+			if (Wunion_cast)
+				warning(expr->pos, "cast to union type");
+
+			item = alloc_expression(source->pos, EXPR_IDENTIFIER);
+			item->expr_ident = member->ident;
+			item->ident_expression = source;
+
+			init = alloc_expression(source->pos, EXPR_INITIALIZER);
+			add_expression(&init->expr_list, item);
+
+			// FIXME: this should be a rvalue
+			evaluate_compound_literal(expr, init);
+			return ctype;
+		}
+
 		warning(expr->pos, "cast to non-scalar");
+	}
 
 	if (sclass & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");

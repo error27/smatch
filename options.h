@@ -128,6 +128,7 @@ extern int Wtransparent_union;
 extern int Wtypesign;
 extern int Wundef;
 extern int Wuninitialized;
+extern int Wunion_cast;
 extern int Wuniversal_initializer;
 extern int Wunknown_attribute;
 extern int Wvla;
