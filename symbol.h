@@ -463,6 +463,7 @@ static inline int is_scalar_type(struct symbol *type)
 	case SYM_BITFIELD:
 	case SYM_PTR:
 	case SYM_RESTRICT:	// OK, always integer types
+	case SYM_FOULED:	// idem
 		return 1;
 	default:
 		break;
@@ -483,6 +484,7 @@ static inline bool is_integral_type(struct symbol *type)
 	case SYM_ENUM:
 	case SYM_PTR:
 	case SYM_RESTRICT:	// OK, always integer types
+	case SYM_FOULED:	// idem
 		return 1;
 	default:
 		break;
