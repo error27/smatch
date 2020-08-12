@@ -1,7 +1,7 @@
 .. default-domain:: ir
 
-Sparse's Intermediate Representation
-====================================
+Intermediate Representation
+===========================
 
 Instructions
 ~~~~~~~~~~~~

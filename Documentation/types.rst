@@ -1,6 +1,6 @@
-********************
-Sparse's Type System
-********************
+***********
+Type System
+***********
 
 struct symbol is used to represent symbols & types but
 most parts pertaining to the types are in the field 'ctype'.

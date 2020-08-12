@@ -1,0 +1,20 @@
+p {
+	margin-bottom: 0.6em;
+}
+
+ul.simple {
+	margin-top: -0.5em;
+	margin-bottom: 0.5em;
+}
+
+.rst-content .toctree-wrapper ul {
+	margin-bottom: 0.5em;
+}
+
+.wy-menu-vertical a, .wy-menu-vertical li.current > a, .wy-menu-vertical p.caption {
+	padding: 0.2em 1.2em;
+}
+
+.wy-side-nav-search > a img.logo {
+	width: 60%;
+}

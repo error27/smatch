@@ -1,5 +1,5 @@
-How to write sparse documentation
-=================================
+Documentation guide
+===================
 
 Introduction
 ------------

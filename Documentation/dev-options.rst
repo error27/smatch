@@ -1,5 +1,5 @@
-sparse - extra options for developers
-=====================================
+Extra options for developers
+============================
 
 SYNOPSIS
 --------
