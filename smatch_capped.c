@@ -66,6 +66,34 @@ static int is_capped_macro(struct expression *expr)
 	return 0;
 }
 
+static bool binop_capped(struct expression *expr)
+{
+	struct range_list *left_rl, *right_rl;
+	sval_t sval;
+
+	if (expr->op == '&' && !get_value(expr->right, &sval))
+		return true;
+	if (expr->op == SPECIAL_RIGHTSHIFT)
+		return false;
+	if (expr->op == '%' &&
+	    !get_value(expr->right, &sval) && is_capped(expr->right))
+		return true;
+	if (!is_capped(expr->left))
+		return false;
+	if (expr->op == '/')
+		return true;
+	if (!is_capped(expr->right))
+		return false;
+	if (expr->op == '*') {
+		get_absolute_rl(expr->left, &left_rl);
+		get_absolute_rl(expr->right, &right_rl);
+		if (sval_is_negative(rl_min(left_rl)) ||
+		    sval_is_negative(rl_min(right_rl)))
+			return false;
+	}
+	return true;
+}
+
 int is_capped(struct expression *expr)
 {
 	struct symbol *type;
@@ -88,32 +116,9 @@ int is_capped(struct expression *expr)
 	if (is_capped_macro(expr))
 		return 1;
 
-	if (expr->type == EXPR_BINOP) {
-		struct range_list *left_rl, *right_rl;
-		sval_t sval;
+	if (expr->type == EXPR_BINOP)
+		return binop_capped(expr);
 
-		if (expr->op == '&' && !get_value(expr->right, &sval))
-			return 1;
-		if (expr->op == SPECIAL_RIGHTSHIFT)
-			return 0;
-		if (expr->op == '%' &&
-		    !get_value(expr->right, &sval) && is_capped(expr->right))
-			return 1;
-		if (!is_capped(expr->left))
-			return 0;
-		if (expr->op == '/')
-			return 1;
-		if (!is_capped(expr->right))
-			return 0;
-		if (expr->op == '*') {
-			get_absolute_rl(expr->left, &left_rl);
-			get_absolute_rl(expr->right, &right_rl);
-			if (sval_is_negative(rl_min(left_rl)) ||
-			    sval_is_negative(rl_min(right_rl)))
-				return 0;
-		}
-		return 1;
-	}
 	if (get_state_expr(my_id, expr) == &capped)
 		return 1;
 	return 0;
