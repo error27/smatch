@@ -69,7 +69,6 @@ static int is_capped_macro(struct expression *expr)
 int is_capped(struct expression *expr)
 {
 	struct symbol *type;
-	sval_t dummy;
 
 	expr = strip_expr(expr);
 	while (expr && expr->type == EXPR_POSTOP) {
@@ -85,9 +84,6 @@ int is_capped(struct expression *expr)
 		return 0;
 	if (type_bits(type) >= 0 && type_bits(type) <= 2)
 		return 0;
-
-	if (get_hard_max(expr, &dummy))
-		return 1;
 
 	if (is_capped_macro(expr))
 		return 1;
