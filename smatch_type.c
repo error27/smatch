@@ -56,6 +56,8 @@ int array_bytes(struct symbol *type)
 {
 	if (!type || type->type != SYM_ARRAY)
 		return 0;
+	if (!type->array_size)
+		return 0;
 	return bits_to_bytes(type->bit_size);
 }
 

@@ -412,6 +412,9 @@ int last_member_is_resizable(struct symbol *sym)
 	if (type->type != SYM_ARRAY)
 		return 0;
 
+	if (!type->array_size)
+		return 1;
+
 	if (!get_implied_value(type->array_size, &sval))
 		return 0;
 
