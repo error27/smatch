@@ -2948,6 +2948,26 @@ static int cast_flags(struct expression *expr, struct expression *old)
 	return flags;
 }
 
+static struct symbol *evaluate_compound_literal(struct expression *expr, struct expression *source)
+{
+	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+	struct symbol *sym = expr->cast_type;
+
+	sym->initializer = source;
+	evaluate_symbol(sym);
+
+	addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
+	addr->symbol = sym;
+	if (sym->ctype.modifiers & MOD_TOPLEVEL)
+		addr->flags |= CEF_ADDR;
+
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->deref = addr;
+	expr->ctype = sym;
+	return sym;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *source = expr->cast_expression;
@@ -2970,25 +2990,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * dereferenced as part of a post-fix expression.
 	 * We need to produce an expression that can be dereferenced.
 	 */
-	if (source->type == EXPR_INITIALIZER) {
-		struct symbol *sym = expr->cast_type;
-		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
-
-		sym->initializer = source;
-		evaluate_symbol(sym);
-
-		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
-		addr->symbol = sym;
-		if (sym->ctype.modifiers & MOD_TOPLEVEL)
-			addr->flags |= CEF_ADDR;
-
-		expr->type = EXPR_PREOP;
-		expr->op = '*';
-		expr->unop = addr;
-		expr->ctype = sym;
-
-		return sym;
-	}
+	if (source->type == EXPR_INITIALIZER)
+		return evaluate_compound_literal(expr, source);
 
 	ctype = examine_symbol_type(expr->cast_type);
 	expr->ctype = ctype;
