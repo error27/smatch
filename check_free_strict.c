@@ -274,6 +274,7 @@ int parent_is_free_var_sym_strict(const char *name, struct symbol *sym)
 	char buf[256];
 	char *start;
 	char *end;
+	char orig;
 	struct smatch_state *state;
 
 	strncpy(buf, name, sizeof(buf) - 1);
@@ -283,11 +284,16 @@ int parent_is_free_var_sym_strict(const char *name, struct symbol *sym)
 	while ((*start == '&'))
 		start++;
 
-	while ((end = strrchr(start, '-'))) {
+	end = start;
+	while ((end = strrchr(end, '-'))) {
+		orig = *end;
 		*end = '\0';
+
 		state = __get_state(my_id, start, sym);
 		if (state == &freed)
 			return 1;
+		*end = orig;
+		end++;
 	}
 	return 0;
 }

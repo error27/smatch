@@ -243,6 +243,7 @@ int parent_is_free_var_sym(const char *name, struct symbol *sym)
 	char *start;
 	char *end;
 	struct smatch_state *state;
+	char orig;
 
 	if (option_project == PROJ_KERNEL)
 		return parent_is_free_var_sym_strict(name, sym);
@@ -253,12 +254,15 @@ int parent_is_free_var_sym(const char *name, struct symbol *sym)
 	start = &buf[0];
 	while ((*start == '&'))
 		start++;
-
-	while ((end = strrchr(start, '-'))) {
+	end = start;
+	while ((end = strrchr(end, '-'))) {
+		orig = *end;
 		*end = '\0';
 		state = __get_state(my_id, start, sym);
 		if (state == &freed)
 			return 1;
+		*end = orig;
+		end++;
 	}
 	return 0;
 }
