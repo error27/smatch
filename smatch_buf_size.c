@@ -1007,6 +1007,7 @@ void register_buf_size(int id)
 		add_allocation_function("__vmalloc", &match_alloc, 0);
 		add_allocation_function("kvmalloc", &match_alloc, 0);
 		add_allocation_function("kcalloc", &match_calloc, 0);
+		add_allocation_function("kvcalloc", &match_calloc, 0);
 		add_allocation_function("kmalloc_array", &match_calloc, 0);
 		add_allocation_function("devm_kmalloc_array", &match_calloc, 1);
 		add_allocation_function("sock_kmalloc", &match_alloc, 1);
