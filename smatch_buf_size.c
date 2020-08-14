@@ -60,16 +60,6 @@ static void add_allocation_function(const char *func, void *call_back, int param
 	add_function_assign_hook(func, call_back, INT_PTR(param));
 }
 
-static int estate_to_size(struct smatch_state *state)
-{
-	sval_t sval;
-
-	if (!state || !estate_rl(state))
-		return 0;
-	sval = estate_max(state);
-	return sval.value;
-}
-
 static struct smatch_state *size_to_estate(int size)
 {
 	sval_t sval;
@@ -381,6 +371,9 @@ static int is_last_member_of_struct(struct symbol *sym, struct ident *member)
 	struct symbol *tmp;
 	int i;
 
+	if (sym->type != SYM_STRUCT)
+		return false;
+
 	i = 0;
 	FOR_EACH_PTR_REVERSE(sym->symbol_list, tmp) {
 		if (i++ || !tmp->ident)
@@ -424,43 +417,109 @@ int last_member_is_resizable(struct symbol *sym)
 	return 1;
 }
 
-static int get_stored_size_end_struct_bytes(struct expression *expr)
+static struct range_list *get_stored_size_end_struct_bytes(struct expression *expr)
 {
 	struct symbol *sym;
 	struct symbol *base_sym;
 	struct smatch_state *state;
+	sval_t base_size = {
+		.type = &int_ctype,
+	};
 
 	if (expr->type == EXPR_BINOP) /* array elements foo[5] */
-		return 0;
+		return NULL;
 
 	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_parens(expr->unop);
 
 	sym = expr_to_sym(expr);
 	if (!sym || !sym->ident)
-		return 0;
+		return NULL;
 	if (!type_bytes(sym))
-		return 0;
+		return NULL;
 	if (sym->type != SYM_NODE)
-		return 0;
+		return NULL;
 
 	base_sym = get_real_base_type(sym);
 	if (!base_sym || base_sym->type != SYM_PTR)
-		return 0;
+		return NULL;
 	base_sym = get_real_base_type(base_sym);
 	if (!base_sym || base_sym->type != SYM_STRUCT)
-		return 0;
+		return NULL;
 
 	if (!is_last_member_of_struct(base_sym, expr->member))
-		return 0;
+		return NULL;
 	if (!last_member_is_resizable(base_sym))
-		return 0;
+		return NULL;
 
 	state = get_state(my_size_id, sym->ident->name, sym);
-	if (!estate_to_size(state) || estate_to_size(state) == -1)
-		return 0;
+	if (!estate_rl(state))
+		return NULL;
+	base_size.value = type_bytes(base_sym) - type_bytes(get_type(expr));
+	if (sval_cmp(estate_min(state), base_size) < 0)
+		return NULL;
 
-	return estate_to_size(state) - type_bytes(base_sym) + type_bytes(get_type(expr));
+	return rl_binop(estate_rl(state), '-', alloc_rl(base_size, base_size));
+}
+
+static int get_last_element_bytes(struct expression *expr)
+{
+	struct symbol *type, *member, *member_type;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_STRUCT)
+		return 0;
+	member = last_ptr_list((struct ptr_list *)type->symbol_list);
+	if (!member)
+		return 0;
+	member_type = get_real_base_type(member);
+	if (!member_type)
+		return 0;
+	return type_bytes(member_type);
+}
+
+static struct range_list *get_outer_end_struct_bytes(struct expression *expr)
+{
+	struct expression *outer;
+	int last_element_size;
+	struct symbol *type;
+	sval_t bytes = {
+		.type = &int_ctype,
+	};
+
+	/*
+	 * What we're checking here is for when "u.bar.baz" is a zero element
+	 * array and "u" has a buffer to determine the space for baz.  Like
+	 * this:
+	 * struct { struct bar bar; char buf[256]; } u;
+	 *
+	 */
+
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		expr = strip_parens(expr->unop);
+	if (expr->type != EXPR_DEREF)
+		return NULL;
+	outer = expr->deref;
+	if (outer->type != EXPR_DEREF)
+		return NULL;
+	type = get_type(outer);
+	if (!type)
+		return NULL;
+
+	if (!is_last_member_of_struct(type, expr->member))
+		return NULL;
+	if (!last_member_is_resizable(type))
+		return NULL;
+
+	last_element_size = get_last_element_bytes(outer->deref);
+	if (last_element_size == 0)
+		return NULL;
+	if (type_bytes(get_type(outer)) + last_element_size !=
+	    type_bytes(get_type(outer->deref)))
+		return NULL;
+
+	bytes.value = last_element_size;
+	return alloc_rl(bytes, bytes);
 }
 
 static struct range_list *alloc_int_rl(int value)
@@ -518,9 +577,13 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 	if (ret)
 		return ret;
 
-	size = get_stored_size_end_struct_bytes(expr);
-	if (size)
-		return alloc_int_rl(size);
+	ret = get_stored_size_end_struct_bytes(expr);
+	if (ret)
+		return ret;
+
+	ret = get_outer_end_struct_bytes(expr);
+	if (ret)
+		return ret;
 
 	/* buf[4] */
 	size = get_real_array_size(expr);
