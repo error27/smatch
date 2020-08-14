@@ -28,6 +28,7 @@
 static int my_id;
 
 STATE(freed);
+STATE(maybe_freed);
 STATE(ignore);
 
 static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
@@ -74,7 +75,8 @@ static void process_states(void)
 	const char *param_name;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state != &freed)
+		// FIXME: how can this be maybe_freed?
+		if (sm->state != &freed && sm->state != &maybe_freed)
 			continue;
 		param = get_param_num_from_sym(sm->sym);
 		if (param < 0)
@@ -82,7 +84,9 @@ static void process_states(void)
 		param_name = get_param_name(sm);
 		if (!param_name)
 			continue;
-		sql_insert_return_implies(PARAM_FREED, param, param_name, "1");
+		sql_insert_return_implies(
+			(sm->state == &freed) ? PARAM_FREED : MAYBE_FREED,
+			param, param_name, "1");
 	} END_FOR_EACH_SM(sm);
 
 }

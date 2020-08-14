@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010 Dan Carpenter.
+ * Copyright (C) 2020 Oracle.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,8 +17,11 @@
  */
 
 /*
- * check_memory() is getting too big and messy.
- *
+ * This is the "strict" version which is more daring and ambitious than
+ * the check_free.c file.  The difference is that this looks at split
+ * returns and the other only looks at if every path frees a parameter.
+ * Also this has a bunch of kernel specific things to do with reference
+ * counted memory.
  */
 
 #include <string.h>
@@ -28,6 +32,7 @@
 static int my_id;
 
 STATE(freed);
+STATE(maybe_freed);
 STATE(ok);
 
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
@@ -47,8 +52,15 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	struct smatch_state *state;
 	sval_t sval;
 
-	if (sm->state != &freed)
+	if (sm->state != &freed && sm->state != &maybe_freed)
 		return &undefined;
+
+	/*
+	 * If the parent is non-there count it as freed.  This is
+	 * a hack for tracking return states.
+	 */
+	if (parent_is_null_var_sym(sm->name, sm->sym))
+		return sm->state;
 
 	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (!state)
@@ -59,6 +71,15 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return &freed;
 }
 
+struct smatch_state *merge_frees(struct smatch_state *s1, struct smatch_state *s2)
+{
+	if (s1 == &freed && s2 == &maybe_freed)
+		return &maybe_freed;
+	if (s1 == &maybe_freed && s2 == &freed)
+		return &maybe_freed;
+	return &merged;
+}
+
 static int is_freed(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -67,6 +88,17 @@ static int is_freed(struct expression *expr)
 	if (sm && slist_has_state(sm->possible, &freed))
 		return 1;
 	return 0;
+}
+
+bool is_freed_var_sym(const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, name, sym);
+	if (state == &freed || state == &maybe_freed)
+		return true;
+
+	return false;
 }
 
 static void match_symbol(struct expression *expr)
@@ -218,6 +250,64 @@ static void match_return(struct expression *expr)
 	free_string(name);
 }
 
+static int counter_was_inced(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	char buf[256];
+	int ret = 0;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	snprintf(buf, sizeof(buf), "%s->users.counter", name);
+	ret = was_inced(buf, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
+void set_other_states_name_sym(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct expression *tmp;
+	struct sm_state *sm;
+
+	FOR_EACH_MY_SM(check_assigned_expr_id, __get_cur_stree(), sm) {
+		tmp = sm->state->data;
+		if (!tmp)
+			continue;
+		if (tmp->type != EXPR_SYMBOL)
+			continue;
+		if (tmp->symbol != sym)
+			continue;
+		if (!tmp->symbol_name)
+			continue;
+		if (strcmp(tmp->symbol_name->name, name) != 0)
+			continue;
+		set_state(owner, tmp->symbol_name->name, tmp->symbol, state);
+	} END_FOR_EACH_SM(sm);
+
+	tmp = get_assigned_expr_name_sym(name, sym);
+	if (tmp)
+		set_state_expr(owner, tmp, state);
+}
+
+void set_other_states(int owner, struct expression *expr, struct smatch_state *state)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	set_other_states_name_sym(owner, name, sym, state);
+
+free:
+	free_string(name);
+}
+
 static void match_free(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
@@ -228,16 +318,52 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
+	if (strcmp(fn, "kfree_skb") == 0 && counter_was_inced(arg))
+		return;
 	if (is_freed(arg)) {
 		char *name = expr_to_var(arg);
 
 		sm_error("double free of '%s'", name);
 		free_string(name);
 	}
+	track_freed_param(arg, &freed);
 	set_state_expr(my_id, arg, &freed);
+	set_other_states(my_id, arg, &freed);
 }
 
-static void set_param_freed(struct expression *expr, int param, char *key, char *value)
+static void match_kobject_put(const char *fn, struct expression *expr, void *param)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
+	if (!arg)
+		return;
+	/* kobject_put(&cdev->kobj); */
+	if (arg->type != EXPR_PREOP || arg->op != '&')
+		return;
+	arg = strip_expr(arg->unop);
+	if (arg->type != EXPR_DEREF)
+		return;
+	arg = strip_expr(arg->deref);
+	if (arg->type != EXPR_PREOP || arg->op != '*')
+		return;
+	arg = strip_expr(arg->unop);
+	track_freed_param(arg, &maybe_freed);
+	set_state_expr(my_id, arg, &maybe_freed);
+}
+
+struct string_list *handled;
+static bool is_handled_func(struct expression *fn)
+{
+	if (!fn || fn->type != EXPR_SYMBOL || !fn->symbol->ident)
+		return false;
+
+	return list_has_string(handled, fn->symbol->ident->name);
+}
+
+static void set_param_helper(struct expression *expr, int param,
+			     char *key, char *value,
+			     struct smatch_state *state)
 {
 	struct expression *arg;
 	char *name;
@@ -249,6 +375,9 @@ static void set_param_freed(struct expression *expr, int param, char *key, char 
 	if (expr->type != EXPR_CALL)
 		return;
 
+	if (is_handled_func(expr->fn))
+		return;
+
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
 		return;
@@ -256,7 +385,7 @@ static void set_param_freed(struct expression *expr, int param, char *key, char 
 	if (!name || !sym)
 		goto free;
 
-	if (!is_impossible_path()) {
+	if (state == &freed && !is_impossible_path()) {
 		sm = get_sm_state(my_id, name, sym);
 		if (sm && slist_has_state(sm->possible, &freed)) {
 			sm_warning("'%s' double freed", name);
@@ -264,9 +393,21 @@ static void set_param_freed(struct expression *expr, int param, char *key, char 
 		}
 	}
 
-	set_state(my_id, name, sym, &freed);
+	track_freed_param_var_sym(name, sym, state);
+	set_state(my_id, name, sym, state);
+	set_other_states_name_sym(my_id, name, sym, state);
 free:
 	free_string(name);
+}
+
+static void set_param_freed(struct expression *expr, int param, char *key, char *value)
+{
+	set_param_helper(expr, param, key, value, &freed);
+}
+
+static void set_param_maybe_freed(struct expression *expr, int param, char *key, char *value)
+{
+	set_param_helper(expr, param, key, value, &maybe_freed);
 }
 
 int parent_is_free_var_sym_strict(const char *name, struct symbol *sym)
@@ -346,6 +487,12 @@ static void match_untracked(struct expression *call, int param)
 	free_slist(&slist);
 }
 
+void add_free_hook(const char *func, func_hook *call_back, int param)
+{
+	insert_string(&handled, func);
+	add_function_hook(func, call_back, INT_PTR(param));
+}
+
 void check_free_strict(int id)
 {
 	my_id = id;
@@ -353,8 +500,26 @@ void check_free_strict(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_function_hook("kfree", &match_free, INT_PTR(0));
-	add_function_hook("kmem_cache_free", &match_free, INT_PTR(1));
+	add_free_hook("free", &match_free, 0);
+	add_free_hook("kfree", &match_free, 0);
+	add_free_hook("vfree", &match_free, 0);
+	add_free_hook("kzfree", &match_free, 0);
+	add_free_hook("kvfree", &match_free, 0);
+	add_free_hook("kmem_cache_free", &match_free, 1);
+	add_free_hook("kfree_skb", &match_free, 0);
+	add_free_hook("kfree_skbmem", &match_free, 0);
+	add_free_hook("dma_pool_free", &match_free, 1);
+//	add_free_hook("spi_unregister_controller", &match_free, 0);
+	add_free_hook("netif_rx_internal", &match_free, 0);
+	add_free_hook("netif_rx", &match_free, 0);
+	add_free_hook("enqueue_to_backlog", &match_free, 0);
+
+	add_free_hook("brelse", &match_free, 0);
+	add_free_hook("kobject_put", &match_kobject_put, 0);
+	add_free_hook("kref_put", &match_kobject_put, 0);
+	add_free_hook("put_device", &match_kobject_put, 0);
+
+	add_free_hook("dma_free_coherent", match_free, 2);
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
@@ -365,7 +530,9 @@ void check_free_strict(int id)
 	add_modification_hook_late(my_id, &ok_to_use);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_merge_hook(my_id, &merge_frees);
 
 	select_return_states_hook(PARAM_FREED, &set_param_freed);
+	select_return_states_hook(MAYBE_FREED, &set_param_maybe_freed);
 	add_untracked_param_hook(&match_untracked);
 }

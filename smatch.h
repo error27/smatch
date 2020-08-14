@@ -835,6 +835,7 @@ enum info_type {
 	ABSOLUTE_LIMITS	= 1010,
 	PARAM_ADD	= 1012,
 	PARAM_FREED	= 1013,
+	MAYBE_FREED	= 2014,
 	DATA_SOURCE	= 1014,
 	FUZZY_MAX	= 1015,
 	HARD_MAX	= 2015,
@@ -1328,6 +1329,11 @@ bool is_ignored_kernel_data(const char *name);
 
 bool is_fresh_alloc_var_sym(const char *var, struct symbol *sym);
 bool is_fresh_alloc(struct expression *expr);
+bool is_freed_var_sym(const char *name, struct symbol *sym);
+void track_freed_param(struct expression *expr, struct smatch_state *state);
+void track_freed_param_var_sym(const char *name, struct symbol *sym,
+			       struct smatch_state *state);
+
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&
