@@ -1180,7 +1180,7 @@ static struct token *attribute_address_space(struct token *token, struct symbol 
 	if (Waddress_space && as) {
 		if (ctx->ctype.as)
 			sparse_error(token->pos,
-				     "multiple address space given: %s & %s",
+				     "multiple address spaces given: %s & %s",
 				     show_as(ctx->ctype.as), show_as(as));
 		ctx->ctype.as = as;
 	}
