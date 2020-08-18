@@ -2616,7 +2616,7 @@ static void handle_list_initializer(struct expression *expr,
 		int class, struct symbol *ctype, unsigned long mods)
 {
 	struct expression *e, *last = NULL, *top = NULL, *next;
-	int jumped = 0;
+	int jumped = 0;	// has the last designator multiple levels?
 
 	if (expr->zero_init)
 		free_ptr_list(&expr->expr_list);
@@ -2649,7 +2649,7 @@ static void handle_list_initializer(struct expression *expr,
 					ctype->ident ? ": " : "",
 					get_type_name(struct_sym->type),
 					show_ident(struct_sym->ident));
-			if (jumped) {
+			if (jumped && Wpast_deep_designator) {
 				warning(e->pos, "advancing past deep designator");
 				jumped = 0;
 			}

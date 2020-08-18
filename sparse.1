@@ -348,6 +348,13 @@ initializer.  GCC allows this syntax as an extension.  With
 Sparse does not issue these warnings by default.
 .
 .TP
+.B -Wpast-deep-designator
+Warn when, in a initializer-list, a initializer with a deep (nested)
+designator is followed by a non-designated one.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wpointer\-arith
 Warn about anything that depends on the \fBsizeof\fR a void or function type.
 
