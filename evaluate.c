@@ -619,7 +619,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 		ctype = &ptr_ctype;
 	expr->ctype = ctype;
 
-	if (multiply == 1 && itype->bit_size >= bits_in_pointer)
+	if (multiply == 1 && itype->bit_size == bits_in_pointer)
 		return ctype;
 
 	if (index->type == EXPR_VALUE) {
@@ -639,7 +639,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 		return ctype;
 	}
 
-	if (itype->bit_size < bits_in_pointer)
+	if (itype->bit_size != bits_in_pointer)
 		index = cast_to(index, ssize_t_ctype);
 
 	if (multiply > 1) {
