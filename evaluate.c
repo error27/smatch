@@ -2946,11 +2946,52 @@ static int cast_flags(struct expression *expr, struct expression *old)
 	return flags;
 }
 
+///
+// check if a type matches one of the members of a union type
+// @utype: the union type
+// @type: to type to check
+// @return: to identifier of the matching type in the union.
+static struct symbol *find_member_type(struct symbol *utype, struct symbol *type)
+{
+	struct symbol *t, *member;
+
+	if (utype->type != SYM_UNION)
+		return NULL;
+
+	FOR_EACH_PTR(utype->symbol_list, member) {
+		classify_type(member, &t);
+		if (type == t)
+			return member;
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
+static struct symbol *evaluate_compound_literal(struct expression *expr, struct expression *source)
+{
+	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+	struct symbol *sym = expr->cast_type;
+
+	sym->initializer = source;
+	evaluate_symbol(sym);
+
+	addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
+	addr->symbol = sym;
+	if (sym->ctype.modifiers & MOD_TOPLEVEL)
+		addr->flags |= CEF_ADDR;
+
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->deref = addr;
+	expr->ctype = sym;
+	return sym;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *source = expr->cast_expression;
 	struct symbol *ctype;
 	struct symbol *ttype, *stype;
+	struct symbol *member;
 	int tclass, sclass;
 	struct ident *tas = NULL, *sas = NULL;
 
@@ -2968,25 +3009,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * dereferenced as part of a post-fix expression.
 	 * We need to produce an expression that can be dereferenced.
 	 */
-	if (source->type == EXPR_INITIALIZER) {
-		struct symbol *sym = expr->cast_type;
-		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
-
-		sym->initializer = source;
-		evaluate_symbol(sym);
-
-		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
-		addr->symbol = sym;
-		if (sym->ctype.modifiers & MOD_TOPLEVEL)
-			addr->flags |= CEF_ADDR;
-
-		expr->type = EXPR_PREOP;
-		expr->op = '*';
-		expr->unop = addr;
-		expr->ctype = sym;
-
-		return sym;
-	}
+	if (source->type == EXPR_INITIALIZER)
+		return evaluate_compound_literal(expr, source);
 
 	ctype = examine_symbol_type(expr->cast_type);
 	expr->ctype = ctype;
@@ -3017,8 +3041,32 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (expr->type == EXPR_FORCE_CAST)
 		goto out;
 
-	if (tclass & (TYPE_COMPOUND | TYPE_FN))
+	if (tclass & (TYPE_COMPOUND | TYPE_FN)) {
+		/*
+		 * Special case: cast to union type (GCC extension)
+		 * The effect is similar to a compound literal except
+		 * that the result is a rvalue.
+		 */
+		if ((member = find_member_type(ttype, stype))) {
+			struct expression *item, *init;
+
+			if (Wunion_cast)
+				warning(expr->pos, "cast to union type");
+
+			item = alloc_expression(source->pos, EXPR_IDENTIFIER);
+			item->expr_ident = member->ident;
+			item->ident_expression = source;
+
+			init = alloc_expression(source->pos, EXPR_INITIALIZER);
+			add_expression(&init->expr_list, item);
+
+			// FIXME: this should be a rvalue
+			evaluate_compound_literal(expr, init);
+			return ctype;
+		}
+
 		warning(expr->pos, "cast to non-scalar");
+	}
 
 	if (sclass & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");

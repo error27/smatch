@@ -1,0 +1,5 @@
+v0.6.3 (2020-xx-xy)
+===================
+
+* Changes in warnings:
+    "warning: cast to union type" [disable with -Wno-union-cast]
