@@ -2198,8 +2198,6 @@ static int is_promoted(struct expression *expr)
 }
 
 
-static struct symbol *evaluate_cast(struct expression *);
-
 static struct symbol *evaluate_type_information(struct expression *expr)
 {
 	struct symbol *sym = expr->cast_type;
