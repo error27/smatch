@@ -750,20 +750,17 @@ static struct token *struct_union_enum_specifier(enum type type,
 
 		// Mark the structure as needing re-examination
 		sym->examined = 0;
-		goto end;
-	}
-
-	// private struct/union/enum type
-	if (!match_op(token, '{')) {
+	} else if (match_op(token, '{')) {
+		// private struct/union/enum type
+		sym = alloc_symbol(token->pos, type);
+		set_current_scope(sym);		// used by dissect
+		ctx->ctype.base_type = sym;
+	} else {
 		sparse_error(token->pos, "expected declaration");
 		ctx->ctype.base_type = &bad_ctype;
 		return token;
 	}
 
-	sym = alloc_symbol(token->pos, type);
-	set_current_scope(sym);		// used by dissect
-	ctx->ctype.base_type = sym;
-end:
 	token = parse(token->next, sym);
 	token = expect(token, '}', "at end of specifier");
 
