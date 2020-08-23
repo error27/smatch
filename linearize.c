@@ -1080,6 +1080,13 @@ static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int o
 	return target;
 }
 
+static pseudo_t add_cmp_op(struct entrypoint *ep, struct symbol *ctype, int op, struct symbol *itype, pseudo_t left, pseudo_t right)
+{
+	pseudo_t target = add_binary_op(ep, ctype, op, left, right);
+	target->def->itype = itype;
+	return target;
+}
+
 static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val)
 {
 	struct instruction *insn = alloc_typed_instruction(OP_SETVAL, ctype);
@@ -1217,7 +1224,7 @@ static pseudo_t linearize_regular_preop(struct entrypoint *ep, struct expression
 		return pre;
 	case '!': {
 		pseudo_t zero = value_pseudo(0);
-		return add_binary_op(ep, ctype, OP_SET_EQ, pre, zero);
+		return add_cmp_op(ep, ctype, OP_SET_EQ, expr->unop->ctype, pre, zero);
 	}
 	case '~':
 		return add_unop(ep, ctype, OP_NOT, pre);
@@ -1444,7 +1451,7 @@ static inline pseudo_t add_convert_to_bool(struct entrypoint *ep, pseudo_t src, 
 		zero = value_pseudo(0);
 		op = OP_SET_NE;
 	}
-	return add_binary_op(ep, &bool_ctype, op, src, zero);
+	return add_cmp_op(ep, &bool_ctype, op, type, src, zero);
 }
 
 static pseudo_t linearize_expression_to_bool(struct entrypoint *ep, struct expression *expr)
@@ -1773,10 +1780,11 @@ static pseudo_t linearize_compare(struct entrypoint *ep, struct expression *expr
 		[SPECIAL_UNSIGNED_LTE] = OP_SET_BE,
 		[SPECIAL_UNSIGNED_GTE] = OP_SET_AE,
 	};
-	int op = opcode_float(cmpop[expr->op], expr->right->ctype);
+	struct symbol *itype = expr->right->ctype;
+	int op = opcode_float(cmpop[expr->op], itype);
 	pseudo_t src1 = linearize_expression(ep, expr->left);
 	pseudo_t src2 = linearize_expression(ep, expr->right);
-	pseudo_t dst = add_binary_op(ep, expr->ctype, op, src1, src2);
+	pseudo_t dst = add_cmp_op(ep, expr->ctype, op, itype, src1, src2);
 	return dst;
 }
 

@@ -134,6 +134,7 @@ They all have the following signature:
 	* .src1, .src2: operands (types must be compatible)
 	* .target: result of the operation (0/1 valued integer)
 	* .type: type of .target, must be an integral type
+	* .itype: type of the input operands
 
 .. op:: OP_SET_EQ
 	Compare equal.

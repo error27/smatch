@@ -6,7 +6,6 @@ static int foo(long long a)
 /*
  * check-name: cmp-type0
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
