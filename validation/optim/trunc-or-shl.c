@@ -1,3 +1,6 @@
+// because of the cast to char, the fist arg should be eliminated
+// and the whole reduced to TRUNC(%arg2, 8)
+
 char foo(int a, int b)
 {
 	return (a << 8) | b;
@@ -9,5 +12,6 @@ char foo(int a, int b)
  * check-known-to-fail
  *
  * check-output-ignore
- * check-output-contains: ret\\..*%arg2
+ * check-output-excludes: %arg1
+ * check-output-contains: trunc\\..*%arg2
  */
