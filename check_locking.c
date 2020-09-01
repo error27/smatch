@@ -840,54 +840,6 @@ static struct smatch_state *get_start_state(struct sm_state *sm)
 	return &undefined;
 }
 
-static int get_param_lock_name(struct sm_state *sm, struct expression *expr,
-			       const char **name)
-{
-	char *other_name;
-	struct symbol *other_sym;
-	const char *param_name;
-	int param;
-
-	*name = sm->name;
-
-	param = get_param_num_from_sym(sm->sym);
-	if (param >= 0) {
-		param_name = get_param_name(sm);
-		if (param_name)
-			*name = param_name;
-		return param;
-	}
-
-	if (expr) {
-		struct symbol *ret_sym;
-		char *ret_str;
-
-		ret_str = expr_to_str_sym(expr, &ret_sym);
-		if (ret_str && ret_sym == sm->sym) {
-			param_name = state_name_to_param_name(sm->name, ret_str);
-			if (param_name) {
-				free_string(ret_str);
-				*name = param_name;
-				return -1;
-			}
-		}
-		free_string(ret_str);
-	}
-
-	other_name = get_other_name_sym(sm->name, sm->sym, &other_sym);
-	if (!other_name)
-		return -2;
-	param = get_param_num_from_sym(other_sym);
-	if (param < 0)
-		return -2;
-
-	param_name = get_param_name_var_sym(other_name, other_sym);
-	free_string(other_name);
-	if (param_name)
-		*name = param_name;
-	return param;
-}
-
 static int get_db_type(struct sm_state *sm)
 {
 	if (sm->state == get_start_state(sm)) {
@@ -918,7 +870,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 		    sm->state != &restore)
 			continue;
 
-		param = get_param_lock_name(sm, expr, &param_name);
+		param = get_param_key_from_sm(sm, expr, &param_name);
 		sql_insert_return_states(return_id, return_ranges,
 					 get_db_type(sm),
 					 param, param_name, "");
