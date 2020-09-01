@@ -21,7 +21,7 @@ int func (void)
 }
 /*
  * check-name: Smatch locking #3
- * check-command: smatch --project=kernel sm_locking3.c
+ * check-command: smatch --project=kernel -DCONFIG_SMP=y sm_locking3.c
  *
  * check-output-start
 sm_locking3.c:18 func() error: double unlocked 'mylock' (orig line 15)

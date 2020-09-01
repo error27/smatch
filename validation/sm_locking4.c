@@ -25,7 +25,7 @@ void func (void)
 }
 /*
  * check-name: Smatch locking #4
- * check-command: smatch --project=kernel sm_locking4.c
+ * check-command: smatch --project=kernel -DCONFIG_SMP=y sm_locking4.c
  *
  * check-output-start
 sm_locking4.c:23 func() warn: inconsistent returns 'mylock'.

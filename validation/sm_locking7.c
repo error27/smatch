@@ -24,7 +24,7 @@ void func(int *y)
 
 /*
  * check-name: smatch locking #7
- * check-command: smatch -p=kernel -I.. sm_locking7.c
+ * check-command: smatch -p=kernel -I.. -DCONFIG_SMP=y sm_locking7.c
  *
  * check-output-start
 sm_locking7.c:22 func() warn: inconsistent returns 'flags'.
