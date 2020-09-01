@@ -102,9 +102,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
 	struct expression *initstr = alloc_expression(expr->pos, EXPR_STRING);
 	unsigned int length = expr->string->length;
+	struct symbol *char_type = expr->wide ? wchar_ctype : &char_ctype;
 
 	sym->array_size = alloc_const_expression(expr->pos, length);
-	sym->bit_size = bytes_to_bits(length);
+	sym->bit_size = length * char_type->bit_size;
 	sym->ctype.alignment = 1;
 	sym->string = 1;
 	sym->ctype.modifiers = MOD_STATIC;
@@ -117,10 +118,10 @@ static struct symbol *evaluate_string(struct expression *expr)
 	initstr->string = expr->string;
 
 	array->array_size = sym->array_size;
-	array->bit_size = bytes_to_bits(length);
-	array->ctype.alignment = 1;
+	array->bit_size = sym->bit_size;
+	array->ctype.alignment = char_type->ctype.alignment;
 	array->ctype.modifiers = MOD_STATIC;
-	array->ctype.base_type = &char_ctype;
+	array->ctype.base_type = char_type;
 	array->examined = 1;
 	array->evaluated = 1;
 	
@@ -405,7 +406,10 @@ static inline int is_string_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	return type->type == SYM_ARRAY && is_byte_type(type->ctype.base_type);
+	if (type->type != SYM_ARRAY)
+		return 0;
+	type = type->ctype.base_type;
+	return is_byte_type(type) || is_wchar_type(type);
 }
 
 static struct symbol *bad_expr_type(struct expression *expr)
@@ -615,7 +619,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 		ctype = &ptr_ctype;
 	expr->ctype = ctype;
 
-	if (multiply == 1 && itype->bit_size >= bits_in_pointer)
+	if (multiply == 1 && itype->bit_size == bits_in_pointer)
 		return ctype;
 
 	if (index->type == EXPR_VALUE) {
@@ -635,7 +639,7 @@ static struct symbol *evaluate_ptr_add(struct expression *expr, struct symbol *i
 		return ctype;
 	}
 
-	if (itype->bit_size < bits_in_pointer)
+	if (itype->bit_size != bits_in_pointer)
 		index = cast_to(index, ssize_t_ctype);
 
 	if (multiply > 1) {
@@ -1342,8 +1346,17 @@ static int evaluate_assign_op(struct expression *expr)
 				return 1;
 		} else if (op == SPECIAL_SHR_ASSIGN || op == SPECIAL_SHL_ASSIGN) {
 			// shifts do integer promotions, but that's it.
+			unrestrict(expr->left, tclass, &t);
+			target = integer_promotion(t);
+
 			unrestrict(expr->right, sclass, &s);
-			target = integer_promotion(s);
+			source = integer_promotion(s);
+			expr->right = cast_to(expr->right, source);
+
+			// both gcc & clang seems to do this, so ...
+			if (target->bit_size > source->bit_size)
+				expr->right = cast_to(expr->right, &uint_ctype);
+
 			goto Cast;
 		} else if (!(sclass & TYPE_RESTRICT))
 			goto usual;
@@ -1444,8 +1457,8 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 		}
 		b1 = examine_pointer_target(t);
 		b2 = examine_pointer_target(s);
-		mod1 = target_qualifiers(t);
-		mod2 = target_qualifiers(s);
+		mod1 = t->ctype.modifiers & MOD_IGN;
+		mod2 = s->ctype.modifiers & MOD_IGN;
 		if (whitelist_pointers(b1, b2)) {
 			/*
 			 * assignments to/from void * are OK, provided that
@@ -2185,8 +2198,6 @@ static int is_promoted(struct expression *expr)
 }
 
 
-static struct symbol *evaluate_cast(struct expression *);
-
 static struct symbol *evaluate_type_information(struct expression *expr)
 {
 	struct symbol *sym = expr->cast_type;
@@ -2333,14 +2344,13 @@ static struct symbol *evaluate_alignof(struct expression *expr)
 	return size_t_ctype;
 }
 
-static int evaluate_arguments(struct symbol *fn, struct expression_list *head)
+int evaluate_arguments(struct symbol_list *argtypes, struct expression_list *head)
 {
 	struct expression *expr;
-	struct symbol_list *argument_types = fn->arguments;
 	struct symbol *argtype;
 	int i = 1;
 
-	PREPARE_PTR_LIST(argument_types, argtype);
+	PREPARE_PTR_LIST(argtypes, argtype);
 	FOR_EACH_PTR (head, expr) {
 		struct expression **p = THIS_ADDRESS(expr);
 		struct symbol *ctype, *target;
@@ -2606,7 +2616,7 @@ static void handle_list_initializer(struct expression *expr,
 		int class, struct symbol *ctype, unsigned long mods)
 {
 	struct expression *e, *last = NULL, *top = NULL, *next;
-	int jumped = 0;
+	int jumped = 0;	// has the last designator multiple levels?
 
 	if (expr->zero_init)
 		free_ptr_list(&expr->expr_list);
@@ -2639,7 +2649,7 @@ static void handle_list_initializer(struct expression *expr,
 					ctype->ident ? ": " : "",
 					get_type_name(struct_sym->type),
 					show_ident(struct_sym->ident));
-			if (jumped) {
+			if (jumped && Wpast_deep_designator) {
 				warning(e->pos, "advancing past deep designator");
 				jumped = 0;
 			}
@@ -2760,7 +2770,6 @@ static struct expression *handle_scalar(struct expression *e, int nested)
 static int handle_initializer(struct expression **ep, int nested,
 		int class, struct symbol *ctype, unsigned long mods)
 {
-	int is_string = is_string_type(ctype);
 	struct expression *e = *ep, *p;
 	struct symbol *type;
 
@@ -2794,7 +2803,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	 * pathologies, so we don't need anything fancy here.
 	 */
 	if (e->type == EXPR_INITIALIZER) {
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			struct expression *v = NULL;
 			int count = 0;
 
@@ -2815,7 +2824,7 @@ static int handle_initializer(struct expression **ep, int nested,
 	/* string */
 	if (is_string_literal(&e)) {
 		/* either we are doing array of char, or we'll have to dig in */
-		if (is_string) {
+		if (is_string_type(ctype)) {
 			*ep = e;
 			goto String;
 		}
@@ -2840,10 +2849,12 @@ String:
 	*p = *e;
 	type = evaluate_expression(p);
 	if (ctype->bit_size != -1) {
-		if (ctype->bit_size + bits_in_char < type->bit_size)
+		struct symbol *char_type = e->wide ? wchar_ctype : &char_ctype;
+		unsigned int size_with_null = ctype->bit_size + char_type->bit_size;
+		if (size_with_null < type->bit_size)
 			warning(e->pos,
 				"too long initializer-string for array of char");
-		else if (Winit_cstring && ctype->bit_size + bits_in_char == type->bit_size) {
+		else if (Winit_cstring && size_with_null == type->bit_size) {
 			warning(e->pos,
 				"too long initializer-string for array of char(no space for nul char)");
 		}
@@ -2935,11 +2946,52 @@ static int cast_flags(struct expression *expr, struct expression *old)
 	return flags;
 }
 
+///
+// check if a type matches one of the members of a union type
+// @utype: the union type
+// @type: to type to check
+// @return: to identifier of the matching type in the union.
+static struct symbol *find_member_type(struct symbol *utype, struct symbol *type)
+{
+	struct symbol *t, *member;
+
+	if (utype->type != SYM_UNION)
+		return NULL;
+
+	FOR_EACH_PTR(utype->symbol_list, member) {
+		classify_type(member, &t);
+		if (type == t)
+			return member;
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
+static struct symbol *evaluate_compound_literal(struct expression *expr, struct expression *source)
+{
+	struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
+	struct symbol *sym = expr->cast_type;
+
+	sym->initializer = source;
+	evaluate_symbol(sym);
+
+	addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
+	addr->symbol = sym;
+	if (sym->ctype.modifiers & MOD_TOPLEVEL)
+		addr->flags |= CEF_ADDR;
+
+	expr->type = EXPR_PREOP;
+	expr->op = '*';
+	expr->deref = addr;
+	expr->ctype = sym;
+	return sym;
+}
+
 static struct symbol *evaluate_cast(struct expression *expr)
 {
 	struct expression *source = expr->cast_expression;
 	struct symbol *ctype;
 	struct symbol *ttype, *stype;
+	struct symbol *member;
 	int tclass, sclass;
 	struct ident *tas = NULL, *sas = NULL;
 
@@ -2957,25 +3009,8 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	 * dereferenced as part of a post-fix expression.
 	 * We need to produce an expression that can be dereferenced.
 	 */
-	if (source->type == EXPR_INITIALIZER) {
-		struct symbol *sym = expr->cast_type;
-		struct expression *addr = alloc_expression(expr->pos, EXPR_SYMBOL);
-
-		sym->initializer = source;
-		evaluate_symbol(sym);
-
-		addr->ctype = &lazy_ptr_ctype;	/* Lazy eval */
-		addr->symbol = sym;
-		if (sym->ctype.modifiers & MOD_TOPLEVEL)
-			addr->flags |= CEF_ADDR;
-
-		expr->type = EXPR_PREOP;
-		expr->op = '*';
-		expr->unop = addr;
-		expr->ctype = sym;
-
-		return sym;
-	}
+	if (source->type == EXPR_INITIALIZER)
+		return evaluate_compound_literal(expr, source);
 
 	ctype = examine_symbol_type(expr->cast_type);
 	expr->ctype = ctype;
@@ -3006,8 +3041,32 @@ static struct symbol *evaluate_cast(struct expression *expr)
 	if (expr->type == EXPR_FORCE_CAST)
 		goto out;
 
-	if (tclass & (TYPE_COMPOUND | TYPE_FN))
+	if (tclass & (TYPE_COMPOUND | TYPE_FN)) {
+		/*
+		 * Special case: cast to union type (GCC extension)
+		 * The effect is similar to a compound literal except
+		 * that the result is a rvalue.
+		 */
+		if ((member = find_member_type(ttype, stype))) {
+			struct expression *item, *init;
+
+			if (Wunion_cast)
+				warning(expr->pos, "cast to union type");
+
+			item = alloc_expression(source->pos, EXPR_IDENTIFIER);
+			item->expr_ident = member->ident;
+			item->ident_expression = source;
+
+			init = alloc_expression(source->pos, EXPR_INITIALIZER);
+			add_expression(&init->expr_list, item);
+
+			// FIXME: this should be a rvalue
+			evaluate_compound_literal(expr, init);
+			return ctype;
+		}
+
 		warning(expr->pos, "cast to non-scalar");
+	}
 
 	if (sclass & TYPE_COMPOUND)
 		warning(expr->pos, "cast from non-scalar");
@@ -3149,7 +3208,7 @@ static struct symbol *evaluate_call(struct expression *expr)
 		if (!sym->op->args(expr))
 			return NULL;
 	} else {
-		if (!evaluate_arguments(ctype, arglist))
+		if (!evaluate_arguments(ctype->arguments, arglist))
 			return NULL;
 		args = expression_list_size(expr->args);
 		fnargs = symbol_list_size(ctype->arguments);
@@ -3544,7 +3603,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	fntype = current_fn->ctype.base_type;
 	rettype = fntype->ctype.base_type;
 	if (!rettype || rettype == &void_ctype) {
-		if (expr && expr->ctype != &void_ctype)
+		if (expr && !is_void_type(expr->ctype))
 			expression_error(expr, "return expression in %s function", rettype?"void":"typeless");
 		if (expr && Wreturn_void)
 			warning(stmt->pos, "returning void-valued expression");

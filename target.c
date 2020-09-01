@@ -5,6 +5,9 @@
 #include "target.h"
 #include "machine.h"
 
+struct symbol *ptrdiff_ctype;
+struct symbol *intptr_ctype;
+struct symbol *uintptr_ctype;
 struct symbol *size_t_ctype = &ulong_ctype;
 struct symbol *ssize_t_ctype = &long_ctype;
 struct symbol *intmax_ctype = &long_ctype;
@@ -15,6 +18,23 @@ struct symbol *int32_ctype = &int_ctype;
 struct symbol *uint32_ctype = &uint_ctype;
 struct symbol *wchar_ctype = &int_ctype;
 struct symbol *wint_ctype = &uint_ctype;
+struct symbol *least8_ctype = &schar_ctype;
+struct symbol *uleast8_ctype = &uchar_ctype;
+struct symbol *least16_ctype = &short_ctype;
+struct symbol *uleast16_ctype = &ushort_ctype;
+struct symbol *least32_ctype = &int_ctype;
+struct symbol *uleast32_ctype = &uint_ctype;
+struct symbol *least64_ctype = &llong_ctype;
+struct symbol *uleast64_ctype = &ullong_ctype;
+struct symbol *fast8_ctype = &schar_ctype;
+struct symbol *ufast8_ctype = &uchar_ctype;
+struct symbol *fast16_ctype = &long_ctype;
+struct symbol *ufast16_ctype = &ulong_ctype;
+struct symbol *fast32_ctype = &long_ctype;
+struct symbol *ufast32_ctype = &ulong_ctype;
+struct symbol *fast64_ctype = &long_ctype;
+struct symbol *ufast64_ctype = &ulong_ctype;
+struct symbol *sig_atomic_ctype = &int_ctype;
 
 /*
  * For "__attribute__((aligned))"
@@ -60,22 +80,27 @@ static const struct target *targets[] = {
 	[MACH_ALPHA] =		&target_alpha,
 	[MACH_ARM] =		&target_arm,
 	[MACH_ARM64] =		&target_arm64,
-	[MACH_I386] =		&target_i386,
 	[MACH_BFIN] =		&target_bfin,
-	[MACH_X86_64] =		&target_x86_64,
+	[MACH_H8300] =		&target_h8300,
+	[MACH_I386] =		&target_i386,
+	[MACH_M68K] =		&target_m68k,
 	[MACH_MICROBLAZE] =	&target_microblaze,
 	[MACH_MIPS32] =		&target_mips32,
 	[MACH_MIPS64] =		&target_mips64,
+	[MACH_NDS32] =		&target_nds32,
 	[MACH_NIOS2] =		&target_nios2,
+	[MACH_OPENRISC] =	&target_openrisc,
 	[MACH_PPC32] =		&target_ppc32,
 	[MACH_PPC64] =		&target_ppc64,
 	[MACH_RISCV32] =	&target_riscv32,
 	[MACH_RISCV64] =	&target_riscv64,
 	[MACH_S390] =		&target_s390,
 	[MACH_S390X] =		&target_s390x,
+	[MACH_SH] =		&target_sh,
 	[MACH_SPARC32] =	&target_sparc32,
 	[MACH_SPARC64] =	&target_sparc64,
-	[MACH_M68K] =		&target_m68k,
+	[MACH_X86_64] =		&target_x86_64,
+	[MACH_XTENSA] =		&target_xtensa,
 	[MACH_UNKNOWN] =	&target_default,
 };
 const struct target *arch_target = &target_default;
@@ -91,12 +116,15 @@ enum machine target_parse(const char *name)
 		{ "aarch64",	MACH_ARM64,	64, },
 		{ "arm64",	MACH_ARM64,	64, },
 		{ "arm",	MACH_ARM,	32, },
-		{ "i386",	MACH_I386,	32, },
 		{ "bfin",	MACH_BFIN,	32, },
+		{ "h8300",	MACH_H8300,	32, },
+		{ "i386",	MACH_I386,	32, },
 		{ "m68k",	MACH_M68K,	32, },
 		{ "microblaze",	MACH_MICROBLAZE,32, },
 		{ "mips",	MACH_MIPS32,	0,  },
+		{ "nds32",	MACH_NDS32,	32, },
 		{ "nios2",	MACH_NIOS2,	32, },
+		{ "openrisc",	MACH_OPENRISC,	32, },
 		{ "powerpc",	MACH_PPC32,	0,  },
 		{ "ppc",	MACH_PPC32,	0,  },
 		{ "riscv",	MACH_RISCV32,	0,  },
@@ -105,6 +133,8 @@ enum machine target_parse(const char *name)
 		{ "sparc",	MACH_SPARC32,	0,  },
 		{ "x86_64",	MACH_X86_64,	64, },
 		{ "x86-64",	MACH_X86_64,	64, },
+		{ "sh",		MACH_SH,	32, },
+		{ "xtensa",	MACH_XTENSA,	32, },
 		{ NULL },
 	};
 	const struct arch *p;
@@ -136,6 +166,35 @@ enum machine target_parse(const char *name)
 	return MACH_UNKNOWN;
 }
 
+void target_os(const char *name)
+{
+	static const struct os {
+		const char *name;
+		int os;
+	} oses[] = {
+		{ "cygwin",	OS_CYGWIN },
+		{ "darwin",	OS_DARWIN },
+		{ "freebsd",	OS_FREEBSD },
+		{ "linux",	OS_LINUX },
+		{ "native",	OS_NATIVE, },
+		{ "netbsd",	OS_NETBSD },
+		{ "none",	OS_NONE },
+		{ "openbsd",	OS_OPENBSD },
+		{ "sunos",	OS_SUNOS },
+		{ "unix",	OS_UNIX },
+		{ NULL },
+	}, *p;
+
+	for (p = &oses[0]; p->name; p++) {
+		if (!strcmp(p->name, name)) {
+			arch_os = p->os;
+			return;
+		}
+	}
+
+	die("invalid os: %s", name);
+}
+
 
 void target_config(enum machine mach)
 {
@@ -154,10 +213,17 @@ void target_init(void)
 	const struct target *target = arch_target;
 
 	switch (arch_m64) {
+	case ARCH_X32:
+		if (target->target_x32bit)
+			target = target->target_x32bit;
+		goto case_32bit;
+
 	case ARCH_LP32:
 		max_int_alignment = 4;
+		if (target->target_32bit)
+			target = target->target_32bit;
 		/* fallthrough */
-	case ARCH_X32:
+	case_32bit:
 		bits_in_long = 32;
 		bits_in_pointer = 32;
 		pointer_alignment = 4;
@@ -167,8 +233,8 @@ void target_init(void)
 		uint64_ctype = &ullong_ctype;
 		intmax_ctype = &llong_ctype;
 		uintmax_ctype = &ullong_ctype;
-		if (target->target_32bit)
-			target = target->target_32bit;
+		fast64_ctype = &llong_ctype;
+		ufast64_ctype = &ullong_ctype;
 		break;
 
 	case ARCH_LLP64:

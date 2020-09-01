@@ -1,5 +1,5 @@
-Submitting patches: the sparse version
-======================================
+Submitting patches
+==================
 
 Sparse uses a patch submit process similar to the Linux Kernel
 [Submitting Patches](https://www.kernel.org/doc/html/v4.12/process/submitting-patches.html)

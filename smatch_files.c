@@ -57,7 +57,7 @@ struct token *get_tokens_file(const char *filename)
 	fd = open_data_file(filename);
 	if (fd < 0)
 		return NULL;
-	token = tokenize(filename, fd, NULL, NULL);
+	token = tokenize(NULL, filename, fd, NULL, NULL);
 	close(fd);
 	return token;
 }

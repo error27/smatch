@@ -204,9 +204,9 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 	struct ident *name = node->ident;
 	struct symbol *base, *dctx;
 
-	if (node->examined)
+	if (node->visited)
 		return;
-	node->examined = 1;
+	node->visited = 1;
 	node->kind = 'v';
 
 	while ((base = node->ctype.base_type) != NULL)
@@ -228,9 +228,9 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 			break;
 
 		case SYM_STRUCT: case SYM_UNION: //case SYM_ENUM:
-			if (base->evaluated)
+			if (base->inspected)
 				return;
-			base->evaluated = 1;
+			base->inspected = 1;
 			base->kind = 's';
 
 			if (!base->symbol_list)
@@ -469,6 +469,17 @@ again:
 				in = in->ctype.base_type;
 			}
 		} while ((expr = expr->down));
+	}
+
+	break; case EXPR_GENERIC: {
+		struct type_expression *map;
+
+		do_expression(U_VOID, expr->control);
+
+		for (map = expr->map; map; map = map->next)
+			ret = do_expression(mode, map->expr);
+		if (expr->def)
+			ret = do_expression(mode, expr->def);
 	}
 
 	break; case EXPR_SYMBOL:

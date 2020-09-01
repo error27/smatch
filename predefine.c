@@ -25,12 +25,12 @@ static void predefined_sizeof(const char *name, const char *suffix, unsigned bit
 	predefine(buf, 1, "%d", bits/8);
 }
 
-static void predefined_width(const char *name, unsigned bits)
+static void predefined_width(const char *name, struct symbol *type)
 {
 	char buf[32];
 
 	snprintf(buf, sizeof(buf), "__%s_WIDTH__", name);
-	predefine(buf, 1, "%d", bits);
+	predefine(buf, 1, "%d", type->bit_size);
 }
 
 static void predefined_max(const char *name, struct symbol *type)
@@ -78,7 +78,7 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 	if (flags & PTYPE_TYPE)
 		predefined_type(name, type);
 	if (flags & PTYPE_WIDTH)
-		predefined_width(name, bits);
+		predefined_width(name, type);
 }
 
 void predefined_macros(void)
@@ -145,13 +145,32 @@ void predefined_macros(void)
 	predefined_ctype("INT64",      int64_ctype, PTYPE_MAX|PTYPE_TYPE);
 	predefined_ctype("UINT64",    uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
 
+	predefined_ctype("INT_LEAST8",   &schar_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_LEAST8",  &uchar_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_LEAST16",  &short_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_LEAST16",&ushort_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_LEAST32",   int32_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_LEAST32", uint32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_LEAST64",   int64_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_LEAST64", uint64_ctype, PTYPE_MAX|PTYPE_TYPE);
+
+	predefined_ctype("INT_FAST8",    fast8_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST8",  ufast8_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST16",  fast16_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST16",ufast16_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST32",  fast32_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST32",ufast32_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("INT_FAST64",  fast64_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINT_FAST64",ufast64_ctype, PTYPE_MAX|PTYPE_TYPE);
+
 	predefined_ctype("INTMAX",    intmax_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
 	predefined_ctype("UINTMAX",  uintmax_ctype, PTYPE_MAX|PTYPE_TYPE);
-	predefined_ctype("INTPTR",   ssize_t_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
-	predefined_ctype("UINTPTR",   size_t_ctype, PTYPE_MAX|PTYPE_TYPE);
-	predefined_ctype("PTRDIFF",  ssize_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
+	predefined_ctype("INTPTR",    intptr_ctype, PTYPE_MAX|PTYPE_TYPE|PTYPE_WIDTH);
+	predefined_ctype("UINTPTR",  uintptr_ctype, PTYPE_MAX|PTYPE_TYPE);
+	predefined_ctype("PTRDIFF",  ptrdiff_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("SIZE",      size_t_ctype, PTYPE_ALL_T|PTYPE_TYPE);
 	predefined_ctype("POINTER",     &ptr_ctype, PTYPE_SIZEOF);
+	predefined_ctype("SIG_ATOMIC", sig_atomic_ctype, PTYPE_MAX|PTYPE_MIN|PTYPE_TYPE|PTYPE_WIDTH);
 
 	predefined_sizeof("FLOAT", "", bits_in_float);
 	predefined_sizeof("DOUBLE", "", bits_in_double);
@@ -210,16 +229,50 @@ void predefined_macros(void)
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);
 
-	if (arch_os >= OS_UNIX) {
+	if (arch_os >= OS_UNIX && arch_os != OS_DARWIN) {
 		predefine("__unix__", 1, "1");
 		predefine("__unix", 1, "1");
 		predefine_nostd("unix");
 	}
 
-	if (arch_os == OS_SUNOS) {
+	switch (arch_os) {
+	case OS_CYGWIN:
+		predefine("__CYGWIN__", 1, "1");
+		if (arch_m64 == ARCH_LP32)
+			predefine("__CYGWIN32__", 1, "1");
+		add_pre_buffer("#define __cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define __declspec(x) __attribute__((x))\n");
+		add_pre_buffer("#define __fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define __stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define __thiscall __attribute__((__thiscall__))\n");
+		add_pre_buffer("#define _cdecl __attribute__((__cdecl__))\n");
+		add_pre_buffer("#define _fastcall __attribute__((__fastcall__))\n");
+		add_pre_buffer("#define _stdcall __attribute__((__stdcall__))\n");
+		add_pre_buffer("#define _thiscall __attribute__((__thiscall__))\n");
+		break;
+	case OS_DARWIN:
+		predefine("__APPLE__", 1, "1");
+		predefine("__APPLE_CC__", 1, "1");
+		predefine("__MACH__", 1, "1");
+		break;
+	case OS_FREEBSD:
+		predefine("__FreeBSD__", 1, "1");
+		break;
+	case OS_LINUX:
+		predefine("__linux__", 1, "1");
+		predefine("__linux", 1, "1");
+		break;
+	case OS_NETBSD:
+		predefine("__NetBSD__", 1, "1");
+		break;
+	case OS_OPENBSD:
+		predefine("__OpenBSD__", 1, "1");
+		break;
+	case OS_SUNOS:
 		predefine("__sun__", 1, "1");
 		predefine("__sun", 1, "1");
 		predefine_nostd("sun");
 		predefine("__svr4__", 1, "1");
+		break;
 	}
 }

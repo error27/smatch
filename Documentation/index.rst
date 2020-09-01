@@ -25,9 +25,6 @@ by Christopher Li in 2009 and by Luc Van Oostenryck in late 2018.
 Getting Sparse
 --------------
 
-You can find tarballs of released versions of Sparse at
-http://www.kernel.org/pub/software/devel/sparse/dist/.
-
 The most recent version can be obtained directly from the Git
 repository with the command::
 
@@ -35,6 +32,8 @@ repository with the command::
 
 You can also `browse the Git repository <https://git.kernel.org/pub/scm/devel/sparse/sparse.git>`_
 or use the mirror at https://github.com/lucvoo/sparse.
+The tarballs of released versions of Sparse and their signatures can be found at
+https://www.kernel.org/pub/software/devel/sparse/dist/.
 
 Once you have the sources, to build Sparse and install it in your ~/bin
 directory, just do::
@@ -60,45 +59,36 @@ archives at https://marc.info/?l=linux-sparse.
 To subscribe to the list, send an email with
 ``subscribe linux-sparse`` in the body to ``majordomo@vger.kernel.org``.
 
-Bugs can also be reported and tracked via the Linux kernel's bugzilla:
-http://bugzilla.kernel.org/enter_bug.cgi?component=Sparse&product=Tools.
+Bugs can also be reported and tracked via the `Linux kernel's bugzilla for sparse
+<https://bugzilla.kernel.org/enter_bug.cgi?component=Sparse&product=Tools>`_.
 
-User documentation
-------------------
+
 .. toctree::
+   :caption: User Documentation
    :maxdepth: 1
 
-   nocast-vs-bitwise
+   annotations
 
-Developer documentation
------------------------
+Some interesting external documentation:
+
+* `Sparse: a look under the hood <https://lwn.net/Articles/689907/>`_
+* `Sparse: a short overview <https://sil2.osadl.org/events/ewc-2019-hands-on/sparse_slides.pdf>`_
+
 .. toctree::
-   :maxdepth: 1
-
-   test-suite
-   dev-options
-   api
-   IR
-   types
-
-How to contribute
------------------
-.. toctree::
+   :caption: Development
    :maxdepth: 1
 
    submitting-patches
+   types
+   api
+   dev-options
+   IR
+   test-suite
+   doc-guide
    TODO
 
-Documentation
--------------
 .. toctree::
-   :maxdepth: 1
-
-   doc-guide
-
-Release Notes
--------------
-.. toctree::
+   :caption: Release Notes
    :maxdepth: 1
 
    release-notes/index

@@ -307,6 +307,29 @@ void merge_type(struct symbol *sym, struct symbol *base_type)
 		merge_type(sym, sym->ctype.base_type);
 }
 
+static bool is_wstring_expr(struct expression *expr)
+{
+	while (expr) {
+		switch (expr->type) {
+		case EXPR_STRING:
+			return 1;
+		case EXPR_INITIALIZER:
+			if (expression_list_size(expr->expr_list) != 1)
+				return 0;
+			expr = first_expression(expr->expr_list);
+			break;
+		case EXPR_PREOP:
+			if (expr->op == '(') {
+				expr = expr->unop;
+				break;
+			}
+		default:
+			return 0;
+		}
+	}
+	return 0;
+}
+
 static int count_array_initializer(struct symbol *t, struct expression *expr)
 {
 	int nr = 0;
@@ -320,6 +343,8 @@ static int count_array_initializer(struct symbol *t, struct expression *expr)
 	 * (including NUL), otherwise we have one element here.
 	 */
 	if (t->ctype.base_type == &int_type && t->rank == -2)
+		is_char = 1;
+	else if (t == wchar_ctype && is_wstring_expr(expr))
 		is_char = 1;
 
 	switch (expr->type) {
@@ -776,7 +801,7 @@ struct symbol	zero_int;
 
 void init_symbols(void)
 {
-	int stream = init_stream("builtin", -1, includepath);
+	int stream = init_stream(NULL, "builtin", -1, includepath);
 
 #define __IDENT(n,str,res) \
 	hash_ident(&n)
@@ -904,4 +929,11 @@ void init_ctype(void)
 		char_ctype.ctype.modifiers |= MOD_UNSIGNED;
 		char_ctype.ctype.modifiers &= ~MOD_SIGNED;
 	}
+
+	if (!ptrdiff_ctype)
+		ptrdiff_ctype = ssize_t_ctype;
+	if (!intptr_ctype)
+		intptr_ctype = ssize_t_ctype;
+	if (!uintptr_ctype)
+		uintptr_ctype = size_t_ctype;
 }

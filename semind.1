@@ -1,27 +1,27 @@
 .\" Sindex manpage by Alexey Gladkov
-.TH sindex "1"
+.TH semind "1"
 .
 .SH NAME
-sindex \- Semantic Indexer for C
+semind \- Semantic Indexer for C
 .
 .SH SYNOPSIS
-.B sindex
+.B semind
 [\fIoptions\fR]
 .br
-.B sindex
+.B semind
 [\fIoptions\fR] \fIadd\fR [\fIcommand options\fR] [\fI--\fR] [\fIcompiler options\fR] [\fIfiles...\fR]
 .br
-.B sindex
+.B semind
 [\fIoptions\fR] \fIrm\fR [\fIcommand options\fR] \fIpattern\fR
 .br
-.B sindex
+.B semind
 [\fIoptions\fR] \fIsearch\fR [\fIcommand options\fR] [\fIpattern\fR]
 .br
-.B sindex [\fIoptions\fR] \fIsearch\fR [\fIcommand options\fR] (\fI-e\fR|\fI-l\fR) \fIfilename\fR:\fIlinenr\fR:\fIcolumn\fR
+.B semind [\fIoptions\fR] \fIsearch\fR [\fIcommand options\fR] (\fI-e\fR|\fI-l\fR) \fIfilename\fR:\fIlinenr\fR:\fIcolumn\fR
 .br
 .SH DESCRIPTION
 .P
-sindex is the simple to use cscope-like tool based on sparse/dissect.  Unlike
+semind is the simple to use cscope-like tool based on sparse/dissect.  Unlike
 cscope it runs after pre-processor and thus it can't index the code filtered out
 by ifdef's, but otoh it understands how the symbol is used and it can track the
 usage of struct members.
@@ -44,7 +44,7 @@ wildcard pattern.
 .SH COMMON OPTIONS
 .TP
 \fB-D\fR, \fB--database=FILE\fR
-specify database file (default: ./sindex.sqlite).
+specify database file (default: ./semind.sqlite).
 .TP
 \fB-v\fR, \fB--verbose\fR
 show information about what is being done.
@@ -128,8 +128,8 @@ struct member
 .
 .SH MODE
 The \fBMODE\fR is dumped as a 3-letter string. The first letter denotes address
-of part, 2-nd - access by value, 3-rd - access by pointer. A special value
-\'\fIdef\fR\' means a symbol definition.
+of part, 2-nd - access by value, 3-rd - access by pointer. A special
+value '\fIdef\fR' means a symbol definition.
 .TP
 \fBr\fR
 read
@@ -144,7 +144,7 @@ read and write
 .BR sparse (1)
 .
 .SH HOMEPAGE
-http://www.kernel.org/pub/software/devel/sparse/
+https://sparse.docs.kernel.org
 .
 .SH MAILING LIST
 linux-sparse@vger.kernel.org

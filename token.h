@@ -53,6 +53,7 @@ struct stream {
 	const char *name;
 	const char *path;    // input-file path - see set_stream_include_path()
 	const char **next_path;
+	struct position pos; //position of the #include, if any
 
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
@@ -216,7 +217,8 @@ static inline struct token *containing_token(struct token **p)
 extern struct token eof_token_entry;
 #define eof_token(x) ((x) == &eof_token_entry)
 
-extern int init_stream(const char *, int fd, const char **next_path);
+extern int init_stream(const struct position *pos, const char *, int fd, const char **next_path);
+extern int stream_prev(int stream);
 extern const char *stream_name(int stream);
 struct ident *alloc_ident(const char *name, int len);
 extern struct ident *hash_ident(struct ident *);
@@ -227,7 +229,7 @@ extern const char *show_ident(const struct ident *);
 extern const char *show_string(const struct string *string);
 extern const char *show_token(const struct token *);
 extern const char *quote_token(const struct token *);
-extern struct token * tokenize(const char *, int, struct token *, const char **next_path);
+extern struct token * tokenize(const struct position *pos, const char *, int, struct token *, const char **next_path);
 extern struct token * tokenize_buffer(void *, unsigned long, struct token **);
 
 extern void show_identifier_stats(void);

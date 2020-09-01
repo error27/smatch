@@ -50,13 +50,15 @@ lsr31:
 lsr32:
 .L8:
 	<entry-point>
-	ret.32      $0
+	lsr.32      %r14 <- %arg1, $32
+	ret.32      %r14
 
 
 lsr33:
 .L10:
 	<entry-point>
-	ret.32      $0
+	lsr.32      %r17 <- %arg1, $33
+	ret.32      %r17
 
 
 shl31:
@@ -69,13 +71,15 @@ shl31:
 shl32:
 .L14:
 	<entry-point>
-	ret.32      $0
+	shl.32      %r23 <- %arg1, $32
+	ret.32      %r23
 
 
 shl33:
 .L16:
 	<entry-point>
-	ret.32      $0
+	shl.32      %r26 <- %arg1, $33
+	ret.32      %r26
 
 
  * check-output-end

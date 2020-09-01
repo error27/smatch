@@ -24,6 +24,9 @@ static const struct builtin_fn builtins_alpha[] = {
 const struct target target_alpha = {
 	.mach = MACH_ALPHA,
 	.bitness = ARCH_LP64,
+	.has_int128 = 1,
+
+	.bits_in_longdouble = 64,
 
 	.predefine = predefine_alpha,
 	.builtins = builtins_alpha,

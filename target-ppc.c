@@ -14,6 +14,10 @@ static void predefine_ppc(const struct target *self)
 	predefine("_ARCH_PPC", 1, "1");
 	if (arch_big_endian)
 		predefine("_BIG_ENDIAN", 1, "1");
+	if (ldouble_ctype.bit_size == 128) {
+		predefine("__LONGDOUBLE128", 1, "1");
+		predefine("__LONG_DOUBLE_128__", 1, "1");
+	}
 }
 
 static const char *asm_constraint_ppc(struct asm_operand *op, int c, const char *str)
@@ -26,6 +30,14 @@ static const char *asm_constraint_ppc(struct asm_operand *op, int c, const char 
 	return str;
 }
 
+
+static void init_ppc32(const struct target *self)
+{
+	fast16_ctype = &int_ctype;
+	ufast16_ctype = &uint_ctype;
+	fast32_ctype = &int_ctype;
+	ufast32_ctype = &uint_ctype;
+}
 
 static void predefine_ppc32(const struct target *self)
 {
@@ -42,6 +54,7 @@ const struct target target_ppc32 = {
 
 	.target_64bit = &target_ppc64,
 
+	.init = init_ppc32,
 	.predefine = predefine_ppc32,
 	.asm_constraint = asm_constraint_ppc,
 };

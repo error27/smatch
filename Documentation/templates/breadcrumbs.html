@@ -1,0 +1,11 @@
+{%- extends "sphinx_rtd_theme/breadcrumbs.html" %}
+
+{% block breadcrumbs_aside %}
+  {% if hasdoc(pagename) %}
+    <li class="wy-breadcrumbs-aside">
+    {% if show_source and has_source and sourcename %}
+      <a href="{{ pathto('_sources/' + sourcename, true)|e }}" rel="nofollow"> {{ _('View page source') }}</a>
+    {% endif %}
+    </li>
+  {% endif %}
+{% endblock %}

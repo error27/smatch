@@ -6,6 +6,7 @@
  * check-assert: sizeof(long) == 8
  *
  * check-error-start
+cast-kinds-check.c: note: in included file:
 optim/cast-kinds.c:5:45: warning: cast drops bits
 optim/cast-kinds.c:6:47: warning: cast drops bits
 optim/cast-kinds.c:7:46: warning: cast drops bits

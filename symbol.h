@@ -81,7 +81,7 @@ enum keyword {
 	KW_BUILTIN	= 1 << 4,
 	KW_ASM		= 1 << 5,
 	KW_MODE		= 1 << 6,
-     // KW UNUSED	= 1 << 7,
+	KW_STATIC	= 1 << 7,
      // KW UNUSED	= 1 << 8,
 	KW_EXACT	= 1 << 9,
 };
@@ -108,8 +108,10 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	unsigned long f_modifiers;		// function attributes
-	unsigned char prefer_abstract, storage_class;
+	unsigned long storage_class;
+	unsigned char prefer_abstract;
 	unsigned char autotype;
+	unsigned char forced;
 };
 
 struct pseudo;
@@ -124,12 +126,12 @@ struct symbol_op {
 	struct pseudo *(*linearize)(struct entrypoint *, struct expression *);
 
 	/* keywords */
-	struct token *(*declarator)(struct token *token, struct decl_state *ctx);
+	struct token *(*declarator)(struct token *token, struct symbol *, struct decl_state *ctx);
 	struct token *(*statement)(struct token *token, struct statement *stmt);
 	struct token *(*toplevel)(struct token *token, struct symbol_list **list);
 	struct token *(*attribute)(struct token *token, struct symbol *attr, struct decl_state *ctx);
 	struct symbol *(*to_mode)(struct symbol *);
-	void          (*asm_modifier)(struct token *token, unsigned long *mods);
+	void (*asm_modifier)(struct token *token, unsigned long *mods, unsigned long mod);
 
 	int test, set, class;
 };
@@ -206,9 +208,10 @@ struct symbol {
 	union /* backend */ {
 		struct basic_block *bb_target;	/* label */
 		void *aux;			/* Auxiliary info, e.g. backend information */
-		struct {			/* sparse ctags */
-			char kind;
+		struct {
+			char kind;		/* used by ctags & dissect */
 			unsigned char visited:1;
+			unsigned char inspected:1;
 		};
 	};
 	pseudo_t pseudo;
@@ -304,9 +307,6 @@ extern struct symbol	float128_ctype;
 extern struct symbol	const_void_ctype, const_char_ctype;
 extern struct symbol	const_ptr_ctype, const_string_ctype;
 
-#define	uintptr_ctype	 size_t_ctype
-#define	 intptr_ctype	ssize_t_ctype
-
 /* Special internal symbols */
 extern struct symbol	zero_int;
 
@@ -330,6 +330,7 @@ extern void init_linearized_builtins(int stream);
 extern void init_ctype(void);
 extern struct symbol *alloc_symbol(struct position, int type);
 extern void show_type(struct symbol *);
+extern const char *modifier_name(unsigned long mod);
 extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern int show_symbol_expr_init(struct symbol *sym);
@@ -434,6 +435,13 @@ static inline int is_byte_type(struct symbol *type)
 	return type->bit_size == bits_in_char && type->type != SYM_BITFIELD;
 }
 
+static inline int is_wchar_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type == wchar_ctype;
+}
+
 static inline int is_void_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
@@ -457,6 +465,7 @@ static inline int is_scalar_type(struct symbol *type)
 	case SYM_BITFIELD:
 	case SYM_PTR:
 	case SYM_RESTRICT:	// OK, always integer types
+	case SYM_FOULED:	// idem
 		return 1;
 	default:
 		break;
@@ -477,6 +486,7 @@ static inline bool is_integral_type(struct symbol *type)
 	case SYM_ENUM:
 	case SYM_PTR:
 	case SYM_RESTRICT:	// OK, always integer types
+	case SYM_FOULED:	// idem
 		return 1;
 	default:
 		break;

@@ -73,6 +73,7 @@ int dump_macros_only = 0;
 
 unsigned long fdump_ir;
 int fhosted = 1;
+unsigned int fmax_errors = 100;
 unsigned int fmax_warnings = 100;
 int fmem_report = 0;
 unsigned long long fmemcpy_max_count = 100000;
@@ -112,6 +113,7 @@ int Woverride_init = 1;
 int Woverride_init_all = 0;
 int Woverride_init_whole_range = 0;
 int Wparen_string = 0;
+int Wpast_deep_designator = 0;
 int Wpedantic = 0;
 int Wpointer_arith = 0;
 int Wpointer_to_int_cast = 1;
@@ -128,6 +130,7 @@ int Wtransparent_union = 0;
 int Wtypesign = 0;
 int Wundef = 0;
 int Wuninitialized = 1;
+int Wunion_cast = 0;
 int Wuniversal_initializer = 0;
 int Wunknown_attribute = 0;
 int Wvla = 1;
@@ -492,6 +495,12 @@ static int handle_fmemcpy_max_count(const char *arg, const char *opt, const stru
 	return 1;
 }
 
+static int handle_fmax_errors(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	opt_uint(arg, opt, &fmax_errors, OPTNUM_UNLIMITED);
+	return 1;
+}
+
 static int handle_fmax_warnings(const char *arg, const char *opt, const struct flag *flag, int options)
 {
 	opt_uint(arg, opt, &fmax_warnings, OPTNUM_UNLIMITED);
@@ -504,6 +513,7 @@ static struct flag fflags[] = {
 	{ "freestanding",	&fhosted, NULL, OPT_INVERSE },
 	{ "hosted",		&fhosted },
 	{ "linearize",		NULL,	handle_fpasses,	PASS_LINEARIZE },
+	{ "max-errors=",	NULL,	handle_fmax_errors },
 	{ "max-warnings=",	NULL,	handle_fmax_warnings },
 	{ "mem-report",		&fmem_report },
 	{ "memcpy-max-count=",	NULL,	handle_fmemcpy_max_count },
@@ -609,6 +619,13 @@ static char **handle_switch_M(char *arg, char **next)
 	return next;
 }
 
+static int handle_march(const char *opt, const char *arg, const struct flag *flag, int options)
+{
+	if (arch_target->parse_march)
+		arch_target->parse_march(arg);
+	return 1;
+}
+
 static int handle_mcmodel(const char *opt, const char *arg, const struct flag *flag, int options)
 {
 	static const struct val_map cmodels[] = {
@@ -650,6 +667,7 @@ static const struct flag mflags[] = {
 	{ "x32",&arch_m64, NULL, OPT_VAL, ARCH_X32 },
 	{ "size-llp64", &arch_m64, NULL, OPT_VAL, ARCH_LLP64 },
 	{ "size-long", &arch_msize_long },
+	{ "arch=", NULL, handle_march },
 	{ "big-endian", &arch_big_endian, NULL },
 	{ "little-endian", &arch_big_endian, NULL, OPT_INVERSE },
 	{ "cmodel", &arch_cmodel, handle_mcmodel },
@@ -766,6 +784,12 @@ static char **handle_switch_s(const char *arg, char **next)
 static char **handle_switch_U(char *arg, char **next)
 {
 	const char *name = arg + 1;
+
+	if (*name == '\0') {
+		name = *++next;
+		if (!name)
+			die("argument to `-U' is missing");
+	}
 	add_pre_buffer("#undef %s\n", name);
 	return next;
 }
@@ -828,6 +852,7 @@ static const struct flag warnings[] = {
 	{ "override-init", &Woverride_init },
 	{ "override-init-all", &Woverride_init_all },
 	{ "paren-string", &Wparen_string },
+	{ "past-deep-designator", &Wpast_deep_designator },
 	{ "pedantic", &Wpedantic },
 	{ "pointer-to-int-cast", &Wpointer_to_int_cast },
 	{ "ptr-subtraction-blows", &Wptr_subtraction_blows },
@@ -844,6 +869,7 @@ static const struct flag warnings[] = {
 	{ "typesign", &Wtypesign },
 	{ "undef", &Wundef },
 	{ "uninitialized", &Wuninitialized },
+	{ "union-cast", &Wunion_cast },
 	{ "universal-initializer", &Wuniversal_initializer },
 	{ "unknown-attribute", &Wunknown_attribute },
 	{ "vla", &Wvla },
@@ -925,6 +951,16 @@ static char **handle_param(char *arg, char **next)
 	return next;
 }
 
+static char **handle_os(char *arg, char **next)
+{
+	if (*arg++ != '=')
+		die("missing argument for --os option");
+
+	target_os(arg);
+
+	return next;
+}
+
 static char **handle_version(char *arg, char **next)
 {
 	printf("%s\n", SPARSE_VERSION);
@@ -941,6 +977,7 @@ static char **handle_long_options(char *arg, char **next)
 {
 	static struct switches cmd[] = {
 		{ "arch", handle_arch, 1 },
+		{ "os",   handle_os, 1 },
 		{ "param", handle_param, 1 },
 		{ "version", handle_version },
 		{ NULL, NULL }

@@ -20,6 +20,12 @@ off those warnings, pass the negation of the associated warning option,
 .
 .SH WARNING OPTIONS
 .TP
+.B \-fmax-errors=COUNT
+Set the maximum number of displayed errors to COUNT, which should be
+a numerical value or 'unlimited'.
+The default limit is 100.
+.
+.TP
 .B \-fmax-warnings=COUNT
 Set the maximum number of displayed warnings to COUNT, which should be
 a numerical value or 'unlimited'.
@@ -342,6 +348,13 @@ initializer.  GCC allows this syntax as an extension.  With
 Sparse does not issue these warnings by default.
 .
 .TP
+.B -Wpast-deep-designator
+Warn when, in a initializer-list, a initializer with a deep (nested)
+designator is followed by a non-designated one.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Wpointer\-arith
 Warn about anything that depends on the \fBsizeof\fR a void or function type.
 
@@ -445,6 +458,12 @@ The concerned warnings are, for example, those triggered by
 Sparse does not issue these warnings by default, processing '{\ 0\ }'
 the same as '{\ }'.
 .
+.TP
+.B -Wunion-cast
+Warn on casts to union types.
+
+Sparse does not issues these warnings by default.
+.
 .SH MISC OPTIONS
 .TP
 .B \-\-arch=\fIARCH\fR
@@ -463,6 +482,16 @@ Look for compiler-provided system headers in \fIdir\fR/include/ and \fIdir\fR/in
 Look for system headers in the multiarch subdirectory \fIdir\fR.
 The \fIdir\fR name would normally take the form of the target's
 normalized GNU triplet. (e.g. i386-linux-gnu).
+.
+.TP
+.B --os=\fIOS\fR
+Specify the target Operating System.
+This only makes a few differences with the predefined types.
+The accepted values are: linux, unix, freebsd, netbsd, opensd, sunos, darwin
+and cygwin.
+
+The default OS is the one of the machine used to build Sparse if it can be
+detected, otherwise some generic settings are used.
 .
 .SH DEBUG OPTIONS
 .TP
@@ -497,7 +526,7 @@ By default chars are signed.
 .BR cgcc (1)
 .
 .SH HOMEPAGE
-http://www.kernel.org/pub/software/devel/sparse/
+https://sparse.docs.kernel.org
 .
 .SH MAILING LIST
 linux-sparse@vger.kernel.org

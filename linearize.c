@@ -2468,6 +2468,49 @@ static pseudo_t linearize_statement(struct entrypoint *ep, struct statement *stm
 	return VOID;
 }
 
+static void check_tainted_insn(struct instruction *insn)
+{
+	unsigned long long uval;
+	long long sval;
+	pseudo_t src2;
+
+	switch (insn->opcode) {
+	case OP_DIVU: case OP_DIVS:
+	case OP_MODU: case OP_MODS:
+		if (insn->src2 == value_pseudo(0))
+			warning(insn->pos, "divide by zero");
+		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		src2 = insn->src2;
+		if (src2->type != PSEUDO_VAL)
+			break;
+		uval = src2->value;
+		if (uval < insn->size)
+			break;
+		sval = sign_extend(uval, insn->size);
+		if (Wshift_count_negative && sval < 0)
+			warning(insn->pos, "shift count is negative (%lld)", sval);
+		else if (Wshift_count_overflow)
+			warning(insn->pos, "shift too big (%llu) for type %s", uval, show_typename(insn->type));
+	}
+}
+
+///
+// issue warnings after all possible DCE
+static void late_warnings(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	FOR_EACH_PTR(ep->bbs, bb) {
+		struct instruction *insn;
+		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
+			if (insn->tainted)
+				check_tainted_insn(insn);
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
+}
+
 static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_type)
 {
 	struct statement *stmt = base_type->stmt;
@@ -2514,6 +2557,7 @@ static struct entrypoint *linearize_fn(struct symbol *sym, struct symbol *base_t
 	add_one_insn(ep, ret);
 
 	optimize(ep);
+	late_warnings(ep);
 	return ep;
 }
 

@@ -63,6 +63,16 @@ const char *stream_name(int stream)
 	return input_streams[stream].name;
 }
 
+int stream_prev(int stream)
+{
+	if (stream < 0 || stream > input_stream_nr)
+		return -1;
+	stream = input_streams[stream].pos.stream;
+	if (stream > input_stream_nr)
+		return -1;
+	return stream;
+}
+
 static struct position stream_pos(stream_t *stream)
 {
 	struct position pos;
@@ -305,7 +315,7 @@ int *hash_stream(const char *name)
 	return input_stream_hashes + hash;
 }
 
-int init_stream(const char *name, int fd, const char **next_path)
+int init_stream(const struct position *pos, const char *name, int fd, const char **next_path)
 {
 	int stream = input_stream_nr, *hash;
 	struct stream *current;
@@ -324,6 +334,10 @@ int init_stream(const char *name, int fd, const char **next_path)
 	current->next_path = next_path;
 	current->path = NULL;
 	current->constant = CONSTANT_FILE_MAYBE;
+	if (pos)
+		current->pos = *pos;
+	else
+		current->pos.stream = -1;
 	input_stream_nr = stream+1;
 	hash = hash_stream(name);
 	current->next_stream = *hash;
@@ -616,12 +630,7 @@ static int eat_string(int next, stream_t *stream, enum token_type type)
 		warning(stream_pos(stream), "string too long (%d bytes, %d bytes max)", len, MAX_STRING);
 		len = MAX_STRING;
 	}
-	if (delim == '\'' && len <= 4) {
-		if (len == 0) {
-			sparse_error(stream_pos(stream),
-				"empty character constant");
-			return nextchar(stream);
-		}
+	if (delim == '\'' && len && len <= 4) {
 		token_type(token) = type + len;
 		memset(buffer + len, '\0', 4 - len);
 		memcpy(token->embedded, buffer, 4);
@@ -1011,14 +1020,14 @@ struct token * tokenize_buffer(void *buffer, unsigned long size, struct token **
 	return begin;
 }
 
-struct token * tokenize(const char *name, int fd, struct token *endtoken, const char **next_path)
+struct token * tokenize(const struct position *pos, const char *name, int fd, struct token *endtoken, const char **next_path)
 {
 	struct token *begin, *end;
 	stream_t stream;
 	unsigned char buffer[BUFSIZE];
 	int idx;
 
-	idx = init_stream(name, fd, next_path);
+	idx = init_stream(pos, name, fd, next_path);
 	if (idx < 0) {
 		// info(endtoken->pos, "File %s is const", name);
 		return endtoken;

@@ -46,6 +46,10 @@
 
 extern int parse_error;
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096			// Hurd doesn't define this
+#endif
+
 struct position {
 	unsigned int type:6,
 		     stream:14,
