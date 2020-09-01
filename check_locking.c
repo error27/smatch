@@ -1261,11 +1261,22 @@ void print_held_locks(void)
 	} END_FOR_EACH_SM(sm);
 }
 
+static bool is_smp_config(void)
+{
+	struct ident *id;
+
+	id = built_in_ident("CONFIG_SMP");
+	return !!lookup_symbol(id, NS_MACRO);
+}
+
 void check_locking(int id)
 {
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
+		return;
+
+	if (!is_smp_config())
 		return;
 
 	load_table(lock_table);
