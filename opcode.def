@@ -91,6 +91,7 @@ OPCODE(SLICE,           BADOP,    BADOP,    BADOP, 1, OPF_TARGET)
 
 /* Select - three input values */
 OPCODE(SEL,             BADOP,    BADOP,    BADOP, 3, OPF_TARGET)
+OPCODE(FMADD,           BADOP,    BADOP,    BADOP, 3, OPF_TARGET)
 
 /* Memory */
 OPCODE(LOAD,            BADOP,    BADOP,    BADOP, 1, OPF_TARGET)

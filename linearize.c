@@ -244,6 +244,7 @@ static const char *opcodes[] = {
 
 	/* Special three-input */
 	[OP_SEL] = "select",
+	[OP_FMADD] = "fmadd",
 	
 	/* Memory */
 	[OP_LOAD] = "load",
@@ -461,6 +462,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_SEL:
+	case OP_FMADD:
 		buf += sprintf(buf, "%s <- %s, %s, %s", show_pseudo(insn->target),
 			show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
 		break;
