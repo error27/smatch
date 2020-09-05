@@ -1513,8 +1513,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	fntype = fn->ctype;
 
 	// handle builtins
-	if (fntype->op && fntype->op->linearize)
-		return fntype->op->linearize(ep, expr);
+	if (fntype->op && fntype->op->linearize) {
+		retval = fntype->op->linearize(ep, expr);
+		if (retval)
+			return retval;
+	}
 
 	ctype = &fntype->ctype;
 	if (fntype->type == SYM_NODE)
