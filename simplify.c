@@ -465,6 +465,11 @@ static int replace_with_pseudo(struct instruction *insn, pseudo_t pseudo)
 	return REPEAT_CSE;
 }
 
+static inline int replace_with_value(struct instruction *insn, long long val)
+{
+	return replace_with_pseudo(insn, value_pseudo(val));
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
@@ -833,7 +838,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			omask = def->src2->value;
 			nmask = omask & mask;
 			if (nmask == 0)
-				return replace_with_pseudo(insn, value_pseudo(0));
+				return replace_with_value(insn, 0);
 			if (nmask == mask)
 				return replace_pseudo(insn, &insn->src1, def->src1);
 			if (nbr_users(pseudo) > 1)
@@ -869,7 +874,7 @@ static int simplify_shift(struct instruction *insn, pseudo_t pseudo, long long v
 			omask = def->src2->value;
 			nmask = omask & mask;
 			if (nmask == 0)
-				return replace_with_pseudo(insn, value_pseudo(0));
+				return replace_with_value(insn, 0);
 			if (nmask == mask)
 				return replace_pseudo(insn, &insn->src1, def->src1);
 			// do not simplify into ((A << S) & (M << S))
@@ -907,7 +912,7 @@ new_value:
 		return replace_pseudo(insn, &insn->src1, pseudo->def->src1);
 	}
 zero:
-	return replace_with_pseudo(insn, value_pseudo(0));
+	return replace_with_value(insn, 0);
 replace_mask:
 	insn->opcode = OP_AND;
 	insn->src2 = value_pseudo(mask);
@@ -1099,7 +1104,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 
 	case OP_MODU: case OP_MODS:
 		if (value == 1)
-			return replace_with_pseudo(insn, value_pseudo(0));
+			return replace_with_value(insn, 0);
 		return 0;
 
 	case OP_DIVU: case OP_DIVS:
@@ -1148,8 +1153,7 @@ static int simplify_constant_binop(struct instruction *insn)
 	if (!res)
 		return 0;
 
-	replace_with_pseudo(insn, res);
-	return REPEAT_CSE;
+	return replace_with_pseudo(insn, res);
 }
 
 static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
@@ -1162,14 +1166,14 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 			warning(insn->pos, "self-comparison always evaluates to false");
 	case OP_SUB:
 	case OP_XOR:
-		return replace_with_pseudo(insn, value_pseudo(0));
+		return replace_with_value(insn, 0);
 
 	case OP_SET_EQ:
 	case OP_SET_LE: case OP_SET_GE:
 	case OP_SET_BE: case OP_SET_AE:
 		if (Wtautological_compare)
 			warning(insn->pos, "self-comparison always evaluates to true");
-		return replace_with_pseudo(insn, value_pseudo(1));
+		return replace_with_value(insn, 1);
 
 	case OP_AND:
 	case OP_OR:
@@ -1293,8 +1297,7 @@ static int simplify_constant_unop(struct instruction *insn)
 	mask = 1ULL << (insn->size-1);
 	res &= mask | (mask-1);
 	
-	replace_with_pseudo(insn, value_pseudo(res));
-	return REPEAT_CSE;
+	return replace_with_value(insn, res);
 }
 
 static int simplify_unop(struct instruction *insn)
@@ -1549,8 +1552,7 @@ static int simplify_select(struct instruction *insn)
 		take = cond->value ? src1 : src2;
 		kill = cond->value ? &insn->src3 : &insn->src2;
 		kill_use(kill);
-		replace_with_pseudo(insn, take);
-		return REPEAT_CSE;
+		return replace_with_pseudo(insn, take);
 	}
 	if (constant(src1) && constant(src2)) {
 		long long val1 = src1->value;
@@ -1572,8 +1574,7 @@ static int simplify_select(struct instruction *insn)
 	if (cond == src2 && is_zero(src1)) {
 		kill_use(&insn->src1);
 		kill_use(&insn->src3);
-		replace_with_pseudo(insn, value_pseudo(0));
-		return REPEAT_CSE;
+		return replace_with_value(insn, 0);
 	}
 	return 0;
 }
