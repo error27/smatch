@@ -244,6 +244,7 @@ static const char *opcodes[] = {
 
 	/* Special three-input */
 	[OP_SEL] = "select",
+	[OP_FMADD] = "fmadd",
 	
 	/* Memory */
 	[OP_LOAD] = "load",
@@ -461,6 +462,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_SEL:
+	case OP_FMADD:
 		buf += sprintf(buf, "%s <- %s, %s, %s", show_pseudo(insn->target),
 			show_pseudo(insn->src1), show_pseudo(insn->src2), show_pseudo(insn->src3));
 		break;
@@ -1511,8 +1513,11 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	fntype = fn->ctype;
 
 	// handle builtins
-	if (fntype->op && fntype->op->linearize)
-		return fntype->op->linearize(ep, expr);
+	if (fntype->op && fntype->op->linearize) {
+		retval = fntype->op->linearize(ep, expr);
+		if (retval)
+			return retval;
+	}
 
 	ctype = &fntype->ctype;
 	if (fntype->type == SYM_NODE)
@@ -2580,6 +2585,23 @@ struct entrypoint *linearize_symbol(struct symbol *sym)
  * Builtin functions
  */
 
+static pseudo_t linearize_fma(struct entrypoint *ep, struct expression *expr)
+{
+	struct instruction *insn = alloc_typed_instruction(OP_FMADD, expr->ctype);
+	struct expression *arg;
+
+	PREPARE_PTR_LIST(expr->args, arg);
+		insn->src1 = linearize_expression(ep, arg);
+		NEXT_PTR_LIST(arg)
+		insn->src2 = linearize_expression(ep, arg);
+		NEXT_PTR_LIST(arg)
+		insn->src3 = linearize_expression(ep, arg);
+	FINISH_PTR_LIST(arg);
+
+	add_one_insn(ep, insn);
+	return insn->target = alloc_pseudo(insn);
+}
+
 static pseudo_t linearize_unreachable(struct entrypoint *ep, struct expression *exp)
 {
 	add_unreachable(ep);
@@ -2592,6 +2614,9 @@ static struct sym_init {
 	struct symbol_op op;
 } builtins_table[] = {
 	// must be declared in builtin.c:declare_builtins[]
+	{ "__builtin_fma", linearize_fma },
+	{ "__builtin_fmaf", linearize_fma },
+	{ "__builtin_fmal", linearize_fma },
 	{ "__builtin_unreachable", linearize_unreachable },
 	{ }
 };

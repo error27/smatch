@@ -309,6 +309,13 @@ Ternary ops
 	* .target: result of the operation
 	* .type: type of .target
 
+.. op:: OP_FMADD
+    Fused multiply-add.
+
+	* .src1, .src2, .src3: operands (types must be compatible with .target)
+	* .target: result of the operation (must be a floating-point type)
+	* .type: type of .target
+
 .. op:: OP_RANGE
 	Range/bounds checking (only used for an unused sparse extension).
 
