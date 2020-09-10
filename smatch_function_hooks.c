@@ -385,7 +385,7 @@ static void store_return_state(struct db_callback_info *db_info, const char *ret
 	db_info->ret_state = state;
 }
 
-static bool fake_a_param_assignment(struct expression *expr, const char *return_str, struct smatch_state *orig)
+static bool fake_a_param_assignment(struct expression *expr, const char *ret_str, struct smatch_state *orig)
 {
 	struct expression *arg, *left, *right, *tmp, *fake_assign;
 	char *p;
@@ -403,7 +403,7 @@ static bool fake_a_param_assignment(struct expression *expr, const char *return_
 	if (!right || right->type != EXPR_CALL)
 		return false;
 
-	p = strchr(return_str, '[');
+	p = strchr(ret_str, '[');
 	if (!p)
 		return false;
 
