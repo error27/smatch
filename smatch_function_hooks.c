@@ -1279,10 +1279,8 @@ int get_implied_return(struct expression *expr, struct range_list **rl)
 	call_backs = search_callback(func_hash, fn);
 
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type == IMPLIED_RETURN) {
-			(tmp->u.implied_return)(expr, tmp->info, rl);
-			handled = 1;
-		}
+		if (tmp->type == IMPLIED_RETURN)
+			handled |= (tmp->u.implied_return)(expr, tmp->info, rl);
 	} END_FOR_EACH_PTR(tmp);
 
 out:
