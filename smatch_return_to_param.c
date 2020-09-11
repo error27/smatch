@@ -105,12 +105,8 @@ char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct sy
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner == my_id) {
 			ret = map_my_state_long_to_short(sm, name, sym, new_sym, use_stack);
-			if (ret) {
-				if (local_debug)
-					sm_msg("%s: my_state: name = '%s' sm = '%s'",
-					       __func__, name, show_sm(sm));
+			if (ret)
 				return ret;
-			}
 			continue;
 		}
 	} END_FOR_EACH_SM(sm);
