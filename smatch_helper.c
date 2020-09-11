@@ -1059,41 +1059,45 @@ struct expression *get_last_expr_from_expression_stmt(struct expression *expr)
 	return NULL;
 }
 
-int get_param_key_from_sm(struct sm_state *sm, struct expression *expr,
-			  const char **name)
+int get_param_key_from_var_sym(const char *name, struct symbol *sym,
+			       struct expression *ret_expr,
+			       const char **key)
 {
 	char *other_name;
 	struct symbol *other_sym;
 	const char *param_name;
 	int param;
 
-	*name = sm->name;
+	*key = name;
 
-	param = get_param_num_from_sym(sm->sym);
+	/* straight forward param match */
+	param = get_param_num_from_sym(sym);
 	if (param >= 0) {
-		param_name = get_param_name(sm);
+		param_name = get_param_name_var_sym(name, sym);
 		if (param_name)
-			*name = param_name;
+			*key = param_name;
 		return param;
 	}
 
-	if (expr) {
+	/* it's the return value */
+	if (ret_expr) {
 		struct symbol *ret_sym;
 		char *ret_str;
 
-		ret_str = expr_to_str_sym(expr, &ret_sym);
-		if (ret_str && ret_sym == sm->sym) {
-			param_name = state_name_to_param_name(sm->name, ret_str);
+		ret_str = expr_to_str_sym(ret_expr, &ret_sym);
+		if (ret_str && ret_sym == sym) {
+			param_name = state_name_to_param_name(name, ret_str);
 			if (param_name) {
 				free_string(ret_str);
-				*name = param_name;
+				*key = param_name;
 				return -1;
 			}
 		}
 		free_string(ret_str);
 	}
 
-	other_name = get_other_name_sym(sm->name, sm->sym, &other_sym);
+	/* it is an assigned parameter */
+	other_name = get_other_name_sym(name, sym, &other_sym);
 	if (!other_name)
 		return -2;
 	param = get_param_num_from_sym(other_sym);
@@ -1103,8 +1107,14 @@ int get_param_key_from_sm(struct sm_state *sm, struct expression *expr,
 	param_name = get_param_name_var_sym(other_name, other_sym);
 	free_string(other_name);
 	if (param_name)
-		*name = param_name;
+		*key = param_name;
 	return param;
+}
+
+int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
+			  const char **key)
+{
+	return get_param_key_from_var_sym(sm->name, sm->sym, ret_expr, key);
 }
 
 int get_param_num_from_sym(struct symbol *sym)
