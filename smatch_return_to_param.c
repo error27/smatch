@@ -120,11 +120,16 @@ char *map_long_to_short_name_sym(const char *name, struct symbol *sym, struct sy
 
 char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym)
 {
+	struct expression *fake;
 	char *name;
 	struct symbol *start_sym;
 	struct smatch_state *state;
 
 	*sym = NULL;
+
+	fake = expr_get_fake_parent_expr(expr);
+	if (fake && fake->type == EXPR_ASSIGNMENT && fake->op == '=')
+		expr = fake->left;
 
 	name = expr_to_str_sym(expr, &start_sym);
 	if (!name)
