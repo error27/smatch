@@ -294,6 +294,7 @@ SMATCH_OBJS += smatch_param_cleared.o
 SMATCH_OBJS += smatch_param_compare_limit.o
 SMATCH_OBJS += smatch_parameter_names.o
 SMATCH_OBJS += smatch_param_filter.o
+SMATCH_OBJS += smatch_param_key.o
 SMATCH_OBJS += smatch_param_limit.o
 SMATCH_OBJS += smatch_param_set.o
 SMATCH_OBJS += smatch_param_to_mtag_data.o
