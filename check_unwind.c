@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Dan Carpenter.
+ * Copyright (C) 2020 Oracle.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,218 +15,307 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
-/*
- * This is a kernel check to make sure we unwind everything on
- * on errors.
- *
- */
+#include <ctype.h>
 
 #include "smatch.h"
 #include "smatch_extra.h"
 #include "smatch_slist.h"
 
-#define EBUSY 16
-#define MAX_ERRNO 4095
-
 static int my_id;
 
-STATE(allocated);
-STATE(unallocated);
+STATE(alloc);
+STATE(release);
+STATE(param_released);
 
-/* state of unwind function */
-STATE(called);
+struct ref_func_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
+};
 
-static int was_passed_as_param(struct expression *expr)
+static sval_t zero_sval = { .type = &int_ctype };
+
+static struct ref_func_info func_table[] = {
+	{ "clk_prepare_enable",    ALLOC, 0, "$", &zero_sval, &zero_sval },
+	{ "clk_disable_unprepare", RELEASE, 0, "$" },
+
+	{ "alloc_etherdev_mqs", ALLOC, -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "free_netdev", RELEASE, 0, "$" },
+
+	{ "request_resource", ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "release_resource", RELEASE, 0, "$" },
+	{ "__request_resource", ALLOC,   1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "__release_resource", RELEASE, 1, "$" },
+	{ "pci_request_regions", ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "pci_release_regions", RELEASE, 0, "$" },
+
+	{ "__request_region", ALLOC,   1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "__release_region", RELEASE, 1, "$" },
+
+	{ "ioremap", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "iounmap", RELEASE, 0, "$" },
+
+	{ "pci_iomap",   ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "pci_iounmap", RELEASE, 0, "$" },
+
+	{ "request_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "free_irq",    RELEASE, 0, "$" },
+
+	{ "register_netdev",   ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "unregister_netdev", RELEASE, 0, "$" },
+
+	{ "misc_register",   ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "misc_deregister", RELEASE, 0, "$" },
+
+	{ "ieee80211_alloc_hw", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "ieee80211_free_hw",  RELEASE, 0, "$" },
+};
+
+struct smatch_state *unmatched_state(struct sm_state *sm)
 {
+	struct smatch_state *state;
+
+	if (sm->state != &param_released)
+		return &undefined;
+
+	if (is_impossible_path())
+		return &param_released;
+
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (!state)
+		return &undefined;
+	if (!estate_rl(state) || is_err_or_null(estate_rl(state)))
+		return &param_released;
+
+	 return &undefined;
+}
+
+static struct sm_state *get_start_sm(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(my_id, name, sym);
+	if (sm)
+		return sm;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (get_comparison_strings(name, sm->name) == SPECIAL_EQUAL)
+			return sm;
+	} END_FOR_EACH_SM(sm);
+
+	return NULL;
+}
+
+static bool is_param_var_sym(const char *name, struct symbol *sym)
+{
+	const char *key;
+
+	return get_param_key_from_var_sym(name, sym, NULL, &key) >= 0;
+}
+
+static void db_helper(struct expression *expr, int param, const char *key, int inc_dec)
+{
+	struct sm_state *start_sm;
 	char *name;
 	struct symbol *sym;
-	struct symbol *arg;
 
-	name = expr_to_var_sym(expr, &sym);
-	if (!name)
-		return 0;
+	name = get_name_sym_from_key(expr, param, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	start_sm = get_start_sm(name, sym);
+	if (inc_dec == RELEASE && !start_sm && is_param_var_sym(name, sym)) {
+		set_state(my_id, name, sym, &param_released);
+		return;
+	}
+
+	if (inc_dec == ALLOC)
+		set_state(my_id, name, sym, &alloc);
+	else {
+		if (start_sm)
+			set_state(my_id, start_sm->name, start_sm->sym, &release);
+		else
+			set_state(my_id, name, sym, &release);
+	}
+free:
 	free_string(name);
-
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		if (arg == sym)
-			return 1;
-	} END_FOR_EACH_PTR(arg);
-	return 0;
 }
 
-static void print_unwind_functions(const char *fn, struct expression *expr, void *_arg_no)
+static void refcount_function(const char *fn, struct expression *expr, void *data)
 {
-	struct expression *arg_expr;
-	int arg_no = PTR_INT(_arg_no);
-	static struct symbol *last_printed = NULL;
+	struct ref_func_info *info = data;
 
-	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
-	if (!was_passed_as_param(arg_expr))
-		return;
-	if (last_printed == cur_func_sym)
-		return;
-	last_printed = cur_func_sym;
-	sm_msg("info: is unwind function");
+	db_helper(expr, info->param, info->key, info->type);
 }
 
-static void request_granted(const char *fn, struct expression *call_expr,
-			struct expression *assign_expr, void *_arg_no)
+static void refcount_implied(const char *fn, struct expression *call_expr,
+			     struct expression *assign_expr, void *data)
 {
-	struct expression *arg_expr;
-	int arg_no = PTR_INT(_arg_no);
+	struct ref_func_info *info = data;
 
-	if (arg_no == -1) {
-		if (!assign_expr)
-			return;
-		arg_expr = assign_expr->left;
-	} else {
-		arg_expr = get_argument_from_call_expr(call_expr->args, arg_no);
+	db_helper(assign_expr ?: call_expr, info->param, info->key, info->type);
+}
+
+static bool is_alloc_primitive(struct expression *expr)
+{
+	int i;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return false;
+
+	if (expr->fn->type != EXPR_SYMBOL)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		if (sym_name_is(func_table[i].name, expr->fn))
+			return true;
 	}
-	set_state_expr(my_id, arg_expr, &allocated);
+
+	return false;
 }
 
-static void request_denied(const char *fn, struct expression *call_expr,
-			struct expression *assign_expr, void *_arg_no)
+static void db_dec(struct expression *expr, int param, char *key, char *value)
 {
-	struct expression *arg_expr;
-	int arg_no = PTR_INT(_arg_no);
-
-	if (arg_no == -1) {
-		if (!assign_expr)
-			return;
-		arg_expr = assign_expr->left;
-	} else {
-		arg_expr = get_argument_from_call_expr(call_expr->args, arg_no);
-	}
-	set_state_expr(my_id, arg_expr, &unallocated);
+	if (is_alloc_primitive(expr))
+		return;
+	db_helper(expr, param, key, RELEASE);
 }
 
-static void match_release(const char *fn, struct expression *expr, void *_arg_no)
+static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct expression *arg_expr;
-	int arg_no = PTR_INT(_arg_no);
+	struct sm_state *sm;
+	const char *param_name;
+	int param;
 
-	arg_expr = get_argument_from_call_expr(expr->args, arg_no);
-	if (get_state_expr(my_id, arg_expr))
-		set_state_expr(my_id, arg_expr, &unallocated);
-	set_equiv_state_expr(my_id, arg_expr, &unallocated);
+	if (is_impossible_path())
+		return;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->state != &param_released)
+			continue;
+		param = get_param_key_from_sm(sm, expr, &param_name);
+		if (param < 0)
+			continue;
+		sql_insert_return_states(return_id, return_ranges, RELEASE,
+					 param, param_name, "");
+	} END_FOR_EACH_SM(sm);
 }
 
-static void match_unwind_function(const char *fn, struct expression *expr, void *unused)
+enum {
+	EMPTY, NEGATIVE, ZERO, POSITIVE, NUM_BUCKETS
+};
+
+static int success_fail_positive(struct range_list *rl)
 {
-	set_state(my_id, "unwind_function", NULL, &called);
+	if (!rl)
+		return EMPTY;
+
+	if (sval_is_negative(rl_min(rl)) && sval_is_negative(rl_max(rl)))
+		return NEGATIVE;
+
+	if (rl_min(rl).value == 0)
+		return ZERO;
+
+	return POSITIVE;
 }
 
-static int func_returns_int(void)
+static void check_ballance(const char *name, struct symbol *sym)
 {
-	struct symbol *type;
+	struct range_list *inc_lines = NULL;
+	int inc_buckets[NUM_BUCKETS] = {};
+	struct stree *stree, *orig_stree;
+	struct smatch_state *state;
+	struct sm_state *return_sm;
+	struct sm_state *sm;
+	sval_t line = sval_type_val(&int_ctype, 0);
+	int bucket;
 
-	type = get_base_type(cur_func_sym);
-	if (!type || type->type != SYM_FN)
-		return 0;
-	type = get_base_type(type);
-	if (type && type->ctype.base_type == &int_type) {
-		return 1;
-	}
-	return 0;
+	FOR_EACH_PTR(get_all_return_strees(), stree) {
+		orig_stree = __swap_cur_stree(stree);
+
+		if (is_impossible_path())
+			goto swap_stree;
+
+		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
+		if (!return_sm)
+			goto swap_stree;
+		line.value = return_sm->line;
+
+		sm = get_sm_state(my_id, name, sym);
+		if (!sm)
+			goto swap_stree;
+
+		state = sm->state;
+		if (state == &param_released)
+			state = &release;
+
+		if (state != &alloc &&
+		    state != &release)
+			goto swap_stree;
+
+		bucket = success_fail_positive(estate_rl(return_sm->state));
+		if (bucket != NEGATIVE)
+			goto swap_stree;
+
+		if (state == &alloc) {
+			add_range(&inc_lines, line, line);
+			inc_buckets[bucket] = true;
+		}
+swap_stree:
+		__swap_cur_stree(orig_stree);
+	} END_FOR_EACH_PTR(stree);
+
+	if (inc_buckets[NEGATIVE])
+		goto complain;
+
+	return;
+
+complain:
+	sm_warning("'%s' not released on lines: %s.", name, show_rl(inc_lines));
 }
 
-static void match_return(struct expression *ret_value)
+static void match_check_ballanced(struct symbol *sym)
 {
-	struct stree *stree;
-	struct sm_state *tmp;
-	sval_t sval;
+	struct sm_state *sm;
 
-	if (!func_returns_int())
-		return;
-	if (get_value(ret_value, &sval) && sval_cmp_val(sval, 0) >= 0)
-		return;
-	if (!implied_not_equal(ret_value, 0))
-		return;
-	if (get_state(my_id, "unwind_function", NULL) == &called)
-		return;
-
-	stree = __get_cur_stree();
-	FOR_EACH_MY_SM(my_id, stree, tmp) {
-		if (slist_has_state(tmp->possible, &allocated))
-			sm_warning("'%s' was not released on error", tmp->name);
-	} END_FOR_EACH_SM(tmp);
-}
-
-static void register_unwind_functions(void)
-{
-	struct token *token;
-	const char *func;
-
-	token = get_tokens_file("kernel.unwind_functions");
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		func = show_ident(token->ident);
-		add_function_hook(func, &match_unwind_function, NULL);
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
-static void release_function_indicator(const char *name)
-{
-	if (!option_info)
-		return;
-	add_function_hook(name, &print_unwind_functions, INT_PTR(0));
+	FOR_EACH_MY_SM(my_id, get_all_return_states(), sm) {
+		check_ballance(sm->name, sm->sym);
+	} END_FOR_EACH_SM(sm);
 }
 
 void check_unwind(int id)
 {
-	if (option_project != PROJ_KERNEL || !option_spammy)
-		return;
+	struct ref_func_info *info;
+	int i;
+
 	my_id = id;
 
-	register_unwind_functions();
+	if (option_project != PROJ_KERNEL)
+		return;
 
-	return_implies_state("request_resource", 0, 0, &request_granted, INT_PTR(1));
-	return_implies_state("request_resource", -EBUSY, -EBUSY, &request_denied, INT_PTR(1));
-	add_function_hook("release_resource", &match_release, INT_PTR(0));
-	release_function_indicator("release_resource");
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
 
-	return_implies_state_sval("__request_region", valid_ptr_min_sval, valid_ptr_max_sval, &request_granted, INT_PTR(1));
-	return_implies_state("__request_region", 0, 0, &request_denied, INT_PTR(1));
-	add_function_hook("__release_region", &match_release, INT_PTR(1));
-	release_function_indicator("__release_region");
+		if (info->call_back) {
+			add_function_hook(info->name, info->call_back, info);
+		} else if (info->implies_start) {
+			return_implies_state_sval(info->name,
+					*info->implies_start,
+					*info->implies_end,
+					&refcount_implied, info);
+		} else {
+			add_function_hook(info->name, &refcount_function, info);
+		}
+	}
 
-	return_implies_state_sval("ioremap", valid_ptr_min_sval, valid_ptr_max_sval, &request_granted, INT_PTR(-1));
-	return_implies_state("ioremap", 0, 0, &request_denied, INT_PTR(-1));
-	add_function_hook("iounmap", &match_release, INT_PTR(0));
+	add_unmatched_state_hook(my_id, &unmatched_state);
 
-	return_implies_state_sval("pci_iomap", valid_ptr_min_sval, valid_ptr_max_sval, &request_granted, INT_PTR(-1));
-	return_implies_state("pci_iomap", 0, 0, &request_denied, INT_PTR(-1));
-	add_function_hook("pci_iounmap", &match_release, INT_PTR(1));
-	release_function_indicator("pci_iounmap");
-
-	return_implies_state_sval("__create_workqueue_key", valid_ptr_min_sval, valid_ptr_max_sval, &request_granted,
-			INT_PTR(-1));
-	return_implies_state("__create_workqueue_key", 0, 0, &request_denied, INT_PTR(-1));
-	add_function_hook("destroy_workqueue", &match_release, INT_PTR(0));
-
-	return_implies_state("request_irq", 0, 0, &request_granted, INT_PTR(0));
-	return_implies_state("request_irq", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
-	add_function_hook("free_irq", &match_release, INT_PTR(0));
-	release_function_indicator("free_irq");
-
-	return_implies_state("register_netdev", 0, 0, &request_granted, INT_PTR(0));
-	return_implies_state("register_netdev", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
-	add_function_hook("unregister_netdev", &match_release, INT_PTR(0));
-	release_function_indicator("unregister_netdev");
-
-	return_implies_state("misc_register", 0, 0, &request_granted, INT_PTR(0));
-	return_implies_state("misc_register", -MAX_ERRNO, -1, &request_denied, INT_PTR(0));
-	add_function_hook("misc_deregister", &match_release, INT_PTR(0));
-	release_function_indicator("misc_deregister");
-
-	add_hook(&match_return, RETURN_HOOK);
+	add_split_return_callback(match_return_info);
+	select_return_states_hook(RELEASE, &db_dec);
+	add_hook(&match_check_ballanced, END_FUNC_HOOK);
 }
