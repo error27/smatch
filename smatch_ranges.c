@@ -37,6 +37,27 @@ bool is_err_ptr(sval_t sval)
 	return true;
 }
 
+bool is_err_or_null(struct range_list *rl)
+{
+	struct range_list *no_null;
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	if (!rl)
+		return false;
+
+	if (rl_min(rl).value == 0 && rl_max(rl).value == 0)
+		return true;
+
+	if (rl_min(rl).value != 0)
+		no_null = rl;
+	else
+		no_null = remove_range(rl, rl_min(rl), rl_min(rl));
+
+	return is_err_ptr(rl_min(no_null)) && is_err_ptr(rl_max(no_null));
+}
+
 static char *get_err_pointer_str(struct data_range *drange)
 {
 	static char buf[20];

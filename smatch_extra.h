@@ -76,6 +76,7 @@ int rl_has_sval(struct range_list *rl, sval_t sval);
 int ranges_equiv(struct data_range *one, struct data_range *two);
 
 bool is_err_ptr(sval_t sval);
+bool is_err_or_null(struct range_list *rl);
 
 int rl_equiv(struct range_list *one, struct range_list *two);
 int is_whole_rl(struct range_list *rl);
