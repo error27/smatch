@@ -140,6 +140,49 @@ struct symbol *get_param_sym_from_num(int num)
 	return NULL;
 }
 
+char *get_name_sym_from_key(struct expression *expr, int param, const char *key, struct symbol **sym)
+{
+	struct expression *call, *arg;
+	char *name;
+
+	*sym = NULL;
+
+	if (!expr) {
+		sm_msg("internal: null call_expr.  param=%d key='%s'", param, key);
+		return NULL;
+	}
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+
+	if (call->type != EXPR_CALL)
+		return NULL;
+
+	if (param == -1 &&
+	    expr->type == EXPR_ASSIGNMENT &&
+	    expr->op == '=') {
+		name = get_variable_from_key(expr->left, key, sym);
+		if (!name || !*sym)
+			goto free;
+	} else if (param >= 0) {
+		arg = get_argument_from_call_expr(call->args, param);
+		if (!arg)
+			return NULL;
+
+		name = get_variable_from_key(arg, key, sym);
+		if (!name || !*sym)
+			goto free;
+	} else {
+		name = alloc_string(key);
+	}
+
+	return name;
+free:
+	free_string(name);
+	return NULL;
+}
+
 void register_param_key(int id)
 {
 	if (option_project != PROJ_KERNEL)
