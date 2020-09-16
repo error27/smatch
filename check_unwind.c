@@ -224,7 +224,7 @@ static int success_fail_positive(struct range_list *rl)
 	return POSITIVE;
 }
 
-static void check_ballance(const char *name, struct symbol *sym)
+static void check_balance(const char *name, struct symbol *sym)
 {
 	struct range_list *inc_lines = NULL;
 	int inc_buckets[NUM_BUCKETS] = {};
@@ -281,12 +281,12 @@ complain:
 	sm_warning("'%s' not released on lines: %s.", name, show_rl(inc_lines));
 }
 
-static void match_check_ballanced(struct symbol *sym)
+static void match_check_balanced(struct symbol *sym)
 {
 	struct sm_state *sm;
 
 	FOR_EACH_MY_SM(my_id, get_all_return_states(), sm) {
-		check_ballance(sm->name, sm->sym);
+		check_balance(sm->name, sm->sym);
 	} END_FOR_EACH_SM(sm);
 }
 
@@ -319,5 +319,5 @@ void check_unwind(int id)
 
 	add_split_return_callback(match_return_info);
 	select_return_states_hook(RELEASE, &db_dec);
-	add_hook(&match_check_ballanced, END_FUNC_HOOK);
+	add_hook(&match_check_balanced, END_FUNC_HOOK);
 }
