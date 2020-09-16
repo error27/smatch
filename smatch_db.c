@@ -578,7 +578,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 	run_sql(get_row_count, &row_count, "select count(*) from return_states where %s;",
 		get_static_filter(fn->symbol));
-	if (row_count == 0)
+	if (row_count == 0 && fn->symbol && fn->symbol->definition)
 		set_state(my_id, "db_incomplete", NULL, &incomplete);
 	if (row_count > 3000)
 		return;
