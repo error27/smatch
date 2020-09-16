@@ -29,6 +29,9 @@ struct sqlite3 *cache_db;
 
 int debug_db;
 
+STATE(incomplete);
+static int my_id;
+
 static int return_id;
 
 static void call_return_state_hooks(struct expression *expr);
@@ -575,11 +578,18 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 	run_sql(get_row_count, &row_count, "select count(*) from return_states where %s;",
 		get_static_filter(fn->symbol));
+	if (row_count == 0)
+		set_state(my_id, "db_incomplete", NULL, &incomplete);
 	if (row_count > 3000)
 		return;
 
 	run_sql(callback, info, "select %s from return_states where %s order by file, return_id, type;",
 		cols, get_static_filter(fn->symbol));
+}
+
+bool db_incomplete(void)
+{
+	return !!get_state(my_id, "db_incomplete", NULL);
 }
 
 #define CALL_IMPLIES 0
@@ -2616,6 +2626,8 @@ static void register_return_replacements(void)
 
 void register_definition_db_callbacks(int id)
 {
+	my_id = id;
+
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 	add_hook(&match_call_info_new, FUNCTION_CALL_HOOK);
 	add_split_return_callback(match_return_info);

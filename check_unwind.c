@@ -240,6 +240,8 @@ static void check_ballance(const char *name, struct symbol *sym)
 
 		if (is_impossible_path())
 			goto swap_stree;
+		if (db_incomplete())
+			goto swap_stree;
 
 		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
 		if (!return_sm)
