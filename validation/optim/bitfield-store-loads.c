@@ -1,6 +1,6 @@
 struct s {
-	char :2;
-	char f:3;
+	unsigned char :2;
+	unsigned char f:3;
 };
 
 int foo(struct s s, int a)

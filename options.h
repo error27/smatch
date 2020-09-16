@@ -80,6 +80,7 @@ extern unsigned long fpasses;
 extern int fpic;
 extern int fpie;
 extern int fshort_wchar;
+extern int funsigned_bitfields;
 extern int funsigned_char;
 
 extern int Waddress;

@@ -286,8 +286,8 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 		sym->ctype.alignment = alignment;
 	modifiers = base_type->ctype.modifiers;
 
-	/* Bitfields are unsigned, unless the base type was explicitly signed */
-	if (!(modifiers & MOD_EXPLICITLY_SIGNED))
+	/* use -funsigned-bitfields to determine the sign if not explicit */
+	if (!(modifiers & MOD_EXPLICITLY_SIGNED) && funsigned_bitfields)
 		modifiers = (modifiers & ~MOD_SIGNED) | MOD_UNSIGNED;
 	sym->ctype.modifiers |= modifiers & MOD_SIGNEDNESS;
 	return sym;

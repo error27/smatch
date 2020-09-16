@@ -19,7 +19,7 @@ void ucpy(struct u *d, const struct u *s)
 
 
 struct s {
-	int f:3;
+	signed int f:3;
 };
 
 int spostinc(struct s *x)
@@ -118,7 +118,7 @@ spostinc:
 	load.64     %r33 <- 0[x]
 	load.32     %r34 <- 0[%r33]
 	trunc.3     %r35 <- (32) %r34
-	zext.32     %r36 <- (3) %r35
+	sext.32     %r36 <- (3) %r35
 	add.32      %r37 <- %r36, $1
 	trunc.3     %r38 <- (32) %r37
 	load.32     %r39 <- 0[%r33]
@@ -126,7 +126,7 @@ spostinc:
 	and.32      %r41 <- %r39, $0xfffffff8
 	or.32       %r42 <- %r41, %r40
 	store.32    %r42 -> 0[%r33]
-	zext.32     %r43 <- (3) %r36
+	sext.32     %r43 <- (3) %r36
 	phisrc.32   %phi3(return) <- %r43
 	br          .L7
 
@@ -142,7 +142,7 @@ spreinc:
 	load.64     %r45 <- 0[x]
 	load.32     %r46 <- 0[%r45]
 	trunc.3     %r47 <- (32) %r46
-	zext.32     %r48 <- (3) %r47
+	sext.32     %r48 <- (3) %r47
 	add.32      %r49 <- %r48, $1
 	trunc.3     %r50 <- (32) %r49
 	load.32     %r51 <- 0[%r45]
@@ -150,7 +150,7 @@ spreinc:
 	and.32      %r53 <- %r51, $0xfffffff8
 	or.32       %r54 <- %r53, %r52
 	store.32    %r54 -> 0[%r45]
-	zext.32     %r55 <- (3) %r50
+	sext.32     %r55 <- (3) %r50
 	phisrc.32   %phi4(return) <- %r55
 	br          .L9
 
