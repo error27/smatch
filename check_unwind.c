@@ -45,10 +45,21 @@ static struct ref_func_info func_table[] = {
 	{ "alloc_etherdev_mqs", ALLOC, -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "free_netdev", RELEASE, 0, "$" },
 
-	{ "request_resource", ALLOC,   1, "$", &zero_sval, &zero_sval },
-	{ "release_resource", RELEASE, 0, "$" },
-	{ "__request_resource", ALLOC,   1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
-	{ "__release_resource", RELEASE, 1, "$" },
+	/*
+	 * FIXME: A common pattern in release functions like amd76xrom_cleanup()
+	 * is to do:
+	 *
+	 * 	if (window->rsrc.parent)
+	 * 		release_resource(&window->rsrc);
+	 *
+	 * Which is slightly tricky to know how to merge the states so let's
+	 * hold off checking request_resource() for now.
+	 *
+	 * { "request_resource", ALLOC,   1, "$", &zero_sval, &zero_sval },
+	 * { "release_resource", RELEASE, 0, "$" },
+	 *
+	 */
+
 	{ "pci_request_regions", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "pci_release_regions", RELEASE, 0, "$" },
 
