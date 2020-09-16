@@ -1577,6 +1577,21 @@ static void call_return_state_hooks_compare(struct expression *expr)
 	__free_fake_cur_stree();
 }
 
+static bool is_implies_function(struct expression *expr)
+{
+	struct range_list *rl;
+
+	if (!expr)
+		return false;
+
+	rl = get_range_implications(get_function());
+	if (!rl)
+		return false;
+
+	sm_msg("%s: is implied", __func__);
+	return true;
+}
+
 static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
 {
 	struct sm_state *tmp;
@@ -1605,7 +1620,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	if (!sm || !sm->merged)
 		return 0;
 
-	if (too_many_possible(sm))
+	if (too_many_possible(sm) && !is_implies_function(expr))
 		return 0;
 
 	/* bail if it gets too complicated */
@@ -1620,7 +1635,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 	free_slist(&already_handled);
 	nr_states = get_db_state_count();
-	if (nr_states * nr_possible >= 2000)
+	if (nr_states * nr_possible >= 2000 && !is_implies_function(expr))
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {

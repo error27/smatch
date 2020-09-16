@@ -1288,6 +1288,23 @@ out:
 	return handled;
 }
 
+struct range_list *get_range_implications(const char *fn)
+{
+	struct call_back_list *call_backs;
+	struct range_list *ret = NULL;
+	struct fcall_back *tmp;
+
+	call_backs = search_callback(func_hash, (char *)fn);
+
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type != RANGED_CALL)
+			continue;
+		add_ptr_list(&ret, tmp->range);
+	} END_FOR_EACH_PTR(tmp);
+
+	return ret;
+}
+
 void create_function_hook_hash(void)
 {
 	func_hash = create_function_hashtable(5000);
