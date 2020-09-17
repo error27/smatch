@@ -426,10 +426,10 @@ const char *show_instruction(struct instruction *insn)
 		break;
 	}	
 	case OP_LOAD:
-		buf += sprintf(buf, "%s <- %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		buf += sprintf(buf, "%s <- %lld[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_STORE:
-		buf += sprintf(buf, "%s -> %d[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
+		buf += sprintf(buf, "%s -> %lld[%s]", show_pseudo(insn->target), insn->offset, show_pseudo(insn->src));
 		break;
 	case OP_INLINED_CALL:
 	case OP_CALL: {
@@ -925,7 +925,7 @@ struct access_data {
 	struct symbol *type;		// ctype
 	struct symbol *btype;		// base type of bitfields
 	pseudo_t address;		// pseudo containing address ..
-	unsigned int offset;		// byte offset
+	long long offset;		// byte offset
 };
 
 static int linearize_simple_address(struct entrypoint *ep,

@@ -117,7 +117,7 @@ struct instruction {
 		};
 		struct /* memops */ {
 			pseudo_t addr;			/* alias .src */
-			unsigned int offset;
+			long long offset;
 			unsigned int is_volatile:1;
 		};
 		struct /* binops and sel */ {
