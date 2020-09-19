@@ -94,14 +94,6 @@ struct struct_union_info {
  */
 static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 {
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
-
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
 
@@ -124,14 +116,6 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 {
 	unsigned long bit_size, align_bit_mask;
 	int base_size;
-
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
@@ -196,6 +180,14 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
 			member->ctype.base_type = &incomplete_ctype;
 		}
+		examine_symbol_type(member);
+
+		if (member->ctype.alignment > info.max_align) {
+			// Unnamed bitfields do not affect alignment.
+			if (member->ident || !is_bitfield_type(member))
+				info.max_align = member->ctype.alignment;
+		}
+
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
