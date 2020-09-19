@@ -1736,35 +1736,57 @@ found:
 
 int simplify_instruction(struct instruction *insn)
 {
+	unsigned flags;
+	int changed = 0;
+
 	if (!insn->bb)
 		return 0;
+
+	flags = opcode_table[insn->opcode].flags;
+	if (flags & OPF_COMMU)
+		canonicalize_commutative(insn) ;
+	if (flags & OPF_COMPARE)
+		canonicalize_compare(insn) ;
+	if (flags & OPF_BINOP) {
+		if ((changed = simplify_binop(insn)))
+			return changed;
+	}
+	if (flags & OPF_ASSOC) {
+		if ((changed = simplify_associative_binop(insn)))
+			return changed;
+	}
+	if (flags & OPF_UNOP) {
+		if ((changed = simplify_unop(insn)))
+			return changed;
+	}
+
 	switch (insn->opcode) {
-	case OP_ADD: case OP_MUL:
-	case OP_AND: case OP_OR: case OP_XOR:
-		canonicalize_commutative(insn);
-		if (simplify_binop(insn))
-			return REPEAT_CSE;
-		return simplify_associative_binop(insn);
-
-	case OP_SET_EQ: case OP_SET_NE:
-		canonicalize_commutative(insn);
-		return simplify_binop(insn);
-
-	case OP_SET_LE: case OP_SET_GE:
-	case OP_SET_LT: case OP_SET_GT:
-	case OP_SET_B:  case OP_SET_A:
-	case OP_SET_BE: case OP_SET_AE:
-		canonicalize_compare(insn);
-		/* fall through */
+	case OP_ADD:
 	case OP_SUB:
-	case OP_DIVU: case OP_DIVS:
-	case OP_MODU: case OP_MODS:
+	case OP_MUL:
+	case OP_AND:
+	case OP_OR:
+	case OP_XOR:
 	case OP_SHL:
-	case OP_LSR: case OP_ASR:
-		return simplify_binop(insn);
-
-	case OP_NOT: case OP_NEG: case OP_FNEG:
-		return simplify_unop(insn);
+	case OP_LSR:
+	case OP_ASR:
+	case OP_NOT:
+	case OP_NEG:
+	case OP_DIVU:
+	case OP_DIVS:
+	case OP_MODU:
+	case OP_MODS:
+	case OP_SET_EQ:
+	case OP_SET_NE:
+	case OP_SET_LE:
+	case OP_SET_GE:
+	case OP_SET_LT:
+	case OP_SET_GT:
+	case OP_SET_B:
+	case OP_SET_A:
+	case OP_SET_BE:
+	case OP_SET_AE:
+		break;
 	case OP_LOAD:
 		if (!has_users(insn->target))
 			return kill_instruction(insn);
@@ -1778,6 +1800,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_SEXT: case OP_ZEXT:
 	case OP_TRUNC:
 		return simplify_cast(insn);
+	case OP_FNEG:
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
