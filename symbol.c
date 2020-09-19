@@ -186,6 +186,8 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
 			member->ctype.base_type = &incomplete_ctype;
 		}
+		if (info.flex_array)
+			sparse_error(info.flex_array->pos, "flexible array member '%s' is not last", show_ident(info.flex_array->ident));
 		examine_symbol_type(member);
 
 		if (member->ctype.alignment > info.max_align) {

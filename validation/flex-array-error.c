@@ -18,7 +18,6 @@ static int foo(struct s *s, union u *u)
 
 /*
  * check-name: flex-array-error
- * check-known-to-fail
  *
  * check-error-start
 flex-array-error.c:3:14: error: flexible array member 'f' is not last
