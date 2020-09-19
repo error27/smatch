@@ -87,6 +87,7 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
+	struct symbol *flex_array;
 };
 
 /*
@@ -128,6 +129,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		if (!is_array_type(sym))
 			return;
 		base_size = 0;
+		info->flex_array = sym;
 	}
 
 	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
