@@ -1195,6 +1195,7 @@ int sval_is_negative_min(sval_t sval);
 int sval_cmp_t(struct symbol *type, sval_t one, sval_t two);
 int sval_cmp_val(sval_t one, long long val);
 sval_t sval_min(sval_t one, sval_t two);
+sval_t sval_min_nonneg(sval_t one, sval_t two);
 sval_t sval_max(sval_t one, sval_t two);
 int sval_too_low(struct symbol *type, sval_t sval);
 int sval_too_high(struct symbol *type, sval_t sval);

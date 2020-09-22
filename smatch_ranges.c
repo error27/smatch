@@ -1919,16 +1919,17 @@ static struct range_list *handle_AND_rl(struct range_list *left, struct range_li
 {
 	struct bit_info *one, *two;
 	struct range_list *rl;
-	sval_t min, max, zero;
+	sval_t min, max, zero, bits_sval;
 	unsigned long long bits;
 
 	one = rl_to_binfo(left);
 	two = rl_to_binfo(right);
 	bits = one->possible & two->possible;
+	bits_sval = rl_max(left);
+	bits_sval.uvalue = bits;
 
-	max = rl_max(left);
-	max.uvalue = bits;
-	min = sval_lowest_set_bit(max);
+	max = sval_min_nonneg(rl_max(left), rl_max(right));
+	min = sval_lowest_set_bit(bits_sval);
 
 	rl = alloc_rl(min, max);
 

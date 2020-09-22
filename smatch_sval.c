@@ -288,6 +288,22 @@ sval_t sval_min(sval_t one, sval_t two)
 	return one;
 }
 
+sval_t sval_min_nonneg(sval_t one, sval_t two)
+{
+	sval_t ret = one;
+
+	if (sval_is_negative(one) && sval_is_negative(two)) {
+		ret.value = 0;
+		return ret;
+	}
+	if (sval_is_negative(one))
+		return two;
+	if (sval_is_negative(two))
+		return one;
+
+	return sval_min(one, two);
+}
+
 sval_t sval_max(sval_t one, sval_t two)
 {
 	if (sval_cmp(one, two) < 0)
