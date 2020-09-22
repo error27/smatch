@@ -27,6 +27,8 @@ STATE(alloc);
 STATE(release);
 STATE(param_released);
 
+static unsigned long fn_has_alloc;
+
 struct ref_func_info {
 	const char *name;
 	int type;
@@ -127,20 +129,58 @@ static bool is_param_var_sym(const char *name, struct symbol *sym)
 	return get_param_key_from_var_sym(name, sym, NULL, &key) >= 0;
 }
 
+static void mark_matches_as_undefined(const char *key)
+{
+	struct sm_state *sm;
+	int start_pos, state_len, key_len;
+	char *p;
+
+	while ((p = strchr(key, '-'))) {
+		if (p[1] != '>')
+			return;
+		key = p + 2;
+	}
+	key_len = strlen(key);
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		state_len = strlen(sm->name);
+		if (state_len < key_len)
+			continue;
+		if (!slist_has_state(sm->possible, &alloc))
+			continue;
+
+		start_pos = state_len - key_len;
+		if ((start_pos == 0 || !isalnum(sm->name[start_pos - 1])) &&
+		    strcmp(sm->name + start_pos, key) == 0)
+			set_state(my_id, sm->name, sm->sym, &undefined);
+
+	} END_FOR_EACH_SM(sm);
+}
+
 static void db_helper(struct expression *expr, int param, const char *key, int inc_dec)
 {
 	struct sm_state *start_sm;
 	char *name;
 	struct symbol *sym;
 
+	if (inc_dec == ALLOC)
+		fn_has_alloc = true;
+
 	name = get_name_sym_from_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 
 	start_sm = get_start_sm(name, sym);
-	if (inc_dec == RELEASE && !start_sm && is_param_var_sym(name, sym)) {
-		set_state(my_id, name, sym, &param_released);
-		return;
+	if (inc_dec == RELEASE && !start_sm) {
+		if (fn_has_alloc) {
+			mark_matches_as_undefined(key);
+			goto free;
+		}
+		if (is_param_var_sym(name, sym)) {
+			set_state(my_id, name, sym, &param_released);
+			goto free;
+		}
+		goto free;
 	}
 
 	if (inc_dec == ALLOC)
@@ -327,6 +367,7 @@ void check_unwind(int id)
 	}
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_function_data(&fn_has_alloc);
 
 	add_split_return_callback(match_return_info);
 	select_return_states_hook(RELEASE, &db_dec);
