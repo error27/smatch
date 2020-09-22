@@ -65,17 +65,24 @@ static struct ref_func_info func_table[] = {
 	{ "pci_request_regions", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "pci_release_regions", RELEASE, 0, "$" },
 
+	{ "request_free_mem_region", ALLOC,   -1, "$->start", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "__request_region", ALLOC,   1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "__release_region", RELEASE, 1, "$" },
 
 	{ "ioremap", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "of_iomap", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "ioremap_encrypted", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "iounmap", RELEASE, 0, "$" },
 
+	{ "pci_iomap_range", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "pci_iomap",   ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "pci_iounmap", RELEASE, 0, "$" },
 
+	{ "request_threaded_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "request_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "free_irq",    RELEASE, 0, "$" },
+	{ "pci_request_irq", ALLOC,   1, "$", &zero_sval, &zero_sval },
+	{ "pci_free_irq",    RELEASE, 1, "$" },
 
 	{ "register_netdev",   ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "unregister_netdev", RELEASE, 0, "$" },
