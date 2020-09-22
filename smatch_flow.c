@@ -50,6 +50,7 @@ int __in_unmatched_hook;
 static struct expression_list *switch_expr_stack = NULL;
 static struct expression_list *post_op_stack = NULL;
 
+static struct ptr_list *fn_data_list;
 static struct ptr_list *backup;
 
 struct expression_list *big_expression_stack;
@@ -1695,6 +1696,20 @@ static void start_function_definition(struct symbol *sym)
 
 }
 
+void add_function_data(unsigned long *fn_data)
+{
+	__add_ptr_list(&fn_data_list, fn_data);
+}
+
+static void clear_function_data(void)
+{
+	unsigned long *tmp;
+
+	FOR_EACH_PTR(fn_data_list, tmp) {
+		*tmp = 0;
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
@@ -1709,6 +1724,7 @@ static void split_function(struct symbol *sym)
 	if (sym->ident)
 		cur_func = sym->ident->name;
 	set_position(sym->pos);
+	clear_function_data();
 	loop_count = 0;
 	last_goto_statement_handled = 0;
 	sm_debug("new function:  %s\n", cur_func);
@@ -1751,6 +1767,8 @@ static void split_function(struct symbol *sym)
 
 static void save_flow_state(void)
 {
+	unsigned long *tmp;
+
 	__add_ptr_list(&backup, INT_PTR(loop_num << 2));
 	__add_ptr_list(&backup, INT_PTR(loop_count << 2));
 	__add_ptr_list(&backup, INT_PTR(final_pass << 2));
@@ -1765,6 +1783,10 @@ static void save_flow_state(void)
 	__add_ptr_list(&backup, __prev_stmt);
 	__add_ptr_list(&backup, __cur_stmt);
 	__add_ptr_list(&backup, __next_stmt);
+
+	FOR_EACH_PTR(fn_data_list, tmp) {
+		__add_ptr_list(&backup, (void *)*tmp);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 static void *pop_backup(void)
@@ -1778,6 +1800,12 @@ static void *pop_backup(void)
 
 static void restore_flow_state(void)
 {
+	unsigned long *tmp;
+
+	FOR_EACH_PTR_REVERSE(fn_data_list, tmp) {
+		*tmp = (unsigned long)pop_backup();
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
 	__next_stmt = pop_backup();
 	__cur_stmt = pop_backup();
 	__prev_stmt = pop_backup();
@@ -1827,6 +1855,7 @@ static void parse_inline(struct expression *call)
 
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
+	clear_function_data();
 	loop_num = 0;
 	loop_count = 0;
 	start_function_definition(call->fn->symbol);

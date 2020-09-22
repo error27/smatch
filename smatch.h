@@ -568,6 +568,7 @@ extern struct expression_list *big_condition_stack;
 extern struct statement_list *big_statement_stack;
 int is_assigned_call(struct expression *expr);
 int is_fake_assigned_call(struct expression *expr);
+void add_function_data(unsigned long *fn_data);
 int inlinable(struct expression *expr);
 extern int __inline_call;
 extern struct expression *__inline_fn;
