@@ -510,6 +510,7 @@ void add_ignore_expr(int owner, struct expression *expr);
 int is_ignored_expr(int owner, struct expression *expr);
 
 /* smatch_var_sym */
+struct smatch_state *alloc_var_sym_state(const char *var, struct symbol *sym);
 struct var_sym *alloc_var_sym(const char *var, struct symbol *sym);
 struct var_sym_list *expr_to_vsl(struct expression *expr);
 void add_var_sym(struct var_sym_list **list, const char *var, struct symbol *sym);

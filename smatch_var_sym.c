@@ -19,6 +19,16 @@
 
 ALLOCATOR(var_sym, "var_sym structs");
 
+struct smatch_state *alloc_var_sym_state(const char *var, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	state = __alloc_smatch_state(0);
+	state->name = alloc_string(var);
+	state->data = alloc_var_sym(var, sym);
+	return state;
+}
+
 struct var_sym *alloc_var_sym(const char *var, struct symbol *sym)
 {
 	struct var_sym *tmp;
