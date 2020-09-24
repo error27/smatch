@@ -507,6 +507,13 @@ static inline int is_extern_inline(struct symbol *sym)
 		is_function(sym->ctype.base_type);
 }
 
+static inline int has_flexible_array(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->has_flex_array;
+}
+
 static inline int get_sym_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
