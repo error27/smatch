@@ -197,6 +197,10 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 				info.max_align = member->ctype.alignment;
 		}
 
+		if (has_flexible_array(member))
+			info.has_flex_array = 1;
+		if (has_flexible_array(member) && Wflexible_array_nested)
+			warning(sym->pos, "nested flexible arrays");
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 

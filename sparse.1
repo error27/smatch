@@ -264,6 +264,13 @@ Sparse issues these warnings by default. To turn them off, use
 \fB-Wno-flexible-array-array\fR.
 .
 .TP
+.B -Wflexible-array-nested
+Warn about structures containing a flexible array being contained into
+another structure, union or array.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B -Wflexible-array-sizeof
 Warn about using the sizeof operator on a structure containing a flexible array,
 possibly recursively.

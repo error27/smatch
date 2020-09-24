@@ -101,6 +101,7 @@ int Wdo_while = 0;
 int Wenum_mismatch = 1;
 int Wexternal_function_has_definition = 1;
 int Wflexible_array_array = 1;
+int Wflexible_array_nested = 0;
 int Wflexible_array_sizeof = 0;
 int Wimplicit_int = 1;
 int Winit_cstring = 0;
@@ -843,6 +844,7 @@ static const struct flag warnings[] = {
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "external-function-has-definition", &Wexternal_function_has_definition },
 	{ "flexible-array-array", &Wflexible_array_array },
+	{ "flexible-array-nested", &Wflexible_array_nested },
 	{ "flexible-array-sizeof", &Wflexible_array_sizeof },
 	{ "implicit-int", &Wimplicit_int },
 	{ "init-cstring", &Winit_cstring },

@@ -100,6 +100,7 @@ extern int Wdo_while;
 extern int Wenum_mismatch;
 extern int Wexternal_function_has_definition;
 extern int Wflexible_array_array;
+extern int Wflexible_array_nested;
 extern int Wflexible_array_sizeof;
 extern int Wimplicit_int;
 extern int Winit_cstring;

@@ -21,7 +21,6 @@ static int foo(struct s *s, union u *u)
 /*
  * check-name: flex-array-nested
  * check-command: sparse -Wflexible-array-nested $file
- * check-known-to-fail
  *
  * check-error-start
 flex-array-nested.c:6:8: warning: nested flexible arrays
