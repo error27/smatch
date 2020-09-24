@@ -95,6 +95,9 @@ struct struct_union_info {
  */
 static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 {
+	if (sym->bit_size < 0 && is_array_type(sym))
+		sparse_error(sym->pos, "flexible array member '%s' in a union", show_ident(sym->ident));
+
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
 
