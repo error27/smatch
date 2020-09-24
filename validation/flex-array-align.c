@@ -12,7 +12,6 @@ static int foo(struct s *s)
 /*
  * check-name: flex-array-align
  * check-command: test-linearize -Wno-flexible-array-sizeof $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: ret\\..*\\$0x80006

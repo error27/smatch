@@ -127,7 +127,6 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	if (base_size < 0) {
 		if (!is_array_type(sym))
 			return;
-		info->align_size = 0;
 		base_size = 0;
 	}
 
