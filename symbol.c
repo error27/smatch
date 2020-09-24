@@ -121,10 +121,12 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	base_size = sym->bit_size; 
 
 	/*
-	 * Unsized arrays cause us to not align the resulting
-	 * structure size
+	 * If the member is unsized, either it's a flexible array or
+	 * it's invalid and a warning has already been issued.
 	 */
 	if (base_size < 0) {
+		if (!is_array_type(sym))
+			return;
 		info->align_size = 0;
 		base_size = 0;
 	}
