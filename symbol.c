@@ -87,6 +87,7 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
+	char has_flex_array;
 	struct symbol *flex_array;
 };
 
@@ -206,6 +207,11 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		bit_align = bytes_to_bits(sym->ctype.alignment)-1;
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
+	if (info.flex_array) {
+		info.has_flex_array = 1;
+	}
+	if (info.has_flex_array)
+		sym->has_flex_array = 1;
 	sym->bit_size = bit_size;
 	return sym;
 }

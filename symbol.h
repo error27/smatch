@@ -185,6 +185,7 @@ struct symbol {
 					examined:1,
 					expanding:1,
 					evaluated:1,
+					has_flex_array:1,
 					string:1,
 					designated_init:1,
 					forced_arg:1,
