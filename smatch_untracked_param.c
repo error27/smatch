@@ -110,7 +110,7 @@ static void mark_untracked_lost(struct expression *expr, int param, const char *
 	if (expr->type != EXPR_CALL)
 		return;
 
-	name = return_state_to_var_sym(expr, param, key, &sym);
+	name = get_name_sym_from_key(expr, param, key, &sym);
 	if (!name || !sym) {
 		name = get_array_from_key(expr, param, key, &sym);
 		if (!name || !sym)

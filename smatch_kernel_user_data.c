@@ -1309,7 +1309,7 @@ static void returns_param_capped(struct expression *expr, int param, char *key, 
 	struct symbol *sym;
 	char *name;
 
-	name = return_state_to_var_sym(expr, param, key, &sym);
+	name = get_name_sym_from_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 

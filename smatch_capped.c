@@ -324,7 +324,7 @@ static void db_return_states_capped(struct expression *expr, int param, char *ke
 	char *name;
 	struct symbol *sym;
 
-	name = return_state_to_var_sym(expr, param, key, &sym);
+	name = get_name_sym_from_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 

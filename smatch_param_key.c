@@ -69,47 +69,6 @@ static char *swap_with_param(const char *name, struct symbol *sym, struct symbol
 	return ret;
 }
 
-char *return_state_to_var_sym(struct expression *expr, int param, const char *key, struct symbol **sym)
-{
-	struct expression *arg;
-	char *name = NULL;
-	char member_name[256];
-
-	*sym = NULL;
-
-	if (param == -1) {
-		const char *star = "";
-
-		if (expr->type != EXPR_ASSIGNMENT)
-			return NULL;
-		if (get_type(expr->left) == &int_ctype && strcmp(key, "$") != 0)
-			return NULL;
-		name = expr_to_var_sym(expr->left, sym);
-		if (!name)
-			return NULL;
-		if (key[0] == '*') {
-			star = "*";
-			key++;
-		}
-		if (strncmp(key, "$", 1) != 0)
-			return name;
-		snprintf(member_name, sizeof(member_name), "%s%s%s", star, name, key + 1);
-		free_string(name);
-		return alloc_string(member_name);
-	}
-
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
-		return NULL;
-
-	arg = get_argument_from_call_expr(expr->args, param);
-	if (!arg)
-		return NULL;
-
-	return get_variable_from_key(arg, key, sym);
-}
-
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
 	struct symbol *type;
