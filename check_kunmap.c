@@ -20,7 +20,6 @@
 
 STATE(no_unmap);
 
-extern int check_assigned_expr_id;
 static int my_id;
 
 static void check_assignment(void *data)

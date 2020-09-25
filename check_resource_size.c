@@ -18,7 +18,6 @@
 #include "smatch.h"
 
 static int my_id;
-extern int check_assigned_expr_id;
 
 static int is_probably_ok(struct expression *expr)
 {
@@ -47,12 +46,9 @@ static void verify_size_expr(struct expression *expr)
 
 static void handle_assigned_expr(struct expression *expr)
 {
-	struct smatch_state *state;
-
-	state = get_state_expr(check_assigned_expr_id, expr);
-	if (!state || !state->data)
+	expr = get_assigned_expr(expr);
+	if (!expr)
 		return;
-	expr = (struct expression *)state->data;
 	verify_size_expr(expr);
 }
 

@@ -19,8 +19,6 @@
 
 static int my_id;
 
-extern int check_assigned_expr_id;
-
 static int is_kmalloc_call(struct expression *expr)
 {
 	if (expr->type != EXPR_CALL)
@@ -37,18 +35,14 @@ static int is_kmalloc_call(struct expression *expr)
 static void match_condition(struct expression *expr)
 {
 	char *macro;
-	struct smatch_state *state;
 	struct expression *right;
 	char *name;
 
 	macro = get_macro_name(expr->pos);
 	if (!macro || strcmp(macro, "BUG_ON") != 0)
 		return;
-	state = get_state_expr(check_assigned_expr_id, expr);
-	if (!state || !state->data)
-		return;
-	right = (struct expression *)state->data;
-	if (!is_kmalloc_call(right))
+	right = get_assigned_expr(expr);
+	if (!right || !is_kmalloc_call(right))
 		return;
 
 	name = expr_to_var(expr);
