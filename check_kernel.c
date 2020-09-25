@@ -45,7 +45,7 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 		*rl = alloc_rl(err_ptr_min, err_ptr_max);
 
 	*rl = cast_rl(get_type(call), *rl);
-	return 1;
+	return !!*rl;
 }
 
 static void hack_ERR_PTR(struct symbol *sym)
