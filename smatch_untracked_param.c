@@ -36,7 +36,7 @@
 #include "smatch_extra.h"
 
 static int my_id;
-static int tracked;
+static unsigned long tracked;
 
 STATE(untracked);
 STATE(lost);
@@ -45,8 +45,6 @@ typedef void (untracked_hook)(struct expression *call, int param);
 DECLARE_PTR_LIST(untracked_hook_list, untracked_hook *);
 static struct untracked_hook_list *untracked_hooks;
 static struct untracked_hook_list *lost_hooks;
-
-struct int_stack *tracked_stack;
 
 void add_untracked_param_hook(void (func)(struct expression *call, int param))
 {
@@ -166,10 +164,8 @@ static void match_after_call(struct expression *expr)
 	if (lost_in_va_args(expr))
 		tracked = 0;
 
-	if (tracked) {
-		tracked = 0;
+	if (tracked)
 		return;
-	}
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
@@ -284,16 +280,6 @@ static void match_param_assign_in_asm(struct statement *stmt)
 	} END_FOR_EACH_PTR(op);
 }
 
-static void match_inline_start(struct expression *expr)
-{
-	push_int(&tracked_stack, tracked);
-}
-
-static void match_inline_end(struct expression *expr)
-{
-	tracked = pop_int(&tracked_stack);
-}
-
 void register_untracked_param(int id)
 {
 	my_id = id;
@@ -308,6 +294,5 @@ void register_untracked_param(int id)
 	add_hook(&match_param_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_param_assign_in_asm, ASM_HOOK);
 
-	add_hook(&match_inline_start, INLINE_FN_START);
-	add_hook(&match_inline_end, INLINE_FN_END);
+	add_function_data((unsigned long *)&tracked);
 }

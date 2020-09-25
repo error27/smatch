@@ -96,7 +96,6 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 }
 
 static struct stree *start_states;
-static struct stree_stack *saved_stack;
 static void set_start_state(const char *name, struct symbol *sym, struct smatch_state *start)
 {
 	struct smatch_state *orig;
@@ -413,17 +412,6 @@ int was_inced(const char *name, struct symbol *sym)
 	return get_state(my_id, name, sym) == &inc;
 }
 
-static void match_save_states(struct expression *expr)
-{
-	push_stree(&saved_stack, start_states);
-	start_states = NULL;
-}
-
-static void match_restore_states(struct expression *expr)
-{
-	start_states = pop_stree(&saved_stack);
-}
-
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&start_states);
@@ -462,6 +450,5 @@ void check_atomic_inc_dec(int id)
 	add_hook(&match_check_missed, END_FUNC_HOOK);
 
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
-	add_hook(&match_save_states, INLINE_FN_START);
-	add_hook(&match_restore_states, INLINE_FN_END);
+	add_function_data((unsigned long *)&start_states);
 }

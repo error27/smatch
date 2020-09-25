@@ -429,7 +429,6 @@ static const char *false_positives[][2] = {
 };
 
 static struct stree *start_states;
-static struct stree_stack *saved_stack;
 
 static struct tracker_list *locks;
 

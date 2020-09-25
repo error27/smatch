@@ -38,7 +38,6 @@
 
 static int my_id;
 
-struct stree_stack *fn_type_val_stack;
 struct stree *fn_type_val;
 struct stree *global_type_val;
 
@@ -48,18 +47,6 @@ static int get_vals(void *_db_vals, int argc, char **argv, char **azColName)
 
 	*db_vals = alloc_string(argv[0]);
 	return 0;
-}
-
-static void match_inline_start(struct expression *expr)
-{
-	push_stree(&fn_type_val_stack, fn_type_val);
-	fn_type_val = NULL;
-}
-
-static void match_inline_end(struct expression *expr)
-{
-	free_stree(&fn_type_val);
-	fn_type_val = pop_stree(&fn_type_val_stack);
 }
 
 struct expr_rl {
@@ -677,8 +664,7 @@ void register_type_val(int id)
 	select_return_states_hook(PARAM_SET, &db_param_add);
 
 
-	add_hook(&match_inline_start, INLINE_FN_START);
-	add_hook(&match_inline_end, INLINE_FN_END);
+	add_function_data((unsigned long *)&fn_type_val);
 
 	add_hook(&match_end_func_info, END_FUNC_HOOK);
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);

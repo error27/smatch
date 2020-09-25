@@ -27,22 +27,9 @@
 static int my_id;
 
 static struct stree *start_states;
-static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
 {
 	start_states = clone_stree(__get_cur_stree());
-}
-
-static void match_save_states(struct expression *expr)
-{
-	push_stree(&saved_stack, start_states);
-	start_states = NULL;
-}
-
-static void match_restore_states(struct expression *expr)
-{
-	free_stree(&start_states);
-	start_states = pop_stree(&saved_stack);
 }
 
 static void match_end_func(void)
@@ -60,8 +47,7 @@ void register_start_states(int id)
 	my_id = id;
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
-	add_hook(&match_save_states, INLINE_FN_START);
-	add_hook(&match_restore_states, INLINE_FN_END);
+	add_function_data((unsigned long *)&start_states);
 	add_hook(&match_end_func, AFTER_FUNC_HOOK);
 }
 

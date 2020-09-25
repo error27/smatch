@@ -30,7 +30,7 @@ static int my_id;
 static int my_call_id;
 
 STATE(called);
-static bool func_gets_user_data;
+static unsigned long func_gets_user_data;
 
 static const char *kstr_funcs[] = {
 	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
@@ -49,7 +49,6 @@ static const char *returns_user_data[] = {
 };
 
 static struct stree *start_states;
-static struct stree_stack *saved_stack;
 static void save_start_states(struct statement *stmt)
 {
 	start_states = clone_stree(__get_cur_stree());
@@ -58,18 +57,6 @@ static void save_start_states(struct statement *stmt)
 static void free_start_states(void)
 {
 	free_stree(&start_states);
-}
-
-static void match_save_states(struct expression *expr)
-{
-	push_stree(&saved_stack, start_states);
-	start_states = NULL;
-}
-
-static void match_restore_states(struct expression *expr)
-{
-	free_stree(&start_states);
-	start_states = pop_stree(&saved_stack);
 }
 
 static struct smatch_state *empty_state(struct sm_state *sm)
@@ -1338,23 +1325,10 @@ free:
 	free_string(name);
 }
 
-static struct int_stack *gets_data_stack;
 static void match_function_def(struct symbol *sym)
 {
-	func_gets_user_data = false;
-
 	if (is_user_data_fn(sym))
 		func_gets_user_data = true;
-}
-
-static void match_inline_start(struct expression *expr)
-{
-	push_int(&gets_data_stack, func_gets_user_data);
-}
-
-static void match_inline_end(struct expression *expr)
-{
-	func_gets_user_data = pop_int(&gets_data_stack);
 }
 
 void register_kernel_user_data(int id)
@@ -1368,14 +1342,12 @@ void register_kernel_user_data(int id)
 
 	set_dynamic_states(my_id);
 
+	add_function_data(&func_gets_user_data);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
-	add_hook(&match_inline_start, INLINE_FN_START);
-	add_hook(&match_inline_end, INLINE_FN_END);
 
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_hook(&free_start_states, AFTER_FUNC_HOOK);
-	add_hook(&match_save_states, INLINE_FN_START);
-	add_hook(&match_restore_states, INLINE_FN_END);
+	add_function_data((unsigned long *)&start_states);
 
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_extra_nomod_hook(&extra_nomod_hook);
