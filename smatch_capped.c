@@ -68,7 +68,7 @@ static int is_capped_macro(struct expression *expr)
 
 static bool binop_capped(struct expression *expr)
 {
-	struct range_list *left_rl, *right_rl;
+	bool left_capped, right_capped;
 	sval_t sval;
 
 	if (expr->op == '&' && !get_value(expr->right, &sval))
@@ -78,20 +78,20 @@ static bool binop_capped(struct expression *expr)
 	if (expr->op == '%' &&
 	    !get_value(expr->right, &sval) && is_capped(expr->right))
 		return true;
-	if (!is_capped(expr->left))
-		return false;
-	if (expr->op == '/')
+
+	left_capped = is_capped(expr->left);
+	right_capped = is_capped(expr->right);
+
+	if (left_capped && right_capped)
 		return true;
-	if (!is_capped(expr->right))
+	if (!left_capped && !right_capped)
 		return false;
-	if (expr->op == '*') {
-		get_absolute_rl(expr->left, &left_rl);
-		get_absolute_rl(expr->right, &right_rl);
-		if (sval_is_negative(rl_min(left_rl)) ||
-		    sval_is_negative(rl_min(right_rl)))
-			return false;
-	}
-	return true;
+	if (left_capped && get_hard_max(expr->right, &sval))
+		return true;
+	if (right_capped && get_hard_max(expr->left, &sval))
+		return true;
+
+	return false;
 }
 
 int is_capped(struct expression *expr)
