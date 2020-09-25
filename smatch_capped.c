@@ -250,76 +250,28 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, CAPPED_DATA, param, printed_name, "1");
 }
 
-static void print_return_implies_capped(int return_id, char *return_ranges, struct expression *expr)
+static void return_info_callback(int return_id, char *return_ranges,
+				 struct expression *returned_expr,
+				 int param,
+				 const char *printed_name,
+				 struct sm_state *sm)
 {
 	struct smatch_state *orig, *estate;
-	struct sm_state *sm;
-	struct symbol *ret_sym;
-	const char *param_name;
-	char *return_str;
-	int param;
 	sval_t sval;
-	bool return_found = false;
 
-	expr = strip_expr(expr);
-	return_str = expr_to_str(expr);
-	ret_sym = expr_to_sym(expr);
+	if (param < -1 || sm->state != &capped)
+		return;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state != &capped)
-			continue;
+	estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (estate_get_single_value(estate, &sval))
+		return;
 
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
+	orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
+	if (orig == &capped && !param_was_set_var_sym(sm->name, sm->sym))
+		return;
 
-		estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
-		if (estate_get_single_value(estate, &sval))
-			continue;
-
-		orig = get_state_stree(get_start_states(), my_id, sm->name, sm->sym);
-		if (orig == &capped && !param_was_set_var_sym(sm->name, sm->sym))
-			continue;
-
-		param_name = get_param_name(sm);
-		if (!param_name)
-			continue;
-
-		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
-					 param, param_name, "1");
-	} END_FOR_EACH_SM(sm);
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (!ret_sym)
-			break;
-		if (sm->state != &capped)
-			continue;
-		if (ret_sym != sm->sym)
-			continue;
-
-		estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
-		if (estate_get_single_value(estate, &sval))
-			continue;
-
-		param_name = state_name_to_param_name(sm->name, return_str);
-		if (!param_name)
-			continue;
-		if (strcmp(param_name, "$") == 0)
-			return_found = true;
-		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
-					 -1, param_name, "1");
-	} END_FOR_EACH_SM(sm);
-
-	if (return_found)
-		goto free_string;
-
-	if (option_project == PROJ_KERNEL && get_function() &&
-	    strstr(get_function(), "nla_get_"))
-		sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
-					 -1, "$", "1");
-
-free_string:
-	free_string(return_str);
+	sql_insert_return_states(return_id, return_ranges, CAPPED_DATA,
+				 param, printed_name, "");
 }
 
 static void db_return_states_capped(struct expression *expr, int param, char *key, char *value)
@@ -349,6 +301,6 @@ void register_capped(int id)
 	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
 	add_member_info_callback(my_id, struct_member_callback);
 
-	add_split_return_callback(print_return_implies_capped);
+	add_return_info_callback(my_id, return_info_callback);
 	select_return_states_hook(CAPPED_DATA, &db_return_states_capped);
 }
