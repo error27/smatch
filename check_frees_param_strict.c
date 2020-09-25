@@ -90,15 +90,10 @@ static void param_freed_info(int return_id, char *return_ranges, struct expressi
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (strcmp(sm->state->name, "freed") != 0)
-//		if (!slist_has_state(sm->possible, &freed))
 			continue;
 
-		param = get_param_num_from_sym(sm->sym);
+		param = get_param_key_from_sm(sm, NULL, &param_name);
 		if (param < 0)
-			continue;
-
-		param_name = get_param_name(sm);
-		if (!param_name)
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges, PARAM_FREED,
