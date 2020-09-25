@@ -42,20 +42,38 @@ static void match_atomic_add(const char *fn, struct expression *expr, void *_unu
 static struct ref_func_info func_table[] = {
 	{ "atomic_inc", ATOMIC_INC, 0, "$->counter" },
 	{ "atomic_long_inc", ATOMIC_INC, 0, "$->counter" },
+	{ "atomic64_inc", ATOMIC_INC, 0, "$->counter" },
+
 	{ "atomic_inc_return", ATOMIC_INC, 0, "$->counter" },
+	{ "atomic_long_inc_return", ATOMIC_INC, 0, "$->counter" },
+	{ "atomic64_return", ATOMIC_INC, 0, "$->counter" },
 
 	{ "atomic_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
+	{ "atomic_long_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
+	{ "atomic64_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
 
 	{ "atomic_dec", ATOMIC_DEC, 0, "$->counter" },
-	{ "atomic_dec_return", ATOMIC_DEC, 0, "$->counter" },
-	{ "atomic_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
 	{ "atomic_long_dec", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic64_dec", ATOMIC_DEC, 0, "$->counter" },
+
+	{ "atomic_dec_return", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic_long_dec_return", ATOMIC_DEC, 0, "$->counter" },
+	{ "atomic64_dec_return", ATOMIC_DEC, 0, "$->counter" },
+
+	{ "atomic_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
 	{ "atomic_long_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
 	{ "atomic64_dec_and_test", ATOMIC_DEC, 0, "$->counter" },
+
 	{ "_atomic_dec_and_lock", ATOMIC_DEC, 0, "$->counter" },
 
 	{ "atomic_sub", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic_long_sub", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic64_sub", ATOMIC_DEC, 1, "$->counter" },
+
 	{ "atomic_sub_return", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic_long_sub_return", ATOMIC_DEC, 1, "$->counter" },
+	{ "atomic64_sub_return", ATOMIC_DEC, 1, "$->counter" },
+
 	{ "atomic_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
 	{ "atomic_long_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
 	{ "atomic64_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
@@ -73,11 +91,14 @@ static struct ref_func_info func_table[] = {
 	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->ref.counter", NULL, true, 1, 1},
 
 	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
+	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
 
 	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.ref.counter" },
 	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
 	{ "of_get_parent", ATOMIC_INC, -1, "$->kobj.kref.refcount.ref.counter" },
 	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+
+	{ "kfree_skb", ATOMIC_DEC, 0, "$->users.ref.counter" },
 };
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
