@@ -271,9 +271,8 @@ static bool possibly_false_helper(struct range_list *var_rl, int comparison, str
 		struct range_list *intersect;
 
 		intersect = rl_intersection(var_rl, rl);
-		if (!rl_equiv(var_rl, intersect))
-			return true;
-		return false;
+		/* if it's not equiv then it's possibly false */
+		return !rl_equiv(var_rl, intersect);
 	}
 	return possibly_false_rl(var_rl, comparison, rl);
 }
