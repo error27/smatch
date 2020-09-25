@@ -201,6 +201,9 @@ static void match_assign(struct expression *expr)
 {
 	struct symbol *type;
 
+	if (expr->op != '=' && !is_capped(expr->left))
+		return;
+
 	type = get_type(expr);
 	if (is_ptr_type(type))
 		return;
