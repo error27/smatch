@@ -161,7 +161,7 @@ char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym,
 	return get_variable_from_key(arg, key, sym);
 }
 
-static const char *state_name_to_param_name(const char *state_name, const char *param_name)
+static char *state_name_to_param_name(const char *state_name, const char *param_name)
 {
 	int star_cnt = 0;
 	int name_len;
@@ -200,7 +200,7 @@ static const char *state_name_to_param_name(const char *state_name, const char *
 	return NULL;
 }
 
-const char *get_param_name_var_sym(const char *name, struct symbol *sym)
+char *get_param_name_var_sym(const char *name, struct symbol *sym)
 {
 	if (!sym || !sym->ident)
 		return NULL;
@@ -259,7 +259,7 @@ free:
 	return ret;
 }
 
-const char *get_param_name(struct sm_state *sm)
+char *get_param_name(struct sm_state *sm)
 {
 	return get_param_name_var_sym(sm->name, sm->sym);
 }
