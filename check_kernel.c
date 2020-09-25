@@ -244,6 +244,25 @@ static int match_next_bit(struct expression *call, void *unused, struct range_li
 	return 1;
 }
 
+static int match_array_size(struct expression *call, void *unused, struct range_list **rl)
+{
+	struct expression *size;
+	struct expression *count;
+	struct expression *mult;
+	struct range_list *ret;
+
+	size = get_argument_from_call_expr(call->args, 0);
+	count = get_argument_from_call_expr(call->args, 1);
+	mult = binop_expression(size, '*', count);
+
+	if (get_implied_rl(mult, &ret)) {
+		*rl = ret;
+		return 1;
+	}
+
+	return 0;
+}
+
 static int match_fls(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
@@ -513,6 +532,8 @@ void check_kernel(int id)
 	add_implied_return_hook("find_next_zero_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
+
+	add_implied_return_hook("array_size", &match_array_size, NULL);
 
 	add_implied_return_hook("fls", &match_fls, NULL);
 	add_implied_return_hook("fls64", &match_fls, NULL);
