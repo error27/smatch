@@ -161,7 +161,7 @@ char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym,
 	return get_variable_from_key(arg, key, sym);
 }
 
-const char *state_name_to_param_name(const char *state_name, const char *param_name)
+static const char *state_name_to_param_name(const char *state_name, const char *param_name)
 {
 	int star_cnt = 0;
 	int name_len;

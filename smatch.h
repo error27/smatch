@@ -933,7 +933,6 @@ struct range_list *db_return_vals_no_args(struct expression *expr);
 char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl);
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym);
 char *get_name_sym_from_key(struct expression *expr, int param, const char *key, struct symbol **sym);
-const char *state_name_to_param_name(const char *state_name, const char *param_name);
 const char *get_param_name_var_sym(const char *name, struct symbol *sym);
 const char *get_param_name(struct sm_state *sm);
 const char *get_mtag_name_var_sym(const char *state_name, struct symbol *sym);
