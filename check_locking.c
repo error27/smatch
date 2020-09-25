@@ -1159,17 +1159,6 @@ static void match_call_info(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 }
 
-static void match_save_states(struct expression *expr)
-{
-	push_stree(&saved_stack, start_states);
-	start_states = NULL;
-}
-
-static void match_restore_states(struct expression *expr)
-{
-	start_states = pop_stree(&saved_stack);
-}
-
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&start_states);
@@ -1241,8 +1230,7 @@ void check_locking(int id)
 	add_hook(&match_func_end, END_FUNC_HOOK);
 
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
-	add_hook(&match_save_states, INLINE_FN_START);
-	add_hook(&match_restore_states, INLINE_FN_END);
+	add_function_data((unsigned long *)&start_states);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 
