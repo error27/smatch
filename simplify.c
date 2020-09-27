@@ -1382,8 +1382,16 @@ static int simplify_add(struct instruction *insn)
 
 static int simplify_sub(struct instruction *insn)
 {
+	pseudo_t src1 = insn->src1;
 	pseudo_t src2 = insn->src2;
 	struct instruction *def;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_ADD:
+		if (def->src1 == src2)		// (x + y) - x --> y
+			return replace_with_pseudo(insn, def->src2);
+		break;
+	}
 
 	switch (DEF_OPCODE(def, src2)) {
 	case OP_NEG:				// (x - -y) --> (x + y)
