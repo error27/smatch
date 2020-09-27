@@ -1369,6 +1369,11 @@ static int simplify_add(struct instruction *insn)
 		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
 		insn->opcode = OP_SUB;
 		return replace_pseudo(insn, &insn->src2, def->src);
+
+	case OP_SUB:
+		if (def->src2 == src2)		// (x - y) + y --> x
+			return replace_with_pseudo(insn, def->src1);
+		break;
 	}
 
 	switch (DEF_OPCODE(def, src2)) {
