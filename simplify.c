@@ -1380,6 +1380,10 @@ static int simplify_add(struct instruction *insn)
 	case OP_NEG:				// (x + -y) --> (x - y)
 		insn->opcode = OP_SUB;
 		return replace_pseudo(insn, &insn->src2, def->src);
+	case OP_SUB:
+		if (src1 == def->src2)		// x + (y - x) --> y
+			return replace_with_pseudo(insn, def->src1);
+		break;
 	}
 
 	return 0;
