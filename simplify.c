@@ -535,6 +535,13 @@ static pseudo_t eval_op(int op, unsigned size, pseudo_t src1, pseudo_t src2)
 	ur = right & bits;
 
 	switch (op) {
+	case OP_NEG:
+		res = -left;
+		break;
+	case OP_NOT:
+		res = ~ul;
+		break;
+
 	case OP_ADD:
 		res = left + right;
 		break;
@@ -634,6 +641,11 @@ static pseudo_t eval_op(int op, unsigned size, pseudo_t src1, pseudo_t src2)
 
 undef:
 	return NULL;
+}
+
+static inline pseudo_t eval_unop(int op, unsigned size, pseudo_t src)
+{
+	return eval_op(op, size, src, VOID);
 }
 
 ///
