@@ -1399,6 +1399,8 @@ static int simplify_sub(struct instruction *insn)
 	case OP_ADD:
 		if (src1 == def->src1)		// x - (x + z) --> -z
 			return replace_with_unop(insn, OP_NEG, def->src2);
+		if (src1 == def->src2)		// x - (y + x) --> -y
+			return replace_with_unop(insn, OP_NEG, def->src1);
 		break;
 	case OP_NEG:				// (x - -y) --> (x + y)
 		insn->opcode = OP_ADD;

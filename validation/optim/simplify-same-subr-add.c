@@ -3,7 +3,6 @@ int subr_add(int x, int y) { return x - (y + x); }
 /*
  * check-name: simplify-same-subr-add
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: neg\\..* %arg2
