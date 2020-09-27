@@ -1390,6 +1390,8 @@ static int simplify_sub(struct instruction *insn)
 	case OP_ADD:
 		if (def->src1 == src2)		// (x + y) - x --> y
 			return replace_with_pseudo(insn, def->src2);
+		if (def->src2 == src2)		// (x + y) - y --> x
+			return replace_with_pseudo(insn, def->src1);
 		break;
 	}
 
