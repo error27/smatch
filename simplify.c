@@ -46,6 +46,7 @@
 #include "linearize.h"
 #include "flow.h"
 #include "symbol.h"
+#include "flowgraph.h"
 
 ///
 // Utilities
@@ -1506,6 +1507,42 @@ static int canonicalize_compare(struct instruction *insn)
 static inline int simple_pseudo(pseudo_t pseudo)
 {
 	return pseudo->type == PSEUDO_VAL || pseudo->type == PSEUDO_SYM;
+}
+
+///
+// test if, in the given BB, the ordering of 2 instructions
+static bool insn_before(struct basic_block *bb, struct instruction *x, struct instruction *y)
+{
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (insn == x)
+			return true;
+		if (insn == y)
+			return false;
+	} END_FOR_EACH_PTR(insn);
+	return false;
+}
+
+///
+// check if it safe for a pseudo to be used by an instruction
+static inline bool can_move_to(pseudo_t src, struct instruction *dst)
+{
+	struct basic_block *bbs, *bbd;
+	struct instruction *def;
+
+	if (!one_use(dst->target))
+		return false;
+	if (src->type != PSEUDO_REG)
+		return true;
+
+	def = src->def;
+	bbs = def->bb;
+	bbd = dst->bb;
+	if (bbs == bbd)
+		return insn_before(bbs, def, dst);
+	else
+		return domtree_dominates(bbs, bbd);
 }
 
 static int simplify_associative_binop(struct instruction *insn)
