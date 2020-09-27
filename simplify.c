@@ -1169,6 +1169,14 @@ static int simplify_const_leftsub(struct instruction *insn, struct instruction *
 			return replace_pseudo(insn, &insn->src2, def->src1);
 		}
 		break;
+	case OP_SUB:
+		if (constant(def->src1)) { // C - (D - z) --> z + eval(C-D)
+			pseudo_t val = eval_op(OP_SUB, size, src1, def->src1);
+			insn->opcode = OP_ADD;
+			use_pseudo(insn, def->src2, &insn->src1);
+			return replace_pseudo(insn, &insn->src2, val);
+		}
+		break;
 	}
 	return 0;
 }
