@@ -1202,7 +1202,7 @@ static int simplify_binop(struct instruction *insn)
 	return 0;
 }
 
-static void switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instruction *insn2, pseudo_t *pp2)
+static int switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instruction *insn2, pseudo_t *pp2)
 {
 	pseudo_t p1 = *pp1, p2 = *pp2;
 
@@ -1210,6 +1210,7 @@ static void switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instr
 	use_pseudo(insn2, p1, pp2);
 	remove_usage(p1, pp1);
 	remove_usage(p2, pp2);
+	return REPEAT_CSE;
 }
 
 static int canonical_order(pseudo_t p1, pseudo_t p2)
