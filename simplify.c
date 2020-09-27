@@ -1451,21 +1451,26 @@ static int simplify_constant_unop(struct instruction *insn)
 
 static int simplify_unop(struct instruction *insn)
 {
+	struct instruction *def;
+	pseudo_t src = insn->src;
+
 	if (dead_insn(insn, &insn->src1, NULL, NULL))
 		return REPEAT_CSE;
-	if (constant(insn->src1))
+	if (constant(src))
 		return simplify_constant_unop(insn);
 
 	switch (insn->opcode) {
-		struct instruction *def;
-
 	case OP_NOT:
-		if (DEF_OPCODE(def, insn->src) == OP_NOT)
+		switch (DEF_OPCODE(def, src)) {
+		case OP_NOT:			// ~(~x) --> x
 			return replace_with_pseudo(insn, def->src);
+		}
 		break;
 	case OP_NEG:
-		if (DEF_OPCODE(def, insn->src) == OP_NEG)
+		switch (DEF_OPCODE(def, src)) {
+		case OP_NEG:			// -(-x) --> x
 			return replace_with_pseudo(insn, def->src);
+		}
 		break;
 	default:
 		return 0;
