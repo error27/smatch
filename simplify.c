@@ -1101,6 +1101,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 	long long value = insn->src2->value;
 	long long sbit = 1ULL << (insn->size - 1);
 	long long bits = sbit | (sbit - 1);
+	int changed = 0;
 
 	switch (insn->opcode) {
 	case OP_OR:
@@ -1113,20 +1114,21 @@ static int simplify_constant_rightside(struct instruction *insn)
 			insn->opcode = OP_NOT;
 			return REPEAT_CSE;
 		}
-		goto case_neutral_zero;
-
-	case OP_SUB:
-		if (value) {
-			insn->opcode = OP_ADD;
-			insn->src2 = eval_unop(OP_NEG, insn->size, insn->src2);
-			return REPEAT_CSE;
-		}
-	/* Fall through */
-	case OP_ADD:
+		/* fallthrough */
 	case_neutral_zero:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
+
+	case OP_SUB:
+		insn->opcode = OP_ADD;
+		insn->src2 = eval_unop(OP_NEG, insn->size, insn->src2);
+		changed = REPEAT_CSE;
+		/* fallthrough */
+	case OP_ADD:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src1);
+		return changed;
 	case OP_ASR:
 	case OP_SHL:
 	case OP_LSR:
