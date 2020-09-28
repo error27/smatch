@@ -1297,7 +1297,6 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 {
 	struct expression *var, *assign, *parent;
 	char buf[64];
-	sval_t sval;
 	bool cast;
 
 	if (!expr)
@@ -1324,8 +1323,6 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 		if (expr->type != EXPR_PREOP &&
 		    expr->op != '*' && expr->op != '&' &&
 		    expr_to_sym(expr))
-			return expr;
-		if (get_value(expr, &sval))
 			return expr;
 	}
 
