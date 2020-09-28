@@ -1096,6 +1096,24 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 	return 0;
 }
 
+static int simplify_const_rightadd(struct instruction *def, struct instruction *insn)
+{
+	unsigned size = insn->size;
+	pseudo_t src2 = insn->src2;
+
+	switch (def->opcode) {
+	case OP_SUB:
+		if (constant(def->src1)) { // (C - y) + D --> eval(C+D) - y
+			pseudo_t val = eval_op(OP_ADD, size, def->src1, src2);
+			insn->opcode = OP_SUB;
+			use_pseudo(insn, def->src2, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, val);
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
@@ -1128,6 +1146,8 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_ADD:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
+		if (insn->src1->type == PSEUDO_REG)	// (x # y) + z
+			changed |= simplify_const_rightadd(insn->src1->def, insn);
 		return changed;
 	case OP_ASR:
 	case OP_SHL:
