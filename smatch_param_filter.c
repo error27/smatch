@@ -35,17 +35,6 @@
 
 static int my_id;
 
-static struct stree *start_states;
-static void save_start_states(struct statement *stmt)
-{
-	start_states = get_all_states_stree(SMATCH_EXTRA);
-}
-
-static void free_start_states(void)
-{
-	free_stree(&start_states);
-}
-
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -190,9 +179,6 @@ void register_param_filter(int id)
 	my_id = id;
 
 	set_dynamic_states(my_id);
-	add_hook(&save_start_states, AFTER_DEF_HOOK);
-	add_hook(&free_start_states, AFTER_FUNC_HOOK);
-	add_function_data((unsigned long *)&start_states);
 
 	add_extra_mod_hook(&extra_mod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
