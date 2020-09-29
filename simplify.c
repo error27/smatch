@@ -1462,6 +1462,13 @@ static int simplify_unop(struct instruction *insn)
 	switch (insn->opcode) {
 	case OP_NOT:
 		switch (DEF_OPCODE(def, src)) {
+		case OP_ADD:
+			if (!constant(def->src2))
+				break;
+			insn->opcode = OP_SUB;	// ~(x + C) --> ~C - x
+			src = eval_unop(OP_NOT, insn->size, def->src2);
+			use_pseudo(insn, def->src1, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, src);
 		case OP_NOT:			// ~(~x) --> x
 			return replace_with_pseudo(insn, def->src);
 		}
