@@ -1471,6 +1471,12 @@ static int simplify_unop(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, src);
 		case OP_NOT:			// ~(~x) --> x
 			return replace_with_pseudo(insn, def->src);
+		case OP_SUB:
+			if (!constant(def->src1))
+				break;
+			insn->opcode = OP_ADD;	// ~(C - x) --> x + ~C
+			insn->src2 = eval_unop(OP_NOT, insn->size, def->src1);
+			return replace_pseudo(insn, &insn->src1, def->src2);
 		}
 		break;
 	case OP_NEG:
