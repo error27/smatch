@@ -2253,6 +2253,9 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 		size = bits_in_char;
 	}
 
+	if (has_flexible_array(type) && Wflexible_array_sizeof)
+		warning(expr->pos, "using sizeof on a flexible structure");
+
 	if (is_array_type(type) && size < 0) {	// VLA, 1-dimension only
 		struct expression *base, *size;
 		struct symbol *base_type;

@@ -257,6 +257,13 @@ Sparse issues these warnings by default.  To turn them off, use
 \fB\-Wno\-external\-function\-has\-definition\fR.
 .
 .TP
+.B -Wflexible-array-sizeof
+Warn about using the sizeof operator on a structure containing a flexible array,
+possibly recursively.
+
+Sparse does not issue these warnings by default.
+.
+.TP
 .B \-Winit\-cstring
 Warn about initialization of a char array with a too long constant C string.
 
