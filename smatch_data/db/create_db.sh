@@ -56,4 +56,11 @@ if [ "$PROJ" != "" ] ; then
     ${bin_dir}/insert_manual_states.pl ${PROJ} $db_file
 fi
 
+# test the new DB
+if ! echo "select * from return_states where type = 0 limit 1;" | \
+    sqlite3 $db_file > /dev/null ; then
+    echo "$0 failed."
+    exit 1
+fi
+
 mv $db_file smatch_db.sqlite
