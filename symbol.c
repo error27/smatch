@@ -267,6 +267,8 @@ static struct symbol * examine_array_type(struct symbol *sym)
 			bit_size = -1;
 		}
 	}
+	if (has_flexible_array(base_type) && Wflexible_array_array)
+		warning(sym->pos, "array of flexible structures");
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
