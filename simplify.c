@@ -1174,6 +1174,10 @@ static int simplify_constant_leftside(struct instruction *insn)
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
+	case OP_SUB:
+		if (!value)			// (0 - x) --> -x
+			return replace_with_unop(insn, OP_NEG, insn->src2);
+		break;
 	}
 	return 0;
 }
