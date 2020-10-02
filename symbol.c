@@ -790,6 +790,7 @@ struct symbol	float64_ctype, float64x_ctype;
 struct symbol	float128_ctype;
 struct symbol	const_void_ctype, const_char_ctype;
 struct symbol	const_ptr_ctype, const_string_ctype;
+struct symbol	const_wchar_ctype, const_wstring_ctype;
 
 struct symbol	zero_int;
 
@@ -884,9 +885,11 @@ static const struct ctype_declare {
 	{ &ullong_ptr_ctype,   T_PTR(&ullong_ctype) },
 	{ &const_ptr_ctype,    T_PTR(&const_void_ctype) },
 	{ &const_string_ctype, T_PTR(&const_char_ctype) },
+	{ &const_wstring_ctype,T_PTR(&const_wchar_ctype) },
 
 	{ &const_void_ctype,   T_CONST(&void_ctype, NULL, NULL) },
 	{ &const_char_ctype,   T_CONST(&char_ctype, &bits_in_char, &max_int_alignment)},
+	{ &const_wchar_ctype,  T_CONST(&int_ctype, NULL, NULL) },
 	{ NULL, }
 };
 
@@ -931,4 +934,9 @@ void init_ctype(void)
 		intptr_ctype = ssize_t_ctype;
 	if (!uintptr_ctype)
 		uintptr_ctype = size_t_ctype;
+
+	const_wchar_ctype.ctype.base_type = wchar_ctype;
+	const_wchar_ctype.rank = wchar_ctype->rank;
+	const_wchar_ctype.ctype.alignment = wchar_ctype->ctype.alignment;
+	const_wchar_ctype.bit_size = wchar_ctype->bit_size;
 }
