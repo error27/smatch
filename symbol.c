@@ -786,6 +786,7 @@ struct symbol	schar_ptr_ctype, short_ptr_ctype;
 struct symbol	int_ptr_ctype, uint_ptr_ctype;
 struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
+struct symbol	size_t_ptr_ctype, intmax_ptr_ctype, ptrdiff_ptr_ctype;
 struct symbol	float32_ctype, float32x_ctype;
 struct symbol	float64_ctype, float64x_ctype;
 struct symbol	float128_ctype;
@@ -886,6 +887,9 @@ static const struct ctype_declare {
 	{ &ulong_ptr_ctype,    T_PTR(&ulong_ctype) },
 	{ &llong_ptr_ctype,    T_PTR(&llong_ctype) },
 	{ &ullong_ptr_ctype,   T_PTR(&ullong_ctype) },
+	{ &size_t_ptr_ctype,   T_PTR(&void_ctype) },	// will be adjusted
+	{ &intmax_ptr_ctype,   T_PTR(&void_ctype) },	// will be adjusted
+	{ &ptrdiff_ptr_ctype,  T_PTR(&void_ctype) },	// will be adjusted
 	{ &const_ptr_ctype,    T_PTR(&const_void_ctype) },
 	{ &const_string_ctype, T_PTR(&const_char_ctype) },
 	{ &const_wstring_ctype,T_PTR(&const_wchar_ctype) },
@@ -937,6 +941,10 @@ void init_ctype(void)
 		intptr_ctype = ssize_t_ctype;
 	if (!uintptr_ctype)
 		uintptr_ctype = size_t_ctype;
+
+	size_t_ptr_ctype.ctype.base_type = size_t_ctype;
+	intmax_ptr_ctype.ctype.base_type = intmax_ctype;
+	ptrdiff_ptr_ctype.ctype.base_type = ptrdiff_ctype;
 
 	const_wchar_ctype.ctype.base_type = wchar_ctype;
 	const_wchar_ctype.rank = wchar_ctype->rank;

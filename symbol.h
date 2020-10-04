@@ -302,6 +302,7 @@ extern struct symbol	schar_ptr_ctype, short_ptr_ctype;
 extern struct symbol	int_ptr_ctype, uint_ptr_ctype;
 extern struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 extern struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
+extern struct symbol	size_t_ptr_ctype, intmax_ptr_ctype, ptrdiff_ptr_ctype;
 extern struct symbol	float32_ctype, float32x_ctype;
 extern struct symbol	float64_ctype, float64x_ctype;
 extern struct symbol	float128_ctype;
