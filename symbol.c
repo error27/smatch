@@ -782,6 +782,7 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
 struct symbol	autotype_ctype;
+struct symbol	schar_ptr_ctype, short_ptr_ctype;
 struct symbol	int_ptr_ctype, uint_ptr_ctype;
 struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
@@ -877,6 +878,8 @@ static const struct ctype_declare {
 	{ &null_ctype,         T_PTR(&void_ctype) },
 	{ &label_ctype,        T_PTR(&void_ctype) },
 	{ &lazy_ptr_ctype,     T_PTR(&void_ctype) },
+	{ &schar_ptr_ctype,    T_PTR(&schar_ctype) },
+	{ &short_ptr_ctype,    T_PTR(&short_ctype) },
 	{ &int_ptr_ctype,      T_PTR(&int_ctype) },
 	{ &uint_ptr_ctype,     T_PTR(&uint_ctype) },
 	{ &long_ptr_ctype,     T_PTR(&long_ctype) },
