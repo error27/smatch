@@ -164,49 +164,52 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 }
 
 /*
- * integer part of usual arithmetic conversions:
- *	integer promotions are applied
- *	if left and right are identical, we are done
- *	if signedness is the same, convert one with lower rank
- *	unless unsigned argument has rank lower than signed one, convert the
- *	signed one.
- *	if signed argument is bigger than unsigned one, convert the unsigned.
- *	otherwise, convert signed.
- *
- * Leaving aside the integer promotions, that is equivalent to
- *	if identical, don't convert
- *	if left is bigger than right, convert right
- *	if right is bigger than left, convert right
- *	otherwise, if signedness is the same, convert one with lower rank
- *	otherwise convert the signed one.
+ * After integer promotons:
+ * If both types are the same
+ *   -> no conversion needed
+ * If the types have the same signedness (their rank must be different)
+ *   -> convert to the type of the highest rank
+ * If rank(unsigned type) >= rank(signed type)
+ *   -> convert to the unsigned type
+ * If size(signed type) > size(unsigned type)
+ *   -> convert to the signed type
+ * Otherwise
+ *   -> convert to the unsigned type corresponding to the signed type.
  */
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 {
+	static struct symbol *unsigned_types[] = {
+		[0] = &uint_ctype,
+		[1] = &ulong_ctype,
+		[2] = &ullong_ctype,
+		[3] = &uint128_ctype,
+	};
 	unsigned long lmod, rmod;
+	struct symbol *stype, *utype;
 
 	left = integer_promotion(left);
 	right = integer_promotion(right);
 
 	if (left == right)
-		goto left;
-
-	if (left->bit_size > right->bit_size)
-		goto left;
-
-	if (right->bit_size > left->bit_size)
-		goto right;
+		return left;
 
 	lmod = left->ctype.modifiers;
 	rmod = right->ctype.modifiers;
-	if ((lmod ^ rmod) & MOD_UNSIGNED) {
-		if (lmod & MOD_UNSIGNED)
-			goto left;
-	} else if (left->rank > right->rank)
-		goto left;
-right:
-	left = right;
-left:
-	return left;
+	if (((lmod ^ rmod) & MOD_UNSIGNED) == 0)
+		return (left->rank > right->rank) ? left : right;
+	if (lmod & MOD_UNSIGNED) {
+		utype = left;
+		stype = right;
+	} else {
+		stype = left;
+		utype = right;
+	}
+	if (utype->rank >= stype->rank)
+		return utype;
+	if (stype->bit_size > utype->bit_size)
+		return stype;
+	utype = unsigned_types[stype->rank];
+	return utype;
 }
 
 static int same_cast_type(struct symbol *orig, struct symbol *new)
