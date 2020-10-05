@@ -2883,6 +2883,8 @@ static struct symbol *cast_to_bool(struct expression *expr)
 		return NULL;
 
 	zero = alloc_const_expression(expr->pos, 0);
+	if (oclass & TYPE_PTR)
+		zero->ctype = otype;
 	expr->op = SPECIAL_NOTEQUAL;
 	ctype = usual_conversions(expr->op, old, zero,
 			oclass, TYPE_NUM, otype, zero->ctype);
