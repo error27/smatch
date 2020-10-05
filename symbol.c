@@ -806,6 +806,7 @@ struct symbol	const_void_ctype, const_char_ctype;
 struct symbol	const_ptr_ctype, const_string_ctype;
 struct symbol	const_wchar_ctype, const_wstring_ctype;
 struct symbol	volatile_void_ctype, volatile_ptr_ctype;
+struct symbol	volatile_bool_ctype, volatile_bool_ptr_ctype;
 
 struct symbol	zero_int;
 
@@ -912,6 +913,8 @@ static const struct ctype_declare {
 	{ &const_wchar_ctype,  T_CONST(&int_ctype, NULL, NULL) },
 	{ &volatile_void_ctype,T_NODE(MOD_VOLATILE, &void_ctype, NULL, NULL) },
 	{ &volatile_ptr_ctype, T_PTR(&volatile_void_ctype) },
+	{ &volatile_bool_ctype,T_NODE(MOD_VOLATILE, &bool_ctype, NULL, NULL) },
+	{ &volatile_bool_ptr_ctype, T_PTR(&volatile_bool_ctype) },
 	{ NULL, }
 };
 
