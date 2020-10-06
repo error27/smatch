@@ -87,6 +87,8 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
+	char has_flex_array;
+	struct symbol *flex_array;
 };
 
 /*
@@ -94,13 +96,8 @@ struct struct_union_info {
  */
 static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 {
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
+	if (sym->bit_size < 0 && is_array_type(sym))
+		sparse_error(sym->pos, "flexible array member '%s' in a union", show_ident(sym->ident));
 
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
@@ -125,24 +122,18 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	unsigned long bit_size, align_bit_mask;
 	int base_size;
 
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
-
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
 
 	/*
-	 * Unsized arrays cause us to not align the resulting
-	 * structure size
+	 * If the member is unsized, either it's a flexible array or
+	 * it's invalid and a warning has already been issued.
 	 */
 	if (base_size < 0) {
-		info->align_size = 0;
+		if (!is_array_type(sym))
+			return;
 		base_size = 0;
+		info->flex_array = sym;
 	}
 
 	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
@@ -196,6 +187,20 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
 			member->ctype.base_type = &incomplete_ctype;
 		}
+		if (info.flex_array)
+			sparse_error(info.flex_array->pos, "flexible array member '%s' is not last", show_ident(info.flex_array->ident));
+		examine_symbol_type(member);
+
+		if (member->ctype.alignment > info.max_align) {
+			// Unnamed bitfields do not affect alignment.
+			if (member->ident || !is_bitfield_type(member))
+				info.max_align = member->ctype.alignment;
+		}
+
+		if (has_flexible_array(member))
+			info.has_flex_array = 1;
+		if (has_flexible_array(member) && Wflexible_array_nested)
+			warning(sym->pos, "nested flexible arrays");
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
@@ -206,6 +211,11 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		bit_align = bytes_to_bits(sym->ctype.alignment)-1;
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
+	if (info.flex_array) {
+		info.has_flex_array = 1;
+	}
+	if (info.has_flex_array)
+		sym->has_flex_array = 1;
 	sym->bit_size = bit_size;
 	return sym;
 }
@@ -261,6 +271,8 @@ static struct symbol * examine_array_type(struct symbol *sym)
 			bit_size = -1;
 		}
 	}
+	if (has_flexible_array(base_type) && Wflexible_array_array)
+		warning(sym->pos, "array of flexible structures");
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
