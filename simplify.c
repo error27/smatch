@@ -1630,6 +1630,66 @@ static int simplify_compare(struct instruction *insn)
 	return 0;
 }
 
+static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, 0);
+		break;
+	}
+	return 0;
+}
+
+static int simplify_and(struct instruction *insn)
+{
+	return simplify_and_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_and_one_side(insn, &insn->src2, &insn->src1);
+}
+
+static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	}
+	return 0;
+}
+
+static int simplify_ior(struct instruction *insn)
+{
+	return simplify_ior_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_ior_one_side(insn, &insn->src2, &insn->src1);
+}
+
+static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	}
+	return 0;
+}
+
+static int simplify_xor(struct instruction *insn)
+{
+	return simplify_xor_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_xor_one_side(insn, &insn->src2, &insn->src1);
+}
+
 static int simplify_constant_unop(struct instruction *insn)
 {
 	long long val = insn->src1->value;
@@ -2162,10 +2222,10 @@ int simplify_instruction(struct instruction *insn)
 	switch (insn->opcode) {
 	case OP_ADD: return simplify_add(insn);
 	case OP_SUB: return simplify_sub(insn);
+	case OP_AND: return simplify_and(insn);
+	case OP_OR:  return simplify_ior(insn);
+	case OP_XOR: return simplify_xor(insn);
 	case OP_MUL:
-	case OP_AND:
-	case OP_OR:
-	case OP_XOR:
 	case OP_SHL:
 	case OP_LSR:
 	case OP_ASR:
