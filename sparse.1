@@ -278,6 +278,15 @@ possibly recursively.
 Sparse does not issue these warnings by default.
 .
 .TP
+.B -Wflexible-array-union
+Enable the warnings regarding flexible arrays and unions.
+To have any effect, at least one of \fB-Wflexible-array-array\fR,
+\fB-Wflexible-array-nested\fR or \fB-Wflexible-array-sizeof\fR must also
+be enabled.
+
+Sparse does issue these warnings by default.
+.
+.TP
 .B \-Winit\-cstring
 Warn about initialization of a char array with a too long constant C string.
 

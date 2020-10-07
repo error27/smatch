@@ -214,7 +214,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 	if (info.flex_array) {
 		info.has_flex_array = 1;
 	}
-	if (info.has_flex_array)
+	if (info.has_flex_array && (!is_union_type(sym) || Wflexible_array_union))
 		sym->has_flex_array = 1;
 	sym->bit_size = bit_size;
 	return sym;

@@ -103,6 +103,7 @@ int Wexternal_function_has_definition = 1;
 int Wflexible_array_array = 1;
 int Wflexible_array_nested = 0;
 int Wflexible_array_sizeof = 0;
+int Wflexible_array_union = 0;
 int Wimplicit_int = 1;
 int Winit_cstring = 0;
 int Wint_to_pointer_cast = 1;
@@ -846,6 +847,7 @@ static const struct flag warnings[] = {
 	{ "flexible-array-array", &Wflexible_array_array },
 	{ "flexible-array-nested", &Wflexible_array_nested },
 	{ "flexible-array-sizeof", &Wflexible_array_sizeof },
+	{ "flexible-array-union", &Wflexible_array_union },
 	{ "implicit-int", &Wimplicit_int },
 	{ "init-cstring", &Winit_cstring },
 	{ "int-to-pointer-cast", &Wint_to_pointer_cast },
