@@ -83,6 +83,13 @@ error:
 	return 0;
 }
 
+static int args_prototype(struct expression *expr)
+{
+	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
+	int n = symbol_list_size(fntype->arguments);
+	return eval_args(expr, n);
+}
+
 static int args_triadic(struct expression *expr)
 {
 	return eval_args(expr, 3);
