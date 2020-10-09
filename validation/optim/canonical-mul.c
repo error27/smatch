@@ -7,7 +7,7 @@ uint xtc_umul_ytc(uint x, uint y) { return (x * 3) * (y * 2); }
  * check-description:
  *	1) verify that constants in mul chains are
  *	   pushed at the right of the whole chain.
- *	   For example '(a * 3) * b' must be canonicalized into '(a * b) * 1'
+ *	   For example '(a * 3) * b' must be canonicalized into '(a * b) * 3'
  *	   This is needed in general for constant simplification;
  *	   for example, for:
  *		'(a * 3) * (b * 2)'
