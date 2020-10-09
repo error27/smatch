@@ -31,6 +31,14 @@
 #include "compat/bswap.h"
 #include <stdarg.h>
 
+#define dyntype incomplete_ctype
+static bool is_dynamic_type(struct symbol *t)
+{
+	if (t->type == SYM_NODE)
+		t = t->ctype.base_type;
+	return t == &dyntype;
+}
+
 static int evaluate_to_int_const_expr(struct expression *expr)
 {
 	expr->ctype = &int_ctype;
@@ -362,29 +370,32 @@ static struct symbol_op overflow_p_op = {
 };
 
 
-static int eval_sync_compare_and_swap(struct expression *expr)
+static int eval_atomic_common(struct expression *expr)
 {
+	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
 	struct symbol_list *types = NULL;
 	struct symbol *ctype = NULL;
+	struct symbol *t;
 	struct expression *arg;
 	int n = 0;
 
-	/* the first arg is a pointer type; we'd already verified that */
+	// The number of arguments has already be verified.
+	// The first arg must be a pointer to an integral type.
+	PREPARE_PTR_LIST(fntype->arguments, t);
 	FOR_EACH_PTR(expr->args, arg) {
-		struct symbol *t = arg->ctype;
+		struct symbol *ptrtype = NULL;
 
-		if (!t)
-			return 0;
-
-		// 2nd & 3rd args must be a basic integer type or a pointer
-		// 1st arg must be a pointer to such a type.
 		if (++n == 1) {
+			t = arg->ctype;
+			if (!t)
+				return 0;
 			if (t->type == SYM_NODE)
 				t = t->ctype.base_type;
 			if (!t)
 				return 0;
 			if (t->type != SYM_PTR)
 				goto err;
+			ptrtype = t;
 			t = t->ctype.base_type;
 			if (!t)
 				return 0;
@@ -395,13 +406,16 @@ static int eval_sync_compare_and_swap(struct expression *expr)
 			if (t->type != SYM_PTR && t->ctype.base_type != &int_type)
 				goto err;
 			ctype = t;
-			add_ptr_list(&types, arg->ctype);
-		} else {
-			add_ptr_list(&types, ctype);
+			t = ptrtype;
+		} else if (is_dynamic_type(t)) {
+			t = ctype;
 		}
+		add_ptr_list(&types, t);
+		NEXT_PTR_LIST(t);
 	} END_FOR_EACH_PTR(arg);
+	FINISH_PTR_LIST(t);
 
-	if (!expr->ctype)	// __sync_val_compare_and_swap()
+	if (!expr->ctype)	// set the return type, if needed
 		expr->ctype = ctype;
 	return evaluate_arguments(types, expr->args);
 
@@ -412,9 +426,9 @@ err:
 	return 0;
 }
 
-static struct symbol_op sync_compare_and_swap_op = {
-	.args = args_triadic,
-	.evaluate = eval_sync_compare_and_swap,
+static struct symbol_op atomic_op = {
+	.args = args_prototype,
+	.evaluate = eval_atomic_common,
 };
 
 
@@ -464,6 +478,7 @@ static void declare_builtins(int stream, const struct builtin_fn tbl[])
 static const struct builtin_fn builtins_common[] = {
 #define size_t_ctype	&size_t_alias
 #define va_list_ctype	&ptr_ctype
+#define vol_ptr		&volatile_ptr_ctype
 	{ "__builtin_choose_expr", NULL, 1, .op = &choose_op },
 	{ "__builtin_constant_p", NULL, 1, .op = &constant_p_op },
 	{ "__builtin_expect", &long_ctype, 0, { &long_ctype ,&long_ctype }, .op = &expect_op },
@@ -614,7 +629,7 @@ static const struct builtin_fn builtins_common[] = {
 
 	{ "__sync_add_and_fetch", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_and_and_fetch", &int_ctype, 1, { &ptr_ctype }},
-	{ "__sync_bool_compare_and_swap", &bool_ctype, 1, { &ptr_ctype }, .op = &sync_compare_and_swap_op},
+	{ "__sync_bool_compare_and_swap", &bool_ctype, 1, { vol_ptr, &dyntype, &dyntype }, .op = &atomic_op},
 	{ "__sync_fetch_and_add", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_fetch_and_and", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_fetch_and_nand", &int_ctype, 1, { &ptr_ctype }},
@@ -627,7 +642,7 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__sync_or_and_fetch", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_sub_and_fetch", &int_ctype, 1, { &ptr_ctype }},
 	{ "__sync_synchronize", &void_ctype, 0 },
-	{ "__sync_val_compare_and_swap", NULL, 1, { &ptr_ctype }, .op = &sync_compare_and_swap_op },
+	{ "__sync_val_compare_and_swap", NULL, 1, { vol_ptr, &dyntype, &dyntype }, .op = &atomic_op },
 	{ "__sync_xor_and_fetch", &int_ctype, 1, { &ptr_ctype }},
 
 	{ }
