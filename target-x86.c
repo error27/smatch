@@ -1,6 +1,7 @@
 #include "symbol.h"
 #include "target.h"
 #include "machine.h"
+#include "builtin.h"
 
 
 static void predefine_i386(const struct target *self)
@@ -39,6 +40,11 @@ static void init_x86_common(const struct target *target)
 	}
 }
 
+static const struct builtin_fn builtins_x86_common[] = {
+	{ "__builtin_ia32_pause", &void_ctype, 0, },
+	{ }
+};
+
 
 static void init_i386(const struct target *target)
 {
@@ -64,6 +70,7 @@ const struct target target_i386 = {
 
 	.init = init_i386,
 	.predefine = predefine_i386,
+	.builtins = builtins_x86_common,
 };
 
 
@@ -159,4 +166,5 @@ const struct target target_x86_64 = {
 
 	.init = init_x86_64,
 	.predefine = predefine_x86_64,
+	.builtins = builtins_x86_common,
 };
