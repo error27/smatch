@@ -805,6 +805,7 @@ struct symbol	float128_ctype;
 struct symbol	const_void_ctype, const_char_ctype;
 struct symbol	const_ptr_ctype, const_string_ctype;
 struct symbol	const_wchar_ctype, const_wstring_ctype;
+struct symbol	volatile_void_ctype, volatile_ptr_ctype;
 
 struct symbol	zero_int;
 
@@ -909,6 +910,8 @@ static const struct ctype_declare {
 	{ &const_void_ctype,   T_CONST(&void_ctype, NULL, NULL) },
 	{ &const_char_ctype,   T_CONST(&char_ctype, &bits_in_char, &max_int_alignment)},
 	{ &const_wchar_ctype,  T_CONST(&int_ctype, NULL, NULL) },
+	{ &volatile_void_ctype,T_NODE(MOD_VOLATILE, &void_ctype, NULL, NULL) },
+	{ &volatile_ptr_ctype, T_PTR(&volatile_void_ctype) },
 	{ NULL, }
 };
 
