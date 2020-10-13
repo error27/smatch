@@ -30,6 +30,7 @@ char *bin_dir;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
+int option_print_names;
 int option_info = 0;
 int option_full_path = 0;
 int option_call_tree = 0;
@@ -244,6 +245,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(mem);
 		OPTION(no_db);
 		OPTION(succeed);
+		OPTION(print_names);
 		if (!found)
 			break;
 		(*argcp)--;

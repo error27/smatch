@@ -328,6 +328,8 @@ SMATCH_OBJS += smatch_unknown_value.o
 SMATCH_OBJS += smatch_untracked_param.o
 SMATCH_OBJS += smatch_var_sym.o
 
+CFLAGS+=-D__CHECKNAME__='"$(subst .c,,$(notdir $<))"'
+
 SMATCH_CHECKS=$(shell ls check_*.c | sed -e 's/\.c/.o/')
 SMATCH_DATA=smatch_data/kernel.allocation_funcs \
 	smatch_data/kernel.frees_argument smatch_data/kernel.puts_argument \

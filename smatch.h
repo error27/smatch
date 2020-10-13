@@ -220,6 +220,7 @@ extern int debug_db;
 bool debug_implied(void);
 extern int option_info;
 extern int option_spammy;
+extern int option_print_names;
 extern char *trace_variable;
 extern struct stree *global_states;
 int is_skipped_function(void);
@@ -257,6 +258,9 @@ extern int sm_nr_errors;
 static inline void sm_prefix(void)
 {
 	sm_printf("%s:%d %s() ", get_filename(), get_lineno(), get_function());
+	if (option_info || !option_print_names)
+		return;
+	sm_printf("[smatch.%s] ", __CHECKNAME__);
 }
 
 static inline void print_implied_debug_msg();
