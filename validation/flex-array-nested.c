@@ -23,7 +23,7 @@ static int foo(struct s *s, union u *u)
  * check-command: sparse -Wflexible-array-nested $file
  *
  * check-error-start
-flex-array-nested.c:7:18: warning: nested flexible arrays
-flex-array-nested.c:11:18: warning: nested flexible arrays
+flex-array-nested.c:7:18: warning: nested flexible array
+flex-array-nested.c:11:18: warning: nested flexible array
  * check-error-end
  */

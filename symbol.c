@@ -200,7 +200,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		if (has_flexible_array(member))
 			info.has_flex_array = 1;
 		if (has_flexible_array(member) && Wflexible_array_nested)
-			warning(member->pos, "nested flexible arrays");
+			warning(member->pos, "nested flexible array");
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
