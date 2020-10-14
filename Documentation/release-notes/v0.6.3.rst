@@ -1,5 +1,5 @@
-v0.6.3 (Fall 2020)
-==================
+v0.6.3 (2020-10-17)
+===================
 
 Bug fixes:
   * fix missing inlining of _Generic expression
@@ -15,6 +15,7 @@ Bug fixes:
   * fix access to defining instruction in simplify_unop()
   * fix evaluation of pointer to bool conversions
   * fix usual conversion of integers
+  * fix null pointer deref on return expression with invalid type
 
 New features:
   * add support for arch specific asm constraints
