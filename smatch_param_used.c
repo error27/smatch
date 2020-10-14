@@ -78,6 +78,9 @@ static void process_states(void)
 		name = get_param_name(tmp);
 		if (!name)
 			continue;
+		if (strcmp(name, "$") == 0 ||
+		    strcmp(name, "*$") == 0)
+			continue;
 		if (is_recursive_member(name))
 			continue;
 

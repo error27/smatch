@@ -2379,6 +2379,10 @@ static int filter_unused_param_value_info(struct expression *call, int param, ch
 	if (call->fn->type != EXPR_SYMBOL)
 		return 0;
 
+	if (strcmp(printed_name, "$") == 0 ||
+	    strcmp(printed_name, "*$") == 0)
+		return 0;
+
 	/*
 	 * This is to handle __builtin_mul_overflow().  In an ideal world we
 	 * would only need this for invalid code.
