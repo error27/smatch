@@ -189,6 +189,24 @@ static int get_db_state_count(void)
 	return count;
 }
 
+static bool is_local(struct symbol *sym)
+{
+	if (sym->ctype.modifiers & MOD_STATIC)
+		return true;
+	if ((sym->ctype.modifiers & MOD_EXTERN) &&
+	    (sym->ctype.modifiers & MOD_INLINE))
+		return true;
+
+	if (!sym->definition)
+		return false;
+
+	if ((sym->definition->ctype.modifiers & MOD_EXTERN) &&
+	    (sym->definition->ctype.modifiers & MOD_INLINE))
+		return true;
+
+	return false;
+}
+
 void db_ignore_states(int id)
 {
 	use_states[id] = 0;
@@ -199,7 +217,7 @@ static void set_fn_mtag(struct symbol *sym)
 {
 	char buf[128];
 
-	if (cur_func_sym->ctype.modifiers & MOD_STATIC)
+	if (is_local(cur_func_sym))
 		snprintf(buf, sizeof(buf), "%s %s", get_base_file(), get_function());
 	else
 		snprintf(buf, sizeof(buf), "extern %s", get_function());
@@ -403,9 +421,9 @@ void sql_insert_fn_data_link(struct expression *fn, int type, int param, const c
 		return;
 
 	sql_insert(fn_data_link, "'%s', '%s', %d, %d, %d, '%s', '%s'",
-		   (fn->symbol->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+		   is_local(fn->symbol) ? get_base_file() : "extern",
 		   fn->symbol->ident->name,
-		   !!(fn->symbol->ctype.modifiers & MOD_STATIC),
+		   is_local(fn->symbol),
 		   type, param, key, value);
 }
 
@@ -484,7 +502,7 @@ char *get_static_filter(struct symbol *sym)
 		return sql_filter;
 	}
 
-	if (sym->ctype.modifiers & MOD_STATIC) {
+	if (is_local(sym)) {
 		snprintf(sql_filter, sizeof(sql_filter),
 			 "file = '%s' and function = '%s' and static = '1'",
 			 get_base_file(), sym->ident->name);
