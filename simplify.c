@@ -1118,7 +1118,7 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_SUB:
 		if (value) {
 			insn->opcode = OP_ADD;
-			insn->src2 = value_pseudo(-value);
+			insn->src2 = eval_unop(OP_NEG, insn->size, insn->src2);
 			return REPEAT_CSE;
 		}
 	/* Fall through */
