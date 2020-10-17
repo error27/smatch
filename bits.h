@@ -58,4 +58,9 @@ static inline long long bits_extend(long long val, unsigned size, int is_signed)
 	return val;
 }
 
+static inline int is_power_of_2(long long val)
+{
+	return val && !(val & (val - 1));
+}
+
 #endif
