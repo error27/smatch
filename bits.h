@@ -63,4 +63,11 @@ static inline int is_power_of_2(long long val)
 	return val && !(val & (val - 1));
 }
 
+///
+// log base 2 of an exact power-of-2
+static inline int log2_exact(unsigned long long val)
+{
+	return 8 * sizeof(val) - __builtin_clzl(val) - 1;
+}
+
 #endif
