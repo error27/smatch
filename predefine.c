@@ -179,6 +179,13 @@ void predefined_macros(void)
 	if (arch_target->has_int128)
 		predefined_sizeof("INT128", "", 128);
 
+	predefine("__ATOMIC_RELAXED", 0, "0");
+	predefine("__ATOMIC_CONSUME", 0, "1");
+	predefine("__ATOMIC_ACQUIRE", 0, "3");
+	predefine("__ATOMIC_RELEASE", 0, "4");
+	predefine("__ATOMIC_ACQ_REL", 0, "7");
+	predefine("__ATOMIC_SEQ_CST", 0, "8");
+
 	predefine("__ORDER_LITTLE_ENDIAN__", 1, "1234");
 	predefine("__ORDER_BIG_ENDIAN__", 1, "4321");
 	predefine("__ORDER_PDP_ENDIAN__", 1, "3412");
