@@ -1787,6 +1787,8 @@ static struct symbol *degenerate(struct expression *expr)
 			expression_error(expr, "strange non-value function or array");
 			return &bad_ctype;
 		}
+		if (ctype->builtin)
+			sparse_error(expr->pos, "taking the address of built-in function '%s'", show_ident(ctype->ident)); 
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
@@ -1807,6 +1809,8 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 		return NULL;
 	}
 	ctype = op->ctype;
+	if (ctype->builtin)
+		sparse_error(expr->pos, "taking the address of built-in function '%s'", show_ident(ctype->ident));
 	*expr = *op->unop;
 
 	mark_addressable(expr);
