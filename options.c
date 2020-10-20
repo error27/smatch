@@ -81,6 +81,7 @@ unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
 int fshort_wchar = 0;
+int funsigned_bitfields = 0;
 int funsigned_char = 0;
 
 int Waddress = 0;
@@ -528,6 +529,8 @@ static struct flag fflags[] = {
 	{ "PIC",		&fpic,	handle_switch_setval, 2 },
 	{ "pie",		&fpie,	handle_switch_setval, 1 },
 	{ "PIE",		&fpie,	handle_switch_setval, 2 },
+	{ "signed-bitfields",	&funsigned_bitfields, NULL, OPT_INVERSE },
+	{ "unsigned-bitfields",	&funsigned_bitfields, NULL, },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
 	{ "short-wchar",	&fshort_wchar },
 	{ "unsigned-char",	&funsigned_char, NULL, },
