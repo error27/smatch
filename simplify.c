@@ -1081,6 +1081,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 
 static int simplify_compare_constant(struct instruction *insn, long long value)
 {
+	unsigned long long bits = bits_mask(insn->itype->bit_size);
 	int changed = 0;
 
 	switch (insn->opcode) {
@@ -1103,10 +1104,14 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 	case OP_SET_BE:
 		if (!value)			// (x <= 0) --> (x == 0)
 			return replace_opcode(insn, OP_SET_EQ);
+		if (value == bits)		// (x <= ~0) --> 1
+			return replace_with_pseudo(insn, value_pseudo(1));
 		break;
 	case OP_SET_A:
 		if (!value)			// (x > 0) --> (x != 0)
 			return replace_opcode(insn, OP_SET_NE);
+		if (value == bits)		// (x > ~0) --> 0
+			return replace_with_pseudo(insn, value_pseudo(0));
 		break;
 	}
 	return changed;
