@@ -1090,6 +1090,8 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == 1)			// (x < 1) --> (x == 0)
 			return replace_binop_value(insn, OP_SET_EQ, 0);
+		else if (value == bits)		// (x < ~0) --> (x != ~0)
+			return replace_binop_value(insn, OP_SET_NE, value);
 		else				// (x < y) --> (x <= (y-1))
 			changed |= replace_binop_value(insn, OP_SET_BE, value - 1);
 		break;
@@ -1098,6 +1100,8 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == 1)			// (x >= 1) --> (x != 0)
 			return replace_binop_value(insn, OP_SET_NE, 0);
+		else if (value == bits)		// (x >= ~0) --> (x == ~0)
+			return replace_binop_value(insn, OP_SET_EQ, value);
 		else				// (x >= y) --> (x > (y-1)
 			changed |= replace_binop_value(insn, OP_SET_A, value - 1);
 		break;
@@ -1106,12 +1110,16 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_opcode(insn, OP_SET_EQ);
 		if (value == bits)		// (x <= ~0) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
+		if (value == (bits - 1))	// (x <= ~1) --> (x != ~0)
+			return replace_binop_value(insn, OP_SET_NE, bits);
 		break;
 	case OP_SET_A:
 		if (!value)			// (x > 0) --> (x != 0)
 			return replace_opcode(insn, OP_SET_NE);
 		if (value == bits)		// (x > ~0) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
+		if (value == (bits - 1))	// (x > ~1) --> (x == ~0)
+			return replace_binop_value(insn, OP_SET_EQ, bits);
 		break;
 	}
 	return changed;

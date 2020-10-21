@@ -6,7 +6,6 @@ static _Bool setgt_umax(unsigned int a) { return (a >  ~1) == (a == ~0); }
 /*
  * check-name: set-uimm2
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
