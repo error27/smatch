@@ -20,6 +20,11 @@ extern const struct opcode_table {
 	unsigned int flags:6;
 #define			OPF_NONE	0
 #define			OPF_TARGET	(1 << 0)
+#define			OPF_COMMU	(1 << 1)
+#define			OPF_ASSOC	(1 << 2)
+#define			OPF_UNOP	(1 << 3)
+#define			OPF_BINOP	(1 << 4)
+#define			OPF_COMPARE	(1 << 5)
 } opcode_table[];
 
 

@@ -470,6 +470,20 @@ static inline int replace_with_value(struct instruction *insn, long long val)
 	return replace_with_pseudo(insn, value_pseudo(val));
 }
 
+///
+// replace a binop with an unop
+// @insn: the instruction to be replaced
+// @op: the instruction's new opcode
+// @src: the instruction's new operand
+// @return: REPEAT_CSE
+static inline int replace_with_unop(struct instruction *insn, int op, pseudo_t src)
+{
+	insn->opcode = op;
+	replace_pseudo(insn, &insn->src1, src);
+	remove_usage(insn->src2, &insn->src2);
+	return REPEAT_CSE;
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
@@ -516,12 +530,11 @@ static unsigned int operand_size(struct instruction *insn, pseudo_t pseudo)
 	return size;
 }
 
-static pseudo_t eval_insn(struct instruction *insn)
+static pseudo_t eval_op(int op, unsigned size, pseudo_t src1, pseudo_t src2)
 {
 	/* FIXME! Verify signs and sizes!! */
-	unsigned int size = insn->size;
-	long long left = insn->src1->value;
-	long long right = insn->src2->value;
+	long long left = src1->value;
+	long long right = src2->value;
 	unsigned long long ul, ur;
 	long long res, mask, bits;
 
@@ -535,7 +548,14 @@ static pseudo_t eval_insn(struct instruction *insn)
 	ul = left & bits;
 	ur = right & bits;
 
-	switch (insn->opcode) {
+	switch (op) {
+	case OP_NEG:
+		res = -left;
+		break;
+	case OP_NOT:
+		res = ~ul;
+		break;
+
 	case OP_ADD:
 		res = left + right;
 		break;
@@ -635,6 +655,11 @@ static pseudo_t eval_insn(struct instruction *insn)
 
 undef:
 	return NULL;
+}
+
+static inline pseudo_t eval_unop(int op, unsigned size, pseudo_t src)
+{
+	return eval_op(op, size, src, VOID);
 }
 
 ///
@@ -752,6 +777,11 @@ static int simplify_mask_shift(struct instruction *sh, unsigned long long mask)
 		break;
 	}
 	return 0;
+}
+
+static pseudo_t eval_insn(struct instruction *insn)
+{
+	return eval_op(insn->opcode, insn->size, insn->src1, insn->src2);
 }
 
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
@@ -1066,11 +1096,30 @@ static int simplify_constant_mask(struct instruction *insn, unsigned long long m
 	return 0;
 }
 
+static int simplify_const_rightadd(struct instruction *def, struct instruction *insn)
+{
+	unsigned size = insn->size;
+	pseudo_t src2 = insn->src2;
+
+	switch (def->opcode) {
+	case OP_SUB:
+		if (constant(def->src1)) { // (C - y) + D --> eval(C+D) - y
+			pseudo_t val = eval_op(OP_ADD, size, def->src1, src2);
+			insn->opcode = OP_SUB;
+			use_pseudo(insn, def->src2, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, val);
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_rightside(struct instruction *insn)
 {
 	long long value = insn->src2->value;
 	long long sbit = 1ULL << (insn->size - 1);
 	long long bits = sbit | (sbit - 1);
+	int changed = 0;
 
 	switch (insn->opcode) {
 	case OP_OR:
@@ -1083,20 +1132,23 @@ static int simplify_constant_rightside(struct instruction *insn)
 			insn->opcode = OP_NOT;
 			return REPEAT_CSE;
 		}
-		goto case_neutral_zero;
-
-	case OP_SUB:
-		if (value) {
-			insn->opcode = OP_ADD;
-			insn->src2 = value_pseudo(-value);
-			return REPEAT_CSE;
-		}
-	/* Fall through */
-	case OP_ADD:
+		/* fallthrough */
 	case_neutral_zero:
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
+
+	case OP_SUB:
+		insn->opcode = OP_ADD;
+		insn->src2 = eval_unop(OP_NEG, insn->size, insn->src2);
+		changed = REPEAT_CSE;
+		/* fallthrough */
+	case OP_ADD:
+		if (!value)
+			return replace_with_pseudo(insn, insn->src1);
+		if (insn->src1->type == PSEUDO_REG)	// (x # y) + z
+			changed |= simplify_const_rightadd(insn->src1->def, insn);
+		return changed;
 	case OP_ASR:
 	case OP_SHL:
 	case OP_LSR:
@@ -1125,6 +1177,30 @@ static int simplify_constant_rightside(struct instruction *insn)
 	return 0;
 }
 
+static int simplify_const_leftsub(struct instruction *insn, struct instruction *def)
+{
+	unsigned size = insn->size;
+	pseudo_t src1 = insn->src1;
+
+	switch (def->opcode) {
+	case OP_ADD:
+		if (constant(def->src2)) { // C - (y + D) --> eval(C-D) - y
+			insn->src1 = eval_op(OP_SUB, size, src1, def->src2);
+			return replace_pseudo(insn, &insn->src2, def->src1);
+		}
+		break;
+	case OP_SUB:
+		if (constant(def->src1)) { // C - (D - z) --> z + eval(C-D)
+			pseudo_t val = eval_op(OP_SUB, size, src1, def->src1);
+			insn->opcode = OP_ADD;
+			use_pseudo(insn, def->src2, &insn->src1);
+			return replace_pseudo(insn, &insn->src2, val);
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_leftside(struct instruction *insn)
 {
 	long long value = insn->src1->value;
@@ -1142,6 +1218,12 @@ static int simplify_constant_leftside(struct instruction *insn)
 		if (!value)
 			return replace_with_pseudo(insn, insn->src1);
 		return 0;
+	case OP_SUB:
+		if (!value)			// (0 - x) --> -x
+			return replace_with_unop(insn, OP_NEG, insn->src2);
+		if (insn->src2->type == PSEUDO_REG)
+			return simplify_const_leftsub(insn, insn->src2->def);
+		break;
 	}
 	return 0;
 }
@@ -1202,7 +1284,7 @@ static int simplify_binop(struct instruction *insn)
 	return 0;
 }
 
-static void switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instruction *insn2, pseudo_t *pp2)
+static int switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instruction *insn2, pseudo_t *pp2)
 {
 	pseudo_t p1 = *pp1, p2 = *pp2;
 
@@ -1210,6 +1292,7 @@ static void switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instr
 	use_pseudo(insn2, p1, pp2);
 	remove_usage(p1, pp1);
 	remove_usage(p2, pp2);
+	return REPEAT_CSE;
 }
 
 static int canonical_order(pseudo_t p1, pseudo_t p2)
@@ -1264,10 +1347,76 @@ static int simplify_associative_binop(struct instruction *insn)
 		return 0;
 	if (!simple_pseudo(def->src2))
 		return 0;
+	if (constant(def->src2) && constant(insn->src2)) {
+		// (x # C) # K --> x # eval(C # K)
+		insn->src2 = eval_op(insn->opcode, insn->size, insn->src2, def->src2);
+		return replace_pseudo(insn, &insn->src1, def->src1);
+	}
 	if (multi_users(def->target))
 		return 0;
 	switch_pseudo(def, &def->src1, insn, &insn->src2);
 	return REPEAT_CSE;
+}
+
+static int simplify_add(struct instruction *insn)
+{
+	pseudo_t src1 = insn->src1;
+	pseudo_t src2 = insn->src2;
+	struct instruction *def;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NEG:				// (-x + y) --> (y - x)
+		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
+		insn->opcode = OP_SUB;
+		return replace_pseudo(insn, &insn->src2, def->src);
+
+	case OP_SUB:
+		if (def->src2 == src2)		// (x - y) + y --> x
+			return replace_with_pseudo(insn, def->src1);
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src2)) {
+	case OP_NEG:				// (x + -y) --> (x - y)
+		insn->opcode = OP_SUB;
+		return replace_pseudo(insn, &insn->src2, def->src);
+	case OP_SUB:
+		if (src1 == def->src2)		// x + (y - x) --> y
+			return replace_with_pseudo(insn, def->src1);
+		break;
+	}
+
+	return 0;
+}
+
+static int simplify_sub(struct instruction *insn)
+{
+	pseudo_t src1 = insn->src1;
+	pseudo_t src2 = insn->src2;
+	struct instruction *def;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_ADD:
+		if (def->src1 == src2)		// (x + y) - x --> y
+			return replace_with_pseudo(insn, def->src2);
+		if (def->src2 == src2)		// (x + y) - y --> x
+			return replace_with_pseudo(insn, def->src1);
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src2)) {
+	case OP_ADD:
+		if (src1 == def->src1)		// x - (x + z) --> -z
+			return replace_with_unop(insn, OP_NEG, def->src2);
+		if (src1 == def->src2)		// x - (y + x) --> -y
+			return replace_with_unop(insn, OP_NEG, def->src1);
+		break;
+	case OP_NEG:				// (x - -y) --> (x + y)
+		insn->opcode = OP_ADD;
+		return replace_pseudo(insn, &insn->src2, def->src);
+	}
+
+	return 0;
 }
 
 static int simplify_constant_unop(struct instruction *insn)
@@ -1705,35 +1854,57 @@ found:
 
 int simplify_instruction(struct instruction *insn)
 {
+	unsigned flags;
+	int changed = 0;
+
 	if (!insn->bb)
 		return 0;
+
+	flags = opcode_table[insn->opcode].flags;
+	if (flags & OPF_COMMU)
+		canonicalize_commutative(insn) ;
+	if (flags & OPF_COMPARE)
+		canonicalize_compare(insn) ;
+	if (flags & OPF_BINOP) {
+		if ((changed = simplify_binop(insn)))
+			return changed;
+	}
+	if (flags & OPF_ASSOC) {
+		if ((changed = simplify_associative_binop(insn)))
+			return changed;
+	}
+	if (flags & OPF_UNOP) {
+		if ((changed = simplify_unop(insn)))
+			return changed;
+	}
+
 	switch (insn->opcode) {
-	case OP_ADD: case OP_MUL:
-	case OP_AND: case OP_OR: case OP_XOR:
-		canonicalize_commutative(insn);
-		if (simplify_binop(insn))
-			return REPEAT_CSE;
-		return simplify_associative_binop(insn);
-
-	case OP_SET_EQ: case OP_SET_NE:
-		canonicalize_commutative(insn);
-		return simplify_binop(insn);
-
-	case OP_SET_LE: case OP_SET_GE:
-	case OP_SET_LT: case OP_SET_GT:
-	case OP_SET_B:  case OP_SET_A:
-	case OP_SET_BE: case OP_SET_AE:
-		canonicalize_compare(insn);
-		/* fall through */
-	case OP_SUB:
-	case OP_DIVU: case OP_DIVS:
-	case OP_MODU: case OP_MODS:
+	case OP_ADD: return simplify_add(insn);
+	case OP_SUB: return simplify_sub(insn);
+	case OP_MUL:
+	case OP_AND:
+	case OP_OR:
+	case OP_XOR:
 	case OP_SHL:
-	case OP_LSR: case OP_ASR:
-		return simplify_binop(insn);
-
-	case OP_NOT: case OP_NEG: case OP_FNEG:
-		return simplify_unop(insn);
+	case OP_LSR:
+	case OP_ASR:
+	case OP_NOT:
+	case OP_NEG:
+	case OP_DIVU:
+	case OP_DIVS:
+	case OP_MODU:
+	case OP_MODS:
+	case OP_SET_EQ:
+	case OP_SET_NE:
+	case OP_SET_LE:
+	case OP_SET_GE:
+	case OP_SET_LT:
+	case OP_SET_GT:
+	case OP_SET_B:
+	case OP_SET_A:
+	case OP_SET_BE:
+	case OP_SET_AE:
+		break;
 	case OP_LOAD:
 		if (!has_users(insn->target))
 			return kill_instruction(insn);
@@ -1747,6 +1918,7 @@ int simplify_instruction(struct instruction *insn)
 	case OP_SEXT: case OP_ZEXT:
 	case OP_TRUNC:
 		return simplify_cast(insn);
+	case OP_FNEG:
 	case OP_FCVTU: case OP_FCVTS:
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
