@@ -826,37 +826,14 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 
 static void output_op_phisrc(struct function *fn, struct instruction *insn)
 {
-	LLVMValueRef v;
-	struct instruction *phi;
-
-	assert(insn->target->priv == NULL);
-
-	/* target = src */
-	v = get_operand(fn, insn->type, insn->phi_src);
-
-	FOR_EACH_PTR(insn->phi_users, phi) {
-		LLVMValueRef load, ptr;
-
-		assert(phi->opcode == OP_PHI);
-		/* phi must be load from alloca */
-		load = phi->target->priv;
-		assert(LLVMGetInstructionOpcode(load) == LLVMLoad);
-		ptr = LLVMGetOperand(load, 0);
-		/* store v to alloca */
-		LLVMBuildStore(fn->builder, v, ptr);
-	} END_FOR_EACH_PTR(phi);
+	insn->src->priv = get_operand(fn, insn->type, insn->src);
 }
 
 static void output_op_phi(struct function *fn, struct instruction *insn)
 {
-	LLVMValueRef load = insn->target->priv;
+	LLVMTypeRef dst_type = insn_symbol_type(insn);
 
-	/* forward load */
-	assert(LLVMGetInstructionOpcode(load) == LLVMLoad);
-	/* forward load has no parent block */
-	assert(!LLVMGetInstructionParent(load));
-	/* finalize load in current block  */
-	LLVMInsertIntoBuilder(fn->builder, load);
+	insn->target->priv = LLVMBuildPhi(fn->builder, dst_type, "");
 }
 
 static void output_op_ptrcast(struct function *fn, struct instruction *insn)
@@ -1161,30 +1138,11 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 		static int nr_bb;
 		LLVMBasicBlockRef bbr;
 		char bbname[32];
-		struct instruction *insn;
 
 		sprintf(bbname, "L%d", nr_bb++);
 		bbr = LLVMAppendBasicBlock(function.fn, bbname);
 
 		bb->priv = bbr;
-
-		/* allocate alloca for each phi */
-		FOR_EACH_PTR(bb->insns, insn) {
-			LLVMBasicBlockRef entrybbr;
-			LLVMTypeRef phi_type;
-			LLVMValueRef ptr;
-
-			if (!insn->bb || insn->opcode != OP_PHI)
-				continue;
-			/* insert alloca into entry block */
-			entrybbr = LLVMGetEntryBasicBlock(function.fn);
-			LLVMPositionBuilderAtEnd(function.builder, entrybbr);
-			phi_type = insn_symbol_type(insn);
-			ptr = LLVMBuildAlloca(function.builder, phi_type, "");
-			/* emit forward load for phi */
-			LLVMClearInsertionPosition(function.builder);
-			insn->target->priv = LLVMBuildLoad(function.builder, ptr, "phi");
-		} END_FOR_EACH_PTR(insn);
 	}
 	END_FOR_EACH_PTR(bb);
 
@@ -1194,6 +1152,31 @@ static void output_fn(LLVMModuleRef module, struct entrypoint *ep)
 		output_bb(&function, bb);
 	}
 	END_FOR_EACH_PTR(bb);
+
+	FOR_EACH_PTR(ep->bbs, bb) {	// complete the OP_PHIs
+		struct instruction *insn;
+
+		FOR_EACH_PTR(bb->insns, insn) {
+			pseudo_t phi;
+
+			if (!insn->bb || insn->opcode != OP_PHI)
+				continue;
+
+			FOR_EACH_PTR(insn->phi_list, phi) {
+				struct instruction *phisrc;
+				LLVMBasicBlockRef bref;
+				LLVMValueRef vref;
+
+				if (phi == VOID)
+					continue;
+
+				phisrc = phi->def;
+				bref = phisrc->bb->priv;
+				vref = phisrc->src->priv;
+				LLVMAddIncoming(insn->target->priv, &vref, &bref, 1);
+			} END_FOR_EACH_PTR(phi);
+		} END_FOR_EACH_PTR(insn);
+	} END_FOR_EACH_PTR(bb);
 }
 
 static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
