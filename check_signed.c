@@ -227,6 +227,33 @@ static int print_unsigned_never_less_than_zero(struct expression *expr)
 	return 1;
 }
 
+static bool is_u64_vs_ulongmax(struct expression *expr)
+{
+	struct symbol *left, *right;
+	sval_t sval;
+
+	if (expr->op != '>' && expr->op != SPECIAL_UNSIGNED_GT)
+		return false;
+	if (!get_value(expr->right, &sval) ||
+	    !sval_is_max(sval))
+		return false;
+
+	left = get_type(expr->left);
+	right = get_type(expr->right);
+
+	if (left == right)
+		return true;
+	if (type_positive_bits(left) < type_positive_bits(right))
+		return true;
+
+	if (type_bits(left) != 64)
+		return false;
+	if (right != &ulong_ctype && right != &uint_ctype)
+		return false;
+
+	return true;
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct symbol *type;
@@ -283,7 +310,8 @@ static void match_condition(struct expression *expr)
 		return;
 	}
 
-	if (!possibly_true_rl(rl_left, expr->op, rl_right)) {
+	if (!possibly_true_rl(rl_left, expr->op, rl_right) &&
+	    !is_u64_vs_ulongmax(expr)) {
 		char *name = expr_to_str(expr);
 
 		sm_warning("impossible condition '(%s) => (%s %s %s)'", name,
