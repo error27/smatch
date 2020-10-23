@@ -703,7 +703,9 @@ int get_absolute_min_helper(struct expression *expr, sval_t *sval);
 int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
 /* smatch_type_value.c */
+void clear_type_value_cache(void);
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
+
 /* smatch_data_val.c */
 int get_mtag_rl(struct expression *expr, struct range_list **rl);
 /* smatch_array_values.c */

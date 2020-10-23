@@ -53,7 +53,7 @@ struct expr_rl {
 	struct expression *expr;
 	struct range_list *rl;
 };
-static struct expr_rl cached_results[10];
+static struct expr_rl cached_results[24];
 static int res_idx;
 
 static int get_cached(struct expression *expr, struct range_list **rl, int *ret)
@@ -629,7 +629,7 @@ static void match_end_func_info(struct symbol *sym)
 	} END_FOR_EACH_SM(sm);
 }
 
-static void clear_cache(struct symbol *sym)
+void clear_type_value_cache(void)
 {
 	memset(cached_results, 0, sizeof(cached_results));
 }
@@ -651,7 +651,6 @@ static void match_end_file(struct symbol_list *sym_list)
 void register_type_val(int id)
 {
 	my_id = id;
-	add_hook(&clear_cache, AFTER_FUNC_HOOK);
 
 	if (!option_info)
 		return;

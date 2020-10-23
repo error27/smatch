@@ -2079,6 +2079,7 @@ void free_data_info_allocs(void)
 		blob_free(blob, desc->chunking);
 		blob = next;
 	}
+	clear_type_value_cache();
 	clear_data_range_alloc();
 }
 
