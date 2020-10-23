@@ -872,6 +872,7 @@ enum info_type {
 	TERMINATED	= 1038,
 	FRESH_ALLOC	= 1044,
 	ALLOCATOR	= 1045,
+	FUNC_TIME	= 1047,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,

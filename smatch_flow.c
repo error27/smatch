@@ -204,6 +204,25 @@ static int is_noreturn_func(struct expression *expr)
 	return 0;
 }
 
+static int save_func_time(void *_rl, int argc, char **argv, char **azColName)
+{
+	unsigned long *rl = _rl;
+
+	*rl = strtoul(argv[0], NULL, 10);
+	return 0;
+}
+
+static int get_func_time(struct symbol *sym)
+{
+	unsigned long time = 0;
+
+	run_sql(&save_func_time, &time,
+		"select key from return_implies where %s and type = %d;",
+		get_static_filter(sym), FUNC_TIME);
+
+	return time;
+}
+
 static int inline_budget = 20;
 
 int inlinable(struct expression *expr)
@@ -239,6 +258,9 @@ int inlinable(struct expression *expr)
 
 	/* the magic numbers in this function are pulled out of my bum. */
 	if (last_stmt->pos.line > sym->pos.line + inline_budget)
+		return 0;
+
+	if (get_func_time(expr->symbol) >= 2)
 		return 0;
 
 	return 1;
@@ -1713,10 +1735,26 @@ static void clear_function_data(void)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void record_func_time(void)
+{
+	struct timeval stop;
+	int func_time;
+	char buf[32];
+
+	gettimeofday(&stop, NULL);
+	func_time = stop.tv_sec - fn_start_time.tv_sec;
+	snprintf(buf, sizeof(buf), "%d", func_time);
+	sql_insert_return_implies(FUNC_TIME, 0, "", buf);
+	if (option_time && func_time > 2) {
+		final_pass++;
+		sm_msg("func_time: %d", func_time);
+		final_pass--;
+	}
+}
+
 static void split_function(struct symbol *sym)
 {
 	struct symbol *base_type = get_base_type(sym);
-	struct timeval stop;
 
 	if (!base_type->stmt && !base_type->inline_stmt)
 		return;
@@ -1754,12 +1792,8 @@ static void split_function(struct symbol *sym)
 
 	clear_all_states();
 
-	gettimeofday(&stop, NULL);
-	if (option_time && stop.tv_sec - fn_start_time.tv_sec > 2) {
-		final_pass++;
-		sm_msg("func_time: %lu", stop.tv_sec - fn_start_time.tv_sec);
-		final_pass--;
-	}
+	record_func_time();
+
 	cur_func_sym = NULL;
 	cur_func = NULL;
 	free_data_info_allocs();
