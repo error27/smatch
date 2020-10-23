@@ -351,9 +351,9 @@ int kill_insn(struct instruction *insn, int force)
 	case OP_CALL:
 		if (!force) {
 			/* a "pure" function can be killed too */
-			if (!(insn->func->type == PSEUDO_SYM))
-				return 0;
-			if (!(insn->func->sym->ctype.modifiers & MOD_PURE))
+			struct symbol *fntype = first_symbol(insn->fntypes);
+
+			if (!(fntype->ctype.modifiers & MOD_PURE))
 				return 0;
 		}
 		kill_use_list(insn->arguments);
