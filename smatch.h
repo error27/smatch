@@ -790,7 +790,7 @@ void __discard_conditions(void);
 void __save_gotos(const char *name, struct symbol *sym);
 void __merge_gotos(const char *name, struct symbol *sym);
 
-void __discard_fake_states(void);
+void __discard_fake_states(struct expression *call);
 
 void __print_cur_stree(void);
 bool __print_states(const char *owner);

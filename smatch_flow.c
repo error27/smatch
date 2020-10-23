@@ -73,7 +73,7 @@ static void split_symlist(struct symbol_list *sym_list);
 static void split_declaration(struct symbol_list *sym_list);
 static void split_expr_list(struct expression_list *expr_list, struct expression *parent);
 static void split_args(struct expression *expr);
-static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *expr);
+static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *call, struct expression *expr, int nr);
 static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 
@@ -566,6 +566,8 @@ after_assign:
 		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
 		if (is_noreturn_func(expr->fn))
 			nullify_path();
+		if (!expr_get_parent_expr(expr))
+			__discard_fake_states(expr);
 		handle_builtin_overflow_func(expr);
 		break;
 	case EXPR_INITIALIZER:
@@ -983,7 +985,7 @@ static void split_ret_value(struct expression *expr)
 
 	type = get_real_base_type(cur_func_sym);
 	type = get_real_base_type(type);
-	expr = fake_a_variable_assign(type, expr);
+	expr = fake_a_variable_assign(type, NULL, expr, -1);
 
 	__in_fake_var_assign++;
 	__split_expr(expr);
@@ -1239,8 +1241,9 @@ void __split_stmt(struct statement *stmt)
 		break;
 	}
 	__pass_to_client(stmt, STMT_HOOK_AFTER);
-	if (--indent_cnt == 0)
-		__discard_fake_states();
+	if (--indent_cnt == 1)
+		__discard_fake_states(NULL);
+
 out:
 	__process_post_op_stack();
 }
@@ -1293,7 +1296,7 @@ static bool cast_arg(struct symbol *type, struct expression *arg)
 	return true;
 }
 
-static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *expr)
+static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *call, struct expression *expr, int nr)
 {
 	struct expression *var, *assign, *parent;
 	char buf[64];
@@ -1326,7 +1329,10 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 			return expr;
 	}
 
-	snprintf(buf, sizeof(buf), "__sm_fake_%p", expr);
+	if (nr == -1)
+		snprintf(buf, sizeof(buf), "__sm_fake_%p", expr);
+	else
+		snprintf(buf, sizeof(buf), "__fake_param_%p_%d", call, nr);
 	var = fake_variable(type, buf);
 	assign = assign_expression(var, '=', expr);
 	assign->smatch_flags |= Fake;
@@ -1351,7 +1357,7 @@ static void split_args(struct expression *expr)
 		i++;
 		expr_set_parent_expr(arg, expr);
 		type = get_arg_type(expr->fn, i);
-		tmp = fake_a_variable_assign(type, arg);
+		tmp = fake_a_variable_assign(type, expr, arg, i);
 		if (tmp != arg)
 			__in_fake_var_assign++;
 		__split_expr(tmp);

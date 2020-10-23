@@ -1237,10 +1237,12 @@ void __merge_gotos(const char *name, struct symbol *sym)
 		merge_stree(&cur_stree, *stree);
 }
 
-void __discard_fake_states(void)
+void __discard_fake_states(struct expression *call)
 {
 	struct stree *new = NULL;
 	struct sm_state *sm;
+	char buf[64];
+	int len;
 
 	if (__fake_state_cnt == 0)
 		return;
@@ -1253,7 +1255,13 @@ void __discard_fake_states(void)
 	 * waste resources tracking them.
 	 */
 	FOR_EACH_SM(cur_stree, sm) {
-		if (strncmp(sm->name, "__sm_fake_", 10) != 0)
+		if (call) {
+			len = snprintf(buf, sizeof(buf), "__fake_param_%p_", call);
+			if (strncmp(sm->name, buf, len) != 0)
+				avl_insert(&new, sm);
+			continue;
+		}
+		if (strncmp(sm->name, "__fake_param_", 13) != 0)
 			avl_insert(&new, sm);
 	} END_FOR_EACH_SM(sm);
 
