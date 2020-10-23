@@ -95,6 +95,21 @@ static int in_iterator_pre_statement(void)
 	return 1;
 }
 
+static bool get_absolute(struct expression *expr, struct range_list **rl)
+{
+	struct smatch_state *state;
+
+	if (__in_fake_struct_assign) {
+		state = get_state_expr(my_id, expr);
+		if (!state)
+			return false;
+		*rl = estate_rl(state);
+		return true;
+	}
+	get_real_absolute_rl(expr, rl);
+	return true;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct range_list *rl;
@@ -108,7 +123,8 @@ static void match_assign(struct expression *expr)
 	if (in_iterator_pre_statement())
 		return;
 
-	get_real_absolute_rl(expr->right, &rl);
+	if (!get_absolute(expr, &rl))
+		return;
 
 	type = get_type(expr->left);
 	if (!type)

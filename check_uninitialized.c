@@ -79,6 +79,10 @@ static void match_declarations(struct symbol *sym)
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
+	if (__in_fake_struct_assign)
+		return;
+	if (expr && expr->smatch_flags & Fake)
+		return;
 	if (!sym || !sym->ident)
 		return;
 	if (strcmp(name, sym->ident->name) != 0)

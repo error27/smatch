@@ -195,13 +195,13 @@ static void warn_if_allocated(struct expression *expr)
 	char *name;
 	sval_t sval;
 
-	if (get_implied_value(expr, &sval) && sval.value == 0)
-		return;
-
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
 	if (!slist_has_state(sm->possible, &allocated))
+		return;
+
+	if (get_implied_value(expr, &sval) && sval.value == 0)
 		return;
 
 	name = expr_to_var(expr);

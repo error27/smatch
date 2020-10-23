@@ -86,6 +86,9 @@ static int fresh_from_db(struct expression *call)
 {
 	int fresh = 0;
 
+	if (is_fake_call(call))
+		return 0;
+
 	/* for function pointers assume everything is used */
 	if (call->fn->type != EXPR_SYMBOL)
 		return 0;
