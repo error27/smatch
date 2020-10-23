@@ -1087,9 +1087,11 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 				return false;
 			if (get_mtag_rl(expr, res))
 				return true;
-			if (get_db_type_rl(expr, res))
-				return true;
 			if (is_array(expr) && get_array_rl(expr, res))
+				return true;
+			if (implied == RL_IMPLIED)
+				return false;
+			if (get_db_type_rl(expr, res))
 				return true;
 			return false;
 		}
