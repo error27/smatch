@@ -264,7 +264,7 @@ char *get_param_name(struct sm_state *sm)
 	return get_param_name_var_sym(sm->name, sm->sym);
 }
 
-static char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
+char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
 {
 	struct smatch_state *state;
 	struct var_sym *var_sym;
@@ -293,7 +293,7 @@ static char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, str
 	return swap_with_param(name, sym, sym_p);
 }
 
-static char *get_param_name_sym(struct expression *expr, struct symbol **sym_p)
+char *get_param_name_sym(struct expression *expr, struct symbol **sym_p)
 {
 	struct symbol *sym;
 	const char *ret = NULL;
@@ -318,15 +318,18 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 	struct symbol *other_sym;
 	int param;
 
-	*key = name;
+	if (key)
+		*key = name;
 
 	/* straight forward param match */
 	param = get_param_num_from_sym(sym);
 	if (param >= 0) {
 		param_name = get_param_name_var_sym(name, sym);
-		if (param_name)
-			*key = param_name;
-		return param;
+		if (param_name) {
+			if (key)
+				*key = param_name;
+			return param;
+		}
 	}
 
 	/* it's the return value */
@@ -339,7 +342,8 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 			param_name = state_name_to_param_name(name, ret_str);
 			if (param_name) {
 				free_string(ret_str);
-				*key = param_name;
+				if (key)
+					*key = param_name;
 				return -1;
 			}
 		}
@@ -356,15 +360,23 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 	}
 
 	param_name = get_param_name_var_sym(other_name, other_sym);
-	if (param_name)
-		*key = param_name;
-	return param;
+	if (param_name) {
+		if (key)
+			*key = param_name;
+		return param;
+	}
+	return -2;
 }
 
 int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
 			  const char **key)
 {
 	return get_param_key_from_var_sym(sm->name, sm->sym, ret_expr, key);
+}
+
+int map_to_param(const char *name, struct symbol *sym)
+{
+	return get_param_key_from_var_sym(name, sym, NULL, NULL);
 }
 
 int get_param_num_from_sym(struct symbol *sym)

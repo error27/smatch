@@ -444,11 +444,15 @@ struct expression *get_last_expr_from_expression_stmt(struct expression *expr);
 #define FILE_SCOPE    -3
 #define GLOBAL_SCOPE  -4
 #define UNKNOWN_SCOPE -5
+
+char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p);
+char *get_param_name_sym(struct expression *expr, struct symbol **sym_p);
 int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 			       struct expression *ret_expr,
 			       const char **key);
 int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
 			  const char **key);
+int map_to_param(const char *name, struct symbol *sym);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
 struct symbol *get_param_sym_from_num(int num);
