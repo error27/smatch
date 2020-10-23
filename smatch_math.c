@@ -1784,7 +1784,7 @@ static int get_absolute_rl_internal(struct expression *expr, struct range_list *
 int get_absolute_rl(struct expression *expr, struct range_list **rl)
 {
 	*rl = NULL;
-	 get_rl_helper(expr, RL_ABSOLUTE, rl);
+	get_rl_helper(expr, RL_ABSOLUTE, rl);
 	if (!*rl)
 		*rl = alloc_whole_rl(get_type(expr));
 	return 1;
