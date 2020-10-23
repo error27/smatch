@@ -162,6 +162,17 @@ struct type_expression {
 
 DECLARE_ALLOCATOR(type_expression);
 
+typedef struct {
+	struct symbol *type;
+	union {
+		long long value;
+		unsigned long long uvalue;
+		float fvalue;
+		double dvalue;
+		long double ldvalue;
+	};
+} sval_t;
+
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
@@ -205,6 +216,7 @@ struct expression {
 		// EXPR_BINOP, EXPR_COMMA, EXPR_COMPARE, EXPR_LOGICAL and EXPR_ASSIGNMENT
 		struct /* binop_arg */ {
 			struct expression *left, *right;
+			sval_t *sval;
 		};
 		// EXPR_DEREF
 		struct /* deref_arg */ {

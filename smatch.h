@@ -31,17 +31,6 @@
 #include "expression.h"
 #include "avl.h"
 
-typedef struct {
-	struct symbol *type;
-	union {
-		long long value;
-		unsigned long long uvalue;
-		float fvalue;
-		double dvalue;
-		long double ldvalue;
-	};
-} sval_t;
-
 typedef long long mtag_t;
 
 struct smatch_state {

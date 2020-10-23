@@ -738,7 +738,14 @@ static bool handle_binop_rl(struct expression *expr, int implied, int *recurse_c
 	struct range_list *rl;
 	sval_t val;
 
+	if (expr->sval) {
+		*res_sval = *expr->sval;
+		return true;
+	}
+
 	if (handle_known_binop(expr, &val)) {
+		expr->sval = malloc(sizeof(sval_t));
+		*expr->sval = val;
 		*res_sval = val;
 		return true;
 	}
