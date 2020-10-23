@@ -362,6 +362,15 @@ static void call_get_state_hooks(int owner, const char *name, struct symbol *sym
 	recursion = 0;
 }
 
+bool has_states(int owner)
+{
+	if (owner < 0 || owner >= USHRT_MAX)
+		return false;
+	if (!cur_stree)
+		return false;
+	return cur_stree->has_states[owner];
+}
+
 struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
