@@ -85,11 +85,25 @@ static int parent_is_set(const char *name, struct symbol *sym, struct smatch_sta
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	if (parent_is_set(name, sym, state))
+	struct symbol *param_sym;
+	char *param_name;
+
+	if (__in_fake_struct_assign)
 		return;
-	if (get_param_num_from_sym(sym) < 0)
+	if (expr && expr->smatch_flags & Fake)
 		return;
-	set_state(my_id, name, sym, state);
+
+	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
+	if (!param_name || !param_sym)
+		goto free;
+	if (get_param_num_from_sym(param_sym) < 0)
+		goto free;
+	if (parent_is_set(param_name, param_sym, state))
+		return;
+
+	set_state(my_id, param_name, param_sym, state);
+free:
+	free_string(param_name);
 }
 
 /*
@@ -119,7 +133,7 @@ static void match_array_assignment(struct expression *expr)
 	name = expr_to_var_sym(array, &sym);
 	if (!name || !sym)
 		goto free;
-	if (get_param_num_from_sym(sym) < 0)
+	if (map_to_param(name, sym) < 0)
 		goto free;
 	get_absolute_rl(expr->right, &rl);
 	rl = cast_rl(get_type(expr->left), rl);
@@ -197,11 +211,8 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			rl = estate_rl(sm->state);
 		}
 
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
-		param_name = get_param_name(sm);
-		if (!param_name)
+		param = get_param_key_from_sm(sm, NULL, &param_name);
+		if (param < 0 || !param_name)
 			continue;
 		if (strcmp(param_name, "$") == 0) {
 			insert_string(&set_list, (char *)sm->name);

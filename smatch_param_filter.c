@@ -68,20 +68,22 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	int param;
+	struct symbol *param_sym;
+	char *param_name;
 
-	if (__in_fake_assign)
-		return;
-
-	param = get_param_num_from_sym(sym);
-	if (param < 0)
-		return;
+	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
+	if (!param_name || !param_sym)
+		goto free;
+	if (get_param_num_from_sym(param_sym) < 0)
+		goto free;
 
 	/* on stack parameters are handled in smatch_param_limit.c */
-	if (sym->ident && strcmp(sym->ident->name, name) == 0)
+	if (param_sym->ident && strcmp(param_sym->ident->name, name) == 0)
 		return;
 
-	set_state(my_id, name, sym, alloc_estate_empty());
+	set_state(my_id, param_name, param_sym, alloc_estate_empty());
+free:
+	free_string(param_name);
 }
 
 /*

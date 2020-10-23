@@ -53,9 +53,11 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
 
-	state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
-	if (state)
-		return state;
+	if (!param_was_set_var_sym(sm->name, sm->sym)) {
+		state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		if (state)
+			return state;
+	}
 	return alloc_estate_whole(estate_type(sm->state));
 }
 
@@ -71,20 +73,6 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	if (state)
 		return state;
 	return alloc_estate_rl(alloc_whole_rl(get_real_base_type(sym)));
-}
-
-struct smatch_state *get_orig_estate_type(const char *name, struct symbol *sym, struct symbol *type)
-{
-	struct smatch_state *state;
-
-	state = get_state(my_id, name, sym);
-	if (state)
-		return state;
-
-	state = get_state(SMATCH_EXTRA, name, sym);
-	if (state)
-		return state;
-	return alloc_estate_rl(alloc_whole_rl(type));
 }
 
 static struct range_list *generify_mtag_range(struct smatch_state *state)
@@ -117,6 +105,20 @@ static struct range_list *generify_mtag_range(struct smatch_state *state)
 	return estate_rl(state);
 }
 
+static bool sm_was_set(struct sm_state *sm)
+{
+	struct relation *rel;
+
+	if (!estate_related(sm->state))
+		return param_was_set_var_sym(sm->name, sm->sym);
+
+	FOR_EACH_PTR(estate_related(sm->state), rel) {
+		if (param_was_set_var_sym(sm->name, sm->sym))
+			return true;
+	} END_FOR_EACH_PTR(rel);
+	return false;
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state, *old;
@@ -135,8 +137,11 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 
 		state = __get_state(my_id, tmp->name, tmp->sym);
-		if (!state)
+		if (!state) {
+			if (sm_was_set(tmp))
+				continue;
 			state = tmp->state;
+		}
 
 		if (estate_is_whole(state) || estate_is_empty(state))
 			continue;
@@ -155,15 +160,30 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	struct smatch_state *orig_vals;
-	int param;
+	struct smatch_state *orig;
+	struct symbol *param_sym;
+	char *param_name;
 
-	param = get_param_num_from_sym(sym);
-	if (param < 0)
+	if (expr && expr->smatch_flags & Fake)
 		return;
 
-	orig_vals = get_orig_estate_type(name, sym, estate_type(state));
-	set_state(my_id, name, sym, orig_vals);
+	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
+	if (!param_name || !param_sym)
+		goto free;
+	if (get_param_num_from_sym(param_sym) < 0)
+		goto free;
+
+	/* already saved */
+	if (get_state(my_id, param_name, param_sym))
+		goto free;
+
+	orig = get_state(SMATCH_EXTRA, param_name, param_sym);
+	if (!orig)
+		orig = alloc_estate_whole(estate_type(state));
+
+	set_state(my_id, param_name, param_sym, orig);
+free:
+	free_string(param_name);
 }
 
 void register_param_limit(int id)
