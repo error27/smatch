@@ -26,6 +26,7 @@ CK(register_param_compare_limit_links)
 CK(register_returns_early)
 
 CK(register_param_cleared)  /* param_set relies on param_cleared */
+CK(register_param_limit)    /* param limit has to be before param_set */
 CK(register_param_set)
 
 CK(register_smatch_ignore)
@@ -58,7 +59,6 @@ CK(register_imaginary_absolute)
 CK(register_bits)
 CK(register_fn_arg_link)
 CK(register_parameter_names)
-CK(register_param_limit)
 CK(register_return_to_param)
 CK(register_return_to_param_links)
 CK(register_constraints)
