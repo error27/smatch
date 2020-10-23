@@ -30,7 +30,7 @@
  * The work around is that for now what this check only
  * checks simple expressions and doesn't check whether
  * foo->bar is leaked.
- * 
+ *
  */
 
 #include <fcntl.h>
@@ -116,7 +116,6 @@ static int is_param(struct expression *expr)
 out:
 	free_string(name);
 	return ret;
-	
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *unused)
