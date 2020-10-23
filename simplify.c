@@ -388,20 +388,6 @@ int kill_insn(struct instruction *insn, int force)
 	return repeat_phase |= REPEAT_CSE;
 }
 
-///
-// kill trivially dead instructions
-static int dead_insn(struct instruction *insn, pseudo_t *src1, pseudo_t *src2, pseudo_t *src3)
-{
-	if (has_users(insn->target))
-		return 0;
-
-	insn->bb = NULL;
-	kill_use(src1);
-	kill_use(src2);
-	kill_use(src3);
-	return REPEAT_CSE;
-}
-
 static inline bool has_target(struct instruction *insn)
 {
 	return opcode_table[insn->opcode].flags & OPF_TARGET;
@@ -1270,8 +1256,6 @@ static int simplify_binop_same_args(struct instruction *insn, pseudo_t arg)
 
 static int simplify_binop(struct instruction *insn)
 {
-	if (dead_insn(insn, &insn->src1, &insn->src2, NULL))
-		return REPEAT_CSE;
 	if (constant(insn->src1)) {
 		if (constant(insn->src2))
 			return simplify_constant_binop(insn);
@@ -1451,8 +1435,6 @@ static int simplify_constant_unop(struct instruction *insn)
 
 static int simplify_unop(struct instruction *insn)
 {
-	if (dead_insn(insn, &insn->src1, NULL, NULL))
-		return REPEAT_CSE;
 	if (constant(insn->src1))
 		return simplify_constant_unop(insn);
 
@@ -1543,15 +1525,10 @@ static int simplify_cast(struct instruction *insn)
 {
 	unsigned long long mask;
 	struct instruction *def;
-	pseudo_t src;
+	pseudo_t src = insn->src;
 	pseudo_t val;
 	int osize;
 	int size;
-
-	if (dead_insn(insn, &insn->src, NULL, NULL))
-		return REPEAT_CSE;
-
-	src = insn->src;
 
 	/* A cast of a constant? */
 	if (constant(src))
@@ -1686,9 +1663,6 @@ static int simplify_cast(struct instruction *insn)
 static int simplify_select(struct instruction *insn)
 {
 	pseudo_t cond, src1, src2;
-
-	if (dead_insn(insn, &insn->src1, &insn->src2, &insn->src3))
-		return REPEAT_CSE;
 
 	cond = insn->src1;
 	src1 = insn->src2;
@@ -1861,6 +1835,10 @@ int simplify_instruction(struct instruction *insn)
 		return 0;
 
 	flags = opcode_table[insn->opcode].flags;
+	if (flags & OPF_TARGET) {
+		if (!has_users(insn->target))
+			return kill_instruction(insn);
+	}
 	if (flags & OPF_COMMU)
 		canonicalize_commutative(insn) ;
 	if (flags & OPF_COMPARE)
@@ -1906,14 +1884,9 @@ int simplify_instruction(struct instruction *insn)
 	case OP_SET_AE:
 		break;
 	case OP_LOAD:
-		if (!has_users(insn->target))
-			return kill_instruction(insn);
-		/* fall-through */
 	case OP_STORE:
 		return simplify_memop(insn);
 	case OP_SYMADDR:
-		if (dead_insn(insn, &insn->src, NULL, NULL))
-			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
 		return replace_with_pseudo(insn, insn->src);
 	case OP_SEXT: case OP_ZEXT:
 	case OP_TRUNC:
@@ -1923,30 +1896,18 @@ int simplify_instruction(struct instruction *insn)
 	case OP_UCVTF: case OP_SCVTF:
 	case OP_FCVTF:
 	case OP_PTRCAST:
-		if (dead_insn(insn, &insn->src, NULL, NULL))
-			return REPEAT_CSE;
 		break;
 	case OP_UTPTR:
 	case OP_PTRTU:
 		return replace_with_pseudo(insn, insn->src);
 	case OP_SLICE:
-		if (dead_insn(insn, &insn->src, NULL, NULL))
-			return REPEAT_CSE;
 		break;
 	case OP_SETVAL:
 	case OP_SETFVAL:
-		if (dead_insn(insn, NULL, NULL, NULL))
-			return REPEAT_CSE;
 		break;
 	case OP_PHI:
-		if (dead_insn(insn, NULL, NULL, NULL)) {
-			kill_use_list(insn->phi_list);
-			return REPEAT_CSE;
-		}
 		return clean_up_phi(insn);
 	case OP_PHISOURCE:
-		if (dead_insn(insn, &insn->phi_src, NULL, NULL))
-			return REPEAT_CSE;
 		break;
 	case OP_SEL:
 		return simplify_select(insn);
@@ -1960,8 +1921,6 @@ int simplify_instruction(struct instruction *insn)
 	case OP_FSUB:
 	case OP_FMUL:
 	case OP_FDIV:
-		if (dead_insn(insn, &insn->src1, &insn->src2, NULL))
-			return REPEAT_CSE;
 		break;
 	}
 	return 0;
