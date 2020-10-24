@@ -1173,6 +1173,36 @@ static int simplify_constant_rightside(struct instruction *insn)
 	case OP_SET_NE:
 	case OP_SET_EQ:
 		return simplify_seteq_setne(insn, value);
+	case OP_SET_B:
+		if (!value) {			// (x < 0) --> 0
+			return replace_with_pseudo(insn, value_pseudo(0));
+		} else if (value == 1) {	// (x < 1) --> (x == 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_AE:
+		if (!value) {			// (x >= 0) --> 1
+			return replace_with_pseudo(insn, value_pseudo(1));
+		} else if (value == 1) {	// (x >= 1) --> (x != 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_BE:
+		if (!value) {			// (x <= 0) --> (x == 0)
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_A:
+		if (!value) {			// (x > 0) --> (x != 0)
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
+		}
+		break;
 	}
 	return 0;
 }
@@ -1451,21 +1481,64 @@ static int simplify_constant_unop(struct instruction *insn)
 
 static int simplify_unop(struct instruction *insn)
 {
+	struct instruction *def;
+	pseudo_t src = insn->src;
+
 	if (dead_insn(insn, &insn->src1, NULL, NULL))
 		return REPEAT_CSE;
-	if (constant(insn->src1))
+	if (constant(src))
 		return simplify_constant_unop(insn);
 
 	switch (insn->opcode) {
-		struct instruction *def;
-
 	case OP_NOT:
-		if (DEF_OPCODE(def, insn->src) == OP_NOT)
+		switch (DEF_OPCODE(def, src)) {
+		case OP_ADD:
+			if (!constant(def->src2))
+				break;
+			insn->opcode = OP_SUB;	// ~(x + C) --> ~C - x
+			src = eval_unop(OP_NOT, insn->size, def->src2);
+			use_pseudo(insn, def->src1, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, src);
+		case OP_NEG:
+			insn->opcode = OP_SUB;	// ~(-x) --> x - 1
+			insn->src2 = value_pseudo(1);
+			return replace_pseudo(insn, &insn->src1, def->src);
+		case OP_NOT:			// ~(~x) --> x
 			return replace_with_pseudo(insn, def->src);
+		case OP_SUB:
+			if (!constant(def->src1))
+				break;
+			insn->opcode = OP_ADD;	// ~(C - x) --> x + ~C
+			insn->src2 = eval_unop(OP_NOT, insn->size, def->src1);
+			return replace_pseudo(insn, &insn->src1, def->src2);
+		case OP_XOR:
+			if (!constant(def->src2))
+				break;
+			insn->opcode = OP_XOR;	// ~(x ^ C) --> x ^ ~C
+			insn->src2 = eval_unop(OP_NOT, insn->size, def->src2);
+			return replace_pseudo(insn, &insn->src1, def->src1);
+		}
 		break;
 	case OP_NEG:
-		if (DEF_OPCODE(def, insn->src) == OP_NEG)
+		switch (DEF_OPCODE(def, src)) {
+		case OP_ADD:
+			if (!constant(def->src2))
+				break;
+			insn->opcode = OP_SUB;	// -(x + C) --> (-C - x)
+			src = eval_unop(OP_NEG, insn->size, def->src2);
+			use_pseudo(insn, def->src1, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, src);
+		case OP_NEG:			// -(-x) --> x
 			return replace_with_pseudo(insn, def->src);
+		case OP_NOT:
+			insn->opcode = OP_ADD;	// -(~x) --> x + 1
+			insn->src2 = value_pseudo(1);
+			return replace_pseudo(insn, &insn->src1, def->src);
+		case OP_SUB:
+			insn->opcode = OP_SUB;		// -(x - y) --> y - x
+			use_pseudo(insn, def->src1, &insn->src2);
+			return replace_pseudo(insn, &insn->src1, def->src2);
+		}
 		break;
 	default:
 		return 0;
