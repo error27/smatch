@@ -1149,6 +1149,18 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_pseudo(insn, &insn->src1, def->src);
 		}
 		switch (insn->opcode) {
+		case OP_SET_BE:
+			if (value >= sign_bit(osize)) {
+				replace_binop_value(insn, OP_SET_GE, 0);
+				return replace_pseudo(insn, &insn->src1, def->src);
+			}
+			break;
+		case OP_SET_A:
+			if (value >= sign_bit(osize)) {
+				replace_binop_value(insn, OP_SET_LT, 0);
+				return replace_pseudo(insn, &insn->src1, def->src);
+			}
+			break;
 		case OP_SET_LT: case OP_SET_LE:
 			if (value >= sign_bit(osize))
 				return replace_with_value(insn, 1);

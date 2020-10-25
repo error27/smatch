@@ -19,7 +19,6 @@ int sext_gtu_m3(int x) { return (sext(x) > (NEG - 3)) == (x < 0); }
 /*
  * check-name: cmp-sext-uimm
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
