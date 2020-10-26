@@ -11,7 +11,6 @@ _Bool cmpu_zext(ARGS(UINT32)) { return TEST(UINT64, UINT32, a, < , 0xffffffff); 
 /*
  * check-name: cmp-zext
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

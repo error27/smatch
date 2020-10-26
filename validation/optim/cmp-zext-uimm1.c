@@ -9,7 +9,6 @@ int zext_gt_p(unsigned int x) { return (zext(x) >  (BITS    )) == 0; }
 /*
  * check-name: cmp-zext-uimm1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

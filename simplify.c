@@ -1149,6 +1149,17 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_pseudo(insn, &insn->src1, def->src);
 		}
 		break;
+	case OP_ZEXT:
+		osize = def->orig_type->bit_size;
+		bits = bits_mask(osize);
+		if (value <= bits) {
+			const struct opcode_table *op = &opcode_table[insn->opcode];
+			if (op->flags & OPF_SIGNED)
+				insn->opcode = op->sign;
+			insn->itype = def->orig_type;
+			return replace_pseudo(insn, &insn->src1, def->src);
+		}
+		break;
 	}
 	return changed;
 }
