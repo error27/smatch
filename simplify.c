@@ -1057,6 +1057,43 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 	return 0;
 }
 
+static int simplify_compare_constant(struct instruction *insn, long long value)
+{
+	switch (insn->opcode) {
+	case OP_SET_B:
+		if (!value) {			// (x < 0) --> 0
+			return replace_with_pseudo(insn, value_pseudo(0));
+		} else if (value == 1) {	// (x < 1) --> (x == 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_AE:
+		if (!value) {			// (x >= 0) --> 1
+			return replace_with_pseudo(insn, value_pseudo(1));
+		} else if (value == 1) {	// (x >= 1) --> (x != 0)
+			insn->src2 = value_pseudo(0);
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_BE:
+		if (!value) {			// (x <= 0) --> (x == 0)
+			insn->opcode = OP_SET_EQ;
+			return REPEAT_CSE;
+		}
+		break;
+	case OP_SET_A:
+		if (!value) {			// (x > 0) --> (x != 0)
+			insn->opcode = OP_SET_NE;
+			return REPEAT_CSE;
+		}
+		break;
+	}
+	return 0;
+}
+
 static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
 {
 	pseudo_t old = insn->src1;
@@ -1169,37 +1206,12 @@ static int simplify_constant_rightside(struct instruction *insn)
 
 	case OP_SET_NE:
 	case OP_SET_EQ:
-		return simplify_seteq_setne(insn, value);
-	case OP_SET_B:
-		if (!value) {			// (x < 0) --> 0
-			return replace_with_pseudo(insn, value_pseudo(0));
-		} else if (value == 1) {	// (x < 1) --> (x == 0)
-			insn->src2 = value_pseudo(0);
-			insn->opcode = OP_SET_EQ;
-			return REPEAT_CSE;
-		}
-		break;
-	case OP_SET_AE:
-		if (!value) {			// (x >= 0) --> 1
-			return replace_with_pseudo(insn, value_pseudo(1));
-		} else if (value == 1) {	// (x >= 1) --> (x != 0)
-			insn->src2 = value_pseudo(0);
-			insn->opcode = OP_SET_NE;
-			return REPEAT_CSE;
-		}
-		break;
-	case OP_SET_BE:
-		if (!value) {			// (x <= 0) --> (x == 0)
-			insn->opcode = OP_SET_EQ;
-			return REPEAT_CSE;
-		}
-		break;
-	case OP_SET_A:
-		if (!value) {			// (x > 0) --> (x != 0)
-			insn->opcode = OP_SET_NE;
-			return REPEAT_CSE;
-		}
-		break;
+		if ((changed = simplify_seteq_setne(insn, value)))
+			return changed;
+		/* fallthrough */
+	case OP_SET_LT: case OP_SET_LE: case OP_SET_GE: case OP_SET_GT:
+	case OP_SET_B:  case OP_SET_BE: case OP_SET_AE: case OP_SET_A:
+		return simplify_compare_constant(insn, value);
 	}
 	return 0;
 }
