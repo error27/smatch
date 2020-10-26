@@ -2468,6 +2468,11 @@ static struct token *statement(struct token *token, struct statement **tree)
 					warn_label_usage(stmt->pos, s->label_pos, s->ident);
 			}
 			s->stmt = stmt;
+			if (match_op(token, '}')) {
+				warning(token->pos, "statement expected after label");
+				stmt->label_statement = alloc_statement(token->pos, STMT_NONE);
+				return token;
+			}
 			return statement(token, &stmt->label_statement);
 		}
 	}
