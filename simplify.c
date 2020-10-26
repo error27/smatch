@@ -416,6 +416,13 @@ static inline int constant(pseudo_t pseudo)
 }
 
 ///
+// is this same signed value when interpreted with both size?
+static inline bool is_signed_constant(long long val, unsigned osize, unsigned nsize)
+{
+	return bits_extend(val, osize, 1) == bits_extend(val, nsize, 1);
+}
+
+///
 // replace the operand of an instruction
 // @insn: the instruction
 // @pp: the address of the instruction's operand
@@ -1082,6 +1089,9 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 static int simplify_compare_constant(struct instruction *insn, long long value)
 {
 	unsigned long long bits = bits_mask(insn->itype->bit_size);
+	struct instruction *def;
+	pseudo_t src1, src2;
+	unsigned int osize;
 	int changed = 0;
 
 	switch (insn->opcode) {
@@ -1124,6 +1134,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_binop_value(insn, OP_SET_EQ, bits);
 		if (value == (bits >> 1))	// (x u> SMAX) --> (x s< 0)
 			changed |= replace_binop_value(insn, OP_SET_LT, 0);
+		break;
+	}
+
+	src1 = insn->src1;
+	src2 = insn->src2;
+	value = src2->value;
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
+		osize = def->orig_type->bit_size;
+		if (is_signed_constant(value, osize, def->size)) {
+			insn->itype = def->orig_type;
+			insn->src2 = value_pseudo(zero_extend(value, osize));
+			return replace_pseudo(insn, &insn->src1, def->src);
+		}
 		break;
 	}
 	return changed;

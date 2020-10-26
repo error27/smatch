@@ -17,7 +17,6 @@ _Bool cmpgtu_sext(int a) { return (a >= 0x80000000ULL) == (a <  0); }
 /*
  * check-name: cmp-sext
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
