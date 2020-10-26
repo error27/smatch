@@ -23,7 +23,6 @@ static int ge_lt1(int x) { return (sext(x) >= (NEG - 1)) == 0; }
 /*
  * check-name: cmp-sext-simm
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
