@@ -1520,8 +1520,6 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 	}
 
 	ctype = &fntype->ctype;
-	if (fntype->type == SYM_NODE)
-		fntype = fntype->ctype.base_type;
 
 	add_symbol(&insn->fntypes, fntype);
 	FOR_EACH_PTR(expr->args, arg) {
@@ -1795,37 +1793,30 @@ static pseudo_t linearize_cond_branch(struct entrypoint *ep, struct expression *
 	case EXPR_STRING:
 	case EXPR_VALUE:
 		add_goto(ep, expr->value ? bb_true : bb_false);
-		return VOID;
-
+		break;
 	case EXPR_FVALUE:
 		add_goto(ep, expr->fvalue ? bb_true : bb_false);
-		return VOID;
-		
+		break;
 	case EXPR_LOGICAL:
 		linearize_logical_branch(ep, expr, bb_true, bb_false);
-		return VOID;
-
+		break;
 	case EXPR_COMPARE:
 		cond = linearize_compare(ep, expr);
 		add_branch(ep, cond, bb_true, bb_false);
 		break;
-		
 	case EXPR_PREOP:
 		if (expr->op == '!')
 			return linearize_cond_branch(ep, expr->unop, bb_false, bb_true);
 		/* fall through */
-	default: {
+	default:
 		cond = linearize_expression_to_bool(ep, expr);
 		add_branch(ep, cond, bb_true, bb_false);
-
-		return VOID;
-	}
+		break;
 	}
 	return VOID;
 }
 
 
-	
 static pseudo_t linearize_logical_branch(struct entrypoint *ep, struct expression *expr, struct basic_block *bb_true, struct basic_block *bb_false)
 {
 	struct basic_block *next = alloc_basic_block(ep, expr->pos);
@@ -2065,7 +2056,7 @@ static pseudo_t linearize_inlined_call(struct entrypoint *ep, struct statement *
 	pseudo = linearize_fn_statement(ep, stmt);
 	insn->target = pseudo;
 
-	use_pseudo(insn, symbol_pseudo(ep, stmt->inline_fn), &insn->func);
+	insn->func = symbol_pseudo(ep, stmt->inline_fn);
 	bb = ep->active;
 	if (!bb->insns)
 		bb->pos = stmt->pos;

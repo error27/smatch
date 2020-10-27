@@ -204,6 +204,11 @@ static inline pseudo_t first_pseudo(struct pseudo_list *head)
 	return first_ptr_list((struct ptr_list *)head);
 }
 
+static inline struct symbol *first_symbol(struct symbol_list *head)
+{
+	return first_ptr_list((struct ptr_list *)head);
+}
+
 static inline void concat_symbol_list(struct symbol_list *from, struct symbol_list **to)
 {
 	concat_ptr_list((struct ptr_list *)from, (struct ptr_list **)to);

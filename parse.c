@@ -2718,6 +2718,14 @@ static void declare_argument(struct symbol *sym, struct symbol *fn)
 		sparse_error(sym->pos, "no identifier for function argument");
 		return;
 	}
+	if (sym->ctype.base_type == &incomplete_ctype) {
+		sym->ctype.base_type = &int_ctype;
+
+		if (Wimplicit_int) {
+			sparse_error(sym->pos, "missing type declaration for parameter '%s'",
+				show_ident(sym->ident));
+		}
+	}
 	bind_symbol(sym, sym->ident, NS_SYMBOL);
 }
 
@@ -2809,7 +2817,7 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 				goto match;
 		} END_FOR_EACH_PTR(type);
 		if (Wimplicit_int) {
-			sparse_error(arg->pos, "missing type declaration for parameter '%s'",
+			warning(arg->pos, "missing type declaration for parameter '%s'",
 				show_ident(arg->ident));
 		}
 		type = alloc_symbol(arg->pos, SYM_NODE);
