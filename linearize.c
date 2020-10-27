@@ -2622,6 +2622,6 @@ void init_linearized_builtins(int stream)
 		if (!sym->op)
 			sym->op = &ptr->op;
 		sym->op->type |= KW_BUILTIN;
-		ptr->op.linearize = ptr->linearize;
+		sym->op->linearize = ptr->linearize;
 	}
 }
