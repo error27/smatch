@@ -305,6 +305,26 @@ static struct symbol_op fp_unop_op = {
 };
 
 
+static int expand_isdigit(struct expression *expr, int cost)
+{
+	struct expression *arg = first_expression(expr->args);
+	long long val = get_expression_value_silent(arg);
+
+	if (cost)
+		return cost;
+
+	expr->value = (val >= '0') && (val <= '9');
+	expr->type = EXPR_VALUE;
+	expr->taint = 0;
+	return 0;
+}
+
+static struct symbol_op isdigit_op = {
+	.evaluate = evaluate_pure_unop,
+	.expand = expand_isdigit,
+};
+
+
 static int evaluate_overflow_gen(struct expression *expr, int ptr)
 {
 	struct expression *arg;
@@ -552,6 +572,7 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__builtin_inf", &double_ctype, 0 },
 	{ "__builtin_inff", &float_ctype, 0 },
 	{ "__builtin_infl", &ldouble_ctype, 0 },
+	{ "__builtin_isdigit", &int_ctype, 0, { &int_ctype }, .op = &isdigit_op },
 	{ "__builtin_isfinite", &int_ctype, 1, .op = &fp_unop_op },
 	{ "__builtin_isgreater", &int_ctype, 0, { &float_ctype, &float_ctype }},
 	{ "__builtin_isgreaterequal", &int_ctype, 0, { &float_ctype, &float_ctype }},

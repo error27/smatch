@@ -2593,6 +2593,27 @@ static pseudo_t linearize_fma(struct entrypoint *ep, struct expression *expr)
 	return insn->target = alloc_pseudo(insn);
 }
 
+static pseudo_t linearize_isdigit(struct entrypoint *ep, struct expression *expr)
+{
+	struct instruction *insn;
+	pseudo_t src;
+
+	insn = alloc_typed_instruction(OP_SUB, &int_ctype);
+	src = linearize_expression(ep, first_expression(expr->args));
+	use_pseudo(insn, src, &insn->src1);
+	insn->src2 = value_pseudo('0');
+	src = insn->target = alloc_pseudo(insn);
+	add_one_insn(ep, insn);
+
+	insn = alloc_typed_instruction(OP_SET_BE, &int_ctype);
+	use_pseudo(insn, src, &insn->src1);
+	insn->src2 = value_pseudo(9);
+	insn->target = alloc_pseudo(insn);
+	add_one_insn(ep, insn);
+
+	return insn->target;
+}
+
 static pseudo_t linearize_unreachable(struct entrypoint *ep, struct expression *exp)
 {
 	add_unreachable(ep);
@@ -2608,6 +2629,7 @@ static struct sym_init {
 	{ "__builtin_fma", linearize_fma },
 	{ "__builtin_fmaf", linearize_fma },
 	{ "__builtin_fmal", linearize_fma },
+	{ "__builtin_isdigit", linearize_isdigit },
 	{ "__builtin_unreachable", linearize_unreachable },
 	{ }
 };
