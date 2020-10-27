@@ -11,7 +11,7 @@ double fma(double a, double x, double y)
 fma:
 .L0:
 	<entry-point>
-	fmadd.64    %r4 <- %r1, %r2, %r3
+	fmadd.64    %r4 <- %arg1, %arg2, %arg3
 	ret.64      %r4
 
 

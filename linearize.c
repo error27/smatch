@@ -2582,11 +2582,11 @@ static pseudo_t linearize_fma(struct entrypoint *ep, struct expression *expr)
 	struct expression *arg;
 
 	PREPARE_PTR_LIST(expr->args, arg);
-		insn->src1 = linearize_expression(ep, arg);
+		use_pseudo(insn, linearize_expression(ep, arg), &insn->src1);
 		NEXT_PTR_LIST(arg)
-		insn->src2 = linearize_expression(ep, arg);
+		use_pseudo(insn, linearize_expression(ep, arg), &insn->src2);
 		NEXT_PTR_LIST(arg)
-		insn->src3 = linearize_expression(ep, arg);
+		use_pseudo(insn, linearize_expression(ep, arg), &insn->src3);
 	FINISH_PTR_LIST(arg);
 
 	add_one_insn(ep, insn);
