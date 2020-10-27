@@ -260,9 +260,9 @@ static inline int has_users(pseudo_t p)
 	return !pseudo_user_list_empty(p->users);
 }
 
-static inline bool multi_users(pseudo_t p)
+static inline bool one_use(pseudo_t p)
 {
-	return ptr_list_multiple((struct ptr_list *)(p->users));
+	return !ptr_list_multiple((struct ptr_list *)(p->users));
 }
 
 static inline int nbr_users(pseudo_t p)
