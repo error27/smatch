@@ -122,6 +122,8 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner > num_checks)
 			continue;
+		if (!hooks[sm->owner] && !hooks_late[sm->owner])
+			continue;
 		match = matches(name, sym, sm);
 		if (!match)
 			continue;
