@@ -470,6 +470,28 @@ static inline int replace_with_unop(struct instruction *insn, int op, pseudo_t s
 	return REPEAT_CSE;
 }
 
+///
+// replace rightside's value
+// @insn: the instruction to be replaced
+// @op: the instruction's new opcode
+// @src: the instruction's new operand
+// @return: REPEAT_CSE
+static inline int replace_binop_value(struct instruction *insn, int op, long long val)
+{
+	insn->opcode = op;
+	insn->src2 = value_pseudo(val);
+	return REPEAT_CSE;
+}
+
+///
+// replace the opcode of an instruction
+// @return: REPEAT_CSE
+static inline int replace_opcode(struct instruction *insn, int op)
+{
+	insn->opcode = op;
+	return REPEAT_CSE;
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
@@ -1061,34 +1083,24 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 {
 	switch (insn->opcode) {
 	case OP_SET_B:
-		if (!value) {			// (x < 0) --> 0
+		if (!value)			// (x < 0) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
-		} else if (value == 1) {	// (x < 1) --> (x == 0)
-			insn->src2 = value_pseudo(0);
-			insn->opcode = OP_SET_EQ;
-			return REPEAT_CSE;
-		}
+		if (value == 1)			// (x < 1) --> (x == 0)
+			return replace_binop_value(insn, OP_SET_EQ, 0);
 		break;
 	case OP_SET_AE:
-		if (!value) {			// (x >= 0) --> 1
+		if (!value)			// (x >= 0) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
-		} else if (value == 1) {	// (x >= 1) --> (x != 0)
-			insn->src2 = value_pseudo(0);
-			insn->opcode = OP_SET_NE;
-			return REPEAT_CSE;
-		}
+		if (value == 1)			// (x >= 1) --> (x != 0)
+			return replace_binop_value(insn, OP_SET_NE, 0);
 		break;
 	case OP_SET_BE:
-		if (!value) {			// (x <= 0) --> (x == 0)
-			insn->opcode = OP_SET_EQ;
-			return REPEAT_CSE;
-		}
+		if (!value)			// (x <= 0) --> (x == 0)
+			return replace_opcode(insn, OP_SET_EQ);
 		break;
 	case OP_SET_A:
-		if (!value) {			// (x > 0) --> (x != 0)
-			insn->opcode = OP_SET_NE;
-			return REPEAT_CSE;
-		}
+		if (!value)			// (x > 0) --> (x != 0)
+			return replace_opcode(insn, OP_SET_NE);
 		break;
 	}
 	return 0;
