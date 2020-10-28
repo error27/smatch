@@ -9,7 +9,6 @@ int cmp_geu(unsigned int x) { return (x >= 256) == (x >  255); }
 /*
  * check-name: canonical-cmpu
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

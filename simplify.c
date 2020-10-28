@@ -1081,18 +1081,24 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 
 static int simplify_compare_constant(struct instruction *insn, long long value)
 {
+	int changed = 0;
+
 	switch (insn->opcode) {
 	case OP_SET_B:
 		if (!value)			// (x < 0) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == 1)			// (x < 1) --> (x == 0)
 			return replace_binop_value(insn, OP_SET_EQ, 0);
+		else				// (x < y) --> (x <= (y-1))
+			changed |= replace_binop_value(insn, OP_SET_BE, value - 1);
 		break;
 	case OP_SET_AE:
 		if (!value)			// (x >= 0) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == 1)			// (x >= 1) --> (x != 0)
 			return replace_binop_value(insn, OP_SET_NE, 0);
+		else				// (x >= y) --> (x > (y-1)
+			changed |= replace_binop_value(insn, OP_SET_A, value - 1);
 		break;
 	case OP_SET_BE:
 		if (!value)			// (x <= 0) --> (x == 0)
@@ -1103,7 +1109,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_opcode(insn, OP_SET_NE);
 		break;
 	}
-	return 0;
+	return changed;
 }
 
 static int simplify_constant_mask(struct instruction *insn, unsigned long long mask)
