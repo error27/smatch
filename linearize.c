@@ -563,6 +563,15 @@ void show_bb(struct basic_block *bb)
 		printf("\tEND\n");
 }
 
+///
+// show BB of non-removed instruction
+void show_insn_bb(struct instruction *insn)
+{
+	if (!insn || !insn->bb)
+		return;
+	show_bb(insn->bb);
+}
+
 static void show_symbol_usage(pseudo_t pseudo)
 {
 	struct pseudo_user *pu;
@@ -608,6 +617,15 @@ void show_entry(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 
 	printf("\n");
+}
+
+///
+// show the function containing the instruction but only if not already removed.
+void show_insn_entry(struct instruction *insn)
+{
+	if (!insn || !insn->bb || !insn->bb->ep)
+		return;
+	show_entry(insn->bb->ep);
 }
 
 static void bind_label(struct symbol *label, struct basic_block *bb, struct position pos)
