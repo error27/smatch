@@ -77,6 +77,7 @@ get_tag_value()
 	check_output_contains=0
 	check_output_excludes=0
 	check_output_pattern=0
+	check_output_match=0
 	check_arch_ignore=""
 	check_arch_only=""
 	check_assert=""
@@ -100,6 +101,7 @@ get_tag_value()
 		check-output-contains:)	check_output_contains=1 ;;
 		check-output-excludes:)	check_output_excludes=1 ;;
 		check-output-pattern)	check_output_pattern=1 ;;
+		check-output-match)	check_output_match=1 ;;
 		check-arch-ignore:)	arch=$(uname -m)
 					check_arch_ignore="$val" ;;
 		check-arch-only:)	arch=$(uname -m)
@@ -198,6 +200,24 @@ minmax_patterns()
 			error "	Pattern '$pat' expected max $max times but got $n times"
 			return 1
 		    fi
+		fi
+	done
+
+	return $?
+}
+
+##
+match_patterns()
+{
+	ifile="$1"
+	patt="$2"
+	ofile="$3"
+	grep "$patt" "$ifile" | sed -e "s/^.*$patt(\(.*\)): *\(.*\)$/\1 \2/" | \
+	while read ins pat; do
+		grep -s "^	$ins\\.*[0-9]* " "$ofile" | grep -v -s -q "$pat"
+		if [ "$?" -ne 1 ]; then
+			error "	IR doesn't match '$pat'"
+			return 1
 		fi
 	done
 
@@ -391,6 +411,13 @@ do_test()
 	if [ $check_output_pattern -eq 1 ]; then
 		# verify the 'check-output-pattern(...)' tags
 		minmax_patterns "$file" 'check-output-pattern' $file.output.got
+		if [ "$?" -ne "0" ]; then
+			test_failed=1
+		fi
+	fi
+	if [ $check_output_match -eq 1 ]; then
+		# verify the 'check-output-match($insn): $patt' tags
+		match_patterns "$file" 'check-output-match' $file.output.got
 		if [ "$?" -ne "0" ]; then
 			test_failed=1
 		fi
