@@ -9,4 +9,5 @@ int foo(void)
  *
  * check-output-ignore
  * check-output-match(ret): \\$0
+ * check-output-returns: 0
  */

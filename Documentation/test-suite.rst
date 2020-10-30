@@ -96,6 +96,11 @@ Tag's syntax
 	is ignored in the first pattern but is expected to be followed
 	by a space character.
 
+``check-output-returns:`` *value*
+
+	Check that in the output (stdout) all IR return instructions
+	have the given value.
+
 Using test-suite
 ================
 
