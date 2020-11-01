@@ -17,7 +17,6 @@ int zext_lgt(unsigned int x) { return (ZEXT(x) >  -1) == 1; }
 /*
  * check-name: cmp-zext-simm
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

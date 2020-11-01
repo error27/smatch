@@ -1185,6 +1185,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			insn->itype = def->orig_type;
 			return replace_pseudo(insn, &insn->src1, def->src);
 		}
+		switch (insn->opcode) {
+		case OP_SET_LT: case OP_SET_LE:
+			if (sign_extend(value, def->size) > (long long)bits)
+				return replace_with_value(insn, 1);
+			else
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_GE: case OP_SET_GT:
+			if (sign_extend(value, def->size) > (long long)bits)
+				return replace_with_value(insn, 0);
+			else
+				return replace_with_value(insn, 1);
+			break;
+		}
 		break;
 	}
 	return changed;
