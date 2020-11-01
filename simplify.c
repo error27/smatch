@@ -1198,6 +1198,10 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			else
 				return replace_with_value(insn, 1);
 			break;
+		case OP_SET_B: case OP_SET_BE:
+			return replace_with_value(insn, 1);
+		case OP_SET_AE: case OP_SET_A:
+			return replace_with_value(insn, 0);
 		}
 		break;
 	}

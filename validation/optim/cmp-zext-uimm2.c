@@ -23,7 +23,6 @@ int zext_gtu_m(unsigned x) { return (zext(x) >  0x0fffffffeUL) == (x >  0xffffff
 /*
  * check-name: cmp-zext-uimm2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
