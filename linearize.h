@@ -123,6 +123,10 @@ struct instruction {
 		struct /* binops and sel */ {
 			pseudo_t src1, src2, src3;
 		};
+		struct /* compare */ {
+			pseudo_t _src1, _src2;		// alias .src[12]
+			struct symbol *itype;		// input operands' type
+		};
 		struct /* slice */ {
 			pseudo_t base;
 			unsigned from, len;

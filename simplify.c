@@ -635,6 +635,11 @@ static pseudo_t eval_op(int op, unsigned size, pseudo_t src1, pseudo_t src2)
 	default:
 		return NULL;
 	}
+
+	// Warning: this should be done with the output size which may
+	// be different than the input size used here. But it differs
+	// only for compares which are not concerned since only returning
+	// 0 or 1 and for casts which are not handled here.
 	res &= bits;
 
 	return value_pseudo(res);
@@ -767,7 +772,11 @@ static int simplify_mask_shift(struct instruction *sh, unsigned long long mask)
 
 static pseudo_t eval_insn(struct instruction *insn)
 {
-	return eval_op(insn->opcode, insn->size, insn->src1, insn->src2);
+	unsigned size = insn->size;
+
+	if (opcode_table[insn->opcode].flags & OPF_COMPARE)
+		size = insn->itype->bit_size;
+	return eval_op(insn->opcode, size, insn->src1, insn->src2);
 }
 
 static long long check_shift_count(struct instruction *insn, unsigned long long uval)
@@ -1009,6 +1018,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		//	setcc.m %r <- %a, $b
 		// and similar for setne/eq ... 0/1
 		insn->opcode = inverse ? opcode_table[opcode].negate : opcode;
+		insn->itype = def->itype;
 		use_pseudo(insn, def->src1, &insn->src1);
 		use_pseudo(insn, def->src2, &insn->src2);
 		remove_usage(old, &insn->src1);
@@ -1025,6 +1035,7 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 		// into:
 		//	setne.1 %s <- %a, $0
 		// and same for setne/eq ... 0/1
+		insn->itype = def->orig_type;
 		return replace_pseudo(insn, &insn->src1, def->src);
 	case OP_TRUNC:
 		if (!one_use(old))
@@ -1671,6 +1682,7 @@ static int simplify_cast(struct instruction *insn)
 			//	setcc.m	%r <- %a, %b
 			// and same for s/zext/trunc/
 			insn->opcode = def->opcode;
+			insn->itype = def->itype;
 			use_pseudo(insn, def->src2, &insn->src2);
 			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
