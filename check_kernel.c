@@ -494,6 +494,8 @@ static void match_kernel_param(struct symbol *sym)
 
 bool is_ignored_kernel_data(const char *name)
 {
+	char *p;
+
 	if (option_project != PROJ_KERNEL)
 		return false;
 
@@ -504,6 +506,19 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, ".lockdep_map."))
 		return true;
+
+	/* ignore mutex internals */
+	p = strstr(name, ".rlock.");
+	if (p) {
+		p += 7;
+		if (strncmp(p, "raw_lock", 8) == 0 ||
+		    strcmp(p, "owner") == 0 ||
+		    strcmp(p, "owner_cpu") == 0 ||
+		    strcmp(p, "magic") == 0 ||
+		    strcmp(p, "dep_map") == 0)
+			return true;
+	}
+
 	return false;
 }
 
