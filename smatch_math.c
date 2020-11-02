@@ -1330,7 +1330,8 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 
 	if (sym_name_is("__builtin_ffs", expr->fn) ||
 	    sym_name_is("__builtin_ffsl", expr->fn) ||
-	    sym_name_is("__builtin_ffsll", expr->fn))
+	    sym_name_is("__builtin_ffsll", expr->fn) ||
+	    sym_name_is("__ffs", expr->fn))
 		return handle_ffs(expr, implied, recurse_cnt, res, res_sval);
 
 	if (sym_name_is("strlen", expr->fn))

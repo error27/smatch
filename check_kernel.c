@@ -263,6 +263,13 @@ static int match_array_size(struct expression *call, void *unused, struct range_
 	return 0;
 }
 
+static int match_ffs(struct expression *call, void *unused, struct range_list **rl)
+{
+	if (get_implied_rl(call, rl))
+		return true;
+	return false;
+}
+
 static int match_fls(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
@@ -561,6 +568,7 @@ void check_kernel(int id)
 
 	add_implied_return_hook("array_size", &match_array_size, NULL);
 
+	add_implied_return_hook("__ffs", &match_ffs, NULL);
 	add_implied_return_hook("fls", &match_fls, NULL);
 	add_implied_return_hook("fls64", &match_fls, NULL);
 
