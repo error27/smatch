@@ -1054,6 +1054,9 @@ static void match_call_info_new(struct expression *call)
 	struct expression *arg, *tmp;
 	int i;
 
+	if (!option_info && !__inline_call)
+		return;
+
 	FOR_EACH_PTR(member_callbacks_new, cb) {
 		i = -1;
 		FOR_EACH_PTR(call->args, arg) {
