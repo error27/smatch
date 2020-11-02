@@ -212,6 +212,7 @@ extern int option_spammy;
 extern int option_print_names;
 extern char *trace_variable;
 extern struct stree *global_states;
+void set_function_skipped(void);
 int is_skipped_function(void);
 int is_silenced_function(void);
 extern bool implications_off;

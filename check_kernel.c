@@ -507,6 +507,17 @@ bool is_ignored_kernel_data(const char *name)
 	return false;
 }
 
+static void match_function_def(struct symbol *sym)
+{
+	char *macro;
+
+	macro = get_macro_name(sym->pos);
+	if (!macro)
+		return;
+	if (strcmp(macro, "TRACE_EVENT") == 0)
+		set_function_skipped();
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -547,6 +558,7 @@ void check_kernel(int id)
 	add_function_hook("closure_call", &match_closure_call, NULL);
 
 	add_hook(&match_kernel_param, BASE_HOOK);
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);

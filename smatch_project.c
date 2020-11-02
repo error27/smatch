@@ -32,16 +32,27 @@ static struct hashtable *skipped_funcs;
 static struct hashtable *silenced_funcs;
 static struct hashtable *no_inline_funcs;
 
+static unsigned long skipped;
+
+void set_function_skipped(void)
+{
+	skipped = true;
+}
+
 int is_skipped_function(void)
+{
+	return skipped;
+}
+
+static void match_function_def(struct symbol *sym)
 {
 	char *func;
 
 	func = get_function();
 	if (!func)
-		return 0;
+		return;
 	if (search_func(skipped_funcs, func))
-		return 1;
-	return 0;
+		set_function_skipped();
 }
 
 /*
@@ -210,6 +221,8 @@ static void register_no_inline_functions(void)
 
 void register_project(int id)
 {
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_function_data(&skipped);
 	register_no_return_funcs();
 	register_ignored_macros();
 	register_skipped_functions();
