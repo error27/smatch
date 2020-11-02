@@ -101,6 +101,46 @@ void add_function_assign_hook(const char *look_for, func_hook *call_back,
 	add_callback(func_hash, look_for, cb);
 }
 
+static void register_funcs_from_file_helper(const char *file,
+					    func_hook *call_back, void *info,
+					    bool assign)
+{
+	struct token *token;
+	const char *func;
+	char name[64];
+
+	snprintf(name, sizeof(name), "%s.%s", option_project_str, file);
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+		if (assign)
+			add_function_assign_hook(func, call_back, info);
+		else
+			add_function_hook(func, call_back, info);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
+void register_func_hooks_from_file(const char *file,
+				   func_hook *call_back, void *info)
+{
+	register_funcs_from_file_helper(file, call_back, info, false);
+}
+
+void register_assign_hooks_from_file(const char *file,
+				     func_hook *call_back, void *info)
+{
+	register_funcs_from_file_helper(file, call_back, info, true);
+}
+
 void add_implied_return_hook(const char *look_for,
 			     implied_return_hook *call_back,
 			     void *info)

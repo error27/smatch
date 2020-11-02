@@ -167,6 +167,10 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);
+void register_func_hooks_from_file(const char *file,
+				   func_hook *call_back, void *info);
+void register_assign_hooks_from_file(const char *file,
+				     func_hook *call_back, void *info);
 void add_implied_return_hook(const char *look_for,
 			     implied_return_hook *call_back,
 			     void *info);
