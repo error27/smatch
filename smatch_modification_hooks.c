@@ -83,6 +83,15 @@ void add_modification_hook_late(int owner, modification_hook *call_back)
 	hooks_late[owner] = call_back;
 }
 
+static int shared_cnt(const char *one, const char *two)
+{
+	int c = 0;
+
+	while (one[c] && two[c] && one[c] == two[c])
+		c++;
+	return c;
+}
+
 static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 {
 	int len;
@@ -90,8 +99,8 @@ static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 	if (sym != sm->sym)
 		return false;
 
-	len = strlen(name);
-	if (strncmp(sm->name, name, len) == 0) {
+	len = shared_cnt(sm->name, name);
+	if (name[len] == '\0') {
 		if (sm->name[len] == '\0')
 			return true;
 		if (sm->name[len] == '-' || sm->name[len] == '.')
