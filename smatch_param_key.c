@@ -21,6 +21,11 @@
 
 static int my_id;
 
+static void undef(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(my_id, sm->name, sm->sym, &undefined);
+}
+
 static char *swap_names(const char *orig, const char *remove, const char *add)
 {
 	int offset, len;
@@ -512,5 +517,6 @@ void register_param_key(int id)
 
 	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_modification_hook(my_id, &undef);
 }
 

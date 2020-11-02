@@ -73,7 +73,6 @@ CK(register_nul_terminator)
 CK(register_nul_terminator_param_set)
 CK(register_statement_count)
 CK(register_fresh_alloc)
-CK(register_param_key)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)
@@ -218,6 +217,7 @@ CK(register_smatch_extra_late)
 CK(register_assigned_expr) /* This is used by smatch_extra.c so it has to come really late */
 CK(register_assigned_expr_links)
 CK(register_modification_hooks_late)  /* has to come after smatch_extra */
+CK(register_param_key) /* has to come after smatch_extra */
 CK(register_comparison_late) /* has to come after modification_hooks_late */
 CK(register_function_hooks)
 CK(check_kernel)  /* this is overwriting stuff from smatch_extra_late */
