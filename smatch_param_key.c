@@ -508,9 +508,6 @@ free:
 
 void register_param_key(int id)
 {
-	if (option_project != PROJ_KERNEL)
-		return;
-
 	my_id = id;
 
 	set_dynamic_states(my_id);
