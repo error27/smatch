@@ -1961,7 +1961,7 @@ static void match_comparison(struct expression *expr)
 		handle_comparison(type, left, expr->op, right);
 
 	prev = get_assigned_expr(left_orig);
-	if (is_simple_math(prev) && has_variable(prev, left_orig) == 0) {
+	if (is_simple_math(prev) && !has_variable(prev, left_orig)) {
 		left = prev;
 		right = right_orig;
 		move_known_values(&left, &right);
@@ -1969,7 +1969,7 @@ static void match_comparison(struct expression *expr)
 	}
 
 	prev = get_assigned_expr(right_orig);
-	if (is_simple_math(prev) && has_variable(prev, right_orig) == 0) {
+	if (is_simple_math(prev) && !has_variable(prev, right_orig)) {
 		left = left_orig;
 		right = prev;
 		move_known_values(&left, &right);
