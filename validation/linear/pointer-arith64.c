@@ -35,7 +35,7 @@ cps:
 .L0:
 	<entry-point>
 	sext.64     %r2 <- (16) %arg2
-	add.64      %r5 <- %arg1, %r2
+	add.64      %r5 <- %r2, %arg1
 	ret.64      %r5
 
 
@@ -44,7 +44,7 @@ ipss:
 	<entry-point>
 	sext.64     %r10 <- (16) %arg2
 	mul.64      %r11 <- %r10, $4
-	add.64      %r14 <- %arg1, %r11
+	add.64      %r14 <- %r11, %arg1
 	ret.64      %r14
 
 
@@ -53,7 +53,7 @@ ipus:
 	<entry-point>
 	zext.64     %r19 <- (16) %arg2
 	mul.64      %r20 <- %r19, $4
-	add.64      %r23 <- %arg1, %r20
+	add.64      %r23 <- %r20, %arg1
 	ret.64      %r23
 
 
@@ -62,7 +62,7 @@ ipsi:
 	<entry-point>
 	sext.64     %r28 <- (32) %arg2
 	mul.64      %r29 <- %r28, $4
-	add.64      %r32 <- %arg1, %r29
+	add.64      %r32 <- %r29, %arg1
 	ret.64      %r32
 
 
@@ -71,7 +71,7 @@ ipui:
 	<entry-point>
 	zext.64     %r37 <- (32) %arg2
 	mul.64      %r38 <- %r37, $4
-	add.64      %r41 <- %arg1, %r38
+	add.64      %r41 <- %r38, %arg1
 	ret.64      %r41
 
 
