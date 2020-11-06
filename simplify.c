@@ -1632,13 +1632,19 @@ static int simplify_compare(struct instruction *insn)
 
 static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
-	struct instruction *def;
+	struct instruction *def, *defr = NULL;
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, 0);
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 0);
+		}
 		break;
 	}
 	return 0;
@@ -1652,13 +1658,19 @@ static int simplify_and(struct instruction *insn)
 
 static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
-	struct instruction *def;
+	struct instruction *def, *defr = NULL;
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 1);
+		}
 		break;
 	}
 	return 0;
@@ -1672,13 +1684,19 @@ static int simplify_ior(struct instruction *insn)
 
 static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
-	struct instruction *def;
+	struct instruction *def, *defr = NULL;
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 1);
+		}
 		break;
 	}
 	return 0;
