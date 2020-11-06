@@ -1474,6 +1474,9 @@ static int canonical_order(pseudo_t p1, pseudo_t p2)
 	if (p1->type == PSEUDO_ARG)
 		return (p2->type == PSEUDO_ARG && p1->nr <= p2->nr) || p2->type == PSEUDO_VAL || p2->type == PSEUDO_SYM;
 
+	if (p1->type == PSEUDO_REG)
+		return (p2->type == PSEUDO_REG && p1->nr <= p2->nr) || p2->type == PSEUDO_VAL || p2->type == PSEUDO_SYM || p2->type == PSEUDO_ARG;
+
 	return 1;
 }
 
