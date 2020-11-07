@@ -1793,6 +1793,7 @@ static int simplify_select(struct instruction *insn)
 			//	SEL(SEL(x, C, 0), y, z) --> SEL(x, y, z)
 			//	SEL(SEL(x, C, 0), C, 0) --> SEL(x, C, 0) == cond
 			//	SEL(SEL(x, 0, C), y, z) --> SEL(x, z, y)
+			//	SEL(SEL(x, C1, C2), y, z) --> y
 			if (!def->src3->value) {
 				if ((src1 == def->src2) && (src2 == def->src3))
 					return replace_with_pseudo(insn, cond);
@@ -1802,6 +1803,8 @@ static int simplify_select(struct instruction *insn)
 				switch_pseudo(insn, &insn->src2, insn, &insn->src3);
 				return replace_pseudo(insn, &insn->cond, def->cond);
 			}
+			// both values must be non-zero
+			return replace_with_pseudo(insn, src1);
 		}
 		break;
 	}
