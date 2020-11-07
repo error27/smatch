@@ -34,6 +34,8 @@ static void clean_up_insns(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn;
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			repeat_phase |= simplify_instruction(insn);
 			if (!insn->bb)
 				continue;
