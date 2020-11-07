@@ -1748,6 +1748,7 @@ static int simplify_cast(struct instruction *insn)
 static int simplify_select(struct instruction *insn)
 {
 	pseudo_t cond, src1, src2;
+	struct instruction *def;
 
 	cond = insn->src1;
 	src1 = insn->src2;
@@ -1781,6 +1782,25 @@ static int simplify_select(struct instruction *insn)
 		kill_use(&insn->src1);
 		kill_use(&insn->src3);
 		return replace_with_value(insn, 0);
+	}
+
+	switch (DEF_OPCODE(def, cond)) {
+	case OP_SEL:
+		if (constant(def->src2) && constant(def->src3)) {
+			// Is the def of the conditional another select?
+			// And if that one results in a "zero or not", use the
+			// original conditional instead.
+			//	SEL(SEL(x, C, 0), y, z) --> SEL(x, y, z)
+			//	SEL(SEL(x, 0, C), y, z) --> SEL(x, z, y)
+			if (!def->src3->value) {
+				return replace_pseudo(insn, &insn->cond, def->cond);
+			}
+			if (!def->src2->value) {
+				switch_pseudo(insn, &insn->src2, insn, &insn->src3);
+				return replace_pseudo(insn, &insn->cond, def->cond);
+			}
+		}
+		break;
 	}
 	return 0;
 }
