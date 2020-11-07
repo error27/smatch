@@ -1791,8 +1791,11 @@ static int simplify_select(struct instruction *insn)
 			// And if that one results in a "zero or not", use the
 			// original conditional instead.
 			//	SEL(SEL(x, C, 0), y, z) --> SEL(x, y, z)
+			//	SEL(SEL(x, C, 0), C, 0) --> SEL(x, C, 0) == cond
 			//	SEL(SEL(x, 0, C), y, z) --> SEL(x, z, y)
 			if (!def->src3->value) {
+				if ((src1 == def->src2) && (src2 == def->src3))
+					return replace_with_pseudo(insn, cond);
 				return replace_pseudo(insn, &insn->cond, def->cond);
 			}
 			if (!def->src2->value) {
