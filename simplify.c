@@ -1778,6 +1778,8 @@ static int simplify_select(struct instruction *insn)
 	}
 	if (cond == src2 && is_zero(src1))			// SEL(x, 0, x) --> 0
 		return replace_with_pseudo(insn, src1);
+	if (cond == src1 && is_zero(src2))			// SEL(x, x, 0) --> x
+		return replace_with_pseudo(insn, cond);
 
 	switch (DEF_OPCODE(def, cond)) {
 	case OP_SET_EQ:
