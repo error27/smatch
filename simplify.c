@@ -1753,14 +1753,12 @@ static int simplify_select(struct instruction *insn)
 	cond = insn->src1;
 	src1 = insn->src2;
 	src2 = insn->src3;
-	if (constant(cond) || src1 == src2) {
-		pseudo_t *kill, take;
-		kill_use(&insn->src1);
-		take = cond->value ? src1 : src2;
-		kill = cond->value ? &insn->src3 : &insn->src2;
-		kill_use(kill);
-		return replace_with_pseudo(insn, take);
-	}
+
+	if (constant(cond))
+		return replace_with_pseudo(insn, cond->value ? src1 : src2);
+	if (src1 == src2)
+		return replace_with_pseudo(insn, src1);
+
 	if (constant(src1) && constant(src2)) {
 		long long val1 = src1->value;
 		long long val2 = src2->value;
