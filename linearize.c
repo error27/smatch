@@ -2617,6 +2617,7 @@ static pseudo_t linearize_isdigit(struct entrypoint *ep, struct expression *expr
 	use_pseudo(insn, src, &insn->src1);
 	insn->src2 = value_pseudo(9);
 	insn->target = alloc_pseudo(insn);
+	insn->itype = &int_ctype;
 	add_one_insn(ep, insn);
 
 	return insn->target;
