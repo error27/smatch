@@ -1748,18 +1748,17 @@ static int simplify_cast(struct instruction *insn)
 static int simplify_select(struct instruction *insn)
 {
 	pseudo_t cond, src1, src2;
+	struct instruction *def;
 
 	cond = insn->src1;
 	src1 = insn->src2;
 	src2 = insn->src3;
-	if (constant(cond) || src1 == src2) {
-		pseudo_t *kill, take;
-		kill_use(&insn->src1);
-		take = cond->value ? src1 : src2;
-		kill = cond->value ? &insn->src3 : &insn->src2;
-		kill_use(kill);
-		return replace_with_pseudo(insn, take);
-	}
+
+	if (constant(cond))
+		return replace_with_pseudo(insn, cond->value ? src1 : src2);
+	if (src1 == src2)
+		return replace_with_pseudo(insn, src1);
+
 	if (constant(src1) && constant(src2)) {
 		long long val1 = src1->value;
 		long long val2 = src2->value;
@@ -1777,10 +1776,46 @@ static int simplify_select(struct instruction *insn)
 			return REPEAT_CSE;
 		}
 	}
-	if (cond == src2 && is_zero(src1)) {
-		kill_use(&insn->src1);
-		kill_use(&insn->src3);
-		return replace_with_value(insn, 0);
+	if (cond == src2 && is_zero(src1))			// SEL(x, 0, x) --> 0
+		return replace_with_pseudo(insn, src1);
+	if (cond == src1 && is_zero(src2))			// SEL(x, x, 0) --> x
+		return replace_with_pseudo(insn, cond);
+
+	switch (DEF_OPCODE(def, cond)) {
+	case OP_SET_EQ:
+		if (src1 == def->src1 && src2 == def->src2)
+			return replace_with_pseudo(insn, src2); // SEL(x==y,x,y) --> y
+		if (src2 == def->src1 && src1 == def->src2)
+			return replace_with_pseudo(insn, src2); // SEL(y==x,x,y) --> y
+		break;
+	case OP_SET_NE:
+		if (src1 == def->src1 && src2 == def->src2)
+			return replace_with_pseudo(insn, src1); // SEL(x!=y,x,y) --> x
+		if (src2 == def->src1 && src1 == def->src2)
+			return replace_with_pseudo(insn, src1); // SEL(y!=x,x,y) --> x
+		break;
+	case OP_SEL:
+		if (constant(def->src2) && constant(def->src3)) {
+			// Is the def of the conditional another select?
+			// And if that one results in a "zero or not", use the
+			// original conditional instead.
+			//	SEL(SEL(x, C, 0), y, z) --> SEL(x, y, z)
+			//	SEL(SEL(x, C, 0), C, 0) --> SEL(x, C, 0) == cond
+			//	SEL(SEL(x, 0, C), y, z) --> SEL(x, z, y)
+			//	SEL(SEL(x, C1, C2), y, z) --> y
+			if (!def->src3->value) {
+				if ((src1 == def->src2) && (src2 == def->src3))
+					return replace_with_pseudo(insn, cond);
+				return replace_pseudo(insn, &insn->cond, def->cond);
+			}
+			if (!def->src2->value) {
+				switch_pseudo(insn, &insn->src2, insn, &insn->src3);
+				return replace_pseudo(insn, &insn->cond, def->cond);
+			}
+			// both values must be non-zero
+			return replace_with_pseudo(insn, src1);
+		}
+		break;
 	}
 	return 0;
 }
