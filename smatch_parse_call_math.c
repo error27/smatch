@@ -124,6 +124,8 @@ static int read_rl_from_var(struct expression *call, const char *p, const char *
 	char buf[256];
 	int star;
 
+	if (!call || call->type != EXPR_CALL)
+		return 0;
 	p++;
 	param = strtol(p, (char **)&p, 10);
 
