@@ -45,6 +45,12 @@ static void clean_up_insns(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static void cleanup_cfg(struct entrypoint *ep)
+{
+	kill_unreachable_bbs(ep);
+	domtree_build(ep);
+}
+
 void optimize(struct entrypoint *ep)
 {
 	if (fdump_ir & PASS_LINEARIZE)
@@ -93,7 +99,7 @@ repeat:
 		} while (repeat_phase);
 		pack_basic_blocks(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
-			kill_unreachable_bbs(ep);
+			cleanup_cfg(ep);
 	} while (repeat_phase);
 
 	vrfy_flow(ep);
@@ -113,7 +119,7 @@ repeat:
 	if (simplify_flow(ep)) {
 		clear_liveness(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
-			kill_unreachable_bbs(ep);
+			cleanup_cfg(ep);
 		goto repeat;
 	}
 
