@@ -2117,9 +2117,6 @@ int simplify_instruction(struct instruction *insn)
 	unsigned flags;
 	int changed = 0;
 
-	if (!insn->bb)
-		return 0;
-
 	flags = opcode_table[insn->opcode].flags;
 	if (flags & OPF_TARGET) {
 		if (!has_users(insn->target))
