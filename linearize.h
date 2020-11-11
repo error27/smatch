@@ -326,8 +326,10 @@ pseudo_t undef_pseudo(void);
 struct entrypoint *linearize_symbol(struct symbol *sym);
 int unssa(struct entrypoint *ep);
 void show_entry(struct entrypoint *ep);
+void show_insn_entry(struct instruction *insn);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
+void show_insn_bb(struct instruction *insn);
 const char *show_instruction(struct instruction *insn);
 const char *show_label(struct basic_block *bb);
 
