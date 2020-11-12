@@ -37,10 +37,10 @@ sub insert_record($$$$$$$)
 
     my $sth;
     if ($file ne '') {
-        $sth = $db->prepare("select file, return_id, static from return_states where file = ? and function = ? and return = ? and type = 0;");
+        $sth = $db->prepare("select file, return_id, call_id, static from return_states where file = ? and function = ? and return = ? and type = 0;");
         $sth->execute($file, $func, $ret);
     } else {
-        $sth = $db->prepare("select file, return_id, static from return_states where function = ? and return = ? and type = 0;");
+        $sth = $db->prepare("select file, return_id, call_id, static from return_states where function = ? and return = ? and type = 0;");
         $sth->execute($func, $ret);
     }
 
@@ -48,9 +48,10 @@ sub insert_record($$$$$$$)
     while (my @row = $sth->fetchrow_array()) {
         my $file = $row[0];
         my $return_id = $row[1];
-        my $static = $row[2];
+        my $call_id = $row[2];
+        my $static = $row[3];
 
-        $insert->execute($file, $func, 0, $return_id, $ret, $static, $type, $param, $key, $value);
+        $insert->execute($file, $func, $call_id, $return_id, $ret, $static, $type, $param, $key, $value);
     }
 }
 
