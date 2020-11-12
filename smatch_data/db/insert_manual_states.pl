@@ -44,12 +44,20 @@ sub insert_record($$$$$$$)
         $sth->execute($func, $ret);
     }
 
+    my $exists = $db->prepare("select count(*) from return_states where file = ? and function = ? and return_id = ? and static = ? and return = ? and type = ? and parameter = ? and key = ? and value = ?;");
     my $insert = $db->prepare("insert into return_states values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     while (my @row = $sth->fetchrow_array()) {
         my $file = $row[0];
         my $return_id = $row[1];
         my $call_id = $row[2];
         my $static = $row[3];
+
+        $exists->execute($file, $func, $return_id, $static, $ret, $type, $param, $key, $value);
+        my $count = $exists->fetchrow_array();
+        if ($count == 1) {
+            next;
+        }
+        print("$func $ret $key $value $count\n");
 
         $insert->execute($file, $func, $call_id, $return_id, $ret, $static, $type, $param, $key, $value);
     }
