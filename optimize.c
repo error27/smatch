@@ -57,6 +57,11 @@ void optimize(struct entrypoint *ep)
 	kill_unreachable_bbs(ep);
 	ir_validate(ep);
 
+	cfg_postorder(ep);
+	if (simplify_cfg_early(ep))
+		kill_unreachable_bbs(ep);
+	ir_validate(ep);
+
 	domtree_build(ep);
 
 	/*

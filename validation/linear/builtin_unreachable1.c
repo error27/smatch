@@ -16,9 +16,9 @@ int foo(int c)
 foo:
 .L0:
 	<entry-point>
-	cbr         %arg1, .L3, .L2
+	cbr         %arg1, .L1, .L2
 
-.L3:
+.L1:
 	ret.32      $1
 
 .L2:

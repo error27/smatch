@@ -14,12 +14,12 @@ foo:
 .L0:
 	<entry-point>
 	seteq.32    %r2 <- %arg1, $3
-	cbr         %r2, .L1, .L3
+	cbr         %r2, .L1, .L2
 
 .L1:
 	unreachable
 
-.L3:
+.L2:
 	ret.32      %arg1
 
 
