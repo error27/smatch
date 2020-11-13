@@ -2048,7 +2048,7 @@ static int simplify_branch(struct instruction *insn)
 		kill_use(&insn->cond);
 		insn->cond = NULL;
 		insn->opcode = OP_BR;
-		return REPEAT_CSE;
+		return REPEAT_CSE|REPEAT_CFG_CLEANUP;
 	}
 
 	/* Conditional on a SETNE $0 or SETEQ $0 */
