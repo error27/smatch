@@ -138,7 +138,7 @@ For example, a doc-block like::
 will be displayed like this:
 
 .. c:function:: int inc(int val)
-	:noindex:
+	:noindexentry:
 
 	:param val: the value to increment
 	:return: the incremented value
