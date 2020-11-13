@@ -47,6 +47,8 @@ enum lock_type {
 	sem,
 	prepare_lock,
 	enable_lock,
+	rcu,
+	rcu_read,
 };
 
 const char *get_lock_name(enum lock_type type)
@@ -61,6 +63,8 @@ const char *get_lock_name(enum lock_type type)
 		[sem] = "sem",
 		[prepare_lock] = "prepare_lock",
 		[enable_lock] = "enable_lock",
+		[rcu] = "rcu",
+		[rcu_read] = "rcu_read",
 	};
 
 	return names[type];
@@ -151,6 +155,7 @@ static struct lock_info lock_table[] = {
 	{"down_read",                 LOCK,   read_lock, 0, ret_any},
 	{"down_read_nested",          LOCK,   read_lock, 0, ret_any},
 	{"down_read_trylock",         LOCK,   read_lock, 0, ret_one},
+	{"down_read_killable",        LOCK,   read_lock, 0, ret_zero},
 	{"up_read",                   UNLOCK, read_lock, 0, ret_any},
 	{"read_unlock",               UNLOCK, read_lock, 0, ret_any},
 	{"_read_lock",                LOCK,   read_lock, 0, ret_any},
@@ -265,6 +270,7 @@ static struct lock_info lock_table[] = {
 
 	{"mutex_lock",                      LOCK,   mutex, 0, ret_any},
 	{"mutex_unlock",                    UNLOCK, mutex, 0, ret_any},
+	{"mutex_destroy",                   RESTORE, mutex, 0, ret_any},
 	{"mutex_lock_nested",               LOCK,   mutex, 0, ret_any},
 	{"mutex_lock_io",                   LOCK,   mutex, 0, ret_any},
 	{"mutex_lock_io_nested",            LOCK,   mutex, 0, ret_any},
@@ -396,6 +402,8 @@ static struct lock_info lock_table[] = {
 	{"drm_ modeset_lock",			  LOCK,   mutex, 0, ret_zero},
 	{"drm_modeset_lock_single_interruptible", LOCK,   mutex, 0, ret_zero},
 	{"modeset_unlock",			  UNLOCK, mutex, 0, ret_any},
+//	{"nvkm_i2c_aux_acquire",		  LOCK,   mutex, 
+//	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 
 
 	{"reiserfs_write_lock_nested",	 LOCK,   mutex, 0, ret_any},
 	{"reiserfs_write_unlock_nested", UNLOCK, mutex, 0, ret_any},
@@ -405,6 +413,19 @@ static struct lock_info lock_table[] = {
 
 	{"sem_lock",               LOCK,   mutex, 0, ret_any},
 	{"sem_unlock",             UNLOCK, mutex, 0, ret_any},
+
+	{"rcu_lock_acquire",            LOCK,   rcu, NO_ARG, ret_any},
+	{"rcu_lock_release",            UNLOCK, rcu, NO_ARG, ret_any},
+
+	{"rcu_read_lock",               LOCK,   rcu_read, NO_ARG, ret_any},
+	{"rcu_read_unlock",             UNLOCK, rcu_read, NO_ARG, ret_any},
+	{"rcu_read_lock_bh",            LOCK,   rcu_read, NO_ARG, ret_any},
+	{"rcu_read_unlock_bh",          UNLOCK, rcu_read, NO_ARG, ret_any},
+
+	{"rcu_read_lock_sched",           LOCK,   rcu_read, NO_ARG, ret_any},
+	{"rcu_read_lock_sched_notrace",   LOCK,   rcu_read, NO_ARG, ret_any},
+	{"rcu_read_unlock_sched",         UNLOCK, rcu_read, NO_ARG, ret_any},
+	{"rcu_read_unlock_sched_notrace", UNLOCK, rcu_read, NO_ARG, ret_any},
 
 	{},
 };
@@ -432,9 +453,33 @@ static struct stree *start_states;
 
 static struct tracker_list *locks;
 
+static struct expression *ignored_reset;
 static void reset(struct sm_state *sm, struct expression *mod_expr)
 {
+	struct expression *faked;
+
+	if (mod_expr && mod_expr->type == EXPR_ASSIGNMENT &&
+	    mod_expr->left == ignored_reset)
+		return;
+	faked = get_faked_expression();
+	if (faked && faked->type == EXPR_ASSIGNMENT &&
+	    faked->left == ignored_reset)
+		return;
+
 	set_state(my_id, sm->name, sm->sym, &start_state);
+}
+
+static struct smatch_state *get_start_state(struct sm_state *sm)
+{
+	struct smatch_state *orig;
+
+	if (!sm)
+		return NULL;
+
+	orig = get_state_stree(start_states, my_id, sm->name, sm->sym);
+	if (orig)
+		return orig;
+	return NULL;
 }
 
 static struct expression *remove_spinlock_check(struct expression *expr)
@@ -609,6 +654,15 @@ static bool common_false_positive(const char *name)
 	return false;
 }
 
+static bool sm_in_start_states(struct sm_state *sm)
+{
+	if (!sm || !cur_func_sym)
+		return false;
+	if (sm->line == cur_func_sym->pos.line)
+		return true;
+	return false;
+}
+
 static void warn_on_double(struct sm_state *sm, struct smatch_state *state)
 {
 	struct sm_state *tmp;
@@ -623,12 +677,20 @@ static void warn_on_double(struct sm_state *sm, struct smatch_state *state)
 
 	return;
 found:
+	// FIXME: called with read_lock held
+	// drivers/scsi/aic7xxx/aic7xxx_osm.c:1591 ahc_linux_isr() error: double locked 'flags' (orig line 1584)
 	if (strcmp(sm->name, "bottom_half") == 0)
+		return;
+	if (strstr(sm->name, "rcu"))
 		return;
 	if (common_false_positive(sm->name))
 		return;
-	sm_msg("error: double %s '%s' (orig line %u)",
-	       state->name, sm->name, tmp->line);
+
+//	if (state == &locked && sm_in_start_states(tmp))
+//		sm_warning("called with lock held.  '%s'", sm->name);
+//	else
+//		sm_msg("error: double %s '%s' (orig line %u)",
+//		       state->name, sm->name, tmp->line);
 }
 
 static bool handle_macro_lock_unlock(void)
@@ -664,13 +726,13 @@ static bool handle_macro_lock_unlock(void)
 		sm = get_sm_state(my_id, name, sym);
 
 		if (info->action == LOCK) {
-			if (!sm)
+			if (!get_start_state(sm))
 				set_start_state(name, sym, &unlocked);
 			if (sm && sm->line != expr->pos.line)
 				warn_on_double(sm, &locked);
 			set_state(my_id, name, sym, &locked);
 		} else {
-			if (!sm)
+			if (!get_start_state(sm))
 				set_start_state(name, sym, &locked);
 			if (sm && sm->line != expr->pos.line)
 				warn_on_double(sm, &unlocked);
@@ -684,9 +746,23 @@ free:
 	return false;
 }
 
+static bool is_local_IRQ_save(const char *name, struct symbol *sym, struct lock_info *info)
+{
+	if (name && strcmp(name, "flags") == 0)
+		return true;
+	if (!sym)
+		return false;
+	if (!sym->ident || strcmp(sym->ident->name, name) != 0)
+		return false;
+	if (!info)
+		return false;
+	return strstr(info->function, "irq") && strstr(info->function, "save");
+}
+
 static void do_lock(const char *name, struct symbol *sym, struct lock_info *info)
 {
 	struct sm_state *sm;
+	bool delete_null = false;
 
 	if (handle_macro_lock_unlock())
 		return;
@@ -694,21 +770,33 @@ static void do_lock(const char *name, struct symbol *sym, struct lock_info *info
 	add_tracker(&locks, my_id, name, sym);
 
 	sm = get_sm_state(my_id, name, sym);
-	if (!sm)
+	if (!get_start_state(sm))
 		set_start_state(name, sym, &unlocked);
+	if (!sm && !is_local_IRQ_save(name, sym, info) && sym) {
+		sm = get_sm_state(my_id, name, NULL);
+		if (sm)
+			delete_null = true;
+	}
 	warn_on_double(sm, &locked);
+	if (delete_null)
+		delete_state(my_id, name, NULL);
+	delete_state(my_id, name, NULL);
+
 	set_state(my_id, name, sym, &locked);
 }
 
-static void do_lock_failed(const char *name, struct symbol *sym)
+static void do_lock_failed(const char *name, struct symbol *sym, struct lock_info *info)
 {
 	add_tracker(&locks, my_id, name, sym);
+	if (!is_local_IRQ_save(name, sym, info) && sym)
+		delete_state(my_id, name, NULL);
 	set_state(my_id, name, sym, &unlocked);
 }
 
 static void do_unlock(const char *name, struct symbol *sym, struct lock_info *info)
 {
 	struct sm_state *sm;
+	bool delete_null = false;
 
 	if (__path_is_null())
 		return;
@@ -718,16 +806,21 @@ static void do_unlock(const char *name, struct symbol *sym, struct lock_info *in
 
 	add_tracker(&locks, my_id, name, sym);
 	sm = get_sm_state(my_id, name, sym);
-	if (!sm) {
+	if (!sm && !is_local_IRQ_save(name, sym, info)) {
 		sm = get_best_match(name, UNLOCK);
 		if (sm) {
 			name = sm->name;
-			sym = sm->sym;
+			if (sm->sym)
+				sym = sm->sym;
+			else
+				delete_null = true;
 		}
 	}
-	if (!sm)
+	if (!get_start_state(sm))
 		set_start_state(name, sym, &locked);
 	warn_on_double(sm, &unlocked);
+	if (delete_null)
+		delete_state(my_id, name, NULL);
 	set_state(my_id, name, sym, &unlocked);
 }
 
@@ -785,7 +878,7 @@ static void match_lock_failed(const char *fn, struct expression *call_expr,
 	}
 	if (!lock_name)
 		return;
-	do_lock_failed(lock_name, sym);
+	do_lock_failed(lock_name, sym, lock);
 	free_string(lock_name);
 }
 
@@ -829,18 +922,13 @@ static void match_lock_unlock(const char *fn, struct expression *expr, void *_in
 	free_string(full_name);
 }
 
-static struct smatch_state *get_start_state(struct sm_state *sm)
-{
-	struct smatch_state *orig;
-
-	orig = get_state_stree(start_states, my_id, sm->name, sm->sym);
-	if (orig)
-		return orig;
-	return &undefined;
-}
-
 static int get_db_type(struct sm_state *sm)
 {
+	/*
+	 * Bottom half is complicated because it's nestable.
+	 * Say it's merged at the start and we lock and unlock then
+	 * it should go back to merged.
+	 */
 	if (sm->state == get_start_state(sm)) {
 		if (sm->state == &locked)
 			return KNOWN_LOCKED;
@@ -857,8 +945,25 @@ static int get_db_type(struct sm_state *sm)
 	return LOCKED;
 }
 
+static struct stree *already_done;
+static void save_recorded_state(int return_id, int param, const char *param_name,
+				struct smatch_state *state)
+{
+	/* using the sym like this is an ugly hack */
+	set_state_stree(&already_done, my_id, param_name,
+			(struct symbol *)(unsigned long)((return_id << 8) | param),
+			state);
+}
+
+static struct smatch_state *get_recorded_state(int return_id, int param, const char *param_name)
+{
+	return get_state_stree(already_done, my_id, param_name,
+			(struct symbol *)(unsigned long)((return_id << 8) | param));
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
+	struct smatch_state *start, *recorded;
 	struct sm_state *sm;
 	const char *param_name;
 	int param;
@@ -868,8 +973,32 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 		    sm->state != &unlocked &&
 		    sm->state != &restore)
 			continue;
+		if (sm->name[0] == '$')
+			continue;
+
+		/*
+		 * If the state is locked at the end, that doesn't mean
+		 * anything.  It could be been locked at the start.  Or
+		 * it could be &merged at the start but its locked now
+		 * because of implications and not because we set the
+		 * state.
+		 *
+		 * This is slightly a hack, but when we change the state, we
+		 * call set_start_state() so if get_start_state() returns NULL
+		 * that means we haven't manually the locked state.
+		 */
+		start = get_start_state(sm);
+		if (sm->state == &restore) {
+			if (start != &locked)
+				continue;
+		} else if (!start || sm->state == start)
+			continue; /* !start means it was passed in */
 
 		param = get_param_key_from_sm(sm, expr, &param_name);
+		recorded = get_recorded_state(return_id, param, param_name);
+		if (recorded && recorded == sm->state)
+			continue;
+		save_recorded_state(return_id, param, param_name, sm->state);
 		sql_insert_return_states(return_id, return_ranges,
 					 get_db_type(sm),
 					 param, param_name, "");
@@ -895,7 +1024,9 @@ static int success_fail_positive(struct range_list *rl)
 	if (!rl)
 		return ZERO;
 
-	if (rl_type(rl)->type != SYM_PTR && sval_is_negative(rl_min(rl)))
+	if (rl_type(rl)->type != SYM_PTR &&
+	    !is_whole_rl(rl) &&
+	    sval_is_negative(rl_min(rl)))
 		return NEGATIVE;
 
 	if (rl_min(rl).value == 0 && rl_max(rl).value == 0)
@@ -1081,6 +1212,7 @@ static void db_param_locked_unlocked(struct expression *expr, int param, char *k
 	if (param == -1) {
 		if (expr->type != EXPR_ASSIGNMENT)
 			return;
+		ignored_reset = expr->left;
 		name = get_variable_from_key(expr->left, key, &sym);
 	} else {
 		arg = get_argument_from_call_expr(call->args, param);
@@ -1118,35 +1250,45 @@ static void db_param_restore(struct expression *expr, int param, char *key, char
 	db_param_locked_unlocked(expr, param, key, value, RESTORE);
 }
 
-static int get_caller_param_lock_name(struct expression *call, struct sm_state *sm, const char **name)
+static void match_assign(struct expression *expr)
 {
-	struct expression *arg;
-	char *arg_name;
-	int param;
+	struct smatch_state *state;
 
-	param = 0;
-	FOR_EACH_PTR(call->args, arg) {
-		arg_name = sm_to_arg_name(arg, sm);
-		if (arg_name) {
-			*name = arg_name;
-			return param;
-		}
-		param++;
-	} END_FOR_EACH_PTR(arg);
+	/* This is only for the DB */
+	if (!__in_fake_var_assign)
+		return;
+	state = get_state_expr(my_id, expr->right);
+	if (!state)
+		return;
+	set_state_expr(my_id, expr->left, state);
+}
 
-	*name = sm->name;
-	return -2;
+static struct stree *printed;
+static void call_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
+	int locked_type = 0;
+
+	if (sm->state == &locked)
+		locked_type = LOCKED;
+	else if (sm->state == &unlocked)
+		locked_type = UNLOCKED;
+	else if (slist_has_state(sm->possible, &locked) ||
+		 slist_has_state(sm->possible, &half_locked))
+		locked_type = HALF_LOCKED;
+	else
+		return;
+
+	avl_insert(&printed, sm);
+	sql_insert_caller_info(call, locked_type, param, printed_name, "");
 }
 
 static void match_call_info(struct expression *expr)
 {
 	struct sm_state *sm;
-	const char *param_name;
+	const char *name;
 	int locked_type;
-	int param;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		param = get_caller_param_lock_name(expr, sm, &param_name);
 		if (sm->state == &locked)
 			locked_type = LOCKED;
 		else if (sm->state == &half_locked ||
@@ -1154,14 +1296,60 @@ static void match_call_info(struct expression *expr)
 			locked_type = HALF_LOCKED;
 		else
 			continue;
-		sql_insert_caller_info(expr, locked_type, param, param_name, "xxx type");
 
+		if (avl_lookup(printed, sm))
+			continue;
+
+		if (strcmp(sm->name, "bottom_half") == 0)
+			name = "bh";
+		else if (strcmp(sm->name, "rcu_read") == 0)
+			name = "rcu_read_lock";
+		else
+			name = sm->name;
+
+		sql_insert_caller_info(expr, locked_type, -2, name, "");
 	} END_FOR_EACH_SM(sm);
+	free_stree(&printed);
+}
+
+static void set_locked_called_state(const char *name, struct symbol *sym,
+				    char *key, char *value,
+				    struct smatch_state *state)
+{
+	char fullname[256];
+
+	if (name && key[0] == '$')
+		snprintf(fullname, sizeof(fullname), "%s%s", name, key + 1);
+	else
+		snprintf(fullname, sizeof(fullname), "%s", key);
+
+	if (strstr(fullname, ">>") || strstr(fullname, "..")) {
+//		sm_msg("warn: invalid lock name.  name = '%s' key = '%s'", name, key);
+		return;
+	}
+
+	set_state(my_id, fullname, sym, state);
+}
+
+static void set_locked(const char *name, struct symbol *sym, char *key, char *value)
+{
+	set_locked_called_state(name, sym, key, value, &locked);
+}
+
+static void set_half_locked(const char *name, struct symbol *sym, char *key, char *value)
+{
+	set_locked_called_state(name, sym, key, value, &half_locked);
+}
+
+static void set_unlocked(const char *name, struct symbol *sym, char *key, char *value)
+{
+	set_locked_called_state(name, sym, key, value, &unlocked);
 }
 
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&start_states);
+	free_stree(&already_done);
 }
 
 static void match_dma_resv_lock_NULL(const char *fn, struct expression *call_expr,
@@ -1227,17 +1415,23 @@ void check_locking(int id)
 	add_merge_hook(my_id, &merge_func);
 	add_modification_hook(my_id, &reset);
 
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_func_end, END_FUNC_HOOK);
 
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	add_function_data((unsigned long *)&start_states);
 
+	add_caller_info_callback(my_id, call_info_callback);
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 
 	add_split_return_callback(match_return_info);
 	select_return_states_hook(LOCKED, &db_param_locked);
 	select_return_states_hook(UNLOCKED, &db_param_unlocked);
 	select_return_states_hook(LOCK_RESTORED, &db_param_restore);
+
+	select_caller_info_hook(set_locked, LOCKED);
+	select_caller_info_hook(set_half_locked, HALF_LOCKED);
+	select_caller_info_hook(set_unlocked, UNLOCKED);
 
 	return_implies_state("dma_resv_lock", -4095, -1, &match_dma_resv_lock_NULL, 0);
 }
