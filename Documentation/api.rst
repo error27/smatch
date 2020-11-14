@@ -10,6 +10,7 @@ Utilities
 
 .. c:autodoc:: ptrlist.c
 .. c:autodoc:: utils.h
+.. c:autodoc:: flowgraph.h
 
 Parsing
 ~~~~~~~
