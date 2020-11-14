@@ -16,7 +16,6 @@ L2:	abort();
 /*
  * check-name: cgoto01
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: set\\.
