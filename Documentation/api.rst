@@ -25,4 +25,5 @@ Typing
 Optimization
 ~~~~~~~~~~~~
 
+.. c:autodoc:: optimize.c
 .. c:autodoc:: simplify.c

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 //
-// optimize.c - main optimization loop
-//
 // Copyright (C) 2004 Linus Torvalds
 // Copyright (C) 2004 Christopher Li
+
+///
+// Optimization main loop
+// ----------------------
 
 #include <assert.h>
 #include "optimize.h"
@@ -45,6 +47,8 @@ static void clean_up_insns(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+///
+// optimization main loop
 void optimize(struct entrypoint *ep)
 {
 	if (fdump_ir & PASS_LINEARIZE)
