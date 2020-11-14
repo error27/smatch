@@ -26,4 +26,5 @@ Optimization
 ~~~~~~~~~~~~
 
 .. c:autodoc:: optimize.c
+.. c:autodoc:: flow.c
 .. c:autodoc:: simplify.c

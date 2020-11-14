@@ -1,9 +1,10 @@
 /*
- * Flow - walk the linearized flowgraph, simplifying it as we
- * go along.
- *
  * Copyright (C) 2004 Linus Torvalds
  */
+
+///
+// Flow simplification
+// -------------------
 
 #include <string.h>
 #include <stdarg.h>
