@@ -760,6 +760,26 @@ static void remove_merging_phisrc(struct basic_block *top, struct instruction *i
 	} END_FOR_EACH_PTR(phi);
 }
 
+static void remove_merging_phi(struct basic_block *top, struct instruction *insn)
+{
+	pseudo_t phi;
+
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		struct instruction *def;
+
+		if (phi == VOID)
+			continue;
+
+		def = phi->def;
+		if (def->bb != top)
+			continue;
+
+		convert_instruction_target(insn, def->src);
+		kill_instruction(def);
+		kill_instruction(insn);
+	} END_FOR_EACH_PTR(phi);
+}
+
 ///
 // merge two BBs
 // @top: the first BB to be merged
@@ -786,6 +806,9 @@ static int merge_bb(struct basic_block *top, struct basic_block *bot)
 			continue;
 		assert(insn->bb == bot);
 		switch (insn->opcode) {
+		case OP_PHI:
+			remove_merging_phi(top, insn);
+			continue;
 		case OP_PHISOURCE:
 			remove_merging_phisrc(top, insn);
 			break;
