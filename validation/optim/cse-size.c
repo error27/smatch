@@ -1,7 +1,7 @@
 static void foo(void)
 {
 	unsigned short p = 0;
-	int x;
+	int x = 1;
 
 	for (;;)
 		if (p)
@@ -13,5 +13,6 @@ static void foo(void)
  * check-command: test-linearize -Wno-decl $file
  *
  * check-output-ignore
- * check-output-pattern(2): phi\\.
+ * check-output-pattern(0,1): phi\\.
+ * check-output-excludes: cbr
  */
