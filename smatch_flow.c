@@ -1298,6 +1298,9 @@ static bool cast_arg(struct symbol *type, struct expression *arg)
 	if (orig == type)
 		return false;
 
+	if (orig->type == SYM_ARRAY && type->type == SYM_PTR)
+		return true;
+
 	/*
 	 * I would have expected that we could just do use (orig == type) but I
 	 * guess for pointers we need to get the basetype to do that comparison.
