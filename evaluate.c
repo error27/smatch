@@ -61,6 +61,18 @@ static inline int valid_subexpr_type(struct expression *expr)
 	    && valid_expr_type(expr->right);
 }
 
+static struct symbol *unqualify_type(struct symbol *ctype)
+{
+	if (ctype->type == SYM_NODE && (ctype->ctype.modifiers & MOD_QUALIFIER)) {
+		struct symbol *unqual = alloc_symbol(ctype->pos, 0);
+
+		*unqual = *ctype;
+		unqual->ctype.modifiers &= ~MOD_QUALIFIER;
+		return unqual;
+	}
+	return ctype;
+}
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct expression *addr;
@@ -3025,6 +3037,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		return evaluate_compound_literal(expr, source);
 
 	ctype = examine_symbol_type(expr->cast_type);
+	ctype = unqualify_type(ctype);
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
 
