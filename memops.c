@@ -146,10 +146,12 @@ static void simplify_loads(struct basic_block *bb)
 				}
 				rewrite_load_instruction(insn, dominators);
 			} else {	// cleanup pending phi-sources
+				int repeat = repeat_phase;
 				pseudo_t phi;
 				FOR_EACH_PTR(dominators, phi) {
 					kill_instruction(phi->def);
 				} END_FOR_EACH_PTR(phi);
+				repeat_phase = repeat;
 			}
 		}
 next_load:

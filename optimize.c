@@ -61,6 +61,11 @@ void optimize(struct entrypoint *ep)
 	kill_unreachable_bbs(ep);
 	ir_validate(ep);
 
+	cfg_postorder(ep);
+	if (simplify_cfg_early(ep))
+		kill_unreachable_bbs(ep);
+	ir_validate(ep);
+
 	domtree_build(ep);
 
 	/*
@@ -88,9 +93,7 @@ repeat:
 				kill_unreachable_bbs(ep);
 
 			cse_eliminate(ep);
-
-			if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-				simplify_memops(ep);
+			simplify_memops(ep);
 		} while (repeat_phase);
 		pack_basic_blocks(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)

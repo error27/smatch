@@ -44,6 +44,25 @@ static int rewrite_branch(struct basic_block *bb,
 	return 1;
 }
 
+///
+// returns the phi-node corresponding to a phi-source
+static struct instruction *get_phinode(struct instruction *phisrc)
+{
+	struct pseudo_user *pu;
+
+	FOR_EACH_PTR(phisrc->target->users, pu) {
+		struct instruction *user;
+
+		if (!pu)
+			continue;
+		user = pu->insn;
+		assert(user->opcode == OP_PHI);
+		return user;
+	} END_FOR_EACH_PTR(pu);
+	assert(0);
+}
+
+
 /*
  * Return the known truth value of a pseudo, or -1 if
  * it's not known.
@@ -101,6 +120,31 @@ static int bb_depends_on_phi(struct basic_block *target, struct basic_block *src
 			return 1;
 	} END_FOR_EACH_PTR(insn);
 	return 0;
+}
+
+///
+// does the BB contains ignorable instructions but a final branch?
+// :note: something could be done for phi-sources but ... we'll see.
+static bool bb_is_forwarder(struct basic_block *bb)
+{
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (!insn->bb)
+			continue;
+		switch (insn->opcode) {
+		case OP_NOP:
+		case OP_INLINED_CALL:
+			continue;
+		case OP_CBR:
+		case OP_BR:
+			return true;
+		default:
+			goto out;
+		}
+	} END_FOR_EACH_PTR(insn);
+out:
+	return false;
 }
 
 /*
@@ -724,13 +768,145 @@ void vrfy_flow(struct entrypoint *ep)
 	assert(!entry);
 }
 
+static int retarget_parents(struct basic_block *bb, struct basic_block *target)
+{
+	struct basic_block *parent;
+
+	/*
+	 * We can't do FOR_EACH_PTR() here, because the parent list
+	 * may change when we rewrite the parent.
+	 */
+	while ((parent = first_basic_block(bb->parents))) {
+		if (!rewrite_parent_branch(parent, bb, target))
+			return 0;
+	}
+	kill_bb(bb);
+	return REPEAT_CFG_CLEANUP;
+}
+
+static void remove_merging_phisrc(struct basic_block *top, struct instruction *insn)
+{
+	struct instruction *user = get_phinode(insn);
+	pseudo_t phi;
+
+	FOR_EACH_PTR(user->phi_list, phi) {
+		struct instruction *phisrc;
+
+		if (phi == VOID)
+			continue;
+		phisrc = phi->def;
+		if (phisrc->bb != top)
+			continue;
+		REPLACE_CURRENT_PTR(phi, VOID);
+		kill_instruction(phisrc);
+	} END_FOR_EACH_PTR(phi);
+}
+
+static void remove_merging_phi(struct basic_block *top, struct instruction *insn)
+{
+	pseudo_t phi;
+
+	FOR_EACH_PTR(insn->phi_list, phi) {
+		struct instruction *def;
+
+		if (phi == VOID)
+			continue;
+
+		def = phi->def;
+		if (def->bb != top)
+			continue;
+
+		convert_instruction_target(insn, def->src);
+		kill_instruction(def);
+		kill_instruction(insn);
+	} END_FOR_EACH_PTR(phi);
+}
+
+///
+// merge two BBs
+// @top: the first BB to be merged
+// @bot: the second BB to be merged
+static int merge_bb(struct basic_block *top, struct basic_block *bot)
+{
+	struct instruction *insn;
+	struct basic_block *bb;
+
+	if (top == bot)
+		return 0;
+
+	top->children = bot->children;
+	bot->children = NULL;
+	bot->parents = NULL;
+
+	FOR_EACH_PTR(top->children, bb) {
+		replace_bb_in_list(&bb->parents, bot, top, 1);
+	} END_FOR_EACH_PTR(bb);
+
+	kill_instruction(delete_last_instruction(&top->insns));
+	FOR_EACH_PTR(bot->insns, insn) {
+		if (!insn->bb)
+			continue;
+		assert(insn->bb == bot);
+		switch (insn->opcode) {
+		case OP_PHI:
+			remove_merging_phi(top, insn);
+			continue;
+		case OP_PHISOURCE:
+			remove_merging_phisrc(top, insn);
+			break;
+		}
+		insn->bb = top;
+		add_instruction(&top->insns, insn);
+	} END_FOR_EACH_PTR(insn);
+	bot->insns = NULL;
+	bot->ep = NULL;
+	return REPEAT_CFG_CLEANUP;
+}
+
+///
+// early simplification of the CFG
+// Three things are done here:
+//    # inactive BB are removed
+//    # branches to a 'forwarder' BB are redirected to the forwardee.
+//    # merge single-child/single-parent BBs.
+int simplify_cfg_early(struct entrypoint *ep)
+{
+	struct basic_block *bb;
+	int changed = 0;
+
+	FOR_EACH_PTR_REVERSE(ep->bbs, bb) {
+		struct instruction *insn;
+		struct basic_block *tgt;
+
+		if (!bb->ep) {
+			DELETE_CURRENT_PTR(bb);
+			changed = REPEAT_CFG_CLEANUP;
+			continue;
+		}
+
+		insn = last_instruction(bb->insns);
+		if (!insn)
+			continue;
+		switch (insn->opcode) {
+		case OP_BR:
+			tgt = insn->bb_true;
+			if (bb_is_forwarder(bb))
+				changed |= retarget_parents(bb, tgt);
+			else if (bb_list_size(tgt->parents) == 1)
+				changed |= merge_bb(bb, tgt);
+			break;
+		}
+	} END_FOR_EACH_PTR_REVERSE(bb);
+	return changed;
+}
+
 void pack_basic_blocks(struct entrypoint *ep)
 {
 	struct basic_block *bb;
 
 	/* See if we can merge a bb into another one.. */
 	FOR_EACH_PTR(ep->bbs, bb) {
-		struct instruction *first, *insn;
+		struct instruction *first;
 		struct basic_block *parent, *child, *last;
 
 		if (!bb_reachable(bb))
@@ -787,28 +963,7 @@ out:
 				goto no_merge;
 		} END_FOR_EACH_PTR(child);
 
-		/*
-		 * Merge the two.
-		 */
-		repeat_phase |= REPEAT_CFG_CLEANUP;
-
-		parent->children = bb->children;
-		bb->children = NULL;
-		bb->parents = NULL;
-
-		FOR_EACH_PTR(parent->children, child) {
-			replace_bb_in_list(&child->parents, bb, parent, 0);
-		} END_FOR_EACH_PTR(child);
-
-		kill_instruction(delete_last_instruction(&parent->insns));
-		FOR_EACH_PTR(bb->insns, insn) {
-			if (!insn->bb)
-				continue;
-			assert(insn->bb == bb);
-			insn->bb = parent;
-			add_instruction(&parent->insns, insn);
-		} END_FOR_EACH_PTR(insn);
-		bb->insns = NULL;
+		repeat_phase |= merge_bb(parent, bb);
 
 	no_merge:
 		/* nothing to do */;

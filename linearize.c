@@ -726,6 +726,7 @@ void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic
 		remove_parent(child, bb);
 	} END_FOR_EACH_PTR(child);
 	PACK_PTR_LIST(&bb->children);
+	repeat_phase |= REPEAT_CFG_CLEANUP;
 }
 	
 
