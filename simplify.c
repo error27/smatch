@@ -2112,13 +2112,35 @@ found:
 	return REPEAT_CSE;
 }
 
+static struct basic_block *is_label(pseudo_t pseudo)
+{
+	struct expression *expr;
+	struct instruction *def;
+
+	if (DEF_OPCODE(def, pseudo) != OP_SETVAL)
+		return NULL;
+	expr = def->val;
+	if (expr->type != EXPR_LABEL)
+		return NULL;
+	return expr->symbol->bb_target;
+}
+
 static int simplify_cgoto(struct instruction *insn)
 {
 	struct basic_block *target, *bb = insn->bb;
+	struct basic_block *bbt, *bbf;
 	struct instruction *def;
 	struct multijmp *jmp;
 
 	switch (DEF_OPCODE(def, insn->src)) {
+	case OP_SEL:	// CGOTO(SEL(x, L1, L2)) --> CBR x, L1, L2
+		if ((bbt = is_label(def->src2)) && (bbf = is_label(def->src3))) {
+			insn->opcode = OP_CBR;
+			insn->bb_true = bbt;
+			insn->bb_false = bbf;
+			return replace_pseudo(insn, &insn->src1, def->cond);
+		}
+		break;
 	case OP_SETVAL:
 		if (def->val->type != EXPR_LABEL)
 			break;
