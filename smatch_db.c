@@ -1064,7 +1064,9 @@ static void match_call_info_new(struct expression *call)
 			tmp = get_fake_variable(arg);
 			if (!tmp)
 				tmp = arg;
+			__ignore_param_used++;
 			print_struct_members(call, tmp, i, cb->owner, cb->callback, 1);
+			__ignore_param_used--;
 		} END_FOR_EACH_PTR(arg);
 	} END_FOR_EACH_PTR(cb);
 }
@@ -2322,7 +2324,9 @@ static void print_return_info(int return_id, char *return_ranges, struct express
 	sym = expr_to_sym(expr);
 
 	FOR_EACH_PTR(return_callbacks, cb) {
+		__ignore_param_used++;
 		print_return_struct_info(return_id, return_ranges, expr, sym, cb);
+		__ignore_param_used--;
 	} END_FOR_EACH_PTR(cb);
 }
 

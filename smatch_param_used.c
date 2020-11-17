@@ -19,6 +19,7 @@
 #include "smatch_slist.h"
 
 static int my_id;
+int __ignore_param_used;
 
 static struct stree *used_stree;
 
@@ -31,7 +32,11 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 	if (!option_info)
 		return;
 
-	if (__in_fake_assign || __in_fake_parameter_assign || __in_function_def || __in_unmatched_hook)
+	if (__ignore_param_used ||
+	    __in_fake_assign ||
+	    __in_fake_parameter_assign ||
+	    __in_function_def ||
+	    __in_unmatched_hook)
 		return;
 
 	arg = get_param_num_from_sym(sym);

@@ -1289,6 +1289,7 @@ int get_member_offset_from_deref(struct expression *expr);
 
 /* for now this is in smatch_used_parameter.c */
 void __get_state_hook(int owner, const char *name, struct symbol *sym);
+extern int __ignore_param_used;
 
 /* smatch_buf_comparison.c */
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
