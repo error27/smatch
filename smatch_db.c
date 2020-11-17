@@ -2318,6 +2318,10 @@ static void print_return_info(int return_id, char *return_ranges, struct express
 	struct expression *tmp;
 	struct symbol *sym;
 
+	if (!option_info && !__inline_fn &&
+	    !local_debug && !option_debug)
+		return;
+
 	tmp = get_fake_variable(expr);
 	if (tmp)
 		expr = tmp;
