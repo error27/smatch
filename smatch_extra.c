@@ -1097,7 +1097,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	right_name = expr_to_var_sym(right, &right_sym);
 
-	if (!__in_fake_assign &&
+	if (!__in_fake_assign && !__in_fake_var_assign &&
 	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
 	    values_fit_type(left, strip_expr(right)) &&
@@ -1111,20 +1111,20 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto done;
 	}
 
-	if (__in_fake_assign) {
+	if (__in_fake_assign || __in_fake_var_assign) {
 		struct smatch_state *right_state;
-		sval_t sval;
-
-		if (get_value(right, &sval)) {
-			sval = sval_cast(left_type, sval);
-			state = alloc_estate_sval(sval);
-			goto done;
-		}
+		struct range_list *rl;
 
 		right_state = get_state(SMATCH_EXTRA, right_name, right_sym);
 		if (right_state) {
 			/* simple assignment */
 			state = clone_estate(right_state);
+			goto done;
+		}
+
+		if (get_implied_rl(right, &rl)) {
+			rl = cast_rl(left_type, rl);
+			state = alloc_estate_rl(rl);
 			goto done;
 		}
 
