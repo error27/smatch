@@ -83,14 +83,38 @@ static int parent_is_set(const char *name, struct symbol *sym, struct smatch_sta
 	return ret;
 }
 
+static bool is_probably_worthless(struct expression *expr)
+{
+	struct expression *faked;
+
+	if (!__in_fake_struct_assign)
+		return false;
+
+	faked = get_faked_expression();
+	if (!faked || faked->type != EXPR_ASSIGNMENT)
+		return false;
+
+	if (faked->left->type == EXPR_PREOP &&
+	    faked->left->op == '*')
+		return false;
+
+	return true;
+}
+
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct symbol *param_sym;
+	struct symbol *type;
 	char *param_name;
 
-	if (__in_fake_struct_assign)
-		return;
 	if (expr && expr->smatch_flags & Fake)
+		return;
+
+	if (is_probably_worthless(expr))
+		return;
+
+	type = get_type(expr);
+	if (type && (type->type == SYM_STRUCT || type->type == SYM_UNION))
 		return;
 
 	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
