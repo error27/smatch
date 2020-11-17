@@ -617,8 +617,6 @@ set:
 	if (user_rl_treat_untagged(expr->right))
 		estate_set_treat_untagged(state);
 
-	if (local_debug)
-		sm_msg("%s: left = '%s' user_state = '%s'", __func__, expr_to_str(expr->left), state->name);
 	set_state_expr(my_id, expr->left, state);
 
 	return;
@@ -836,10 +834,6 @@ bool we_pass_user_data(struct expression *call)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(call->args, arg) {
-		if (local_debug)
-			sm_msg("%s: arg = '%s' %s", __func__,
-			       expr_to_str(arg),
-			       points_to_user_data(arg) ? "user pointer" : "not");
 		if (points_to_user_data(arg))
 			return true;
 		sym = expr_to_sym(arg);
@@ -1051,9 +1045,6 @@ static void caller_info_callback(struct expression *call, int param, char *print
 	struct symbol *type;
 	char buf[64];
 
-	if (local_debug)
-		sm_msg("%s: name = '%s' sm = '%s'", __func__, printed_name, show_sm(sm));
-
 	/*
 	 * Smatch uses a hack where if we get an unsigned long we say it's
 	 * both user data and it points to user data.  But if we pass it to a
@@ -1139,18 +1130,13 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 		return;
 
 	type = get_member_type_from_key(expr, key);
-	if (type && type->type == SYM_STRUCT) {
-		sm_info("%s: user data struct.  key='%s' value='%s'",
-		        __func__, key, value);
+	if (type && type->type == SYM_STRUCT)
 		return;
-	}
 
 	// FIXME: This is temporary.  Just run this on Thursday and then
 	// let's make it a printf() and then delete it.
-	if (!type) {
-		sm_msg("%s: no type for '%s'", __func__, fullname);
+	if (!type) 
 		return;
-	}
 
 	str_to_rl(type, value, &rl);
 	rl = swap_mtag_seed(expr, rl);
