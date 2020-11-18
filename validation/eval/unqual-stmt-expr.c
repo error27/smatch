@@ -9,5 +9,4 @@ int *foo(volatile int x)
 
 /*
  * check-name: unqual-stmt-expr
- * check-known-to-fail
  */

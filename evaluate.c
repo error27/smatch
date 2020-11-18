@@ -3950,7 +3950,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 			return NULL;
 		if (stmt->expression->ctype == &null_ctype)
 			stmt->expression = cast_to(stmt->expression, &ptr_ctype);
-		return degenerate(stmt->expression);
+		return unqualify_type(degenerate(stmt->expression));
 
 	case STMT_COMPOUND: {
 		struct statement *s;
