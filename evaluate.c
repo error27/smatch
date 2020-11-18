@@ -1028,7 +1028,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 
 static struct symbol *evaluate_comma(struct expression *expr)
 {
-	expr->ctype = degenerate(expr->right);
+	expr->ctype = unqualify_type(degenerate(expr->right));
 	if (expr->ctype == &null_ctype)
 		expr->ctype = &ptr_ctype;
 	expr->flags &= expr->left->flags & expr->right->flags;
