@@ -2516,6 +2516,8 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 
 	if (!is_pointer(expr))
 		return;
+	if (return_ranges && strstr(return_ranges, "[==$"))
+		return;
 
 	returned_name = expr_to_var_sym(expr, &returned_sym);
 	if (!returned_name || !returned_sym)
