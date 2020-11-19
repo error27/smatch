@@ -52,12 +52,13 @@ static struct hashtable *func_hash;
 
 int __in_fake_parameter_assign;
 
-#define REGULAR_CALL       0
-#define RANGED_CALL        1
-#define ASSIGN_CALL        2
-#define IMPLIED_RETURN     3
-#define MACRO_ASSIGN       4
-#define MACRO_ASSIGN_EXTRA 5
+#define REGULAR_CALL	   0
+#define RANGED_CALL	   1
+#define RANGED_EXACT	   2
+#define ASSIGN_CALL	   3
+#define IMPLIED_RETURN	   4
+#define MACRO_ASSIGN	   5
+#define MACRO_ASSIGN_EXTRA 6
 
 struct return_implies_callback {
 	int type;
@@ -189,6 +190,16 @@ void return_implies_state_sval(const char *look_for, sval_t start, sval_t end,
 	add_callback(func_hash, look_for, cb);
 }
 
+void return_implies_exact(const char *look_for, sval_t start, sval_t end,
+			  implication_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(RANGED_EXACT, call_back, info);
+	cb->range = alloc_range_perm(start, end);
+	add_callback(func_hash, look_for, cb);
+}
+
 void select_return_states_hook(int type, return_implies_hook *callback)
 {
 	struct return_implies_callback *cb = __alloc_return_implies_callback(0);
@@ -265,7 +276,8 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	struct fcall_back *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
-		if (tmp->type != RANGED_CALL)
+		if (tmp->type != RANGED_CALL &&
+		    tmp->type != RANGED_EXACT)
 			continue;
 		if (ranges_equiv(tmp->range, drange))
 			add_ptr_list(&ret, tmp);
@@ -307,7 +319,8 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		goto free;
 
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != RANGED_CALL)
+		if (tmp->type != RANGED_CALL &&
+		    tmp->type != RANGED_EXACT)
 			continue;
 
 		if (in_list_exact_sval(handled_ranges, tmp->range))
@@ -363,7 +376,8 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 	/* set true states */
 	__push_fake_cur_stree();
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != RANGED_CALL)
+		if (tmp->type != RANGED_CALL &&
+		    tmp->type != RANGED_EXACT)
 			continue;
 		if (!true_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
@@ -376,7 +390,8 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 	/* set false states */
 	__push_fake_cur_stree();
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != RANGED_CALL)
+		if (tmp->type != RANGED_CALL &&
+		    tmp->type != RANGED_EXACT)
 			continue;
 		if (!false_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
@@ -918,6 +933,7 @@ void function_comparison(struct expression *left, int comparison, struct express
 static void call_ranged_return_hooks(struct db_callback_info *db_info)
 {
 	struct call_back_list *call_backs;
+	struct range_list *range_rl;
 	struct expression *expr;
 	struct fcall_back *tmp;
 	char *fn;
@@ -933,14 +949,33 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 
 	call_backs = search_callback(func_hash, fn);
 	FOR_EACH_PTR(call_backs, tmp) {
-		struct range_list *range_rl;
-
 		if (tmp->type != RANGED_CALL)
 			continue;
 		range_rl = alloc_rl(tmp->range->min, tmp->range->max);
 		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
 		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
 			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+	} END_FOR_EACH_PTR(tmp);
+
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type != RANGED_EXACT)
+			continue;
+		if (!estate_rl(db_info->ret_state))
+			continue;
+
+		range_rl = alloc_rl(tmp->range->min, tmp->range->max);
+		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
+
+		/*
+		 * If there is an returned value out of range then this is not
+		 * an exact match.  In other words, "0,4096-ptr_max" is not
+		 * necessarily a valid match.
+		 *
+		 */
+		if (remove_range(estate_rl(db_info->ret_state),
+				 rl_min(range_rl), rl_max(range_rl)))
+			continue;
+		(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -1337,7 +1372,8 @@ struct range_list *get_range_implications(const char *fn)
 	call_backs = search_callback(func_hash, (char *)fn);
 
 	FOR_EACH_PTR(call_backs, tmp) {
-		if (tmp->type != RANGED_CALL)
+		if (tmp->type != RANGED_CALL &&
+		    tmp->type != RANGED_EXACT)
 			continue;
 		add_ptr_list(&ret, tmp->range);
 	} END_FOR_EACH_PTR(tmp);

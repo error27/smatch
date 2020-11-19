@@ -371,6 +371,11 @@ void check_unwind(int id)
 
 		if (info->call_back) {
 			add_function_hook(info->name, info->call_back, info);
+		} else if (info->implies_start && info->type == ALLOC) {
+			return_implies_exact(info->name,
+					*info->implies_start,
+					*info->implies_end,
+					&refcount_implied, info);
 		} else if (info->implies_start) {
 			return_implies_state_sval(info->name,
 					*info->implies_start,
