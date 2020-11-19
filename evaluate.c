@@ -63,6 +63,8 @@ static inline int valid_subexpr_type(struct expression *expr)
 
 static struct symbol *unqualify_type(struct symbol *ctype)
 {
+	if (!ctype)
+		return ctype;
 	if (ctype->type == SYM_NODE && (ctype->ctype.modifiers & MOD_QUALIFIER)) {
 		struct symbol *unqual = alloc_symbol(ctype->pos, 0);
 
@@ -1026,7 +1028,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 
 static struct symbol *evaluate_comma(struct expression *expr)
 {
-	expr->ctype = degenerate(expr->right);
+	expr->ctype = unqualify_type(degenerate(expr->right));
 	if (expr->ctype == &null_ctype)
 		expr->ctype = &ptr_ctype;
 	expr->flags &= expr->left->flags & expr->right->flags;
@@ -3948,7 +3950,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 			return NULL;
 		if (stmt->expression->ctype == &null_ctype)
 			stmt->expression = cast_to(stmt->expression, &ptr_ctype);
-		return degenerate(stmt->expression);
+		return unqualify_type(degenerate(stmt->expression));
 
 	case STMT_COMPOUND: {
 		struct statement *s;
