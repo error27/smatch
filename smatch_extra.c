@@ -2561,20 +2561,7 @@ static void db_limited_after(void)
 
 static int basically_the_same(struct range_list *orig, struct range_list *new)
 {
-	if (rl_equiv(orig, new))
-		return 1;
-
-	/*
-	 * The whole range is essentially the same as 0,4096-27777777777 so
-	 * don't overwrite the implications just to store that.
-	 *
-	 */
-	if (rl_type(orig)->type == SYM_PTR &&
-	    is_whole_rl(orig) &&
-	    rl_min(new).value == 0 &&
-	    rl_max(new).value == valid_ptr_max)
-		return 1;
-	return 0;
+	return rl_equiv(orig, new);
 }
 
 static void db_param_limit_binops(struct expression *arg, char *key, struct range_list *rl)
