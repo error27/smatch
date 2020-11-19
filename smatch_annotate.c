@@ -30,9 +30,11 @@ static int param_caps_return(struct expression *call, void *_arg, struct range_l
 	struct range_list *rl;
 
 	expr = get_argument_from_call_expr(call->args, arg);
-	if (get_implied_rl(expr, &rl) && rl_max(rl).value != 0)
+	if (get_implied_rl(expr, &rl) && rl_max(rl).value != 0) {
 		*res = alloc_rl(sval_type_val(rl_type(rl), 0), rl_max(rl));
-	return 1;
+		return 1;
+	}
+	return 0;
 }
 
 void register_annotate(int id)
