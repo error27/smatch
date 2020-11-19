@@ -1227,6 +1227,30 @@ static int is_minus_one(struct expression *expr)
 	return 1;
 }
 
+static void remove_plus_minus_zero(struct expression **expr_p)
+{
+	struct expression *expr = *expr_p;
+	sval_t sval;
+
+	if (!expr || expr->type != EXPR_BINOP)
+		return;
+	if (expr->op == '+') {
+		if (get_implied_value(expr->left, &sval) && sval.value == 0)
+			*expr_p = expr->right;
+		else if (get_implied_value(expr->right, &sval) && sval.value == 0)
+			*expr_p = expr->left;
+		else
+			return;
+		return remove_plus_minus_zero(expr_p);
+	}
+	if (expr->op == '-') {
+		if (get_implied_value(expr->right, &sval) && sval.value == 0) {
+			*expr_p = expr->left;
+			return remove_plus_minus_zero(expr_p);
+		}
+	}
+}
+
 static void move_plus_to_minus_helper(struct expression **left_p, struct expression **right_p)
 {
 	struct expression *left = *left_p;
@@ -1256,6 +1280,14 @@ static void move_plus_to_minus(struct expression **left_p, struct expression **r
 	move_plus_to_minus_helper(right_p, left_p);
 }
 
+static void simplify_binops(struct expression **left_p, struct expression **right_p)
+{
+	remove_plus_minus_zero(left_p);
+	remove_plus_minus_zero(right_p);
+
+	move_plus_to_minus(left_p, right_p);
+}
+
 static void handle_comparison(struct expression *left_expr, int op, struct expression *right_expr, char **_state_name, struct smatch_state **_false_state)
 {
 	char *left = NULL;
@@ -1283,7 +1315,7 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 
 	false_op = negate_comparison(op);
 
-	move_plus_to_minus(&left_expr, &right_expr);
+	simplify_binops(&left_expr, &right_expr);
 
 	if (op == SPECIAL_UNSIGNED_LT &&
 	    get_implied_value(left_expr, &sval) &&
