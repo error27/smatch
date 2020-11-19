@@ -106,6 +106,8 @@ struct smatch_state *unmatched_state(struct sm_state *sm)
 		return &undefined;
 	if (!estate_rl(state) || is_err_or_null(estate_rl(state)))
 		return &param_released;
+	if (parent_is_err_or_null_var_sym(sm->name, sm->sym))
+		return &param_released;
 
 	 return &undefined;
 }
