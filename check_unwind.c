@@ -269,21 +269,21 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 }
 
 enum {
-	EMPTY, NEGATIVE, ZERO, POSITIVE, NUM_BUCKETS
+	UNKNOWN, FAIL, SUCCESS, NUM_BUCKETS
 };
 
 static int success_fail_positive(struct range_list *rl)
 {
 	if (!rl)
-		return EMPTY;
+		return UNKNOWN;
 
 	if (sval_is_negative(rl_min(rl)) && sval_is_negative(rl_max(rl)))
-		return NEGATIVE;
+		return FAIL;
 
 	if (rl_min(rl).value == 0)
-		return ZERO;
+		return SUCCESS;
 
-	return POSITIVE;
+	return UNKNOWN;
 }
 
 static void check_balance(const char *name, struct symbol *sym)
@@ -325,7 +325,7 @@ static void check_balance(const char *name, struct symbol *sym)
 			goto swap_stree;
 
 		bucket = success_fail_positive(estate_rl(return_sm->state));
-		if (bucket != NEGATIVE)
+		if (bucket != FAIL)
 			goto swap_stree;
 
 		if (state == &alloc) {
@@ -336,7 +336,7 @@ swap_stree:
 		__swap_cur_stree(orig_stree);
 	} END_FOR_EACH_PTR(stree);
 
-	if (inc_buckets[NEGATIVE])
+	if (inc_buckets[FAIL])
 		goto complain;
 
 	return;
