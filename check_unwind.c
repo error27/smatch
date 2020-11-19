@@ -304,6 +304,8 @@ static void check_balance(const char *name, struct symbol *sym)
 			goto swap_stree;
 		if (db_incomplete())
 			goto swap_stree;
+		if (get_state(my_id, "path", NULL) == &ignore)
+			goto swap_stree;
 
 		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
 		if (!return_sm)
@@ -348,6 +350,8 @@ static void match_check_balanced(struct symbol *sym)
 	struct sm_state *sm;
 
 	FOR_EACH_MY_SM(my_id, get_all_return_states(), sm) {
+		if (sm->sym == NULL && strcmp(sm->name, "path") == 0)
+			continue;
 		check_balance(sm->name, sm->sym);
 	} END_FOR_EACH_SM(sm);
 }
