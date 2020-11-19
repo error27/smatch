@@ -1668,6 +1668,15 @@ done:
 	free_string(right_var);
 }
 
+static bool is_empty_fake_assign(struct expression *expr)
+{
+	if (!__in_fake_var_assign)
+		return false;
+	if (get_state_chunk(link_id, expr->right))
+		return false;
+	return true;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct expression *right;
@@ -1681,6 +1690,9 @@ static void match_assign(struct expression *expr)
 		return;
 
 	if (is_self_assign(expr))
+		return;
+
+	if (is_empty_fake_assign(expr))
 		return;
 
 	copy_comparisons(expr->left, expr->right);
