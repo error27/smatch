@@ -74,10 +74,6 @@ static struct ref_func_info func_table[] = {
 	{ "ioremap_encrypted", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "iounmap", RELEASE, 0, "$" },
 
-	{ "pci_iomap_range", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
-	{ "pci_iomap",   ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
-	{ "pci_iounmap", RELEASE, 0, "$" },
-
 	{ "request_threaded_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "request_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
 	{ "free_irq",    RELEASE, 0, "$" },
