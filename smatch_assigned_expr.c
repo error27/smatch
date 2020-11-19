@@ -47,6 +47,21 @@ struct expression *get_assigned_expr(struct expression *expr)
 	return (struct expression *)state->data;
 }
 
+struct expression *get_assigned_expr_recurse(struct expression *expr)
+{
+	struct expression *ret;
+	int cnt = 0;
+
+	ret = NULL;
+	while ((expr = get_assigned_expr(expr))) {
+		ret = expr;
+		if (cnt++ > 4)
+			break;
+	}
+
+	return ret;
+}
+
 struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym)
 {
 	struct smatch_state *state;
@@ -55,6 +70,20 @@ struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *s
 	if (!state)
 		return NULL;
 	return (struct expression *)state->data;
+}
+
+struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct symbol *sym)
+{
+	struct expression *expr, *recurse;
+	struct smatch_state *state;
+
+	expr = get_assigned_expr_name_sym(name, sym);
+	if (!expr)
+		return NULL;
+	recurse = get_assigned_expr_recurse(expr);
+	if (recurse)
+		return recurse;
+	return expr;
 }
 
 static void match_assignment(struct expression *expr)

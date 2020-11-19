@@ -1121,7 +1121,10 @@ void print_held_locks();
 /* check_assigned_expr.c */
 extern int check_assigned_expr_id;
 struct expression *get_assigned_expr(struct expression *expr);
+struct expression *get_assigned_expr_recurse(struct expression *expr);
 struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym);
+struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct symbol *sym);
+
 /* smatch_return_to_param.c */
 void __add_return_to_param_mapping(struct expression *assign, const char *return_string);
 char *map_call_to_param_name_sym(struct expression *expr, struct symbol **sym);
