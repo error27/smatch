@@ -28,12 +28,8 @@ static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *e
 
 static pseudo_t add_cast(struct entrypoint *ep, struct symbol *to, struct symbol *from, int op, pseudo_t src);
 static pseudo_t add_binary_op(struct entrypoint *ep, struct symbol *ctype, int op, pseudo_t left, pseudo_t right);
-static pseudo_t add_setval(struct entrypoint *ep, struct symbol *ctype, struct expression *val);
 static pseudo_t linearize_one_symbol(struct entrypoint *ep, struct symbol *sym);
 
-struct access_data;
-static pseudo_t add_load(struct entrypoint *ep, struct access_data *);
-static pseudo_t linearize_initializer(struct entrypoint *ep, struct expression *initializer, struct access_data *);
 static pseudo_t cast_pseudo(struct entrypoint *ep, pseudo_t src, struct symbol *from, struct symbol *to);
 
 struct pseudo void_pseudo = {};

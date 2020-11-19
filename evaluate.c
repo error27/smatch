@@ -1921,8 +1921,7 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		return NULL;
 	}
 
-	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype))
-		unrestrict(expr, class, &ctype);
+	unrestrict(expr, class, &ctype);
 
 	if (class & TYPE_NUM) {
 		multiply = 1;
