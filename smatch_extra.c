@@ -2273,12 +2273,12 @@ int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val)
 	return 0;
 }
 
-int parent_is_null_var_sym(const char *name, struct symbol *sym)
+static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol *sym, bool check_err_ptr)
 {
+	struct smatch_state *state;
 	char buf[256];
 	char *start;
-	char *end;
-	struct smatch_state *state;
+	int len;
 
 	strncpy(buf, name, sizeof(buf) - 1);
 	buf[sizeof(buf) - 1] = '\0';
@@ -2294,22 +2294,45 @@ int parent_is_null_var_sym(const char *name, struct symbol *sym)
 		if (estate_min(state).value == 0 &&
 		    estate_max(state).value == 0)
 			return 1;
+		if (check_err_ptr && is_err_or_null(estate_rl(state)))
+			return 1;
 	}
 
 	start = &buf[0];
 	while (*start == '&')
 		start++;
 
-	while ((end = strrchr(start, '-'))) {
-		*end = '\0';
+	len = strlen(start);
+	while (true) {
+		while (len > 0) {
+			len--;
+			if (start[len] == '-' ||
+			    start[len] == '.') {
+				start[len] = '\0';
+				break;
+			}
+		}
+		if (len == 0)
+			return 0;
 		state = __get_state(SMATCH_EXTRA, start, sym);
 		if (!state)
 			continue;
 		if (estate_min(state).value == 0 &&
 		    estate_max(state).value == 0)
 			return 1;
+		if (check_err_ptr && is_err_or_null(estate_rl(state)))
+			return 1;
 	}
-	return 0;
+}
+
+int parent_is_null_var_sym(const char *name, struct symbol *sym)
+{
+	return parent_is_err_or_null_var_sym_helper(name, sym, false);
+}
+
+int parent_is_err_or_null_var_sym(const char *name, struct symbol *sym)
+{
+	return parent_is_err_or_null_var_sym_helper(name, sym, (option_project == PROJ_KERNEL));
 }
 
 int parent_is_null(struct expression *expr)
