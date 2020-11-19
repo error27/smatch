@@ -26,6 +26,7 @@ static int my_id;
 STATE(alloc);
 STATE(release);
 STATE(param_released);
+STATE(ignore);
 
 static unsigned long fn_has_alloc;
 
@@ -213,6 +214,11 @@ static void refcount_implied(const char *fn, struct expression *call_expr,
 	db_helper(assign_expr ?: call_expr, info->param, info->key, info->type);
 }
 
+static void ignore_path(const char *fn, struct expression *expr, void *data)
+{
+	set_state(my_id, "path", NULL, &ignore);
+}
+
 static bool is_alloc_primitive(struct expression *expr)
 {
 	int i;
@@ -368,6 +374,8 @@ void check_unwind(int id)
 			add_function_hook(info->name, &refcount_function, info);
 		}
 	}
+
+	add_function_hook("devm_add_action_or_reset", &ignore_path, NULL);
 
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_function_data(&fn_has_alloc);
