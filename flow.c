@@ -457,7 +457,6 @@ void convert_load_instruction(struct instruction *insn, pseudo_t src)
 {
 	convert_instruction_target(insn, src);
 	kill_instruction(insn);
-	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 }
 
 static int overlapping_memop(struct instruction *a, struct instruction *b)
@@ -559,7 +558,7 @@ complex_phi:
 	insn->phi_list = dominators;
 
 end:
-	repeat_phase |= REPEAT_SYMBOL_CLEANUP;
+	repeat_phase |= REPEAT_CSE;
 }
 
 /* Kill a pseudo that is dead on exit from the bb */
