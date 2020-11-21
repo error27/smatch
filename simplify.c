@@ -325,7 +325,6 @@ int kill_insn(struct instruction *insn, int force)
 		/* fall through */
 
 	case OP_UNOP ... OP_UNOP_END:
-	case OP_SETVAL:
 	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;
@@ -380,6 +379,7 @@ int kill_insn(struct instruction *insn, int force)
 
 	case OP_BR:
 	case OP_SETFVAL:
+	case OP_SETVAL:
 	default:
 		break;
 	}
