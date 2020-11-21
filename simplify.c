@@ -324,24 +324,16 @@ int kill_insn(struct instruction *insn, int force)
 
 	case OP_UNOP ... OP_UNOP_END:
 	case OP_SLICE:
+	case OP_PHISOURCE:
+	case OP_SYMADDR:
+	case OP_CBR:
+	case OP_SWITCH:
+	case OP_COMPUTEDGOTO:
 		kill_use(&insn->src1);
 		break;
 
 	case OP_PHI:
 		kill_use_list(insn->phi_list);
-		break;
-	case OP_PHISOURCE:
-		kill_use(&insn->phi_src);
-		break;
-
-	case OP_SYMADDR:
-		kill_use(&insn->src);
-		break;
-
-	case OP_CBR:
-	case OP_SWITCH:
-	case OP_COMPUTEDGOTO:
-		kill_use(&insn->cond);
 		break;
 
 	case OP_CALL:
