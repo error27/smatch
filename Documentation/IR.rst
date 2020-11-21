@@ -352,12 +352,19 @@ Others
 	* .type: type of the literal & .target
 
 .. op:: OP_SETVAL
-	Create a pseudo corresponding to a string literal or a label-as-value.
-	The value is given as an expression EXPR_STRING or EXPR_LABEL.
+	Create a pseudo corresponding to a string literal.
+	The value is given as an expression EXPR_STRING.
 
 	* .val: (expression) input expression
 	* .target: the resulting value
 	* .type: type of .target, the value
+
+.. op:: OP_LABEL
+	Create a pseudo corresponding to a label-as-value.
+
+	* .bb_true: the BB corresponding to the label
+	* .target: the resulting value
+	* .type: type of .target (void \*)
 
 .. op:: OP_PHI
 	Phi-node (for SSA form).

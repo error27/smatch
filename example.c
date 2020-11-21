@@ -66,6 +66,7 @@ static const char *opcodes[] = {
 	/* Memory */
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
+	[OP_LABEL] = "label",
 	[OP_SETVAL] = "set",
 
 	/* Other */
@@ -619,7 +620,7 @@ static struct hardreg *fill_reg(struct bb_state *state, struct hardreg *hardreg,
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
 		def = pseudo->def;
-		if (def && def->opcode == OP_SETVAL) {
+		if (def && (def->opcode == OP_SETVAL || def->opcode == OP_LABEL)) {
 			output_insn(state, "movl $<%s>,%s", show_pseudo(def->target), hardreg->name);
 			break;
 		}
@@ -1375,10 +1376,11 @@ static void generate_one_insn(struct instruction *insn, struct bb_state *state)
 	}
 
 	/*
-	 * OP_SETVAL likewise doesn't actually generate any
+	 * OP_LABEL & OP_SETVAL likewise doesn't actually generate any
 	 * code. On use, the "def" of the pseudo will be
 	 * looked up.
 	 */
+	case OP_LABEL:
 	case OP_SETVAL:
 		break;
 
@@ -1531,7 +1533,7 @@ static void fill_output(struct bb_state *state, pseudo_t pseudo, struct storage 
 		return;
 	case PSEUDO_REG:
 		def = pseudo->def;
-		if (def && def->opcode == OP_SETVAL) {
+		if (def && (def->opcode == OP_SETVAL || def->opcode == OP_LABEL)) {
 			write_val_to_storage(state, pseudo, out);
 			return;
 		}

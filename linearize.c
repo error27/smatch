@@ -249,6 +249,7 @@ static const char *opcodes[] = {
 	/* Memory */
 	[OP_LOAD] = "load",
 	[OP_STORE] = "store",
+	[OP_LABEL] = "label",
 	[OP_SETVAL] = "set",
 	[OP_SETFVAL] = "setfval",
 	[OP_SYMADDR] = "symaddr",
@@ -342,6 +343,11 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_BR:
+		buf += sprintf(buf, "%s", show_label(insn->bb_true));
+		break;
+
+	case OP_LABEL:
+		buf += sprintf(buf, "%s <- ", show_pseudo(insn->target));
 		buf += sprintf(buf, "%s", show_label(insn->bb_true));
 		break;
 
