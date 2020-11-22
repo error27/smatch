@@ -1462,22 +1462,36 @@ static int switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instru
 	return REPEAT_CSE;
 }
 
+///
+// check if the given pseudos are in canonical order
+//
+// The canonical order is VOID < UNDEF < PHI < REG < ARG < SYM < VAL
+// The rationale is:
+//	* VALs at right (they don't need a definition)
+//	* REGs at left (they need a defining instruction)
+//	* SYMs & ARGs between REGs & VALs
+//	* REGs & ARGs are ordered between themselves by their internal number
+//	* SYMs are ordered between themselves by address
+//	* VOID, UNDEF and PHI are uninteresting (but VOID should have type 0)
 static int canonical_order(pseudo_t p1, pseudo_t p2)
 {
+	int t1 = p1->type;
+	int t2 = p2->type;
+
 	/* symbol/constants on the right */
-	if (p1->type == PSEUDO_VAL)
-		return p2->type == PSEUDO_VAL;
-
-	if (p1->type == PSEUDO_SYM)
-		return p2->type == PSEUDO_SYM || p2->type == PSEUDO_VAL;
-
-	if (p1->type == PSEUDO_ARG)
-		return (p2->type == PSEUDO_ARG && p1->nr <= p2->nr) || p2->type == PSEUDO_VAL || p2->type == PSEUDO_SYM;
-
-	if (p1->type == PSEUDO_REG)
-		return (p2->type == PSEUDO_REG && p1->nr <= p2->nr) || p2->type == PSEUDO_VAL || p2->type == PSEUDO_SYM || p2->type == PSEUDO_ARG;
-
-	return 1;
+	if (t1 < t2)
+		return 1;
+	if (t1 > t2)
+		return 0;
+	switch (t1) {
+	case PSEUDO_SYM:
+		return p1->sym <= p2->sym;
+	case PSEUDO_REG:
+	case PSEUDO_ARG:
+		return p1->nr <= p2->nr;
+	default:
+		return 1;
+	}
 }
 
 static int canonicalize_commutative(struct instruction *insn)

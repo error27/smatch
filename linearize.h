@@ -24,11 +24,11 @@ DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
 enum pseudo_type {
 	PSEUDO_VOID,
 	PSEUDO_UNDEF,
+	PSEUDO_PHI,
 	PSEUDO_REG,
+	PSEUDO_ARG,
 	PSEUDO_SYM,
 	PSEUDO_VAL,
-	PSEUDO_ARG,
-	PSEUDO_PHI,
 };
 
 struct pseudo {
