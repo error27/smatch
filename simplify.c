@@ -325,7 +325,6 @@ int kill_insn(struct instruction *insn, int force)
 		/* fall through */
 
 	case OP_UNOP ... OP_UNOP_END:
-	case OP_SETVAL:
 	case OP_SLICE:
 		kill_use(&insn->src1);
 		break;
@@ -379,6 +378,8 @@ int kill_insn(struct instruction *insn, int force)
 		return 0;
 
 	case OP_BR:
+	case OP_LABEL:
+	case OP_SETVAL:
 	case OP_SETFVAL:
 	default:
 		break;
@@ -2112,6 +2113,65 @@ found:
 	return REPEAT_CSE;
 }
 
+static struct basic_block *is_label(pseudo_t pseudo)
+{
+	struct instruction *def;
+
+	if (DEF_OPCODE(def, pseudo) != OP_LABEL)
+		return NULL;
+	return def->bb_true;
+}
+
+static int simplify_cgoto(struct instruction *insn)
+{
+	struct basic_block *target, *bb = insn->bb;
+	struct basic_block *bbt, *bbf;
+	struct instruction *def;
+	struct multijmp *jmp;
+
+	switch (DEF_OPCODE(def, insn->src)) {
+	case OP_SEL:	// CGOTO(SEL(x, L1, L2)) --> CBR x, L1, L2
+		if ((bbt = is_label(def->src2)) && (bbf = is_label(def->src3))) {
+			insn->opcode = OP_CBR;
+			insn->bb_true = bbt;
+			insn->bb_false = bbf;
+			return replace_pseudo(insn, &insn->src1, def->cond);
+		}
+		break;
+	case OP_LABEL:
+		target = def->bb_true;
+		if (!target->ep)
+			return 0;
+		FOR_EACH_PTR(insn->multijmp_list, jmp) {
+			if (jmp->target == target)
+				continue;
+			remove_bb_from_list(&jmp->target->parents, bb, 1);
+			remove_bb_from_list(&bb->children, jmp->target, 1);
+			MARK_CURRENT_DELETED(jmp);
+		} END_FOR_EACH_PTR(jmp);
+		kill_use(&insn->src);
+		insn->opcode = OP_BR;
+		insn->bb_true = target;
+		return REPEAT_CSE|REPEAT_CFG_CLEANUP;
+	}
+	return 0;
+}
+
+static int simplify_setval(struct instruction *insn)
+{
+	struct expression *val = insn->val;
+
+	switch (val->type) {
+	case EXPR_LABEL:
+		insn->opcode = OP_LABEL;
+		insn->bb_true = val->symbol->bb_target;
+		return REPEAT_CSE;
+	default:
+		break;
+	}
+	return 0;
+}
+
 int simplify_instruction(struct instruction *insn)
 {
 	unsigned flags;
@@ -2178,6 +2238,8 @@ int simplify_instruction(struct instruction *insn)
 	case OP_SLICE:
 		break;
 	case OP_SETVAL:
+		return simplify_setval(insn);
+	case OP_LABEL:
 	case OP_SETFVAL:
 		break;
 	case OP_PHI:
@@ -2190,6 +2252,8 @@ int simplify_instruction(struct instruction *insn)
 		return simplify_branch(insn);
 	case OP_SWITCH:
 		return simplify_switch(insn);
+	case OP_COMPUTEDGOTO:
+		return simplify_cgoto(insn);
 	case OP_RANGE:
 		return simplify_range(insn);
 	case OP_FADD:

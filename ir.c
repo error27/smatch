@@ -175,6 +175,7 @@ static int validate_insn(struct entrypoint *ep, struct instruction *insn)
 		break;
 
 	case OP_ENTRY:
+	case OP_LABEL:
 	case OP_SETVAL:
 	default:
 		break;

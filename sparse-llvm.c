@@ -935,6 +935,11 @@ static void output_op_fpcast(struct function *fn, struct instruction *insn)
 	insn->target->priv = target;
 }
 
+static void output_op_label(struct function *fn, struct instruction *insn)
+{
+	insn->target->priv = LLVMBlockAddress(fn->fn, insn->bb_true->priv);
+}
+
 static void output_op_setval(struct function *fn, struct instruction *insn)
 {
 	struct expression *val = insn->val;
@@ -974,6 +979,9 @@ static void output_insn(struct function *fn, struct instruction *insn)
 		break;
 	case OP_SYMADDR:
 		assert(0);
+		break;
+	case OP_LABEL:
+		output_op_label(fn, insn);
 		break;
 	case OP_SETVAL:
 		output_op_setval(fn, insn);
