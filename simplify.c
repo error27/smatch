@@ -259,8 +259,6 @@ out:
 static inline void rem_usage(pseudo_t p, pseudo_t *usep, int kill)
 {
 	if (has_use_list(p)) {
-		if (p->type == PSEUDO_SYM)
-			repeat_phase |= REPEAT_SYMBOL_CLEANUP;
 		delete_pseudo_user_list_entry(&p->users, usep, 1);
 		if (kill && !p->users)
 			kill_instruction(p->def);
@@ -326,25 +324,16 @@ int kill_insn(struct instruction *insn, int force)
 
 	case OP_UNOP ... OP_UNOP_END:
 	case OP_SLICE:
+	case OP_PHISOURCE:
+	case OP_SYMADDR:
+	case OP_CBR:
+	case OP_SWITCH:
+	case OP_COMPUTEDGOTO:
 		kill_use(&insn->src1);
 		break;
 
 	case OP_PHI:
 		kill_use_list(insn->phi_list);
-		break;
-	case OP_PHISOURCE:
-		kill_use(&insn->phi_src);
-		break;
-
-	case OP_SYMADDR:
-		kill_use(&insn->src);
-		repeat_phase |= REPEAT_SYMBOL_CLEANUP;
-		break;
-
-	case OP_CBR:
-	case OP_SWITCH:
-	case OP_COMPUTEDGOTO:
-		kill_use(&insn->cond);
 		break;
 
 	case OP_CALL:
@@ -1716,7 +1705,7 @@ static int simplify_one_memop(struct instruction *insn, pseudo_t orig)
 		if (def->opcode == OP_SYMADDR && def->src) {
 			kill_use(&insn->src);
 			use_pseudo(insn, def->src, &insn->src);
-			return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
+			return REPEAT_CSE;
 		}
 		if (def->opcode == OP_ADD) {
 			new = def->src1;
@@ -1752,7 +1741,7 @@ offset:
 	}
 	insn->offset += off->value;
 	replace_pseudo(insn, &insn->src, new);
-	return REPEAT_CSE | REPEAT_SYMBOL_CLEANUP;
+	return REPEAT_CSE;
 }
 
 ///
