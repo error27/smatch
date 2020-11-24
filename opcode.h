@@ -32,6 +32,16 @@ extern const struct opcode_table {
 } opcode_table[];
 
 
+static inline int opcode_negate(int opcode)
+{
+	return opcode_table[opcode].negate;
+}
+
+static inline int opcode_swap(int opcode)
+{
+	return opcode_table[opcode].swap;
+}
+
 static inline int opcode_float(int opcode, struct symbol *type)
 {
 	if (!type || !is_float_type(type))

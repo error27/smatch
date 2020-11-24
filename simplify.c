@@ -1452,16 +1452,36 @@ static int switch_pseudo(struct instruction *insn1, pseudo_t *pp1, struct instru
 	return REPEAT_CSE;
 }
 
+///
+// check if the given pseudos are in canonical order
+//
+// The canonical order is VOID < UNDEF < PHI < REG < ARG < SYM < VAL
+// The rationale is:
+//	* VALs at right (they don't need a definition)
+//	* REGs at left (they need a defining instruction)
+//	* SYMs & ARGs between REGs & VALs
+//	* REGs & ARGs are ordered between themselves by their internal number
+//	* SYMs are ordered between themselves by address
+//	* VOID, UNDEF and PHI are uninteresting (but VOID should have type 0)
 static int canonical_order(pseudo_t p1, pseudo_t p2)
 {
+	int t1 = p1->type;
+	int t2 = p2->type;
+
 	/* symbol/constants on the right */
-	if (p1->type == PSEUDO_VAL)
-		return p2->type == PSEUDO_VAL;
-
-	if (p1->type == PSEUDO_SYM)
-		return p2->type == PSEUDO_SYM || p2->type == PSEUDO_VAL;
-
-	return 1;
+	if (t1 < t2)
+		return 1;
+	if (t1 > t2)
+		return 0;
+	switch (t1) {
+	case PSEUDO_SYM:
+		return p1->sym <= p2->sym;
+	case PSEUDO_REG:
+	case PSEUDO_ARG:
+		return p1->nr <= p2->nr;
+	default:
+		return 1;
+	}
 }
 
 static int canonicalize_commutative(struct instruction *insn)
@@ -1598,6 +1618,84 @@ static int simplify_compare(struct instruction *insn)
 		break;
 	}
 	return 0;
+}
+
+static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def, *defr = NULL;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, 0);
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 0);
+		}
+		break;
+	}
+	return 0;
+}
+
+static int simplify_and(struct instruction *insn)
+{
+	return simplify_and_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_and_one_side(insn, &insn->src2, &insn->src1);
+}
+
+static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def, *defr = NULL;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 1);
+		}
+		break;
+	}
+	return 0;
+}
+
+static int simplify_ior(struct instruction *insn)
+{
+	return simplify_ior_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_ior_one_side(insn, &insn->src2, &insn->src1);
+}
+
+static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
+{
+	struct instruction *def, *defr = NULL;
+	pseudo_t src1 = *p1;
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_NOT:
+		if (def->src == *p2)
+			return replace_with_value(insn, bits_mask(insn->size));
+		break;
+	case OP_BINCMP ... OP_BINCMP_END:
+		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
+			if (def->src1 == defr->src1 && def->src2 == defr->src2)
+				return replace_with_value(insn, 1);
+		}
+		break;
+	}
+	return 0;
+}
+
+static int simplify_xor(struct instruction *insn)
+{
+	return simplify_xor_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_xor_one_side(insn, &insn->src2, &insn->src1);
 }
 
 static int simplify_constant_unop(struct instruction *insn)
@@ -2191,10 +2289,10 @@ int simplify_instruction(struct instruction *insn)
 	switch (insn->opcode) {
 	case OP_ADD: return simplify_add(insn);
 	case OP_SUB: return simplify_sub(insn);
+	case OP_AND: return simplify_and(insn);
+	case OP_OR:  return simplify_ior(insn);
+	case OP_XOR: return simplify_xor(insn);
 	case OP_MUL:
-	case OP_AND:
-	case OP_OR:
-	case OP_XOR:
 	case OP_SHL:
 	case OP_LSR:
 	case OP_ASR:

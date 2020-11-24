@@ -42,7 +42,7 @@ cps:
 .L0:
 	<entry-point>
 	sext.32     %r2 <- (16) %arg2
-	add.32      %r5 <- %arg1, %r2
+	add.32      %r5 <- %r2, %arg1
 	ret.32      %r5
 
 
@@ -51,7 +51,7 @@ ipss:
 	<entry-point>
 	sext.32     %r10 <- (16) %arg2
 	mul.32      %r11 <- %r10, $4
-	add.32      %r14 <- %arg1, %r11
+	add.32      %r14 <- %r11, %arg1
 	ret.32      %r14
 
 
@@ -60,7 +60,7 @@ ipus:
 	<entry-point>
 	zext.32     %r19 <- (16) %arg2
 	mul.32      %r20 <- %r19, $4
-	add.32      %r23 <- %arg1, %r20
+	add.32      %r23 <- %r20, %arg1
 	ret.32      %r23
 
 
@@ -68,7 +68,7 @@ cpq:
 .L6:
 	<entry-point>
 	trunc.32    %r28 <- (64) %arg2
-	add.32      %r31 <- %arg1, %r28
+	add.32      %r31 <- %r28, %arg1
 	ret.32      %r31
 
 
@@ -77,7 +77,7 @@ ipq_ref:
 	<entry-point>
 	trunc.32    %r37 <- (64) %arg2
 	mul.32      %r38 <- %r37, $4
-	add.32      %r39 <- %arg1, %r38
+	add.32      %r39 <- %r38, %arg1
 	ret.32      %r39
 
 
@@ -86,7 +86,7 @@ ipq:
 	<entry-point>
 	trunc.32    %r43 <- (64) %arg2
 	mul.32      %r44 <- %r43, $4
-	add.32      %r47 <- %arg1, %r44
+	add.32      %r47 <- %r44, %arg1
 	ret.32      %r47
 
 
