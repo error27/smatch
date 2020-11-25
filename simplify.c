@@ -53,6 +53,15 @@
 // ^^^^^^^^^
 
 ///
+// check if a pseudo is a power of 2
+static inline bool is_pow2(pseudo_t src)
+{
+	if (src->type != PSEUDO_VAL)
+		return false;
+	return is_power_of_2(src->value);
+}
+
+///
 // find the trivial parent for a phi-source
 static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseudo)
 {
