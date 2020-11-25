@@ -1622,11 +1622,32 @@ static int simplify_associative_binop(struct instruction *insn)
 
 static int simplify_add_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
+	struct instruction *defr = NULL;
 	struct instruction *def;
 	pseudo_t src1 = *p1;
 	pseudo_t src2 = *p2;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_MUL:
+		if (DEF_OPCODE(defr, *p2) == OP_MUL) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x * z) + (y * z)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z * x) + (z * y)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x * z) + (z * y)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
+
 	case OP_NEG:				// (-x + y) --> (y - x)
 		return replace_binop(insn, OP_SUB, &insn->src1, src2, &insn->src2, def->src);
 
@@ -1714,6 +1735,25 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 				return replace_with_value(insn, 0);
 		}
 		break;
+	case OP_OR:
+		if (DEF_OPCODE(defr, *p2) == OP_OR) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x | z) & (y | z)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z | x) & (z | y)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x | z) & (z | y)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	}
 	return 0;
 }
@@ -1730,6 +1770,25 @@ static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (DEF_OPCODE(defr, *p2) == OP_AND) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x & z) | (y & z)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z & x) | (z & y)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x & z) | (z & y)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));
@@ -1756,6 +1815,25 @@ static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (DEF_OPCODE(defr, *p2) == OP_AND) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x & z) ^ (y & z)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z & x) ^ (z & y)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x & z) ^ (z & y)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));

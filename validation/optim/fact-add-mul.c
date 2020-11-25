@@ -21,7 +21,6 @@ int fn_bxa(int b, int x, int a) { return ((x * b) + (a * x)) == ((b + a) * x); }
 /*
  * check-name: fact-add-mul
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
