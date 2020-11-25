@@ -2271,6 +2271,21 @@ static int simplify_select(struct instruction *insn)
 			// both values must be non-zero
 			return replace_with_pseudo(insn, src1);
 		}
+	case OP_AND:
+		if (is_pow2(def->src2) && is_pow2(src1) && is_zero(src2) && insn->size == def->size && one_use(cond)) {
+			unsigned s1 = log2_exact(def->src2->value);
+			unsigned s2 = log2_exact(insn->src2->value);
+			unsigned shift;
+
+			if (s1 == s2)
+				return replace_with_pseudo(insn, cond);
+
+			// SEL(x & A, B, 0) --> SHIFT(x & A, S)
+			insn->opcode = (s1 < s2) ? OP_SHL : OP_LSR;
+			shift = (s1 < s2) ? (s2 - s1) : (s1 - s2);
+			insn->src2 = value_pseudo(shift);
+			return REPEAT_CSE;
+		}
 		break;
 	}
 

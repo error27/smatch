@@ -11,7 +11,6 @@ int bar(int p) { return ((p & B) ? A : 0) == ((((unsigned)p) & B) >> S); }
 /*
  * check-name: select-and-shift
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
