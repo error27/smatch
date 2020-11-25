@@ -20,7 +20,6 @@ sint fact_xor_asr(sint a, sint b, sint s)
 /*
  * check-name: fact-xor-shift
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

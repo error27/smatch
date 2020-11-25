@@ -1754,6 +1754,15 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 			}
 		}
 		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) & SHIFT(y, s) --> SHIFT((x & y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	}
 	return 0;
 }
@@ -1799,6 +1808,15 @@ static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 				return replace_with_value(insn, 1);
 		}
 		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) | SHIFT(y, s) --> SHIFT((x | y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	}
 	return 0;
 }
@@ -1842,6 +1860,15 @@ static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 1);
+		}
+		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) ^ SHIFT(y, s) --> SHIFT((x ^ y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
 		}
 		break;
 	}
