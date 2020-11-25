@@ -506,6 +506,37 @@ static inline int replace_opcode(struct instruction *insn, int op)
 	return REPEAT_CSE;
 }
 
+///
+// create an instruction pair OUT(IN(a, b), c)
+static int replace_insn_pair(struct instruction *out, int op_out, struct instruction *in, int op_in, pseudo_t a, pseudo_t b, pseudo_t c)
+{
+	pseudo_t old_a = in->src1;
+	pseudo_t old_b = in->src2;
+	pseudo_t old_1 = out->src1;
+	pseudo_t old_2 = out->src2;
+
+	use_pseudo(in, a, &in->src1);
+	use_pseudo(in, b, &in->src2);
+	use_pseudo(out, in->target, &out->src1);
+	use_pseudo(out, c, &out->src2);
+
+	remove_usage(old_a, &in->src1);
+	remove_usage(old_b, &in->src2);
+	remove_usage(old_1, &out->src1);
+	remove_usage(old_2, &out->src2);
+
+	out->opcode = op_out;
+	in->opcode = op_in;
+	return REPEAT_CSE;
+}
+
+///
+// create an instruction pair OUT(IN(a, b), c) with swapped opcodes
+static inline int swap_insn(struct instruction *out, struct instruction *in, pseudo_t a, pseudo_t b, pseudo_t c)
+{
+	return replace_insn_pair(out, in->opcode, in, out->opcode, a, b, c);
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
