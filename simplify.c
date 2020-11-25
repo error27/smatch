@@ -554,6 +554,16 @@ static inline int swap_insn(struct instruction *out, struct instruction *in, pse
 	return replace_insn_pair(out, in->opcode, in, out->opcode, a, b, c);
 }
 
+///
+// create an instruction pair OUT(SELECT(a, b, c), d)
+static int swap_select(struct instruction *out, struct instruction *in, pseudo_t a, pseudo_t b, pseudo_t c, pseudo_t d)
+{
+	use_pseudo(in, c, &in->src3);
+	swap_insn(out, in, a, b, d);
+	kill_use(&out->src3);
+	return REPEAT_CSE;
+}
+
 static inline int def_opcode(pseudo_t p)
 {
 	if (p->type != PSEUDO_REG)
@@ -2251,6 +2261,36 @@ static int simplify_select(struct instruction *insn)
 			}
 			// both values must be non-zero
 			return replace_with_pseudo(insn, src1);
+		}
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_ADD: case OP_OR: case OP_XOR:
+		if ((def->src1 == src2) && can_move_to(cond, def)) {
+			// SEL(x, OP(y,z), y) --> OP(SEL(x, z, 0), y)
+			swap_select(insn, def, cond, def->src2, value_pseudo(0), src2);
+			return REPEAT_CSE;
+		}
+		if ((def->src2 == src2) && can_move_to(cond, def)) {
+			// SEL(x, OP(z,y), y) --> OP(SEL(x, z, 0), y)
+			swap_select(insn, def, cond, def->src1, value_pseudo(0), src2);
+			return REPEAT_CSE;
+		}
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src2)) {
+	case OP_ADD: case OP_OR: case OP_XOR:
+		if ((def->src1 == src1) && can_move_to(cond, def)) {
+			// SEL(x, y, OP(y,z)) --> OP(SEL(x, 0, z), y)
+			swap_select(insn, def, cond, value_pseudo(0), def->src2, src1);
+			return REPEAT_CSE;
+		}
+		if ((def->src2 == src1) && can_move_to(cond, def)) {
+			// SEL(x, y, OP(z,y)) --> OP(SEL(x, 0, z), y)
+			swap_select(insn, def, cond, value_pseudo(0), def->src1, src1);
+			return REPEAT_CSE;
 		}
 		break;
 	}
