@@ -498,6 +498,23 @@ static inline int replace_binop_value(struct instruction *insn, int op, long lon
 }
 
 ///
+// replace binop's opcode and values
+// @insn: the instruction to be replaced
+// @op: the instruction's new opcode
+// @return: REPEAT_CSE
+static inline int replace_binop(struct instruction *insn, int op, pseudo_t *pa, pseudo_t a, pseudo_t *pb, pseudo_t b)
+{
+	pseudo_t olda = *pa;
+	pseudo_t oldb = *pb;
+	insn->opcode = op;
+	use_pseudo(insn, a, pa);
+	use_pseudo(insn, b, pb);
+	remove_usage(olda, pa);
+	remove_usage(oldb, pb);
+	return REPEAT_CSE;
+}
+
+///
 // replace the opcode of an instruction
 // @return: REPEAT_CSE
 static inline int replace_opcode(struct instruction *insn, int op)
