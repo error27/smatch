@@ -1628,9 +1628,7 @@ static int simplify_add(struct instruction *insn)
 
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_NEG:				// (-x + y) --> (y - x)
-		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
-		insn->opcode = OP_SUB;
-		return replace_pseudo(insn, &insn->src2, def->src);
+		return replace_binop(insn, OP_SUB, &insn->src1, src2, &insn->src2, def->src);
 
 	case OP_SUB:
 		if (def->src2 == src2)		// (x - y) + y --> x
@@ -1640,8 +1638,7 @@ static int simplify_add(struct instruction *insn)
 
 	switch (DEF_OPCODE(def, src2)) {
 	case OP_NEG:				// (x + -y) --> (x - y)
-		insn->opcode = OP_SUB;
-		return replace_pseudo(insn, &insn->src2, def->src);
+		return replace_binop(insn, OP_SUB, &insn->src1, src1, &insn->src2, def->src);
 	case OP_SUB:
 		if (src1 == def->src2)		// x + (y - x) --> y
 			return replace_with_pseudo(insn, def->src1);
