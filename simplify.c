@@ -1620,11 +1620,11 @@ static int simplify_associative_binop(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
-static int simplify_add(struct instruction *insn)
+static int simplify_add_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
-	pseudo_t src1 = insn->src1;
-	pseudo_t src2 = insn->src2;
 	struct instruction *def;
+	pseudo_t src1 = *p1;
+	pseudo_t src2 = *p2;
 
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_NEG:				// (-x + y) --> (y - x)
@@ -1635,17 +1635,13 @@ static int simplify_add(struct instruction *insn)
 			return replace_with_pseudo(insn, def->src1);
 		break;
 	}
-
-	switch (DEF_OPCODE(def, src2)) {
-	case OP_NEG:				// (x + -y) --> (x - y)
-		return replace_binop(insn, OP_SUB, &insn->src1, src1, &insn->src2, def->src);
-	case OP_SUB:
-		if (src1 == def->src2)		// x + (y - x) --> y
-			return replace_with_pseudo(insn, def->src1);
-		break;
-	}
-
 	return 0;
+}
+
+static int simplify_add(struct instruction *insn)
+{
+	return simplify_add_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_add_one_side(insn, &insn->src2, &insn->src1);
 }
 
 static int simplify_sub(struct instruction *insn)
