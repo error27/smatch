@@ -204,13 +204,13 @@ static pseudo_t trivial_phi(pseudo_t pseudo, struct instruction *insn, struct ps
 		src = def->phi_src; // bypass OP_PHISRC & get the real source
 		if (src == VOID)
 			continue;
+		if (src == target)
+			continue;
 		if (!pseudo) {
 			pseudo = src;
 			continue;
 		}
 		if (src == pseudo)
-			continue;
-		if (src == target)
 			continue;
 		if (DEF_OPCODE(def, src) == OP_PHI) {
 			if (pseudo_in_list(*list, src))
