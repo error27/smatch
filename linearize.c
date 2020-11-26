@@ -1128,13 +1128,13 @@ static pseudo_t add_setfval(struct entrypoint *ep, struct symbol *ctype, long do
 	return target;
 }
 
-static pseudo_t add_symbol_address(struct entrypoint *ep, struct symbol *sym)
+static pseudo_t add_symbol_address(struct entrypoint *ep, struct expression *expr)
 {
-	struct instruction *insn = alloc_instruction(OP_SYMADDR, bits_in_pointer);
+	struct instruction *insn = alloc_typed_instruction(OP_SYMADDR, expr->ctype);
 	pseudo_t target = alloc_pseudo(insn);
 
 	insn->target = target;
-	use_pseudo(insn, symbol_pseudo(ep, sym), &insn->src);
+	use_pseudo(insn, symbol_pseudo(ep, expr->symbol), &insn->src);
 	add_one_insn(ep, insn);
 	return target;
 }
@@ -1914,7 +1914,7 @@ static pseudo_t linearize_expression(struct entrypoint *ep, struct expression *e
 	switch (expr->type) {
 	case EXPR_SYMBOL:
 		linearize_one_symbol(ep, expr->symbol);
-		return add_symbol_address(ep, expr->symbol);
+		return add_symbol_address(ep, expr);
 
 	case EXPR_VALUE:
 		return value_pseudo(expr->value);
