@@ -46,10 +46,20 @@
 #include "linearize.h"
 #include "flow.h"
 #include "symbol.h"
+#include "flowgraph.h"
 
 ///
 // Utilities
 // ^^^^^^^^^
+
+///
+// check if a pseudo is a power of 2
+static inline bool is_pow2(pseudo_t src)
+{
+	if (src->type != PSEUDO_VAL)
+		return false;
+	return is_power_of_2(src->value);
+}
 
 ///
 // find the trivial parent for a phi-source
@@ -497,11 +507,69 @@ static inline int replace_binop_value(struct instruction *insn, int op, long lon
 }
 
 ///
+// replace binop's opcode and values
+// @insn: the instruction to be replaced
+// @op: the instruction's new opcode
+// @return: REPEAT_CSE
+static inline int replace_binop(struct instruction *insn, int op, pseudo_t *pa, pseudo_t a, pseudo_t *pb, pseudo_t b)
+{
+	pseudo_t olda = *pa;
+	pseudo_t oldb = *pb;
+	insn->opcode = op;
+	use_pseudo(insn, a, pa);
+	use_pseudo(insn, b, pb);
+	remove_usage(olda, pa);
+	remove_usage(oldb, pb);
+	return REPEAT_CSE;
+}
+
+///
 // replace the opcode of an instruction
 // @return: REPEAT_CSE
 static inline int replace_opcode(struct instruction *insn, int op)
 {
 	insn->opcode = op;
+	return REPEAT_CSE;
+}
+
+///
+// create an instruction pair OUT(IN(a, b), c)
+static int replace_insn_pair(struct instruction *out, int op_out, struct instruction *in, int op_in, pseudo_t a, pseudo_t b, pseudo_t c)
+{
+	pseudo_t old_a = in->src1;
+	pseudo_t old_b = in->src2;
+	pseudo_t old_1 = out->src1;
+	pseudo_t old_2 = out->src2;
+
+	use_pseudo(in, a, &in->src1);
+	use_pseudo(in, b, &in->src2);
+	use_pseudo(out, in->target, &out->src1);
+	use_pseudo(out, c, &out->src2);
+
+	remove_usage(old_a, &in->src1);
+	remove_usage(old_b, &in->src2);
+	remove_usage(old_1, &out->src1);
+	remove_usage(old_2, &out->src2);
+
+	out->opcode = op_out;
+	in->opcode = op_in;
+	return REPEAT_CSE;
+}
+
+///
+// create an instruction pair OUT(IN(a, b), c) with swapped opcodes
+static inline int swap_insn(struct instruction *out, struct instruction *in, pseudo_t a, pseudo_t b, pseudo_t c)
+{
+	return replace_insn_pair(out, in->opcode, in, out->opcode, a, b, c);
+}
+
+///
+// create an instruction pair OUT(SELECT(a, b, c), d)
+static int swap_select(struct instruction *out, struct instruction *in, pseudo_t a, pseudo_t b, pseudo_t c, pseudo_t d)
+{
+	use_pseudo(in, c, &in->src3);
+	swap_insn(out, in, a, b, d);
+	kill_use(&out->src3);
 	return REPEAT_CSE;
 }
 
@@ -1508,6 +1576,42 @@ static inline int simple_pseudo(pseudo_t pseudo)
 	return pseudo->type == PSEUDO_VAL || pseudo->type == PSEUDO_SYM;
 }
 
+///
+// test if, in the given BB, the ordering of 2 instructions
+static bool insn_before(struct basic_block *bb, struct instruction *x, struct instruction *y)
+{
+	struct instruction *insn;
+
+	FOR_EACH_PTR(bb->insns, insn) {
+		if (insn == x)
+			return true;
+		if (insn == y)
+			return false;
+	} END_FOR_EACH_PTR(insn);
+	return false;
+}
+
+///
+// check if it safe for a pseudo to be used by an instruction
+static inline bool can_move_to(pseudo_t src, struct instruction *dst)
+{
+	struct basic_block *bbs, *bbd;
+	struct instruction *def;
+
+	if (!one_use(dst->target))
+		return false;
+	if (src->type != PSEUDO_REG)
+		return true;
+
+	def = src->def;
+	bbs = def->bb;
+	bbd = dst->bb;
+	if (bbs == bbd)
+		return insn_before(bbs, def, dst);
+	else
+		return domtree_dominates(bbs, bbd);
+}
+
 static int simplify_associative_binop(struct instruction *insn)
 {
 	struct instruction *def;
@@ -1535,35 +1639,49 @@ static int simplify_associative_binop(struct instruction *insn)
 	return REPEAT_CSE;
 }
 
-static int simplify_add(struct instruction *insn)
+static int simplify_add_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)
 {
-	pseudo_t src1 = insn->src1;
-	pseudo_t src2 = insn->src2;
+	struct instruction *defr = NULL;
 	struct instruction *def;
+	pseudo_t src1 = *p1;
+	pseudo_t src2 = *p2;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_MUL:
+		if (DEF_OPCODE(defr, *p2) == OP_MUL) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x * z) + (y * z)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z * x) + (z * y)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x * z) + (z * y)) into ((x + y) * z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
+
 	case OP_NEG:				// (-x + y) --> (y - x)
-		switch_pseudo(insn, &insn->src1, insn, &insn->src2);
-		insn->opcode = OP_SUB;
-		return replace_pseudo(insn, &insn->src2, def->src);
+		return replace_binop(insn, OP_SUB, &insn->src1, src2, &insn->src2, def->src);
 
 	case OP_SUB:
 		if (def->src2 == src2)		// (x - y) + y --> x
 			return replace_with_pseudo(insn, def->src1);
 		break;
 	}
-
-	switch (DEF_OPCODE(def, src2)) {
-	case OP_NEG:				// (x + -y) --> (x - y)
-		insn->opcode = OP_SUB;
-		return replace_pseudo(insn, &insn->src2, def->src);
-	case OP_SUB:
-		if (src1 == def->src2)		// x + (y - x) --> y
-			return replace_with_pseudo(insn, def->src1);
-		break;
-	}
-
 	return 0;
+}
+
+static int simplify_add(struct instruction *insn)
+{
+	return simplify_add_one_side(insn, &insn->src1, &insn->src2) ||
+	       simplify_add_one_side(insn, &insn->src2, &insn->src1);
 }
 
 static int simplify_sub(struct instruction *insn)
@@ -1636,6 +1754,34 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 				return replace_with_value(insn, 0);
 		}
 		break;
+	case OP_OR:
+		if (DEF_OPCODE(defr, *p2) == OP_OR) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x | z) & (y | z)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z | x) & (z | y)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x | z) & (z | y)) into ((x & y) | z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) & SHIFT(y, s) --> SHIFT((x & y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	}
 	return 0;
 }
@@ -1652,6 +1798,25 @@ static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (DEF_OPCODE(defr, *p2) == OP_AND) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x & z) | (y & z)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z & x) | (z & y)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x & z) | (z & y)) into ((x | y) & z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));
@@ -1660,6 +1825,15 @@ static int simplify_ior_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 1);
+		}
+		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) | SHIFT(y, s) --> SHIFT((x | y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
 		}
 		break;
 	}
@@ -1678,6 +1852,25 @@ static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 	pseudo_t src1 = *p1;
 
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (DEF_OPCODE(defr, *p2) == OP_AND) {
+			if (defr->src2 == def->src2 && can_move_to(def->src2, defr)) {
+				// ((x & z) ^ (y & z)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src1 && can_move_to(def->src1, defr)) {
+				// ((z & x) ^ (z & y)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src2, defr->src2, def->src1);
+				return REPEAT_CSE;
+			}
+			if (defr->src1 == def->src2 && can_move_to(def->src1, defr)) {
+				// ((x & z) ^ (z & y)) into ((x ^ y) & z)
+				swap_insn(insn, defr, def->src1, defr->src2, def->src2);
+				return REPEAT_CSE;
+			}
+		}
+		break;
 	case OP_NOT:
 		if (def->src == *p2)
 			return replace_with_value(insn, bits_mask(insn->size));
@@ -1686,6 +1879,15 @@ static int simplify_xor_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 1);
+		}
+		break;
+	case OP_SHL: case OP_LSR: case OP_ASR:
+		if (DEF_OPCODE(defr, *p2) == def->opcode && defr->src2 == def->src2) {
+			if (can_move_to(def->src1, defr)) {
+				// SHIFT(x, s) ^ SHIFT(y, s) --> SHIFT((x ^ y), s)
+				swap_insn(insn, defr, def->src1, defr->src1, def->src2);
+				return REPEAT_CSE;
+			}
 		}
 		break;
 	}
@@ -2068,6 +2270,51 @@ static int simplify_select(struct instruction *insn)
 			}
 			// both values must be non-zero
 			return replace_with_pseudo(insn, src1);
+		}
+	case OP_AND:
+		if (is_pow2(def->src2) && is_pow2(src1) && is_zero(src2) && insn->size == def->size && one_use(cond)) {
+			unsigned s1 = log2_exact(def->src2->value);
+			unsigned s2 = log2_exact(insn->src2->value);
+			unsigned shift;
+
+			if (s1 == s2)
+				return replace_with_pseudo(insn, cond);
+
+			// SEL(x & A, B, 0) --> SHIFT(x & A, S)
+			insn->opcode = (s1 < s2) ? OP_SHL : OP_LSR;
+			shift = (s1 < s2) ? (s2 - s1) : (s1 - s2);
+			insn->src2 = value_pseudo(shift);
+			return REPEAT_CSE;
+		}
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src1)) {
+	case OP_ADD: case OP_OR: case OP_XOR:
+		if ((def->src1 == src2) && can_move_to(cond, def)) {
+			// SEL(x, OP(y,z), y) --> OP(SEL(x, z, 0), y)
+			swap_select(insn, def, cond, def->src2, value_pseudo(0), src2);
+			return REPEAT_CSE;
+		}
+		if ((def->src2 == src2) && can_move_to(cond, def)) {
+			// SEL(x, OP(z,y), y) --> OP(SEL(x, z, 0), y)
+			swap_select(insn, def, cond, def->src1, value_pseudo(0), src2);
+			return REPEAT_CSE;
+		}
+		break;
+	}
+
+	switch (DEF_OPCODE(def, src2)) {
+	case OP_ADD: case OP_OR: case OP_XOR:
+		if ((def->src1 == src1) && can_move_to(cond, def)) {
+			// SEL(x, y, OP(y,z)) --> OP(SEL(x, 0, z), y)
+			swap_select(insn, def, cond, value_pseudo(0), def->src2, src1);
+			return REPEAT_CSE;
+		}
+		if ((def->src2 == src1) && can_move_to(cond, def)) {
+			// SEL(x, y, OP(z,y)) --> OP(SEL(x, 0, z), y)
+			swap_select(insn, def, cond, value_pseudo(0), def->src1, src1);
+			return REPEAT_CSE;
 		}
 		break;
 	}
