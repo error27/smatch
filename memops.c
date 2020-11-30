@@ -215,6 +215,8 @@ static bool try_to_kill_store(pseudo_t pseudo, struct instruction *insn,
 			return false;
 		if (dom->opcode == OP_LOAD)
 			return false;
+		if (dom->is_volatile)
+			return false;
 		/* Yeehaa! Found one! */
 		kill_instruction_force(dom);
 	}
