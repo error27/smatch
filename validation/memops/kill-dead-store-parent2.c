@@ -19,7 +19,6 @@ l20:
 /*
  * check-name: kill-dead-store-parent2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(1): store

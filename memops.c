@@ -231,6 +231,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 		if (!insn->bb)
 			continue;
 		if (insn->opcode == OP_STORE) {
+			struct basic_block *par;
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
 			int local;
@@ -249,6 +250,21 @@ static void kill_dominated_stores(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, we should check the parents now */
+			FOR_EACH_PTR(bb->parents, par) {
+
+				if (bb_list_size(par->children) != 1)
+					goto next_parent;
+				FOR_EACH_PTR(par->insns, dom) {
+					if (!dom->bb)
+						continue;
+					if (dom == insn)
+						goto next_parent;
+					if (!try_to_kill_store(pseudo, insn, dom, local))
+						goto next_parent;
+				} END_FOR_EACH_PTR(dom);
+next_parent:
+				;
+			} END_FOR_EACH_PTR(par);
 		}
 next_store:
 		/* Do the next one */;
