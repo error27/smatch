@@ -204,6 +204,23 @@ next_load:
 	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
+static bool try_to_kill_store(pseudo_t pseudo, struct instruction *insn,
+			     struct instruction *dom, int local)
+{
+	int dominance = dominates(pseudo, insn, dom, local);
+
+	if (dominance) {
+		/* possible partial dominance? */
+		if (dominance < 0)
+			return false;
+		if (dom->opcode == OP_LOAD)
+			return false;
+		/* Yeehaa! Found one! */
+		kill_instruction_force(dom);
+	}
+	return true;
+}
+
 static void kill_dominated_stores(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -223,19 +240,10 @@ static void kill_dominated_stores(struct basic_block *bb)
 
 			local = local_pseudo(pseudo);
 			RECURSE_PTR_REVERSE(insn, dom) {
-				int dominance;
 				if (!dom->bb)
 					continue;
-				dominance = dominates(pseudo, insn, dom, local);
-				if (dominance) {
-					/* possible partial dominance? */
-					if (dominance < 0)
-						goto next_store;
-					if (dom->opcode == OP_LOAD)
-						goto next_store;
-					/* Yeehaa! Found one! */
-					kill_instruction_force(dom);
-				}
+				if (!try_to_kill_store(pseudo, insn, dom, local))
+					goto next_store;
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, we should check the parents now */
