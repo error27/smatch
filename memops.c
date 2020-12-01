@@ -111,6 +111,11 @@ static void simplify_loads(struct basic_block *bb)
 			if (insn->is_volatile)
 				continue;
 
+			if (!has_users(insn->target)) {
+				kill_instruction(insn);
+				continue;
+			}
+
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
 				if (!dom->bb)
