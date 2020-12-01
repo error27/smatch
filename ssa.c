@@ -11,7 +11,8 @@
 #include "dominate.h"
 #include "flowgraph.h"
 #include "linearize.h"
-#include "flow.h"			// for convert_load_instruction()
+#include "simplify.h"
+#include "flow.h"
 
 
 // Is it possible and desirable for this to be promoted to a pseudo?
@@ -109,7 +110,7 @@ static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_sto
 		case OP_LOAD:
 			if (!val)
 				val = undef_pseudo();
-			convert_load_instruction(insn, val);
+			replace_with_pseudo(insn, val);
 			break;
 		case OP_STORE:
 			val = insn->target;
@@ -150,7 +151,7 @@ static bool rewrite_single_store(struct instruction *store)
 
 		// undefs ?
 
-		convert_load_instruction(insn, store->target);
+		replace_with_pseudo(insn, store->target);
 	} END_FOR_EACH_PTR(pu);
 
 	// is there some unconverted loads?
@@ -292,7 +293,7 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		if (!var || !var->torename)
 			break;
 		val = lookup_var(bb, var);
-		convert_load_instruction(insn, val);
+		replace_with_pseudo(insn, val);
 		break;
 	case OP_PHI:
 		var = insn->type;

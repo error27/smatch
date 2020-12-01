@@ -12,6 +12,7 @@
 #include "flowgraph.h"
 #include "linearize.h"
 #include "liveness.h"
+#include "simplify.h"
 #include "flow.h"
 #include "cse.h"
 #include "ir.h"

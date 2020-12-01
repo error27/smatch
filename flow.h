@@ -21,7 +21,6 @@ extern int simplify_cfg_early(struct entrypoint *ep);
 
 extern void convert_instruction_target(struct instruction *insn, pseudo_t src);
 extern void remove_dead_insns(struct entrypoint *);
-extern int simplify_instruction(struct instruction *);
 
 extern void kill_bb(struct basic_block *);
 extern void kill_use(pseudo_t *);
@@ -39,8 +38,6 @@ static inline int kill_instruction_force(struct instruction *insn)
 }
 
 void check_access(struct instruction *insn);
-void convert_load_instruction(struct instruction *, pseudo_t);
-void rewrite_load_instruction(struct instruction *, struct pseudo_list *);
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local);
 
 extern void vrfy_flow(struct entrypoint *ep);
