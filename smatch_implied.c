@@ -530,7 +530,7 @@ struct sm_state *filter_pools(struct sm_state *sm,
 	if (!is_merged(sm) || pool_in_pools(sm->pool, keep_stack) || sm_in_keep_leafs(sm, keep_stack)) {
 		DIMPLIED("%s: keep %s (%s, %s, %s): %s\n", __func__, sm->state->name,
 			is_merged(sm) ? "merged" : "not merged",
-			pool_in_pools(sm->pool, keep_stack) ? "not in keep pools" : "in keep pools",
+			pool_in_pools(sm->pool, keep_stack) ? "in keep pools" : "not in keep pools",
 			sm_in_keep_leafs(sm, keep_stack) ? "reachable keep leaf" : "no keep leaf",
 			sm_state_info(sm));
 		return sm;
