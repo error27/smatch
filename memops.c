@@ -213,6 +213,11 @@ static bool try_to_kill_store(pseudo_t pseudo, struct instruction *insn,
 		/* possible partial dominance? */
 		if (dominance < 0)
 			return false;
+		if (insn->target == dom->target && insn->bb == dom->bb) {
+			// found a memop which makes the store redundant
+			kill_instruction_force(insn);
+			return false;
+		}
 		if (dom->opcode == OP_LOAD)
 			return false;
 		if (dom->is_volatile)
