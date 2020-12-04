@@ -308,6 +308,15 @@ static void kill_use_list(struct pseudo_list *list)
 	} END_FOR_EACH_PTR(p);
 }
 
+static void kill_asm(struct instruction *insn)
+{
+	struct asm_constraint *con;
+
+	FOR_EACH_PTR(insn->asm_rules->inputs, con) {
+		kill_use(&con->pseudo);
+	} END_FOR_EACH_PTR(con);
+}
+
 ///
 // kill an instruction
 // @insn: the instruction to be killed
@@ -371,6 +380,12 @@ int kill_insn(struct instruction *insn, int force)
 			return 0;
 		kill_use(&insn->src);
 		kill_use(&insn->target);
+		break;
+
+	case OP_ASM:
+		if (!force)
+			return 0;
+		kill_asm(insn);
 		break;
 
 	case OP_ENTRY:
