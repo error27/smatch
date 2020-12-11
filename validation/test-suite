@@ -84,8 +84,8 @@ get_tag_value()
 	check_assert=""
 	check_cpp_if=""
 
-	lines=$(grep 'check-[a-z-]*' $1 | \
-		sed -e 's/^.*\(check-[a-z-]*:*\) *\(.*\)$/\1 \2/')
+	lines=$(grep '^ \* check-[a-z-]*' $1 | \
+		sed -e 's/^ \* \(check-[a-z-]*:*\) *\(.*\)$/\1 \2/')
 
 	while read tag val; do
 		#echo "-> tag: '$tag'"
