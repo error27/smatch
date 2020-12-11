@@ -2532,6 +2532,12 @@ static void late_warnings(struct entrypoint *ep)
 				continue;
 			if (insn->tainted)
 				check_tainted_insn(insn);
+			switch (insn->opcode) {
+			case OP_LOAD:
+				// Check for illegal offsets.
+				check_access(insn);
+				break;
+			}
 		} END_FOR_EACH_PTR(insn);
 	} END_FOR_EACH_PTR(bb);
 }

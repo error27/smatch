@@ -147,9 +147,6 @@ static void simplify_loads(struct basic_block *bb)
 			struct pseudo_list *dominators;
 			unsigned long generation;
 
-			/* Check for illegal offsets.. */
-			check_access(insn);
-
 			if (insn->is_volatile)
 				continue;
 
