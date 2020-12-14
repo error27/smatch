@@ -89,27 +89,27 @@ extern void __free_ptr_list(struct ptr_list **);
 	DO_FINISH(ptr, __head##ptr, __list##ptr, __nr##ptr)
 
 #define RECURSE_PTR_REVERSE(ptr, new)					\
-	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr,		\
+	DO_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr, __rname##new, \
 		   new, __head##new, __list##new, __nr##new, PTR_ENTRY_UNTAG)
 
 
 #define FOR_EACH_PTR(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, __name##ptr, PTR_ENTRY_NOTAG)
 
 #define FOR_EACH_PTR_TAG(head, ptr) \
-	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+	DO_FOR_EACH(head, ptr, __head##ptr, __list##ptr, __nr##ptr, __name##ptr,  PTR_ENTRY_UNTAG)
 
 #define END_FOR_EACH_PTR(ptr) \
-	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_END_FOR_EACH(ptr, __head##ptr, __list##ptr, __nr##ptr, __name##ptr)
 
 #define FOR_EACH_PTR_REVERSE(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_NOTAG)
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, __rname##ptr,  PTR_ENTRY_NOTAG)
 
 #define FOR_EACH_PTR_REVERSE_TAG(head, ptr) \
-	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, PTR_ENTRY_UNTAG)
+	DO_FOR_EACH_REVERSE(head, ptr, __head##ptr, __list##ptr, __nr##ptr, __rname##ptr, PTR_ENTRY_UNTAG)
 
 #define END_FOR_EACH_PTR_REVERSE(ptr) \
-	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr)
+	DO_END_FOR_EACH_REVERSE(ptr, __head##ptr, __list##ptr, __nr##ptr, __rname##ptr)
 
 #define THIS_ADDRESS(ptr) \
 	DO_THIS_ADDRESS(ptr, __head##ptr, __list##ptr, __nr##ptr)
@@ -184,9 +184,10 @@ extern void __free_ptr_list(struct ptr_list **);
 		VRFY_PTR_LIST(__head); /* Sanity-check nesting */	\
 	} while (0)
 
-#define DO_FOR_EACH(head, ptr, __head, __list, __nr, PTR_ENTRY) do {	\
+#define DO_FOR_EACH(head, ptr, __head, __list, __nr, __name, PTR_ENTRY) do {	\
 	__typeof__(head) __head = (head);				\
 	__typeof__(head) __list = __head;				\
+	__typeof__(head) __name = __head;				\
 	int __nr;							\
 	if (!__head)							\
 		break;							\
@@ -196,14 +197,16 @@ extern void __free_ptr_list(struct ptr_list **);
 			if (__list->rm && !ptr)				\
 				continue;				\
 
-#define DO_END_FOR_EACH(ptr, __head, __list, __nr)			\
+#define DO_END_FOR_EACH(ptr, __head, __list, __nr, __name)		\
 		}							\
 	} while ((__list = __list->next) != __head);			\
+	(void) __name;						\
 } while (0)
 
-#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, PTR_ENTRY) do { \
+#define DO_FOR_EACH_REVERSE(head, ptr, __head, __list, __nr, __name, PTR_ENTRY) do { \
 	__typeof__(head) __head = (head);				\
 	__typeof__(head) __list = __head;				\
+	__typeof__(head) __name = __head;				\
 	int __nr;							\
 	if (!head)							\
 		break;							\
@@ -216,15 +219,17 @@ extern void __free_ptr_list(struct ptr_list **);
 				continue;				\
 
 
-#define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr)		\
+#define DO_END_FOR_EACH_REVERSE(ptr, __head, __list, __nr, __name)	\
 		}							\
 	} while (__list != __head);					\
+	(void) __name;							\
 } while (0)
 
-#define DO_REVERSE(ptr, __head, __list, __nr, new, __newhead,		\
+#define DO_REVERSE(ptr, __head, __list, __nr, __name, new, __newhead,	\
 		   __newlist, __newnr, PTR_ENTRY) do {			\
 	__typeof__(__head) __newhead = __head;				\
 	__typeof__(__head) __newlist = __list;				\
+	__typeof__(__head) __name = __list;				\
 	int __newnr = __nr;						\
 	new = ptr;							\
 	goto __inside##new;						\
