@@ -85,16 +85,10 @@ static void check_dereference(struct expression *expr)
 		if (tmp->state == &ok)
 			continue;
 		add_ignore(my_id, sm->name, sm->sym);
-		if (tmp->state == &null) {
-			if (option_spammy)
-				sm_error("potential NULL dereference '%s'.", tmp->name);
+		if (tmp->state == &null)
 			return;
-		}
-		if (tmp->state == &uninitialized) {
-			if (option_spammy)
-				sm_error("potentially dereferencing uninitialized '%s'.", tmp->name);
+		if (tmp->state == &uninitialized)
 			return;
-		}
 		sm_error("potential null dereference '%s'.  (%s returns null)",
 			tmp->name, tmp->state->name);
 		return;
@@ -122,16 +116,10 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 		if (tmp->state == &ok)
 			continue;
 		add_ignore(my_id, sm->name, sm->sym);
-		if (tmp->state == &null) {
-			if (option_spammy)
-				sm_error("potential NULL dereference '%s'.", tmp->name);
+		if (tmp->state == &null)
 			return;
-		}
-		if (tmp->state == &uninitialized) {
-			if (option_spammy)
-				sm_error("potentially dereferencing uninitialized '%s'.", tmp->name);
+		if (tmp->state == &uninitialized)
 			return;
-		}
 		sm_error("potential null dereference '%s'.  (%s returns null)",
 			tmp->name, tmp->state->name);
 		return;
