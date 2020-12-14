@@ -87,6 +87,8 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
+	if (__in_fake_var_assign || __in_fake_assign)
+		return;
 	left = strip_expr(expr->left);
 	if (is_local_variable(left))
 		return;
