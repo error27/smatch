@@ -22,7 +22,7 @@
  * This test only complains about:
  * 1) dereferencing uninitialized variables
  * 2) dereferencing variables which were assigned as null.
- * 3) dereferencing variables which were assigned a function the returns 
+ * 3) dereferencing variables which were assigned a function the returns
  *    null.
  *
  * If we dereference something then we complain if any of those three
@@ -61,6 +61,24 @@ static void is_ok(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &ok);
 }
 
+static bool is_possibly_zero(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm, *tmp;
+
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (!sm)
+		return false;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_rl(tmp->state))
+			continue;
+		if (rl_min(estate_rl(tmp->state)).value == 0 &&
+		    rl_max(estate_rl(tmp->state)).value == 0)
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 static void check_dereference(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -74,7 +92,7 @@ static void check_dereference(struct expression *expr)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
 		return;
-	if (implied_not_equal(expr, 0))
+	if (is_possibly_zero(sm->name, sm->sym))
 		return;
 	if (is_impossible_path())
 		return;
@@ -105,7 +123,7 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
 		return;
-	if (implied_not_equal_name_sym(name, sym, 0))
+	if (is_possibly_zero(sm->name, sm->sym))
 		return;
 	if (is_impossible_path())
 		return;
