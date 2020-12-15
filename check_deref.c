@@ -92,7 +92,7 @@ static void check_dereference(struct expression *expr)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
 		return;
-	if (is_possibly_zero(sm->name, sm->sym))
+	if (!is_possibly_zero(sm->name, sm->sym))
 		return;
 	if (is_impossible_path())
 		return;
@@ -123,7 +123,7 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
 		return;
-	if (is_possibly_zero(sm->name, sm->sym))
+	if (!is_possibly_zero(sm->name, sm->sym))
 		return;
 	if (is_impossible_path())
 		return;
