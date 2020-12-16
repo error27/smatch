@@ -493,7 +493,8 @@ char *get_name_sym_from_key(struct expression *expr, int param, const char *key,
 	struct expression *call, *arg;
 	char *name;
 
-	*sym = NULL;
+	if (sym)
+		*sym = NULL;
 
 	if (!expr) {
 		sm_msg("internal: null call_expr.  param=%d key='%s'", param, key);
@@ -511,7 +512,7 @@ char *get_name_sym_from_key(struct expression *expr, int param, const char *key,
 	    expr->type == EXPR_ASSIGNMENT &&
 	    expr->op == '=') {
 		name = get_variable_from_key(expr->left, key, sym);
-		if (!name || !*sym)
+		if (!name || (sym && !*sym))
 			goto free;
 	} else if (param >= 0) {
 		arg = get_argument_from_call_expr(call->args, param);
@@ -519,7 +520,7 @@ char *get_name_sym_from_key(struct expression *expr, int param, const char *key,
 			return NULL;
 
 		name = get_variable_from_key(arg, key, sym);
-		if (!name || !*sym)
+		if (!name || (sym && !*sym))
 			goto free;
 	} else {
 		name = alloc_string(key);
