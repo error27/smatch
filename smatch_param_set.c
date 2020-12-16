@@ -257,7 +257,9 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			if (new) {
 				if (strcmp(new, two_dot) == 0)
 					continue;
+
 				strncpy(two_dot, new, sizeof(two_dot));
+				insert_string(&set_list, (char *)sm->name);
 				sql_insert_return_states(return_id, return_ranges,
 					 PARAM_SET, param, new, "s64min-s64max");
 				continue;
