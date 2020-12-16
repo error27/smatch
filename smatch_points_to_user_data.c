@@ -200,6 +200,23 @@ static void match_assign(struct expression *expr)
 		set_state_expr(my_id, expr->left, &undefined);
 }
 
+static void match_user_copy(const char *fn, struct expression *expr, void *_unused)
+{
+	struct expression *dest, *size;
+	sval_t sval;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	dest = strip_expr(dest);
+	if (!dest)
+		return;
+
+	size = get_argument_from_call_expr(expr->args, 2);
+	if (get_implied_value(size, &sval))
+		return;
+
+	set_state_expr(my_id, dest, &user_data);
+}
+
 static void return_info_callback(int return_id, char *return_ranges,
 				 struct expression *returned_expr,
 				 int param,
@@ -212,11 +229,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 		return;
 
 	if (param >= 0) {
-		if (strcmp(printed_name, "$") == 0)
-			return;
-		// FIXME:  This isn't ideal.  There should be a state_was_set()
-		// functions.
-		if (!param_was_set_var_sym(sm->name, sm->sym))
+		if (get_state_stree(get_start_states(), my_id, sm->name, sm->sym))
 			return;
 	} else {
 		if (!param_was_set_var_sym(sm->name, sm->sym))
@@ -303,6 +316,9 @@ void register_points_to_user_data(int id)
 		return;
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+
+	add_function_hook("copy_from_user", &match_user_copy, NULL);
+	add_function_hook("__copy_from_user", &match_user_copy, NULL);
 
 	add_caller_info_callback(my_id, caller_info_callback);
 	add_return_info_callback(my_id, return_info_callback);
