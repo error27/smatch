@@ -915,7 +915,7 @@ bool taking_too_long(void)
 	return 0;
 }
 
-static int is_last_stmt(struct statement *cur_stmt)
+int is_last_stmt(struct statement *cur_stmt)
 {
 	struct symbol *fn;
 	struct statement *stmt;

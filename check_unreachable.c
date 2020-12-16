@@ -32,24 +32,6 @@ static int empty_statement(struct statement *stmt)
 	return 0;
 }
 
-static int is_last_stmt(struct statement *cur_stmt)
-{
-	struct symbol *fn = get_base_type(cur_func_sym);
-	struct statement *stmt;
-
-	if (!fn)
-		return 0;
-	stmt = fn->stmt;
-	if (!stmt)
-		stmt = fn->inline_stmt;
-	if (!stmt || stmt->type != STMT_COMPOUND)
-		return 0;
-	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (stmt == cur_stmt)
-		return 1;
-	return 0;
-}
-
 static void print_unreached_initializers(struct symbol_list *sym_list)
 {
 	struct symbol *sym;
