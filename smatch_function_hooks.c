@@ -760,6 +760,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 			return 0;
 		if (type == PARAM_LIMIT)
 			param_limit_implications(db_info->expr, param, key, value, &db_info->implied);
+		else if (type > PARAM_LIMIT)
+			set_implied_states(db_info);
 		filter_by_comparison(&var_rl, comparison, ret_range);
 		filter_by_comparison(&ret_range, flip_comparison(comparison), var_rl);
 	} else {
@@ -767,6 +769,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 			return 0;
 		if (type == PARAM_LIMIT)
 			param_limit_implications(db_info->expr, param, key, value, &db_info->implied);
+		else if (type > PARAM_LIMIT)
+			set_implied_states(db_info);
 		filter_by_comparison(&var_rl, negate_comparison(comparison), ret_range);
 		filter_by_comparison(&ret_range, flip_comparison(negate_comparison(comparison)), var_rl);
 	}
@@ -1027,6 +1031,8 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	if (type == PARAM_LIMIT)
 		param_limit_implications(db_info->expr, param, key, value, &db_info->implied);
+	else if (type > PARAM_LIMIT)
+		set_implied_states(db_info);
 
 	db_info->handled = 1;
 	call_results_to_rl(db_info->expr->right, get_type(strip_expr(db_info->expr->right)), ret_str, &ret_range);
@@ -1217,6 +1223,8 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	if (type == PARAM_LIMIT)
 		param_limit_implications(db_info->expr, param, key, value, &db_info->implied);
+	else if (type > PARAM_LIMIT)
+		set_implied_states(db_info);
 
 	call_results_to_rl(db_info->expr, get_type(strip_expr(db_info->expr)), ret_str, &ret_range);
 	ret_range = cast_rl(get_type(db_info->expr), ret_range);
