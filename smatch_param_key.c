@@ -28,11 +28,17 @@ static void undef(struct sm_state *sm, struct expression *mod_expr)
 
 static char *swap_names(const char *orig, const char *remove, const char *add)
 {
-	int offset, len;
 	char buf[64];
+	int offset, len, ret;
+	bool is_addr = false;
+
+	if (add[0] == '&') {
+		is_addr = true;
+		add++;
+	}
 
 	offset = 0;
-	while(orig[offset] == '*' || orig[offset] == '&' || orig[offset] == '(')
+	while(orig[offset] == '*' || orig[offset] == '(')
 		offset++;
 
 	len = strlen(remove);
@@ -43,7 +49,10 @@ static char *swap_names(const char *orig, const char *remove, const char *add)
 	if (strncmp(orig + offset, remove, len) != 0)
 		return NULL;
 
-	snprintf(buf, sizeof(buf), "%.*s%s%s", offset, orig, add, orig + offset + len);
+	ret = snprintf(buf, sizeof(buf), "%.*s%s%s%s", offset, orig,
+		       add, is_addr ? "." : "->", orig + offset + 2 + len);
+	if (ret >= sizeof(buf))
+		return NULL;
 	return alloc_string(buf);
 }
 
@@ -79,8 +88,10 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	struct symbol *type;
 	char buf[256];
 	char *tmp;
+	bool address = false;
 	int star_cnt = 0;
 	bool add_dot = false;
+	int ret;
 
 	if (!arg)
 		return NULL;
@@ -98,15 +109,15 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 			tmp = expr_to_var_sym(arg, sym);
 			if (!tmp)
 				return NULL;
-			snprintf(buf, sizeof(buf), "*%s", tmp);
+			ret = snprintf(buf, sizeof(buf), "*%s", tmp);
 			free_string(tmp);
+			if (ret >= sizeof(buf))
+				return NULL;
 			return alloc_string(buf);
 		}
 	}
 
 	if (strncmp(key, "(*$)", 4) == 0) {
-		char buf[64];
-
 		if (arg->type == EXPR_PREOP && arg->op == '&') {
 			arg = strip_expr(arg->unop);
 			snprintf(buf, sizeof(buf), "$%s", key + 4);
@@ -115,14 +126,21 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 			tmp = expr_to_var_sym(arg, sym);
 			if (!tmp)
 				return NULL;
-			snprintf(buf, sizeof(buf), "(*%s)%s", tmp, key + 4);
+			ret = snprintf(buf, sizeof(buf), "(*%s)%s", tmp, key + 4);
 			free_string(tmp);
+			if (ret >= sizeof(buf))
+				return NULL;
 			return alloc_string(buf);
 		}
 	}
 
 	while (key[0] == '*') {
 		star_cnt++;
+		key++;
+	}
+
+	if (key[0] == '&') {
+		address = true;
 		key++;
 	}
 
@@ -144,16 +162,22 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
-		snprintf(buf, sizeof(buf), "%.*s%s.%s",
-			 star_cnt, "**********", tmp, key + 3);
+		ret = snprintf(buf, sizeof(buf), "%s%.*s%s.%s",
+			       address ? "&" : "", star_cnt, "**********",
+			       tmp, key + 3);
+		if (ret >= sizeof(buf))
+			return NULL;
 		return alloc_string(buf);
 	}
 
 	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
-	snprintf(buf, sizeof(buf), "%.*s%s%s", star_cnt, "**********", tmp, key + 1);
+	ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s",
+		       address ? "&" : "", star_cnt, "**********", tmp, key + 1);
 	free_string(tmp);
+	if (ret >= sizeof(buf))
+		return NULL;
 	return alloc_string(buf);
 }
 
@@ -168,14 +192,21 @@ char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym,
 
 static char *state_name_to_param_name(const char *state_name, const char *param_name)
 {
+	bool address = false;
 	int star_cnt = 0;
 	int name_len;
 	char buf[256];
+	int ret;
 
 	name_len = strlen(param_name);
 
 	while (state_name[0] == '*') {
 		star_cnt++;
+		state_name++;
+	}
+
+	if (state_name[0] == '&') {
+		address = true;
 		state_name++;
 	}
 
@@ -186,20 +217,31 @@ static char *state_name_to_param_name(const char *state_name, const char *param_
 	if (strncmp(state_name, "(*", 2) == 0 &&
 	    strncmp(state_name + 2, param_name, name_len) == 0 &&
 	    state_name[name_len + 2] == ')') {
-		snprintf(buf, sizeof(buf), "%.*s(*$)%s", star_cnt, "**********",
-			 state_name + name_len + 3);
+		ret = snprintf(buf, sizeof(buf), "%s%.*s(*$)%s",
+			       address ? "&" : "",
+			       star_cnt, "**********",
+			       state_name + name_len + 3);
+		if (ret >= sizeof(buf))
+			return NULL;
 		return alloc_sname(buf);
 	}
 
 	if (strcmp(state_name, param_name) == 0) {
-		snprintf(buf, sizeof(buf), "%.*s$", star_cnt, "**********");
+		snprintf(buf, sizeof(buf), "%s%.*s$",
+			 address ? "&" : "",
+			 star_cnt, "**********");
 		return alloc_sname(buf);
 	}
 
 	/* check for '-' from "->" */
 	if (strncmp(state_name, param_name, name_len) == 0 &&
 	    state_name[name_len] == '-') {
-		snprintf(buf, sizeof(buf), "%.*s$%s", star_cnt, "**********", state_name + name_len);
+		ret = snprintf(buf, sizeof(buf), "%s%.*s$%s",
+			       address ? "&" : "",
+			       star_cnt, "**********",
+			       state_name + name_len);
+		if (ret >= sizeof(buf))
+			return NULL;
 		return alloc_sname(buf);
 	}
 	return NULL;
