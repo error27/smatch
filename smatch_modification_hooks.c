@@ -94,24 +94,29 @@ static int shared_cnt(const char *one, const char *two)
 
 static int matches(char *name, struct symbol *sym, struct sm_state *sm)
 {
+	const char *sm_name;
 	int len;
 
 	if (sym != sm->sym)
 		return false;
 
-	len = shared_cnt(sm->name, name);
+	sm_name = sm->name;
+	if (sm_name[0] == '&')
+		sm_name++;
+
+	len = shared_cnt(sm_name, name);
 	if (name[len] == '\0') {
-		if (sm->name[len] == '\0')
+		if (sm_name[len] == '\0')
 			return true;
-		if (sm->name[len] == '-' || sm->name[len] == '.')
+		if (sm_name[len] == '-' || sm_name[len] == '.')
 			return true;
 	}
-	if (sm->name[0] != '*')
+	if (sm_name[0] != '*')
 		return false;
-	if (strncmp(sm->name + 1, name, len) == 0) {
-		if (sm->name[len + 1] == '\0')
+	if (strncmp(sm_name + 1, name, len) == 0) {
+		if (sm_name[len + 1] == '\0')
 			return true;
-		if (sm->name[len + 1] == '-' || sm->name[len + 1] == '.')
+		if (sm_name[len + 1] == '-' || sm_name[len + 1] == '.')
 			return true;
 	}
 	return false;
