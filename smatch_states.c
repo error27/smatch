@@ -390,9 +390,16 @@ struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 
 struct smatch_state *get_state_expr(int owner, struct expression *expr)
 {
+	struct expression *fake_parent;
 	char *name;
 	struct symbol *sym;
 	struct smatch_state *ret = NULL;
+
+	if (cur_func_sym && !cur_func_sym->parsed) {
+		fake_parent = expr_get_fake_parent_expr(expr);
+		if (fake_parent)
+			expr = fake_parent->left;
+	}
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);

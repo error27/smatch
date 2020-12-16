@@ -1792,6 +1792,7 @@ static void split_function(struct symbol *sym)
 	if (need_delayed_scope_hooks())
 		__call_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
+	sym->parsed = true;
 
 	clear_all_states();
 
@@ -1903,6 +1904,7 @@ static void parse_inline(struct expression *call)
 	__split_stmt(base_type->inline_stmt);
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
+	call->fn->symbol->parsed = true;
 
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
