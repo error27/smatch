@@ -271,7 +271,7 @@ static inline void rem_usage(pseudo_t p, pseudo_t *usep, int kill)
 {
 	if (has_use_list(p)) {
 		delete_pseudo_user_list_entry(&p->users, usep, 1);
-		if (kill && !p->users)
+		if (kill && !p->users && has_definition(p))
 			kill_instruction(p->def);
 	}
 }
