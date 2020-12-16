@@ -100,6 +100,9 @@ static void check_deref(struct expression *expr)
 	if (!expr)
 		return;
 
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		return;
+
 	if (get_param_num(expr) < 0)
 		return;
 
@@ -171,7 +174,7 @@ static void process_states(void)
 		if (arg < 0)
 			continue;
 		name = get_param_name(tmp);
-		if (!name)
+		if (!name || name[0] == '&')
 			continue;
 		sql_insert_return_implies(DEREFERENCE, arg, name, "1");
 	} END_FOR_EACH_SM(tmp);
