@@ -1612,6 +1612,13 @@ static bool get_rl_helper(struct expression *expr, int implied, struct range_lis
 	int recurse_cnt = 0;
 
 	if (get_value(expr, &sval)) {
+		if (implied == RL_HARD) {
+			if (sval.uvalue == INT_MAX ||
+			    sval.uvalue == UINT_MAX ||
+			    sval.uvalue == LONG_MAX ||
+			    sval.uvalue == ULONG_MAX)
+				return false;
+		}
 		*res = alloc_rl(sval, sval);
 		return true;
 	}
