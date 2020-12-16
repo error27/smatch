@@ -322,6 +322,9 @@ int param_was_set_var_sym(const char *name, struct symbol *sym)
 	if (!name)
 		return 0;
 
+	if (name[0] == '&')
+		name++;
+
 	len = strlen(name);
 	if (len >= sizeof(buf))
 		len = sizeof(buf) - 1;
