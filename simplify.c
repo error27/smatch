@@ -2288,6 +2288,21 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
 		break;
+	case OP_NOT:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			if (one_use(src)) {
+				// TRUNC(NOT(x)) --> NOT(TRUNC(x))
+				insn->opcode = OP_NOT;
+				def->orig_type = def->type;
+				def->opcode = OP_TRUNC;
+				def->type = insn->type;
+				def->size = insn->size;
+				return REPEAT_CSE;
+			}
+			break;
+		}
+		break;
 	case OP_OR:
 		switch (insn->opcode) {
 		case OP_TRUNC:
