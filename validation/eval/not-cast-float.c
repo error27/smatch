@@ -8,7 +8,6 @@ static int foo(void)
 /*
  * check-name: eval-bool-zext-neg
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
