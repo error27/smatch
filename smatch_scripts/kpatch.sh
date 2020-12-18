@@ -84,8 +84,6 @@ for file in $(grep -l $fullname ~/var/mail/sent-*) ; do
 done
 qc "Looks OK?"
 
-git add $fullname
-
 cat /dev/null > $MSG_FILE
 if [ "$AMEND" != "" ] ; then
     git format-patch HEAD^ --stdout >> $MSG_FILE
@@ -96,11 +94,13 @@ else
     echo "# $sm_err" >> $MSG_FILE
 fi
 git log -10 --oneline --format="%h (\"%s\")" $fullname | sed -e 's/^/# /' >> $MSG_FILE
+git diff $fullname | sed -e 's/^/# /' >> $MSG_FILE
 vim $MSG_FILE
 
 grep -v '^#' $MSG_FILE > $MSG_FILE.1
 mv $MSG_FILE.1 $MSG_FILE
 
+git add $fullname
 git commit $AMEND -F $MSG_FILE
 
 git format-patch HEAD^ --stdout >> $MSG_FILE
