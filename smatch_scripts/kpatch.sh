@@ -33,6 +33,10 @@ qc()
 NO_COMPILE=false
 AMEND=""
 
+NAME=$(git config --get user.name)
+EMAIL=$(git config --get user.email)
+NAME_EMAIL=$(echo ${NAME} \<${EMAIL}\>)
+
 while true ; do
     if [[ "$1" == "--no-compile" ]] ; then
         NO_COMPILE=true
@@ -87,7 +91,7 @@ if [ "$AMEND" != "" ] ; then
     git format-patch HEAD^ --stdout >> $MSG_FILE
 else
     echo "" >> $MSG_FILE
-    echo "Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>" >> $MSG_FILE
+    echo "Signed-off-by: ${NAME_EMAIL}" >> $MSG_FILE
     echo "" >> $MSG_FILE
     echo "# $sm_err" >> $MSG_FILE
 fi
