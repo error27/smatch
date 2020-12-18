@@ -95,7 +95,7 @@ else
     echo "" >> $MSG_FILE
     echo "# $sm_err" >> $MSG_FILE
 fi
-git log -10 --oneline $fullname | sed -e 's/^/# /' >> $MSG_FILE
+git log -10 --oneline --format="%h (\"%s\")" $fullname | sed -e 's/^/# /' >> $MSG_FILE
 vim $MSG_FILE
 
 grep -v '^#' $MSG_FILE > $MSG_FILE.1
