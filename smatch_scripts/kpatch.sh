@@ -59,6 +59,7 @@ oname=$(echo ${fullname/.c/.o})
 
 MSG_FILE=$TMP_DIR/${filename}.msg
 MAIL_FILE=$TMP_DIR/${filename}.mail
+WARN_FILE=$TMP_DIR/${filename}.warn
 
 # heat up the disk cache
 #git log --oneline $fullname | head -n 10 > /dev/null &
@@ -73,8 +74,8 @@ if git diff $fullname | grep ^+ | grep -qi alloc ; then
 fi
 
 if [ "$NO_COMPILE" != "true" ] ; then
-    kchecker --spammy $fullname
-    kchecker --sparse --endian $fullname
+    kchecker --spammy $fullname | tee $WARN_FILE
+    kchecker --sparse --endian $fullname 2>&1 | tee -a $WARN_FILE
 #    rm $oname
 #    make C=1 CHECK="scripts/coccicheck" $oname
 fi
@@ -94,6 +95,8 @@ else
     echo "# $sm_err" >> $MSG_FILE
 fi
 git log -10 --oneline --format="%h (\"%s\")" $fullname | sed -e 's/^/# /' >> $MSG_FILE
+echo "" >> $MSG_FILE
+egrep '(error|warn|info)' $WARN_FILE | sed -e 's/^/# /' >> $MSG_FILE
 git diff $fullname | sed -e 's/^/# /' >> $MSG_FILE
 vim $MSG_FILE
 
@@ -125,3 +128,4 @@ read unused
 
 mutt -H $MAIL_FILE
 rm -f $MSG_FILE
+rm -f $WARN_FILE
