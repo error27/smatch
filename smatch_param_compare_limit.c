@@ -192,7 +192,9 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			if (!sm)
 				continue;
 			data = sm->state->data;
-			if (!data || !data->comparison)
+			if (!data ||
+			    data->comparison == UNKNOWN_COMPARISON ||
+			    data->comparison == IMPOSSIBLE_COMPARISON)
 				continue;
 			if (ptr_list_size((struct ptr_list *)data->left_vsl) != 1 ||
 			    ptr_list_size((struct ptr_list *)data->right_vsl) != 1)
