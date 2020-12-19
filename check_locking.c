@@ -826,10 +826,13 @@ static void do_unlock(const char *name, struct symbol *sym, struct lock_info *in
 
 static void do_restore(const char *name, struct symbol *sym, struct lock_info *info)
 {
+	struct sm_state *sm;
+
 	if (__path_is_null())
 		return;
 
-	if (!get_state(my_id, name, sym))
+	sm = get_sm_state(my_id, name, sym);
+	if (!get_start_state(sm))
 		set_start_state(name, sym, &locked);
 
 	add_tracker(&locks, my_id, name, sym);
