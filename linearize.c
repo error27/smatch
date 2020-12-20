@@ -977,8 +977,17 @@ static struct symbol *bitfield_base_type(struct symbol *sym)
 	if (sym) {
 		if (sym->type == SYM_NODE)
 			base = base->ctype.base_type;
-		if (base->type == SYM_BITFIELD)
-			return base->ctype.base_type;
+		if (base->type == SYM_BITFIELD) {
+			base = base->ctype.base_type;
+			if (sym->packed) {
+				int size = bits_to_bytes(sym->bit_offset + sym->bit_size);
+				sym = __alloc_symbol(0);
+				*sym = *base;
+				sym->bit_size = bytes_to_bits(size);
+				return sym;
+			}
+			return base;
+		}
 	}
 	return sym;
 }

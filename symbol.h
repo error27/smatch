@@ -192,6 +192,7 @@ struct symbol {
 					accessed:1,
 					builtin:1,
 					torename:1,
+					packed:1,
 					transparent_union:1;
 			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
