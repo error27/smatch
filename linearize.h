@@ -160,21 +160,19 @@ struct instruction_list;
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	union {
-		int context;
-		int postorder_nr;	/* postorder number */
-		int dom_level;		/* level in the dominance tree */
-	};
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct basic_block *idom;	/* link to the immediate dominator */
+	unsigned int nr;		/* unique id for label's names */
+	int dom_level;			/* level in the dominance tree */
 	struct basic_block_list *doms;	/* list of BB idominated by this one */
-	struct phi_map *phi_map;
 	struct pseudo_list *needs, *defines;
 	union {
-		unsigned int nr;	/* unique id for label's names */
+		struct phi_map *phi_map;/* needed during SSA conversion */
+		int postorder_nr;	/* postorder number */
+		int context;		/* needed during context checking */
 		void *priv;
 	};
 };

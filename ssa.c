@@ -387,6 +387,7 @@ void ssa_convert(struct entrypoint *ep)
 		int nr = bb->nr;
 		if (nr > last)
 			last = nr;
+		bb->phi_map = NULL;
 	} END_FOR_EACH_PTR(bb);
 
 	processed = sset_init(first, last);
