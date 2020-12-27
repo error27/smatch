@@ -249,6 +249,11 @@ static inline int has_use_list(pseudo_t p)
 	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_UNDEF && p->type != PSEUDO_VAL);
 }
 
+static inline bool has_definition(pseudo_t p)
+{
+	return p->type == PSEUDO_REG || p->type == PSEUDO_PHI;
+}
+
 static inline int pseudo_user_list_size(struct pseudo_user_list *list)
 {
 	return ptr_list_size((struct ptr_list *)list);
