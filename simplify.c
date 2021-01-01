@@ -1718,7 +1718,7 @@ static int simplify_compare(struct instruction *insn)
 {
 	pseudo_t src1 = insn->src1;
 	pseudo_t src2 = insn->src2;
-	struct instruction *def;
+	struct instruction *def = NULL;
 	unsigned int osize;
 	pseudo_t src;
 
