@@ -4,9 +4,6 @@ TODO
 Essential
 ---------
 * SSA is broken by simplify_loads() & branches rewriting/simplification
-* attributes of struct, union & enums are ignored (and maybe others too).
-  This requires correct support for __packed which itself needs partial
-  and unaligned loads & stores (wip)
 * add support for bitwise enums (wip)
 
 Documentation

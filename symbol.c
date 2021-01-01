@@ -88,6 +88,7 @@ struct struct_union_info {
 	unsigned long bit_size;
 	int align_size;
 	char has_flex_array;
+	bool packed;
 	struct symbol *flex_array;
 };
 
@@ -120,6 +121,7 @@ static int bitfield_base_size(struct symbol *sym)
 static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 {
 	unsigned long bit_size, align_bit_mask;
+	unsigned long alignment;
 	int base_size;
 
 	bit_size = info->bit_size;
@@ -136,7 +138,8 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->flex_array = sym;
 	}
 
-	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
+	alignment = info->packed ? 1 : sym->ctype.alignment;
+	align_bit_mask = bytes_to_bits(alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -147,7 +150,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		// Zero-width fields just fill up the unit.
 		int width = base_size ? : (bit_offset ? room : 0);
 
-		if (width > room) {
+		if (width > room && !info->packed) {
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
@@ -157,6 +160,8 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->bit_size = bit_size + width;
 		// warning (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
 
+		if (info->packed && sym->type == SYM_NODE)
+			sym->packed = 1;
 		return;
 	}
 
@@ -173,6 +178,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 static struct symbol * examine_struct_union_type(struct symbol *sym, int advance)
 {
 	struct struct_union_info info = {
+		.packed = sym->packed,
 		.max_align = 1,
 		.bit_size = 0,
 		.align_size = 1
@@ -191,7 +197,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			sparse_error(info.flex_array->pos, "flexible array member '%s' is not last", show_ident(info.flex_array->ident));
 		examine_symbol_type(member);
 
-		if (member->ctype.alignment > info.max_align) {
+		if (member->ctype.alignment > info.max_align && !sym->packed) {
 			// Unnamed bitfields do not affect alignment.
 			if (member->ident || !is_bitfield_type(member))
 				info.max_align = member->ctype.alignment;
