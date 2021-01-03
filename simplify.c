@@ -1263,6 +1263,14 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			break;
 		bits = def->src2->value;
 		switch (insn->opcode) {
+		case OP_SET_EQ:
+			if ((value & bits) != value)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_NE:
+			if ((value & bits) != value)
+				return replace_with_value(insn, 1);
+			break;
 		case OP_SET_LE:
 			value = sign_extend(value, def->size);
 			if (bits & sign_bit(def->size))
