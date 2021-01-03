@@ -11,7 +11,6 @@ int cmps_and_gtu_eq(int a) { return ((a & MASK) >  (MASK + 0)) + 1; }
 /*
  * check-name: cmpu-and0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

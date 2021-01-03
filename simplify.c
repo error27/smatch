@@ -1281,6 +1281,22 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			if (value >= (long long)bits)
 				return replace_with_value(insn, 0);
 			break;
+		case OP_SET_B:
+			if (value > bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_BE:
+			if (value >= bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_AE:
+			if (value > bits)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_A:
+			if (value >= bits)
+				return replace_with_value(insn, 0);
+			break;
 		}
 		break;
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
