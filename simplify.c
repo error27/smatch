@@ -1271,6 +1271,8 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 				return replace_with_value(insn, 0);
 			if (value >= (long long)bits)
 				return replace_with_value(insn, 1);
+			if (value == 0)
+				return replace_opcode(insn, OP_SET_EQ);
 			break;
 		case OP_SET_GT:
 			value = sign_extend(value, def->size);
@@ -1280,6 +1282,8 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 				return replace_with_value(insn, 1);
 			if (value >= (long long)bits)
 				return replace_with_value(insn, 0);
+			if (value == 0)
+				return replace_opcode(insn, OP_SET_NE);
 			break;
 		case OP_SET_B:
 			if (value > bits)
