@@ -1258,6 +1258,31 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 	src2 = insn->src2;
 	value = src2->value;
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (!constant(def->src2))
+			break;
+		bits = def->src2->value;
+		switch (insn->opcode) {
+		case OP_SET_LE:
+			value = sign_extend(value, def->size);
+			if (bits & sign_bit(def->size))
+				break;
+			if (value < 0)
+				return replace_with_value(insn, 0);
+			if (value >= (long long)bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_GT:
+			value = sign_extend(value, def->size);
+			if (bits & sign_bit(def->size))
+				break;
+			if (value < 0)
+				return replace_with_value(insn, 1);
+			if (value >= (long long)bits)
+				return replace_with_value(insn, 0);
+			break;
+		}
+		break;
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
 		osize = def->orig_type->bit_size;
 		if (is_signed_constant(value, osize, size)) {

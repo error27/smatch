@@ -15,7 +15,6 @@ int cmps_and_ge_gtm(int a) { return ((a & MASK) >= (MASK + 1)) + 1; }
 /*
  * check-name: cmps-and0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
