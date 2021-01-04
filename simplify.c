@@ -1177,6 +1177,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_opcode(insn, OP_SET_NE);
 		if (value == sign_bit(size) + 1)// (x < SMIN + 1) --> (x == SMIN)
 			return replace_binop_value(insn, OP_SET_EQ, sign_bit(size));
+		changed |= replace_binop_value(insn, OP_SET_LE, (value - 1) & bits);
 		break;
 	case OP_SET_LE:
 		if (value == sign_mask(size))	// (x <= SMAX) --> 1
@@ -1193,6 +1194,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_opcode(insn, OP_SET_EQ);
 		if (value == sign_bit(size) + 1)// (x >= SMIN + 1) --> (x != SMIN)
 			return replace_binop_value(insn, OP_SET_NE, sign_bit(size));
+		changed |= replace_binop_value(insn, OP_SET_GT, (value - 1) & bits);
 		break;
 	case OP_SET_GT:
 		if (value == sign_mask(size))	// (x >  SMAX) --> 0

@@ -10,7 +10,6 @@ _Bool ge_x(int a) { return (a >= 1234) == (a > 1233); }
 /*
  * check-name: canonical-cmps
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
