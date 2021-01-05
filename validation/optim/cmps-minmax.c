@@ -1,0 +1,17 @@
+#define SMAX __INT_MAX__
+#define SMIN (-__INT_MAX__-1)
+
+int lt_smin(int a) { return (a <  SMIN) == 0; }
+int le_smax(int a) { return (a <= SMAX) == 1; }
+
+int ge_smin(int a) { return (a >= SMIN) == 1; }
+int gt_smax(int a) { return (a >  SMAX) == 0; }
+
+/*
+ * check-name: cmps-minmax
+ * check-command: test-linearize -Wno-decl $file
+ * check-known-to-fail
+ *
+ * check-output-ignore
+ * check-output-returns: 1
+ */
