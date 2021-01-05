@@ -1173,18 +1173,26 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 	case OP_SET_LT:
 		if (value == sign_bit(size))	// (x <  SMIN) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
+		if (value == sign_mask(size))	// (x <  SMAX) --> (x != SMAX)
+			return replace_opcode(insn, OP_SET_NE);
 		break;
 	case OP_SET_LE:
 		if (value == sign_mask(size))	// (x <= SMAX) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
+		if (value == sign_bit(size))	// (x <= SMIN) --> (x == SMIN)
+			return replace_opcode(insn, OP_SET_EQ);
 		break;
 	case OP_SET_GE:
 		if (value == sign_bit(size))	// (x >= SMIN) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
+		if (value == sign_mask(size))	// (x >= SMAX) --> (x == SMAX)
+			return replace_opcode(insn, OP_SET_EQ);
 		break;
 	case OP_SET_GT:
 		if (value == sign_mask(size))	// (x >  SMAX) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
+		if (value == sign_bit(size))	// (x >  SMIN) --> (x != SMIN)
+			return replace_opcode(insn, OP_SET_NE);
 		break;
 
 	case OP_SET_B:

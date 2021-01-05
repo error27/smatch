@@ -10,7 +10,6 @@ int gt_smin(int a) { return (a >  SMIN) == (a != SMIN); }
 /*
  * check-name: canonical-cmps-minmax
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
