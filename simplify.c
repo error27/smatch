@@ -1162,7 +1162,8 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 
 static int simplify_compare_constant(struct instruction *insn, long long value)
 {
-	unsigned long long bits = bits_mask(insn->itype->bit_size);
+	unsigned size = insn->itype->bit_size;
+	unsigned long long bits = bits_mask(size);
 	struct instruction *def;
 	pseudo_t src1, src2;
 	unsigned int osize;
@@ -1217,7 +1218,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 	switch (DEF_OPCODE(def, src1)) {
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
 		osize = def->orig_type->bit_size;
-		if (is_signed_constant(value, osize, def->size)) {
+		if (is_signed_constant(value, osize, size)) {
 			insn->itype = def->orig_type;
 			insn->src2 = value_pseudo(zero_extend(value, osize));
 			return replace_pseudo(insn, &insn->src1, def->src);
@@ -1263,13 +1264,13 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		}
 		switch (insn->opcode) {
 		case OP_SET_LT: case OP_SET_LE:
-			if (sign_extend(value, def->size) > (long long)bits)
+			if (sign_extend(value, size) > (long long)bits)
 				return replace_with_value(insn, 1);
 			else
 				return replace_with_value(insn, 0);
 			break;
 		case OP_SET_GE: case OP_SET_GT:
-			if (sign_extend(value, def->size) > (long long)bits)
+			if (sign_extend(value, size) > (long long)bits)
 				return replace_with_value(insn, 0);
 			else
 				return replace_with_value(insn, 1);
