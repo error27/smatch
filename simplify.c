@@ -1239,13 +1239,13 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			}
 			break;
 		case OP_SET_LT: case OP_SET_LE:
-			if (value >= sign_bit(osize))
+			if (value < sign_bit(size))
 				return replace_with_value(insn, 1);
 			else
 				return replace_with_value(insn, 0);
 			break;
 		case OP_SET_GE: case OP_SET_GT:
-			if (value >= sign_bit(osize))
+			if (value < sign_bit(size))
 				return replace_with_value(insn, 0);
 			else
 				return replace_with_value(insn, 1);
