@@ -254,6 +254,10 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 		if (limit) {
 			char *new = get_two_dots(param_name);
 
+			/* no useful information here. */
+			if (is_whole_rl(rl) && parent_set(set_list, sm->name))
+				continue;
+
 			if (new) {
 				if (strcmp(new, two_dot) == 0)
 					continue;
