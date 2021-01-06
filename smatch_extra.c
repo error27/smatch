@@ -2273,6 +2273,15 @@ int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val)
 	return 0;
 }
 
+bool is_noderef_ptr(struct expression *expr)
+{
+	struct range_list *rl;
+
+	if (!get_implied_rl(expr, &rl))
+		return false;
+	return is_noderef_ptr_rl(rl);
+}
+
 static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol *sym, bool check_err_ptr)
 {
 	struct smatch_state *state;
@@ -2291,10 +2300,7 @@ static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol 
 			continue;
 		if (!estate_rl(state))
 			return 1;
-		if (estate_min(state).value == 0 &&
-		    estate_max(state).value == 0)
-			return 1;
-		if (check_err_ptr && is_err_or_null(estate_rl(state)))
+		if (is_noderef_ptr_rl(estate_rl(state)))
 			return 1;
 	}
 
@@ -2317,10 +2323,7 @@ static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol 
 		state = __get_state(SMATCH_EXTRA, start, sym);
 		if (!state)
 			continue;
-		if (estate_min(state).value == 0 &&
-		    estate_max(state).value == 0)
-			return 1;
-		if (check_err_ptr && is_err_or_null(estate_rl(state)))
+		if (is_noderef_ptr_rl(estate_rl(state)))
 			return 1;
 	}
 }

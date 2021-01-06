@@ -41,9 +41,6 @@ bool is_err_or_null(struct range_list *rl)
 {
 	struct range_list *no_null;
 
-	if (option_project != PROJ_KERNEL)
-		return false;
-
 	if (!rl)
 		return false;
 
@@ -56,6 +53,33 @@ bool is_err_or_null(struct range_list *rl)
 		no_null = remove_range(rl, rl_min(rl), rl_min(rl));
 
 	return is_err_ptr(rl_min(no_null)) && is_err_ptr(rl_max(no_null));
+}
+
+static bool is_oxdead(struct range_list *rl)
+{
+	sval_t sval;
+
+	/* check for 0xdead000000000000 */
+	if (!rl_to_sval(rl, &sval))
+		return false;
+	if ((sval.uvalue >> (bits_in_pointer - 16)) == 0xdead)
+		return true;
+
+	return false;
+}
+
+bool is_noderef_ptr_rl(struct range_list *rl)
+{
+	if (!rl)
+		return false;
+
+	if (rl_min(rl).value == 0 && rl_max(rl).value == 0)
+		return true;
+	if (is_err_or_null(rl))
+		return true;
+	if (is_oxdead(rl))
+		return true;
+	return false;
 }
 
 static char *get_err_pointer_str(struct data_range *drange)
