@@ -703,6 +703,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	struct smatch_state *estate;
 	sval_t start, end, max;
 	struct symbol *type;
+	bool unknown_end = false;
 
 	iter_var = iter_expr->unop;
 	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
@@ -710,8 +711,10 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		return NULL;
 	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
-	if (!get_implied_value(condition->right, &end))
-		return NULL;
+	if (!get_implied_max(condition->right, &end)) {
+		end = sval_type_max(start.type);
+		unknown_end = true;
+	}
 
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
 		return NULL;
@@ -720,7 +723,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_NOTEQUAL:
 	case '<':
-		if (!sval_is_min(end))
+		if (!sval_is_min(end) && !unknown_end)
 			end.value--;
 		break;
 	case SPECIAL_UNSIGNED_LTE:
@@ -864,6 +867,7 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 	struct expression *iter_expr;
 	sval_t limit;
 	struct smatch_state *state;
+	sval_t end;
 
 	if (!iterator) {
 		while_count_down_after(sm, condition);
@@ -874,8 +878,13 @@ void __extra_pre_loop_hook_after(struct sm_state *sm,
 
 	if (condition->type != EXPR_COMPARE)
 		return;
+
 	if (iter_expr->op == SPECIAL_INCREMENT) {
-		limit = sval_binop(estate_max(sm->state), '+',
+		if (!get_implied_value(condition->right, &end) &&
+		    sval_is_max(estate_max(sm->state)))
+			limit = estate_max(sm->state);
+		else
+			limit = sval_binop(estate_max(sm->state), '+',
 				   sval_type_val(estate_type(sm->state), 1));
 	} else {
 		limit = sval_binop(estate_min(sm->state), '-',
