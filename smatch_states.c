@@ -148,6 +148,15 @@ void allocate_tracker_array(int num_checks)
 	memset(tracker_hooks, 0, num_checks * sizeof(void *));
 }
 
+bool debug_on(const char *check_name)
+{
+	if (option_debug)
+		return true;
+	if (!option_debug_check)
+		return false;
+	return strstr(check_name, option_debug_check);
+}
+
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *ret;
@@ -158,7 +167,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
-	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
+	if (debug_on(check_name(owner))) {
 		struct smatch_state *s;
 
 		s = __get_state(owner, name, sym);
@@ -267,8 +276,7 @@ void __set_sm(struct sm_state *sm)
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
-	if (option_debug ||
-	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
+	if (debug_on(check_name(sm->owner))) {
 		struct smatch_state *s;
 
 		s = __get_state(sm->owner, sm->name, sm->sym);
@@ -293,8 +301,7 @@ void __set_sm_cur_stree(struct sm_state *sm)
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
-	if (option_debug ||
-	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
+	if (debug_on(check_name(sm->owner))) {
 		struct smatch_state *s;
 
 		s = __get_state(sm->owner, sm->name, sm->sym);
@@ -316,8 +323,7 @@ void __set_sm_fake_stree(struct sm_state *sm)
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
-	if (option_debug ||
-	    strcmp(check_name(sm->owner), option_debug_check) == 0) {
+	if (debug_on(check_name(sm->owner))) {
 		struct smatch_state *s;
 
 		s = __get_state(sm->owner, sm->name, sm->sym);
@@ -576,7 +582,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
-	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
+	if (debug_on(check_name(owner))) {
 		struct smatch_state *tmp;
 
 		tmp = __get_state(owner, name, sym);
@@ -630,7 +636,7 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 	owner = true_sm ? true_sm->owner : false_sm->owner;
 	name = true_sm ? true_sm->name : false_sm->name;
 	sym = true_sm ? true_sm->sym : false_sm->sym;
-	if (option_debug || strcmp(check_name(owner), option_debug_check) == 0) {
+	if (debug_on(check_name(owner))) {
 		struct smatch_state *tmp;
 
 		tmp = __get_state(owner, name, sym);

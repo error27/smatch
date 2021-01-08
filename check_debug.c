@@ -496,7 +496,7 @@ static void match_debug_check(const char *fn, struct expression *expr, void *inf
 
 static void match_debug_off(const char *fn, struct expression *expr, void *info)
 {
-	option_debug_check = (char *)"";
+	option_debug_check = NULL;
 	option_debug = 0;
 }
 

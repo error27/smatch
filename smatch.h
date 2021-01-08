@@ -214,6 +214,7 @@ extern int option_debug;
 extern int local_debug;
 extern int debug_db;
 bool debug_implied(void);
+bool debug_on(const char *check_name);
 extern int option_info;
 extern int option_spammy;
 extern int option_print_names;

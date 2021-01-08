@@ -183,6 +183,8 @@ static void mark_sub_members_gone(const char *name, struct symbol *sym, struct s
 	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), sm) {
 		if (sm->sym != sym)
 			continue;
+		if (strcmp(name, sm->name) == 0)
+			continue;
 		if (!is_sub_member(name, sym, sm))
 			continue;
 		set_extra_nomod(sm->name, sm->sym, NULL, alloc_estate_empty());
