@@ -92,7 +92,7 @@ static int shared_cnt(const char *one, const char *two)
 	return c;
 }
 
-static int matches(char *name, struct symbol *sym, struct sm_state *sm)
+bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm)
 {
 	const char *sm_name;
 	int len;
@@ -138,7 +138,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 			continue;
 		if (!hooks[sm->owner] && !hooks_late[sm->owner])
 			continue;
-		match = matches(name, sym, sm);
+		match = is_sub_member(name, sym, sm);
 		if (!match)
 			continue;
 

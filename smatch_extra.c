@@ -168,6 +168,27 @@ done:
 	in_recurse = false;
 }
 
+static void mark_sub_members_gone(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm;
+
+	if (__in_fake_assign || __in_fake_var_assign)
+		return;
+
+	if (!estate_type(state) || estate_type(state)->type != SYM_PTR)
+		return;
+	if (!is_noderef_ptr_rl(estate_rl(state)))
+		return;
+
+	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), sm) {
+		if (sm->sym != sym)
+			continue;
+		if (!is_sub_member(name, sym, sm))
+			continue;
+		set_extra_nomod(sm->name, sm->sym, NULL, alloc_estate_empty());
+	} END_FOR_EACH_SM(sm);
+}
+
 static bool in_param_set;
 void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
@@ -177,6 +198,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
 	set_union_info(name, sym, expr, state);
+	mark_sub_members_gone(name, sym, state);
 	call_extra_mod_hooks(name, sym, expr, state);
 	faked = get_faked_expression();
 	if (!faked ||

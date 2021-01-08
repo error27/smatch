@@ -198,6 +198,7 @@ struct modification_data {
 };
 
 typedef void (modification_hook)(struct sm_state *sm, struct expression *mod_expr);
+bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm);
 void add_modification_hook(int owner, modification_hook *call_back);
 void add_modification_hook_late(int owner, modification_hook *call_back);
 struct smatch_state *get_modification_state(struct expression *expr);

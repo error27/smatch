@@ -410,7 +410,7 @@ void __fake_struct_member_assignments(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
-	if (expr_is_zero(expr->right))
+	if (is_noderef_ptr(expr->right))
 		return;
 
 	left_type = get_type(expr->left);
