@@ -559,7 +559,7 @@ void register_param_key(int id)
 	my_id = id;
 
 	set_dynamic_states(my_id);
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook(my_id, &undef);
 }
 
