@@ -1175,24 +1175,32 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == sign_mask(size))	// (x <  SMAX) --> (x != SMAX)
 			return replace_opcode(insn, OP_SET_NE);
+		if (value == sign_bit(size) + 1)// (x < SMIN + 1) --> (x == SMIN)
+			return replace_binop_value(insn, OP_SET_EQ, sign_bit(size));
 		break;
 	case OP_SET_LE:
 		if (value == sign_mask(size))	// (x <= SMAX) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == sign_bit(size))	// (x <= SMIN) --> (x == SMIN)
 			return replace_opcode(insn, OP_SET_EQ);
+		if (value == sign_mask(size) - 1) // (x <= SMAX - 1) --> (x != SMAX)
+			return replace_binop_value(insn, OP_SET_NE, sign_mask(size));
 		break;
 	case OP_SET_GE:
 		if (value == sign_bit(size))	// (x >= SMIN) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == sign_mask(size))	// (x >= SMAX) --> (x == SMAX)
 			return replace_opcode(insn, OP_SET_EQ);
+		if (value == sign_bit(size) + 1)// (x >= SMIN + 1) --> (x != SMIN)
+			return replace_binop_value(insn, OP_SET_NE, sign_bit(size));
 		break;
 	case OP_SET_GT:
 		if (value == sign_mask(size))	// (x >  SMAX) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == sign_bit(size))	// (x >  SMIN) --> (x != SMIN)
 			return replace_opcode(insn, OP_SET_NE);
+		if (value == sign_mask(size) - 1) // (x > SMAX - 1) --> (x == SMAX)
+			return replace_binop_value(insn, OP_SET_EQ, sign_mask(size));
 		break;
 
 	case OP_SET_B:
