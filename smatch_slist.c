@@ -494,7 +494,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	if (result->state == two->state)
 		result->line = two->line;
 
-	if (debug_on(check_name(one->owner))) {
+	if (debug_on(check_name(one->owner), one->name)) {
 		struct sm_state *tmp;
 		int i = 0;
 

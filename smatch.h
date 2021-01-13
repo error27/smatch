@@ -214,7 +214,7 @@ extern int option_debug;
 extern int local_debug;
 extern int debug_db;
 bool debug_implied(void);
-bool debug_on(const char *check_name);
+bool debug_on(const char *check_name, const char *var);
 extern int option_info;
 extern int option_spammy;
 extern int option_print_names;
@@ -1067,6 +1067,7 @@ struct token *get_tokens_file(const char *filename);
 
 /* smatch.c */
 extern char *option_debug_check;
+extern char *option_debug_var;
 extern char *option_project_str;
 extern char *bin_dir;
 extern char *data_dir;

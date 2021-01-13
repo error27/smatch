@@ -23,6 +23,7 @@
 #include "check_list.h"
 
 char *option_debug_check;
+char *option_debug_var;
 char *option_project_str = (char *)"smatch_generic";
 static char *option_db_file = (char *)"smatch_db.sqlite";
 enum project_type option_project = PROJ_NONE;
