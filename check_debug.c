@@ -728,6 +728,27 @@ static void match_container(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static struct timeval debug_timer;
+static void match_timer_start(const char *fn, struct expression *expr, void *info)
+{
+	gettimeofday(&debug_timer, NULL);
+}
+
+static void match_timer_stop(const char *fn, struct expression *expr, void *info)
+{
+	struct timeval stop;
+	long sec, usec, msec;
+
+	gettimeofday(&stop, NULL);
+
+	sec = stop.tv_sec - debug_timer.tv_sec;
+	usec = stop.tv_usec - debug_timer.tv_usec;
+	msec = sec * 1000 + usec / 1000;
+
+	sm_msg("timer: %ld msec", msec);
+	gettimeofday(&debug_timer, NULL);
+}
+
 static void match_expr(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg, *str, *new;
@@ -856,6 +877,8 @@ void check_debug(int id)
 	add_function_hook("__smatch_mem", &match_mem, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
 	add_function_hook("__smatch_container", &match_container, NULL);
+	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
+	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);
