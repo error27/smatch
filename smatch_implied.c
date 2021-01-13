@@ -65,14 +65,14 @@ char *implied_debug_msg;
 
 bool implications_off;
 
-#define implied_debug 0
-#define DIMPLIED(msg...) do { if (implied_debug) printf(msg); } while (0)
+bool implied_debug;
+
+#define full_debug implied_debug
+#define DIMPLIED(msg...) do { if (full_debug) printf(msg); } while (0)
 
 bool debug_implied(void)
 {
-	if (option_debug)
-		return true;
-	return implied_debug;
+	return option_debug || implied_debug || full_debug;
 }
 
 /*
@@ -100,7 +100,7 @@ static const char *show_comparison(int op)
 
 static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 {
-	if (!implied_debug && !option_debug)
+	if (!full_debug && !option_debug && !implied_debug)
 		return;
 
 	if (istrue && isfalse) {
@@ -171,7 +171,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 		return 0;
 	}
 
-	if (implied_debug)
+	if (full_debug)
 		sm_msg("fake_history: %s vs %s.  %s %s %s. --> T: %s F: %s",
 		       sm->name, show_rl(rl), sm->state->name, show_comparison(comparison), show_rl(rl),
 		       show_rl(true_rl), show_rl(false_rl));
@@ -357,7 +357,7 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 	gettimeofday(&now, NULL);
 	timersub(&now, start_time, &diff);
 	if (diff.tv_sec >= 1) {
-		if (implied_debug) {
+		if (full_debug) {
 			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
 			       __func__, sm->state->name, show_comparison(comparison), show_rl(rl));
 		}
@@ -394,20 +394,20 @@ static void separate_pools(struct sm_state *sm, int comparison, struct range_lis
 	gettimeofday(&start_time, NULL);
 	__separate_pools(sm, comparison, rl, true_stack, &maybe_stack, false_stack, checked, mixed, sm, &start_time);
 
-	if (implied_debug) {
+	if (full_debug) {
 		struct sm_state *sm;
 
 		FOR_EACH_PTR(*true_stack, sm) {
-			sm_msg("TRUE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+			sm_msg("TRUE %s [stree %d %p]", show_sm(sm), get_stree_id(sm->pool), sm->pool);
 		} END_FOR_EACH_PTR(sm);
 
 		FOR_EACH_PTR(maybe_stack, sm) {
-			sm_msg("MAYBE %s %s[stree %d]",
-			       show_sm(sm), sm->merged ? "(merged) ": "", get_stree_id(sm->pool));
+			sm_msg("MAYBE %s %s[stree %d %p]",
+			       show_sm(sm), sm->merged ? "(merged) ": "", get_stree_id(sm->pool), sm->pool);
 		} END_FOR_EACH_PTR(sm);
 
 		FOR_EACH_PTR(*false_stack, sm) {
-			sm_msg("FALSE %s [stree %d]", show_sm(sm), get_stree_id(sm->pool));
+			sm_msg("FALSE %s [stree %d %p]", show_sm(sm), get_stree_id(sm->pool), sm->pool);
 		} END_FOR_EACH_PTR(sm);
 	}
 	/* if it's a maybe then remove it */
@@ -644,6 +644,18 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	}
 
 	separate_pools(sm, comparison, rl, &true_stack, &false_stack, NULL, mixed);
+
+	if (implied_debug) {
+		struct sm_state *sm;
+
+		FOR_EACH_PTR(true_stack, sm) {
+			sm_msg("TRUE POOL: %p", sm->pool);
+		} END_FOR_EACH_PTR(sm);
+
+		FOR_EACH_PTR(false_stack, sm) {
+			sm_msg("FALSE POOL: %p", sm->pool);
+		} END_FOR_EACH_PTR(sm);
+	}
 
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
@@ -970,7 +982,7 @@ static void set_implied_states(struct expression *expr)
 {
 	struct sm_state *sm;
 
-	if (implied_debug &&
+	if ((full_debug || implied_debug) &&
 	    (expr || saved_implied_true || saved_implied_false)) {
 		char *name;
 
@@ -1070,7 +1082,8 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 			continue;
 		}
 
-		// TODO why can't this just be __set_sm()?
+		// TODO why can't this just be __set_sm()?  Or alternatively,
+		// why is this not written to the "implied" stree?
 		__set_sm_fake_stree(tmp);
 	} END_FOR_EACH_SM(tmp);
 

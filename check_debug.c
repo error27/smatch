@@ -532,6 +532,16 @@ static void match_debug_db_off(const char *fn, struct expression *expr, void *in
 	debug_db = 0;
 }
 
+static void match_debug_implied_on(const char *fn, struct expression *expr, void *info)
+{
+	implied_debug = true;
+}
+
+static void match_debug_implied_off(const char *fn, struct expression *expr, void *info)
+{
+	implied_debug = false;
+}
+
 static void mtag_info(struct expression *expr)
 {
 	mtag_t tag = 0;
@@ -864,6 +874,8 @@ void check_debug(int id)
 	add_function_hook("__smatch_local_debug_off", &match_local_debug_off, NULL);
 	add_function_hook("__smatch_debug_db_on", &match_debug_db_on, NULL);
 	add_function_hook("__smatch_debug_db_off", &match_debug_db_off, NULL);
+	add_function_hook("__smatch_debug_implied_on", &match_debug_implied_on, NULL);
+	add_function_hook("__smatch_debug_implied_off", &match_debug_implied_off, NULL);
 	add_function_hook("__smatch_intersection", &match_intersection, NULL);
 	add_function_hook("__smatch_type", &match_type, NULL);
 	add_implied_return_hook("__smatch_type_rl_helper", &match_type_rl_return, NULL);

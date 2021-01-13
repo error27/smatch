@@ -213,6 +213,7 @@ extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
 extern int debug_db;
+extern bool implied_debug;
 bool debug_implied(void);
 bool debug_on(const char *check_name, const char *var);
 extern int option_info;
