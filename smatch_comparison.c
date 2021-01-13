@@ -2314,6 +2314,7 @@ static void print_return_value_comparison(int return_id, char *return_ranges, st
 	struct symbol *sym;
 	int param;
 	char info_buf[256];
+	bool is_addr = false;
 
 	/*
 	 * TODO: This only prints == comparisons. That's probably the most
@@ -2341,7 +2342,14 @@ static void print_return_value_comparison(int return_id, char *return_ranges, st
 	if (!tmp_name)
 		goto free;
 
-	snprintf(info_buf, sizeof(info_buf), "== $%d%s", param, tmp_name + 1);
+	if (tmp_name[0] == '&') {
+		tmp_name += 2;
+		is_addr = true;
+	} else {
+		tmp_name += 1;
+	}
+
+	snprintf(info_buf, sizeof(info_buf), "== %s$%d%s", is_addr ? "&" : "", param, tmp_name);
 	sql_insert_return_states(return_id, return_ranges,
 				PARAM_COMPARE, -1, "$", info_buf);
 free:
