@@ -238,6 +238,8 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 		param = get_param_key_from_sm(sm, NULL, &param_name);
 		if (param < 0 || !param_name)
 			continue;
+		if (param_name[0] == '&')
+			continue;
 		if (strcmp(param_name, "$") == 0 ||
 		    is_recursive_member(param_name) ||
 		    is_ignored_kernel_data(param_name)) {
