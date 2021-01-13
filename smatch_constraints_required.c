@@ -433,6 +433,8 @@ static void match_assign_constraint(struct expression *expr)
 	struct symbol *type;
 	char *left, *right;
 
+	if (__in_fake_struct_assign)
+		return;
 	if (expr->op != '=')
 		return;
 
