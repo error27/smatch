@@ -261,6 +261,8 @@ static void return_info_callback(int return_id, char *return_ranges,
 
 	if (param < -1 || sm->state != &capped)
 		return;
+	if (printed_name[0] == '&')
+		return;
 
 	estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
 	if (estate_get_single_value(estate, &sval))
