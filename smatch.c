@@ -40,6 +40,7 @@ int option_enable = 0;
 int option_disable = 0;
 int option_file_output;
 int option_time;
+int option_time_stmt;
 int option_mem;
 char *option_datadir_str;
 int option_fatal_checks;
@@ -243,6 +244,7 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(call_tree);
 		OPTION(file_output);
 		OPTION(time);
+		OPTION(time_stmt);
 		OPTION(mem);
 		OPTION(no_db);
 		OPTION(succeed);

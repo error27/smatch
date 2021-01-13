@@ -571,6 +571,7 @@ extern int option_two_passes;
 extern int option_no_db;
 extern int option_file_output;
 extern int option_time;
+extern int option_time_stmt;
 extern struct expression_list *big_expression_stack;
 extern struct expression_list *big_condition_stack;
 extern struct statement_list *big_statement_stack;

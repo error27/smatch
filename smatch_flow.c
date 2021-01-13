@@ -1102,6 +1102,9 @@ void __split_stmt(struct statement *stmt)
 {
 	static int indent_cnt;
 	sval_t sval;
+	struct timeval start, stop;
+
+	gettimeofday(&start, NULL);
 
 	if (!stmt)
 		goto out;
@@ -1113,14 +1116,12 @@ void __split_stmt(struct statement *stmt)
 		return;
 
 	if (out_of_memory() || taking_too_long()) {
-		struct timeval stop;
-
-		gettimeofday(&stop, NULL);
+		gettimeofday(&start, NULL);
 
 		__bail_on_rest_of_function = 1;
 		final_pass = 1;
 		sm_perror("Function too hairy.  Giving up. %lu seconds",
-		       stop.tv_sec - fn_start_time.tv_sec);
+		       start.tv_sec - fn_start_time.tv_sec);
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
 		return;
@@ -1268,6 +1269,12 @@ void __split_stmt(struct statement *stmt)
 
 out:
 	__process_post_op_stack();
+
+	gettimeofday(&stop, NULL);
+	if (option_time_stmt && stmt)
+		sm_msg("stmt_time%s: %ld",
+		       stmt->type == STMT_COMPOUND ? "_block" : "",
+		       stop.tv_sec - start.tv_sec);
 }
 
 static void split_expr_list(struct expression_list *expr_list, struct expression *parent)
