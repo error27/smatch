@@ -1786,7 +1786,8 @@ free:
 	free_string(one);
 	free_string(two);
 
-	extra = comparison_from_extra(a, b);
+	if (use_extra)
+		extra = comparison_from_extra(a, b);
 	return comparison_intersection(ret, extra);
 }
 
