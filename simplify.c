@@ -1225,12 +1225,14 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		switch (insn->opcode) {
 		case OP_SET_BE:
 			if (value >= sign_bit(osize)) {
+				insn->itype = def->orig_type;
 				replace_binop_value(insn, OP_SET_GE, 0);
 				return replace_pseudo(insn, &insn->src1, def->src);
 			}
 			break;
 		case OP_SET_A:
 			if (value >= sign_bit(osize)) {
+				insn->itype = def->orig_type;
 				replace_binop_value(insn, OP_SET_LT, 0);
 				return replace_pseudo(insn, &insn->src1, def->src);
 			}
