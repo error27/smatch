@@ -24,7 +24,7 @@ sub recurse($$)
     my $target = shift;
     my $found = 0;
 
-    if ($link =~ /$target/) {
+    if ($link =~ /^$target$/) {
         $param_map{$link}->{found} = $FOUND;
         return 1;
     }
