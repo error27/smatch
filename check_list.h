@@ -17,7 +17,7 @@ CK(register_modification_hooks)
  */
 CK(register_implications)
 CK(register_definition_db_callbacks)
-CK(register_project)
+CK(register_project)        /* has to be early to set up some global stuff */
 CK(register_untracked_param)
 CK(register_buf_comparison)
 CK(register_buf_comparison_links)
