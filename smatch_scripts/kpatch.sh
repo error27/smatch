@@ -14,7 +14,7 @@ continue_yn()
     echo -n "Do you want to fix these issues now? "
     read ans
     if ! echo $ans | grep -iq ^n ; then
-	exit 1;
+        exit 1;
     fi
 }
 
@@ -26,7 +26,7 @@ qc()
     echo -n "$msg:  "
     read ans
     if ! echo $ans | grep -qi ^y ; then
-	exit 1
+        exit 1
     fi
 }
 
