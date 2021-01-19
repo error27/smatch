@@ -1334,7 +1334,7 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 	char buf[64];
 	bool cast;
 
-	if (!expr)
+	if (!expr || !cur_func_sym)
 		return NULL;
 
 	if (expr->type == EXPR_ASSIGNMENT)
