@@ -403,16 +403,16 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr)
 	struct symbol *sym;
 	struct smatch_state *ret = NULL;
 
-	if (cur_func_sym && !cur_func_sym->parsed) {
-		fake_parent = expr_get_fake_parent_expr(expr);
-		if (fake_parent)
-			expr = fake_parent->left;
-	}
-
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
+	if ((!name || !sym) && cur_func_sym && cur_func_sym->parsed) {
+		fake_parent = expr_get_fake_parent_expr(expr);
+		if (!fake_parent)
+			goto free;
+		name = expr_to_var_sym(fake_parent->left, &sym);
+		if (!name || !sym)
+			goto free;
+	}
 	ret = get_state(owner, name, sym);
 free:
 	free_string(name);
