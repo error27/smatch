@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 //
-// optimize.c - main optimization loop
-//
 // Copyright (C) 2004 Linus Torvalds
 // Copyright (C) 2004 Christopher Li
+
+///
+// Optimization main loop
+// ----------------------
 
 #include <assert.h>
 #include "optimize.h"
 #include "flowgraph.h"
 #include "linearize.h"
 #include "liveness.h"
+#include "simplify.h"
 #include "flow.h"
 #include "cse.h"
 #include "ir.h"
@@ -34,6 +37,8 @@ static void clean_up_insns(struct entrypoint *ep)
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn;
 		FOR_EACH_PTR(bb->insns, insn) {
+			if (!insn->bb)
+				continue;
 			repeat_phase |= simplify_instruction(insn);
 			if (!insn->bb)
 				continue;
@@ -43,6 +48,14 @@ static void clean_up_insns(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 }
 
+static void cleanup_cfg(struct entrypoint *ep)
+{
+	kill_unreachable_bbs(ep);
+	domtree_build(ep);
+}
+
+///
+// optimization main loop
 void optimize(struct entrypoint *ep)
 {
 	if (fdump_ir & PASS_LINEARIZE)
@@ -53,6 +66,11 @@ void optimize(struct entrypoint *ep)
 	 * branches, kill dead basicblocks etc
 	 */
 	kill_unreachable_bbs(ep);
+	ir_validate(ep);
+
+	cfg_postorder(ep);
+	if (simplify_cfg_early(ep))
+		kill_unreachable_bbs(ep);
 	ir_validate(ep);
 
 	domtree_build(ep);
@@ -82,13 +100,11 @@ repeat:
 				kill_unreachable_bbs(ep);
 
 			cse_eliminate(ep);
-
-			if (repeat_phase & REPEAT_SYMBOL_CLEANUP)
-				simplify_memops(ep);
+			simplify_memops(ep);
 		} while (repeat_phase);
 		pack_basic_blocks(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
-			kill_unreachable_bbs(ep);
+			cleanup_cfg(ep);
 	} while (repeat_phase);
 
 	vrfy_flow(ep);
@@ -108,7 +124,7 @@ repeat:
 	if (simplify_flow(ep)) {
 		clear_liveness(ep);
 		if (repeat_phase & REPEAT_CFG_CLEANUP)
-			kill_unreachable_bbs(ep);
+			cleanup_cfg(ep);
 		goto repeat;
 	}
 

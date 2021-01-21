@@ -24,11 +24,11 @@ DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
 enum pseudo_type {
 	PSEUDO_VOID,
 	PSEUDO_UNDEF,
+	PSEUDO_PHI,
 	PSEUDO_REG,
+	PSEUDO_ARG,
 	PSEUDO_SYM,
 	PSEUDO_VAL,
-	PSEUDO_ARG,
-	PSEUDO_PHI,
 };
 
 struct pseudo {
@@ -117,11 +117,15 @@ struct instruction {
 		};
 		struct /* memops */ {
 			pseudo_t addr;			/* alias .src */
-			unsigned int offset;
+			long long offset;
 			unsigned int is_volatile:1;
 		};
 		struct /* binops and sel */ {
 			pseudo_t src1, src2, src3;
+		};
+		struct /* compare */ {
+			pseudo_t _src1, _src2;		// alias .src[12]
+			struct symbol *itype;		// input operands' type
 		};
 		struct /* slice */ {
 			pseudo_t base;
@@ -156,21 +160,19 @@ struct instruction_list;
 struct basic_block {
 	struct position pos;
 	unsigned long generation;
-	union {
-		int context;
-		int postorder_nr;	/* postorder number */
-		int dom_level;		/* level in the dominance tree */
-	};
 	struct entrypoint *ep;
 	struct basic_block_list *parents; /* sources */
 	struct basic_block_list *children; /* destinations */
 	struct instruction_list *insns;	/* Linear list of instructions */
 	struct basic_block *idom;	/* link to the immediate dominator */
+	unsigned int nr;		/* unique id for label's names */
+	int dom_level;			/* level in the dominance tree */
 	struct basic_block_list *doms;	/* list of BB idominated by this one */
-	struct phi_map *phi_map;
 	struct pseudo_list *needs, *defines;
 	union {
-		unsigned int nr;	/* unique id for label's names */
+		struct phi_map *phi_map;/* needed during SSA conversion */
+		int postorder_nr;	/* postorder number */
+		int context;		/* needed during context checking */
 		void *priv;
 	};
 };
@@ -245,6 +247,11 @@ static inline int has_use_list(pseudo_t p)
 	return (p && p->type != PSEUDO_VOID && p->type != PSEUDO_UNDEF && p->type != PSEUDO_VAL);
 }
 
+static inline bool has_definition(pseudo_t p)
+{
+	return p->type == PSEUDO_REG || p->type == PSEUDO_PHI;
+}
+
 static inline int pseudo_user_list_size(struct pseudo_user_list *list)
 {
 	return ptr_list_size((struct ptr_list *)list);
@@ -260,9 +267,9 @@ static inline int has_users(pseudo_t p)
 	return !pseudo_user_list_empty(p->users);
 }
 
-static inline bool multi_users(pseudo_t p)
+static inline bool one_use(pseudo_t p)
 {
-	return ptr_list_multiple((struct ptr_list *)(p->users));
+	return !ptr_list_multiple((struct ptr_list *)(p->users));
 }
 
 static inline int nbr_users(pseudo_t p)
@@ -322,8 +329,10 @@ pseudo_t undef_pseudo(void);
 struct entrypoint *linearize_symbol(struct symbol *sym);
 int unssa(struct entrypoint *ep);
 void show_entry(struct entrypoint *ep);
+void show_insn_entry(struct instruction *insn);
 const char *show_pseudo(pseudo_t pseudo);
 void show_bb(struct basic_block *bb);
+void show_insn_bb(struct instruction *insn);
 const char *show_instruction(struct instruction *insn);
 const char *show_label(struct basic_block *bb);
 

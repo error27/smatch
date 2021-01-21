@@ -16,7 +16,8 @@ static inline int __static_cpu_has(unsigned char bit)
 t_no:
        return 0;
 }
+
 /*
- *  check-name: Asm with goto labels.
+ * check-name: Asm with goto labels.
  */
 

@@ -80,6 +80,7 @@ extern unsigned long fpasses;
 extern int fpic;
 extern int fpie;
 extern int fshort_wchar;
+extern int funsigned_bitfields;
 extern int funsigned_char;
 
 extern int Waddress;
@@ -99,6 +100,10 @@ extern int Wdesignated_init;
 extern int Wdo_while;
 extern int Wenum_mismatch;
 extern int Wexternal_function_has_definition;
+extern int Wflexible_array_array;
+extern int Wflexible_array_nested;
+extern int Wflexible_array_sizeof;
+extern int Wflexible_array_union;
 extern int Wimplicit_int;
 extern int Winit_cstring;
 extern int Wint_to_pointer_cast;

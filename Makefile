@@ -1,4 +1,4 @@
-VERSION=0.6.2
+VERSION=0.6.3
 
 ########################################################################
 # The following variables can be overwritten from the command line
@@ -408,8 +408,8 @@ version.h: FORCE
 
 check: all
 	$(Q)cd validation && ./test-suite
-validation/%.t: $(PROGRAMS)
-	@validation/test-suite single $*.c
+validation/%: $(PROGRAMS) FORCE
+	$(Q)validation/test-suite $*
 
 
 clean: clean-check

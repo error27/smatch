@@ -81,6 +81,7 @@ unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
 int fshort_wchar = 0;
+int funsigned_bitfields = 0;
 int funsigned_char = 0;
 
 int Waddress = 0;
@@ -100,6 +101,10 @@ int Wdesignated_init = 1;
 int Wdo_while = 0;
 int Wenum_mismatch = 1;
 int Wexternal_function_has_definition = 1;
+int Wflexible_array_array = 1;
+int Wflexible_array_nested = 0;
+int Wflexible_array_sizeof = 0;
+int Wflexible_array_union = 0;
 int Wimplicit_int = 1;
 int Winit_cstring = 0;
 int Wint_to_pointer_cast = 1;
@@ -524,6 +529,8 @@ static struct flag fflags[] = {
 	{ "PIC",		&fpic,	handle_switch_setval, 2 },
 	{ "pie",		&fpie,	handle_switch_setval, 1 },
 	{ "PIE",		&fpie,	handle_switch_setval, 2 },
+	{ "signed-bitfields",	&funsigned_bitfields, NULL, OPT_INVERSE },
+	{ "unsigned-bitfields",	&funsigned_bitfields, NULL, },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },
 	{ "short-wchar",	&fshort_wchar },
 	{ "unsigned-char",	&funsigned_char, NULL, },
@@ -840,6 +847,10 @@ static const struct flag warnings[] = {
 	{ "do-while", &Wdo_while },
 	{ "enum-mismatch", &Wenum_mismatch },
 	{ "external-function-has-definition", &Wexternal_function_has_definition },
+	{ "flexible-array-array", &Wflexible_array_array },
+	{ "flexible-array-nested", &Wflexible_array_nested },
+	{ "flexible-array-sizeof", &Wflexible_array_sizeof },
+	{ "flexible-array-union", &Wflexible_array_union },
 	{ "implicit-int", &Wimplicit_int },
 	{ "init-cstring", &Winit_cstring },
 	{ "int-to-pointer-cast", &Wint_to_pointer_cast },

@@ -4,13 +4,10 @@ TODO
 Essential
 ---------
 * SSA is broken by simplify_loads() & branches rewriting/simplification
-* attributes of struct, union & enums are ignored (and possibly in other
-  cases too).
-* add support for bitwise enums
+* add support for bitwise enums (wip)
 
 Documentation
 -------------
-* document the extensions
 * document the API
 * document the limitations of modifying ptrlists during list walking
 * document the data structures
@@ -27,7 +24,7 @@ Core
 
 Testsuite
 ---------
-* there are more than 50 failing tests. They should be fixed
+* there are 60 failing tests. They should be fixed
   (but most are non-trivial to fix).
 
 Misc
@@ -36,15 +33,26 @@ Misc
 * parse __attribute_((fallthrough))
 * add support for format(printf())  (WIP by Ben Dooks)
 * make use of UNDEFs (issues warnings, simplification, ... ?)
-* add a pass to inline small functions during simplification.
+* make memory accesses more explicit: add EXPR_ACCESS (wip)
+* it would be nice to do our own parsing of floating point (wip)
+* some header files needed for crypto/ need __vector or __fp16
+* some even need __complex
 
 Optimization
 ------------
+* a lot of small simplifications are waiting to be upstreamed
+* the domtree need to be rebuilt (or updated)
+* critical edges need to be split
 * the current way of doing CSE uses a lot of time
 * add SSA based DCE
 * add SSA based PRE
 * Add SSA based SCCP
+* add a pass to inline small functions during simplification.
 * use better/more systematic use of internal verification framework
+* tracking of operands size should be improved (WIP)
+* OP_INLINE is sometimes in the way
+* would be nice to strictly separate phases that don't changes the
+  CFG and thus the dominance tree.
 
 IR
 --
@@ -60,13 +68,15 @@ LLVM
 
 Internal backends
 -----------------
-* add some basic register allocation
+* it would be nice the upstream the code generator
 * add a pass to transform 3-addresses code to 2-addresses
+* add some basic register allocation
+* add a pass to order the BBs and changes 2-ways CBR into one-way branches
 * what can be done for x86?
+* add support to add constraints in the MD rules
 
 Longer term/to investigate
 --------------------------
-* better architecture handling than current machine.h + target.c
 * attributes are represented as ctypes's alignment, modifiers & contexts
   but plenty of attributes doesn't fit, for example they need arguments.
   * format(printf, ...),

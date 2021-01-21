@@ -14,7 +14,49 @@
 #include "parse.h"
 #include "expression.h"
 #include "linearize.h"
+#include "simplify.h"
 #include "flow.h"
+
+/*
+ * We should probably sort the phi list just to make it easier to compare
+ * later for equality.
+ */
+static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
+{
+	pseudo_t new, phi;
+
+	/*
+	 * Check for somewhat common case of duplicate
+	 * phi nodes.
+	 */
+	new = first_pseudo(dominators)->def->phi_src;
+	FOR_EACH_PTR(dominators, phi) {
+		if (new != phi->def->phi_src)
+			goto complex_phi;
+		new->ident = new->ident ? : phi->ident;
+	} END_FOR_EACH_PTR(phi);
+
+	/*
+	 * All the same pseudo - mark the phi-nodes unused
+	 * and convert the load into a LNOP and replace the
+	 * pseudo.
+	 */
+	replace_with_pseudo(insn, new);
+	FOR_EACH_PTR(dominators, phi) {
+		kill_instruction(phi->def);
+	} END_FOR_EACH_PTR(phi);
+	goto end;
+
+complex_phi:
+	/* We leave symbol pseudos with a bogus usage list here */
+	if (insn->src->type != PSEUDO_SYM)
+		kill_use(&insn->src);
+	insn->opcode = OP_PHI;
+	insn->phi_list = dominators;
+
+end:
+	repeat_phase |= REPEAT_CSE;
+}
 
 static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
@@ -105,11 +147,13 @@ static void simplify_loads(struct basic_block *bb)
 			struct pseudo_list *dominators;
 			unsigned long generation;
 
-			/* Check for illegal offsets.. */
-			check_access(insn);
-
 			if (insn->is_volatile)
 				continue;
+
+			if (!has_users(insn->target)) {
+				kill_instruction(insn);
+				continue;
+			}
 
 			RECURSE_PTR_REVERSE(insn, dom) {
 				int dominance;
@@ -126,7 +170,7 @@ static void simplify_loads(struct basic_block *bb)
 					if (!compatible_loads(insn, dom))
 						goto next_load;
 					/* Yeehaa! Found one! */
-					convert_load_instruction(insn, dom->target);
+					replace_with_pseudo(insn, dom->target);
 					goto next_load;
 				}
 			} END_FOR_EACH_PTR_REVERSE(dom);
@@ -140,16 +184,18 @@ static void simplify_loads(struct basic_block *bb)
 				if (!dominators) {
 					if (local) {
 						assert(pseudo->type != PSEUDO_ARG);
-						convert_load_instruction(insn, value_pseudo(0));
+						replace_with_pseudo(insn, value_pseudo(0));
 					}
 					goto next_load;
 				}
 				rewrite_load_instruction(insn, dominators);
 			} else {	// cleanup pending phi-sources
+				int repeat = repeat_phase;
 				pseudo_t phi;
 				FOR_EACH_PTR(dominators, phi) {
 					kill_instruction(phi->def);
 				} END_FOR_EACH_PTR(phi);
+				repeat_phase = repeat;
 			}
 		}
 next_load:

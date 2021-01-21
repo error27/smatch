@@ -112,6 +112,7 @@ struct decl_state {
 	unsigned char prefer_abstract;
 	unsigned char autotype;
 	unsigned char forced;
+	unsigned char packed;
 };
 
 struct pseudo;
@@ -185,12 +186,14 @@ struct symbol {
 					examined:1,
 					expanding:1,
 					evaluated:1,
+					has_flex_array:1,
 					string:1,
 					designated_init:1,
 					forced_arg:1,
 					accessed:1,
 					builtin:1,
 					torename:1,
+					packed:1,
 					transparent_union:1;
 			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
@@ -298,14 +301,19 @@ extern struct symbol	bool_ctype, void_ctype, type_ctype,
 			incomplete_ctype, label_ctype, bad_ctype,
 			null_ctype;
 extern struct symbol	autotype_ctype;
+extern struct symbol	schar_ptr_ctype, short_ptr_ctype;
 extern struct symbol	int_ptr_ctype, uint_ptr_ctype;
 extern struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 extern struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
+extern struct symbol	size_t_ptr_ctype, intmax_ptr_ctype, ptrdiff_ptr_ctype;
 extern struct symbol	float32_ctype, float32x_ctype;
 extern struct symbol	float64_ctype, float64x_ctype;
 extern struct symbol	float128_ctype;
 extern struct symbol	const_void_ctype, const_char_ctype;
 extern struct symbol	const_ptr_ctype, const_string_ctype;
+extern struct symbol	const_wchar_ctype, const_wstring_ctype;
+extern struct symbol	volatile_void_ctype, volatile_ptr_ctype;
+extern struct symbol	volatile_bool_ctype, volatile_bool_ptr_ctype;
 
 /* Special internal symbols */
 extern struct symbol	zero_int;
@@ -335,7 +343,7 @@ extern const char *modifier_string(unsigned long mod);
 extern void show_symbol(struct symbol *);
 extern int show_symbol_expr_init(struct symbol *sym);
 extern void show_type_list(struct symbol *);
-extern void show_symbol_list(struct symbol_list *, const char *);
+extern void show_symbol_list(struct symbol_list *);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);
@@ -423,6 +431,20 @@ static inline int is_array_type(struct symbol *type)
 	return type->type == SYM_ARRAY;
 }
 
+static inline int is_struct_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_STRUCT;
+}
+
+static inline int is_union_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->type == SYM_UNION;
+}
+
 static inline int is_float_type(struct symbol *type)
 {
 	if (type->type == SYM_NODE)
@@ -506,6 +528,13 @@ static inline int is_extern_inline(struct symbol *sym)
 	return (sym->ctype.modifiers & MOD_EXTERN) &&
 		(sym->ctype.modifiers & MOD_INLINE) &&
 		is_function(sym->ctype.base_type);
+}
+
+static inline int has_flexible_array(struct symbol *type)
+{
+	if (type->type == SYM_NODE)
+		type = type->ctype.base_type;
+	return type->has_flex_array;
 }
 
 static inline int get_sym_type(struct symbol *type)

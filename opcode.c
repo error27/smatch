@@ -23,10 +23,11 @@
 #include "opcode.h"
 
 const struct opcode_table opcode_table[OP_LAST] = {
-#define OPCODE(OP,NG,SW,TF,N,FL)	\
+#define OPCODE(OP,NG,SW,SG,TF,N,FL)	\
 	[OP_##OP] = {			\
 		.negate   = OP_##NG,	\
 		.swap     = OP_##SW,	\
+		.sign     = OP_##SG,	\
 		.to_float = OP_##TF,	\
 		.arity    = N,		\
 		.flags    = FL,		\

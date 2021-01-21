@@ -6,10 +6,9 @@ int sext(int x)
 /*
  * check-name: sext
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
- * check-output-contains: sext\\.$27
- * check-output-excludes: asr\\.
- * check-output-excludes: shl\\.
+ * check-output-excludes: sext\\.
+ * check-output-contains: asr\\.32
+ * check-output-contains: shl\\.32
  */

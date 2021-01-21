@@ -1,12 +1,12 @@
-#define	__user		__attribute__((address_space(1)))
+#define	__as		__attribute__((address_space(__as)))
 
 struct s {
 	int i;
-} __user;
+} __as;
 
 
 extern void use0(void *);
-extern void use1(void __user *);
+extern void use1(void __as *);
 
 void main(void)
 {
@@ -24,10 +24,10 @@ void main(void)
  *
  * check-error-start
 type-attribute-as.c:16:15: warning: incorrect type in argument 1 (different address spaces)
-type-attribute-as.c:16:15:    expected void *<noident>
-type-attribute-as.c:16:15:    got struct s <asn:1>*<noident>
+type-attribute-as.c:16:15:    expected void *
+type-attribute-as.c:16:15:    got struct s __as *
 type-attribute-as.c:19:15: warning: incorrect type in argument 1 (different address spaces)
-type-attribute-as.c:19:15:    expected void <asn:1>*<noident>
-type-attribute-as.c:19:15:    got int *<noident>
+type-attribute-as.c:19:15:    expected void __as *
+type-attribute-as.c:19:15:    got int *
  * check-error-end
  */

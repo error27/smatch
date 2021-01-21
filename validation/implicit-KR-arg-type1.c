@@ -1,7 +1,13 @@
-int foo(a, b)
+static int foo(a, b)
 	int a;
 {
 	if (b)
+		return a;
+}
+
+static int bar(a)
+{
+	if (a)
 		return a;
 }
 
@@ -11,6 +17,7 @@ int foo(a, b)
  *
  * check-error-start
 implicit-KR-arg-type1.c:2:9: warning: non-ANSI definition of function 'foo'
-implicit-KR-arg-type1.c:1:12: error: missing type declaration for parameter 'b'
+implicit-KR-arg-type1.c:1:19: warning: missing type declaration for parameter 'b'
+implicit-KR-arg-type1.c:8:16: error: missing type declaration for parameter 'a'
  * check-error-end
  */

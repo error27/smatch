@@ -669,7 +669,7 @@ struct statement *alloc_statement(struct position pos, int type)
 
 static struct token *struct_declaration_list(struct token *token, struct symbol_list **list);
 
-static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype);
+static void apply_ctype(struct position pos, struct ctype *dst, struct ctype *src);
 
 static void apply_modifiers(struct position pos, struct decl_state *ctx)
 {
@@ -719,10 +719,11 @@ static struct token *struct_union_enum_specifier(enum type type,
 	struct token *token, struct decl_state *ctx,
 	struct token *(*parse)(struct token *, struct symbol *))
 {
+	struct decl_state attr = { };
 	struct symbol *sym;
 	struct position *repos;
 
-	token = handle_attributes(token, ctx);
+	token = handle_attributes(token, &attr);
 	if (token_type(token) == TOKEN_IDENT) {
 		sym = lookup_symbol(token->ident, NS_STRUCT);
 		if (!sym ||
@@ -738,40 +739,36 @@ static struct token *struct_union_enum_specifier(enum type type,
 		ctx->ctype.base_type = sym;
 		repos = &token->pos;
 		token = token->next;
-		if (match_op(token, '{')) {
-			struct decl_state attr = { .ctype.base_type = sym, };
+		if (!match_op(token, '{'))
+			return token;
 
-			// The following test is actually wrong for empty
-			// structs, but (1) they are not C99, (2) gcc does
-			// the same thing, and (3) it's easier.
-			if (sym->symbol_list)
-				error_die(token->pos, "redefinition of %s", show_typename (sym));
-			sym->pos = *repos;
-			token = parse(token->next, sym);
-			token = expect(token, '}', "at end of struct-union-enum-specifier");
+		// The following test is actually wrong for empty
+		// structs, but (1) they are not C99, (2) gcc does
+		// the same thing, and (3) it's easier.
+		if (sym->symbol_list)
+			error_die(token->pos, "redefinition of %s", show_typename (sym));
+		sym->pos = *repos;
 
-			token = handle_attributes(token, &attr);
-			apply_ctype(token->pos, &attr.ctype, &sym->ctype);
-
-			// Mark the structure as needing re-examination
-			sym->examined = 0;
-			sym->endpos = token->pos;
-		}
-		return token;
-	}
-
-	// private struct/union/enum type
-	if (!match_op(token, '{')) {
+		// Mark the structure as needing re-examination
+		sym->examined = 0;
+	} else if (match_op(token, '{')) {
+		// private struct/union/enum type
+		sym = alloc_symbol(token->pos, type);
+		set_current_scope(sym);		// used by dissect
+		ctx->ctype.base_type = sym;
+	} else {
 		sparse_error(token->pos, "expected declaration");
 		ctx->ctype.base_type = &bad_ctype;
 		return token;
 	}
 
-	sym = alloc_symbol(token->pos, type);
-	set_current_scope(sym);		// used by dissect
 	token = parse(token->next, sym);
-	ctx->ctype.base_type = sym;
-	token =  expect(token, '}', "at end of specifier");
+	token = expect(token, '}', "at end of specifier");
+	attr.ctype.base_type = sym;
+	token = handle_attributes(token, &attr);
+	apply_ctype(token->pos, &sym->ctype, &attr.ctype);
+	sym->packed = attr.packed;
+
 	sym->endpos = token->pos;
 
 	return token;
@@ -1050,8 +1047,6 @@ static struct token *enum_specifier(struct token *token, struct symbol *sym, str
 	return ret;
 }
 
-static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype);
-
 static struct token *typeof_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
 {
 
@@ -1063,7 +1058,7 @@ static struct token *typeof_specifier(struct token *token, struct symbol *sym, s
 		struct symbol *sym;
 		token = typename(token->next, &sym, NULL);
 		ctx->ctype.base_type = sym->ctype.base_type;
-		apply_ctype(token->pos, &sym->ctype, &ctx->ctype);
+		apply_ctype(token->pos, &ctx->ctype, &sym->ctype);
 	} else {
 		struct symbol *typeof_sym = alloc_symbol(token->pos, SYM_TYPEOF);
 		token = parse_expression(token->next, &typeof_sym->initializer);
@@ -1095,8 +1090,10 @@ static struct token *ignore_attribute(struct token *token, struct symbol *attr, 
 
 static struct token *attribute_packed(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	if (!ctx->ctype.alignment)
+	if (!ctx->ctype.alignment) {
 		ctx->ctype.alignment = 1;
+		ctx->packed = 1;
+	}
 	return token;
 }
 
@@ -1434,24 +1431,24 @@ static struct token *generic_qualifier(struct token *next, struct symbol *sym, s
 	return next;
 }
 
-static void apply_ctype(struct position pos, struct ctype *thistype, struct ctype *ctype)
+static void apply_ctype(struct position pos, struct ctype *dst, struct ctype *src)
 {
-	unsigned long mod = thistype->modifiers;
+	unsigned long mod = src->modifiers;
 
 	if (mod)
-		apply_qualifier(&pos, ctype, mod);
+		apply_qualifier(&pos, dst, mod);
 
 	/* Context */
-	concat_ptr_list((struct ptr_list *)thistype->contexts,
-	                (struct ptr_list **)&ctype->contexts);
+	concat_ptr_list((struct ptr_list *)src->contexts,
+	                (struct ptr_list **)&dst->contexts);
 
 	/* Alignment */
-	if (thistype->alignment > ctype->alignment)
-		ctype->alignment = thistype->alignment;
+	if (src->alignment > dst->alignment)
+		dst->alignment = src->alignment;
 
 	/* Address space */
-	if (thistype->as)
-		ctype->as = thistype->as;
+	if (src->as)
+		dst->as = src->as;
 }
 
 static void specifier_conflict(struct position pos, int what, struct ident *new)
@@ -1536,7 +1533,7 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 				break;
 			seen |= Set_S | Set_T;
 			ctx->ctype.base_type = s->ctype.base_type;
-			apply_ctype(token->pos, &s->ctype, &ctx->ctype);
+			apply_ctype(token->pos, &ctx->ctype, &s->ctype);
 			token = token->next;
 			continue;
 		}
@@ -2494,6 +2491,11 @@ static struct token *statement(struct token *token, struct statement **tree)
 					warn_label_usage(stmt->pos, s->label_pos, s->ident);
 			}
 			s->stmt = stmt;
+			if (match_op(token, '}')) {
+				warning(token->pos, "statement expected after label");
+				stmt->label_statement = alloc_statement(token->pos, STMT_NONE);
+				return token;
+			}
 			return statement(token, &stmt->label_statement);
 		}
 	}
@@ -2739,6 +2741,14 @@ static void declare_argument(struct symbol *sym, struct symbol *fn)
 		sparse_error(sym->pos, "no identifier for function argument");
 		return;
 	}
+	if (sym->ctype.base_type == &incomplete_ctype) {
+		sym->ctype.base_type = &int_ctype;
+
+		if (Wimplicit_int) {
+			sparse_error(sym->pos, "missing type declaration for parameter '%s'",
+				show_ident(sym->ident));
+		}
+	}
 	bind_symbol(sym, sym->ident, NS_SYMBOL);
 }
 
@@ -2862,7 +2872,7 @@ static void apply_k_r_types(struct symbol_list *argtypes, struct symbol *fn)
 				goto match;
 		} END_FOR_EACH_PTR(type);
 		if (Wimplicit_int) {
-			sparse_error(arg->pos, "missing type declaration for parameter '%s'",
+			warning(arg->pos, "missing type declaration for parameter '%s'",
 				show_ident(arg->ident));
 		}
 		type = alloc_symbol(arg->pos, SYM_NODE);

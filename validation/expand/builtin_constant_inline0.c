@@ -16,6 +16,7 @@ int foo(void)
 foo:
 .L0:
 	<entry-point>
+	# call      %r1 <- is_const, $42
 	ret.32      $42
 
 

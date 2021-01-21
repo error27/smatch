@@ -12,7 +12,6 @@ static _Bool ffun_e(void)  { return (_Bool)ffun; }
 /*
  * check-name: bool-cast-pointer
  * check-command: test-linearize -m32 -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: ptrtu\\.

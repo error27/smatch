@@ -27,6 +27,7 @@ foo0:
 .L0:
 	<entry-point>
 	add.32      %r5 <- %arg1, %arg2
+	# call      %r6 <- add, %r1, %r2
 	ret.32      %r5
 
 
@@ -34,12 +35,14 @@ foo1:
 .L3:
 	<entry-point>
 	add.32      %r10 <- %arg1, $1
+	# call      %r11 <- add, %r8, $1
 	ret.32      %r10
 
 
 foo2:
 .L6:
 	<entry-point>
+	# call      %r13 <- add, $1, $2
 	ret.32      $3
 
 

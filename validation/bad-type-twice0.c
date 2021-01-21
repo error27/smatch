@@ -7,7 +7,6 @@ static int foo(a)
  * check-name: bad-type-twice0
  *
  * check-error-start
-bad-type-twice0.c:3:16: error: non-scalar type in conditional:
-bad-type-twice0.c:3:16:    incomplete type a
+bad-type-twice0.c:1:16: error: missing type declaration for parameter 'a'
  * check-error-end
  */

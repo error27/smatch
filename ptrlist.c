@@ -7,6 +7,18 @@
 ///
 // Pointer list manipulation
 // -------------------------
+//
+// The data structure handled here is designed to hold pointers
+// but two special cases need to be avoided or need special care:
+// * NULL is used by {PREPARE,NEXT}_PTR_LIST() to indicate the end-of-list.
+//   Thus, NULL can't be stored in lists using this API but is fine to
+//   use with FOR_EACH_PTR() and its variants.
+// * VOID is used to replace a removed pseudo 'usage'. Since phi-nodes
+//   (OP_PHI) use a list to store their operands, a VOID in a phi-node
+//   list must be ignored since it represents a removed operand. As
+//   consequence, VOIDs must never be used as phi-node operand.
+//   This is fine since phi-nodes make no sense with void values
+//   but VOID is also used for invalid types and in case of errors.
 
 #include <stdlib.h>
 #include <string.h>

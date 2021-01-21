@@ -80,6 +80,10 @@ void cse_collect(struct instruction *insn)
 		hash += hashval(insn->src1);
 		break;
 
+	case OP_LABEL:
+		hash += hashval(insn->bb_true);
+		break;
+
 	case OP_SETVAL:
 		hash += hashval(insn->val);
 		break;
@@ -213,6 +217,11 @@ static int insn_compare(const void *_i1, const void *_i2)
 	case OP_SYMADDR:
 		if (i1->src1 != i2->src1)
 			return i1->src1 < i2->src1 ? -1 : 1;
+		break;
+
+	case OP_LABEL:
+		if (i1->bb_true != i2->bb_true)
+			return i1->bb_true < i2->bb_true ? -1 : 1;
 		break;
 
 	case OP_SETVAL:

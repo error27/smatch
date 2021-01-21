@@ -23,6 +23,6 @@ do_trace:
 }
 
 /*
- *  check-name: Asm with goto labels.
+ * check-name: Asm with goto labels.
  */
 

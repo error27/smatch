@@ -1,4 +1,4 @@
-#define	__aligned(N)	__attribute__((aligned(N)))
+#define __aligned(N)	__attribute__((aligned(N)))
 #define alignof(X)	__alignof__(X)
 
 struct s {

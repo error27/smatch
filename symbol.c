@@ -87,6 +87,9 @@ struct struct_union_info {
 	unsigned long max_align;
 	unsigned long bit_size;
 	int align_size;
+	char has_flex_array;
+	bool packed;
+	struct symbol *flex_array;
 };
 
 /*
@@ -94,13 +97,8 @@ struct struct_union_info {
  */
 static void lay_out_union(struct symbol *sym, struct struct_union_info *info)
 {
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
+	if (sym->bit_size < 0 && is_array_type(sym))
+		sparse_error(sym->pos, "flexible array member '%s' in a union", show_ident(sym->ident));
 
 	if (sym->bit_size > info->bit_size)
 		info->bit_size = sym->bit_size;
@@ -123,29 +121,25 @@ static int bitfield_base_size(struct symbol *sym)
 static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 {
 	unsigned long bit_size, align_bit_mask;
+	unsigned long alignment;
 	int base_size;
-
-	examine_symbol_type(sym);
-
-	// Unnamed bitfields do not affect alignment.
-	if (sym->ident || !is_bitfield_type(sym)) {
-		if (sym->ctype.alignment > info->max_align)
-			info->max_align = sym->ctype.alignment;
-	}
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
 
 	/*
-	 * Unsized arrays cause us to not align the resulting
-	 * structure size
+	 * If the member is unsized, either it's a flexible array or
+	 * it's invalid and a warning has already been issued.
 	 */
 	if (base_size < 0) {
-		info->align_size = 0;
+		if (!is_array_type(sym))
+			return;
 		base_size = 0;
+		info->flex_array = sym;
 	}
 
-	align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
+	alignment = info->packed ? 1 : sym->ctype.alignment;
+	align_bit_mask = bytes_to_bits(alignment) - 1;
 
 	/*
 	 * Bitfields have some very special rules..
@@ -156,7 +150,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		// Zero-width fields just fill up the unit.
 		int width = base_size ? : (bit_offset ? room : 0);
 
-		if (width > room) {
+		if (width > room && !info->packed) {
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
@@ -166,6 +160,8 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->bit_size = bit_size + width;
 		// warning (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
 
+		if (info->packed && sym->type == SYM_NODE)
+			sym->packed = 1;
 		return;
 	}
 
@@ -182,6 +178,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 static struct symbol * examine_struct_union_type(struct symbol *sym, int advance)
 {
 	struct struct_union_info info = {
+		.packed = sym->packed,
 		.max_align = 1,
 		.bit_size = 0,
 		.align_size = 1
@@ -196,6 +193,20 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
 			member->ctype.base_type = &incomplete_ctype;
 		}
+		if (info.flex_array)
+			sparse_error(info.flex_array->pos, "flexible array member '%s' is not last", show_ident(info.flex_array->ident));
+		examine_symbol_type(member);
+
+		if (member->ctype.alignment > info.max_align && !sym->packed) {
+			// Unnamed bitfields do not affect alignment.
+			if (member->ident || !is_bitfield_type(member))
+				info.max_align = member->ctype.alignment;
+		}
+
+		if (has_flexible_array(member))
+			info.has_flex_array = 1;
+		if (has_flexible_array(member) && Wflexible_array_nested)
+			warning(member->pos, "nested flexible array");
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
@@ -206,6 +217,11 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		bit_align = bytes_to_bits(sym->ctype.alignment)-1;
 		bit_size = (bit_size + bit_align) & ~bit_align;
 	}
+	if (info.flex_array) {
+		info.has_flex_array = 1;
+	}
+	if (info.has_flex_array && (!is_union_type(sym) || Wflexible_array_union))
+		sym->has_flex_array = 1;
 	sym->bit_size = bit_size;
 	return sym;
 }
@@ -261,6 +277,8 @@ static struct symbol * examine_array_type(struct symbol *sym)
 			bit_size = -1;
 		}
 	}
+	if (has_flexible_array(base_type) && Wflexible_array_array)
+		warning(sym->pos, "array of flexible structures");
 	alignment = base_type->ctype.alignment;
 	if (!sym->ctype.alignment)
 		sym->ctype.alignment = alignment;
@@ -286,8 +304,8 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 		sym->ctype.alignment = alignment;
 	modifiers = base_type->ctype.modifiers;
 
-	/* Bitfields are unsigned, unless the base type was explicitly signed */
-	if (!(modifiers & MOD_EXPLICITLY_SIGNED))
+	/* use -funsigned-bitfields to determine the sign if not explicit */
+	if (!(modifiers & MOD_EXPLICITLY_SIGNED) && funsigned_bitfields)
 		modifiers = (modifiers & ~MOD_SIGNED) | MOD_UNSIGNED;
 	sym->ctype.modifiers |= modifiers & MOD_SIGNEDNESS;
 	return sym;
@@ -782,14 +800,19 @@ struct symbol	bool_ctype, void_ctype, type_ctype,
 		incomplete_ctype, label_ctype, bad_ctype,
 		null_ctype;
 struct symbol	autotype_ctype;
+struct symbol	schar_ptr_ctype, short_ptr_ctype;
 struct symbol	int_ptr_ctype, uint_ptr_ctype;
 struct symbol	long_ptr_ctype, ulong_ptr_ctype;
 struct symbol	llong_ptr_ctype, ullong_ptr_ctype;
+struct symbol	size_t_ptr_ctype, intmax_ptr_ctype, ptrdiff_ptr_ctype;
 struct symbol	float32_ctype, float32x_ctype;
 struct symbol	float64_ctype, float64x_ctype;
 struct symbol	float128_ctype;
 struct symbol	const_void_ctype, const_char_ctype;
 struct symbol	const_ptr_ctype, const_string_ctype;
+struct symbol	const_wchar_ctype, const_wstring_ctype;
+struct symbol	volatile_void_ctype, volatile_ptr_ctype;
+struct symbol	volatile_bool_ctype, volatile_bool_ptr_ctype;
 
 struct symbol	zero_int;
 
@@ -881,17 +904,28 @@ static const struct ctype_declare {
 	{ &null_ctype,         T_PTR(&void_ctype) },
 	{ &label_ctype,        T_PTR(&void_ctype) },
 	{ &lazy_ptr_ctype,     T_PTR(&void_ctype) },
+	{ &schar_ptr_ctype,    T_PTR(&schar_ctype) },
+	{ &short_ptr_ctype,    T_PTR(&short_ctype) },
 	{ &int_ptr_ctype,      T_PTR(&int_ctype) },
 	{ &uint_ptr_ctype,     T_PTR(&uint_ctype) },
 	{ &long_ptr_ctype,     T_PTR(&long_ctype) },
 	{ &ulong_ptr_ctype,    T_PTR(&ulong_ctype) },
 	{ &llong_ptr_ctype,    T_PTR(&llong_ctype) },
 	{ &ullong_ptr_ctype,   T_PTR(&ullong_ctype) },
+	{ &size_t_ptr_ctype,   T_PTR(&void_ctype) },	// will be adjusted
+	{ &intmax_ptr_ctype,   T_PTR(&void_ctype) },	// will be adjusted
+	{ &ptrdiff_ptr_ctype,  T_PTR(&void_ctype) },	// will be adjusted
 	{ &const_ptr_ctype,    T_PTR(&const_void_ctype) },
 	{ &const_string_ctype, T_PTR(&const_char_ctype) },
+	{ &const_wstring_ctype,T_PTR(&const_wchar_ctype) },
 
 	{ &const_void_ctype,   T_CONST(&void_ctype, NULL, NULL) },
 	{ &const_char_ctype,   T_CONST(&char_ctype, &bits_in_char, &max_int_alignment)},
+	{ &const_wchar_ctype,  T_CONST(&int_ctype, NULL, NULL) },
+	{ &volatile_void_ctype,T_NODE(MOD_VOLATILE, &void_ctype, NULL, NULL) },
+	{ &volatile_ptr_ctype, T_PTR(&volatile_void_ctype) },
+	{ &volatile_bool_ctype,T_NODE(MOD_VOLATILE, &bool_ctype, NULL, NULL) },
+	{ &volatile_bool_ptr_ctype, T_PTR(&volatile_bool_ctype) },
 	{ NULL, }
 };
 
@@ -936,4 +970,13 @@ void init_ctype(void)
 		intptr_ctype = ssize_t_ctype;
 	if (!uintptr_ctype)
 		uintptr_ctype = size_t_ctype;
+
+	size_t_ptr_ctype.ctype.base_type = size_t_ctype;
+	intmax_ptr_ctype.ctype.base_type = intmax_ctype;
+	ptrdiff_ptr_ctype.ctype.base_type = ptrdiff_ctype;
+
+	const_wchar_ctype.ctype.base_type = wchar_ctype;
+	const_wchar_ctype.rank = wchar_ctype->rank;
+	const_wchar_ctype.ctype.alignment = wchar_ctype->ctype.alignment;
+	const_wchar_ctype.bit_size = wchar_ctype->bit_size;
 }

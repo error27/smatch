@@ -88,6 +88,19 @@ Tag's syntax
 	of the number of times the pattern should occur in the output.
 	If *min* or *max* is ``-`` the corresponding check is ignored.
 
+``check-output-match(``\ *start*\ ``):`` *pattern*
+
+	Check that in the output (stdout) all lines starting with the
+	first pattern also contains the second pattern. This should be
+	reserved for matching IR instructions since the '.$size' suffix
+	is ignored in the first pattern but is expected to be followed
+	by a space character.
+
+``check-output-returns:`` *value*
+
+	Check that in the output (stdout) all IR return instructions
+	have the given value.
+
 Using test-suite
 ================
 

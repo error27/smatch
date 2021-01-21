@@ -9,6 +9,6 @@ int foo(int a, int b, int c)
  * check-name: cond-expr
  * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
  * check-output-ignore
- * check-output-pattern(2): phi\\.
- * check-output-pattern(3): phisrc\\.
+ * check-output-pattern(1): phi\\.
+ * check-output-pattern(2): phisrc\\.
  */

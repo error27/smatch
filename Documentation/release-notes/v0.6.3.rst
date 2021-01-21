@@ -1,5 +1,56 @@
-v0.6.3 (2020-xx-xy)
+v0.6.3 (2020-10-17)
 ===================
 
-* Changes in warnings:
-    "warning: cast to union type" [disable with -Wno-union-cast]
+Bug fixes:
+  * fix missing inlining of _Generic expression
+  * fix evaluation error with assignment of qualified arrays
+  * delay 'empty character constant' warning to phase 5
+  * simplify & fix parsing of array declarators
+  * accept whitespace after option -U
+  * teach dissect about _Generic
+  * reset locale after gtk_init() to workaround problems with strtold()
+  * fix linearization of shift-assign
+  * force to 0 expressions which are erroneously non-constant
+  * fix evaluate_ptr_add() when sizeof(offset) != sizeof(pointer)
+  * fix access to defining instruction in simplify_unop()
+  * fix evaluation of pointer to bool conversions
+  * fix usual conversion of integers
+  * fix null pointer deref on return expression with invalid type
+
+New features:
+  * add support for arch specific asm constraints
+  * add memory asm constraint for PPC & S390
+  * prepend diagnostics with source's path and include chain
+  * add support for h8300, microblaze, nds32, openrisc, sh & xtensa
+  * add support for '-march=....' and use it for riscv
+  * add an option to specify the OS: --os=$OS
+  * add predefines for OS identification
+  * add predefines for __INT_LEAST${N}_TYPE__ & __INT_FAST${N}_TYPE__
+  * document the sparse's extensions
+  * sindex/semind: allow indexing outside the project tree
+  * rename tool 'sindex' to 'semind'
+  * add builtin support for __sync_{bool,val}_compare_and_swap()
+  * add support for wide strings
+  * union-cast: teach sparse about union casts
+  * add support for a new instruction: OP_FMADD
+  * add various warnings for dangerous usage of flexible array members
+  * add builtin support for  __builtin_ia32_pause()
+
+Misc changes:
+  * cleanup the handling of options flags
+  * avoid multiple warnings when inlining undeclared calls
+  * small fixes for alpha, arm, nios2, ppc, sparc & x86
+  * add missing predefines for endianness on arm, arm64, mips
+  * add various missing arch-specific predefines
+  * add the predefines '__cdecl', ... on cygwin
+  * warn on empty assignments & initializations
+  * reorganize the keyword parsing table
+  * the message in _Static_assert() is now optional (C2x)
+  * small fixes & improvement to the [online] documentation
+  * allow [*] in array declarators
+  * do not accept comma expressions in array declarator
+  * simplify parsing of attributes & storage class
+  * bad-shift: wait dead code elimination to warn about bad shifts
+  * fix is_scalar_type(): fouled types are scalars too
+  * better support for linearization of builtins
+  * remove definition of removed OP_{AND,OR}_BOOL

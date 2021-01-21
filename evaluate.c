@@ -61,6 +61,20 @@ static inline int valid_subexpr_type(struct expression *expr)
 	    && valid_expr_type(expr->right);
 }
 
+static struct symbol *unqualify_type(struct symbol *ctype)
+{
+	if (!ctype)
+		return ctype;
+	if (ctype->type == SYM_NODE && (ctype->ctype.modifiers & MOD_QUALIFIER)) {
+		struct symbol *unqual = alloc_symbol(ctype->pos, 0);
+
+		*unqual = *ctype;
+		unqual->ctype.modifiers &= ~MOD_QUALIFIER;
+		return unqual;
+	}
+	return ctype;
+}
+
 static struct symbol *evaluate_symbol_expression(struct expression *expr)
 {
 	struct expression *addr;
@@ -164,49 +178,52 @@ static inline struct symbol *integer_promotion(struct symbol *type)
 }
 
 /*
- * integer part of usual arithmetic conversions:
- *	integer promotions are applied
- *	if left and right are identical, we are done
- *	if signedness is the same, convert one with lower rank
- *	unless unsigned argument has rank lower than signed one, convert the
- *	signed one.
- *	if signed argument is bigger than unsigned one, convert the unsigned.
- *	otherwise, convert signed.
- *
- * Leaving aside the integer promotions, that is equivalent to
- *	if identical, don't convert
- *	if left is bigger than right, convert right
- *	if right is bigger than left, convert right
- *	otherwise, if signedness is the same, convert one with lower rank
- *	otherwise convert the signed one.
+ * After integer promotons:
+ * If both types are the same
+ *   -> no conversion needed
+ * If the types have the same signedness (their rank must be different)
+ *   -> convert to the type of the highest rank
+ * If rank(unsigned type) >= rank(signed type)
+ *   -> convert to the unsigned type
+ * If size(signed type) > size(unsigned type)
+ *   -> convert to the signed type
+ * Otherwise
+ *   -> convert to the unsigned type corresponding to the signed type.
  */
 static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 {
+	static struct symbol *unsigned_types[] = {
+		[0] = &uint_ctype,
+		[1] = &ulong_ctype,
+		[2] = &ullong_ctype,
+		[3] = &uint128_ctype,
+	};
 	unsigned long lmod, rmod;
+	struct symbol *stype, *utype;
 
 	left = integer_promotion(left);
 	right = integer_promotion(right);
 
 	if (left == right)
-		goto left;
-
-	if (left->bit_size > right->bit_size)
-		goto left;
-
-	if (right->bit_size > left->bit_size)
-		goto right;
+		return left;
 
 	lmod = left->ctype.modifiers;
 	rmod = right->ctype.modifiers;
-	if ((lmod ^ rmod) & MOD_UNSIGNED) {
-		if (lmod & MOD_UNSIGNED)
-			goto left;
-	} else if (left->rank > right->rank)
-		goto left;
-right:
-	left = right;
-left:
-	return left;
+	if (((lmod ^ rmod) & MOD_UNSIGNED) == 0)
+		return (left->rank > right->rank) ? left : right;
+	if (lmod & MOD_UNSIGNED) {
+		utype = left;
+		stype = right;
+	} else {
+		stype = left;
+		utype = right;
+	}
+	if (utype->rank >= stype->rank)
+		return utype;
+	if (stype->bit_size > utype->bit_size)
+		return stype;
+	utype = unsigned_types[stype->rank];
+	return utype;
 }
 
 static int same_cast_type(struct symbol *orig, struct symbol *new)
@@ -1011,7 +1028,7 @@ static struct symbol *evaluate_binop(struct expression *expr)
 
 static struct symbol *evaluate_comma(struct expression *expr)
 {
-	expr->ctype = degenerate(expr->right);
+	expr->ctype = unqualify_type(degenerate(expr->right));
 	if (expr->ctype == &null_ctype)
 		expr->ctype = &ptr_ctype;
 	expr->flags &= expr->left->flags & expr->right->flags;
@@ -1784,6 +1801,8 @@ static struct symbol *degenerate(struct expression *expr)
 			expression_error(expr, "strange non-value function or array");
 			return &bad_ctype;
 		}
+		if (ctype->builtin)
+			sparse_error(expr->pos, "taking the address of built-in function '%s'", show_ident(ctype->ident)); 
 		*expr = *expr->unop;
 		ctype = create_pointer(expr, ctype, 1);
 		expr->ctype = ctype;
@@ -1804,6 +1823,8 @@ static struct symbol *evaluate_addressof(struct expression *expr)
 		return NULL;
 	}
 	ctype = op->ctype;
+	if (ctype->builtin)
+		sparse_error(expr->pos, "taking the address of built-in function '%s'", show_ident(ctype->ident));
 	*expr = *op->unop;
 
 	mark_addressable(expr);
@@ -1900,8 +1921,7 @@ static struct symbol *evaluate_postop(struct expression *expr)
 		return NULL;
 	}
 
-	if ((class & TYPE_RESTRICT) && restricted_unop(expr->op, &ctype))
-		unrestrict(expr, class, &ctype);
+	unrestrict(expr, class, &ctype);
 
 	if (class & TYPE_NUM) {
 		multiply = 1;
@@ -2252,6 +2272,9 @@ static struct symbol *evaluate_sizeof(struct expression *expr)
 			warning(expr->pos, "expression using sizeof on a function");
 		size = bits_in_char;
 	}
+
+	if (has_flexible_array(type) && Wflexible_array_sizeof)
+		warning(expr->pos, "using sizeof on a flexible structure");
 
 	if (is_array_type(type) && size < 0) {	// VLA, 1-dimension only
 		struct expression *base, *size;
@@ -2883,6 +2906,8 @@ static struct symbol *cast_to_bool(struct expression *expr)
 		return NULL;
 
 	zero = alloc_const_expression(expr->pos, 0);
+	if (oclass & TYPE_PTR)
+		zero->ctype = otype;
 	expr->op = SPECIAL_NOTEQUAL;
 	ctype = usual_conversions(expr->op, old, zero,
 			oclass, TYPE_NUM, otype, zero->ctype);
@@ -3013,6 +3038,7 @@ static struct symbol *evaluate_cast(struct expression *expr)
 		return evaluate_compound_literal(expr, source);
 
 	ctype = examine_symbol_type(expr->cast_type);
+	ctype = unqualify_type(ctype);
 	expr->ctype = ctype;
 	expr->cast_type = ctype;
 
@@ -3603,7 +3629,7 @@ static struct symbol *evaluate_return_expression(struct statement *stmt)
 	fntype = current_fn->ctype.base_type;
 	rettype = fntype->ctype.base_type;
 	if (!rettype || rettype == &void_ctype) {
-		if (expr && !is_void_type(expr->ctype))
+		if (expr && expr->ctype && !is_void_type(expr->ctype))
 			expression_error(expr, "return expression in %s function", rettype?"void":"typeless");
 		if (expr && Wreturn_void)
 			warning(stmt->pos, "returning void-valued expression");
@@ -3923,7 +3949,7 @@ struct symbol *evaluate_statement(struct statement *stmt)
 			return NULL;
 		if (stmt->expression->ctype == &null_ctype)
 			stmt->expression = cast_to(stmt->expression, &ptr_ctype);
-		return degenerate(stmt->expression);
+		return unqualify_type(degenerate(stmt->expression));
 
 	case STMT_COMPOUND: {
 		struct statement *s;

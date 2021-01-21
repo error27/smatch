@@ -228,8 +228,9 @@ def convert_to_rst(info):
 		if 'short' in info:
 			(n, l) = info['short']
 			l = l[0].capitalize() + l[1:].strip('.')
-			l = '\t' + l + '.'
-			lst.append((n, l + '\n'))
+			if l[-1] != '?':
+				l = l + '.'
+			lst.append((n, '\t' + l + '\n'))
 		if 'tags' in info:
 			for (n, name, l) in info.get('tags', []):
 				if name != 'return':
