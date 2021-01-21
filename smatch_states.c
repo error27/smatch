@@ -405,7 +405,7 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr)
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
-	if ((!name || !sym) && cur_func_sym && cur_func_sym->parsed) {
+	if ((!name || !sym) && cur_func_sym && !cur_func_sym->parsed) {
 		fake_parent = expr_get_fake_parent_expr(expr);
 		if (!fake_parent)
 			goto free;
