@@ -454,6 +454,13 @@ static inline pseudo_t is_same_op(pseudo_t src, int op, unsigned osize)
 	return def->src;
 }
 
+static bool is_negate_of(pseudo_t p, pseudo_t ref)
+{
+	struct instruction *def;
+
+	return (DEF_OPCODE(def, p) == OP_NEG) && (def->src == ref);
+}
+
 ///
 // replace the operand of an instruction
 // @insn: the instruction
@@ -2308,6 +2315,13 @@ static int simplify_select(struct instruction *insn)
 		// SEL(x {<,<=} y, a, b) --> SEL(x {>=,>} y, b, a)
 		def->opcode = opcode_negate(def->opcode);
 		return switch_pseudo(insn, &insn->src2, insn, &insn->src3);
+	case OP_SET_GT:
+		if (one_use(cond) && is_zero(def->src2)) {
+			if (is_negate_of(src2, src1))
+				// SEL(x > 0, a, -a) --> SEL(x >= 0, a, -a)
+				return replace_opcode(def, OP_SET_GE);
+		}
+		break;
 	case OP_SEL:
 		if (constant(def->src2) && constant(def->src3)) {
 			// Is the def of the conditional another select?
