@@ -2301,6 +2301,13 @@ static int simplify_select(struct instruction *insn)
 		if (src2 == def->src1 && src1 == def->src2)
 			return replace_with_pseudo(insn, src1); // SEL(y!=x,x,y) --> x
 		break;
+	case OP_SET_LE: case OP_SET_LT:
+	case OP_SET_BE: case OP_SET_B:
+		if (!one_use(cond))
+			break;
+		// SEL(x {<,<=} y, a, b) --> SEL(x {>=,>} y, b, a)
+		def->opcode = opcode_negate(def->opcode);
+		return switch_pseudo(insn, &insn->src2, insn, &insn->src3);
 	case OP_SEL:
 		if (constant(def->src2) && constant(def->src3)) {
 			// Is the def of the conditional another select?

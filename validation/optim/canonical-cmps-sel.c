@@ -19,7 +19,6 @@ _Bool sel_leu(unsigned int a, unsigned int b, int x, int y)
 /*
  * check-name: canonical-cmps-sel
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
