@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -175,6 +176,31 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	// warning (sym->pos, "regular: offset=%d", sym->offset);
 }
 
+///
+// propagate properties of anonymous structs or unions into their members.
+//
+// :note: GCC seems to only propagate the qualifiers.
+// :note: clang doesn't propagate anything at all.
+static void examine_anonymous_member(struct symbol *sym)
+{
+	unsigned long mod = sym->ctype.modifiers & MOD_QUALIFIER;
+	struct symbol *sub;
+
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
+	if (sym->type != SYM_STRUCT && sym->type != SYM_UNION)
+		return;
+
+	FOR_EACH_PTR(sym->symbol_list, sub) {
+		assert(sub->type == SYM_NODE);
+		sub->ctype.modifiers |= mod;
+
+		// if nested, propagate all the way down
+		if (!sub->ident)
+			examine_anonymous_member(sub);
+	} END_FOR_EACH_PTR(sub);
+}
+
 static struct symbol * examine_struct_union_type(struct symbol *sym, int advance)
 {
 	struct struct_union_info info = {
@@ -196,6 +222,8 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		if (info.flex_array)
 			sparse_error(info.flex_array->pos, "flexible array member '%s' is not last", show_ident(info.flex_array->ident));
 		examine_symbol_type(member);
+		if (!member->ident)
+			examine_anonymous_member(member);
 
 		if (member->ctype.alignment > info.max_align && !sym->packed) {
 			// Unnamed bitfields do not affect alignment.
