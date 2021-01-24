@@ -1606,6 +1606,8 @@ static inline bool can_move_to(pseudo_t src, struct instruction *dst)
 		return true;
 
 	def = src->def;
+	if (dst == def)
+		return false;
 	bbs = def->bb;
 	bbd = dst->bb;
 	if (bbs == bbd)
