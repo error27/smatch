@@ -2068,7 +2068,7 @@ static int simplify_memop(struct instruction *insn)
 static int simplify_cast(struct instruction *insn)
 {
 	unsigned long long mask;
-	struct instruction *def;
+	struct instruction *def, *def2;
 	pseudo_t src = insn->src;
 	pseudo_t val;
 	int osize;
@@ -2165,6 +2165,17 @@ static int simplify_cast(struct instruction *insn)
 		case OP_TRUNC:
 			insn->orig_type = def->orig_type;
 			return replace_pseudo(insn, &insn->src1, def->src);
+		case OP_SEXT:
+			if (size != def->orig_type->bit_size)
+				break;
+			if (DEF_OPCODE(def2, def->src) != OP_LSR)
+				break;
+			if (def2->src2 != value_pseudo(size - def->size))
+				break;
+			// SEXT(TRUNC(LSR(x, N))) --> ASR(x, N)
+			insn->opcode = OP_ASR;
+			insn->src2 = def2->src2;
+			return replace_pseudo(insn, &insn->src1, def2->src1);
 		case OP_ZEXT:
 			if (size != def->orig_type->bit_size)
 				break;
