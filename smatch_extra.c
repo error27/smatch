@@ -1620,18 +1620,18 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	case SPECIAL_UNSIGNED_LT:
 	case SPECIAL_UNSIGNED_LTE:
 	case SPECIAL_LTE:
-		if (get_implied_value(right, &dummy) && !in_macro(left, right))
+		if (get_hard_max(right, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(left_true_state);
-		if (get_implied_value(left, &dummy) && !in_macro(left, right))
+		if (get_hard_max(left, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(right_false_state);
 		break;
 	case '>':
 	case SPECIAL_UNSIGNED_GT:
 	case SPECIAL_UNSIGNED_GTE:
 	case SPECIAL_GTE:
-		if (get_implied_value(left, &dummy) && !in_macro(left, right))
+		if (get_hard_max(left, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(right_true_state);
-		if (get_implied_value(right, &dummy) && !in_macro(left, right))
+		if (get_hard_max(right, &dummy) && !in_macro(left, right))
 			estate_set_hard_max(left_false_state);
 		break;
 	}
