@@ -1134,10 +1134,8 @@ static void match_assign_call(struct expression *expr)
 			goto assigned_unknown;
 		return;
 	}
-	if (is_fake_call(right)) {
-		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
+	if (is_fake_call(right))
 		return;
-	}
 
 	fn = right->fn->symbol->ident->name;
 	call_backs = search_callback(func_hash, (char *)fn);

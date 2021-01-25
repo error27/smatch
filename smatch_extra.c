@@ -1214,7 +1214,8 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op == '=' && is_condition(expr->right))
 		return; /* handled in smatch_condition.c */
-	if (expr->op == '=' && right->type == EXPR_CALL)
+	if (expr->op == '=' && right->type == EXPR_CALL &&
+	    !is_fake_call(right))
 		return; /* handled in smatch_function_hooks.c */
 	if (expr->op == '=') {
 		match_vanilla_assign(left, right);
