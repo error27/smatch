@@ -1075,7 +1075,7 @@ int parent_is_gone_var_sym(const char *name, struct symbol *sym)
 	if (!name || !sym)
 		return 0;
 
-	if (parent_is_null_var_sym(name, sym) ||
+	if (parent_is_err_or_null_var_sym(name, sym) ||
 	    parent_is_free_var_sym(name, sym))
 		return 1;
 	return 0;
