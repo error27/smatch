@@ -1130,7 +1130,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	right_name = expr_to_var_sym(right, &right_sym);
 
-	if (!__in_fake_assign && !__in_fake_var_assign &&
+	if (!__in_fake_assign && !is_fake_var(left) &&
 	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
 	    values_fit_type(left, strip_expr(right)) &&
@@ -1144,7 +1144,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 		goto done;
 	}
 
-	if (__in_fake_assign || __in_fake_var_assign) {
+	if (__in_fake_assign || is_fake_var(left)) {
 		struct smatch_state *right_state;
 		struct range_list *rl;
 

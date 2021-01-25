@@ -296,6 +296,13 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	return ret;
 }
 
+bool is_fake_var(struct expression *expr)
+{
+	if (expr && (expr->smatch_flags & Fake))
+		return true;
+	return false;
+}
+
 struct expression *fake_variable(struct symbol *type, const char *name)
 {
 	struct symbol *sym, *node;
