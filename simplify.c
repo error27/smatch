@@ -1178,7 +1178,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		else if (value == bits)		// (x < ~0) --> (x != ~0)
 			return replace_binop_value(insn, OP_SET_NE, value);
 		else				// (x < y) --> (x <= (y-1))
-			changed |= replace_binop_value(insn, OP_SET_BE, value - 1);
+			changed |= replace_binop_value(insn, OP_SET_BE, (value - 1) & bits);
 		break;
 	case OP_SET_AE:
 		if (!value)			// (x >= 0) --> 1
@@ -1188,7 +1188,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		else if (value == bits)		// (x >= ~0) --> (x == ~0)
 			return replace_binop_value(insn, OP_SET_EQ, value);
 		else				// (x >= y) --> (x > (y-1)
-			changed |= replace_binop_value(insn, OP_SET_A, value - 1);
+			changed |= replace_binop_value(insn, OP_SET_A, (value - 1) & bits);
 		break;
 	case OP_SET_BE:
 		if (!value)			// (x <= 0) --> (x == 0)
