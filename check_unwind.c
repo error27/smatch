@@ -163,64 +163,6 @@ static void mark_matches_as_undefined(const char *key)
 	} END_FOR_EACH_SM(sm);
 }
 
-static void db_helper(struct expression *expr, int param, const char *key, int inc_dec)
-{
-	struct sm_state *start_sm;
-	char *name;
-	struct symbol *sym;
-
-	if (inc_dec == ALLOC)
-		fn_has_alloc = true;
-
-	name = get_name_sym_from_key(expr, param, key, &sym);
-	if (!name || !sym)
-		goto free;
-
-	start_sm = get_start_sm(name, sym);
-	if (inc_dec == RELEASE && !start_sm) {
-		if (fn_has_alloc) {
-			mark_matches_as_undefined(key);
-			goto free;
-		}
-		if (is_param_var_sym(name, sym)) {
-			set_state(my_id, name, sym, &param_released);
-			goto free;
-		}
-		goto free;
-	}
-
-	if (inc_dec == ALLOC)
-		set_state(my_id, name, sym, &alloc);
-	else {
-		if (start_sm)
-			set_state(my_id, start_sm->name, start_sm->sym, &release);
-		else
-			set_state(my_id, name, sym, &release);
-	}
-free:
-	free_string(name);
-}
-
-static void refcount_function(const char *fn, struct expression *expr, void *data)
-{
-	struct ref_func_info *info = data;
-
-	db_helper(expr, info->param, info->key, info->type);
-}
-
-static void refcount_implied(const char *fn, struct expression *call_expr,
-			     struct expression *assign_expr, void *data)
-{
-	struct ref_func_info *info = data;
-
-	db_helper(assign_expr ?: call_expr, info->param, info->key, info->type);
-}
-
-static void ignore_path(const char *fn, struct expression *expr, void *data)
-{
-	set_state(my_id, "path", NULL, &ignore);
-}
-
 static bool is_alloc_primitive(struct expression *expr)
 {
 	int i;
@@ -241,11 +183,40 @@ static bool is_alloc_primitive(struct expression *expr)
 	return false;
 }
 
-static void db_dec(struct expression *expr, int param, char *key, char *value)
+static void return_param_alloc(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
-	if (is_alloc_primitive(expr))
+	fn_has_alloc = true;
+	set_state(my_id, name, sym, &alloc);
+}
+
+static void return_param_release(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct sm_state *start_sm;
+
+	/* The !data means this comes from the DB (not hard coded). */
+	if (!data && is_alloc_primitive(expr))
 		return;
-	db_helper(expr, param, key, RELEASE);
+
+	start_sm = get_start_sm(name, sym);
+	if (!start_sm) {
+		if (fn_has_alloc) {
+			mark_matches_as_undefined(name);
+			return;
+		}
+		if (is_param_var_sym(name, sym))
+			set_state(my_id, name, sym, &param_released);
+		return;
+	}
+
+	if (start_sm)
+		set_state(my_id, start_sm->name, start_sm->sym, &release);
+	else
+		set_state(my_id, name, sym, &release);
+}
+
+static void ignore_path(const char *fn, struct expression *expr, void *data)
+{
+	set_state(my_id, "path", NULL, &ignore);
 }
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
@@ -372,17 +343,21 @@ void check_unwind(int id)
 		if (info->call_back) {
 			add_function_hook(info->name, info->call_back, info);
 		} else if (info->implies_start && info->type == ALLOC) {
-			return_implies_exact(info->name,
+			return_implies_param_key_exact(info->name,
 					*info->implies_start,
 					*info->implies_end,
-					&refcount_implied, info);
+					&return_param_alloc,
+					info->param, info->key, info);
 		} else if (info->implies_start) {
-			return_implies_state_sval(info->name,
+			return_implies_param_key(info->name,
 					*info->implies_start,
 					*info->implies_end,
-					&refcount_implied, info);
+					&return_param_release,
+					info->param, info->key, info);
 		} else {
-			add_function_hook(info->name, &refcount_function, info);
+			add_function_param_key_hook(info->name,
+				(info->type == ALLOC) ? &return_param_alloc : &return_param_release,
+				info->param, info->key, info);
 		}
 	}
 
@@ -392,6 +367,6 @@ void check_unwind(int id)
 	add_function_data(&fn_has_alloc);
 
 	add_split_return_callback(match_return_info);
-	select_return_states_hook(RELEASE, &db_dec);
+	select_return_param_key(RELEASE, &return_param_release);
 	add_hook(&match_check_balanced, END_FUNC_HOOK);
 }

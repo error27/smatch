@@ -60,9 +60,20 @@ int __in_fake_parameter_assign;
 #define MACRO_ASSIGN	   5
 #define MACRO_ASSIGN_EXTRA 6
 
+struct param_key_data {
+	param_key_hook *call_back;
+	int param;
+	const char *key;
+	void *info;
+};
+
 struct return_implies_callback {
 	int type;
-	return_implies_hook *callback;
+	bool param_key;
+	union {
+		return_implies_hook *callback;
+		param_key_hook *pk_callback;
+	};
 };
 ALLOCATOR(return_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_list, struct return_implies_callback);
@@ -152,6 +163,99 @@ void add_implied_return_hook(const char *look_for,
 	add_callback(func_hash, look_for, cb);
 }
 
+static void db_helper(struct expression *expr, param_key_hook *call_back, int param, const char *key, void *info)
+{
+	char *name;
+	struct symbol *sym;
+
+	if (param == -2) {
+		call_back(expr, key, NULL, info);
+		return;
+	}
+
+	name = get_name_sym_from_key(expr, param, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	call_back(expr, name, sym, info);
+free:
+	free_string(name);
+}
+
+static void param_key_function(const char *fn, struct expression *expr, void *data)
+{
+	struct param_key_data *pkd = data;
+	struct expression *parent;
+	int cnt = 0;
+
+	parent = expr;
+	while (true) {
+		parent = expr_get_parent_expr(parent);
+		if (!parent || ++cnt >= 5)
+			break;
+		if (parent->type == EXPR_CAST)
+			continue;
+		if (parent->type == EXPR_PREOP && parent->op == '(')
+			continue;
+		break;
+	}
+
+	if (parent && parent->type == EXPR_ASSIGNMENT)
+		expr = parent;
+
+	db_helper(expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
+}
+
+static void param_key_implies_function(const char *fn, struct expression *call_expr,
+				       struct expression *assign_expr, void *data)
+{
+	struct param_key_data *pkd = data;
+
+	db_helper(assign_expr ?: call_expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
+}
+
+static struct param_key_data *alloc_pkd(param_key_hook *call_back, int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = malloc(sizeof(*pkd));
+	pkd->call_back = call_back;
+	pkd->param = param;
+	pkd->key = alloc_string(key);
+	pkd->info = info;
+
+	return pkd;
+}
+
+void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
+				 int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pkd(call_back, param, key, info);
+	add_function_hook(look_for, &param_key_function, pkd);
+}
+
+void return_implies_param_key(const char *look_for, sval_t start, sval_t end,
+			      param_key_hook *call_back,
+			      int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pkd(call_back, param, key, info);
+	return_implies_state_sval(look_for, start, end, &param_key_implies_function, pkd);
+}
+
+void return_implies_param_key_exact(const char *look_for, sval_t start, sval_t end,
+				    param_key_hook *call_back,
+				    int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pkd(call_back, param, key, info);
+	return_implies_exact(look_for, start, end, &param_key_implies_function, pkd);
+}
+
 void add_macro_assign_hook(const char *look_for, func_hook *call_back,
 			void *info)
 {
@@ -200,12 +304,42 @@ void return_implies_exact(const char *look_for, sval_t start, sval_t end,
 	add_callback(func_hash, look_for, cb);
 }
 
+static struct return_implies_callback *alloc_db_return_callback(int type, bool param_key, void *callback)
+{
+	struct return_implies_callback *cb;
+
+	cb = __alloc_return_implies_callback(0);
+	cb->type = type;
+	cb->param_key = param_key;
+	cb->callback = callback;
+
+	return cb;
+}
+
 void select_return_states_hook(int type, return_implies_hook *callback)
 {
-	struct return_implies_callback *cb = __alloc_return_implies_callback(0);
+	struct return_implies_callback *cb;
 
-	cb->type = type;
-	cb->callback = callback;
+	cb = alloc_db_return_callback(type, false, callback);
+	add_ptr_list(&db_return_states_list, cb);
+}
+
+static void call_db_return_callback(struct return_implies_callback *cb,
+				    struct expression *expr, int param, char *key, char *value)
+{
+	if (cb->param_key) {
+		// FIXME check if cb->pk_callback was already called
+		db_helper(expr, cb->pk_callback, param, key, NULL);
+	} else {
+		cb->callback(expr, param, key, value);
+	}
+}
+
+void select_return_param_key(int type, param_key_hook *callback)
+{
+	struct return_implies_callback *cb;
+
+	cb = alloc_db_return_callback(type, true, callback);
 	add_ptr_list(&db_return_states_list, cb);
 }
 
@@ -786,7 +920,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
 		if (tmp->type == type)
-			tmp->callback(db_info->expr, param, key, value);
+			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 	return 0;
@@ -1051,7 +1185,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
-			tmp->callback(db_info->expr, param, key, value);
+			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 	return 0;
@@ -1246,7 +1380,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
-			tmp->callback(db_info->expr, param, key, value);
+			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 

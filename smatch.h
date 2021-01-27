@@ -157,6 +157,7 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct sm_state *other));
 typedef void (scope_hook)(void *data);
 void add_scope_hook(scope_hook *hook, void *data);
+typedef void (param_key_hook)(struct expression *expr, const char *name, struct symbol *sym, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
@@ -188,6 +189,15 @@ struct range_list *get_range_implications(const char *fn);
 void select_return_states_hook(int type, return_implies_hook *callback);
 void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
+void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
+				 int param, const char *key, void *info);
+void return_implies_param_key(const char *look_for, sval_t start, sval_t end,
+			      param_key_hook *call_back,
+			      int param, const char *key, void *info);
+void return_implies_param_key_exact(const char *look_for, sval_t start, sval_t end,
+				    param_key_hook *call_back,
+				    int param, const char *key, void *info);
+void select_return_param_key(int type, param_key_hook *callback);
 int get_implied_return(struct expression *expr, struct range_list **rl);
 void allocate_hook_memory(void);
 void allocate_tracker_array(int num_checks);
