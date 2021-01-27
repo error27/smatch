@@ -1678,9 +1678,9 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 	struct instruction *phi_node;
 
 	if (phi1 == VOID)
-		return phi2;
+		return (phi2 == VOID) ? phi2 : phi2->def->src;
 	if (phi2 == VOID)
-		return phi1;
+		return (phi1 == VOID) ? phi1 : phi1->def->src;
 
 	phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
 	use_pseudo(phi_node, phi1, add_pseudo(&phi_node->phi_list, phi1));
