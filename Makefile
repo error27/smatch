@@ -90,6 +90,7 @@ LIB_OBJS += target-xtensa.o
 LIB_OBJS += tokenize.o
 LIB_OBJS += unssa.o
 LIB_OBJS += utils.o
+LIB_OBJS += version.o
 
 PROGRAMS :=
 PROGRAMS += compile
@@ -260,7 +261,7 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 selfcheck: $(OBJS:.o=.sc)
 
 SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
-lib.o: version.h
+version.o: version.h
 version.h: FORCE
 	@echo '#define SPARSE_VERSION "$(SPARSE_VERSION)"' > version.h.tmp
 	@if cmp -s version.h version.h.tmp; then \

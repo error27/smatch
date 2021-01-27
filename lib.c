@@ -46,7 +46,6 @@
 #include "linearize.h"
 #include "target.h"
 #include "machine.h"
-#include "version.h"
 #include "bits.h"
 
 static int prettify(const char **fnamep)

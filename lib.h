@@ -48,6 +48,7 @@
 #define PATH_MAX 4096			// Hurd doesn't define this
 #endif
 
+extern const char *sparse_version;
 
 struct position {
 	unsigned int type:6,
