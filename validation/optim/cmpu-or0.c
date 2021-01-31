@@ -12,7 +12,6 @@ int cmpu_ior_gt_lt(int a) { return ((a | MASK) >  (MASK - 1)) EQ(1); }
 /*
  * check-name: cmpu-or0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1
