@@ -1311,6 +1311,21 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			break;
 		}
 		break;
+	case OP_OR:
+		if (!constant(def->src2))
+			break;
+		bits = def->src2->value;
+		switch (insn->opcode) {
+		case OP_SET_EQ:
+			if ((value & bits) != bits)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_NE:
+			if ((value & bits) != bits)
+				return replace_with_value(insn, 1);
+			break;
+		}
+		break;
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
 		osize = def->orig_type->bit_size;
 		if (is_signed_constant(value, osize, size)) {
