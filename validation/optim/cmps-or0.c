@@ -15,7 +15,6 @@ int cmps_ior_gt_0(int a) { return ((a | MASK) >  0) EQ(0); }
 /*
  * check-name: cmps-or0
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-returns: 1

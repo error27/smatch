@@ -1324,6 +1324,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			if ((value & bits) != bits)
 				return replace_with_value(insn, 1);
 			break;
+		case OP_SET_LE:
+			value = sign_extend(value, def->size);
+			if (bits & sign_bit(def->size)) {
+				if (value >= -1)
+					return replace_with_value(insn, 1);
+			}
+			break;
+		case OP_SET_GT:
+			value = sign_extend(value, def->size);
+			if (bits & sign_bit(def->size)) {
+				if (value >= -1)
+					return replace_with_value(insn, 0);
+			}
+			break;
 		}
 		break;
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
