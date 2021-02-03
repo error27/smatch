@@ -1130,7 +1130,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 	right_name = expr_to_var_sym(right, &right_sym);
 
-	if (!__in_fake_assign && !is_fake_var(left) &&
+	if (!__in_fake_assign &&
 	    !(right->type == EXPR_PREOP && right->op == '&') &&
 	    right_name && right_sym &&
 	    values_fit_type(left, strip_expr(right)) &&
