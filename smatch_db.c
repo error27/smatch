@@ -1011,6 +1011,22 @@ static void print_struct_members(struct expression *call, struct expression *exp
 					 "%s$%s", add_star ? "*" : "",
 					 sm_name + len);
 			}
+		} else if (sm_name[0] == '&' && strncmp(name, sm_name + 1, len) == 0) {
+			if (sm_name[len + 1] != '.' && sm_name[len + 1] != '-')
+				continue;
+			if (is_address && sm_name[len + 1] == '.') {
+				snprintf(printed_name, sizeof(printed_name),
+					 "&%s$->%s", add_star ? "*" : "",
+					 sm_name + len + 2);
+			} else if (is_address && sm_name[len] == '-') {
+				snprintf(printed_name, sizeof(printed_name),
+					 "&%s(*$)%s", add_star ? "*" : "",
+					 sm_name + len + 1);
+			} else {
+				snprintf(printed_name, sizeof(printed_name),
+					 "&%s$%s", add_star ? "*" : "",
+					 sm_name + len + 1);
+			}
 		} else {
 			continue;
 		}
