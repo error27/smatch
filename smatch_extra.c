@@ -2607,6 +2607,8 @@ static void db_param_limit_binops(struct expression *arg, char *key, struct rang
 	sval_t zero = {	.type = rl_type(rl), };
 	sval_t sval;
 
+	if (strcmp(key, "$") != 0)
+		return;
 	if (arg->op != '*')
 		return;
 	if (!get_implied_value(arg->right, &sval))
