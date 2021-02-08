@@ -30,6 +30,7 @@ STATE(start_state);
 STATE(unlocked);
 STATE(impossible);
 STATE(restore);
+STATE(ignore);
 
 enum lock_type {
 	spin_lock,
@@ -749,8 +750,7 @@ static void do_lock(const char *name, struct symbol *sym, struct lock_info *info
 	}
 	warn_on_double(sm, &locked);
 	if (delete_null)
-		delete_state(my_id, name, NULL);
-	delete_state(my_id, name, NULL);
+		set_state(my_id, name, NULL, &ignore);
 
 	set_state(my_id, name, sym, &locked);
 }
@@ -782,7 +782,7 @@ static void do_unlock(const char *name, struct symbol *sym, struct lock_info *in
 		set_start_state(name, sym, &locked);
 	warn_on_double(sm, &unlocked);
 	if (delete_null)
-		delete_state(my_id, name, NULL);
+		set_state(my_id, name, NULL, &ignore);
 	set_state(my_id, name, sym, &unlocked);
 }
 
