@@ -1920,6 +1920,17 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 0);
 		}
+		if (def->opcode == OP_SET_GE && is_zero(def->src2)) {
+			switch (DEF_OPCODE(defr, *p2)) {
+			case OP_SET_LE:
+				if (!is_positive(defr->src2, defr->itype->bit_size))
+					break;
+				// (x >= 0) && (x <= C) --> (x u<= C)
+				insn->itype = defr->itype;
+				replace_binop(insn, OP_SET_BE, &insn->src1, defr->src1, &insn->src2, defr->src2);
+				return REPEAT_CSE;
+			}
+		}
 		break;
 	case OP_OR:
 		if (DEF_OPCODE(defr, *p2) == OP_OR) {

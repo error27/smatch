@@ -8,7 +8,6 @@ _Bool check_ok(long i)
 /*
  * check-name: range-check1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: setbe\\..*0x3ff
