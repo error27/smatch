@@ -278,6 +278,11 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 		/* no useful information here. */
 		if (is_whole_rl(rl) && parent_set(set_list, sm->name))
 			continue;
+		if (is_whole_rl(rl) && parent_was_PARAM_CLEAR(sm->name, sm->sym))
+			continue;
+		if (rl_is_zero(rl) && parent_was_PARAM_CLEAR_ZERO(sm->name, sm->sym))
+			continue;
+
 		insert_string(&set_list, (char *)sm->name);
 
 		sql_insert_return_states(return_id, return_ranges,

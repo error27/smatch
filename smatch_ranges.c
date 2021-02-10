@@ -82,6 +82,15 @@ bool is_noderef_ptr_rl(struct range_list *rl)
 	return false;
 }
 
+bool rl_is_zero(struct range_list *rl)
+{
+	if (!rl)
+		return false;
+	if (rl_min(rl).value == 0 && rl_max(rl).value == 0)
+		return true;
+	return false;
+}
+
 static char *get_err_pointer_str(struct data_range *drange)
 {
 	static char buf[20];

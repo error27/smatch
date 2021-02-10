@@ -100,6 +100,82 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	} END_FOR_EACH_SM(sm);
 }
 
+bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+	char buf[80];
+	int len, i;
+
+	if (!name)
+		return 0;
+
+	len = strlen(name);
+	if (len >= sizeof(buf))
+		len = sizeof(buf) - 1;
+
+	for (i = len - 2; i >= 1; i--) {
+		if (name[i] != '-' && name[i] != '.')
+			continue;
+
+		memcpy(buf, name, i);
+		buf[i] = '\0';
+		sm = get_sm_state(my_id, buf, sym);
+		if (sm && sm->state == &cleared)
+			return true;
+		if (sm)
+			return false;
+
+		buf[0] = '&';
+		memcpy(buf + 1, name, i);
+		buf[i + 1] = '\0';
+		sm = get_sm_state(my_id, buf, sym);
+		if (sm && sm->state == &cleared)
+			return true;
+		if (sm)
+			return false;
+	}
+
+	return false;
+}
+
+bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+	char buf[80];
+	int len, i;
+
+	if (!name)
+		return 0;
+
+	len = strlen(name);
+	if (len >= sizeof(buf))
+		len = sizeof(buf) - 1;
+
+	for (i = len - 2; i >= 1; i--) {
+		if (name[i] != '-' && name[i] != '.')
+			continue;
+
+		memcpy(buf, name, i);
+		buf[i] = '\0';
+		sm = get_sm_state(my_id, buf, sym);
+		if (sm && sm->state == &zeroed)
+			return true;
+		if (sm)
+			return false;
+
+		buf[0] = '&';
+		memcpy(buf + 1, name, i);
+		buf[i + 1] = '\0';
+		sm = get_sm_state(my_id, buf, sym);
+		if (sm && sm->state == &zeroed)
+			return true;
+		if (sm)
+			return false;
+	}
+
+	return false;
+}
+
 static void register_clears_param(void)
 {
 	struct token *token;
