@@ -223,20 +223,28 @@ free:
 	return ret;
 }
 
-struct expression *gen_expression_from_name_sym(const char *name, struct symbol *sym)
+static struct expression *gen_expression_from_name_sym_helper(const char *name, struct symbol *sym)
 {
-	struct expression *base;
-	int skip = 0;
 	struct expression *ret;
+	int skip = 0;
 
-	if (!name || !sym)
-		return NULL;
-
-	base = symbol_expression(sym);
+	if (name[0] == '&' ||
+	    name[0] == '*' ||
+	    name[0] == '(') {
+		ret = gen_expression_from_name_sym_helper(name + 1, sym);
+		return preop_expression(ret, name[0]);
+	}
 	while (name[skip] != '\0' && name[skip] != '.' && name[skip] != '-')
 		skip++;
 
-	ret = get_expression_from_base_and_str(base, name + skip);
+	return get_expression_from_base_and_str(symbol_expression(sym), name + skip);
+}
+
+struct expression *gen_expression_from_name_sym(const char *name, struct symbol *sym)
+{
+	struct expression *ret;
+
+	ret = gen_expression_from_name_sym_helper(name, sym);
 	if (ret) {
 		char *new = expr_to_str(ret);
 
