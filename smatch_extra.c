@@ -2515,7 +2515,7 @@ struct range_list *intersect_with_real_abs_expr(struct expression *expr, struct 
 	return rl_intersection(abs_rl, start);
 }
 
-static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	struct range_list *rl;
 	sval_t dummy;
@@ -2817,38 +2817,6 @@ free:
 	free_string(name);
 }
 
-static void match_call_info(struct expression *expr)
-{
-	struct smatch_state *state;
-	struct range_list *rl = NULL;
-	struct expression *arg;
-	struct symbol *type;
-	sval_t dummy;
-	int i = 0;
-
-	FOR_EACH_PTR(expr->args, arg) {
-		type = get_arg_type(expr->fn, i);
-
-		get_absolute_rl(arg, &rl);
-		rl = cast_rl(type, rl);
-
-		if (!is_whole_rl(rl)) {
-			rl = intersect_with_real_abs_expr(arg, rl);
-			sql_insert_caller_info(expr, PARAM_VALUE, i, "$", show_rl(rl));
-		}
-		state = get_state_expr(SMATCH_EXTRA, arg);
-		if (!estate_get_single_value(state, &dummy) && estate_has_hard_max(state)) {
-			sql_insert_caller_info(expr, HARD_MAX, i, "$",
-					       sval_to_str(estate_max(state)));
-		}
-		if (estate_has_fuzzy_max(state)) {
-			sql_insert_caller_info(expr, FUZZY_MAX, i, "$",
-					       sval_to_str(estate_get_fuzzy_max(state)));
-		}
-		i++;
-	} END_FOR_EACH_PTR(arg);
-}
-
 static void set_param_value(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct expression *expr;
@@ -3016,8 +2984,7 @@ void register_smatch_extra_late(int id)
 	add_hook(&unop_expr, OP_HOOK);
 	add_hook(&asm_expr, ASM_HOOK);
 
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_id, struct_member_callback);
+	add_caller_info_callback(my_id, caller_info_callback);
 	add_split_return_callback(&returned_struct_members);
 
 //	add_hook(&assume_indexes_are_valid, OP_HOOK);
