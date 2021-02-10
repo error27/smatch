@@ -304,6 +304,22 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	return ret;
 }
 
+struct expression *gen_expr_from_param_key(struct expression *expr, int param, const char *key)
+{
+	struct expression *ret = NULL;
+	struct symbol *sym;
+	char *name;
+
+	name = get_name_sym_from_key(expr, param, key, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = gen_expression_from_name_sym(name, sym);
+free:
+	free_string(name);
+	return ret;
+}
+
 bool is_fake_var(struct expression *expr)
 {
 	if (expr && (expr->smatch_flags & Fake))
