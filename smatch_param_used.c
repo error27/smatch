@@ -39,6 +39,9 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 	    __in_unmatched_hook)
 		return;
 
+	if (!name || name[0] == '&')
+		return;
+
 	arg = get_param_num_from_sym(sym);
 	if (arg < 0)
 		return;
@@ -54,6 +57,9 @@ static void set_param_used(struct expression *call, struct expression *arg, char
 	int arg_nr;
 
 	if (!option_info)
+		return;
+
+	if (key[0] == '&')
 		return;
 
 	name = get_variable_from_key(arg, key, &sym);

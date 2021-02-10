@@ -128,6 +128,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	int param;
 
 	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
+		if (tmp->name[0] == '&')
+			continue;
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
