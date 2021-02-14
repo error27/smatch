@@ -108,7 +108,7 @@ static int get_phisources(struct instruction *sources[], int nbr, struct instruc
 static int if_convert_phi(struct instruction *insn)
 {
 	struct instruction *array[2];
-	struct basic_block *parents[3];
+	struct basic_block *parents[2];
 	struct basic_block *bb, *bb1, *bb2, *source;
 	struct instruction *br;
 	pseudo_t p1, p2;
@@ -116,7 +116,7 @@ static int if_convert_phi(struct instruction *insn)
 	bb = insn->bb;
 	if (get_phisources(array, 2, insn))
 		return 0;
-	if (ptr_list_to_array(bb->parents, parents, 3) != 2)
+	if (ptr_list_to_array(bb->parents, parents, 2) != 2)
 		return 0;
 	p1 = array[0]->phi_src;
 	bb1 = array[0]->bb;

@@ -154,10 +154,10 @@ void *ptr_list_nth_entry(struct ptr_list *list, unsigned int idx)
 // @head: the list to be linearized
 // @arr: a ``void*`` array to fill with @head's entries
 // @max: the maximum number of entries to store into @arr
-// @return: the number of entries linearized.
+// @return: the number of entries in the list.
 //
 // Linearize the entries of a list up to a total of @max,
-// and return the nr of entries linearized.
+// and return the number of entries in the list.
 //
 // The array to linearize into (@arr) should really
 // be ``void *x[]``, but we want to let people fill in any kind
@@ -170,14 +170,14 @@ int linearize_ptr_list(struct ptr_list *head, void **arr, int max)
 
 		do {
 			int i = list->nr;
+			nr += i;
+			if (max == 0)
+				continue;
 			if (i > max) 
 				i = max;
 			memcpy(arr, list->list, i*sizeof(void *));
 			arr += i;
-			nr += i;
 			max -= i;
-			if (!max)
-				break;
 		} while ((list = list->next) != head);
 	}
 	return nr;
