@@ -19,6 +19,18 @@
 
 static int my_id;
 
+static struct string_list *ignored_macros;
+
+static bool in_ignored_macro(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+	return list_has_string(ignored_macros, macro);
+}
+
 static void match_stmt(struct statement *stmt)
 {
 	struct expression *expr;
@@ -47,6 +59,8 @@ static void match_stmt(struct statement *stmt)
 	}
 	if (in_expression_statement())
 		return;
+	if (in_ignored_macro(expr))
+		return;
 	sm_warning("statement has no effect %d", expr->type);
 }
 
@@ -54,4 +68,5 @@ void check_no_effect(int id)
 {
 	my_id = id;
 	add_hook(&match_stmt, STMT_HOOK);
+	ignored_macros = load_strings_from_file(option_project_str, "ignore_no_effect");
 }
