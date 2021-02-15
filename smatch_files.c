@@ -61,3 +61,34 @@ struct token *get_tokens_file(const char *filename)
 	close(fd);
 	return token;
 }
+
+struct string_list *load_strings_from_file(const char *project, const char *filename)
+{
+	struct string_list *ret = NULL;
+	struct token *token;
+	char buf[64];
+	char *str;
+
+	if (project)
+		snprintf(buf, sizeof(buf), "%s.%s", project, filename);
+	else
+		snprintf(buf, sizeof(buf), "%s", filename);
+
+	token = get_tokens_file(buf);
+	if (!token)
+		return NULL;
+
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return NULL;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			break;
+		str = alloc_string(show_ident(token->ident));
+		add_ptr_list(&ret, str);
+		token = token->next;
+	}
+	clear_token_alloc();
+
+	return ret;
+}

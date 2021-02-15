@@ -1077,6 +1077,7 @@ void open_smatch_db(char *db_file);
 int open_data_file(const char *filename);
 int open_schema_file(const char *schema);
 struct token *get_tokens_file(const char *filename);
+struct string_list *load_strings_from_file(const char *project, const char *filename);
 
 /* smatch.c */
 extern char *option_debug_check;
