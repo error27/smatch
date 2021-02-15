@@ -2552,33 +2552,6 @@ void open_smatch_db(char *db_file)
 	return;
 }
 
-static void register_common_funcs(void)
-{
-	struct token *token;
-	char *func;
-	char filename[256];
-
-	if (option_project == PROJ_NONE)
-		strcpy(filename, "common_functions");
-	else
-		snprintf(filename, 256, "%s.common_functions", option_project_str);
-
-	token = get_tokens_file(filename);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		func = alloc_string(show_ident(token->ident));
-		add_ptr_list(&common_funcs, func);
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
 static char *get_next_string(char **str)
 {
 	static char string[256];
@@ -2686,7 +2659,7 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_call_implies, FUNC_DEF_HOOK);
 	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
 
-	register_common_funcs();
+	common_funcs = load_strings_from_file(option_project_str, "common_functions");
 	register_return_replacements();
 
 	add_hook(&dump_cache, END_FILE_HOOK);
