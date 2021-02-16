@@ -638,28 +638,39 @@ int __handle_select_assigns(struct expression *expr)
 	right = strip_expr(expr->right);
 	__pass_to_client(right, SELECT_HOOK);
 
+	// FIXME: why is this implied instead of known?
 	is_true = implied_condition_true(right->conditional);
 	is_false = implied_condition_false(right->conditional);
 
-	/* hah hah.  the ultra fake out */
-	__save_pre_cond_states();
-	__split_whole_condition(right->conditional);
+	/*
+	 * For "x = frob() ?: y;" we only want to parse the frob() call once
+	 * so do the assignment and parse the condition in one step.
+	 */
+	if (right->cond_true) {
+		condition = right->conditional;
+	} else {
+		condition = assign_expression(expr->left, expr->op, right->conditional);
+		expr_set_parent_expr(condition, expr);
+	}
 
-	if (!is_false) {
+	__save_pre_cond_states();
+	__split_whole_condition(condition);
+
+	if (!is_false && right->cond_true) {
 		struct expression *fake_expr;
 
-		if (right->cond_true)
-			fake_expr = assign_expression(expr->left, expr->op, right->cond_true);
-		else
-			fake_expr = assign_expression(expr->left, expr->op, right->conditional);
+		fake_expr = assign_expression(expr->left, expr->op, right->cond_true);
 		__split_expr(fake_expr);
 		final_states = clone_stree(__get_cur_stree());
 	}
 
-	__use_false_states();
-	if (!is_true) {
+	if (is_true) {
+		__discard_false_states();
+		merge_stree(&final_states, __get_cur_stree());
+	} else {
 		struct expression *fake_expr;
 
+		__use_false_states();
 		fake_expr = assign_expression(expr->left, expr->op, right->cond_false);
 		__split_expr(fake_expr);
 		merge_stree(&final_states, __get_cur_stree());
