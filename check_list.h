@@ -195,6 +195,7 @@ CK(check_spectre)
 CK(check_spectre_second_half)
 CK(check_implicit_dependencies)
 CK(check_sscanf_return)
+CK(check_kvmalloc_NOFS)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
