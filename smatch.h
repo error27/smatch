@@ -1142,6 +1142,7 @@ void print_held_locks();
 /* check_assigned_expr.c */
 extern int check_assigned_expr_id;
 struct expression *get_assigned_expr(struct expression *expr);
+struct sm_state *get_assigned_sm(struct expression *expr);
 struct expression *get_assigned_expr_recurse(struct expression *expr);
 struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *sym);
 struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct symbol *sym);

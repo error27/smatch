@@ -47,6 +47,11 @@ struct expression *get_assigned_expr(struct expression *expr)
 	return (struct expression *)state->data;
 }
 
+struct sm_state *get_assigned_sm(struct expression *expr)
+{
+	return get_sm_state_expr(my_id, expr);
+}
+
 struct expression *get_assigned_expr_recurse(struct expression *expr)
 {
 	struct expression *ret;
