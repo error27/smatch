@@ -626,7 +626,7 @@ static int is_select_assign(struct expression *expr)
 
 int __handle_select_assigns(struct expression *expr)
 {
-	struct expression *right;
+	struct expression *right, *condition;
 	struct stree *final_states = NULL;
 	struct sm_state *sm;
 	int is_true;
