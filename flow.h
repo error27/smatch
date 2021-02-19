@@ -11,6 +11,8 @@ extern unsigned long bb_generation;
 struct entrypoint;
 struct instruction;
 
+extern int remove_phisources(struct basic_block *par, struct basic_block *old);
+
 extern int simplify_flow(struct entrypoint *ep);
 
 extern void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local);

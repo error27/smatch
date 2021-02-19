@@ -22,6 +22,49 @@
 
 unsigned long bb_generation;
 
+///
+// remove phi-sources from a removed edge
+//
+// :note: It's possible to have several edges between the same BBs.
+//	  It's common with switches but it's also possible with branches.
+//	  This function will only remove a single phi-source per edge.
+int remove_phisources(struct basic_block *par, struct basic_block *old)
+{
+	struct instruction *insn;
+	int changed = 0;
+
+	FOR_EACH_PTR(old->insns, insn) {
+		pseudo_t phi;
+
+		if (!insn->bb)
+			continue;
+		if (insn->opcode != OP_PHI)
+			return changed;
+
+		// found a phi-node in the target BB,
+		// now look after its phi-sources.
+		FOR_EACH_PTR(insn->phi_list, phi) {
+			struct instruction *phisrc = phi->def;
+
+			if (phi == VOID)
+				continue;
+			assert(phisrc->phi_node == insn);
+			if (phisrc->bb != par)
+				continue;
+			// found a phi-source corresponding to this edge:
+			// remove it but avoid the recursive killing.
+			REPLACE_CURRENT_PTR(phi, VOID);
+			remove_use(&phisrc->src);
+			phisrc->bb = NULL;
+			changed |= REPEAT_CSE;
+			// Only the first one must be removed.
+			goto next;
+		} END_FOR_EACH_PTR(phi);
+next: ;
+	} END_FOR_EACH_PTR(insn);
+	return changed;
+}
+
 /*
  * Dammit, if we have a phi-node followed by a conditional
  * branch on that phi-node, we should damn well be able to
