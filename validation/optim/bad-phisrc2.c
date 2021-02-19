@@ -10,7 +10,6 @@ int bad_phisrc2(int p, int a, int r)
 /*
  * check-name: bad-phisrc2
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: select\\.

@@ -2444,17 +2444,8 @@ static int simplify_branch(struct instruction *insn)
 		return convert_to_jump(insn, cond->value ? insn->bb_true : insn->bb_false);
 
 	/* Same target? */
-	if (insn->bb_true == insn->bb_false) {
-		struct basic_block *bb = insn->bb;
-		struct basic_block *target = insn->bb_false;
-		remove_bb_from_list(&target->parents, bb, 1);
-		remove_bb_from_list(&bb->children, target, 1);
-		insn->bb_false = NULL;
-		kill_use(&insn->cond);
-		insn->cond = NULL;
-		insn->opcode = OP_BR;
-		return REPEAT_CSE|REPEAT_CFG_CLEANUP;
-	}
+	if (insn->bb_true == insn->bb_false)
+		return convert_to_jump(insn, insn->bb_true);
 
 	/* Conditional on a SETNE $0 or SETEQ $0 */
 	if (cond->type == PSEUDO_REG) {
