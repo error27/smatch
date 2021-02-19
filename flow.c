@@ -65,6 +65,23 @@ next: ;
 	return changed;
 }
 
+///
+// remove all phisources but the one corresponding to the given target
+static int remove_other_phisources(struct basic_block *bb, struct multijmp_list *list, struct basic_block *target)
+{
+	struct multijmp *jmp;
+	int changed = 0;
+
+	FOR_EACH_PTR(list, jmp) {
+		if (jmp->target == target) {
+			target = NULL;
+			continue;
+		}
+		changed |= remove_phisources(bb, jmp->target);
+	} END_FOR_EACH_PTR(jmp);
+	return changed;
+}
+
 /*
  * Dammit, if we have a phi-node followed by a conditional
  * branch on that phi-node, we should damn well be able to
@@ -763,6 +780,9 @@ int convert_to_jump(struct instruction *insn, struct basic_block *target)
 	switch (insn->opcode) {
 	case OP_CBR:
 		changed |= remove_phisources(insn->bb, insn->bb_true == target ? insn->bb_false : insn->bb_true);
+		break;
+	case OP_SWITCH:
+		changed |= remove_other_phisources(insn->bb, insn->multijmp_list, target);
 		break;
 	}
 	kill_use(&insn->cond);

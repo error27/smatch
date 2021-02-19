@@ -13,7 +13,6 @@ void foo(void)
 /*
  * check-name: bad-phisrc3
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-pattern(2): phisrc\\.
