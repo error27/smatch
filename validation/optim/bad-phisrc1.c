@@ -8,7 +8,6 @@ void foo(int a, int b)
 /*
  * check-name: bad-phisrc1
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-excludes: phi\\.

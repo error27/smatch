@@ -760,6 +760,11 @@ int convert_to_jump(struct instruction *insn, struct basic_block *target)
 	struct basic_block *child;
 	int changed = REPEAT_CSE;
 
+	switch (insn->opcode) {
+	case OP_CBR:
+		changed |= remove_phisources(insn->bb, insn->bb_true == target ? insn->bb_false : insn->bb_true);
+		break;
+	}
 	kill_use(&insn->cond);
 	insn->bb_true = target;
 	insn->bb_false = NULL;

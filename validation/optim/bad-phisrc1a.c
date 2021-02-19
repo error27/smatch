@@ -16,7 +16,6 @@ out:
 /*
  * check-name: bad-phisrc1a
  * check-command: test-linearize -Wno-decl $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: select\\.
