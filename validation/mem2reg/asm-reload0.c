@@ -8,7 +8,6 @@ static int asm_reload(void)
 /*
  * check-name: asm-reload0
  * check-command: test-linearize $file
- * check-known-to-fail
  *
  * check-output-ignore
  * check-output-contains: load\\.

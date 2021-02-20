@@ -495,6 +495,12 @@ int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom
 		return local ? 0 : -1;
 	case OP_LOAD: case OP_STORE:
 		break;
+	case OP_ASM:
+		if (dom->clobber_memory)
+			return -1;
+		if (dom->output_memory)
+			return -1;
+		return 0;
 	default:
 		return 0;
 	}
