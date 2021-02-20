@@ -2174,7 +2174,7 @@ static void add_asm_output(struct entrypoint *ep, struct instruction *insn, stru
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn;
-	struct expression *expr;
+	struct expression *expr, *clob;
 	struct asm_rules *rules;
 	struct asm_operand *op;
 
@@ -2205,6 +2205,12 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		add_asm_output(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
+
+	/* and finally, look if it clobbers memory */
+	FOR_EACH_PTR(stmt->asm_clobbers, clob) {
+		if (!strcmp(clob->string->data, "memory"))
+			insn->clobber_memory = 1;
+	} END_FOR_EACH_PTR(clob);
 
 	return VOID;
 }

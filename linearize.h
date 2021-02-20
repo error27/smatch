@@ -150,6 +150,7 @@ struct instruction {
 		struct /* asm */ {
 			const char *string;
 			struct asm_rules *asm_rules;
+			int clobber_memory:1;
 		};
 	};
 };
