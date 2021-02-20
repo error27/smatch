@@ -2153,6 +2153,7 @@ static void add_asm_output_address(struct entrypoint *ep, struct instruction *in
 
 	pseudo = linearize_expression(ep, op->expr);
 	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
+	insn->output_memory = 1;
 }
 
 static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
