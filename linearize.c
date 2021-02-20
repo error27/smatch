@@ -2144,19 +2144,29 @@ static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struc
 	add_asm_rule(insn, &insn->asm_rules->inputs, op, pseudo);
 }
 
+static void add_asm_output_address(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+{
+	pseudo_t pseudo;
+
+	if (!op->is_memory)
+		return;
+
+	pseudo = linearize_expression(ep, op->expr);
+	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
+}
+
 static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo;
 
-	if (op->is_memory) {
-		pseudo = linearize_expression(ep, op->expr);
-	} else {
-		if (!linearize_address_gen(ep, op->expr, &ad))
-			return;
-		pseudo = alloc_pseudo(insn);
-		linearize_store_gen(ep, pseudo, &ad);
-	}
+	if (op->is_memory)
+		return;
+
+	if (!linearize_address_gen(ep, op->expr, &ad))
+		return;
+	pseudo = alloc_pseudo(insn);
+	linearize_store_gen(ep, pseudo, &ad);
 
 	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
 }
@@ -2182,6 +2192,11 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 	/* Gather the inputs.. */
 	FOR_EACH_PTR(stmt->asm_inputs, op) {
 		add_asm_input(ep, insn, op);
+	} END_FOR_EACH_PTR(op);
+
+	/* ... and the addresses for memory outputs */
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		add_asm_output_address(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
 
 	add_one_insn(ep, insn);

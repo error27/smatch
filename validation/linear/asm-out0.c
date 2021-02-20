@@ -7,7 +7,6 @@ static void asm_out0(void)
 /*
  * check-name: asm-out0
  * check-command: test-linearize -fdump-ir $file
- * check-known-to-fail
  *
  * check-output-start
 asm_out0:
