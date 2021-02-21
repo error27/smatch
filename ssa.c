@@ -32,6 +32,9 @@ static inline bool is_promotable(struct symbol *type)
 	case SYM_STRUCT:
 		// we allow a single scalar field
 		// but a run of bitfields count for 1
+		// (and packed bifields are excluded).
+		if (type->packed)
+			return 0;
 		nbr = 0;
 		bf_seen = 0;
 		FOR_EACH_PTR(type->symbol_list, member) {

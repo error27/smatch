@@ -12,7 +12,6 @@ static void foo(struct s s)
 /*
  * check-name: packed-bitfield
  * check-command: test-linearize -fmem2reg $file
- * check-known-to-fail
  *
  * check-output-contains: store.32
  * check-output-contains: load.16
