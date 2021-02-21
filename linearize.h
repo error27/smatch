@@ -129,7 +129,7 @@ struct instruction {
 		};
 		struct /* slice */ {
 			pseudo_t base;
-			unsigned from, len;
+			unsigned from;
 		};
 		struct /* setval */ {
 			struct expression *val;
