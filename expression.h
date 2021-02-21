@@ -206,7 +206,7 @@ struct expression {
 		// EXPR_SLICE
 		struct /* slice */ {
 			struct expression *base;
-			unsigned r_bitpos, r_nrbits;
+			unsigned r_bitpos;
 		};
 		// EXPR_CAST, EXPR_FORCE_CAST, EXPR_IMPLIED_CAST,
 		// EXPR_SIZEOF, EXPR_ALIGNOF and EXPR_PTRSIZEOF
