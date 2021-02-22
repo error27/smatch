@@ -162,6 +162,7 @@ CK(check_uninitialized)
 CK(check_signed_integer_overflow_check)
 CK(check_continue_vs_break)
 CK(check_impossible_mask)
+CK(check_atomic_inc_dec)
 CK(check_syscall_arg_type)
 CK(check_trinity_generator)
 
