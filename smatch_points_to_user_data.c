@@ -318,6 +318,7 @@ void register_points_to_user_data(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	add_function_hook("copy_from_user", &match_user_copy, NULL);
+	add_function_hook("memcpy_from_msg", &match_user_copy, NULL);
 	add_function_hook("__copy_from_user", &match_user_copy, NULL);
 
 	add_caller_info_callback(my_id, caller_info_callback);
