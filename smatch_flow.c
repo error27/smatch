@@ -509,11 +509,11 @@ void __split_expr(struct expression *expr)
 		if (expr->op == '=' && right->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
 
+after_assign:
 		if (get_macro_name(right->pos) &&
 		    get_macro_name(expr->pos) != get_macro_name(right->pos))
 			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 
-after_assign:
 		__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
 		__split_expr(expr->left);
 		break;
