@@ -152,7 +152,7 @@ static void delete_my_states(int owner)
 	} END_FOR_EACH_SM(sm);
 
 	FOR_EACH_PTR(slist, sm) {
-		delete_state(sm->owner, sm->name, sm->sym);
+		__delete_state(sm->owner, sm->name, sm->sym);
 	} END_FOR_EACH_PTR(sm);
 
 	free_slist(&slist);

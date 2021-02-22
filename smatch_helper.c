@@ -815,7 +815,7 @@ struct expression *strip_expr_set_parent(struct expression *expr)
 
 static void delete_state_tracker(struct tracker *t)
 {
-	delete_state(t->owner, t->name, t->sym);
+	__delete_state(t->owner, t->name, t->sym);
 	__free_tracker(t);
 }
 

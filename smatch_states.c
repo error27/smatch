@@ -472,7 +472,7 @@ free:
 	return ret;
 }
 
-void delete_state(int owner, const char *name, struct symbol *sym)
+void __delete_state(int owner, const char *name, struct symbol *sym)
 {
 	delete_state_stree(&cur_stree, owner, name, sym);
 	if (cond_true_stack) {
