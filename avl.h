@@ -92,8 +92,11 @@ bool avl_check_invariants(struct stree *avl);
 #define END_FOR_EACH_SM(_sm) }}
 
 #define FOR_EACH_MY_SM(_owner, avl, _sm) {	\
+	bool __has_state = has_states(_owner);	\
 	AvlIter _i;				\
 	avl_foreach(_i, avl) {			\
+		if (!__has_state)		\
+			break;			\
 		_sm = _i.sm;			\
 		if (_sm->owner != _owner)	\
 			continue;		\
