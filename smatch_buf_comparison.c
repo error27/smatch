@@ -813,7 +813,7 @@ void register_buf_comparison(int id)
 		add_allocation_function("__vmalloc", &match_alloc, 0);
 		add_allocation_function("sock_kmalloc", &match_alloc, 1);
 		add_allocation_function("kmemdup", &match_alloc, 1);
-		add_allocation_function("kmemdup_user", &match_alloc, 1);
+		add_allocation_function("memdup_user", &match_alloc, 1);
 		add_allocation_function("dma_alloc_attrs", &match_alloc, 1);
 		add_allocation_function("pci_alloc_consistent", &match_alloc, 1);
 		add_allocation_function("pci_alloc_coherent", &match_alloc, 1);
