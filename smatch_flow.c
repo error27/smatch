@@ -985,17 +985,16 @@ static void handle_backward_goto(struct statement *goto_stmt)
 
 static void fake_a_return(void)
 {
-	struct symbol *return_type;
+	struct expression *ret = NULL;
 
 	nullify_path();
 	__unnullify_path();
 
-	return_type = get_real_base_type(cur_func_sym);
-	return_type = get_real_base_type(return_type);
-	if (return_type != &void_ctype) {
-		__pass_to_client(unknown_value_expression(NULL), RETURN_HOOK);
-		nullify_path();
-	}
+	if (cur_func_return_type() != &void_ctype)
+		ret = unknown_value_expression(NULL);
+
+	__pass_to_client(ret, RETURN_HOOK);
+	nullify_path();
 }
 
 static void split_ret_value(struct expression *expr)
