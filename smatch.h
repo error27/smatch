@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "expression.h"
 #include "avl.h"
+#include "smatch_constants.h"
 
 typedef long long mtag_t;
 

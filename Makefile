@@ -367,7 +367,8 @@ check_list_local.h:
 smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
 	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(smatch_datadir)"'
 
-$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h avl.h
+$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h \
+	smatch_constants.h avl.h
 
 ########################################################################
 all: $(PROGRAMS) smatch
