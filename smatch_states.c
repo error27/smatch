@@ -482,20 +482,6 @@ void delete_state(int owner, const char *name, struct symbol *sym)
 	}
 }
 
-void delete_state_expr(int owner, struct expression *expr)
-{
-	char *name;
-	struct symbol *sym;
-
-	expr = strip_expr(expr);
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-	delete_state(owner, name, sym);
-free:
-	free_string(name);
-}
-
 static void delete_all_states_stree_sym(struct stree **stree, struct symbol *sym)
 {
 	struct state_list *slist = NULL;
