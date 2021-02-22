@@ -66,7 +66,7 @@ const char *show_sm(struct sm_state *sm)
 	} END_FOR_EACH_PTR(tmp);
 	snprintf(buf + pos, sizeof(buf) - pos, ")");
 
-	return buf;
+	return alloc_sname(buf);
 
 truncate:
 	for (i = 0; i < 3; i++)
