@@ -280,8 +280,7 @@ static void refcount_implied(const char *fn, struct expression *call_expr,
 {
 	struct ref_func_info *info = data;
 
-
-	db_inc_dec(call_expr, info->param, info->key, info->type);
+	db_inc_dec(assign_expr ?: call_expr, info->param, info->key, info->type);
 }
 
 static bool is_maybe_dec(struct sm_state *sm)
