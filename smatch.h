@@ -229,6 +229,7 @@ bool debug_implied(void);
 bool debug_on(const char *check_name, const char *var);
 extern int option_info;
 extern int option_spammy;
+extern int option_pedantic;
 extern int option_print_names;
 extern char *trace_variable;
 extern struct stree *global_states;
@@ -331,6 +332,7 @@ static inline void print_implied_debug_msg(void)
 #define sm_warning(msg...) do { sm_print_msg(1, msg); } while (0)
 #define sm_error(msg...) do { sm_print_msg(2, msg); } while (0)
 #define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
+#define sm_spam(msg...) do { if (option_pedantic) sm_print_msg(1, msg); } while (0)
 
 static inline void sm_fatal(const char *fmt, ...)
 {

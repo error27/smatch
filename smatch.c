@@ -31,6 +31,7 @@ char *bin_dir;
 char *data_dir;
 int option_no_data = 0;
 int option_spammy = 0;
+int option_pedantic;
 int option_print_names;
 int option_info = 0;
 int option_full_path = 0;
@@ -137,6 +138,7 @@ static void help(void)
 	printf("--project=<name> or -p=<name>: project specific tests\n");
 	printf("--succeed: don't exit with an error\n");
 	printf("--spammy:  print superfluous crap.\n");
+	printf("--pedantic:  intended for reviewing new drivers.\n");
 	printf("--info:  print info used to fill smatch_data/.\n");
 	printf("--debug:  print lots of debug output.\n");
 	printf("--no-data:  do not use the /smatch_data/ directory.\n");
@@ -235,6 +237,7 @@ void parse_args(int *argcp, char ***argvp)
 
 		OPTION(fatal_checks);
 		OPTION(spammy);
+		OPTION(pedantic);
 		OPTION(info);
 		OPTION(debug);
 		OPTION(assume_loops);
