@@ -39,10 +39,8 @@ struct ref_func_info {
 	func_hook *call_back;
 };
 
-static sval_t zero_sval = { .type = &int_ctype };
-
 static struct ref_func_info func_table[] = {
-	{ "clk_prepare_enable",    ALLOC, 0, "$", &zero_sval, &zero_sval },
+	{ "clk_prepare_enable", ALLOC, 0, "$", &int_zero, &int_zero },
 	{ "clk_disable_unprepare", RELEASE, 0, "$" },
 
 	{ "alloc_etherdev_mqs", ALLOC, -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
@@ -58,12 +56,12 @@ static struct ref_func_info func_table[] = {
 	 * Which is slightly tricky to know how to merge the states so let's
 	 * hold off checking request_resource() for now.
 	 *
-	 * { "request_resource", ALLOC,   1, "$", &zero_sval, &zero_sval },
+	 * { "request_resource", ALLOC,   1, "$", &int_zero, &int_zero },
 	 * { "release_resource", RELEASE, 0, "$" },
 	 *
 	 */
 
-	{ "pci_request_regions", ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "pci_request_regions", ALLOC,   0, "$", &int_zero, &int_zero },
 	{ "pci_release_regions", RELEASE, 0, "$" },
 
 	{ "request_free_mem_region", ALLOC,   -1, "$->start", &valid_ptr_min_sval, &valid_ptr_max_sval },
@@ -75,16 +73,16 @@ static struct ref_func_info func_table[] = {
 	{ "ioremap_encrypted", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "iounmap", RELEASE, 0, "$" },
 
-	{ "request_threaded_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
-	{ "request_irq", ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "request_threaded_irq", ALLOC,   0, "$", &int_zero, &int_zero },
+	{ "request_irq", ALLOC,   0, "$", &int_zero, &int_zero },
 	{ "free_irq",    RELEASE, 0, "$" },
-	{ "pci_request_irq", ALLOC,   1, "$", &zero_sval, &zero_sval },
+	{ "pci_request_irq", ALLOC,   1, "$", &int_zero, &int_zero },
 	{ "pci_free_irq",    RELEASE, 1, "$" },
 
-	{ "register_netdev",   ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "register_netdev",   ALLOC,   0, "$", &int_zero, &int_zero },
 	{ "unregister_netdev", RELEASE, 0, "$" },
 
-	{ "misc_register",   ALLOC,   0, "$", &zero_sval, &zero_sval },
+	{ "misc_register",   ALLOC,   0, "$", &int_zero, &int_zero },
 	{ "misc_deregister", RELEASE, 0, "$" },
 
 	{ "ieee80211_alloc_hw", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
