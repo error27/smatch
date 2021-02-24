@@ -1794,6 +1794,12 @@ static void split_function(struct symbol *sym)
 	start_function_definition(sym);
 	__split_stmt(base_type->stmt);
 	__split_stmt(base_type->inline_stmt);
+	if (!__path_is_null() &&
+	    cur_func_return_type() == &void_ctype &&
+	    !__bail_on_rest_of_function) {
+		__pass_to_client(NULL, RETURN_HOOK);
+		nullify_path();
+	}
 	__pass_to_client(sym, END_FUNC_HOOK);
 	if (need_delayed_scope_hooks())
 		__call_scope_hooks();
