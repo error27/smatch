@@ -1937,7 +1937,7 @@ struct state_list *get_all_possible_not_equal_comparisons(struct expression *exp
 				continue;
 			add_ptr_list(&ret, sm);
 			break;
-		} END_FOR_EACH_PTR(link);
+		} END_FOR_EACH_PTR(possible);
 	} END_FOR_EACH_PTR(link);
 
 	return ret;
