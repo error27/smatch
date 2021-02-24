@@ -180,7 +180,7 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 static void set_inner_struct_members(int mode, struct expression *faked, struct expression *left, struct expression *right, struct symbol *member)
 {
 	struct expression *left_member;
-	struct expression *right_member = NULL;  /* silence GCC */
+	struct expression *right_expr = NULL;  /* silence GCC */
 	struct expression *assign;
 	struct symbol *base = get_real_base_type(member);
 	struct symbol *tmp;
@@ -213,16 +213,16 @@ static void set_inner_struct_members(int mode, struct expression *faked, struct 
 		case COPY_NORMAL:
 		case COPY_MEMCPY:
 			if (right)
-				right_member = member_expression(right, '.', tmp->ident);
+				right_expr = member_expression(right, '.', tmp->ident);
 			else
-				right_member = unknown_value_expression(left_member);
+				right_expr = unknown_value_expression(left_member);
 			break;
 		case COPY_MEMSET:
-			right_member = right;
+			right_expr = right;
 			break;
 		}
 
-		assign = assign_expression(left_member, '=', right_member);
+		assign = assign_expression(left_member, '=', right_expr);
 		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -233,7 +233,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 {
 	struct symbol *struct_type, *tmp, *type;
 	struct expression *left_member;
-	struct expression *right_member;
+	struct expression *right_expr;
 	struct expression *assign;
 	int op = '.';
 
@@ -281,25 +281,25 @@ static void __struct_members_copy(int mode, struct expression *faked,
 			continue;
 
 		left_member = member_expression(left, op, tmp->ident);
-		right_member = NULL;
+		right_expr = NULL;
 
 		switch (mode) {
 		case COPY_NORMAL:
 		case COPY_MEMCPY:
 			if (right)
-				right_member = member_expression(right, op, tmp->ident);
+				right_expr = member_expression(right, op, tmp->ident);
 			else
-				right_member = unknown_value_expression(left_member);
+				right_expr = unknown_value_expression(left_member);
 			break;
 		case COPY_MEMSET:
-			right_member = right;
+			right_expr = right;
 			break;
 		}
-		if (!right_member) {
+		if (!right_expr) {
 			sm_perror("No right member");
 			continue;
 		}
-		assign = assign_expression(left_member, '=', right_member);
+		assign = assign_expression(left_member, '=', right_expr);
 		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
 
