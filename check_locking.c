@@ -192,6 +192,8 @@ static struct lock_info lock_table[] = {
 	{"_raw_write_lock_irqsave",       LOCK,    irq,         RETURN_VAL, "$"},
 	{"_raw_write_unlock_irqrestore",  UNLOCK,  write_lock,  0,          "$"},
 	{"_raw_write_unlock_irqrestore",  RESTORE, irq,         1,          "$"},
+	{"__raw_write_unlock_irq",	  UNLOCK,  write_lock,  0,          "$"},
+	{"__raw_write_unlock_irq",	  UNLOCK,  irq,  	0,          "irq"},
 	{"__raw_write_unlock_irqrestore", UNLOCK,  write_lock,  0,          "$"},
 	{"__raw_write_unlock_irqrestore", RESTORE, irq,         1,          "$"},
 
