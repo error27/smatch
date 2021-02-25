@@ -73,6 +73,10 @@ extern void __free_ptr_list(struct ptr_list **);
 		__free_ptr_list((struct ptr_list **)(list));		\
 	} while (0)
 
+#define ptr_list_nth(lst, nth) ({					\
+		struct ptr_list* head = (struct ptr_list*)(lst);	\
+		(__typeof__((lst)->list[0])) ptr_list_nth_entry(head, nth);\
+	})
 
 ////////////////////////////////////////////////////////////////////////
 // API
