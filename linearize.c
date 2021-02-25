@@ -2127,43 +2127,55 @@ static pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
 ALLOCATOR(asm_rules, "asm rules");
 ALLOCATOR(asm_constraint, "asm constraints");
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+static void add_asm_rule(struct instruction *insn, struct asm_constraint_list **list, struct asm_operand *op, pseudo_t pseudo)
 {
-	pseudo_t pseudo = linearize_expression(ep, op->expr);
 	struct asm_constraint *rule = __alloc_asm_constraint(0);
-
+	rule->is_memory = op->is_memory;
 	rule->ident = op->name;
 	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
-	add_ptr_list(&insn->asm_rules->inputs, rule);
+	add_ptr_list(list, rule);
+}
+
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+{
+	pseudo_t pseudo = linearize_expression(ep, op->expr);
+
+	add_asm_rule(insn, &insn->asm_rules->inputs, op, pseudo);
+}
+
+static void add_asm_output_address(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+{
+	pseudo_t pseudo;
+
+	if (!op->is_memory)
+		return;
+
+	pseudo = linearize_expression(ep, op->expr);
+	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
+	insn->output_memory = 1;
 }
 
 static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo;
-	struct asm_constraint *rule;
 
-	if (op->is_memory) {
-		pseudo = linearize_expression(ep, op->expr);
-	} else {
-		if (!linearize_address_gen(ep, op->expr, &ad))
-			return;
-		pseudo = alloc_pseudo(insn);
-		linearize_store_gen(ep, pseudo, &ad);
-	}
-	rule = __alloc_asm_constraint(0);
-	rule->is_memory = op->is_memory;
-	rule->ident = op->name;
-	rule->constraint = op->constraint ? op->constraint->string->data : "";
-	use_pseudo(insn, pseudo, &rule->pseudo);
-	add_ptr_list(&insn->asm_rules->outputs, rule);
+	if (op->is_memory)
+		return;
+
+	if (!linearize_address_gen(ep, op->expr, &ad))
+		return;
+	pseudo = alloc_pseudo(insn);
+	linearize_store_gen(ep, pseudo, &ad);
+
+	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
 }
 
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn;
-	struct expression *expr;
+	struct expression *expr, *clob;
 	struct asm_rules *rules;
 	struct asm_operand *op;
 
@@ -2183,12 +2195,23 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 		add_asm_input(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
 
+	/* ... and the addresses for memory outputs */
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		add_asm_output_address(ep, insn, op);
+	} END_FOR_EACH_PTR(op);
+
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		add_asm_output(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
+
+	/* and finally, look if it clobbers memory */
+	FOR_EACH_PTR(stmt->asm_clobbers, clob) {
+		if (!strcmp(clob->string->data, "memory"))
+			insn->clobber_memory = 1;
+	} END_FOR_EACH_PTR(clob);
 
 	return VOID;
 }

@@ -490,12 +490,21 @@ static inline int distinct_symbols(pseudo_t a, pseudo_t b)
  */
 int dominates(pseudo_t pseudo, struct instruction *insn, struct instruction *dom, int local)
 {
-	int opcode = dom->opcode;
-
-	if (opcode == OP_CALL || opcode == OP_ENTRY)
+	switch (dom->opcode) {
+	case OP_CALL: case OP_ENTRY:
 		return local ? 0 : -1;
-	if (opcode != OP_LOAD && opcode != OP_STORE)
+	case OP_LOAD: case OP_STORE:
+		break;
+	case OP_ASM:
+		if (dom->clobber_memory)
+			return -1;
+		if (dom->output_memory)
+			return -1;
 		return 0;
+	default:
+		return 0;
+	}
+
 	if (dom->src != pseudo) {
 		if (local)
 			return 0;
