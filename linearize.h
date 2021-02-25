@@ -113,6 +113,7 @@ struct instruction {
 		};
 		struct /* unops */ {
 			pseudo_t src;
+			unsigned from;			/* slice */
 			struct symbol *orig_type;	/* casts */
 		};
 		struct /* memops */ {
@@ -126,10 +127,6 @@ struct instruction {
 		struct /* compare */ {
 			pseudo_t _src1, _src2;		// alias .src[12]
 			struct symbol *itype;		// input operands' type
-		};
-		struct /* slice */ {
-			pseudo_t base;
-			unsigned from;
 		};
 		struct /* setval */ {
 			struct expression *val;

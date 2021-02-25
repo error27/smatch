@@ -470,7 +470,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_SLICE:
-		buf += sprintf(buf, "%s <- %s, %d", show_pseudo(insn->target), show_pseudo(insn->base), insn->from);
+		buf += sprintf(buf, "%s <- %s, %d", show_pseudo(insn->target), show_pseudo(insn->src), insn->from);
 		break;
 
 	case OP_NOT: case OP_NEG:
@@ -1239,7 +1239,8 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 
 	insn->target = new;
 	insn->from = expr->r_bitpos;
-	use_pseudo(insn, pre, &insn->base);
+	insn->orig_type = expr->base->ctype;
+	use_pseudo(insn, pre, &insn->src);
 	add_one_insn(ep, insn);
 	return new;
 }
