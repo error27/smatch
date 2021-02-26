@@ -185,6 +185,18 @@ static struct expression *strip_star_address(struct expression *expr)
 	return unop->unop;
 }
 
+static struct expression *strip_parens_symbol(struct expression *expr)
+{
+	struct expression *unop;
+
+	if (expr->type != EXPR_PREOP || expr->op != '(')
+		return expr;
+	unop = strip_parens(expr->unop);
+	if (unop->type != EXPR_SYMBOL)
+		return expr;
+	return unop;
+}
+
 static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated)
@@ -196,6 +208,7 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	}
 
 	expr = strip_star_address(expr);
+	expr = strip_parens_symbol(expr);
 
 	switch (expr->type) {
 	case EXPR_DEREF: {
@@ -241,23 +254,20 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			*complicated = 2;
 			return;
 		}
-
-		if (expr->op == '(') {
-			if (expr->unop->type != EXPR_SYMBOL)
-				append(buf, "(", len);
-		} else if (expr->op != '*' || !get_array_expr(expr->unop)) {
-			tmp = show_special(expr->op);
-			append(buf, tmp, len);
-		}
-		__get_variable_from_expr(sym_ptr, buf, expr->unop,
-						 len, complicated);
-
-		if (expr->op == '(' && expr->unop->type != EXPR_SYMBOL)
-			append(buf, ")", len);
-
 		if (expr->op == SPECIAL_DECREMENT ||
 		    expr->op == SPECIAL_INCREMENT)
 			*complicated = 1;
+
+		if (expr->op == '*' && get_array_expr(expr->unop))
+			tmp = "";
+		else
+			tmp = show_special(expr->op);
+
+		append(buf, tmp, len);
+		__get_variable_from_expr(sym_ptr, buf, expr->unop,
+						 len, complicated);
+		if (expr->op == '(')
+			append(buf, ")", len);
 
 		return;
 	}
