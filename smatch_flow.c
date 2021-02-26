@@ -1339,6 +1339,10 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 	if (expr->type == EXPR_ASSIGNMENT)
 		return expr;
 
+	/* for va_args then we don't know the type */
+	if (!type)
+		type = get_type(expr);
+
 	cast = cast_arg(type, expr);
 	/*
 	 * Using expr_to_sym() here is a hack.  We want to say that we don't
