@@ -172,6 +172,19 @@ struct expression *get_array_expr(struct expression *expr)
 	return NULL;
 }
 
+static struct expression *strip_star_address(struct expression *expr)
+{
+	struct expression *unop;
+
+	if (expr->type != EXPR_PREOP || expr->op != '*')
+		return expr;
+	unop = strip_parens(expr->unop);
+	if (unop->type != EXPR_PREOP || unop->op != '&')
+		return expr;
+
+	return unop->unop;
+}
+
 static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 				     struct expression *expr, int len,
 				     int *complicated)
@@ -182,24 +195,20 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return;
 	}
 
+	expr = strip_star_address(expr);
+
 	switch (expr->type) {
 	case EXPR_DEREF: {
 		struct expression *deref;
 		int op;
 
+		op = expr->op;
 		deref = expr->deref;
-		op = deref->op;
-		if (deref->type == EXPR_PREOP && op == '*') {
-			struct expression *unop = strip_expr(deref->unop);
 
-			if (unop->type == EXPR_PREOP && unop->op == '&') {
-				deref = unop->unop;
-				op = '.';
-			} else {
-				if (!is_pointer(deref) && !is_pointer(deref->unop))
-					op = '.';
-				deref = deref->unop;
-			}
+		/* this is pure guess work and nonsense programming */
+		if (deref->type == EXPR_PREOP && deref->op == '*') {
+			op = '*';
+			deref = deref->unop;
 		}
 
 		__get_variable_from_expr(sym_ptr, buf, deref, len, complicated);

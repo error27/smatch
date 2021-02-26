@@ -1508,7 +1508,7 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 	struct symbol *tmp;
 	struct expression *member = NULL;
 	struct expression *assign;
-	int op = '*';
+	int op = '.';
 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		expr = strip_expr(expr->unop);
