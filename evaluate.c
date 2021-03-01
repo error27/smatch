@@ -1442,7 +1442,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 			if (sclass & TYPE_FOULED && unfoul(s) == t)
 				goto Cast;
 			if (!restricted_value(*rp, target))
-				return 1;
+				goto Cast;
 			if (s == t)
 				return 1;
 		} else if (!(sclass & TYPE_RESTRICT))
