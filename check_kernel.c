@@ -23,26 +23,13 @@
 #include "smatch.h"
 #include "smatch_extra.h"
 
-static sval_t err_ptr_min = {
-	.type = &ptr_ctype,
-	.value = -4095,
-};
-static sval_t err_ptr_max = {
-	.type = &ptr_ctype,
-	.value = -1,
-};
-static sval_t null_ptr = {
-	.type = &ptr_ctype,
-	.value = 0,
-};
-
 static int implied_err_cast_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
 
 	arg = get_argument_from_call_expr(call->args, 0);
 	if (!get_implied_rl(arg, rl))
-		*rl = alloc_rl(err_ptr_min, err_ptr_max);
+		*rl = alloc_rl(ptr_err_min, ptr_err_max);
 
 	*rl = cast_rl(get_type(call), *rl);
 	return !!*rl;
@@ -99,8 +86,8 @@ static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
 	if (estate_rl(pre_state)) {
 		rl = estate_rl(pre_state);
-		rl = remove_range(rl, null_ptr, null_ptr);
-		rl = remove_range(rl, err_ptr_min, err_ptr_max);
+		rl = remove_range(rl, ptr_null, ptr_null);
+		rl = remove_range(rl, ptr_err_min, ptr_err_max);
 	} else {
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	}
@@ -141,7 +128,7 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
 	if (pre_state) {
 		rl = estate_rl(pre_state);
-		rl = remove_range(rl, err_ptr_min, err_ptr_max);
+		rl = remove_range(rl, ptr_err_min, ptr_err_max);
 	} else {
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	}
@@ -163,8 +150,8 @@ static void match_err(const char *fn, struct expression *call_expr,
 	pre_state = get_state_expr(SMATCH_EXTRA, arg);
 	rl = estate_rl(pre_state);
 	if (!rl)
-		rl = alloc_rl(err_ptr_min, err_ptr_max);
-	rl = rl_intersection(rl, alloc_rl(err_ptr_min, err_ptr_max));
+		rl = alloc_rl(ptr_err_min, ptr_err_max);
+	rl = rl_intersection(rl, alloc_rl(ptr_err_min, ptr_err_max));
 	rl = cast_rl(get_type(arg), rl);
 	if (pre_state && rl) {
 		/*
@@ -544,9 +531,6 @@ void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
-
-	err_ptr_min = sval_cast(&ptr_ctype, err_ptr_min);
-	err_ptr_max = sval_cast(&ptr_ctype, err_ptr_max);
 
 	add_implied_return_hook("ERR_PTR", &implied_err_cast_return, NULL);
 	add_implied_return_hook("ERR_CAST", &implied_err_cast_return, NULL);
