@@ -1512,12 +1512,6 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 	struct symbol *tmp;
 	struct expression *member = NULL;
 	struct expression *assign;
-	int op = '.';
-
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		expr = strip_expr(expr->unop);
-		op = '.';
-	}
 
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		type = get_real_base_type(tmp);
@@ -1525,7 +1519,7 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 			continue;
 
 		if (tmp->ident) {
-			member = member_expression(expr, op, tmp->ident);
+			member = member_expression(expr, '.', tmp->ident);
 			if (get_extra_state(member))
 				continue;
 		}
