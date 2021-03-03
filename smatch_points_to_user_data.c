@@ -59,9 +59,6 @@ bool is_skb_data(struct expression *expr)
 	if (!expr)
 		return false;
 
-	if (expr->type == EXPR_BINOP && expr->op == '+')
-		return is_skb_data(expr->left);
-
 	expr = strip_expr(expr);
 	if (!expr)
 		return false;
@@ -144,6 +141,9 @@ bool points_to_user_data(struct expression *expr)
 
 	if (is_array_of_user_data(expr))
 		return true;
+
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		expr = strip_expr(expr->left);
 
 	if (is_skb_data(expr))
 		return true;
