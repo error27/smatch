@@ -24,16 +24,6 @@ static int my_id;
 STATE(err_ptr);
 STATE(checked);
 
-static sval_t err_ptr_min = {
-	.type = &int_ctype,
-	{.value = -4095},
-};
-
-static sval_t err_ptr_max = {
-	.type = &int_ctype,
-	{.value = -1},
-};
-
 struct range_list *err_ptr_rl;
 
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
@@ -234,7 +224,7 @@ void check_err_ptr_deref(int id)
 	add_function_hook("kmem_cache_free", &match_kfree, INT_PTR(1));
 	add_function_hook("vfree", &match_kfree, INT_PTR(0));
 
-	err_ptr_rl = clone_rl_permanent(alloc_rl(err_ptr_min, err_ptr_max));
+	err_ptr_rl = clone_rl_permanent(alloc_rl(err_min, err_max));
 
 	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 }
