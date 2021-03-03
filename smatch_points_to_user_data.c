@@ -160,27 +160,6 @@ void set_points_to_user_data(struct expression *expr)
 	set_state_expr(my_id, expr, &user_data);
 }
 
-static bool handle_memcpy_fake_assignments(struct expression *expr)
-{
-	struct expression *left = strip_parens(expr->left);
-	struct expression *right = strip_parens(expr->right);
-
-	/* memcpy(array, src, sizeof(array)) gets turned into *array = *src; */
-
-	if (left->type != EXPR_PREOP || left->op != '*')
-		return false;
-	if (right->type != EXPR_PREOP || right->op != '*')
-		return false;
-	left = strip_expr(left->unop);
-	right = strip_expr(right->unop);
-
-	if (points_to_user_data(right)) {
-		set_points_to_user_data(left);
-		return true;
-	}
-	return false;
-}
-
 static void match_assign(struct expression *expr)
 {
 	if (!is_ptr_type(get_type(expr->left)))
@@ -191,11 +170,24 @@ static void match_assign(struct expression *expr)
 		return;
 	}
 
-	if (handle_memcpy_fake_assignments(expr))
-		return;
-
 	if (get_state_expr(my_id, expr->left))
 		set_state_expr(my_id, expr->left, &undefined);
+}
+
+static void match_memcpy(const char *fn, struct expression *expr, void *_unused)
+{
+	struct expression *dest, *src;
+
+	dest = get_argument_from_call_expr(expr->args, 0);
+	src = get_argument_from_call_expr(expr->args, 1);
+
+	if (points_to_user_data(src)) {
+		set_points_to_user_data(dest);
+		return;
+	}
+
+	if (get_state_expr(my_id, dest))
+		set_state_expr(my_id, dest, &undefined);
 }
 
 static void match_user_copy(const char *fn, struct expression *expr, void *_unused)
@@ -318,6 +310,9 @@ void register_points_to_user_data(int id)
 	add_function_hook("copy_from_user", &match_user_copy, NULL);
 	add_function_hook("memcpy_from_msg", &match_user_copy, NULL);
 	add_function_hook("__copy_from_user", &match_user_copy, NULL);
+
+	add_function_hook("memcpy", &match_memcpy, NULL);
+	add_function_hook("__memcpy", &match_memcpy, NULL);
 
 	add_caller_info_callback(my_id, caller_info_callback);
 	add_return_info_callback(my_id, return_info_callback);
