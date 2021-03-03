@@ -55,6 +55,9 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (sm->state != &freed && sm->state != &maybe_freed)
 		return &undefined;
 
+	if (get_param_num_from_sym(sm->sym) < 0)
+		return &undefined;
+
 	/*
 	 * If the parent is non-there count it as freed.  This is
 	 * a hack for tracking return states.
