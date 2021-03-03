@@ -52,13 +52,6 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 
 	if (expr_to_sym(expr))
 		goto one_var;
-	if ((expr->type == EXPR_PREOP && expr->op == '*')) {
-		unop = strip_expr(expr->unop);
-
-		if (unop->type == EXPR_SYMBOL)
-			goto one_var;
-		return expr_to_vsl(unop);
-	}
 
 	if (expr->type == EXPR_BINOP ||
 	    expr->type == EXPR_LOGICAL ||
@@ -71,6 +64,15 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 		free_var_syms_and_list(&left);
 		free_var_syms_and_list(&right);
 		return ret;
+	}
+
+	// handle "*(foo[bar])" I guess */
+	if ((expr->type == EXPR_PREOP && expr->op == '*')) {
+		unop = strip_expr(expr->unop);
+
+		if (unop->type == EXPR_SYMBOL)
+			goto one_var;
+		return expr_to_vsl(unop);
 	}
 
 	if (expr->type == EXPR_DEREF)
