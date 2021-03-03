@@ -95,6 +95,10 @@ static void match_return_call(struct expression *ret_value)
 	    strstr(cur_func, "_from_user"))
 		return;
 
+	if (strncmp(cur_func, "copy_from_", 10) == 0 ||
+	    strncmp(cur_func, "copy_to_", 8) == 0)
+		return;
+
 	fn = strip_expr(ret_value->fn);
 	if (fn->type != EXPR_SYMBOL)
 		return;
