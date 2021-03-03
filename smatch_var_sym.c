@@ -50,6 +50,8 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 	if (!expr)
 		return NULL;
 
+	if (expr_to_sym(expr))
+		goto one_var;
 	if ((expr->type == EXPR_PREOP && expr->op == '*')) {
 		unop = strip_expr(expr->unop);
 
