@@ -791,6 +791,10 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 	case 'x':
 		/* 'x' is for an unhashed pointer */
 		break;
+	case '4':
+		if (strncmp(fmt, "4cc", 3) != 0)
+			sm_warning("unrecognized format '%%p4%c'. Was '%%p4cc' intended?", fmt[1]);
+		break;
 	default:
 		sm_error("unrecognized %%p extension '%c', treated as normal %%p", *fmt);
 	}
