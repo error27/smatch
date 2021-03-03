@@ -298,6 +298,7 @@ static char *get_long_name_sym(const char *name, struct symbol *sym, struct symb
 	struct expression *tmp;
 	struct sm_state *sm;
 	char buf[256];
+	int len, sym_len;
 
 	/*
 	 * Just prepend the name with a different name/sym and return that.
@@ -318,13 +319,15 @@ static char *get_long_name_sym(const char *name, struct symbol *sym, struct symb
 	return NULL;
 
 found:
-	if (!use_stack && name[tmp->symbol->ident->len] != '-')
+	len = strlen(name);
+	sym_len = tmp->symbol->ident->len;
+	if (!use_stack && sym_len < len && name[sym_len] != '-')
 		return NULL;
 
 	if (name[0] == '*' && strcmp(name + 1, tmp->symbol_name->name) == 0)
 		snprintf(buf, sizeof(buf), "*%s", sm->name);
-	else if (name[tmp->symbol->ident->len] == '-' ||
-		 name[tmp->symbol->ident->len] == '.')
+	else if (sym_len < len && (name[tmp->symbol->ident->len] == '-' ||
+				   name[tmp->symbol->ident->len] == '.'))
 		snprintf(buf, sizeof(buf), "%s%s", sm->name, name + tmp->symbol->ident->len);
 	else if (strcmp(name, tmp->symbol_name->name) == 0)
 		snprintf(buf, sizeof(buf), "%s", sm->name);
