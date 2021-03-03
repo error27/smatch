@@ -294,6 +294,7 @@ static int format_name_sym_helper(char *buf, int remaining, char *name, struct s
 	int arg;
 	char *param_name;
 	int name_len;
+	int len;
 
 	if (!name || !sym || !sym->ident)
 		goto free;
@@ -304,11 +305,12 @@ static int format_name_sym_helper(char *buf, int remaining, char *name, struct s
 		goto free;
 
 	param_name = sym->ident->name;
+	len = strlen(name);
 	name_len = strlen(param_name);
 
-	if (name[name_len] == '\0')
+	if (name_len == len)
 		ret = snprintf(buf, remaining, "$%d", arg);
-	else if (name[name_len] == '-')
+	else if (name_len < len && name[name_len] == '-')
 		ret = snprintf(buf, remaining, "$%d%s", arg, name + name_len);
 	else
 		goto free;
