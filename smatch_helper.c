@@ -120,9 +120,21 @@ struct smatch_state *alloc_state_expr(struct expression *expr)
 	return state;
 }
 
-void append(char *dest, const char *data, int buff_len)
+static int FORMAT_ATTR(4) append(char *dest, int off, int len, const char *fmt, ...)
 {
-	strncat(dest, data, buff_len - strlen(dest) - 1);
+	int n;
+	va_list args;
+
+	if (len <= 0 || off < 0 || off >= len - 1)
+		return 0;
+
+	va_start(args, fmt);
+	n = vsnprintf(dest + off, len - off, fmt, args);
+	va_end(args);
+
+	if (n > len - off - 1)
+		return len - off - 1;
+	return n;
 }
 
 /*
@@ -197,14 +209,16 @@ static struct expression *strip_parens_symbol(struct expression *expr)
 	return unop;
 }
 
-static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
-				     struct expression *expr, int len,
+static int __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
+				     struct expression *expr, int off, int len,
 				     int *complicated)
 {
+	int orig_off = off;
+
 	if (!expr) {
 		/* can't happen on valid code */
 		*complicated = 1;
-		return;
+		return 0;
 	}
 
 	expr = strip_star_address(expr);
@@ -224,35 +238,34 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			deref = deref->unop;
 		}
 
-		__get_variable_from_expr(sym_ptr, buf, deref, len, complicated);
+		off += __get_variable_from_expr(sym_ptr, buf, deref, off, len, complicated);
 
 		if (op == '*')
-			append(buf, "->", len);
+			off += append(buf, off, len, "->");
 		else
-			append(buf, ".", len);
+			off += append(buf, off, len, ".");
 
 		if (expr->member)
-			append(buf, expr->member->name, len);
+			off += append(buf, off, len, "%s", expr->member->name);
 		else
-			append(buf, "unknown_member", len);
-
-		return;
+			off += append(buf, off, len, "unknown_member");
+		return off - orig_off;
 	}
 	case EXPR_SYMBOL:
 		if (expr->symbol_name)
-			append(buf, expr->symbol_name->name, len);
+			off += append(buf, off, len, "%s", expr->symbol_name->name);
 		if (sym_ptr) {
 			if (*sym_ptr)
 				*complicated = 1;
 			*sym_ptr = expr->symbol;
 		}
-		return;
+		return off - orig_off;
 	case EXPR_PREOP: {
 		const char *tmp;
 
 		if (get_expression_statement(expr)) {
 			*complicated = 2;
-			return;
+			return 0;
 		}
 		if (expr->op == SPECIAL_DECREMENT ||
 		    expr->op == SPECIAL_INCREMENT)
@@ -263,137 +276,120 @@ static void __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		else
 			tmp = show_special(expr->op);
 
-		append(buf, tmp, len);
-		__get_variable_from_expr(sym_ptr, buf, expr->unop,
-						 len, complicated);
+		off += append(buf, off, len, "%s", tmp);
+		off += __get_variable_from_expr(sym_ptr, buf, expr->unop, off,
+						len, complicated);
 		if (expr->op == '(')
-			append(buf, ")", len);
+			off += append(buf, off, len, ")");
 
-		return;
+		return off - orig_off;
 	}
 	case EXPR_POSTOP: {
-		const char *tmp;
-
-		__get_variable_from_expr(sym_ptr, buf, expr->unop,
-						 len, complicated);
-		tmp = show_special(expr->op);
-		append(buf, tmp, len);
+		off += __get_variable_from_expr(sym_ptr, buf, expr->unop, off, len,
+						complicated);
+		off += append(buf, off, len, "%s", show_special(expr->op));
 
 		if (expr->op == SPECIAL_DECREMENT || expr->op == SPECIAL_INCREMENT)
 			*complicated = 1;
-		return;
+		return off - orig_off;
 	}
 	case EXPR_ASSIGNMENT:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
 	case EXPR_BINOP: {
-		char tmp[10];
 		struct expression *array_expr;
 
 		*complicated = 1;
 		array_expr = get_array_expr(expr);
 		if (array_expr) {
-			__get_variable_from_expr(sym_ptr, buf, array_expr, len, complicated);
-			append(buf, "[", len);
+			off += __get_variable_from_expr(sym_ptr, buf, array_expr, off, len, complicated);
+			off += append(buf, off, len, "[");
 		} else {
-			__get_variable_from_expr(sym_ptr, buf, expr->left, len, complicated);
-			snprintf(tmp, sizeof(tmp), " %s ", show_special(expr->op));
-			append(buf, tmp, len);
+			off += __get_variable_from_expr(sym_ptr, buf, expr->left, off, len, complicated);
+			off += append(buf, off, len, " %s ", show_special(expr->op));
 		}
-		__get_variable_from_expr(NULL, buf, expr->right, len, complicated);
+		off += __get_variable_from_expr(NULL, buf, expr->right, off, len, complicated);
 		if (array_expr)
-			append(buf, "]", len);
-		return;
+			off += append(buf, off, len, "]");
+		return off - orig_off;
 	}
 	case EXPR_VALUE: {
 		sval_t sval = {};
-		char tmp[25];
 
 		*complicated = 1;
 		if (!get_value(expr, &sval))
-			return;
-		snprintf(tmp, 25, "%s", sval_to_numstr(sval));
-		append(buf, tmp, len);
-		return;
+			return 0;
+		off += append(buf, off, len, "%s", sval_to_numstr(sval));
+		return off - orig_off;
 	}
 	case EXPR_FVALUE: {
 		sval_t sval = {};
-		char tmp[25];
 
 		*complicated = 1;
 		if (!get_value(expr, &sval))
-			return;
-		snprintf(tmp, 25, "%s", sval_to_numstr(sval));
-		append(buf, tmp, len);
-		return;
+			return 0;
+
+		off += append(buf, off, len, "%s", sval_to_numstr(sval));
+		return off - orig_off;
 	}
 	case EXPR_STRING:
-		append(buf, "\"", len);
+		off += append(buf, off, len, "\"");
 		if (expr->string)
-			append(buf, expr->string->data, len);
-		append(buf, "\"", len);
-		return;
+			off += append(buf, off, len, "%s", expr->string->data);
+		off += append(buf, off, len, "\"");
+		return off - orig_off;
 	case EXPR_CALL: {
 		struct expression *tmp;
 		int i;
 
 		*complicated = 1;
-		__get_variable_from_expr(NULL, buf, expr->fn, len, complicated);
-		append(buf, "(", len);
+		off += __get_variable_from_expr(NULL, buf, expr->fn, off, len, complicated);
+		off += append(buf, off, len, "(");
 		i = 0;
 		FOR_EACH_PTR(expr->args, tmp) {
 			if (i++)
-				append(buf, ", ", len);
-			__get_variable_from_expr(NULL, buf, tmp, len, complicated);
+				off += append(buf, off, len, ", ");
+			off += __get_variable_from_expr(NULL, buf, tmp, off, len, complicated);
 		} END_FOR_EACH_PTR(tmp);
-		append(buf, ")", len);
-		return;
+		off += append(buf, off, len, ")");
+		return off - orig_off;
 	}
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
-		__get_variable_from_expr(sym_ptr, buf,
-					 expr->cast_expression, len,
-					 complicated);
-		return;
+		return __get_variable_from_expr(sym_ptr, buf,
+						expr->cast_expression, off, len,
+						complicated);
 	case EXPR_SIZEOF: {
 		sval_t sval;
 		int size;
-		char tmp[25];
 
 		if (expr->cast_type && get_base_type(expr->cast_type)) {
 			size = type_bytes(get_base_type(expr->cast_type));
-			snprintf(tmp, 25, "%d", size);
-			append(buf, tmp, len);
+			off += append(buf, off, len, "%d", size);
 		} else if (get_value(expr, &sval)) {
-			snprintf(tmp, 25, "%s", sval_to_str(sval));
-			append(buf, tmp, len);
+			off += append(buf, off, len, "%s", sval_to_str(sval));
 		}
-		return;
+		return off - orig_off;
 	}
 	case EXPR_IDENTIFIER:
 		*complicated = 1;
 		if (expr->expr_ident)
-			append(buf, expr->expr_ident->name, len);
-		return;
+			off += append(buf, off, len, "%s", expr->expr_ident->name);
+		return off - orig_off;
 	case EXPR_SELECT:
 	case EXPR_CONDITIONAL:
 		*complicated = 1;
-		append(buf, "(", len);
-		__get_variable_from_expr(NULL, buf, expr->conditional, len, complicated);
-		append(buf, ") ?", len);
+		off += append(buf, off, len, "(");
+		off += __get_variable_from_expr(NULL, buf, expr->conditional, off, len, complicated);
+		off += append(buf, off, len, ") ?");
 		if (expr->cond_true)
-			__get_variable_from_expr(NULL, buf, expr->cond_true, len, complicated);
-		append(buf, ":", len);
-		__get_variable_from_expr(NULL, buf, expr->cond_false, len, complicated);
-		return;
-	default: {
-			char tmp[64];
-
-			snprintf(tmp, sizeof(tmp), "$expr_%p(%d)", expr, expr->type);
-			append(buf, tmp, len);
-			*complicated = 1;
-		}
-		return;
+			off += __get_variable_from_expr(NULL, buf, expr->cond_true, off, len, complicated);
+		off += append(buf, off, len, ":");
+		off += __get_variable_from_expr(NULL, buf, expr->cond_false, off, len, complicated);
+		return off - orig_off;
+	default:
+		off += append(buf, off, len, "$expr_%p(%d)", expr, expr->type);
+		return off - orig_off;
 	}
 }
 
@@ -423,7 +419,7 @@ static void get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		}
 	}
 
-	__get_variable_from_expr(&tmp_sym, buf, expr, len, complicated);
+	__get_variable_from_expr(&tmp_sym, buf, expr, 0, len, complicated);
 	if (sym_ptr)
 		*sym_ptr = tmp_sym;
 

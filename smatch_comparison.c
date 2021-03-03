@@ -582,22 +582,19 @@ struct smatch_state *merge_compare_states(struct smatch_state *s1, struct smatch
 static struct smatch_state *alloc_link_state(struct string_list *links)
 {
 	struct smatch_state *state;
-	static char buf[256];
+	static char buf[256] = "";
+	int cnt = 0;
 	char *tmp;
-	int i;
 
 	state = __alloc_smatch_state(0);
 
-	i = 0;
 	FOR_EACH_PTR(links, tmp) {
-		if (!i++) {
-			snprintf(buf, sizeof(buf), "%s", tmp);
-		} else {
-			append(buf, ", ", sizeof(buf));
-			append(buf, tmp, sizeof(buf));
-		}
+		cnt += snprintf(buf + cnt, sizeof(buf) - cnt, "%s%s", cnt ? ", " : "", tmp);
+		if (cnt >= sizeof(buf))
+			goto done;
 	} END_FOR_EACH_PTR(tmp);
 
+done:
 	state->name = alloc_sname(buf);
 	state->data = links;
 	return state;

@@ -46,24 +46,22 @@ static struct smatch_state *alloc_link_state(struct expression_list *expr_list)
 {
 	struct expression *tmp;
 	struct smatch_state *state;
-	static char buf[256];
+	static char buf[256] = "";
 	char *name;
-	int i;
+	int cnt = 0;
 
 	state = __alloc_smatch_state(0);
 
-	i = 0;
 	FOR_EACH_PTR(expr_list, tmp) {
 		name = expr_to_str(tmp);
-		if (!i++) {
-			snprintf(buf, sizeof(buf), "%s", name);
-		} else {
-			append(buf, ", ", sizeof(buf));
-			append(buf, name, sizeof(buf));
-		}
+		cnt += snprintf(buf + cnt, sizeof(buf) - cnt, "%s%s",
+				cnt ? ", " : "", name);
 		free_string(name);
+		if (cnt >= sizeof(buf))
+			goto done;
 	} END_FOR_EACH_PTR(tmp);
 
+done:
 	state->name = alloc_sname(buf);
 	state->data = expr_list;
 	return state;
