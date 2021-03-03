@@ -62,7 +62,7 @@ bool is_skb_data(struct expression *expr)
 	expr = strip_expr(expr);
 	if (!expr)
 		return false;
-	if (expr->type != EXPR_DEREF || expr->op != '.')
+	if (expr->type != EXPR_DEREF)
 		return false;
 
 	if (!expr->member)
@@ -70,13 +70,11 @@ bool is_skb_data(struct expression *expr)
 	if (strcmp(expr->member->name, "data") != 0)
 		return false;
 
-	sym = expr_to_sym(expr->deref);
+	sym = get_type(expr->deref);
 	if (!sym)
 		return false;
-	sym = get_real_base_type(sym);
-	if (!sym || sym->type != SYM_PTR)
-		return false;
-	sym = get_real_base_type(sym);
+	if (sym->type == SYM_PTR)
+		sym = get_real_base_type(sym);
 	if (!sym || sym->type != SYM_STRUCT || !sym->ident)
 		return false;
 	if (strcmp(sym->ident->name, "sk_buff") != 0)
