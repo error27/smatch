@@ -1344,7 +1344,7 @@ void register_kernel_user_data(int id)
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
-		add_function_hook(kstr_funcs[i], &match_user_copy, INT_PTR(2));
+		add_function_hook_late(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
 
 	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++)

@@ -166,6 +166,7 @@ typedef void (return_implies_hook)(struct expression *call_expr,
 				   int param, char *key, char *value);
 typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list **rl);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
+void add_function_hook_late(const char *look_for, func_hook *call_back, void *info);
 
 void add_function_assign_hook(const char *look_for, func_hook *call_back,
 			      void *info);

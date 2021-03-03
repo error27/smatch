@@ -52,13 +52,16 @@ static struct hashtable *func_hash;
 
 int __in_fake_parameter_assign;
 
-#define REGULAR_CALL	   0
-#define RANGED_CALL	   1
-#define RANGED_EXACT	   2
-#define ASSIGN_CALL	   3
-#define IMPLIED_RETURN	   4
-#define MACRO_ASSIGN	   5
-#define MACRO_ASSIGN_EXTRA 6
+enum fn_hook_type {
+	REGULAR_CALL,
+	REGULAR_CALL_LATE,
+	RANGED_CALL,
+	RANGED_EXACT,
+	ASSIGN_CALL,
+	IMPLIED_RETURN,
+	MACRO_ASSIGN,
+	MACRO_ASSIGN_EXTRA,
+};
 
 struct param_key_data {
 	param_key_hook *call_back;
@@ -101,6 +104,14 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *info)
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(REGULAR_CALL, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
+void add_function_hook_late(const char *look_for, func_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(REGULAR_CALL_LATE, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -366,16 +377,6 @@ static void call_return_states_before_hooks(void)
 	} END_FOR_EACH_PTR(fn);
 }
 
-static void call_return_states_after_hooks(struct expression *expr)
-{
-	void_fn **fn;
-
-	FOR_EACH_PTR(return_states_after, fn) {
-		(*fn)();
-	} END_FOR_EACH_PTR(fn);
-	__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER_DB);
-}
-
 static int call_call_backs(struct call_back_list *list, int type,
 			    const char *fn, struct expression *expr)
 {
@@ -390,6 +391,38 @@ static int call_call_backs(struct call_back_list *list, int type,
 	} END_FOR_EACH_PTR(tmp);
 
 	return handled;
+}
+
+static void call_function_hooks(struct expression *expr, enum fn_hook_type type)
+{
+	struct call_back_list *call_backs;
+	struct expression *fn;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	fn = strip_expr(expr->fn);
+	if (fn->type != EXPR_SYMBOL || !fn->symbol)
+		return;
+
+	call_backs = search_callback(func_hash, (char *)fn->symbol->ident->name);
+	if (!call_backs)
+		return;
+
+	call_call_backs(call_backs, type, fn->symbol->ident->name, expr);
+}
+
+static void call_return_states_after_hooks(struct expression *expr)
+{
+	void_fn **fn;
+
+	FOR_EACH_PTR(return_states_after, fn) {
+		(*fn)();
+	} END_FOR_EACH_PTR(fn);
+	__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER_DB);
+	call_function_hooks(expr, REGULAR_CALL_LATE);
 }
 
 static void call_ranged_call_backs(struct call_back_list *list,
@@ -1449,16 +1482,7 @@ static void db_return_states_call(struct expression *expr)
 
 static void match_function_call(struct expression *expr)
 {
-	struct call_back_list *call_backs;
-	struct expression *fn;
-
-	fn = strip_expr(expr->fn);
-	if (fn->type == EXPR_SYMBOL && fn->symbol) {
-		call_backs = search_callback(func_hash, (char *)fn->symbol->ident->name);
-		if (call_backs)
-			call_call_backs(call_backs, REGULAR_CALL,
-					fn->symbol->ident->name, expr);
-	}
+	call_function_hooks(expr, REGULAR_CALL);
 	db_return_states_call(expr);
 }
 
