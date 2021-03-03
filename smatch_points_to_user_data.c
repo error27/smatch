@@ -134,6 +134,9 @@ bool points_to_user_data(struct expression *expr)
 	if (!expr)
 		return false;
 
+	if (is_fake_call(expr))
+		return false;
+
 	if (expr->type == EXPR_ASSIGNMENT)
 		return points_to_user_data(expr->left);
 
