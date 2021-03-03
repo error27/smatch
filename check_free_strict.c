@@ -506,6 +506,7 @@ void check_free_strict(int id)
 	add_free_hook("kzfree", &match_free, 0);
 	add_free_hook("kvfree", &match_free, 0);
 	add_free_hook("kmem_cache_free", &match_free, 1);
+	add_free_hook("mempool_free", &match_free, 0);
 	add_free_hook("kfree_skb", &match_free, 0);
 	add_free_hook("kfree_skbmem", &match_free, 0);
 	add_free_hook("dma_pool_free", &match_free, 1);
