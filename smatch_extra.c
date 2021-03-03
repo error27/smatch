@@ -191,21 +191,35 @@ static void mark_sub_members_gone(const char *name, struct symbol *sym, struct s
 	} END_FOR_EACH_SM(sm);
 }
 
-static bool in_param_set;
-void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+static void call_update_mtag_data(struct expression *expr,
+				  struct smatch_state *state)
 {
 	struct expression *faked;
 
+	if (__in_fake_var_assign)
+		return;
+
+	faked = get_faked_expression();
+	if (!faked)
+		goto update;
+	if (faked->type == EXPR_ASSIGNMENT && is_fresh_alloc(faked->right))
+		goto update;
+	return;
+
+update:
+	update_mtag_data(expr, state);
+}
+
+static bool in_param_set;
+void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
 	if (!expr)
 		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
 	set_union_info(name, sym, expr, state);
 	mark_sub_members_gone(name, sym, state);
 	call_extra_mod_hooks(name, sym, expr, state);
-	faked = get_faked_expression();
-	if (!faked ||
-	    (faked->type == EXPR_ASSIGNMENT && is_fresh_alloc(faked->right)))
-		update_mtag_data(expr, state);
+	call_update_mtag_data(expr, state);
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
