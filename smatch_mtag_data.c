@@ -163,8 +163,6 @@ void update_mtag_data(struct expression *expr, struct smatch_state *state)
 
 	if (!expr)
 		return;
-	if (is_local_variable(expr))
-		return;
 	if (is_ignored_macro(expr))
 		return;
 	if (is_head_next(expr))
