@@ -915,5 +915,5 @@ char *type_to_str(struct symbol *type)
 
 	buf[0] = '\0';
 	type_str_helper(buf, sizeof(buf), type);
-	return buf;
+	return alloc_sname(buf);
 }
