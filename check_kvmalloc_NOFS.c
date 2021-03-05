@@ -19,6 +19,7 @@
 
 static int my_id;
 
+#define GFP_KERNEL_OLD 0x6000c0
 #define GFP_KERNEL 0xcc0
 
 static void match_alloc(const char *fn, struct expression *expr, void *_arg)
@@ -31,6 +32,8 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	if (!get_value(arg_expr, &sval))
 		return;
 	if ((sval.uvalue & GFP_KERNEL) == GFP_KERNEL)
+		return;
+	if ((sval.uvalue & GFP_KERNEL_OLD) == GFP_KERNEL_OLD)
 		return;
 
 	sm_error("kvmalloc() only makes sense with GFP_KERNEL");
