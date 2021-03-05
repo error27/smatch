@@ -1580,9 +1580,18 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 	return true;
 }
 
-static void call_return_state_hooks_compare(struct expression *expr)
+static void call_return_states_hooks(char *return_ranges, struct expression *expr)
 {
 	struct returned_state_callback *cb;
+
+	return_id++;
+	FOR_EACH_PTR(returned_state_callbacks, cb) {
+		cb->callback(return_id, return_ranges, expr);
+	} END_FOR_EACH_PTR(cb);
+}
+
+static void call_return_state_hooks_compare(struct expression *expr)
+{
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 	sval_t sval = { .type = &int_ctype };
@@ -1602,10 +1611,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 		sval.value = 1;
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
 
-		return_id++;
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
+		call_return_states_hooks(return_ranges, expr);
 	}
 
 	__push_true_states();
@@ -1616,10 +1622,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 		sval.value = 0;
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
 
-		return_id++;
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
+		call_return_states_hooks(return_ranges, expr);
 	}
 
 	__merge_true_states();
@@ -1655,7 +1658,6 @@ static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
 
 static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 {
-	struct returned_state_callback *cb;
 	struct range_list *rl;
 	char *return_ranges;
 	struct sm_state *tmp;
@@ -1714,10 +1716,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 			return_ranges = alloc_sname(buf);
 		}
 
-		return_id++;
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
+		call_return_states_hooks(return_ranges, expr);
 
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
@@ -1782,7 +1781,6 @@ static bool has_separate_zero_null(struct sm_state *sm)
 static int split_positive_from_negative(struct expression *expr)
 {
 	struct sm_state *sm;
-	struct returned_state_callback *cb;
 	struct range_list *rl;
 	const char *return_ranges;
 	struct range_list *ret_rl;
@@ -1811,24 +1809,18 @@ static int split_positive_from_negative(struct expression *expr)
 	if (!assume(compare_expression(expr, separate_zero ? '>' : SPECIAL_GTE, zero_expr())))
 		return 0;
 
-	return_id++;
 	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, (char *)return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks((char *)return_ranges, expr);
 
 	end_assume();
 
 	if (separate_zero) {
 		undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
 
-		return_id++;
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, (char *)return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
+		call_return_states_hooks((char *)return_ranges, expr);
 
 		if (undo)
 			end_assume();
@@ -1836,12 +1828,9 @@ static int split_positive_from_negative(struct expression *expr)
 
 	undo = assume(compare_expression(expr, '<', zero_expr()));
 
-	return_id++;
 	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, (char *)return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks((char *)return_ranges, expr);
 
 	if (undo)
 		end_assume();
@@ -1851,7 +1840,6 @@ static int split_positive_from_negative(struct expression *expr)
 
 static int call_return_state_hooks_split_null_non_null_zero(struct expression *expr)
 {
-	struct returned_state_callback *cb;
 	struct range_list *rl;
 	struct range_list *nonnull_rl;
 	sval_t null_sval;
@@ -1898,10 +1886,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	return_ranges = show_rl(nonnull_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(nonnull_rl));
 
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks(return_ranges, expr);
 
 	__push_true_states();
 	__use_false_states();
@@ -1910,10 +1895,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	null_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&null_rl, null_sval, null_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(null_rl));
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks(return_ranges, expr);
 
 	__merge_true_states();
 	__free_fake_cur_stree();
@@ -1960,7 +1942,6 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	sval_t zero_sval;
 	struct range_list *zero_rl = NULL;
 	int nr_states;
-	struct returned_state_callback *cb;
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 
@@ -1994,10 +1975,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	return_ranges = show_rl(nonzero_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(nonzero_rl));
 
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks(return_ranges, expr);
 
 	__push_true_states();
 	__use_false_states();
@@ -2006,10 +1984,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	zero_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&zero_rl, zero_sval, zero_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(zero_rl));
-	return_id++;
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks(return_ranges, expr);
 
 	__merge_true_states();
 	__free_fake_cur_stree();
@@ -2078,7 +2053,6 @@ found:
 
 static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 {
-	struct returned_state_callback *cb;
 	struct range_list *ret_rl;
 	const char *return_ranges;
 	struct sm_state *tmp;
@@ -2105,10 +2079,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		return_id++;
-		FOR_EACH_PTR(returned_state_callbacks, cb) {
-			cb->callback(return_id, (char *)return_ranges, expr);
-		} END_FOR_EACH_PTR(cb);
+		call_return_states_hooks((char *)return_ranges, expr);
 
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
@@ -2210,7 +2181,6 @@ static bool is_kernel_error_path(struct expression *expr)
 
 static void call_return_state_hooks(struct expression *expr)
 {
-	struct returned_state_callback *cb;
 	struct range_list *ret_rl;
 	const char *return_ranges;
 	int nr_states;
@@ -2253,17 +2223,15 @@ vanilla:
 	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
 
-	return_id++;
 	nr_states = get_db_state_count();
 	if (nr_states >= 10000) {
+		return_id++;
 		match_return_info(return_id, (char *)return_ranges, expr);
 		print_limited_param_set(return_id, (char *)return_ranges, expr);
 		mark_all_params_untracked(return_id, (char *)return_ranges, expr);
 		return;
 	}
-	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, (char *)return_ranges, expr);
-	} END_FOR_EACH_PTR(cb);
+	call_return_states_hooks((char *)return_ranges, expr);
 }
 
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
