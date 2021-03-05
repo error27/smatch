@@ -408,7 +408,7 @@ Others
 	Extract a "slice" from an aggregate.
 
 	* .base: (pseudo_t) aggregate (alias .src)
-	* .from, .len: offet & size of the "slice" within the aggregate
+	* .from: offset of the "slice" within the aggregate
 	* .target: result
 	* .type: type of .target
 

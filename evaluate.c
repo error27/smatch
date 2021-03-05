@@ -2170,7 +2170,6 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		}
 		expr->r_bitpos += bytes_to_bits(offset);
 		expr->type = EXPR_SLICE;
-		expr->r_nrbits = member->bit_size;
 		expr->r_bitpos += member->bit_offset;
 		expr->ctype = member;
 		return member;
