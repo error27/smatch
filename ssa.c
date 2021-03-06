@@ -7,7 +7,6 @@
 #include <assert.h>
 #include "ssa.h"
 #include "lib.h"
-#include "sset.h"
 #include "dominate.h"
 #include "flowgraph.h"
 #include "linearize.h"
@@ -162,13 +161,12 @@ static bool rewrite_single_store(struct instruction *store)
 	return true;
 }
 
-static struct sset *processed;
-
 // we would like to know:
 // is there one or more stores?
 // are all loads & stores local/done in a single block?
 static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 {
+	unsigned long generation = ++bb_generation;
 	struct basic_block_list *alpha = NULL;
 	struct basic_block_list *idf = NULL;
 	struct basic_block *samebb = NULL;
@@ -199,7 +197,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 		return;
 
 	// 1) insert in the worklist all BBs that may modify var
-	sset_reset(processed);
 	FOR_EACH_PTR(addr->users, pu) {
 		struct instruction *insn = pu->insn;
 		struct basic_block *bb = insn->bb;
@@ -208,8 +205,10 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 		case OP_STORE:
 			nbr_stores++;
 			store = insn;
-			if (!sset_testset(processed, bb->nr))
+			if (bb->generation != generation) {
+				bb->generation = generation;
 				add_bb(&alpha, bb);
+			}
 			/* fall through */
 		case OP_LOAD:
 			if (local) {
@@ -389,8 +388,6 @@ void ssa_convert(struct entrypoint *ep)
 			last = nr;
 		bb->phi_map = NULL;
 	} END_FOR_EACH_PTR(bb);
-
-	processed = sset_init(first, last);
 
 	// try to promote memory accesses to pseudos
 	FOR_EACH_PTR(ep->accesses, pseudo) {

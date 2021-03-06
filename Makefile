@@ -63,7 +63,6 @@ LIB_OBJS += show-parse.o
 LIB_OBJS += simplify.o
 LIB_OBJS += sort.o
 LIB_OBJS += ssa.o
-LIB_OBJS += sset.o
 LIB_OBJS += stats.o
 LIB_OBJS += storage.o
 LIB_OBJS += symbol.o
