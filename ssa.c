@@ -96,10 +96,22 @@ static void kill_store(struct instruction *insn)
 	insn->bb = NULL;
 }
 
+static bool same_memop(struct instruction *a, struct instruction *b)
+{
+	if (a->size != b->size || a->offset != b->offset)
+		return false;
+	if (is_integral_type(a->type) && is_float_type(b->type))
+		return false;
+	if (is_float_type(a->type) && is_integral_type(b->type))
+		return false;
+	return true;
+}
+
 static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_stores, int nbr_uses)
 {
+	struct instruction *store = NULL;
 	struct instruction *insn;
-	pseudo_t val = NULL;
+	bool remove = false;
 
 	if (!bb)
 		return;
@@ -110,18 +122,21 @@ static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_sto
 			continue;
 		switch (insn->opcode) {
 		case OP_LOAD:
-			if (!val)
-				val = undef_pseudo();
-			replace_with_pseudo(insn, val);
+			if (!store)
+				replace_with_pseudo(insn, undef_pseudo());
+			else if (same_memop(store, insn))
+				replace_with_pseudo(insn, store->target);
+			else
+				remove = false;
 			break;
 		case OP_STORE:
-			val = insn->target;
-			// can't use kill_instruction() unless
-			// we add a fake user to val
-			kill_store(insn);
+			store = insn;
+			remove = true;
 			break;
 		}
 	} END_FOR_EACH_PTR(insn);
+	if (remove)
+		kill_store(store);
 }
 
 static bool rewrite_single_store(struct instruction *store)
@@ -139,6 +154,8 @@ static bool rewrite_single_store(struct instruction *store)
 		// by the value from the store. This is only valid
 		// if the store dominate the load.
 
+		if (!same_memop(store, insn))
+			continue;
 		if (insn->bb == store->bb) {
 			// the load and the store are in the same BB
 			// we can convert if the load is after the store.
@@ -257,21 +274,40 @@ external_visibility:
 	kill_dead_stores(ep, addr, !mod);
 }
 
-static pseudo_t lookup_var(struct basic_block *bb, struct symbol *var)
+static struct instruction *lookup_var(struct basic_block *bb, struct symbol *var)
 {
 	do {
-		pseudo_t val = phi_map_lookup(bb->phi_map, var);
-		if (val)
-			return val;
+		struct instruction *insn = phi_map_lookup(bb->phi_map, var);
+		if (insn)
+			return insn;
 	} while ((bb = bb->idom));
-	return undef_pseudo();
+	return NULL;
 }
 
 static struct instruction_list *phis_all;
 static struct instruction_list *phis_used;
+static struct instruction_list *stores;
+
+static bool matching_load(struct instruction *def, struct instruction *insn)
+{
+	if (insn->size != def->size)
+		return false;
+	switch (def->opcode) {
+	case OP_STORE:
+	case OP_LOAD:
+		if (insn->offset != def->offset)
+			return false;
+	case OP_PHI:
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
 
 static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 {
+	struct instruction *def;
 	struct symbol *var;
 	pseudo_t addr;
 	pseudo_t val;
@@ -284,8 +320,8 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		var = addr->sym;
 		if (!var || !var->torename)
 			break;
-		phi_map_update(&bb->phi_map, var, insn->target);
-		kill_store(insn);
+		phi_map_update(&bb->phi_map, var, insn);
+		add_instruction(&stores, insn);
 		break;
 	case OP_LOAD:
 		addr = insn->src;
@@ -294,14 +330,22 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		var = addr->sym;
 		if (!var || !var->torename)
 			break;
-		val = lookup_var(bb, var);
+		def = lookup_var(bb, var);
+		if (!def) {
+			val = undef_pseudo();
+		} else if (!matching_load(def, insn)) {
+			var->torename = false;
+			break;
+		} else {
+			val = def->target;
+		}
 		replace_with_pseudo(insn, val);
 		break;
 	case OP_PHI:
 		var = insn->type;
 		if (!var || !var->torename)
 			break;
-		phi_map_update(&bb->phi_map, var, insn->target);
+		phi_map_update(&bb->phi_map, var, insn);
 		add_instruction(&phis_all, insn);
 		break;
 	}
@@ -348,7 +392,8 @@ static void ssa_rename_phi(struct instruction *insn)
 		return;
 	FOR_EACH_PTR(insn->bb->parents, par) {
 		struct instruction *term = delete_last_instruction(&par->insns);
-		pseudo_t val = lookup_var(par, var);
+		struct instruction *def = lookup_var(par, var);
+		pseudo_t val = def ? def->target : undef_pseudo();
 		pseudo_t phi = alloc_phi(par, val, var);
 		phi->ident = var->ident;
 		add_instruction(&par->insns, term);
@@ -376,6 +421,18 @@ static void ssa_rename_phis(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(phi);
 }
 
+static void remove_dead_stores(struct instruction_list *stores)
+{
+	struct instruction *store;
+
+	FOR_EACH_PTR(stores, store) {
+		struct symbol *var = store->addr->sym;
+
+		if (var->torename)
+			kill_store(store);
+	} END_FOR_EACH_PTR(store);
+}
+
 void ssa_convert(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -393,6 +450,7 @@ void ssa_convert(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(bb);
 
 	// try to promote memory accesses to pseudos
+	stores = NULL;
 	FOR_EACH_PTR(ep->accesses, pseudo) {
 		ssa_convert_one_var(ep, pseudo->sym);
 	} END_FOR_EACH_PTR(pseudo);
@@ -401,4 +459,7 @@ void ssa_convert(struct entrypoint *ep)
 	phis_all = phis_used = NULL;
 	ssa_rename_insns(ep);
 	ssa_rename_phis(ep);
+
+	// remove now dead stores
+	remove_dead_stores(stores);
 }

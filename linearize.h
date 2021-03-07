@@ -18,7 +18,7 @@ struct pseudo_user {
 
 DECLARE_ALLOCATOR(pseudo_user);
 DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
-DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
+DECLARE_PTRMAP(phi_map, struct symbol *, struct instruction *);
 
 
 enum pseudo_type {

@@ -16,7 +16,6 @@ static void foo(struct s s)
 /*
  * check-name: not-same-memop0
  * check-command: test-linearize -Wno-decl -fdump-ir=mem2reg $file
- * check-known-to-fail
  *
  * check-output-start
 local:
