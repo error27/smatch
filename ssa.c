@@ -74,21 +74,6 @@ static inline bool is_promotable(struct symbol *type)
 	return 0;
 }
 
-static bool insn_before(struct instruction *a, struct instruction *b)
-{
-	struct basic_block *bb = a->bb;
-	struct instruction *insn;
-
-	assert(b->bb == bb);
-	FOR_EACH_PTR(bb->insns, insn) {
-		if (insn == a)
-			return true;
-		if (insn == b)
-			return false;
-	} END_FOR_EACH_PTR(insn);
-	assert(0);
-}
-
 static void kill_store(struct instruction *insn)
 {
 	remove_use(&insn->src);
@@ -139,48 +124,6 @@ static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_sto
 		kill_store(store);
 }
 
-static bool rewrite_single_store(struct instruction *store)
-{
-	pseudo_t addr = store->src;
-	struct pseudo_user *pu;
-
-	FOR_EACH_PTR(addr->users, pu) {
-		struct instruction *insn = pu->insn;
-
-		if (insn->opcode != OP_LOAD)
-			continue;
-
-		// Let's try to replace the value of the load
-		// by the value from the store. This is only valid
-		// if the store dominate the load.
-
-		if (!same_memop(store, insn))
-			continue;
-		if (insn->bb == store->bb) {
-			// the load and the store are in the same BB
-			// we can convert if the load is after the store.
-			if (!insn_before(store, insn))
-				continue;
-		} else if (!domtree_dominates(store->bb, insn->bb)) {
-			// we can't convert this load
-			continue;
-		}
-
-		// OK, we can rewrite this load
-
-		// undefs ?
-
-		replace_with_pseudo(insn, store->target);
-	} END_FOR_EACH_PTR(pu);
-
-	// is there some unconverted loads?
-	if (pseudo_user_list_size(addr->users) > 1)
-		return false;
-
-	kill_store(store);
-	return true;
-}
-
 // we would like to know:
 // is there one or more stores?
 // are all loads & stores local/done in a single block?
@@ -190,7 +133,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 	struct basic_block_list *alpha = NULL;
 	struct basic_block_list *idf = NULL;
 	struct basic_block *samebb = NULL;
-	struct instruction *store = NULL;
 	struct basic_block *bb;
 	struct pseudo_user *pu;
 	unsigned long mod = var->ctype.modifiers;
@@ -224,7 +166,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 		switch (insn->opcode) {
 		case OP_STORE:
 			nbr_stores++;
-			store = insn;
 			if (bb->generation != generation) {
 				bb->generation = generation;
 				add_bb(&alpha, bb);
@@ -247,11 +188,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 				show_ident(var->ident));
 		}
 	} END_FOR_EACH_PTR(pu);
-
-	if (nbr_stores == 1) {
-		if (rewrite_single_store(store))
-			return;
-	}
 
 	// if all uses are local to a single block
 	// they can easily be rewritten and doesn't need phi-nodes
