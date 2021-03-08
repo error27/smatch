@@ -257,7 +257,6 @@ static void track_phi_uses(struct instruction *insn)
 			continue;
 		def = phi->def;
 		assert(def->opcode == OP_PHISOURCE);
-		add_ptr_list(&def->phi_users, insn);
 	} END_FOR_EACH_PTR(phi);
 }
 

@@ -261,35 +261,6 @@ static void set_up_argument_storage(struct entrypoint *ep, struct basic_block *b
 	} END_FOR_EACH_PTR(arg);
 }
 
-/*
- * One phi-source may feed multiple phi nodes. If so, combine
- * the storage output for this bb into one entry to reduce
- * storage pressure.
- */
-static void combine_phi_storage(struct basic_block *bb)
-{
-	struct instruction *insn;
-	FOR_EACH_PTR(bb->insns, insn) {
-		struct instruction *phi;
-		struct storage *last;
-
-		if (!insn->bb || insn->opcode != OP_PHISOURCE)
-			continue;
-		last = NULL;
-		FOR_EACH_PTR(insn->phi_users, phi) {
-			struct storage *storage = lookup_storage(bb, phi->target, STOR_OUT);
-			if (!storage) {
-				DELETE_CURRENT_PTR(phi);
-				continue;
-			}
-			if (last && storage != last)
-				storage = combine_storage(storage, last);
-			last = storage;
-		} END_FOR_EACH_PTR(phi);
-		PACK_PTR_LIST(&insn->phi_users);
-	} END_FOR_EACH_PTR(insn);
-}
-
 void set_up_storage(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -300,7 +271,6 @@ void set_up_storage(struct entrypoint *ep)
 	/* Then do a list of all the inter-bb storage */
 	FOR_EACH_PTR(ep->bbs, bb) {
 		set_up_bb_storage(bb);
-		combine_phi_storage(bb);
 	} END_FOR_EACH_PTR(bb);
 
 	name_storage();

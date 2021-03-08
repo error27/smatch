@@ -100,6 +100,7 @@ found_dominator:
 		phi->ident = phi->ident ? : one->target->ident;
 		add_instruction(&parent->insns, br);
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
+		phi->def->phi_node = insn;
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		

@@ -109,7 +109,7 @@ struct instruction {
 		};
 		struct /* phi source */ {
 			pseudo_t phi_src;
-			struct instruction_list *phi_users;
+			struct instruction *phi_node;
 		};
 		struct /* unops */ {
 			pseudo_t src;
@@ -289,6 +289,12 @@ static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp
 	*pp = p;
 	if (has_use_list(p))
 		add_pseudo_user_ptr(alloc_pseudo_user(insn, pp), &p->users);
+}
+
+static inline void link_phi(struct instruction *node, pseudo_t phi)
+{
+	use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+	phi->def->phi_node = node;
 }
 
 static inline void remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry, int count)
