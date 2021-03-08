@@ -12,7 +12,7 @@
 
 /* Silly type-safety check ;) */
 #define CHECK_TYPE(head,ptr)		(void)(&(ptr) == &(head)->list[0])
-#define TYPEOF(head)			__typeof__(&(head)->list[0])
+#define PTRLIST_TYPE(head)		__typeof__((head)->list[0])
 #define VRFY_PTR_LIST(head)		(void)(sizeof((head)->list[0]))
 
 #define LIST_NODE_NR (13)
@@ -67,6 +67,12 @@ extern void **__add_ptr_list_tag(struct ptr_list **, void *, unsigned long);
 		(__typeof__(&(ptr))) __add_ptr_list_tag(head, ptr, tag);\
 	})
 
+#define pop_ptr_list(l) ({						\
+		PTRLIST_TYPE(*(l)) ptr;					\
+		ptr = delete_ptr_list_last((struct ptr_list**)(l));	\
+		ptr;							\
+	})
+
 extern void __free_ptr_list(struct ptr_list **);
 #define free_ptr_list(list)	do {					\
 		VRFY_PTR_LIST(*(list));					\
@@ -75,7 +81,13 @@ extern void __free_ptr_list(struct ptr_list **);
 
 #define ptr_list_nth(lst, nth) ({					\
 		struct ptr_list* head = (struct ptr_list*)(lst);	\
-		(__typeof__((lst)->list[0])) ptr_list_nth_entry(head, nth);\
+		(PTRLIST_TYPE(lst)) ptr_list_nth_entry(head, nth);\
+	})
+
+#define ptr_list_to_array(list, array, size) ({				\
+		struct ptr_list* head = (struct ptr_list*)(list);	\
+		CHECK_TYPE(list, *array);				\
+		linearize_ptr_list(head, (void**)array, size);		\
 	})
 
 ////////////////////////////////////////////////////////////////////////
@@ -251,7 +263,7 @@ extern void __free_ptr_list(struct ptr_list **);
 extern void split_ptr_list_head(struct ptr_list *);
 
 #define DO_INSERT_CURRENT(new, __head, __list, __nr) do {		\
-	TYPEOF(__head) __this, __last;					\
+	PTRLIST_TYPE(__head) *__this, *__last;				\
 	if (__list->nr == LIST_NODE_NR) {				\
 		split_ptr_list_head((struct ptr_list*)__list);		\
 		if (__nr >= __list->nr) {				\
@@ -270,8 +282,8 @@ extern void split_ptr_list_head(struct ptr_list *);
 } while (0)
 
 #define DO_DELETE_CURRENT(__head, __list, __nr) do {			\
-	TYPEOF(__head) __this = __list->list + __nr;			\
-	TYPEOF(__head) __last = __list->list + __list->nr - 1;		\
+	PTRLIST_TYPE(__head) *__this = __list->list + __nr;		\
+	PTRLIST_TYPE(__head) *__last = __list->list + __list->nr - 1;	\
 	while (__this < __last) {					\
 		__this[0] = __this[1];					\
 		__this++;						\

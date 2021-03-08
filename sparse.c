@@ -163,20 +163,9 @@ static void check_byte_count(struct instruction *insn, pseudo_t count)
 	/* OK, we could try to do the range analysis here */
 }
 
-static pseudo_t argument(struct instruction *call, unsigned int argno)
-{
-	pseudo_t args[8];
-	struct ptr_list *arg_list = (struct ptr_list *) call->arguments;
-
-	argno--;
-	if (linearize_ptr_list(arg_list, (void *)args, 8) > argno)
-		return args[argno];
-	return NULL;
-}
-
 static void check_memset(struct instruction *insn)
 {
-	check_byte_count(insn, argument(insn, 3));
+	check_byte_count(insn, ptr_list_nth(insn->arguments, 3));
 }
 
 #define check_memcpy check_memset
