@@ -123,7 +123,7 @@ static void match_assign(struct expression *expr)
 	if (in_iterator_pre_statement())
 		return;
 
-	if (!get_absolute(expr, &rl))
+	if (!get_absolute(expr->right, &rl))
 		return;
 
 	type = get_type(expr->left);
