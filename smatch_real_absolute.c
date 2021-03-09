@@ -129,8 +129,7 @@ static void match_assign(struct expression *expr)
 	type = get_type(expr->left);
 	if (!type)
 		return;
-	if (type->type != SYM_PTR && type->type != SYM_BASETYPE &&
-	    type->type != SYM_ENUM)
+	if (type->type != SYM_BASETYPE && type->type != SYM_ENUM)
 		return;
 
 	rl = cast_rl(type, rl);
