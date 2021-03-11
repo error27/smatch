@@ -1266,10 +1266,14 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		case OP_SET_EQ:
 			if ((value & bits) != value)
 				return replace_with_value(insn, 0);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_NE, 0);
 			break;
 		case OP_SET_NE:
 			if ((value & bits) != value)
 				return replace_with_value(insn, 1);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_EQ, 0);
 			break;
 		case OP_SET_LE:
 			value = sign_extend(value, def->size);
