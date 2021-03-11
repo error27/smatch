@@ -1029,7 +1029,9 @@ static void update_tf_links(struct stree *pre_stree,
 	struct smatch_state *true_state, *false_state;
 	struct compare_data *data;
 	struct expression *right_expr;
+	const char *left_var_orig = left_var;
 	const char *right_var;
+	struct var_sym_list *left_vsl_orig = left_vsl;
 	struct var_sym_list *right_vsl;
 	int orig_comparison;
 	int right_comparison;
@@ -1043,6 +1045,8 @@ static void update_tf_links(struct stree *pre_stree,
 		state = get_state_stree(pre_stree, comparison_id, tmp, NULL);
 		if (!state || !state->data)
 			continue;
+		left_var = left_var_orig;
+		left_vsl = left_vsl_orig;
 		data = state->data;
 		right_comparison = data->comparison;
 		right_expr = data->right;
