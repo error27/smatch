@@ -753,8 +753,10 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	if (!estate_get_single_value(sm->state, &start))
 		return NULL;
 	if (!get_implied_max(condition->right, &end)) {
-		end = sval_type_max(start.type);
-		unknown_end = true;
+		end = sval_type_max(get_type(condition->right));
+		end = sval_cast(start.type, end);
+		if (sval_is_max(end))
+			unknown_end = true;
 	}
 
 	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
