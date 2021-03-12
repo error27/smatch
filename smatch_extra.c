@@ -743,7 +743,6 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	struct sm_state *sm;
 	struct smatch_state *estate;
 	sval_t start, end, max;
-	struct symbol *type;
 	bool unknown_end = false;
 
 	iter_var = iter_expr->unop;
@@ -777,9 +776,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	}
 	if (sval_cmp(end, start) < 0)
 		return NULL;
-	type = get_type(iter_var);
-	start = sval_cast(type, start);
-	end = sval_cast(type, end);
+	end = sval_cast(start.type, end);
 	estate = alloc_estate_range(start, end);
 	if (get_hard_max(condition->right, &max)) {
 		if (!get_macro_name(condition->pos))
@@ -788,7 +785,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		    condition->op == SPECIAL_UNSIGNED_LT ||
 		    condition->op == SPECIAL_NOTEQUAL)
 			max.value--;
-		max = sval_cast(type, max);
+		max = sval_cast(start.type, max);
 		estate_set_fuzzy_max(estate, max);
 	}
 	set_extra_expr_mod(iter_var, estate);
