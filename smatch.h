@@ -679,7 +679,6 @@ void __set_cur_stree_readonly(void);
 void __set_cur_stree_writable(void);
 void __set_sm(struct sm_state *sm);
 void __set_sm_cur_stree(struct sm_state *sm);
-void __set_sm_fake_stree(struct sm_state *sm);
 void __set_true_false_sm(struct sm_state *true_state,
 			struct sm_state *false_state);
 void nullify_path(void);

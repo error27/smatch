@@ -1082,9 +1082,7 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 			continue;
 		}
 
-		// TODO why can't this just be __set_sm()?  Or alternatively,
-		// why is this not written to the "implied" stree?
-		__set_sm_fake_stree(tmp);
+		__set_sm(tmp);
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&implied_true);

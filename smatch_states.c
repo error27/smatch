@@ -320,29 +320,6 @@ void __set_sm_cur_stree(struct sm_state *sm)
 	overwrite_sm_state_stree(&cur_stree, sm);
 }
 
-void __set_sm_fake_stree(struct sm_state *sm)
-{
-	if (read_only)
-		sm_perror("cur_stree is read only.");
-
-	if (debug_on(check_name(sm->owner), sm->name)) {
-		struct smatch_state *s;
-
-		s = __get_state(sm->owner, sm->name, sm->sym);
-		if (!s)
-			sm_msg("%s new %s", __func__, show_sm(sm));
-		else
-			sm_msg("%s change %s (was %s)",
-				__func__, show_sm(sm), show_state(s));
-	}
-
-	if (unreachable())
-		return;
-
-	overwrite_sm_state_stree_stack(&fake_cur_stree_stack, sm);
-}
-
-
 typedef void (get_state_hook)(int owner, const char *name, struct symbol *sym);
 DECLARE_PTR_LIST(fn_list, get_state_hook *);
 static struct fn_list *get_state_hooks;
