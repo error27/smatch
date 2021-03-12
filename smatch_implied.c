@@ -144,7 +144,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 
 	if (is_merged(sm) || sm->left || sm->right)
 		return 0;
-	if (!rl_to_sval(rl, &sval))
+	if (comparison != PARAM_LIMIT && !rl_to_sval(rl, &sval))
 		return 0;
 	if (!estate_rl(sm->state))
 		return 0;
