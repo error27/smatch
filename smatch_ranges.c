@@ -777,6 +777,37 @@ int is_unknown_ptr(struct range_list *rl)
 	return 0;
 }
 
+bool is_whole_ptr_rl(struct range_list *rl)
+{
+	struct data_range *drange;
+	int cnt = 0;
+
+	/* A whole pointer range is either 0-ulong_max or NULL, valid range, and
+	 * error pointers.
+	 */
+	if (is_whole_rl(rl))
+		return true;
+
+	if (ptr_list_size((struct ptr_list *)rl) != 2)
+		return false;
+
+	FOR_EACH_PTR(rl, drange) {
+		cnt++;
+
+		if (cnt == 1) {
+			if (drange->min.value != 0 ||
+			    drange->max.value != 0)
+				return false;
+		} if (cnt == 2) {
+			if (drange->min.value != valid_ptr_min ||
+			    drange->max.value != ULONG_MAX)
+				return false;
+		}
+	} END_FOR_EACH_PTR(drange);
+
+	return true;
+}
+
 int is_whole_rl_non_zero(struct range_list *rl)
 {
 	struct data_range *drange;

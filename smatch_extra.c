@@ -2617,6 +2617,11 @@ static void db_limited_after(void)
 
 static int basically_the_same(struct range_list *orig, struct range_list *new)
 {
+	if (type_is_ptr(rl_type(orig)) &&
+	    is_whole_ptr_rl(orig) &&
+	    is_whole_ptr_rl(new))
+		return true;
+
 	return rl_equiv(orig, new);
 }
 
