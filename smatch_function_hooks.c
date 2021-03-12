@@ -1321,7 +1321,7 @@ static void match_assign_call(struct expression *expr)
 	 * strlen() when we haven't set it yet.
 	 */
 
-	if (db_return_states_assign(expr) == 1)
+	if (db_return_states_assign(expr))
 		handled = 1;
 	else
 		handled = assign_ranged_funcs(fn, expr, call_backs);
