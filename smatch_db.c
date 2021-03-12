@@ -238,7 +238,6 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 	else
 		id = __fn_mtag;
 
-	return_ranges = replace_return_ranges(return_ranges);
 	sql_insert(return_states, "'%s', '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
 		   get_base_file(), get_function(), id, return_id,
 		   return_ranges, fn_static(), type, param, key, value);
@@ -1584,6 +1583,7 @@ static void call_return_states_hooks(char *return_ranges, struct expression *exp
 {
 	struct returned_state_callback *cb;
 
+	return_ranges = replace_return_ranges(return_ranges);
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
 		cb->callback(return_id, return_ranges, expr);
