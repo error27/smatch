@@ -364,7 +364,7 @@ static inline void sm_ierror(const char *fmt, ...)
 }
 #define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 
-bool has_states(int owner);
+bool has_states(struct stree *stree, int owner);
 struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
