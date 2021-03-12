@@ -528,7 +528,6 @@ struct sm_state *get_sm_state_stree(struct stree *stree, int owner, const char *
 	if (!name)
 		return NULL;
 
-
 	return avl_lookup(stree, (struct sm_state *)&tracker);
 }
 
