@@ -50,6 +50,7 @@ struct data_range *alloc_range(sval_t min, sval_t max);
 struct data_range *alloc_range_perm(sval_t min, sval_t max);
 
 int rl_fits_in_type(struct range_list *rl, struct symbol *type);
+int values_fit_type(struct expression *left, struct expression *right);
 
 struct range_list *alloc_rl(sval_t min, sval_t max);
 struct range_list *clone_rl(struct range_list *list);
