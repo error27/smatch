@@ -35,6 +35,7 @@ static int my_id;
 static int return_id;
 
 static void call_return_state_hooks(struct expression *expr);
+static void call_return_states_callbacks(const char *return_ranges, struct expression *expr);
 
 #define SQLITE_CACHE_PAGES 1000
 
@@ -1579,14 +1580,14 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 	return true;
 }
 
-static void call_return_states_hooks(char *return_ranges, struct expression *expr)
+static void call_return_states_callbacks(const char *return_ranges, struct expression *expr)
 {
 	struct returned_state_callback *cb;
 
 	return_ranges = replace_return_ranges(return_ranges);
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
-		cb->callback(return_id, return_ranges, expr);
+		cb->callback(return_id, (char *)return_ranges, expr);
 	} END_FOR_EACH_PTR(cb);
 }
 
@@ -1611,7 +1612,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 		sval.value = 1;
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
 
-		call_return_states_hooks(return_ranges, expr);
+		call_return_states_callbacks(return_ranges, expr);
 	}
 
 	__push_true_states();
@@ -1622,7 +1623,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 		sval.value = 0;
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_sval(sval));
 
-		call_return_states_hooks(return_ranges, expr);
+		call_return_states_callbacks(return_ranges, expr);
 	}
 
 	__merge_true_states();
@@ -1716,7 +1717,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 			return_ranges = alloc_sname(buf);
 		}
 
-		call_return_states_hooks(return_ranges, expr);
+		call_return_states_callbacks(return_ranges, expr);
 
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
@@ -1811,7 +1812,7 @@ static int split_positive_from_negative(struct expression *expr)
 
 	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-	call_return_states_hooks((char *)return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	end_assume();
 
@@ -1820,7 +1821,7 @@ static int split_positive_from_negative(struct expression *expr)
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		call_return_states_hooks((char *)return_ranges, expr);
+		call_return_states_callbacks(return_ranges, expr);
 
 		if (undo)
 			end_assume();
@@ -1830,7 +1831,7 @@ static int split_positive_from_negative(struct expression *expr)
 
 	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-	call_return_states_hooks((char *)return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	if (undo)
 		end_assume();
@@ -1886,7 +1887,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	return_ranges = show_rl(nonnull_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(nonnull_rl));
 
-	call_return_states_hooks(return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	__push_true_states();
 	__use_false_states();
@@ -1895,7 +1896,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	null_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&null_rl, null_sval, null_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(null_rl));
-	call_return_states_hooks(return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	__merge_true_states();
 	__free_fake_cur_stree();
@@ -1975,7 +1976,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	return_ranges = show_rl(nonzero_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(nonzero_rl));
 
-	call_return_states_hooks(return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	__push_true_states();
 	__use_false_states();
@@ -1984,7 +1985,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	zero_sval = sval_type_val(rl_type(rl), 0);
 	add_range(&zero_rl, zero_sval, zero_sval);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(zero_rl));
-	call_return_states_hooks(return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 
 	__merge_true_states();
 	__free_fake_cur_stree();
@@ -2079,7 +2080,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
-		call_return_states_hooks((char *)return_ranges, expr);
+		call_return_states_callbacks(return_ranges, expr);
 
 		__free_fake_cur_stree();
 	} END_FOR_EACH_PTR(tmp);
@@ -2231,7 +2232,7 @@ vanilla:
 		mark_all_params_untracked(return_id, (char *)return_ranges, expr);
 		return;
 	}
-	call_return_states_hooks((char *)return_ranges, expr);
+	call_return_states_callbacks(return_ranges, expr);
 }
 
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
