@@ -1392,6 +1392,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			break;
 		}
 		break;
+	case OP_TRUNC:
+		osize = def->orig_type->bit_size;
+		switch (insn->opcode) {
+		case OP_SET_EQ: case OP_SET_NE:
+			if (one_use(def->target)) {
+				insn->itype = def->orig_type;
+				def->type = def->orig_type;
+				def->size = osize;
+				def->src2 = value_pseudo(bits);
+				return replace_opcode(def, OP_AND);
+			}
+			break;
+		}
+		break;
 	case OP_ZEXT:
 		osize = def->orig_type->bit_size;
 		bits = bits_mask(osize);
