@@ -2441,7 +2441,7 @@ static int simplify_branch(struct instruction *insn)
 
 	/* Constant conditional */
 	if (constant(cond))
-		return insert_branch(insn, cond->value ? insn->bb_true : insn->bb_false);
+		return convert_to_jump(insn, cond->value ? insn->bb_true : insn->bb_false);
 
 	/* Same target? */
 	if (insn->bb_true == insn->bb_false) {
@@ -2471,9 +2471,9 @@ static int simplify_branch(struct instruction *insn)
 				long long val1 = def->src2->value;
 				long long val2 = def->src3->value;
 				if (!val1 && !val2)
-					return insert_branch(insn, insn->bb_false);
+					return convert_to_jump(insn, insn->bb_false);
 				if (val1 && val2)
-					return insert_branch(insn, insn->bb_true);
+					return convert_to_jump(insn, insn->bb_true);
 				if (val2) {
 					struct basic_block *tmp = insn->bb_true;
 					insn->bb_true = insn->bb_false;
@@ -2509,7 +2509,7 @@ static int simplify_switch(struct instruction *insn)
 	return 0;
 
 found:
-	return insert_branch(insn, jmp->target);
+	return convert_to_jump(insn, jmp->target);
 }
 
 static struct basic_block *is_label(pseudo_t pseudo)

@@ -268,7 +268,7 @@ try_to_rewrite_target:
 	 */
 	if (bb_list_size(target->parents) != 1)
 		return retval;
-	insert_branch(insn, final);
+	convert_to_jump(insn, final);
 	return 1;
 }
 
@@ -711,7 +711,7 @@ void vrfy_flow(struct entrypoint *ep)
 
 ///
 // change a switch or a conditional branch into a branch
-int insert_branch(struct instruction *insn, struct basic_block *target)
+int convert_to_jump(struct instruction *insn, struct basic_block *target)
 {
 	struct basic_block *bb = insn->bb;
 	struct basic_block *child;
