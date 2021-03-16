@@ -19,7 +19,6 @@
 #include "simplify.h"
 #include "flow.h"
 #include "target.h"
-#include "flowgraph.h"
 
 unsigned long bb_generation;
 
@@ -67,34 +66,6 @@ static int pseudo_truth_value(pseudo_t pseudo)
 	default:
 		return -1;
 	}
-}
-
-///
-// check if the BB is empty or only contains phi-sources
-static int bb_is_trivial(struct basic_block *bb)
-{
-	struct instruction *insn;
-	int n = 0;
-
-	FOR_EACH_PTR(bb->insns, insn) {
-		if (!insn->bb)
-			continue;
-		switch (insn->opcode) {
-		case OP_TERMINATOR ... OP_TERMINATOR_END:
-			return n ? -1 : 1;
-		case OP_NOP:
-		case OP_INLINED_CALL:
-			continue;
-		case OP_PHISOURCE:
-			n++;
-			continue;
-		default:
-			goto out;
-		}
-	} END_FOR_EACH_PTR(insn);
-
-out:
-	return 0;
 }
 
 /*
@@ -156,81 +127,6 @@ static bool bb_is_forwarder(struct basic_block *bb)
 	} END_FOR_EACH_PTR(insn);
 out:
 	return false;
-}
-
-///
-// do jump threading in dominated BBs
-// @dom: the BB which must dominate the modified BBs.
-// @old: the old target BB
-// @new: the new target BB
-// @return: 0 if no chnages have been made, 1 otherwise.
-//
-// In all BB dominated by @dom, rewrite branches to @old into branches to @new
-static int retarget_bb(struct basic_block *dom, struct basic_block *old, struct basic_block *new)
-{
-	struct basic_block *bb;
-	int changed = 0;
-
-	if (new == old)
-		return 0;
-
-restart:
-	FOR_EACH_PTR(old->parents, bb) {
-		struct instruction *last;
-		struct multijmp *jmp;
-
-		if (!domtree_dominates(dom, bb))
-			continue;
-		last = last_instruction(bb->insns);
-		switch (last->opcode) {
-		case OP_BR:
-			changed |= rewrite_branch(bb, &last->bb_true,  old, new);
-			break;
-		case OP_CBR:
-			changed |= rewrite_branch(bb, &last->bb_true,  old, new);
-			changed |= rewrite_branch(bb, &last->bb_false, old, new);
-			break;
-		case OP_SWITCH:
-		case OP_COMPUTEDGOTO:
-			FOR_EACH_PTR(last->multijmp_list, jmp) {
-				changed |= rewrite_branch(bb, &jmp->target, old, new);
-			} END_FOR_EACH_PTR(jmp);
-			break;
-		default:
-			continue;
-		}
-
-		// since rewrite_branch() will modify old->parents() the list
-		// iteration won't work correctly. Several solution exist for
-		// this but in this case the simplest is to restart the loop.
-		goto restart;
-	} END_FOR_EACH_PTR(bb);
-	return changed;
-}
-
-static int simplify_cbr_cbr(struct instruction *insn)
-{
-	struct instruction *last;
-	struct basic_block *bot = insn->bb;
-	struct basic_block *top = bot->idom;
-	int changed = 0;
-	int trivial;
-
-	if (!top)
-		return 0;
-
-	trivial = bb_is_trivial(bot);
-	if (trivial == 0)
-		return 0;
-	if (trivial < 0)
-		return 0;
-	last = last_instruction(top->insns);
-	if (last->opcode != OP_CBR || last->cond != insn->cond)
-		return 0;
-
-	changed |= retarget_bb(last->bb_true , bot, insn->bb_true);
-	changed |= retarget_bb(last->bb_false, bot, insn->bb_false);
-	return changed;
 }
 
 /*
@@ -379,8 +275,6 @@ try_to_rewrite_target:
 static int simplify_one_branch(struct basic_block *bb, struct instruction *br)
 {
 	if (simplify_phi_branch(bb, br))
-		return 1;
-	if (simplify_cbr_cbr(br))
 		return 1;
 	return simplify_branch_branch(bb, br, &br->bb_true, 1) |
 	       simplify_branch_branch(bb, br, &br->bb_false, 0);
