@@ -195,6 +195,14 @@ static inline void add_instruction(struct instruction_list **list, struct instru
 	add_ptr_list(list, insn);
 }
 
+static inline void insert_last_instruction(struct basic_block *bb, struct instruction *insn)
+{
+	struct instruction *last = delete_last_instruction(&bb->insns);
+	add_instruction(&bb->insns, insn);
+	add_instruction(&bb->insns, last);
+	insn->bb = bb;
+}
+
 static inline void add_multijmp(struct multijmp_list **list, struct multijmp *multijmp)
 {
 	add_ptr_list(list, multijmp);
