@@ -19,15 +19,17 @@
 
 static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
 {
-	pseudo_t new, phi;
+	pseudo_t new = NULL;
+	pseudo_t phi;
 
 	/*
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	new = first_pseudo(dominators)->def->phi_src;
 	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->def->phi_src)
+		if (!new)
+			new = phi->def->phi_src;
+		else if (new != phi->def->phi_src)
 			goto complex_phi;
 	} END_FOR_EACH_PTR(phi);
 
