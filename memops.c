@@ -29,7 +29,6 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	FOR_EACH_PTR(dominators, phi) {
 		if (new != phi->def->phi_src)
 			goto complex_phi;
-		new->ident = new->ident ? : phi->ident;
 	} END_FOR_EACH_PTR(phi);
 
 	/*
