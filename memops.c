@@ -17,10 +17,6 @@
 #include "simplify.h"
 #include "flow.h"
 
-/*
- * We should probably sort the phi list just to make it easier to compare
- * later for equality.
- */
 static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
 {
 	pseudo_t new, phi;
