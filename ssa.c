@@ -345,11 +345,11 @@ static void ssa_rename_phi(struct instruction *insn)
 	if (!var->torename)
 		return;
 	FOR_EACH_PTR(insn->bb->parents, par) {
-		struct instruction *term = delete_last_instruction(&par->insns);
 		pseudo_t val = lookup_var(par, var);
-		pseudo_t phi = alloc_phi(par, val, var);
+		struct instruction *phisrc = alloc_phisrc(val, var);
+		pseudo_t phi = phisrc->target;
 		phi->ident = var->ident;
-		add_instruction(&par->insns, term);
+		insert_last_instruction(par, phisrc);
 		link_phi(insn, phi);
 		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
