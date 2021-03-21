@@ -512,6 +512,7 @@ echo "options:"
 echo "    -a                         append the created test to the input file"
 echo "    -f                         write a test known to fail"
 echo "    -l                         write a test for linearized code"
+echo "    -r                         write a test for linearized code returning 1"
 echo "    -p                         write a test for pre-processing"
 echo
 echo "argument(s):"
@@ -528,6 +529,7 @@ do_format()
 	append=0
 	linear=0
 	fail=0
+	ret=''
 
 	while [ $# -gt 0 ] ; do
 		case "$1" in
@@ -538,6 +540,9 @@ do_format()
 		-l)
 			def_cmd='test-linearize -Wno-decl $file'
 			linear=1 ;;
+		-r)
+			def_cmd='test-linearize -Wno-decl $file'
+			ret=1 ;;
 		-p)
 			def_cmd='sparse -E $file' ;;
 
@@ -581,6 +586,12 @@ _EOF
 	fi
 	if [ $fail != 0 ]; then
 		echo " * check-known-to-fail"
+	fi
+	if [ "$ret" != '' ]; then
+		echo ' *'
+		echo ' * check-output-ignore'
+		echo " * check-output-returns: $ret"
+		rm -f "$file.output.got"
 	fi
 	if [ $linear != 0 ]; then
 		echo ' *'
