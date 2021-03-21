@@ -697,11 +697,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	pseudo_t target;
 	struct instruction *select;
 
-	/* Remove the 'br' */
-	delete_last_instruction(&bb->insns);
-
 	select = alloc_typed_instruction(OP_SEL, phi_node->type);
-	select->bb = bb;
 
 	assert(br->cond);
 	use_pseudo(select, br->cond, &select->src1);
@@ -714,8 +710,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	use_pseudo(select, if_true, &select->src2);
 	use_pseudo(select, if_false, &select->src3);
 
-	add_instruction(&bb->insns, select);
-	add_instruction(&bb->insns, br);
+	insert_last_instruction(bb, select);
 }
 
 static inline int bb_empty(struct basic_block *bb)
