@@ -843,21 +843,26 @@ static int retarget_parents(struct basic_block *bb, struct basic_block *target)
 	return REPEAT_CFG_CLEANUP;
 }
 
-static void remove_merging_phisrc(struct basic_block *top, struct instruction *insn)
+static void remove_merging_phisrc(struct instruction *insn, struct basic_block *bot)
 {
-	struct instruction *user = insn->phi_node;
+	struct instruction *node = insn->phi_node;
 	pseudo_t phi;
 
-	FOR_EACH_PTR(user->phi_list, phi) {
+	if (!node) {
+		kill_instruction(insn);
+		return;
+	}
+
+	FOR_EACH_PTR(node->phi_list, phi) {
 		struct instruction *phisrc;
 
 		if (phi == VOID)
 			continue;
 		phisrc = phi->def;
-		if (phisrc->bb != top)
-			continue;
-		REPLACE_CURRENT_PTR(phi, VOID);
-		kill_instruction(phisrc);
+		if (phisrc->bb == bot) {
+			kill_instruction(insn);
+			return;
+		}
 	} END_FOR_EACH_PTR(phi);
 }
 
@@ -901,6 +906,14 @@ static int merge_bb(struct basic_block *top, struct basic_block *bot)
 		replace_bb_in_list(&bb->parents, bot, top, 1);
 	} END_FOR_EACH_PTR(bb);
 
+	FOR_EACH_PTR(top->insns, insn) {
+		if (!insn->bb)
+			continue;
+		if (insn->opcode != OP_PHISOURCE)
+			continue;
+		remove_merging_phisrc(insn, bot);
+	} END_FOR_EACH_PTR(insn);
+
 	kill_instruction(delete_last_instruction(&top->insns));
 	FOR_EACH_PTR(bot->insns, insn) {
 		if (!insn->bb)
@@ -910,9 +923,6 @@ static int merge_bb(struct basic_block *top, struct basic_block *bot)
 		case OP_PHI:
 			remove_merging_phi(top, insn);
 			continue;
-		case OP_PHISOURCE:
-			remove_merging_phisrc(top, insn);
-			break;
 		}
 		insn->bb = top;
 		add_instruction(&top->insns, insn);
