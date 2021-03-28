@@ -190,19 +190,24 @@ out:
 }
 
 ///
-// count the true number of argument of a phi-node
-// VOID arguments must be ignored, so pseudo_list_size() can't be used for this.
-static int phi_count(struct instruction *node)
+// check if the sources of a phi-node match with the parent BBs
+static bool phi_check(struct instruction *node)
 {
+	struct basic_block *bb;
 	pseudo_t phi;
-	int n = 0;
 
+	PREPARE_PTR_LIST(node->bb->parents, bb);
 	FOR_EACH_PTR(node->phi_list, phi) {
-		if (phi == VOID)
+		if (phi == VOID || !phi->def)
 			continue;
-		n++;
+		if (phi->def->bb != bb)
+			return false;
+		NEXT_PTR_LIST(bb);
 	} END_FOR_EACH_PTR(phi);
-	return n;
+	if (bb)
+		return false;
+	FINISH_PTR_LIST(bb);
+	return true;
 }
 
 /*
@@ -227,7 +232,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 	 * simplify_symbol_usage()/conversion to SSA form.
 	 * No sane simplification can be done when we have this.
 	 */
-	bogus = bb_list_size(bb->parents) != phi_count(first);
+	bogus = !phi_check(first);
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
