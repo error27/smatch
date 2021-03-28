@@ -189,6 +189,22 @@ out:
 	return false;
 }
 
+///
+// count the true number of argument of a phi-node
+// VOID arguments must be ignored, so pseudo_list_size() can't be used for this.
+static int phi_count(struct instruction *node)
+{
+	pseudo_t phi;
+	int n = 0;
+
+	FOR_EACH_PTR(node->phi_list, phi) {
+		if (phi == VOID)
+			continue;
+		n++;
+	} END_FOR_EACH_PTR(phi);
+	return n;
+}
+
 /*
  * When we reach here, we have:
  *  - a basic block that ends in a conditional branch and
@@ -211,7 +227,7 @@ static int try_to_simplify_bb(struct basic_block *bb, struct instruction *first,
 	 * simplify_symbol_usage()/conversion to SSA form.
 	 * No sane simplification can be done when we have this.
 	 */
-	bogus = bb_list_size(bb->parents) != pseudo_list_size(first->phi_list);
+	bogus = bb_list_size(bb->parents) != phi_count(first);
 
 	FOR_EACH_PTR(first->phi_list, phi) {
 		struct instruction *def = phi->def;
