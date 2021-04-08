@@ -227,6 +227,13 @@ else
 $(warning Your system does not have llvm, disabling sparse-llvm)
 endif
 
+ifeq ($(HAVE_BOOLECTOR),yes)
+PROGRAMS += scheck
+scheck-cflags  := -I${BOOLECTORDIR}/include/boolector
+scheck-ldflags := -L${BOOLECTORDIR}/lib
+scheck-ldlibs  := -lboolector -llgl -lbtor2parser
+endif
+
 ########################################################################
 LIBS := libsparse.a
 OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)

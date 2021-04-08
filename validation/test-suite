@@ -13,6 +13,9 @@ prog_name=`basename $0`
 if [ ! -x "$default_path/sparse-llvm" ]; then
 	disabled_cmds="sparsec sparsei sparse-llvm sparse-llvm-dis"
 fi
+if [ ! -x "$default_path/scheck" ]; then
+	disabled_cmds="$disabled_cmds scheck"
+fi
 
 # flags:
 #	- some tests gave an unexpected result
@@ -513,6 +516,7 @@ echo "    -a                         append the created test to the input file"
 echo "    -f                         write a test known to fail"
 echo "    -l                         write a test for linearized code"
 echo "    -p                         write a test for pre-processing"
+echo "    -s                         write a test for symbolic checking"
 echo
 echo "argument(s):"
 echo "    file                       file containing the test case(s)"
@@ -540,6 +544,8 @@ do_format()
 			linear=1 ;;
 		-p)
 			def_cmd='sparse -E $file' ;;
+		-s)
+			def_cmd='scheck $file' ;;
 
 		help|-*)
 			do_format_help

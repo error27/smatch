@@ -78,6 +78,9 @@ IDENT(memset); IDENT(memcpy);
 IDENT(copy_to_user); IDENT(copy_from_user);
 IDENT(main);
 
+/* used by the symbolic checker */
+IDENT(__assert);
+
 #undef __IDENT
 #undef IDENT
 #undef IDENT_RESERVED
