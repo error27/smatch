@@ -33,6 +33,7 @@
 static const struct builtin_fn builtins_scheck[] = {
 	{ "__assert", &void_ctype, 0, { &bool_ctype }, .op = &generic_int_op },
 	{ "__assert_eq", &void_ctype, 0, { &dyntype, &dyntype }, .op = &generic_int_op },
+	{ "__assert_const", &void_ctype, 0, { &dyntype, &dyntype }, .op = &generic_int_op },
 	{}
 };
 
@@ -233,6 +234,22 @@ static bool check_equal(Btor *btor, struct instruction *insn)
 	return check_btor(btor, n, insn);
 }
 
+static bool check_const(Btor *ctxt, struct instruction *insn)
+{
+	pseudo_t src1 = ptr_list_nth(insn->arguments, 0);
+	pseudo_t src2 = ptr_list_nth(insn->arguments, 1);
+
+	if (src2->type != PSEUDO_VAL)
+		sparse_error(insn->pos, "should be a constant: %s", show_pseudo(src2));
+	if (src1 == src2)
+		return 1;
+	if (src1->type != PSEUDO_VAL)
+		sparse_error(insn->pos, "not a constant: %s", show_pseudo(src1));
+	else
+		sparse_error(insn->pos, "invalid value: %s != %s", show_pseudo(src1), show_pseudo(src2));
+	return 0;
+}
+
 static bool check_call(Btor *btor, struct instruction *insn)
 {
 	pseudo_t func = insn->func;
@@ -242,6 +259,8 @@ static bool check_call(Btor *btor, struct instruction *insn)
 		return check_assert(btor, insn);
 	if (ident == &__assert_eq_ident)
 		return check_equal(btor, insn);
+	if (ident == &__assert_const_ident)
+		return check_const(btor, insn);
 	return 0;
 }
 

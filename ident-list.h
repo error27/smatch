@@ -81,6 +81,7 @@ IDENT(main);
 /* used by the symbolic checker */
 IDENT(__assert);
 IDENT(__assert_eq);
+IDENT(__assert_const);
 
 #undef __IDENT
 #undef IDENT

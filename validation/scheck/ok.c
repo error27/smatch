@@ -2,6 +2,7 @@ static void ok(int x)
 {
 	__assert((~x) == (~0 - x));	// true but not simplified yet
 	__assert_eq(~x, ~0 - x);
+	__assert_const(x & 0, 0);
 }
 
 static void always(int x)
