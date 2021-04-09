@@ -559,7 +559,7 @@ static void declare_builtin(int stream, const struct builtin_fn *entry)
 	}
 }
 
-static void declare_builtins(int stream, const struct builtin_fn tbl[])
+void declare_builtins(int stream, const struct builtin_fn tbl[])
 {
 	if (!tbl)
 		return;
