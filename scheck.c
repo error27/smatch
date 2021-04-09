@@ -32,6 +32,7 @@
 #define dyntype incomplete_ctype
 static const struct builtin_fn builtins_scheck[] = {
 	{ "__assert", &void_ctype, 0, { &bool_ctype }, .op = &generic_int_op },
+	{ "__assert_eq", &void_ctype, 0, { &dyntype, &dyntype }, .op = &generic_int_op },
 	{}
 };
 
@@ -224,6 +225,14 @@ static bool check_assert(Btor *btor, struct instruction *insn)
 	return check_btor(btor, n, insn);
 }
 
+static bool check_equal(Btor *btor, struct instruction *insn)
+{
+	BoolectorNode *a = get_arg(btor, insn, 0);
+	BoolectorNode *b = get_arg(btor, insn, 1);
+	BoolectorNode *n = boolector_eq(btor, a, b);
+	return check_btor(btor, n, insn);
+}
+
 static bool check_call(Btor *btor, struct instruction *insn)
 {
 	pseudo_t func = insn->func;
@@ -231,6 +240,8 @@ static bool check_call(Btor *btor, struct instruction *insn)
 
 	if (ident == &__assert_ident)
 		return check_assert(btor, insn);
+	if (ident == &__assert_eq_ident)
+		return check_equal(btor, insn);
 	return 0;
 }
 

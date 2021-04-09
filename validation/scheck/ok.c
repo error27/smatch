@@ -3,6 +3,11 @@ static void ok(int x)
 	__assert((~x) == (~0 - x));	// true but not simplified yet
 }
 
+static void also_ok(int x)
+{
+	__assert_eq(~x, ~0 - x);
+}
+
 static void always(int x)
 {
 	__assert((x - x) == 0);		// true and simplified
