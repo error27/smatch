@@ -79,6 +79,7 @@ IDENT(copy_to_user); IDENT(copy_from_user);
 IDENT(main);
 
 /* used by the symbolic checker */
+IDENT(__assume);
 IDENT(__assert);
 IDENT(__assert_eq);
 IDENT(__assert_const);

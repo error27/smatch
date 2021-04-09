@@ -31,6 +31,7 @@
 
 #define dyntype incomplete_ctype
 static const struct builtin_fn builtins_scheck[] = {
+	{ "__assume", &void_ctype, 0, { &dyntype }, .op = &generic_int_op },
 	{ "__assert", &void_ctype, 0, { &bool_ctype }, .op = &generic_int_op },
 	{ "__assert_eq", &void_ctype, 0, { &dyntype, &dyntype }, .op = &generic_int_op },
 	{ "__assert_const", &void_ctype, 0, { &dyntype, &dyntype }, .op = &generic_int_op },
@@ -195,11 +196,22 @@ static void ternop(Btor *btor, struct instruction *insn)
 	insn->target->priv = t;
 }
 
-static bool check_btor(Btor *btor, BoolectorNode *n, struct instruction *insn)
+static bool add_precondition(Btor *btor, BoolectorNode **pre, struct instruction *insn)
+{
+	BoolectorNode *a = get_arg(btor, insn, 0);
+	BoolectorNode *z = boolector_zero(btor, boolector_get_sort(btor, a));
+	BoolectorNode *n = boolector_ne(btor, a, z);
+	BoolectorNode *p = boolector_and(btor, *pre, n);
+	*pre = p;
+	return true;
+}
+
+static bool check_btor(Btor *btor, BoolectorNode *p, BoolectorNode *n, struct instruction *insn)
 {
 	char model_format[] = "btor";
 	int res;
 
+	n = boolector_implies(btor, p, n);
 	boolector_assert(btor, boolector_not(btor, n));
 	res = boolector_sat(btor);
 	switch (res) {
@@ -218,20 +230,20 @@ static bool check_btor(Btor *btor, BoolectorNode *n, struct instruction *insn)
 	return 0;
 }
 
-static bool check_assert(Btor *btor, struct instruction *insn)
+static bool check_assert(Btor *btor, BoolectorNode *pre, struct instruction *insn)
 {
 	BoolectorNode *a = get_arg(btor, insn, 0);
 	BoolectorNode *z = boolector_zero(btor, boolector_get_sort(btor, a));
 	BoolectorNode *n = boolector_ne(btor, a, z);
-	return check_btor(btor, n, insn);
+	return check_btor(btor, pre, n, insn);
 }
 
-static bool check_equal(Btor *btor, struct instruction *insn)
+static bool check_equal(Btor *btor, BoolectorNode *pre, struct instruction *insn)
 {
 	BoolectorNode *a = get_arg(btor, insn, 0);
 	BoolectorNode *b = get_arg(btor, insn, 1);
 	BoolectorNode *n = boolector_eq(btor, a, b);
-	return check_btor(btor, n, insn);
+	return check_btor(btor, pre, n, insn);
 }
 
 static bool check_const(Btor *ctxt, struct instruction *insn)
@@ -250,15 +262,17 @@ static bool check_const(Btor *ctxt, struct instruction *insn)
 	return 0;
 }
 
-static bool check_call(Btor *btor, struct instruction *insn)
+static bool check_call(Btor *btor, BoolectorNode **pre, struct instruction *insn)
 {
 	pseudo_t func = insn->func;
 	struct ident *ident = func->ident;
 
+	if (ident == &__assume_ident)
+		return add_precondition(btor, pre, insn);
 	if (ident == &__assert_ident)
-		return check_assert(btor, insn);
+		return check_assert(btor, *pre, insn);
 	if (ident == &__assert_eq_ident)
-		return check_equal(btor, insn);
+		return check_equal(btor, *pre, insn);
 	if (ident == &__assert_const_ident)
 		return check_const(btor, insn);
 	return 0;
@@ -267,6 +281,7 @@ static bool check_call(Btor *btor, struct instruction *insn)
 static bool check_function(struct entrypoint *ep)
 {
 	Btor *btor = boolector_new();
+	BoolectorNode *pre = boolector_true(btor);
 	struct basic_block *bb;
 	int rc = 0;
 
@@ -294,7 +309,7 @@ static bool check_function(struct entrypoint *ep)
 				ternop(btor, insn);
 				break;
 			case OP_CALL:
-				rc &= check_call(btor, insn);
+				rc &= check_call(btor, &pre, insn);
 				break;
 			case OP_RET:
 				goto out;

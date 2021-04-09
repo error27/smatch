@@ -10,6 +10,12 @@ static void always(int x)
 	__assert((x - x) == 0);		// true and simplified
 }
 
+static void assumed(int x, int a, int b)
+{
+	__assume((a & ~b) == 0);
+	__assert_eq((x ^ a) | b, x | b);
+}
+
 /*
  * check-name: scheck-ok
  * check-command: scheck $file
