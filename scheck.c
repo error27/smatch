@@ -252,6 +252,7 @@ static bool check_function(struct entrypoint *ep)
 	int rc = 0;
 
 	boolector_set_opt(btor, BTOR_OPT_MODEL_GEN, 1);
+	boolector_set_opt(btor, BTOR_OPT_INCREMENTAL, 1);
 
 	FOR_EACH_PTR(ep->bbs, bb) {
 		struct instruction *insn;
@@ -274,8 +275,8 @@ static bool check_function(struct entrypoint *ep)
 				ternop(btor, insn);
 				break;
 			case OP_CALL:
-				rc = check_call(btor, insn);
-				goto out;
+				rc &= check_call(btor, insn);
+				break;
 			case OP_RET:
 				goto out;
 			default:
