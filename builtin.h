@@ -14,4 +14,6 @@ struct builtin_fn {
 
 void declare_builtins(int stream, const struct builtin_fn tbl[]);
 
+extern struct symbol_op generic_int_op;
+
 #endif

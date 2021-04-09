@@ -390,6 +390,69 @@ static struct symbol_op overflow_p_op = {
 };
 
 
+///
+// Evaluate the arguments of 'generic' integer operators.
+//
+// Parameters with a complete type are used like in a normal prototype.
+// The first parameter with a 'dynamic' type will be consider
+// as polymorphic and for each calls will be instancied with the type
+// of its effective argument.
+// The next dynamic parameters will the use this polymorphic type.
+// This allows to declare functions with some parameters having
+// a type variably defined at call time:
+//	int foo(int, T, T);
+static int evaluate_generic_int_op(struct expression *expr)
+{
+	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
+	struct symbol_list *types = NULL;
+	struct symbol *ctype = NULL;
+	struct expression *arg;
+	struct symbol *t;
+	int n = 0;
+
+	PREPARE_PTR_LIST(fntype->arguments, t);
+	FOR_EACH_PTR(expr->args, arg) {
+		n++;
+
+		if (!is_dynamic_type(t)) {
+			;
+		} else if (!ctype) {
+			// first 'dynamic' type, check that it's an integer
+			t = arg->ctype;
+			if (!t)
+				return 0;
+			if (t->type == SYM_NODE)
+				t = t->ctype.base_type;
+			if (!t)
+				return 0;
+			if (t->ctype.base_type != &int_type)
+				goto err;
+
+			// next 'dynamic' arguments will use this type
+			ctype = t;
+		} else {
+			// use the previous 'dynamic' type
+			t = ctype;
+		}
+		add_ptr_list(&types, t);
+		NEXT_PTR_LIST(t);
+	} END_FOR_EACH_PTR(arg);
+	FINISH_PTR_LIST(t);
+	return evaluate_arguments(types, expr->args);
+
+err:
+	sparse_error(arg->pos, "non-integer type for argument %d:", n);
+	info(arg->pos, "        %s", show_typename(arg->ctype));
+	expr->ctype = &bad_ctype;
+	return 0;
+}
+
+struct symbol_op generic_int_op = {
+	.args = args_prototype,
+	.evaluate = evaluate_generic_int_op,
+};
+
+
 static int eval_atomic_common(struct expression *expr)
 {
 	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
