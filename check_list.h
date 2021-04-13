@@ -195,6 +195,8 @@ CK(check_nospec_barrier)
 CK(check_spectre)
 CK(check_spectre_second_half)
 CK(check_implicit_dependencies)
+CK(check_list_add)
+CK(check_list_add_late)
 CK(check_sscanf_return)
 CK(check_kvmalloc_NOFS)
 
