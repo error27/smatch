@@ -86,6 +86,9 @@ static bool expr_has_macro_with_name(struct expression *expr, const char *macro_
 {
 	char *name;
 
+	if (expr->type == EXPR_PREOP && expr->op == '~')
+		expr = strip_expr(expr->unop);
+
 	name = get_macro_name(expr->pos);
 	return (name && !strcmp(name, macro_name));
 }
