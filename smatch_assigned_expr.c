@@ -80,7 +80,6 @@ struct expression *get_assigned_expr_name_sym(const char *name, struct symbol *s
 struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct symbol *sym)
 {
 	struct expression *expr, *recurse;
-	struct smatch_state *state;
 
 	expr = get_assigned_expr_name_sym(name, sym);
 	if (!expr)
