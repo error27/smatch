@@ -352,6 +352,7 @@ int main(int argc, char **argv)
 	sparse_initialize(argc, argv, &filelist);
 
 	declare_builtins(0, builtins_scheck);
+	predefine_strong("__SYMBOLIC_CHECKER__");
 
 	// Expand, linearize and check.
 	FOR_EACH_PTR(filelist, file) {
