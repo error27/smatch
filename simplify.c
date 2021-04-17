@@ -2651,7 +2651,7 @@ static int simplify_cgoto(struct instruction *insn)
 				continue;
 			remove_bb_from_list(&jmp->target->parents, bb, 1);
 			remove_bb_from_list(&bb->children, jmp->target, 1);
-			MARK_CURRENT_DELETED(jmp);
+			DELETE_CURRENT_PTR(jmp);
 		} END_FOR_EACH_PTR(jmp);
 		kill_use(&insn->src);
 		insn->opcode = OP_BR;
