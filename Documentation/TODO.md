@@ -56,6 +56,17 @@ Optimization
 
 IR
 --
+* pseudos are untyped, it's usually OK but often it complicates things:
+
+  - PSEUDO_REGs are defined by instructions and their type is normally
+    retrievable via this defining instruction but in some cases they're not:
+    for example, pseudos defined by ASM output.
+  - PSEUDO_ARGs are considered as defined by OP_ENTRY and are used like
+    this for liveness trackability but their type can't simply be
+    retrieved via this instruction like PSEUDO_REGs are (with ->def->type).
+  - PSEUDO_VALs are completely typeless.
+
+  Maybe a few bits should be used to store some kind of low-level type.
 * OP_SET should return a bool, always
 * add IR instructions for va_arg() & friends
 * add a possibility to import of file in "IR assembly"
