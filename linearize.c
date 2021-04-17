@@ -1533,7 +1533,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expression *expr)
 {
 	struct expression *arg, *fn;
-	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
+	struct instruction *insn;
 	pseudo_t retval, call;
 	struct ctype *ctype = NULL;
 	struct symbol *fntype;
@@ -1554,6 +1554,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	ctype = &fntype->ctype;
 
+	insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	add_symbol(&insn->fntypes, fntype);
 	FOR_EACH_PTR(expr->args, arg) {
 		pseudo_t new = linearize_expression(ep, arg);
