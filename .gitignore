@@ -8,25 +8,26 @@
 .*.swp
 
 # generated
-version.h
+/version.h
 
 # programs
-c2xml
-compile
-ctags
-example
-graph
-obfuscate
-sparse
-sparse-llvm
-semind
-test-dissect
-test-inspect
-test-lexing
-test-linearize
-test-parsing
-test-show-type
-test-unssa
+/c2xml
+/compile
+/ctags
+/example
+/graph
+/obfuscate
+/scheck
+/semind
+/sparse
+/sparse-llvm
+/test-dissect
+/test-inspect
+/test-lexing
+/test-linearize
+/test-parsing
+/test-show-type
+/test-unssa
 
 # tags
 tags
