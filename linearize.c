@@ -692,52 +692,12 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-static void remove_parent(struct basic_block *child, struct basic_block *parent)
-{
-	remove_bb_from_list(&child->parents, parent, 1);
-	if (!child->parents)
-		repeat_phase |= REPEAT_CFG_CLEANUP;
-}
-
-/* Change a "switch" or a conditional branch into a branch */
-void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
-{
-	struct instruction *br, *old;
-	struct basic_block *child;
-
-	/* Remove the switch */
-	old = delete_last_instruction(&bb->insns);
-	assert(old == jmp);
-	kill_instruction(old);
-
-	br = alloc_instruction(OP_BR, 0);
-	br->bb = bb;
-	br->bb_true = target;
-	add_instruction(&bb->insns, br);
-
-	FOR_EACH_PTR(bb->children, child) {
-		if (child == target) {
-			target = NULL;	/* Trigger just once */
-			continue;
-		}
-		DELETE_CURRENT_PTR(child);
-		remove_parent(child, bb);
-	} END_FOR_EACH_PTR(child);
-	PACK_PTR_LIST(&bb->children);
-	repeat_phase |= REPEAT_CFG_CLEANUP;
-}
-	
-
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t if_true, pseudo_t if_false)
 {
 	pseudo_t target;
 	struct instruction *select;
 
-	/* Remove the 'br' */
-	delete_last_instruction(&bb->insns);
-
 	select = alloc_typed_instruction(OP_SEL, phi_node->type);
-	select->bb = bb;
 
 	assert(br->cond);
 	use_pseudo(select, br->cond, &select->src1);
@@ -750,8 +710,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	use_pseudo(select, if_true, &select->src2);
 	use_pseudo(select, if_false, &select->src3);
 
-	add_instruction(&bb->insns, select);
-	add_instruction(&bb->insns, br);
+	insert_last_instruction(bb, select);
 }
 
 static inline int bb_empty(struct basic_block *bb)
@@ -1750,10 +1709,9 @@ static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *cty
 	struct basic_block *parent;
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct instruction *br = delete_last_instruction(&parent->insns);
-		pseudo_t phi = alloc_phi(parent, src, ctype);
-		add_instruction(&parent->insns, br);
-		link_phi(node, phi);
+		struct instruction *phisrc = alloc_phisrc(src, ctype);
+		insert_last_instruction(parent, phisrc);
+		link_phi(node, phisrc->target);
 	} END_FOR_EACH_PTR(parent);
 }
 

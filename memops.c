@@ -60,8 +60,8 @@ static int find_dominating_parents(struct instruction *insn,
 	struct basic_block *parent;
 
 	FOR_EACH_PTR(bb->parents, parent) {
+		struct instruction *phisrc;
 		struct instruction *one;
-		struct instruction *br;
 		pseudo_t phi;
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
@@ -90,12 +90,12 @@ no_dominance:
 		continue;
 
 found_dominator:
-		br = delete_last_instruction(&parent->insns);
-		phi = alloc_phi(parent, one->target, one->type);
+		phisrc = alloc_phisrc(one->target, one->type);
+		phisrc->phi_node = insn;
+		insert_last_instruction(parent, phisrc);
+		phi = phisrc->target;
 		phi->ident = phi->ident ? : one->target->ident;
-		add_instruction(&parent->insns, br);
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
-		phi->def->phi_node = insn;
 	} END_FOR_EACH_PTR(parent);
 	return 1;
 }		

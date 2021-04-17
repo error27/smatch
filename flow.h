@@ -11,6 +11,8 @@ extern unsigned long bb_generation;
 struct entrypoint;
 struct instruction;
 
+extern int remove_phisources(struct basic_block *par, struct basic_block *old);
+
 extern int simplify_flow(struct entrypoint *ep);
 
 extern void kill_dead_stores(struct entrypoint *ep, pseudo_t addr, int local);
@@ -18,6 +20,7 @@ extern void simplify_symbol_usage(struct entrypoint *ep);
 extern void simplify_memops(struct entrypoint *ep);
 extern void pack_basic_blocks(struct entrypoint *ep);
 extern int simplify_cfg_early(struct entrypoint *ep);
+extern int convert_to_jump(struct instruction *insn, struct basic_block *target);
 
 extern void convert_instruction_target(struct instruction *insn, pseudo_t src);
 extern void remove_dead_insns(struct entrypoint *);

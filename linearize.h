@@ -195,6 +195,14 @@ static inline void add_instruction(struct instruction_list **list, struct instru
 	add_ptr_list(list, insn);
 }
 
+static inline void insert_last_instruction(struct basic_block *bb, struct instruction *insn)
+{
+	struct instruction *last = delete_last_instruction(&bb->insns);
+	add_instruction(&bb->insns, insn);
+	add_instruction(&bb->insns, last);
+	insn->bb = bb;
+}
+
 static inline void add_multijmp(struct multijmp_list **list, struct multijmp *multijmp)
 {
 	add_ptr_list(list, multijmp);
@@ -319,7 +327,6 @@ struct entrypoint {
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);
-extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
 struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
 struct instruction *alloc_phi_node(struct basic_block *bb, struct symbol *type, struct ident *ident);

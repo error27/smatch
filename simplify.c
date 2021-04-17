@@ -2538,23 +2538,12 @@ static int simplify_branch(struct instruction *insn)
 	pseudo_t cond = insn->cond;
 
 	/* Constant conditional */
-	if (constant(cond)) {
-		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
-		return REPEAT_CSE;
-	}
+	if (constant(cond))
+		return convert_to_jump(insn, cond->value ? insn->bb_true : insn->bb_false);
 
 	/* Same target? */
-	if (insn->bb_true == insn->bb_false) {
-		struct basic_block *bb = insn->bb;
-		struct basic_block *target = insn->bb_false;
-		remove_bb_from_list(&target->parents, bb, 1);
-		remove_bb_from_list(&bb->children, target, 1);
-		insn->bb_false = NULL;
-		kill_use(&insn->cond);
-		insn->cond = NULL;
-		insn->opcode = OP_BR;
-		return REPEAT_CSE|REPEAT_CFG_CLEANUP;
-	}
+	if (insn->bb_true == insn->bb_false)
+		return convert_to_jump(insn, insn->bb_true);
 
 	/* Conditional on a SETNE $0 or SETEQ $0 */
 	if (cond->type == PSEUDO_REG) {
@@ -2570,14 +2559,10 @@ static int simplify_branch(struct instruction *insn)
 			if (constant(def->src2) && constant(def->src3)) {
 				long long val1 = def->src2->value;
 				long long val2 = def->src3->value;
-				if (!val1 && !val2) {
-					insert_branch(insn->bb, insn, insn->bb_false);
-					return REPEAT_CSE;
-				}
-				if (val1 && val2) {
-					insert_branch(insn->bb, insn, insn->bb_true);
-					return REPEAT_CSE;
-				}
+				if (!val1 && !val2)
+					return convert_to_jump(insn, insn->bb_false);
+				if (val1 && val2)
+					return convert_to_jump(insn, insn->bb_true);
 				if (val2) {
 					struct basic_block *tmp = insn->bb_true;
 					insn->bb_true = insn->bb_false;
@@ -2613,8 +2598,7 @@ static int simplify_switch(struct instruction *insn)
 	return 0;
 
 found:
-	insert_branch(insn->bb, insn, jmp->target);
-	return REPEAT_CSE;
+	return convert_to_jump(insn, jmp->target);
 }
 
 static struct basic_block *is_label(pseudo_t pseudo)
