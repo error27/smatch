@@ -204,6 +204,30 @@ next_load:
 	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
+static bool try_to_kill_store(pseudo_t pseudo, struct instruction *insn,
+			     struct instruction *dom, int local)
+{
+	int dominance = dominates(pseudo, insn, dom, local);
+
+	if (dominance) {
+		/* possible partial dominance? */
+		if (dominance < 0)
+			return false;
+		if (insn->target == dom->target && insn->bb == dom->bb) {
+			// found a memop which makes the store redundant
+			kill_instruction_force(insn);
+			return false;
+		}
+		if (dom->opcode == OP_LOAD)
+			return false;
+		if (dom->is_volatile)
+			return false;
+		/* Yeehaa! Found one! */
+		kill_instruction_force(dom);
+	}
+	return true;
+}
+
 static void kill_dominated_stores(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -212,6 +236,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 		if (!insn->bb)
 			continue;
 		if (insn->opcode == OP_STORE) {
+			struct basic_block *par;
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
 			int local;
@@ -223,22 +248,28 @@ static void kill_dominated_stores(struct basic_block *bb)
 
 			local = local_pseudo(pseudo);
 			RECURSE_PTR_REVERSE(insn, dom) {
-				int dominance;
 				if (!dom->bb)
 					continue;
-				dominance = dominates(pseudo, insn, dom, local);
-				if (dominance) {
-					/* possible partial dominance? */
-					if (dominance < 0)
-						goto next_store;
-					if (dom->opcode == OP_LOAD)
-						goto next_store;
-					/* Yeehaa! Found one! */
-					kill_instruction_force(dom);
-				}
+				if (!try_to_kill_store(pseudo, insn, dom, local))
+					goto next_store;
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, we should check the parents now */
+			FOR_EACH_PTR(bb->parents, par) {
+
+				if (bb_list_size(par->children) != 1)
+					goto next_parent;
+				FOR_EACH_PTR(par->insns, dom) {
+					if (!dom->bb)
+						continue;
+					if (dom == insn)
+						goto next_parent;
+					if (!try_to_kill_store(pseudo, insn, dom, local))
+						goto next_parent;
+				} END_FOR_EACH_PTR(dom);
+next_parent:
+				;
+			} END_FOR_EACH_PTR(par);
 		}
 next_store:
 		/* Do the next one */;
