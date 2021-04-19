@@ -1178,38 +1178,52 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 
 	switch (insn->opcode) {
 	case OP_SET_LT:
+		if (!value)
+			break;
 		if (value == sign_bit(size))	// (x <  SMIN) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == sign_mask(size))	// (x <  SMAX) --> (x != SMAX)
 			return replace_opcode(insn, OP_SET_NE);
 		if (value == sign_bit(size) + 1)// (x < SMIN + 1) --> (x == SMIN)
 			return replace_binop_value(insn, OP_SET_EQ, sign_bit(size));
-		changed |= replace_binop_value(insn, OP_SET_LE, (value - 1) & bits);
+		if (!(value & sign_bit(size)))
+			changed |= replace_binop_value(insn, OP_SET_LE, (value - 1) & bits);
 		break;
 	case OP_SET_LE:
+		if (!value)
+			break;
 		if (value == sign_mask(size))	// (x <= SMAX) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == sign_bit(size))	// (x <= SMIN) --> (x == SMIN)
 			return replace_opcode(insn, OP_SET_EQ);
 		if (value == sign_mask(size) - 1) // (x <= SMAX - 1) --> (x != SMAX)
 			return replace_binop_value(insn, OP_SET_NE, sign_mask(size));
+		if (value & sign_bit(size))
+			changed |= replace_binop_value(insn, OP_SET_LT, (value + 1) & bits);
 		break;
 	case OP_SET_GE:
+		if (!value)
+			break;
 		if (value == sign_bit(size))	// (x >= SMIN) --> 1
 			return replace_with_pseudo(insn, value_pseudo(1));
 		if (value == sign_mask(size))	// (x >= SMAX) --> (x == SMAX)
 			return replace_opcode(insn, OP_SET_EQ);
 		if (value == sign_bit(size) + 1)// (x >= SMIN + 1) --> (x != SMIN)
 			return replace_binop_value(insn, OP_SET_NE, sign_bit(size));
-		changed |= replace_binop_value(insn, OP_SET_GT, (value - 1) & bits);
+		if (!(value & sign_bit(size)))
+			changed |= replace_binop_value(insn, OP_SET_GT, (value - 1) & bits);
 		break;
 	case OP_SET_GT:
+		if (!value)
+			break;
 		if (value == sign_mask(size))	// (x >  SMAX) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
 		if (value == sign_bit(size))	// (x >  SMIN) --> (x != SMIN)
 			return replace_opcode(insn, OP_SET_NE);
 		if (value == sign_mask(size) - 1) // (x > SMAX - 1) --> (x == SMAX)
 			return replace_binop_value(insn, OP_SET_EQ, sign_mask(size));
+		if (value & sign_bit(size))
+			changed |= replace_binop_value(insn, OP_SET_GE, (value + 1) & bits);
 		break;
 
 	case OP_SET_B:
@@ -1266,13 +1280,19 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		case OP_SET_EQ:
 			if ((value & bits) != value)
 				return replace_with_value(insn, 0);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_NE, 0);
 			break;
 		case OP_SET_NE:
 			if ((value & bits) != value)
 				return replace_with_value(insn, 1);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_EQ, 0);
 			break;
-		case OP_SET_LE:
+		case OP_SET_LE: case OP_SET_LT:
 			value = sign_extend(value, def->size);
+			if (insn->opcode == OP_SET_LT)
+				value -= 1;
 			if (bits & sign_bit(def->size))
 				break;
 			if (value < 0)
@@ -1282,8 +1302,10 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			if (value == 0)
 				return replace_opcode(insn, OP_SET_EQ);
 			break;
-		case OP_SET_GT:
+		case OP_SET_GT: case OP_SET_GE:
 			value = sign_extend(value, def->size);
+			if (insn->opcode == OP_SET_GE)
+				value -= 1;
 			if (bits & sign_bit(def->size))
 				break;
 			if (value < 0)
@@ -1340,16 +1362,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 			if (bits >= value)
 				return replace_with_value(insn, 1);
 			break;
+		case OP_SET_LT:
+			value -= 1;
 		case OP_SET_LE:
-			value = sign_extend(value, def->size);
 			if (bits & sign_bit(def->size)) {
+				value = sign_extend(value, def->size);
 				if (value >= -1)
 					return replace_with_value(insn, 1);
 			}
 			break;
+		case OP_SET_GE:
+			value -= 1;
 		case OP_SET_GT:
-			value = sign_extend(value, def->size);
 			if (bits & sign_bit(def->size)) {
+				value = sign_extend(value, def->size);
 				if (value >= -1)
 					return replace_with_value(insn, 0);
 			}
@@ -1389,6 +1415,20 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 				return replace_with_value(insn, 0);
 			else
 				return replace_with_value(insn, 1);
+			break;
+		}
+		break;
+	case OP_TRUNC:
+		osize = def->orig_type->bit_size;
+		switch (insn->opcode) {
+		case OP_SET_EQ: case OP_SET_NE:
+			if (one_use(def->target)) {
+				insn->itype = def->orig_type;
+				def->type = def->orig_type;
+				def->size = osize;
+				def->src2 = value_pseudo(bits);
+				return replace_opcode(def, OP_AND);
+			}
 			break;
 		}
 		break;
@@ -1898,6 +1938,17 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 0);
 		}
+		if (def->opcode == OP_SET_GE && is_zero(def->src2)) {
+			switch (DEF_OPCODE(defr, *p2)) {
+			case OP_SET_LE:
+				if (!is_positive(defr->src2, defr->itype->bit_size))
+					break;
+				// (x >= 0) && (x <= C) --> (x u<= C)
+				insn->itype = defr->itype;
+				replace_binop(insn, OP_SET_BE, &insn->src1, defr->src1, &insn->src2, defr->src2);
+				return REPEAT_CSE;
+			}
+		}
 		break;
 	case OP_OR:
 		if (DEF_OPCODE(defr, *p2) == OP_OR) {
@@ -2288,6 +2339,21 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
 		break;
+	case OP_NOT:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			if (one_use(src)) {
+				// TRUNC(NOT(x)) --> NOT(TRUNC(x))
+				insn->opcode = OP_NOT;
+				def->orig_type = def->type;
+				def->opcode = OP_TRUNC;
+				def->type = insn->type;
+				def->size = insn->size;
+				return REPEAT_CSE;
+			}
+			break;
+		}
+		break;
 	case OP_OR:
 		switch (insn->opcode) {
 		case OP_TRUNC:
@@ -2635,7 +2701,7 @@ static int simplify_cgoto(struct instruction *insn)
 				continue;
 			remove_bb_from_list(&jmp->target->parents, bb, 1);
 			remove_bb_from_list(&bb->children, jmp->target, 1);
-			MARK_CURRENT_DELETED(jmp);
+			DELETE_CURRENT_PTR(jmp);
 		} END_FOR_EACH_PTR(jmp);
 		kill_use(&insn->src);
 		insn->opcode = OP_BR;

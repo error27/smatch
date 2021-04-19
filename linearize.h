@@ -58,6 +58,11 @@ static inline bool is_nonzero(pseudo_t pseudo)
 	return pseudo->type == PSEUDO_VAL && pseudo->value != 0;
 }
 
+static inline bool is_positive(pseudo_t pseudo, unsigned size)
+{
+	return pseudo->type == PSEUDO_VAL && !(pseudo->value & sign_bit(size));
+}
+
 
 struct multijmp {
 	struct basic_block *target;
