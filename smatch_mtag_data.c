@@ -119,6 +119,8 @@ static bool is_ignored_tag(mtag_t tag)
 
 static void insert_mtag_data(mtag_t tag, int offset, struct range_list *rl)
 {
+	if (in_fake_env)
+		return;
 	if (is_ignored_tag(tag))
 		return;
 
