@@ -204,6 +204,8 @@ free:
 
 static void match_assign(struct expression *expr, int late)
 {
+	if (__in_fake_parameter_assign)
+		return;
 	if (expr->left->smatch_flags & Fake)
 		return;
 	call_modification_hooks(expr->left, expr, late);
