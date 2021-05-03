@@ -354,6 +354,15 @@ struct symbol *get_type(struct expression *expr)
 	return get_type_helper(expr);
 }
 
+struct symbol *get_comparison_type(struct expression *expr)
+{
+	/*
+	 * Eventually we will probably have to figure out how to make get_type()
+	 * return &int_ctype so let's create a helper function to transition to.
+	 */
+	return get_type_helper(expr);
+}
+
 struct symbol *get_final_type(struct expression *expr)
 {
 	struct symbol *ret;

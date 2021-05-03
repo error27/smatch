@@ -496,6 +496,7 @@ int type_bytes(struct symbol *type);
 int array_bytes(struct symbol *type);
 struct symbol *get_pointer_type(struct expression *expr);
 struct symbol *get_type(struct expression *expr);
+struct symbol *get_comparison_type(struct expression *expr);
 struct symbol *get_final_type(struct expression *expr);
 struct symbol *get_promoted_type(struct symbol *left, struct symbol *right);
 int type_signed(struct symbol *base_type);
