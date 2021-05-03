@@ -1201,7 +1201,7 @@ void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool
 	free_slist(&false_stack);
 
 	FOR_EACH_SM(implied_true, tmp) {
-		set_state(tmp->owner, tmp->name, tmp->sym, tmp->state);
+		__set_sm(tmp);
 	} END_FOR_EACH_SM(tmp);
 
 	free_stree(&implied_true);
