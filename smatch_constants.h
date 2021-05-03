@@ -13,6 +13,9 @@ static const sval_t ptr_err_min = { .type = &ptr_ctype, .value = -4095 };
 static const sval_t ptr_err_max = { .type = &ptr_ctype, .value = -1 };
 static const sval_t ptr_null    = { .type = &ptr_ctype, .value = 0 };
 
+static const sval_t ulong_one	= { .type = &ulong_ctype, .value = 1 };
+static const sval_t ulong_INT_MAX = { .type = &ulong_ctype, .value = INT_MAX };
+
 #define MTAG_ALIAS_BIT (1ULL << 63)
 #define MTAG_OFFSET_MASK 0xfffULL
 #define MTAG_SEED 0xdead << 12
