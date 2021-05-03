@@ -28,10 +28,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
+#include "smatch_expression_stacks.h"
 
 struct fcall_back {
 	int type;
@@ -587,6 +589,7 @@ struct db_callback_info {
 	char *ret_str;
 	struct smatch_state *ret_state;
 	struct expression *var_expr;
+	struct expression_list *fake_param_assign_stack;
 	int handled;
 };
 
@@ -694,6 +697,38 @@ static bool fake_a_param_assignment(struct expression *expr, const char *ret_str
 	return true;
 }
 
+static void fake_return_assignment(struct db_callback_info *db_info, int type, int param, char *key, char *value)
+{
+	struct expression *call, *left, *right, *assign;
+	int right_param;
+
+	if (type != PARAM_COMPARE)
+		return;
+
+	call = db_info->expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (!call || call->type != EXPR_CALL)
+		return;
+
+	// TODO: This only handles "$->foo = arg" and not "$->foo = arg->bar".
+	if (param != -1)
+		return;
+	if (!value || strncmp(value, "== $", 4) != 0)
+		return;
+	if (!isdigit(value[4]) || value[5] != '\0')
+		return;
+	right_param = atoi(value + 4);
+
+	left = gen_expr_from_param_key(db_info->expr, param, key);
+	if (!left)
+		return;
+	right = get_argument_from_call_expr(call->args, right_param);
+
+	assign = assign_expression(left, '=', right);
+	push_expression(&db_info->fake_param_assign_stack, assign);
+}
+
 static void set_fresh_mtag_returns(struct db_callback_info *db_info)
 {
 	struct expression *expr = db_info->expr->left;
@@ -717,6 +752,7 @@ static void set_fresh_mtag_returns(struct db_callback_info *db_info)
 static void set_return_assign_state(struct db_callback_info *db_info)
 {
 	struct expression *expr = db_info->expr->left;
+	struct expression *fake_assign;
 	struct smatch_state *state;
 
 	if (!db_info->ret_state)
@@ -725,6 +761,12 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
 	if (!fake_a_param_assignment(db_info->expr, db_info->ret_str, state))
 		set_extra_expr_mod(expr, state);
+
+	while ((fake_assign = pop_expression(&db_info->fake_param_assign_stack))) {
+		__in_fake_parameter_assign++;
+		__split_expr(fake_assign);
+		__in_fake_parameter_assign--;
+	}
 
 	db_info->ret_state = NULL;
 	db_info->ret_str = NULL;
@@ -955,6 +997,8 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		if (tmp->type == type)
 			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
+
+	fake_return_assignment(db_info, type, param, key, value);
 
 	return 0;
 }
@@ -1221,6 +1265,8 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
+	fake_return_assignment(db_info, type, param, key, value);
+
 	return 0;
 }
 
@@ -1416,6 +1462,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 			call_db_return_callback(tmp, db_info->expr, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
+	fake_return_assignment(db_info, type, param, key, value);
 
 	return 0;
 }
