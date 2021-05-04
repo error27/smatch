@@ -22,6 +22,7 @@
 #include "smatch_slist.h"
 
 static int my_id;
+static int info_id;
 
 STATE(alloc);
 STATE(release);
@@ -89,7 +90,7 @@ static struct ref_func_info func_table[] = {
 	{ "ieee80211_free_hw",  RELEASE, 0, "$" },
 };
 
-struct smatch_state *unmatched_state(struct sm_state *sm)
+static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
 
@@ -108,22 +109,6 @@ struct smatch_state *unmatched_state(struct sm_state *sm)
 		return &param_released;
 
 	 return &undefined;
-}
-
-static struct sm_state *get_start_sm(const char *name, struct symbol *sym)
-{
-	struct sm_state *sm;
-
-	sm = get_sm_state(my_id, name, sym);
-	if (sm)
-		return sm;
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (get_comparison_strings(name, sm->name) == SPECIAL_EQUAL)
-			return sm;
-	} END_FOR_EACH_SM(sm);
-
-	return NULL;
 }
 
 static bool is_param_var_sym(const char *name, struct symbol *sym)
@@ -156,7 +141,7 @@ static void mark_matches_as_undefined(const char *key)
 		start_pos = state_len - key_len;
 		if ((start_pos == 0 || !isalnum(sm->name[start_pos - 1])) &&
 		    strcmp(sm->name + start_pos, key) == 0)
-			set_state(my_id, sm->name, sm->sym, &undefined);
+			update_ssa_state(my_id, sm->name, sm->sym, &undefined);
 
 	} END_FOR_EACH_SM(sm);
 }
@@ -184,7 +169,7 @@ static bool is_alloc_primitive(struct expression *expr)
 static void return_param_alloc(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
 	fn_has_alloc = true;
-	set_state(my_id, name, sym, &alloc);
+	set_ssa_state(my_id, name, sym, &alloc);
 }
 
 static void return_param_release(struct expression *expr, const char *name, struct symbol *sym, void *data)
@@ -195,21 +180,17 @@ static void return_param_release(struct expression *expr, const char *name, stru
 	if (!data && is_alloc_primitive(expr))
 		return;
 
-	start_sm = get_start_sm(name, sym);
-	if (!start_sm) {
+	start_sm = get_ssa_sm_state(my_id, name, sym);
+	if (start_sm) {
+		update_ssa_state(my_id, start_sm->name, start_sm->sym, &release);
+	} else {
 		if (fn_has_alloc) {
 			mark_matches_as_undefined(name);
 			return;
 		}
 		if (is_param_var_sym(name, sym))
-			set_state(my_id, name, sym, &param_released);
-		return;
+			set_state(info_id, name, sym, &param_released);
 	}
-
-	if (start_sm)
-		set_state(my_id, start_sm->name, start_sm->sym, &release);
-	else
-		set_state(my_id, name, sym, &release);
 }
 
 static void ignore_path(const char *fn, struct expression *expr, void *data)
@@ -226,7 +207,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	if (is_impossible_path())
 		return;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+	FOR_EACH_MY_SM(info_id, __get_cur_stree(), sm) {
 		if (sm->state != &param_released)
 			continue;
 		param = get_param_key_from_sm(sm, expr, &param_name);
@@ -311,7 +292,7 @@ swap_stree:
 	return;
 
 complain:
-	sm_warning("'%s' not released on lines: %s.", name, show_rl(inc_lines));
+	sm_warning("'%s' not released on lines: %s.", ssa_name(name), show_rl(inc_lines));
 }
 
 static void match_check_balanced(struct symbol *sym)
@@ -361,10 +342,15 @@ void check_unwind(int id)
 
 	add_function_hook("devm_add_action_or_reset", &ignore_path, NULL);
 
-	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_function_data(&fn_has_alloc);
 
 	add_split_return_callback(match_return_info);
 	select_return_param_key(RELEASE, &return_param_release);
 	add_hook(&match_check_balanced, END_FUNC_HOOK);
+}
+
+void check_unwind_info(int id)
+{
+	info_id = id;
+	add_unmatched_state_hook(info_id, &unmatched_state);
 }

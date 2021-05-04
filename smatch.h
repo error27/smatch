@@ -390,6 +390,17 @@ struct stree *__get_cur_stree(void);
 int is_reachable(void);
 void add_get_state_hook(void (*fn)(int owner, const char *name, struct symbol *sym));
 
+/* smatch_ssa.c */
+char *ssa_name(const char *name);
+void set_ssa_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
+void update_ssa_state(int owner, const char *name, struct symbol *sym,
+		      struct smatch_state *state);
+void set_ssa_state_expr(int owner, struct expression *expr, struct smatch_state *state);
+struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sym);
+struct sm_state *get_ssa_sm_state_expr(int owner, struct expression *expr);
+struct smatch_state *get_ssa_state(int owner, const char *name, struct symbol *sym);
+struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr);
+
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);
 char *alloc_string(const char *str);
