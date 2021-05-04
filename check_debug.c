@@ -556,6 +556,7 @@ static void mtag_info(struct expression *expr)
 static void match_about(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
+	struct range_list *rl;
 	struct sm_state *sm;
 	char *name;
 
@@ -572,6 +573,11 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 		sm_msg("info: not a straight forward variable.");
 		return;
 	}
+
+	if (get_user_rl(arg, &rl))
+		sm_msg("user_rl = '%s'", show_rl(rl));
+	if (points_to_user_data(arg))
+		sm_msg("points to user data");
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (strcmp(sm->name, name) != 0)
