@@ -138,6 +138,9 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 {
 	struct expression *expr;
 
+	if (!left || !right)
+		return NULL;
+
 	expr = alloc_tmp_expression(get_cur_pos(), EXPR_COMPARE);
 	expr->op = op;
 	expr->left = left;

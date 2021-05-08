@@ -1,6 +1,6 @@
 #include "check_debug.h"
 
-int copy_from_user(void *dest, void *src, int size){}
+int copy_from_user(void *dest, void *src, int size){ return 0; }
 
 struct my_struct {
 	int x, y;
