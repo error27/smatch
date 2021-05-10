@@ -1189,6 +1189,10 @@ static void match_call_info(struct expression *expr)
 		else
 			name = sm->name;
 
+		if (strncmp(name, "__fake_param", 12) == 0 ||
+		    strchr(name, '$'))
+			continue;
+
 		sql_insert_caller_info(expr, locked_type, -2, name, "");
 	} END_FOR_EACH_SM(sm);
 	free_stree(&printed);
