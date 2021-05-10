@@ -365,12 +365,14 @@ static void tag_as_user_data(struct expression *expr)
 	}
 }
 
+static struct expression *ignore_param_set;
 static void match_user_copy(const char *fn, struct expression *expr, void *_param)
 {
 	int param = PTR_INT(_param);
 	struct expression *dest;
 
 	func_gets_user_data = true;
+	ignore_param_set = expr;
 
 	dest = get_argument_from_call_expr(expr->args, param);
 	dest = strip_expr(dest);
@@ -1084,6 +1086,8 @@ static void db_param_set(struct expression *expr, int param, char *key, char *va
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
+		return;
+	if (expr == ignore_param_set)
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, param);
