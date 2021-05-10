@@ -917,25 +917,31 @@ bool taking_too_long(void)
 	return 0;
 }
 
-int is_last_stmt(struct statement *cur_stmt)
+struct statement *get_last_stmt(void)
 {
 	struct symbol *fn;
 	struct statement *stmt;
 
-	if (!cur_func_sym)
-		return 0;
 	fn = get_base_type(cur_func_sym);
 	if (!fn)
-		return 0;
+		return NULL;
 	stmt = fn->stmt;
 	if (!stmt)
 		stmt = fn->inline_stmt;
 	if (!stmt || stmt->type != STMT_COMPOUND)
-		return 0;
+		return NULL;
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
 	if (stmt && stmt->type == STMT_LABEL)
 		stmt = stmt->label_statement;
-	if (stmt == cur_stmt)
+	return stmt;
+}
+
+int is_last_stmt(struct statement *cur_stmt)
+{
+	struct statement *last;
+
+	last = get_last_stmt();
+	if (last && last == cur_stmt)
 		return 1;
 	return 0;
 }

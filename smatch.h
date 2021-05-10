@@ -615,6 +615,7 @@ void init_fake_env(void);
 void end_fake_env(void);
 int time_parsing_function(void);
 bool taking_too_long(void);
+struct statement *get_last_stmt(void);
 int is_last_stmt(struct statement *cur_stmt);
 
 /* smatch_struct_assignment.c */
