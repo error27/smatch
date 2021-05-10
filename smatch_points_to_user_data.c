@@ -110,12 +110,16 @@ static bool is_points_to_user_data_fn(struct expression *expr)
 
 static bool is_array_of_user_data(struct expression *expr)
 {
+	struct expression *deref;
+	struct symbol *type;
+
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		expr = strip_expr(expr->unop);
 		if (expr->type == EXPR_PREOP && expr->op == '*')
 			expr = strip_expr(expr->unop);
 	}
 
+	/* This is for array elements &foo->data[4] */
 	if (expr->type == EXPR_BINOP && expr->op == '+') {
 		if (points_to_user_data(expr->left))
 			return true;
@@ -123,7 +127,18 @@ static bool is_array_of_user_data(struct expression *expr)
 			return true;
 	}
 
-	return false;
+	/* This is for if you have: foo = skb->data; frob(foo->array); */
+	type = get_type(expr);
+	if (!type || type->type != SYM_ARRAY)
+		return false;
+
+	if (expr->type != EXPR_DEREF)
+		return false;
+	deref = strip_expr(expr->deref);
+	if (deref->type != EXPR_PREOP || deref->op != '*')
+		return false;
+	deref = strip_expr(deref->unop);
+	return points_to_user_data(deref);
 }
 
 bool points_to_user_data(struct expression *expr)
