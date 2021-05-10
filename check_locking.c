@@ -737,7 +737,7 @@ static void do_lock(const char *name, struct symbol *sym, struct lock_info *info
 	sm = get_sm_state(my_id, name, sym);
 	if (!get_start_state(sm))
 		set_start_state(name, sym, &unlocked);
-	if (!sm && !is_local_IRQ_save(name, sym, info) && sym) {
+	if (!sm && !is_local_IRQ_save(name, sym, info) && !sym) {
 		sm = get_best_match(name, LOCK);
 		if (sm) {
 			name = sm->name;
