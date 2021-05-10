@@ -900,6 +900,8 @@ static void split_case(struct statement *stmt)
 
 	if (!stmt->case_expression)
 		__set_default();
+
+	stmt_set_parent_stmt(stmt->case_statement, stmt);
 	__split_stmt(stmt->case_statement);
 }
 
