@@ -37,9 +37,11 @@ typedef void (expr_func)(struct expression *expr);
 typedef void (stmt_func)(struct statement *stmt);
 typedef void (sym_func)(struct symbol *sym);
 typedef void (sym_list_func)(struct symbol_list *sym_list);
+typedef void (array_init_hook)(struct expression *array, int nr);
 
 static struct hook_func_list *merge_funcs;
 static struct hook_func_list *unmatched_state_funcs;
+static struct hook_func_list *array_init_hooks;
 static struct hook_func_list *hook_array[NUM_HOOKS] = {};
 static const enum data_type data_types[NUM_HOOKS] = {
 	[EXPR_HOOK] = EXPR_PTR,
@@ -275,6 +277,24 @@ void __call_scope_hooks(void)
 	FOR_EACH_PTR(hook_list, tmp) {
 		((scope_hook *)tmp->fn)(tmp->data);
 		__free_scope_container(tmp);
+	} END_FOR_EACH_PTR(tmp);
+}
+
+void add_array_initialized_hook(void (*hook)(struct expression *array, int nr))
+{
+	struct hook_container *container = __alloc_hook_container(0);
+
+	container->fn = hook;
+
+	add_ptr_list(&array_init_hooks, container);
+}
+
+void __call_array_initialized_hooks(struct expression *array, int nr)
+{
+	struct hook_container *tmp;
+
+	FOR_EACH_PTR(array_init_hooks, tmp) {
+		((array_init_hook *)tmp->fn)(array, nr);
 	} END_FOR_EACH_PTR(tmp);
 }
 

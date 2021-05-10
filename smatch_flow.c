@@ -1606,17 +1606,20 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 {
 	struct expression *offset, *binop, *assign, *tmp;
 	struct symbol *type;
-	int idx;
+	int idx, max;
 
 	if (ptr_list_size((struct ptr_list *)expr_list) > 1000)
 		return;
 
+	max = 0;
 	idx = 0;
 	FOR_EACH_PTR(expr_list, tmp) {
 		if (tmp->type == EXPR_INDEX) {
 			if (tmp->idx_from != tmp->idx_to)
 				return;
 			idx = tmp->idx_from;
+			if (idx > max)
+				max = idx;
 			if (!tmp->idx_expression)
 				goto next;
 			tmp = tmp->idx_expression;
@@ -1635,7 +1638,11 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 		}
 next:
 		idx++;
+		if (idx > max)
+			max = idx;
 	} END_FOR_EACH_PTR(tmp);
+
+	__call_array_initialized_hooks(array, max);
 }
 
 static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
