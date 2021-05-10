@@ -1194,40 +1194,19 @@ static void match_call_info(struct expression *expr)
 	free_stree(&printed);
 }
 
-static void set_locked_called_state(const char *name, struct symbol *sym,
-				    char *key, char *value,
-				    struct smatch_state *state)
+static void set_locked(const char *name, struct symbol *sym, char *value)
 {
-	char fullname[256];
-	char *p;
-
-	p = strchr(key, '$');
-	if (name && p)
-		snprintf(fullname, sizeof(fullname), "%.*s%s%s", (int)(p - key), key, name, p + 1);
-	else
-		snprintf(fullname, sizeof(fullname), "%s", key);
-
-	if (strstr(fullname, ">>") || strstr(fullname, "..")) {
-//		sm_msg("warn: invalid lock name.  name = '%s' key = '%s'", name, key);
-		return;
-	}
-
-	set_state(my_id, fullname, sym, state);
+	set_state(my_id, name, sym, &locked);
 }
 
-static void set_locked(const char *name, struct symbol *sym, char *key, char *value)
+static void set_half_locked(const char *name, struct symbol *sym, char *value)
 {
-	set_locked_called_state(name, sym, key, value, &locked);
+	set_state(my_id, name, sym, &half_locked);
 }
 
-static void set_half_locked(const char *name, struct symbol *sym, char *key, char *value)
+static void set_unlocked(const char *name, struct symbol *sym, char *value)
 {
-	set_locked_called_state(name, sym, key, value, &half_locked);
-}
-
-static void set_unlocked(const char *name, struct symbol *sym, char *key, char *value)
-{
-	set_locked_called_state(name, sym, key, value, &unlocked);
+	set_state(my_id, name, sym, &unlocked);
 }
 
 static void match_after_func(struct symbol *sym)
@@ -1332,9 +1311,9 @@ void check_locking(int id)
 	select_return_states_hook(UNLOCK, &db_param_unlocked);
 	select_return_states_hook(RESTORE, &db_param_restore);
 
-	select_caller_info_hook(set_locked, LOCK);
-	select_caller_info_hook(set_half_locked, HALF_LOCKED);
-	select_caller_info_hook(set_unlocked, UNLOCK);
+	select_caller_name_sym(set_locked, LOCK);
+	select_caller_name_sym(set_half_locked, HALF_LOCKED);
+	select_caller_name_sym(set_unlocked, UNLOCK);
 
 	return_implies_state("dma_resv_lock", -4095, -1, &match_dma_resv_lock_NULL, 0);
 }

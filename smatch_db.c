@@ -47,6 +47,14 @@ ALLOCATOR(def_callback, "definition db hook callbacks");
 DECLARE_PTR_LIST(callback_list, struct def_callback);
 static struct callback_list *select_caller_info_callbacks;
 
+struct def_name_sym_callback {
+	int hook_type;
+	void (*callback)(const char *name, struct symbol *sym, char *value);
+};
+ALLOCATOR(def_name_sym_callback, "definition db hook callbacks");
+DECLARE_PTR_LIST(name_sym_callback_list, struct def_name_sym_callback);
+static struct name_sym_callback_list *select_caller_name_sym_callbacks;
+
 struct member_info_callback {
 	int owner;
 	void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm);
@@ -678,6 +686,15 @@ void select_caller_info_hook(void (*callback)(const char *name, struct symbol *s
 	add_ptr_list(&select_caller_info_callbacks, def_callback);
 }
 
+void select_caller_name_sym(void (*fn)(const char *name, struct symbol *sym, char *value), int type)
+{
+	struct def_name_sym_callback *callback = __alloc_def_name_sym_callback(0);
+
+	callback->hook_type = type;
+	callback->callback = fn;
+	add_ptr_list(&select_caller_name_sym_callbacks, callback);
+}
+
 /*
  * These call backs are used when the --info option is turned on to print struct
  * member information.  For example foo->bar could have a state in
@@ -1138,8 +1155,11 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 	char *name = NULL;
 	struct symbol *sym = NULL;
 	struct def_callback *def_callback;
+	struct def_name_sym_callback *ns_callback;
 	struct stree *stree;
 	struct timeval cur_time;
+	char fullname[256];
+	char *p;
 
 	data->results = 1;
 
@@ -1187,6 +1207,17 @@ static int caller_info_callback(void *_data, int argc, char **argv, char **azCol
 		if (def_callback->hook_type == type)
 			def_callback->callback(name, sym, key, value);
 	} END_FOR_EACH_PTR(def_callback);
+
+	p = strchr(key, '$');
+	if (name && p)
+		snprintf(fullname, sizeof(fullname), "%.*s%s%s", (int)(p - key), key, name, p + 1);
+	else
+		snprintf(fullname, sizeof(fullname), "%s", key);
+
+	FOR_EACH_PTR(select_caller_name_sym_callbacks, ns_callback) {
+		if (ns_callback->hook_type == type)
+			ns_callback->callback(fullname, sym, value);
+	} END_FOR_EACH_PTR(ns_callback);
 
 	return 0;
 }

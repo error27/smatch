@@ -880,6 +880,7 @@ extern struct sqlite3 *cache_db;
 bool db_incomplete(void);
 void db_ignore_states(int id);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
+void select_caller_name_sym(void (*fn)(const char *name, struct symbol *sym, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_caller_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));
 void add_return_info_callback(int owner,
