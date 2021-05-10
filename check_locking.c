@@ -1199,9 +1199,11 @@ static void set_locked_called_state(const char *name, struct symbol *sym,
 				    struct smatch_state *state)
 {
 	char fullname[256];
+	char *p;
 
-	if (name && key[0] == '$')
-		snprintf(fullname, sizeof(fullname), "%s%s", name, key + 1);
+	p = strchr(key, '$');
+	if (name && p)
+		snprintf(fullname, sizeof(fullname), "%.*s%s%s", (int)(p - key), key, name, p + 1);
 	else
 		snprintf(fullname, sizeof(fullname), "%s", key);
 
