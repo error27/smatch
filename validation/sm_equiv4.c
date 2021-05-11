@@ -17,6 +17,6 @@ int func(void)
  * check-command: smatch -p=kernel --spammy -I.. sm_equiv4.c
  *
  * check-output-start
-sm_equiv4.c:13 func() warn: 'b' was not released on error
+sm_equiv4.c:13 func() warn: 'b' not released on lines: 13.
  * check-output-end
  */
