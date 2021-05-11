@@ -331,6 +331,12 @@ static inline void print_implied_debug_msg(void)
 } while(0)
 
 #define sm_warning(msg...) do { sm_print_msg(1, msg); } while (0)
+#define sm_warning_line(line, msg...) do {	\
+	int __orig = __smatch_lineno;		\
+	__smatch_lineno = line;			\
+	sm_print_msg(1, msg);			\
+	__smatch_lineno = __orig;		\
+} while (0)
 #define sm_error(msg...) do { sm_print_msg(2, msg); } while (0)
 #define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
 #define sm_spam(msg...) do { if (option_pedantic) sm_print_msg(1, msg); } while (0)
