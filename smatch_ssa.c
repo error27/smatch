@@ -200,6 +200,8 @@ void set_ssa_state(int owner, const char *name, struct symbol *sym,
 	sm = get_sm_state(my_id, name, sym);
 	if (!sm || sm->state == &undefined)
 		sm = set_state(my_id, name, sym, alloc_ssa_new(name));
+	if (!sm)
+		return;
 	if (sm->state == &merged) {
 		sm = clone_sm(sm);
 		sm->state = alloc_ssa_new(name);
