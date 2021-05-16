@@ -134,7 +134,7 @@ static void binary(Btor *btor, BoolectorSort s, struct instruction *insn)
 	case OP_SET_AE:	t = zext(btor, insn, boolector_ugte(btor, a, b)); break;
 	case OP_SET_A:	t = zext(btor, insn, boolector_ugt(btor, a, b)); break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -167,7 +167,7 @@ static void unop(Btor *btor, struct instruction *insn)
 	case OP_ZEXT:	t = zext(btor, insn, a); break;
 	case OP_TRUNC:	t = slice(btor, insn, a); break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -190,7 +190,7 @@ static void ternop(Btor *btor, struct instruction *insn)
 		t = boolector_cond(btor, d, b, c);
 		break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -314,7 +314,7 @@ static bool check_function(struct entrypoint *ep)
 			case OP_RET:
 				goto out;
 			default:
-				fprintf(stderr, "unsupported insn\n");
+				fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 				goto out;
 			}
 		} END_FOR_EACH_PTR(insn);
