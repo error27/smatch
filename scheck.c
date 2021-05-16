@@ -313,6 +313,11 @@ static bool check_function(struct entrypoint *ep)
 				break;
 			case OP_RET:
 				goto out;
+			case OP_INLINED_CALL:
+			case OP_DEATHNOTE:
+			case OP_NOP:
+			case OP_CONTEXT:
+				continue;
 			default:
 				fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 				goto out;
