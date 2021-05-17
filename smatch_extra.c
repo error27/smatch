@@ -1177,7 +1177,9 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 			goto done;
 		}
 
-		state = alloc_estate_rl(alloc_whole_rl(left_type));
+		rl = alloc_whole_rl(right_type);
+		rl = cast_rl(left_type, rl);
+		state = alloc_estate_rl(rl);
 		goto done;
 	}
 
