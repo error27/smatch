@@ -1040,12 +1040,27 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, buf);
 }
 
+static bool is_ignored_macro(struct position pos)
+{
+	const char *macro;
+
+	macro = get_macro_name(pos);
+	if (!macro)
+		return false;
+	if (strcmp(macro, "v4l2_subdev_call") == 0)
+		return true;
+	return false;
+}
+
 static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	struct smatch_state *state;
 	struct range_list *rl;
 	struct symbol *type;
 	char buf[64];
+
+	if (is_ignored_macro(call->pos))
+		return;
 
 	/*
 	 * Smatch uses a hack where if we get an unsigned long we say it's
