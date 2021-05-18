@@ -420,6 +420,8 @@ static struct lock_info lock_table[] = {
 	{"bch_write_bdev_super",	IGNORE_LOCK, sem, 0, "&$->sb_write_mutex"},
 	{"dlfb_set_video_mode",		IGNORE_LOCK, sem, 0, "&$->urbs.limit_sem"},
 
+	{"efx_rwsem_assert_write_locked", IGNORE_LOCK, sem, 0, "&"},
+
 	{},
 };
 
