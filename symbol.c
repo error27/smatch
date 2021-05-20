@@ -69,6 +69,14 @@ struct symbol *lookup_symbol(struct ident *ident, enum namespace ns)
 	return NULL;
 }
 
+struct symbol *lookup_macro_symbol(const char *macro)
+{
+	struct ident *id;
+
+	id = built_in_ident(macro);
+	return lookup_symbol(id, NS_MACRO);
+}
+
 struct context *alloc_context(void)
 {
 	return __alloc_context(0);

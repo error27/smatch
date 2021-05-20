@@ -331,6 +331,7 @@ extern const char * type_difference(struct ctype *c1, struct ctype *c2,
 	unsigned long mod1, unsigned long mod2);
 
 extern struct symbol *lookup_symbol(struct ident *, enum namespace);
+struct symbol *lookup_macro_symbol(const char *macro);
 extern struct symbol *create_symbol(int stream, const char *name, int type, int namespace);
 extern void init_symbols(void);
 extern void init_builtins(int stream);
