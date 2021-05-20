@@ -660,6 +660,7 @@ int __handle_select_assigns(struct expression *expr)
 		struct expression *fake_expr;
 
 		fake_expr = assign_expression(expr->left, expr->op, right->cond_true);
+		expr_set_parent_expr(fake_expr, expr);
 		__split_expr(fake_expr);
 		final_states = clone_stree(__get_cur_stree());
 	}
@@ -672,6 +673,7 @@ int __handle_select_assigns(struct expression *expr)
 
 		__use_false_states();
 		fake_expr = assign_expression(expr->left, expr->op, right->cond_false);
+		expr_set_parent_expr(fake_expr, expr);
 		__split_expr(fake_expr);
 		merge_stree(&final_states, __get_cur_stree());
 	}
@@ -742,6 +744,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		fake_expr_stmt.statement = last_stmt;
 
 		fake_assign = assign_expression(expr->left, expr->op, &fake_expr_stmt);
+		expr_set_parent_expr(fake_assign, expr);
 		__split_expr(fake_assign);
 
 		__pass_to_client(stmt, STMT_HOOK_AFTER);
@@ -750,6 +753,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		struct expression *fake_assign;
 
 		fake_assign = assign_expression(expr->left, expr->op, stmt->expression);
+		expr_set_parent_expr(fake_assign, expr);
 		__split_expr(fake_assign);
 
 	} else {
