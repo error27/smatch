@@ -283,7 +283,7 @@ char *get_container_name(struct expression *container, struct expression *expr)
 	return NULL;
 }
 
-static bool is_fn_ptr(struct expression *expr)
+static bool is_fn_ptr_arg(struct expression *expr)
 {
 	struct symbol *type;
 
@@ -343,7 +343,7 @@ static void match_call(struct expression *call)
 	fn_param = -1;
 	FOR_EACH_PTR(call->args, arg) {
 		fn_param++;
-		if (!is_fn_ptr(arg))
+		if (!is_fn_ptr_arg(arg))
 			continue;
 		param = -1;
 		FOR_EACH_PTR(call->args, tmp) {
