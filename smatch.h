@@ -1013,6 +1013,7 @@ int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag);
 struct smatch_state *get_mtag_return(struct expression *expr, struct smatch_state *state);
 struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl);
 
+bool is_fn_ptr(struct expression *fn);
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info);
 void sql_select_call_implies(const char *cols, struct expression *call,

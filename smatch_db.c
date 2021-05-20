@@ -580,6 +580,18 @@ static int is_local_symbol(struct expression *expr)
 	return 1;
 }
 
+bool is_fn_ptr(struct expression *fn)
+{
+	fn = strip_expr(fn);
+	if (fn->type != EXPR_SYMBOL)
+		return true;
+	if (!fn->symbol)
+		return true;
+	if (is_local_symbol(fn))
+		return true;
+	return false;
+}
+
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
@@ -590,7 +602,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		return;
 
 	fn = strip_expr(call->fn);
-	if (fn->type != EXPR_SYMBOL || !fn->symbol || is_local_symbol(fn)) {
+	if (is_fn_ptr(fn)) {
 		sql_select_return_states_pointer(cols, call, callback, info);
 		return;
 	}
