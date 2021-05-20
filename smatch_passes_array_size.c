@@ -36,6 +36,46 @@ static int find_param_eq(struct expression *expr, int size)
 	return -1;
 }
 
+static int find_skb_len(struct expression *call, struct expression *arg)
+{
+	struct expression *tmp;
+	char buf[64];
+	char *data_name, *len_name;
+	int ret = -1;
+	int len, i;
+
+	data_name = expr_to_str(arg);
+	if (!data_name)
+		return -1;
+	len = snprintf(buf, sizeof(buf), "%s", data_name);
+	if (len < 4 || len >= sizeof(buf))
+		goto free;
+	sprintf(buf + len - 4, "len");
+
+	i = -1;
+	FOR_EACH_PTR(call->args, tmp) {
+		bool match = false;
+
+		i++;
+		if (tmp == arg)
+			continue;
+		len_name = expr_to_var(tmp);
+		if (!len_name)
+			continue;
+		if (strcmp(buf, len_name) == 0)
+			match = true;
+		free_string(len_name);
+		if (match) {
+			ret = i;
+			goto free;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+free:
+	free_string(data_name);
+	return ret;
+}
+
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
@@ -55,6 +95,24 @@ static void match_call(struct expression *expr)
 		type = get_type(arg);
 		if (!type || (type->type != SYM_PTR && type->type != SYM_ARRAY))
 			continue;
+
+		if (is_skb_data(arg)) {
+			nr = find_skb_len(expr, arg);
+			if (nr >= 0) {
+				snprintf(buf, sizeof(buf), "==$%d", nr);
+				sql_insert_caller_info(expr, BYTE_COUNT, i, buf, byte_count);
+				continue;
+			}
+		}
+		bytes = get_array_size_bytes(arg);
+		if (bytes > 0) {
+			nr = find_param_eq(expr, bytes);
+			if (nr >= 0) {
+				snprintf(buf, sizeof(buf), "==$%d", nr);
+				sql_insert_caller_info(expr, BYTE_COUNT, i, buf, byte_count);
+				continue;
+			}
+		}
 		arg_type = get_arg_type(expr->fn, i);
 		if (arg_type != type)
 			continue;
@@ -65,15 +123,6 @@ static void match_call(struct expression *expr)
 			if (nr >= 0) {
 				snprintf(buf, sizeof(buf), "==$%d", nr);
 				sql_insert_caller_info(expr, ELEM_COUNT, i, buf, elem_count);
-				continue;
-			}
-		}
-		bytes = get_array_size_bytes(arg);
-		if (bytes > 0) {
-			nr = find_param_eq(expr, bytes);
-			if (nr >= 0) {
-				snprintf(buf, sizeof(buf), "==$%d", nr);
-				sql_insert_caller_info(expr, BYTE_COUNT, i, buf, byte_count);
 				continue;
 			}
 		}
