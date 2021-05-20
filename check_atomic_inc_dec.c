@@ -33,8 +33,7 @@ struct ref_func_info {
 	int param;
 	const char *key;
 	func_hook *call_back;
-	bool implied;
-	long long implies_start, implies_end;
+	const sval_t *implies_start, *implies_end;
 };
 
 static void match_atomic_add(const char *fn, struct expression *expr, void *_unused);
@@ -87,11 +86,11 @@ static struct ref_func_info func_table[] = {
 	{ "pm_runtime_get_sync", ATOMIC_INC, 0, "$->power.usage_count.counter" },
 	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
 
-	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->ref.counter", NULL, true, 1, 1},
-	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->ref.counter", NULL, true, 1, 1},
+	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->refs.counter", NULL, &int_one, &int_one},
+	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->refs.counter", NULL, &int_one, &int_one},
 
-	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
-	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
+	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, &int_zero, &int_max},
+	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, &int_zero, &int_max},
 
 	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.refs.counter" },
 	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
@@ -458,9 +457,9 @@ void check_atomic_inc_dec(int id)
 
 		if (info->call_back) {
 			add_function_hook(info->name, info->call_back, info);
-		} else if (info->implied) {
-			return_implies_state(info->name,
-					info->implies_start, info->implies_end,
+		} else if (info->implies_start) {
+			return_implies_state_sval(info->name,
+					*info->implies_start, *info->implies_end,
 					&refcount_implied, info);
 		} else {
 			add_function_hook(info->name, &refcount_function, info);
