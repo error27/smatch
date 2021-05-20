@@ -180,6 +180,9 @@ void set_points_to_user_data(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
+	if (is_fake_call(expr->right))
+		return;
+
 	if (!is_ptr_type(get_type(expr->left)))
 		return;
 
