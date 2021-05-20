@@ -78,14 +78,14 @@ static struct ref_func_info func_table[] = {
 	{ "atomic_long_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
 	{ "atomic64_sub_and_test", ATOMIC_DEC, 1, "$->counter" },
 
-	{ "refcount_inc", ATOMIC_INC, 0, "$->ref.counter" },
-	{ "refcount_dec", ATOMIC_DEC, 0, "$->ref.counter" },
-	{ "refcount_dec_and_test", ATOMIC_DEC, 0, "$->ref.counter" },
-	{ "refcount_add", ATOMIC_INC, 1, "$->ref.counter" },
-	{ "refcount_sub_and_test", ATOMIC_DEC, 1, "$->ref.counter" },
+	{ "refcount_inc", ATOMIC_INC, 0, "$->refs.counter" },
+	{ "refcount_dec", ATOMIC_DEC, 0, "$->refs.counter" },
+	{ "refcount_dec_and_test", ATOMIC_DEC, 0, "$->refs.counter" },
+	{ "refcount_add", ATOMIC_INC, 1, "$->refs.counter" },
+	{ "refcount_sub_and_test", ATOMIC_DEC, 1, "$->refs.counter" },
 
 	{ "pm_runtime_get_sync", ATOMIC_INC, 0, "$->power.usage_count.counter" },
-	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
 
 	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->ref.counter", NULL, true, 1, 1},
 	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->ref.counter", NULL, true, 1, 1},
@@ -93,12 +93,12 @@ static struct ref_func_info func_table[] = {
 	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
 	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, true, 0, INT_MAX},
 
-	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.ref.counter" },
-	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
-	{ "of_get_parent", ATOMIC_INC, -1, "$->kobj.kref.refcount.ref.counter" },
-	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.ref.counter" },
+	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.refs.counter" },
+	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
+	{ "of_get_parent", ATOMIC_INC, -1, "$->kobj.kref.refcount.refs.counter" },
+	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
 
-	{ "kfree_skb", ATOMIC_DEC, 0, "$->users.ref.counter" },
+	{ "kfree_skb", ATOMIC_DEC, 0, "$->users.refs.counter" },
 };
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
