@@ -253,19 +253,25 @@ static void match_return(struct expression *expr)
 	free_string(name);
 }
 
+static int counter_was_inced_name_sym(const char *name, struct symbol *sym)
+{
+	char buf[256];
+
+	snprintf(buf, sizeof(buf), "%s->users.refs.counter", name);
+	return was_inced(buf, sym);
+}
+
 static int counter_was_inced(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
-	char buf[256];
 	int ret = 0;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
-	snprintf(buf, sizeof(buf), "%s->users.counter", name);
-	ret = was_inced(buf, sym);
+	ret = counter_was_inced_name_sym(name, sym);
 free:
 	free_string(name);
 	return ret;
@@ -311,6 +317,19 @@ free:
 	free_string(name);
 }
 
+static bool sk_buff_pointer(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!is_ptr_type(type))
+		return false;
+	type = get_real_base_type(type);
+	if (type && type->ident && strcmp(type->ident->name, "sk_buff") == 0)
+		return true;
+	return false;
+}
+
 static void match_free(const char *fn, struct expression *expr, void *param)
 {
 	struct expression *arg;
@@ -321,7 +340,7 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
-	if (strcmp(fn, "kfree_skb") == 0 && counter_was_inced(arg))
+	if (sk_buff_pointer(arg) && counter_was_inced(arg))
 		return;
 	if (is_freed(arg)) {
 		char *name = expr_to_var(arg);
@@ -386,6 +405,10 @@ static void set_param_helper(struct expression *expr, int param,
 		return;
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
+		goto free;
+
+	/* skbs are not free if we called skb_get(). */
+	if (counter_was_inced_name_sym(name, sym))
 		goto free;
 
 	if (state == &freed && !is_impossible_path()) {
