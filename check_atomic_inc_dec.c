@@ -32,8 +32,8 @@ struct ref_func_info {
 	int type;
 	int param;
 	const char *key;
-	func_hook *call_back;
 	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
 };
 
 static void match_atomic_add(const char *fn, struct expression *expr, void *_unused);
@@ -47,9 +47,9 @@ static struct ref_func_info func_table[] = {
 	{ "atomic_long_inc_return", ATOMIC_INC, 0, "$->counter" },
 	{ "atomic64_return", ATOMIC_INC, 0, "$->counter" },
 
-	{ "atomic_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
-	{ "atomic_long_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
-	{ "atomic64_add_return", ATOMIC_INC, 1, "$->counter", match_atomic_add },
+	{ "atomic_add_return", ATOMIC_INC, 1, "$->counter", NULL, NULL, match_atomic_add },
+	{ "atomic_long_add_return", ATOMIC_INC, 1, "$->counter", NULL, NULL, match_atomic_add },
+	{ "atomic64_add_return", ATOMIC_INC, 1, "$->counter", NULL, NULL, match_atomic_add },
 
 	{ "atomic_dec", ATOMIC_DEC, 0, "$->counter" },
 	{ "atomic_long_dec", ATOMIC_DEC, 0, "$->counter" },
@@ -86,11 +86,11 @@ static struct ref_func_info func_table[] = {
 	{ "pm_runtime_get_sync", ATOMIC_INC, 0, "$->power.usage_count.counter" },
 	{ "of_clk_del_provider", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
 
-	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->refs.counter", NULL, &int_one, &int_one},
-	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->refs.counter", NULL, &int_one, &int_one},
+	{ "refcount_inc_not_zero", ATOMIC_INC, 0, "$->refs.counter", &int_one, &int_one},
+	{ "refcount_add_not_zero", ATOMIC_INC, 1, "$->refs.counter", &int_one, &int_one},
 
-	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, &int_zero, &int_max},
-	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", NULL, &int_zero, &int_max},
+	{ "atomic_dec_if_positive", ATOMIC_DEC, 0, "$->counter", &int_zero, &int_max},
+	{ "atomic64_dec_if_positive", ATOMIC_DEC, 0, "$->counter", &int_zero, &int_max},
 
 	{ "of_node_get", ATOMIC_INC, 0, "$->kobj.kref.refcount.refs.counter" },
 	{ "of_node_put", ATOMIC_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
