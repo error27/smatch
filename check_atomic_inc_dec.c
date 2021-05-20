@@ -142,7 +142,7 @@ static struct sm_state *get_best_match(const char *key)
 	for (i = key_len - 1; i > 0; i--) {
 		if (key[i] == '>' || key[i] == '.')
 			chunks++;
-		if (chunks == 2) {
+		if (chunks == 3) {
 			key += (i + 1);
 			key_len = strlen(key);
 			break;
