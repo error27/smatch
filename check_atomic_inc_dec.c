@@ -351,9 +351,23 @@ static void check_counter(const char *name, struct symbol *sym)
 	sval_t line = sval_type_val(&int_ctype, 0);
 	int bucket;
 
+	/* don't warn about stuff we can't identify */
+	if (!sym)
+		return;
+
 	/* static variable are probably just counters */
 	if (sym->ctype.modifiers & MOD_STATIC &&
 	    !(sym->ctype.modifiers & MOD_TOPLEVEL))
+		return;
+
+	if (strstr(name, "error") ||
+	    strstr(name, "drop") ||
+	    strstr(name, "xmt_ls_err") ||
+	    strstr(name, "->stats->") ||
+	    strstr(name, "->stats."))
+		return;
+
+	if (strstr(name, "power.usage_count"))
 		return;
 
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
