@@ -2648,6 +2648,7 @@ static void db_param_limit_binops(struct expression *arg, char *key, struct rang
 
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
+	struct smatch_state *state;
 	struct expression *arg;
 	char *name;
 	struct symbol *sym;
@@ -2702,16 +2703,21 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 		goto free;
 	other_name = get_other_name_sym(name, sym, &other_sym);
 
-	if (op == PARAM_LIMIT)
-		set_extra_nomod_vsl(name, sym, vsl, NULL, alloc_estate_rl(new));
-	else
-		set_extra_mod(name, sym, NULL, alloc_estate_rl(new));
+	state = alloc_estate_rl(new);
+	if (sm && estate_has_hard_max(sm->state))
+		estate_set_hard_max(state);
+
+	if (op == PARAM_LIMIT) {
+		set_extra_nomod_vsl(name, sym, vsl, NULL, state);
+	} else
+		set_extra_mod(name, sym, NULL, state);
 
 	if (other_name && other_sym) {
+		state = clone_estate(state);
 		if (op == PARAM_LIMIT)
-			set_extra_nomod_vsl(other_name, other_sym, vsl, NULL, alloc_estate_rl(new));
+			set_extra_nomod_vsl(other_name, other_sym, vsl, NULL, state);
 		else
-			set_extra_mod(other_name, other_sym, NULL, alloc_estate_rl(new));
+			set_extra_mod(other_name, other_sym, NULL, state);
 	}
 
 	if (op == PARAM_LIMIT && arg->type == EXPR_BINOP)
