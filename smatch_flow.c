@@ -1691,6 +1691,7 @@ static void split_declaration(struct symbol_list *sym_list)
 	FOR_EACH_PTR(sym_list, sym) {
 		__pass_to_client(sym, DECLARATION_HOOK);
 		do_initializer_stuff(sym);
+		__pass_to_client(sym, DECLARATION_HOOK_AFTER);
 		split_sym(sym);
 	} END_FOR_EACH_PTR(sym);
 }
@@ -2078,6 +2079,7 @@ static void split_c_file_functions(struct symbol_list *sym_list)
 		if (sym->type != SYM_NODE || get_base_type(sym)->type != SYM_FN) {
 			__pass_to_client(sym, BASE_HOOK);
 			fake_global_assign(sym);
+			__pass_to_client(sym, DECLARATION_HOOK_AFTER);
 		}
 	} END_FOR_EACH_PTR(sym);
 	global_states = clone_estates_perm(get_all_states_stree(SMATCH_EXTRA));
