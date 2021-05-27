@@ -664,8 +664,10 @@ static void handle_pre_loop(struct statement *stmt)
 	loop_name = get_loop_name(loop_num);
 	loop_num++;
 
-	__split_stmt(stmt->iterator_pre_statement);
-	__prev_stmt = stmt->iterator_pre_statement;
+	if (stmt->iterator_pre_statement) {
+		__split_stmt(stmt->iterator_pre_statement);
+		__prev_stmt = stmt->iterator_pre_statement;
+	}
 
 	once_through = implied_condition_true(stmt->iterator_pre_condition);
 
