@@ -41,8 +41,10 @@ struct ref_func_info {
 };
 
 static struct ref_func_info func_table[] = {
+	{ "clk_prepare", ALLOC, 0, "$", &int_zero, &int_zero },
 	{ "clk_prepare_enable", ALLOC, 0, "$", &int_zero, &int_zero },
 	{ "clk_disable_unprepare", RELEASE, 0, "$" },
+	{ "clk_unprepare", RELEASE, 0, "$" },
 
 	{ "alloc_etherdev_mqs", ALLOC, -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "free_netdev", RELEASE, 0, "$" },
