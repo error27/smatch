@@ -808,8 +808,9 @@ static void handle_ret_equals_param(char *ret_string, struct range_list *rl, str
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
-static int impossible_limit(struct expression *expr, int param, char *key, char *value)
+static int impossible_limit(struct db_callback_info *db_info, int param, char *key, char *value)
 {
+	struct expression *expr = db_info->expr;
 	struct expression *arg;
 	struct smatch_state *state;
 	struct range_list *passed;
@@ -859,15 +860,15 @@ static int impossible_limit(struct expression *expr, int param, char *key, char 
 	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
 		return 0;
 	if (option_debug || local_debug)
-		sm_msg("impossible: %d '%s' limit '%s' == '%s'", param, key, show_rl(passed), value);
+		sm_msg("impossible: %d '%s' limit '%s' == '%s' return='%s'", param, key, show_rl(passed), value, db_info->ret_str);
 	return 1;
 }
 
-static int is_impossible_data(int type, struct expression *expr, int param, char *key, char *value)
+static int is_impossible_data(int type, struct db_callback_info *db_info, int param, char *key, char *value)
 {
-	if (type == PARAM_LIMIT && impossible_limit(expr, param, key, value))
+	if (type == PARAM_LIMIT && impossible_limit(db_info, param, key, value))
 		return 1;
-	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(expr, param, key, value)) {
+	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(db_info->expr, param, key, value)) {
 		if (local_debug)
 			sm_msg("param_compare_limit_is_impossible: %d %s %s", param, key, value);
 		return 1;
@@ -950,7 +951,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		return 0;
 	}
 
-	if (is_impossible_data(type, db_info->expr, param, key, value)) {
+	if (is_impossible_data(type, db_info, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
@@ -1235,7 +1236,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		db_info->cull = 1;
 		return 0;
 	}
-	if (is_impossible_data(type, db_info->expr, param, key, value)) {
+	if (is_impossible_data(type, db_info, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
@@ -1427,7 +1428,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		db_info->cull = 1;
 		return 0;
 	}
-	if (is_impossible_data(type, db_info->expr, param, key, value)) {
+	if (is_impossible_data(type, db_info, param, key, value)) {
 		db_info->cull = 1;
 		return 0;
 	}
