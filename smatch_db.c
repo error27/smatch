@@ -100,6 +100,12 @@ DECLARE_PTR_LIST(db_implies_cb_list, struct db_implies_callback);
 static struct db_implies_cb_list *return_implies_cb_list;
 static struct db_implies_cb_list *call_implies_cb_list;
 
+struct split_data {
+	const char *func, *rl;
+};
+static struct split_data **forced_splits;
+static int split_count;
+
 /* silently truncates if needed. */
 char *escape_newlines(const char *str)
 {
@@ -182,6 +188,23 @@ static const char *replace_return_ranges(const char *return_ranges)
 	return return_ranges;
 }
 
+static int delete_count;
+static char **delete_table;
+static bool is_delete_return(const char *return_ranges)
+{
+	int i;
+
+	if (!get_function())
+		return false;
+
+	for (i = 0; i < delete_count; i += 2) {
+		if (strcmp(delete_table[i], get_function()) == 0 &&
+		    strcmp(delete_table[i + 1], return_ranges) == 0)
+			return true;
+	}
+
+	return false;
+}
 
 static char *use_states;
 static int get_db_state_count(void)
@@ -1623,11 +1646,66 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 	return true;
 }
 
+static bool handle_forced_split(const char *return_ranges, struct expression *expr)
+{
+	struct split_data *data = NULL;
+	struct expression *compare;
+	struct range_list *rl;
+	char buf[64];
+	char *math;
+	sval_t sval;
+	bool undo;
+	int i;
+
+	for (i = 0; i < split_count; i++) {
+		if (strcmp(get_function(), forced_splits[i]->func) == 0) {
+			data = forced_splits[i];
+			break;
+		}
+	}
+	if (!data)
+		return false;
+
+	// FIXME: this works for copy_to/from_user() because the only thing we
+	// care about is zero/non-zero
+	if (strcmp(data->rl, "0") != 0)
+		return false;
+
+	compare = compare_expression(expr, SPECIAL_EQUAL, zero_expr());
+	if (!compare)
+		return false;
+	if (get_implied_value(compare, &sval))
+		return false;
+
+	undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
+	call_return_states_callbacks("0", expr);
+	if (undo)
+		end_assume();
+
+	undo = assume(compare_expression(expr, SPECIAL_NOTEQUAL, zero_expr()));
+	if (get_implied_rl(expr, &rl)) {
+		math = strchr(return_ranges, '[');
+		snprintf(buf, sizeof(buf), "%s%s", show_rl(rl), math ?: "");
+	} else {
+		snprintf(buf, sizeof(buf), "%s", return_ranges);
+	}
+	call_return_states_callbacks(buf, expr);
+	if (undo)
+		end_assume();
+
+	return true;
+}
+
 static void call_return_states_callbacks(const char *return_ranges, struct expression *expr)
 {
 	struct returned_state_callback *cb;
 
 	return_ranges = replace_return_ranges(return_ranges);
+	if (is_delete_return(return_ranges))
+		return;
+	if (handle_forced_split(return_ranges, expr))
+		return;
+
 	return_id++;
 	FOR_EACH_PTR(returned_state_callbacks, cb) {
 		cb->callback(return_id, (char *)return_ranges, expr);
@@ -2607,6 +2685,54 @@ static char *get_next_string(char **str)
 	return string;
 }
 
+static void register_return_deletes(void)
+{
+	char *func, *ret_str;
+	char filename[256];
+	char buf[4096];
+	int fd, ret, i;
+	char *p;
+
+	snprintf(filename, 256, "db/%s.delete.return_states", option_project_str);
+	fd = open_schema_file(filename);
+	if (fd < 0)
+		return;
+	ret = read(fd, buf, sizeof(buf));
+	close(fd);
+	if (ret < 0)
+		return;
+	if (ret == sizeof(buf)) {
+		sm_ierror("file too large:  %s (limit %zd bytes)",
+		       filename, sizeof(buf));
+		return;
+	}
+	buf[ret] = '\0';
+
+	p = buf;
+	while (*p) {
+		get_next_string(&p);
+		delete_count++;
+	}
+	if (delete_count == 0)
+		return;
+	if (delete_count % 2 != 0) {
+		printf("error parsing '%s' delete_count=%d\n", filename, delete_count);
+		delete_count = 0;
+		return;
+	}
+	delete_table = malloc(delete_count * sizeof(char *));
+
+	p = buf;
+	i = 0;
+	while (*p) {
+		func = alloc_string(get_next_string(&p));
+		ret_str = alloc_string(get_next_string(&p));
+
+		delete_table[i++] = func;
+		delete_table[i++] = ret_str;
+	}
+}
+
 static void register_return_replacements(void)
 {
 	char *func, *orig, *new;
@@ -2654,6 +2780,55 @@ static void register_return_replacements(void)
 	}
 }
 
+static void register_forced_return_splits(void)
+{
+	int struct_members = sizeof(struct split_data) / sizeof(char *);
+	char filename[256];
+	char buf[4096];
+	int fd, ret, i;
+	char *p;
+
+	snprintf(filename, 256, "db/%s.forced_return_splits", option_project_str);
+	fd = open_schema_file(filename);
+	if (fd < 0)
+		return;
+	ret = read(fd, buf, sizeof(buf));
+	close(fd);
+	if (ret < 0)
+		return;
+	if (ret == sizeof(buf)) {
+		sm_ierror("file too large:  %s (limit %zd bytes)",
+		       filename, sizeof(buf));
+		return;
+	}
+	buf[ret] = '\0';
+
+	p = buf;
+	while (*p) {
+		get_next_string(&p);
+		split_count++;
+	}
+	if (split_count == 0)
+		return;
+	if (split_count % struct_members != 0) {
+		printf("error parsing '%s' split_count=%d\n", filename, split_count);
+		split_count = 0;
+		return;
+	}
+	split_count /= struct_members;
+	forced_splits = malloc(split_count * sizeof(void *));
+
+	p = buf;
+	i = 0;
+	while (*p) {
+		struct split_data *split = malloc(sizeof(*split));
+
+		split->func = alloc_string(get_next_string(&p));
+		split->rl = alloc_string(get_next_string(&p));
+		forced_splits[i++] = split;
+	}
+}
+
 void register_definition_db_callbacks(int id)
 {
 	my_id = id;
@@ -2672,7 +2847,9 @@ void register_definition_db_callbacks(int id)
 	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
 
 	common_funcs = load_strings_from_file(option_project_str, "common_functions");
+	register_return_deletes();
 	register_return_replacements();
+	register_forced_return_splits();
 
 	add_hook(&dump_cache, END_FILE_HOOK);
 }
