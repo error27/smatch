@@ -1099,7 +1099,7 @@ static void match_call_info_new(struct expression *call)
 	struct expression *arg, *tmp;
 	int i;
 
-	if (!option_info && !__inline_call)
+	if (!option_info && !__inline_call && !local_debug)
 		return;
 
 	FOR_EACH_PTR(member_callbacks_new, cb) {
