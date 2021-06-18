@@ -101,6 +101,14 @@ static bool is_probably_worthless(struct expression *expr)
 	return true;
 }
 
+static bool name_is_sym_name(const char *name, struct symbol *sym)
+{
+	if (!name || !sym || !sym->ident)
+		return false;
+
+	return strcmp(name, sym->ident->name) == 0;
+}
+
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct symbol *param_sym;
@@ -115,6 +123,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 
 	type = get_type(expr);
 	if (type && (type->type == SYM_STRUCT || type->type == SYM_UNION))
+		return;
+
+	if (name_is_sym_name(name, sym))
 		return;
 
 	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
@@ -317,6 +328,20 @@ static int possibly_empty(struct sm_state *sm)
 	return 0;
 }
 
+static bool sym_was_set(struct symbol *sym)
+{
+	char buf[80];
+
+	if (!sym || !sym->ident)
+		return false;
+
+	snprintf(buf, sizeof(buf), "%s orig", sym->ident->name);
+	if (get_comparison_strings(sym->ident->name, buf) == SPECIAL_EQUAL)
+		return false;
+
+	return true;
+}
+
 int param_was_set_var_sym(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
@@ -328,6 +353,9 @@ int param_was_set_var_sym(const char *name, struct symbol *sym)
 
 	if (name[0] == '&')
 		name++;
+
+	if (sym_was_set(sym))
+		return true;
 
 	len = strlen(name);
 	if (len >= sizeof(buf))
