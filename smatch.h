@@ -194,6 +194,8 @@ void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
 void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
 				 int param, const char *key, void *info);
+void add_function_param_key_hook_late(const char *look_for, param_key_hook *call_back,
+				      int param, const char *key, void *info);
 void return_implies_param_key(const char *look_for, sval_t start, sval_t end,
 			      param_key_hook *call_back,
 			      int param, const char *key, void *info);

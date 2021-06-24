@@ -249,6 +249,15 @@ void add_function_param_key_hook(const char *look_for, param_key_hook *call_back
 	add_function_hook(look_for, &param_key_function, pkd);
 }
 
+void add_function_param_key_hook_late(const char *look_for, param_key_hook *call_back,
+				      int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pkd(call_back, param, key, info);
+	add_function_hook_late(look_for, &param_key_function, pkd);
+}
+
 void return_implies_param_key(const char *look_for, sval_t start, sval_t end,
 			      param_key_hook *call_back,
 			      int param, const char *key, void *info)
