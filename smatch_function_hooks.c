@@ -772,9 +772,27 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 		set_extra_expr_mod(expr, state);
 
 	while ((fake_assign = pop_expression(&db_info->fake_param_assign_stack))) {
-		__in_fake_parameter_assign++;
-		__split_expr(fake_assign);
-		__in_fake_parameter_assign--;
+		struct range_list *left, *right;
+
+		/*
+		 * Originally, I tried to do this as a assignment to record that
+		 * a = frob(b) implies that "a->foo == b->foo" etc.  But that
+		 * caused a problem because then it was recorded that "a->foo"
+		 * was modified and recorded as a PARAM_SET in the database.
+		 *
+		 * So now, instead of faking an assignment we use
+		 * set_extra_expr_nomod() but it's still recorded as an
+		 * assignment in the ->fake_param_assign_stack for legacy
+		 * reasons and because it's a handy way to store a left/right
+		 * pair.
+		 */
+
+		get_absolute_rl(fake_assign->left, &left);
+		get_absolute_rl(fake_assign->right, &right);
+		right = cast_rl(get_type(fake_assign->left), right);
+		// FIXME: add some sanity checks
+		// FIXME: preserve the sm state if possible
+		set_extra_expr_nomod(fake_assign->left, alloc_estate_rl(right));
 	}
 
 	db_info->ret_state = NULL;
