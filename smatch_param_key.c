@@ -93,6 +93,9 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	bool add_dot = false;
 	int ret;
 
+	// FIXME:  this function has been marked for deletion!
+	// get_name_sym_from_key()
+
 	if (!arg)
 		return NULL;
 
