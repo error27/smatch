@@ -16,14 +16,40 @@
  */
 
 /*
- * There are several types of function hooks:
- * add_function_hook()        - For any time a function is called.
- * add_function_assign_hook() - foo = the_function().
- * add_implied_return_hook()  - Calculates the implied return value.
- * add_macro_assign_hook()    - foo = the_macro().
- * return_implies_state()     - For when a return value of 1 implies locked
- *                              and 0 implies unlocked. etc. etc.
+ * There are several types of function hooks.
  *
+ * The param_key hooks are probably the right things to use going forward.
+ * They give you a name/sym pair so it means less code in the checks.
+ *
+ * The add_function_hook() functions are trigger for every call.  The
+ * "return_implies" are triggered for specific return ranges.  The "exact"
+ * variants will be triggered if it's *definitely* in the range where the
+ * others will be triggered if it's *possibly* in the range.  The "late"
+ * variants will be triggered after the others have run.
+ *
+ * There are a few miscellaneous things like add_function_assign_hook() and
+ * add_macro_assign_hook() which are only triggered for assignments.  The
+ * add_implied_return_hook() let's you manually adjust the return range.
+ *
+ * Every call:
+ *     add_function_param_key_hook()
+ *     add_function_param_key_hook_late()
+ *     add_function_hook()
+ *
+ * Just for some return ranges:
+ *     return_implies_param_key() 
+ *     return_implies_param_key_exact()
+ *     return_implies_state()
+ *     select_return_param_key()  (It's weird that this is not in smatch_db.c)
+ *
+ * For Assignments:
+ *     add_function_assign_hook()
+ *
+ * For Macro Assignments:
+ *     add_macro_assign_hook()
+ *
+ * Manipulate the return range.
+ *     add_implied_return_hook()
  */
 
 #include <stdlib.h>
