@@ -398,6 +398,28 @@ free:
 	return ret;
 }
 
+bool has_possible_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(owner, name, sym);
+	if (!sm)
+		return false;
+
+	return slist_has_state(sm->possible, state);
+}
+
+bool expr_has_possible_state(int owner, struct expression *expr, struct smatch_state *state)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state_expr(owner, expr);
+	if (!sm)
+		return false;
+
+	return slist_has_state(sm->possible, state);
+}
+
 struct state_list *get_possible_states(int owner, const char *name, struct symbol *sym)
 {
 	struct sm_state *sms;
