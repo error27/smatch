@@ -413,3 +413,17 @@ struct statement *expr_get_parent_stmt(struct expression *expr)
 	return (struct statement *)expr->parent;
 }
 
+struct statement *get_parent_stmt(struct expression *expr)
+{
+	struct expression *tmp;
+	int count = 10;
+
+	if (!expr)
+		return NULL;
+	while (--count >= 0 && (tmp = expr_get_parent_expr(expr)))
+		expr = tmp;
+	if (!count)
+		return NULL;
+
+	return expr_get_parent_stmt(expr);
+}
