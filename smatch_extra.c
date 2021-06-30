@@ -295,47 +295,27 @@ free:
 
 static char *get_long_name_sym(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)
 {
-	struct expression *tmp;
-	struct sm_state *sm;
-	char buf[256];
-	int len, sym_len;
+	struct expression *orig;
+	struct symbol *orig_sym;
+	char *orig_name, *ret;
 
-	/*
-	 * Just prepend the name with a different name/sym and return that.
-	 * For example, if we set "foo->bar = bar;" then the other name
-	 * for "bar->baz" is "foo->bar->baz".  Or if we have "foo = bar;" then
-	 * the other name for "bar" is "foo".  A third option is if we have
-	 * "foo = bar;" then another name for "*bar" is "*foo".
-	 */
+	if (!sym || !sym->ident)
+		return NULL;
 
-	FOR_EACH_MY_SM(check_assigned_expr_id, __get_cur_stree(), sm) {
-		tmp = sm->state->data;
-		if (!tmp || tmp->type != EXPR_SYMBOL)
-			continue;
-		if (tmp->symbol == sym)
-			goto found;
-	} END_FOR_EACH_SM(sm);
+	orig = get_assigned_expr_name_sym(sym->ident->name, sym);
+	if (orig) {
+		orig_name = expr_to_var_sym(orig, &orig_sym);
+		if (!orig_name)
+			return NULL;
+
+		ret = swap_names(name, sym->ident->name, orig_name);
+		free_string(orig_name);
+		if (ret)
+			*new_sym = orig_sym;
+		return ret;
+	}
 
 	return NULL;
-
-found:
-	len = strlen(name);
-	sym_len = tmp->symbol->ident->len;
-	if (!use_stack && sym_len < len && name[sym_len] != '-')
-		return NULL;
-
-	if (name[0] == '*' && strcmp(name + 1, tmp->symbol_name->name) == 0)
-		snprintf(buf, sizeof(buf), "*%s", sm->name);
-	else if (sym_len < len && (name[tmp->symbol->ident->len] == '-' ||
-				   name[tmp->symbol->ident->len] == '.'))
-		snprintf(buf, sizeof(buf), "%s%s", sm->name, name + tmp->symbol->ident->len);
-	else if (strcmp(name, tmp->symbol_name->name) == 0)
-		snprintf(buf, sizeof(buf), "%s", sm->name);
-	else
-		return NULL;
-
-	*new_sym = sm->sym;
-	return alloc_string(buf);
 }
 
 char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)

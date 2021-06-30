@@ -26,7 +26,7 @@ static void undef(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
-static char *swap_names(const char *orig, const char *remove, const char *add)
+char *swap_names(const char *orig, const char *remove, const char *add)
 {
 	char buf[64];
 	int offset, len, ret;
