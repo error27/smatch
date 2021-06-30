@@ -241,9 +241,56 @@ static void match_calloc(const char *fn, struct expression *expr, void *_start_a
 	set_state_expr(link_id, arg, alloc_state_expr(pointer));
 }
 
+static struct expression *get_size_variable_from_binop(struct expression *expr, int *limit_type)
+{
+	struct smatch_state *state;
+	struct expression *ret;
+	struct symbol *type;
+	sval_t orig_fixed;
+	int offset_bytes;
+	sval_t offset;
+
+	if (!get_value(expr->right, &offset))
+		return NULL;
+	state = get_state_expr(size_id, expr->left);
+	if (!state || !state->data)
+		return NULL;
+
+	type = get_type(expr->left);
+	if (!type_is_ptr(type))
+		return NULL;
+	type = get_real_base_type(type);
+	if (!type_bytes(type))
+		return NULL;
+	offset_bytes = offset.value * type_bytes(type);
+
+	ret = state->data;
+	if (ret->type != EXPR_BINOP || ret->op != '+')
+		return NULL;
+
+	*limit_type = state_to_limit(state);
+
+	if (get_value(ret->left, &orig_fixed) && orig_fixed.value == offset_bytes)
+		return ret->right;
+	if (get_value(ret->right, &orig_fixed) && orig_fixed.value == offset_bytes)
+		return ret->left;
+
+	return NULL;
+}
+
 struct expression *get_size_variable(struct expression *buf, int *limit_type)
 {
 	struct smatch_state *state;
+	struct expression *ret;
+
+	buf = strip_expr(buf);
+	if (!buf)
+		return NULL;
+	if (buf->type == EXPR_BINOP && buf->op == '+') {
+		ret = get_size_variable_from_binop(buf, limit_type);
+		if (ret)
+			return ret;
+	}
 
 	state = get_state_expr(size_id, buf);
 	if (!state)
