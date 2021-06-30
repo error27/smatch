@@ -1417,6 +1417,14 @@ void __comparison_match_condition(struct expression *expr)
 		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
 	}
 
+	if ((expr->op == SPECIAL_EQUAL || expr->op == SPECIAL_NOTEQUAL) &&
+	    expr_is_zero(expr->right) &&
+	    left->type == EXPR_BINOP && left->op == '-') {
+		new_left = left->left;
+		new_right = left->right;
+		handle_comparison(new_left, expr->op, new_right, NULL, NULL);
+	}
+
 	redo = 0;
 	left = strip_parens(expr->left);
 	right = strip_parens(expr->right);
