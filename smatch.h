@@ -1326,6 +1326,7 @@ bool is_nul_terminated_var_sym(const char *name, struct symbol *sym);
 bool is_nul_terminated(struct expression *expr);
 /* check_kernel.c  */
 bool is_ignored_kernel_data(const char *name);
+int get_gfp_param(struct expression *expr);
 
 bool is_fresh_alloc_var_sym(const char *var, struct symbol *sym);
 bool is_fresh_alloc(struct expression *expr);

@@ -516,6 +516,32 @@ bool is_ignored_kernel_data(const char *name)
 	return false;
 }
 
+int get_gfp_param(struct expression *expr)
+{
+	struct symbol *type;
+	struct symbol *arg, *arg_type;
+	int param;
+
+	if (expr->type != EXPR_CALL)
+		return -1;
+	type = get_type(expr->fn);
+	if (type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (type->type != SYM_FN)
+		return -1;
+
+	param = 0;
+	FOR_EACH_PTR(type->arguments, arg) {
+		arg_type = get_base_type(arg);
+		if (arg_type && arg_type->ident &&
+		    strcmp(arg_type->ident->name, "gfp_t") == 0)
+			return param;
+		param++;
+	} END_FOR_EACH_PTR(arg);
+
+	return -1;
+}
+
 static void match_function_def(struct symbol *sym)
 {
 	char *macro;
