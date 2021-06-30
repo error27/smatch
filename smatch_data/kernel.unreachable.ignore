@@ -26,3 +26,7 @@ idr_for_each_entry_continue
 for_each_engine_masked
 drm_mm_for_each_hole
 for_each_set_bit
+for_each_dpcm_fe
+dma_fence_chain_for_each
+BUG
+WARN_ON
