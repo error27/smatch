@@ -5,7 +5,7 @@
 WARN_ON
 B43legacy_WARN_ON
 B43_WARN_ON
-/* ASSERT can be worthwhile or bogus. */
+ASSERT
 HPI_DEBUG_ASSERT
 snd_BUG_ON
 WARN_ON_ONCE
