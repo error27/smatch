@@ -580,6 +580,7 @@ void check_kernel(int id)
 
 	add_implied_return_hook("__ffs", &match_ffs, NULL);
 	add_implied_return_hook("fls", &match_fls, NULL);
+	add_implied_return_hook("__fls", &match_fls, NULL);
 	add_implied_return_hook("fls64", &match_fls, NULL);
 
 	add_function_hook("__ftrace_bad_type", &__match_nullify_path_hook, NULL);
