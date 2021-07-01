@@ -15,7 +15,7 @@ Section 1:  Building Smatch
 Smatch requires sqlite3.  It requires the binaries and the C, Perl and
 Python libraries for sqlite3.
 
-apt-get install sqlite3 libsqlite3-dev libdbd-sqlite3-perl
+apt-get install gcc make sqlite3 libsqlite3-dev libdbd-sqlite3-perl libssl-dev libtry-tiny-perl
 
 Smatch is easy to build.  Just type `make`.  There isn't an install process
 right now so just run it from the build directory.
