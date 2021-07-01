@@ -553,6 +553,34 @@ static void match_function_def(struct symbol *sym)
 		set_function_skipped();
 }
 
+static bool delete_pci_error_returns(struct expression *expr)
+{
+	const char *macro;
+	sval_t sval;
+
+	if (!get_value(expr, &sval))
+		return false;
+	if (sval.value < 0x80 || sval.value > 0x90)
+		return false;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+
+	if (strncmp(macro, "PCIBIOS_", 8) != 0)
+		return false;
+
+	if (strcmp(macro, "PCIBIOS_FUNC_NOT_SUPPORTED") == 0  ||
+	    strcmp(macro, "PCIBIOS_BAD_VENDOR_ID") == 0       ||
+	    strcmp(macro, "PCIBIOS_DEVICE_NOT_FOUND") == 0    ||
+	    strcmp(macro, "PCIBIOS_BAD_REGISTER_NUMBER") == 0 ||
+	    strcmp(macro, "PCIBIOS_SET_FAILED") == 0          ||
+	    strcmp(macro, "PCIBIOS_BUFFER_TOO_SMALL") == 0)
+		return true;
+
+	return false;
+}
+
 void check_kernel(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -596,4 +624,6 @@ void check_kernel(int id)
 
 	if (option_info)
 		add_hook(match_end_file, END_FILE_HOOK);
+
+	add_delete_return_hook(&delete_pci_error_returns);
 }
