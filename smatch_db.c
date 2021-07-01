@@ -100,6 +100,9 @@ DECLARE_PTR_LIST(db_implies_cb_list, struct db_implies_callback);
 static struct db_implies_cb_list *return_implies_cb_list;
 static struct db_implies_cb_list *call_implies_cb_list;
 
+DECLARE_PTR_LIST(delete_list, delete_hook);
+static struct delete_list *delete_hooks;
+
 struct split_data {
 	const char *func, *rl;
 };
@@ -203,6 +206,22 @@ static bool is_delete_return(const char *return_ranges)
 			return true;
 	}
 
+	return false;
+}
+
+void add_delete_return_hook(delete_hook *hook)
+{
+	add_ptr_list(&delete_hooks, hook);
+}
+
+static bool is_project_delete_return(struct expression *expr)
+{
+	delete_hook *hook;
+
+	FOR_EACH_PTR(delete_hooks, hook) {
+		if (hook(expr))
+			return true;
+	} END_FOR_EACH_PTR(hook);
 	return false;
 }
 
@@ -1702,6 +1721,8 @@ static void call_return_states_callbacks(const char *return_ranges, struct expre
 
 	return_ranges = replace_return_ranges(return_ranges);
 	if (is_delete_return(return_ranges))
+		return;
+	if (is_project_delete_return(expr))
 		return;
 	if (handle_forced_split(return_ranges, expr))
 		return;
