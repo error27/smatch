@@ -20,7 +20,7 @@ hashtable_itr.o: hashtable_itr.c
 	gcc -g -Wall -O -c hashtable_itr.c -o hashtable_itr.o
 
 tidy:
-	rm *.o
+	rm -f *.o
 
 clean: tidy
 	rm -f tester old_tester

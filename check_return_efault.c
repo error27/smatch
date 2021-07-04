@@ -95,6 +95,10 @@ static void match_return_call(struct expression *ret_value)
 	    strstr(cur_func, "_from_user"))
 		return;
 
+	if (strstr(cur_func, "_to_guest") ||
+	    strstr(cur_func, "_from_guest"))
+		return;
+
 	if (strncmp(cur_func, "copy_from_", 10) == 0 ||
 	    strncmp(cur_func, "copy_to_", 8) == 0)
 		return;
@@ -106,7 +110,11 @@ static void match_return_call(struct expression *ret_value)
 	if (strcmp(fn_name, "copy_to_user") != 0 &&
 	    strcmp(fn_name, "__copy_to_user") != 0 &&
 	    strcmp(fn_name, "copy_from_user") != 0 &&
-	    strcmp(fn_name, "__copy_from_user"))
+	    strcmp(fn_name, "__copy_from_user") != 0 &&
+	    strcmp(fn_name, "copy_to_guest") != 0 &&
+	    strcmp(fn_name, "__copy_to_guest") != 0 &&
+	    strcmp(fn_name, "copy_from_guest") != 0 &&
+	    strcmp(fn_name, "__copy_from_guest") != 0)
 		return;
 
 	rl = db_return_vals_from_str(get_function());
@@ -128,6 +136,10 @@ void check_return_efault(int id)
 	add_function_assign_hook("__copy_to_user", &match_copy, NULL);
 	add_function_assign_hook("copy_from_user", &match_copy, NULL);
 	add_function_assign_hook("__copy_from_user", &match_copy, NULL);
+	add_function_assign_hook("copy_from_guest", &match_copy, NULL);
+	add_function_assign_hook("__copy_from_guest", &match_copy, NULL);
+	add_function_assign_hook("copy_to_guest", &match_copy, NULL);
+	add_function_assign_hook("__copy_to_guest", &match_copy, NULL);
 	add_function_assign_hook("clear_user", &match_copy, NULL);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_return_var, RETURN_HOOK);

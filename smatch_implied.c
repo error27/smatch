@@ -448,13 +448,13 @@ static int going_too_slow(void)
 		return 1;
 	}
 
-	if (time_parsing_function() < 60) {
+	if (time_parsing_function() < 180) {
 		implications_off = false;
 		return 0;
 	}
 
 	if (!__inline_fn && printed != cur_func_sym) {
-		sm_perror("turning off implications after 60 seconds");
+		sm_perror("turning off implications after 180 seconds");
 		printed = cur_func_sym;
 	}
 	implications_off = true;
