@@ -388,6 +388,7 @@ static void check_counter(const char *name, struct symbol *sym)
 	struct range_list *dec_lines = NULL;
 	int inc_buckets[NUM_BUCKETS] = {};
 	int dec_buckets[NUM_BUCKETS] = {};
+	int start_buckets[NUM_BUCKETS] = {};
 	struct stree *stree, *orig_stree;
 	struct smatch_state *state;
 	struct sm_state *return_sm;
@@ -446,12 +447,14 @@ static void check_counter(const char *name, struct symbol *sym)
 
 		if (state == &inc) {
 			add_range(&inc_lines, line, line);
-			inc_buckets[bucket] = true;
+			inc_buckets[bucket]++;
 		}
-		if (state == &dec || state == &start_state) {
+		if (state == &dec) {
 			add_range(&dec_lines, line, line);
-			dec_buckets[bucket] = true;
+			dec_buckets[bucket]++;
 		}
+		if (state == &start_state)
+			start_buckets[bucket]++;
 swap_stree:
 		__swap_cur_stree(orig_stree);
 	} END_FOR_EACH_PTR(stree);
