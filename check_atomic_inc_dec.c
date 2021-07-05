@@ -22,10 +22,13 @@
 #include "smatch_slist.h"
 
 static int my_id;
+static int test_id;
 
 STATE(inc);
 STATE(start_state);
 STATE(dec);
+
+STATE(zero_path);
 
 struct ref_func_info {
 	const char *name;
@@ -166,29 +169,70 @@ static struct sm_state *get_best_match(const char *key)
 	return NULL;
 }
 
+static void handle_test_functions(struct expression *expr)
+{
+	struct expression *tmp;
+	struct statement *stmt;
+	int count = 0;
+
+	if (expr->type != EXPR_CALL ||
+	    expr->fn->type != EXPR_SYMBOL ||
+	    !expr->fn->symbol_name)
+		return;
+	if (!strstr(expr->fn->symbol_name->name, "test"))
+		return;
+
+	while ((tmp = expr_get_parent_expr(expr))) {
+		expr = tmp;
+		if (count++ > 5)
+			break;
+	}
+
+	stmt = expr_get_parent_stmt(expr);
+	if (!stmt || stmt->type != STMT_IF)
+		return;
+
+	set_true_false_states(test_id, "dec_path", NULL, &zero_path, NULL);
+}
+
 static void db_inc_dec(struct expression *expr, int param, const char *key, int inc_dec)
 {
 	struct sm_state *start_sm;
-	struct expression *arg;
+	struct expression *call, *arg;
 	char *name;
 	struct symbol *sym;
 	bool free_at_end = true;
 
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
+	call = expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+
+	if (!call || call->type != EXPR_CALL)
 		return;
 
-	arg = get_argument_from_call_expr(expr->args, param);
-	if (!arg)
-		return;
+	handle_test_functions(call);
 
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
+	if (param == -1 &&
+	    expr->type == EXPR_ASSIGNMENT &&
+	    expr->op == '=') {
+		name = get_variable_from_key(expr->left, key, &sym);
+		if (!name || !sym)
+			goto free;
+	} else if (param >= 0) {
+		arg = get_argument_from_call_expr(call->args, param);
+		if (!arg)
+			return;
+
+		name = get_variable_from_key(arg, key, &sym);
+		if (!name || !sym)
+			goto free;
+	} else {
+		name = alloc_string(key);
+		sym = NULL;
+	}
 
 	start_sm = get_sm_state(my_id, name, sym);
-	if (!start_sm && inc_dec == ATOMIC_DEC) {
+	if (!start_sm && !sym && inc_dec == ATOMIC_DEC) {
 		start_sm = get_best_match(key);
 		if (start_sm) {
 			free_string(name);
@@ -430,14 +474,7 @@ static void match_check_missed(struct symbol *sym)
 
 int on_atomic_dec_path(void)
 {
-	struct sm_state *sm;
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state == &dec)
-			return 1;
-	} END_FOR_EACH_SM(sm);
-
-	return 0;
+	return get_state(test_id, "dec_path", NULL) == &zero_path;
 }
 
 int was_inced(const char *name, struct symbol *sym)
@@ -484,4 +521,12 @@ void check_atomic_inc_dec(int id)
 
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	add_function_data((unsigned long *)&start_states);
+}
+
+void check_atomic_test(int id)
+{
+	if (option_project != PROJ_KERNEL)
+		return;
+
+	test_id = id;
 }
