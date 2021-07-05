@@ -350,13 +350,13 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 			continue;
 		if (sm->state == get_state_stree(start_states, my_id, sm->name, sm->sym))
 			continue;
-		if (parent_is_gone_var_sym(sm->name, sm->sym))
+		if (parent_is_null_var_sym(sm->name, sm->sym))
 			continue;
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
+		if (sm->state == &inc &&
+		    parent_is_free_var_sym(sm->name, sm->sym))
 			continue;
-		param_name = get_param_name(sm);
-		if (!param_name)
+		param = get_param_key_from_sm(sm, expr, &param_name);
+		if (param < -1)
 			continue;
 		sql_insert_return_states(return_id, return_ranges,
 					 (sm->state == &inc) ? ATOMIC_INC : ATOMIC_DEC,
