@@ -741,7 +741,9 @@ struct symbol *get_member_type_from_key(struct expression *expr, const char *key
 
 	if (strcmp(key, "*$") == 0) {
 		sym = get_type(expr);
-		if (!sym || sym->type != SYM_PTR)
+		if (!sym)
+			return NULL;
+		if (sym->type != SYM_PTR && sym->type != SYM_ARRAY)
 			return NULL;
 		return get_real_base_type(sym);
 	}
