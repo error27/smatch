@@ -70,6 +70,18 @@ static BoolectorNode *mkvar(Btor *btor, BoolectorSort s, pseudo_t pseudo)
 	return pseudo->priv = n;
 }
 
+static BoolectorNode *mktvar(Btor *btor, struct instruction *insn, pseudo_t src)
+{
+	BoolectorSort s = get_sort(btor, insn->type, insn->pos);
+	return mkvar(btor, s, src);
+}
+
+static BoolectorNode *mkivar(Btor *btor, struct instruction *insn, pseudo_t src)
+{
+	BoolectorSort s = get_sort(btor, insn->itype, insn->pos);
+	return mkvar(btor, s, src);
+}
+
 static BoolectorNode *get_arg(Btor *btor, struct instruction *insn, int idx)
 {
 	pseudo_t arg = ptr_list_nth(insn->arguments, idx);
