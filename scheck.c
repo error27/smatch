@@ -165,18 +165,16 @@ static void icmp(Btor *btor, struct instruction *insn)
 
 static void unop(Btor *btor, struct instruction *insn)
 {
-	BoolectorSort s = get_sort(btor, insn->type, insn->pos);
-	BoolectorNode *t, *a;
+	pseudo_t src = insn->src;
+	BoolectorNode *t;
 
-	a = mkvar(btor, s, insn->src1);
-	if (!a)
-		return;
 	switch (insn->opcode) {
-	case OP_NEG:	t = boolector_neg(btor, a); break;
-	case OP_NOT:	t = boolector_not(btor, a); break;
-	case OP_SEXT:	t = sext(btor, insn, a); break;
-	case OP_ZEXT:	t = zext(btor, insn, a); break;
-	case OP_TRUNC:	t = slice(btor, insn, a); break;
+	case OP_SEXT:	t = sext(btor, insn, mkivar(btor, insn, src)); break;
+	case OP_ZEXT:	t = zext(btor, insn, mkivar(btor, insn, src)); break;
+	case OP_TRUNC:	t = slice(btor, insn, mkivar(btor, insn, src)); break;
+
+	case OP_NEG:	t = boolector_neg(btor, mktvar(btor, insn, src)); break;
+	case OP_NOT:	t = boolector_not(btor, mktvar(btor, insn, src)); break;
 	default:
 		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
