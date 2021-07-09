@@ -53,15 +53,14 @@ static BoolectorNode *mkvar(Btor *btor, BoolectorSort s, pseudo_t pseudo)
 	static char buff[33];
 	BoolectorNode *n;
 
-	if (pseudo->priv)
-		return pseudo->priv;
-
 	switch (pseudo->type) {
 	case PSEUDO_VAL:
 		sprintf(buff, "%llx", pseudo->value);
 		return boolector_consth(btor, s, buff);
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
+		if (pseudo->priv)
+			return pseudo->priv;
 		n = boolector_var(btor, s, show_pseudo(pseudo));
 		break;
 	default:
