@@ -1154,9 +1154,7 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	if (type && type->type == SYM_STRUCT)
 		return;
 
-	// FIXME: This is temporary.  Just run this on Thursday and then
-	// let's make it a printf() and then delete it.
-	if (!type) 
+	if (!type)
 		return;
 
 	str_to_rl(type, value, &rl);
