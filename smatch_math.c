@@ -335,6 +335,69 @@ static int handle_offset_subtraction(struct expression *expr)
 	return left_offset - right_offset;
 }
 
+static bool handle_container_of(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+{
+	struct expression *left, *right;
+	struct range_list *left_orig = NULL;
+	struct symbol *type;
+	sval_t left_sval, right_sval;
+
+	/*
+	 * I'm not 100% if ABSOLUTE should be handled like this but I think if
+	 * IMPLIED overrules ABSOLUTE so it's a moot point.
+	 *
+	 * What this function does is if we have:
+	 * 	p = container_of(foo, struct my_struct, member);
+	 * Then if the offset is non-zero we can assume that p is a valid
+	 * pointer.  Mathematically, that's not necessarily true, but in
+	 * pratical terms if p isn't valid then we're already in deep trouble
+	 * to the point where printing more warnings now won't help.
+	 *
+	 * There are places were the author knows that container_of() is a
+	 * no-op so the code will do a NULL test on the result.  (This is
+	 * obviously horrible code).  So to handle code like this if the offset
+	 * is zero then the result can be NULL.
+	 */
+	if (implied != RL_IMPLIED &&
+	    implied != RL_ABSOLUTE &&
+	    implied != RL_REAL_ABSOLUTE)
+		return false;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || (type_bits(type) != 8 && (type != &void_ctype)))
+		return false;
+
+	left = strip_expr(expr->left);
+	right = strip_expr(expr->right);
+
+	if (right->type != EXPR_OFFSETOF)
+		return false;
+
+	if (!get_value(right, &right_sval))
+		return false;
+	/* Handle offset == 0 in the caller if possible. */
+	if (right_sval.value == 0)
+		return false;
+
+	get_rl_internal(left, implied, recurse_cnt, &left_orig);
+	/*
+	 * I think known binops are already handled at this point so this
+	 * should be impossible.  But handle it in the caller either way.
+	 */
+	if (rl_to_sval(left_orig, &left_sval))
+		return false;
+
+	// TODO: it might be safer to say that known possible NULL or error
+	// error pointers return false.
+
+	*res = clone_rl(valid_ptr_rl);
+
+	return true;
+}
+
 static bool max_is_unknown_max(struct range_list *rl)
 {
 	/*
@@ -414,6 +477,9 @@ static bool handle_subtract_rl(struct expression *expr, int implied, int *recurs
 		*res = alloc_rl(tmp, tmp);
 		return true;
 	}
+
+	if (handle_container_of(expr, implied, recurse_cnt, res))
+		return true;
 
 	comparison = get_comparison(expr->left, expr->right);
 
