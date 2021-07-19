@@ -535,7 +535,9 @@ static bool handle_op_assign(struct expression *expr)
 
 		rl = cast_rl(get_type(expr->left), rl);
 		state = alloc_estate_rl(rl);
-		if (user_rl_capped(binop_expr))
+		if (expr->op == SPECIAL_AND_ASSIGN ||
+		    expr->op == SPECIAL_MOD_ASSIGN ||
+		    user_rl_capped(binop_expr))
 			estate_set_capped(state);
 		if (user_rl_treat_untagged(expr->left))
 			estate_set_treat_untagged(state);
