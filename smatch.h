@@ -847,6 +847,8 @@ enum info_type {
 	FRESH_ALLOC	= 1044,
 	ALLOCATOR	= 1045,
 	FUNC_TIME	= 1047,
+	POWER_OF_TWO	= 1048,
+	POWER_OF_TWO_SET = 1049,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,
