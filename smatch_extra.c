@@ -2059,7 +2059,7 @@ static sval_t get_high_mask(sval_t known)
 
 static bool handle_bit_test(struct expression *expr)
 {
-	struct range_list *orig_rl, *rl;
+	struct range_list *orig_rl, *rlt, *rlf, *true_rl, *false_rl;
 	struct expression *shift, *mask, *var;
 	struct bit_info *bit_info;
 	sval_t sval;
@@ -2081,23 +2081,29 @@ static bool handle_bit_test(struct expression *expr)
 	bit_info = get_bit_info(mask);
 	if (!bit_info)
 		return false;
-	if (!bit_info->possible)
+	if (!bit_info->possible){
+		set_true_false_states_expr(my_id, var, alloc_estate_empty(), NULL);
 		return false;
+	}
 
 	get_absolute_rl(var, &orig_rl);
 	if (sval_is_negative(rl_min(orig_rl)) ||
 	    rl_max(orig_rl).uvalue > type_bits(get_type(shift->left)))
 		return false;
 
-	low.value = ffsll(bit_info->possible);
-	high.value = sm_fls64(bit_info->possible);
-	rl = alloc_rl(low, high);
-	rl = cast_rl(get_type(var), rl);
-	rl = rl_intersection(orig_rl, rl);
-	if (!rl)
-		return false;
+	low.value = ffsll(bit_info->possible) - 1;
+	high.value = sm_fls64(bit_info->possible) - 1;
+	rlt = alloc_rl(low, high);
+	rlt = cast_rl(get_type(var), rlt);
+	true_rl = rl_intersection(orig_rl, rlt);
 
-	set_extra_expr_true_false(shift->right, alloc_estate_rl(rl), NULL);
+	low.value = ffsll(bit_info->set) - 1;
+	high.value = sm_fls64(bit_info->set) - 1;
+	rlf = alloc_rl(low, high);
+	rlf = cast_rl(get_type(var), rlf);
+	false_rl = rl_filter(orig_rl, rlf);
+
+	set_extra_expr_true_false(shift->right, alloc_estate_rl(true_rl), alloc_estate_rl(false_rl));
 
 	return true;
 }

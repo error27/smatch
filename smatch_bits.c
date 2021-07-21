@@ -31,7 +31,7 @@ static const struct bit_info unknown_bit_info = {
 };
 
 ALLOCATOR(bit_info, "bit data");
-static struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possible)
+struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possible)
 {
 	struct bit_info *bit_info = __alloc_bit_info(0);
 
@@ -41,7 +41,7 @@ static struct bit_info *alloc_bit_info(unsigned long long set, unsigned long lon
 	return bit_info;
 }
 
-static struct smatch_state *alloc_bstate(unsigned long long set, unsigned long long possible)
+struct smatch_state *alloc_bstate(unsigned long long set, unsigned long long possible)
 {
 	struct smatch_state *state;
 	char buf[64];
@@ -154,7 +154,7 @@ static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, alloc_bstate(0, -1ULL));
 }
 
-static int binfo_equiv(struct bit_info *one, struct bit_info *two)
+int binfo_equiv(struct bit_info *one, struct bit_info *two)
 {
 	if (one->set == two->set &&
 	    one->possible == two->possible)
@@ -162,7 +162,7 @@ static int binfo_equiv(struct bit_info *one, struct bit_info *two)
 	return 0;
 }
 
-static struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch_state *two_state)
+struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch_state *two_state)
 {
 	struct bit_info *one, *two;
 

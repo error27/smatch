@@ -1312,10 +1312,18 @@ int get_mtag_sval(struct expression *expr, sval_t *sval);
 /* Trinity fuzzer stuff */
 const char *get_syscall_arg_type(struct symbol *sym);
 
+/* smatch_bits.c */
+int binfo_equiv(struct bit_info *one, struct bit_info *two);
+struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possible);
+struct smatch_state *alloc_bstate(unsigned long long set, unsigned long long possible);
+struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch_state *two_state);
+
+
 /* smatch_bit_info.c */
 struct bit_info *rl_to_binfo(struct range_list *rl);
 struct bit_info *get_bit_info(struct expression *expr);
 struct bit_info *get_bit_info_var_sym(const char *name, struct symbol *sym);
+
 /* smatch_mem_tracker.c */
 extern int option_mem;
 unsigned long get_mem_kb(void);
