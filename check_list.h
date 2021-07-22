@@ -170,6 +170,8 @@ CK(check_atomic_test)
 CK(check_checking_for_null_instead_of_err_ptr)
 CK(check_syscall_arg_type)
 CK(check_trinity_generator)
+CK(register_param_bits_set)
+CK(register_param_bits_clear)
 
 /* <- your test goes here */
 /* CK(register_template) */

@@ -849,6 +849,10 @@ enum info_type {
 	FUNC_TIME	= 1047,
 	POWER_OF_TWO	= 1048,
 	POWER_OF_TWO_SET = 1049,
+	BIT_SET		= 1051,
+	BIT_CLEAR	= 1052,
+	BIT_IS_SET	= 1053,
+	BIT_IS_CLEAR	= 1054,
 
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,
@@ -1318,6 +1322,15 @@ struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possi
 struct smatch_state *alloc_bstate(unsigned long long set, unsigned long long possible);
 struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch_state *two_state);
 
+/* smatch_param_bits_set.c */
+void __set_param_modified_helper(struct expression *expr, struct  smatch_state *state);
+void __set_param_modified_helper_sym(const char *name, struct symbol *sym,
+				     struct smatch_state *state);
+
+/* smatch_param_bits_clear.c */
+void __set_param_modified_helper_clear(struct expression *expr, struct smatch_state *state);
+void __set_param_modified_helper_sym_clear(const char *name, struct symbol *sym,
+					   struct smatch_state *state);
 
 /* smatch_bit_info.c */
 struct bit_info *rl_to_binfo(struct range_list *rl);
