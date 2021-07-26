@@ -1833,7 +1833,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->merged)
+		if (!is_leaf(tmp))
 			continue;
 		if (ptr_in_list(tmp, already_handled))
 			continue;

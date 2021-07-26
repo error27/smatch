@@ -70,6 +70,7 @@ struct sm_state {
 	struct symbol *sym;
 	unsigned short owner;
 	unsigned short merged:1;
+	unsigned short leaf:1;
 	unsigned int line;
   	struct smatch_state *state;
 	struct stree *pool;

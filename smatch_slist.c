@@ -403,7 +403,11 @@ int is_merged(struct sm_state *sm)
 
 int is_leaf(struct sm_state *sm)
 {
-	return !sm->merged;
+	if (!sm->merged)
+		return true;
+	if (sm->leaf)
+		return true;
+	return false;
 }
 
 int slist_has_state(struct state_list *slist, struct smatch_state *state)

@@ -195,6 +195,7 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 	true_sm->pool = true_stree;
 	false_sm->pool = false_stree;
 
+	sm->leaf = 1;
 	sm->merged = 1;
 	sm->left = true_sm;
 	sm->right = false_sm;
