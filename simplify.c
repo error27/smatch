@@ -2449,6 +2449,7 @@ static int simplify_select(struct instruction *insn)
 				opcode = OP_SET_NE;
 			}
 			insn->opcode = opcode;
+			insn->itype = insn->type;
 			/* insn->src1 is already cond */
 			insn->src2 = src1; /* Zero */
 			return REPEAT_CSE;
