@@ -37,7 +37,7 @@
  *     add_function_hook()
  *
  * Just for some return ranges:
- *     return_implies_param_key() 
+ *     return_implies_param_key()
  *     return_implies_param_key_exact()
  *     return_implies_state()
  *     select_return_param_key()  (It's weird that this is not in smatch_db.c)
@@ -114,6 +114,25 @@ typedef void (void_fn)(void);
 DECLARE_PTR_LIST(void_fn_list, void_fn *);
 static struct void_fn_list *return_states_before;
 static struct void_fn_list *return_states_after;
+
+struct db_callback_info {
+	int true_side;
+	int comparison;
+	struct expression *expr;
+	struct range_list *rl;
+	int left;
+	struct stree *stree;
+	struct stree *implied;
+	struct db_implies_list *callbacks;
+	int prev_return_id;
+	int cull;
+	int has_states;
+	char *ret_str;
+	struct smatch_state *ret_state;
+	struct expression *var_expr;
+	struct expression_list *fake_param_assign_stack;
+	int handled;
+};
 
 static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 					   void *info)
@@ -372,14 +391,15 @@ void select_return_states_hook(int type, return_implies_hook *callback)
 	add_ptr_list(&db_return_states_list, cb);
 }
 
-static void call_db_return_callback(struct return_implies_callback *cb,
-				    struct expression *expr, int param, char *key, char *value)
+static void call_db_return_callback(struct db_callback_info *db_info,
+				    struct return_implies_callback *cb,
+				    int param, char *key, char *value)
 {
 	if (cb->param_key) {
 		// FIXME check if cb->pk_callback was already called
-		db_helper(expr, cb->pk_callback, param, key, NULL);
+		db_helper(db_info->expr, cb->pk_callback, param, key, NULL);
 	} else {
-		cb->callback(expr, param, key, value);
+		cb->callback(db_info->expr, param, key, value);
 	}
 }
 
@@ -608,25 +628,6 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 	*implied_true = true_states;
 	*implied_false = false_states;
 }
-
-struct db_callback_info {
-	int true_side;
-	int comparison;
-	struct expression *expr;
-	struct range_list *rl;
-	int left;
-	struct stree *stree;
-	struct stree *implied;
-	struct db_implies_list *callbacks;
-	int prev_return_id;
-	int cull;
-	int has_states;
-	char *ret_str;
-	struct smatch_state *ret_state;
-	struct expression *var_expr;
-	struct expression_list *fake_param_assign_stack;
-	int handled;
-};
 
 static void set_implied_states(struct db_callback_info *db_info)
 {
@@ -1049,7 +1050,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	FOR_EACH_PTR(db_info->callbacks, tmp) {
 		if (tmp->type == type)
-			call_db_return_callback(tmp, db_info->expr, param, key, value);
+			call_db_return_callback(db_info, tmp, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 	fake_return_assignment(db_info, type, param, key, value);
@@ -1316,7 +1317,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
-			call_db_return_callback(tmp, db_info->expr, param, key, value);
+			call_db_return_callback(db_info, tmp, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 	fake_return_assignment(db_info, type, param, key, value);
@@ -1513,7 +1514,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
 		if (tmp->type == type)
-			call_db_return_callback(tmp, db_info->expr, param, key, value);
+			call_db_return_callback(db_info, tmp, param, key, value);
 	} END_FOR_EACH_PTR(tmp);
 
 	fake_return_assignment(db_info, type, param, key, value);
