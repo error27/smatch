@@ -730,6 +730,16 @@ static struct symbol *get_member_from_string(struct symbol_list *symbol_list, co
 	return NULL;
 }
 
+static struct symbol *get_type_from_container_of_key(struct expression *expr, const char *key)
+{
+	char *new_key;
+
+	expr = map_container_of_to_simpler_expr_key(expr, key, &new_key);
+	if (!expr)
+		return NULL;
+	return get_member_type_from_key(expr, new_key);
+}
+
 struct symbol *get_member_type_from_key(struct expression *expr, const char *key)
 {
 	struct symbol *sym;
@@ -747,6 +757,9 @@ struct symbol *get_member_type_from_key(struct expression *expr, const char *key
 			return NULL;
 		return get_real_base_type(sym);
 	}
+
+	if (strstr(key, "<~$"))
+		return get_type_from_container_of_key(expr, key);
 
 	sym = get_type(expr);
 	if (!sym)
