@@ -62,22 +62,9 @@ char *ssa_name(const char *name)
 	return ret;
 }
 
-static bool is_inc_dec(struct expression *expr)
-{
-	if (!expr)
-		return false;
-	if (expr->type != EXPR_PREOP && expr->type != EXPR_POSTOP)
-		return false;
-	if (expr->op != SPECIAL_INCREMENT && expr->op != SPECIAL_DECREMENT)
-		return false;
-	return true;
-}
-
 static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
-	if (!is_inc_dec(mod_expr))
-		return;
-
+	/* this should be called early before any checks have run */
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
@@ -152,16 +139,14 @@ static void match_assign(struct expression *expr)
 		goto free;
 
 	/*
-	 * The ordering of this is really nasty.  The issue here is that we
-	 * have: "dev = of_node_get(node);".  The of_node_get() function returns
-	 * "node".  But it's also an increment so we parse the
-	 * "dev = of_node_get()" get's parsed, then the fake parameter
-	 * assignment gets parsed and overwrites the first assignment.
-	 *
-	 * So check if the left side already has a state and return if it does.
+	 * The ordering of this is really tricky.  The issue here is that we
+	 * have: "dev = of_node_get(node);".  The first thing that happens is
+	 * the modified hook sets "dev" to undefined.  Then the check for
+	 * tracking of_node_get/put() allocates an ssa state for "dev".  So if
+	 * it's set here we can just return.  Otherwise track the SSA state.
 	 */
 	left_state = get_state(my_id, left_name, left_sym);
-	if (left_state)
+	if (left_state && left_state != &undefined)
 		goto free;
 
 	right_name = expr_to_var_sym(expr->right, &right_sym);
