@@ -38,7 +38,7 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	}
 
 	offset = 0;
-	while(orig[offset] == '*' || orig[offset] == '(')
+	while(orig[offset] == '*' || orig[offset] == '&' || orig[offset] == '(')
 		offset++;
 
 	len = strlen(remove);
