@@ -99,6 +99,9 @@ static struct smatch_state *alloc_ssa_copy(struct sm_state *sm)
 {
 	struct smatch_state *state;
 
+	if (sm->state == &undefined || sm->state == &merged)
+		return sm->state;
+
 	state = __alloc_smatch_state(0);
 	state->name = alloc_sname(sm->state->name);
 	return state;
