@@ -37,6 +37,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 static int my_id;
@@ -190,10 +191,15 @@ static int condition_too_complicated(struct expression *expr)
 void __stored_condition(struct expression *expr)
 {
 	struct smatch_state *true_state, *false_state;
+	struct range_list *rl;
 	char *name;
 	sval_t val;
 
-	if (get_value(expr, &val))
+	if (get_implied_value(expr, &val))
+		return;
+
+	if (get_implied_rl(expr, &rl) &&
+	    !rl_has_sval(rl, int_zero))
 		return;
 
 	if (condition_too_complicated(expr))
