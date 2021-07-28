@@ -33,7 +33,7 @@ static struct stree_stack *all_pools;
 
 const char *show_sm(struct sm_state *sm)
 {
-	static char buf[256];
+	char buf[256];
 	struct sm_state *tmp;
 	int pos;
 	int i;
@@ -48,7 +48,7 @@ const char *show_sm(struct sm_state *sm)
 		goto truncate;
 
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
-		return buf;
+		return alloc_sname(buf);
 
 	pos += snprintf(buf + pos, sizeof(buf) - pos, " (");
 	if (pos > sizeof(buf))
@@ -71,7 +71,7 @@ const char *show_sm(struct sm_state *sm)
 truncate:
 	for (i = 0; i < 3; i++)
 		buf[sizeof(buf) - 2 - i] = '.';
-	return buf;
+	return alloc_sname(buf);
 }
 
 void __print_stree(struct stree *stree)
