@@ -248,6 +248,40 @@ struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sy
 	return NULL;
 }
 
+/*
+ * This function uses the SSA infrastructure instead of smatch_assigned.c
+ * to set all the other names of a variable.
+ *
+ */
+void ssa_set_all_states(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm, *tmp;
+
+	set_state(owner, name, sym, state);
+
+	sm = get_sm_state(my_id, name, sym);
+	if (!sm || sm->state == &undefined || sm->state == &merged)
+		return;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), tmp) {
+		if (strcmp(tmp->state->name, sm->state->name) != 0)
+			continue;
+		set_state(owner, tmp->name, tmp->sym, state);
+	} END_FOR_EACH_SM(tmp);
+}
+
+void ssa_set_all_states_expr(int owner, struct expression *expr, struct smatch_state *state)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		return;
+	ssa_set_all_states(owner, name, sym, state);
+	free_string(name);
+}
+
 struct sm_state *get_ssa_sm_state_expr(int owner, struct expression *expr)
 {
 	struct sm_state *ret;

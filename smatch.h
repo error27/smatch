@@ -411,6 +411,8 @@ struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sy
 struct sm_state *get_ssa_sm_state_expr(int owner, struct expression *expr);
 struct smatch_state *get_ssa_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr);
+void ssa_set_all_states(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
+void ssa_set_all_states_expr(int owner, struct expression *expr, struct smatch_state *state);
 
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);
