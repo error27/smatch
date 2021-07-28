@@ -152,28 +152,23 @@ static struct smatch_state *alloc_state(struct expression *expr, int is_true)
 
 static void store_all_links(struct expression *expr, struct expression *condition)
 {
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
 	char *var;
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
-
-	if (is_array(expr)) {
-		var = expr_to_known_chunk_sym(expr, &sym);
-		if (var)
-			save_link_var_sym(var, sym, condition);
-	}
-
-	switch (expr->type) {
-	case EXPR_COMPARE:
-	case EXPR_BINOP:
-		store_all_links(expr->left, condition);
-		store_all_links(expr->right, condition);
+	if (!expr)
 		return;
-	case EXPR_VALUE:
-		return;
-	}
 
-	var = expr_to_var_sym(expr, &sym);
+	vsl = expr_to_vsl(expr);
+	FOR_EACH_PTR(vsl, vs) {
+		save_link_var_sym(vs->var, vs->sym, condition);
+	} END_FOR_EACH_PTR(vs);
+
+	var = expr_to_known_chunk_sym(expr, &sym);
+	if (!var || !sym)
+		var = expr_to_var_sym(expr, &sym);
 	if (!var || !sym)
 		goto free;
 	save_link_var_sym(var, sym, condition);
