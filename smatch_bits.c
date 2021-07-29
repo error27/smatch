@@ -331,27 +331,38 @@ static void match_compare(struct expression *expr)
 static void match_assign(struct expression *expr)
 {
 	struct bit_info *start, *binfo;
-	struct smatch_state *new;
+	struct bit_info new;
+	unsigned long long mask;
 
 	if (!handled_by_assign_hook(expr))
 		return;
 
 	binfo = get_bit_info(expr->right);
-	if (!binfo)
-		return;
 	if (expr->op == '=') {
-		if (is_unknown_binfo(get_type(expr->left), binfo))
-			return;
-		set_bits_modified_expr(expr->left, alloc_bstate(binfo->set, binfo->possible));
+		new.set = binfo->set;
+		new.possible = binfo->possible;
 	} else if (expr->op == SPECIAL_OR_ASSIGN) {
 		start = get_bit_info(expr->left);
-		new = alloc_bstate(start->set | binfo->set, start->possible | binfo->possible);
-		set_bits_modified_expr(expr->left, new);
+		new.set = start->set | binfo->set;
+		new.possible = start->possible | binfo->possible;
+		goto done;
 	} else if (expr->op == SPECIAL_AND_ASSIGN) {
 		start = get_bit_info(expr->left);
-		new = alloc_bstate(start->set & binfo->set, start->possible & binfo->possible);
-		set_bits_modified_expr(expr->left, new);
+		new.set = start->set & binfo->set;
+		new.possible = start->possible & binfo->possible;
+		goto done;
 	}
+
+done:
+	mask = get_type_possible(get_type(expr->left));
+	new.set &= mask;
+	new.possible &= mask;
+
+	if (is_unknown_binfo(get_type(expr->left), &new) &&
+	    !get_state_expr(my_id, expr->left))
+		return;
+
+	set_bits_modified_expr(expr->left, alloc_bstate(new.set, new.possible));
 }
 
 static void match_condition(struct expression *expr)
