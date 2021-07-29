@@ -504,6 +504,8 @@ int map_to_param(const char *name, struct symbol *sym);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);
 struct symbol *get_param_sym_from_num(int num);
+struct expression *map_container_of_to_simpler_expr_key(struct expression *expr, const char *orig_key, char **new_key);
+const char *get_container_of_str(struct expression *expr);
 
 int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);

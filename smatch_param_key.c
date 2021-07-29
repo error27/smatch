@@ -15,6 +15,7 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#include "ctype.h"
 #include "smatch.h"
 #include "smatch_extra.h"
 #include "smatch_slist.h"
@@ -83,6 +84,43 @@ static char *swap_with_param(const char *name, struct symbol *sym, struct symbol
 	return ret;
 }
 
+struct expression *map_container_of_to_simpler_expr_key(struct expression *expr, const char *orig_key, char **new_key)
+{
+	int offset;
+	char *p = (char *)orig_key;
+	char *start, *end;
+	char buf[64];
+	int ret;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_DEREF)
+		return NULL;
+
+	while (*p != '\0') {
+		if (*p == '(' && isdigit(*(p + 1))) {
+			start = p;
+			offset = strtoul(p + 1, &p, 10);
+			if (!p || p[0] != '<' || p[1] != '~' || p[2] != '$' ||
+			    p[3] != ')' || p[4] != '-' || p[5] != '>')
+				return NULL;
+			end = p + 6;
+			break;
+		}
+		p++;
+	}
+	if (*p == '\0')
+		return NULL;
+
+	if (offset != get_member_offset_from_deref(expr))
+		return NULL;
+
+	ret = snprintf(buf, sizeof(buf), "%.*s$.%s", (int)(start - orig_key), orig_key, end);
+	if (ret >= sizeof(buf))
+		return NULL;
+	*new_key = alloc_sname(buf);
+	return expr->deref;
+}
+
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
 	struct symbol *type;
@@ -135,6 +173,17 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 				return NULL;
 			return alloc_string(buf);
 		}
+	}
+
+	if (strstr(key, "<~$")) {
+		struct expression *expr;
+		char *new_key;
+
+		expr = map_container_of_to_simpler_expr_key(arg, key, &new_key);
+		if (!expr)
+			return NULL;
+		arg = expr;
+		key = new_key;
 	}
 
 	while (key[0] == '*') {
@@ -200,6 +249,15 @@ static char *state_name_to_param_name(const char *state_name, const char *param_
 	int name_len;
 	char buf[256];
 	int ret;
+
+	/*
+	 * Normally what happens is that we map "*foo->bar" to "*param->bar"
+	 * but with container_of() there is no notation for that in C and it's
+	 * just a Smatch invention.  So in that case, the state name is the
+	 * param name.
+	 */
+	if (strstr(state_name, "<~$"))
+		return (char *)state_name;
 
 	name_len = strlen(param_name);
 
@@ -339,6 +397,14 @@ char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct exp
 		*sym_p = var_sym->sym;
 		return alloc_string(var_sym->var);
 	}
+
+	/* One would think that handling container_of() should be done here
+	 * but it it's quite tricky because we only have a name and a sym
+	 * and none of the assignments have been handled yet, either here or
+	 * in smatch_assignments.c.  On the other hand handling container_of()
+	 * in the assignment hook has the advantage that it saves resources and
+	 * it should work fine because of the fake assignments which we do.
+	 */
 
 	return swap_with_param(name, sym, sym_p);
 }
@@ -535,6 +601,50 @@ free:
 	return NULL;
 }
 
+char *handle_container_of_assign(struct expression *expr, struct symbol **sym)
+{
+	struct expression *right, *orig;
+	struct symbol *type;
+	sval_t sval;
+	int param;
+	char buf[64];
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+
+	right = strip_expr(expr->right);
+	if (right->type != EXPR_BINOP || right->op != '-')
+		return NULL;
+
+	if (!get_value(right->right, &sval) ||
+	   sval.value < 0 || sval.value > MTAG_OFFSET_MASK)
+		return NULL;
+
+	orig = get_assigned_expr(right->left);
+	if (!orig)
+		return NULL;
+	if (orig->type != EXPR_SYMBOL)
+		return NULL;
+	param = get_param_num_from_sym(orig->symbol);
+	if (param < 0)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "(%lld<~$)", sval.value);
+	*sym = orig->symbol;
+	return alloc_string(buf);
+}
+
+const char *get_container_of_str(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_state_expr(my_id, expr);
+	if (!state)
+		return NULL;
+	return state->name;
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct symbol *param_sym;
@@ -549,9 +659,16 @@ static void match_assign(struct expression *expr)
 		return;
 
 	param_name = get_param_name_sym(expr->right, &param_sym);
-	if (!param_name || !param_sym)
-		goto free;
+	if (param_name && param_sym)
+		goto set_state;
 
+	param_name = handle_container_of_assign(expr, &param_sym);
+	if (param_name && param_sym)
+		goto set_state;
+
+	goto free;
+
+set_state:
 	set_state_expr(my_id, expr->left, alloc_var_sym_state(param_name, param_sym));
 free:
 	free_string(param_name);
