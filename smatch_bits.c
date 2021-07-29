@@ -26,10 +26,6 @@
 
 static int my_id;
 
-static const struct bit_info unknown_bit_info = {
-	.possible = -1ULL,
-};
-
 ALLOCATOR(bit_info, "bit data");
 struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possible)
 {
@@ -249,13 +245,24 @@ static struct bit_info *binfo_OR(struct bit_info *left, struct bit_info *right)
 	return alloc_bit_info(set, possible);
 }
 
+static unsigned long long get_type_possible(struct symbol *type)
+{
+	if (!type)
+		type = &ullong_ctype;
+
+	if (type_bits(type) == 64)
+		return -1ULL;
+
+	return (1ULL << type_bits(type)) - 1;
+}
+
 struct bit_info *get_bit_info(struct expression *expr)
 {
 	struct range_list *rl;
 	struct smatch_state *bstate;
-	struct bit_info tmp;
 	struct bit_info *extra_info;
 	struct bit_info *bit_info;
+	struct bit_info unknown_bit_info = { };
 	sval_t known;
 
 	expr = strip_parens(expr);
@@ -272,28 +279,18 @@ struct bit_info *get_bit_info(struct expression *expr)
 					get_bit_info(expr->right));
 	}
 
+	unknown_bit_info.possible = get_type_possible(get_type(expr));
+
 	if (get_implied_rl(expr, &rl))
 		extra_info = rl_to_binfo(rl);
-	else {
-		struct symbol *type;
-
-		tmp = unknown_bit_info;
-		extra_info = &tmp;
-
-		type = get_type(expr);
-		if (!type)
-			type = &ullong_ctype;
-		if (type_bits(type) == 64)
-			extra_info->possible = -1ULL;
-		else
-			extra_info->possible = (1ULL << type_bits(type)) - 1;
-	}
+	else
+		extra_info = &unknown_bit_info;
 
 	bstate = get_state_expr(my_id, expr);
 	if (bstate)
 		bit_info = bstate->data;
 	else
-		bit_info = (struct bit_info *)&unknown_bit_info;
+		bit_info = &unknown_bit_info;
 
 	return combine_bit_info(extra_info, bit_info);
 }
