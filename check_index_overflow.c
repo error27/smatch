@@ -201,6 +201,45 @@ free_data_str:
 	return ret;
 }
 
+static bool is_zero_size_memcpy(struct expression *expr, int size, struct range_list *rl)
+{
+	struct expression *parent;
+
+	/*
+	 * Often times we have code like this:
+	 * 	memcpy(array[idx], src, size)
+	 * In this example if "idx == ARRAY_SIZE()" then "size" is zero so
+	 * nothing is copied and the code is fine and Smatch should not
+	 * print a warning even though the idx is one element out of bounds.
+	 *
+	 * TODO: if we wanted to be very accurate we could find the length
+	 * expression and assume() that offset == rl_max() and then test that
+	 * the length expression is zero.  But that seems like a lot of work.
+	 * HashtagLazy.
+	 */
+
+	if (rl_max(rl).value != size)
+		return false;
+
+	parent = expr;
+	while ((parent = expr_get_parent_expr(parent))) {
+		if (parent->type == EXPR_PREOP &&
+		    (parent->op == '(' || parent->op == '&'))
+			continue;
+		if (parent->type == EXPR_CAST)
+			continue;
+		break;
+	}
+	if (!parent || parent->type != EXPR_CALL ||
+	    parent->fn->type != EXPR_SYMBOL || !parent->fn->symbol_name)
+		return false;
+
+	if (strstr(parent->fn->symbol_name->name, "memcpy") ||
+	    strstr(parent->fn->symbol_name->name, "memset"))
+		return true;
+
+	return false;
+}
 
 static int should_warn(struct expression *expr)
 {
@@ -248,6 +287,8 @@ static int should_warn(struct expression *expr)
 	if (impossibly_high_comparison(offset))
 		return 0;
 
+	if (is_zero_size_memcpy(expr, array_size, abs_rl))
+		return 0;
 	return 1;
 
 }
