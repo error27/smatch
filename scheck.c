@@ -53,15 +53,14 @@ static BoolectorNode *mkvar(Btor *btor, BoolectorSort s, pseudo_t pseudo)
 	static char buff[33];
 	BoolectorNode *n;
 
-	if (pseudo->priv)
-		return pseudo->priv;
-
 	switch (pseudo->type) {
 	case PSEUDO_VAL:
 		sprintf(buff, "%llx", pseudo->value);
 		return boolector_consth(btor, s, buff);
 	case PSEUDO_ARG:
 	case PSEUDO_REG:
+		if (pseudo->priv)
+			return pseudo->priv;
 		n = boolector_var(btor, s, show_pseudo(pseudo));
 		break;
 	default:
@@ -69,6 +68,18 @@ static BoolectorNode *mkvar(Btor *btor, BoolectorSort s, pseudo_t pseudo)
 		return NULL;
 	}
 	return pseudo->priv = n;
+}
+
+static BoolectorNode *mktvar(Btor *btor, struct instruction *insn, pseudo_t src)
+{
+	BoolectorSort s = get_sort(btor, insn->type, insn->pos);
+	return mkvar(btor, s, src);
+}
+
+static BoolectorNode *mkivar(Btor *btor, struct instruction *insn, pseudo_t src)
+{
+	BoolectorSort s = get_sort(btor, insn->itype, insn->pos);
+	return mkvar(btor, s, src);
 }
 
 static BoolectorNode *get_arg(Btor *btor, struct instruction *insn, int idx)
@@ -134,7 +145,7 @@ static void binary(Btor *btor, BoolectorSort s, struct instruction *insn)
 	case OP_SET_AE:	t = zext(btor, insn, boolector_ugte(btor, a, b)); break;
 	case OP_SET_A:	t = zext(btor, insn, boolector_ugt(btor, a, b)); break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -154,20 +165,18 @@ static void icmp(Btor *btor, struct instruction *insn)
 
 static void unop(Btor *btor, struct instruction *insn)
 {
-	BoolectorSort s = get_sort(btor, insn->type, insn->pos);
-	BoolectorNode *t, *a;
+	pseudo_t src = insn->src;
+	BoolectorNode *t;
 
-	a = mkvar(btor, s, insn->src1);
-	if (!a)
-		return;
 	switch (insn->opcode) {
-	case OP_NEG:	t = boolector_neg(btor, a); break;
-	case OP_NOT:	t = boolector_not(btor, a); break;
-	case OP_SEXT:	t = sext(btor, insn, a); break;
-	case OP_ZEXT:	t = zext(btor, insn, a); break;
-	case OP_TRUNC:	t = slice(btor, insn, a); break;
+	case OP_SEXT:	t = sext(btor, insn, mkivar(btor, insn, src)); break;
+	case OP_ZEXT:	t = zext(btor, insn, mkivar(btor, insn, src)); break;
+	case OP_TRUNC:	t = slice(btor, insn, mkivar(btor, insn, src)); break;
+
+	case OP_NEG:	t = boolector_neg(btor, mktvar(btor, insn, src)); break;
+	case OP_NOT:	t = boolector_not(btor, mktvar(btor, insn, src)); break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -190,7 +199,7 @@ static void ternop(Btor *btor, struct instruction *insn)
 		t = boolector_cond(btor, d, b, c);
 		break;
 	default:
-		fprintf(stderr, "unsupported insn\n");
+		fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 		return;
 	}
 	insn->target->priv = t;
@@ -313,8 +322,13 @@ static bool check_function(struct entrypoint *ep)
 				break;
 			case OP_RET:
 				goto out;
+			case OP_INLINED_CALL:
+			case OP_DEATHNOTE:
+			case OP_NOP:
+			case OP_CONTEXT:
+				continue;
 			default:
-				fprintf(stderr, "unsupported insn\n");
+				fprintf(stderr, "unsupported insn: %s\n", show_instruction(insn));
 				goto out;
 			}
 		} END_FOR_EACH_PTR(insn);
