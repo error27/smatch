@@ -90,6 +90,9 @@ static void match_symbol(struct expression *expr)
 	const char *parent_netdev, *name;
 	struct smatch_state *state;
 
+	if (!has_states(__get_cur_stree(), my_id))
+		return;
+
 	name = expr_to_var(expr);
 	if (!name)
 		return;
@@ -97,10 +100,10 @@ static void match_symbol(struct expression *expr)
 	parent_netdev = get_parent_netdev_name(expr);
 	if (!parent_netdev)
 		return;
-	
+
 	state = get_state(my_id, parent_netdev, NULL);
 	if (state == &freed)
-		sm_error("Using %s after free_{netdev,candev}(%s);\n", name, parent_netdev);
+		sm_error("Using '%s' after free_{netdev,candev}(%s);\n", name, parent_netdev);
 }
 
 void check_uaf_netdev_priv(int id)
