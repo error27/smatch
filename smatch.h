@@ -301,6 +301,8 @@ do {                                                           \
 	} else if (type == 3) {				       \
 		sm_printf("parse error: ");		       \
 		sm_nr_errors++;				       \
+	} else if (type == 4) {				       \
+		sm_printf("pedantic: ");		       \
 	}						       \
         sm_printf(msg);                                        \
         sm_printf("\n");                                       \
@@ -342,7 +344,7 @@ static inline void print_implied_debug_msg(void)
 } while (0)
 #define sm_error(msg...) do { sm_print_msg(2, msg); } while (0)
 #define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
-#define sm_spam(msg...) do { if (option_pedantic) sm_print_msg(1, msg); } while (0)
+#define sm_pedantic(msg...) do { if (option_pedantic) sm_print_msg(4, msg); } while (0)
 
 static inline void sm_fatal(const char *fmt, ...)
 {
