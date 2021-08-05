@@ -233,6 +233,72 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	return alloc_string(buf);
 }
 
+static bool split_param_key(char *value, int *param, char *key, int len)
+{
+	char *p;
+	int l, skip = 1;
+
+	l = snprintf(key, len, "%s", value);
+	if (l >= len)
+		return false;
+
+	p = key;
+	while (*p && *p != '$')
+		p++;
+	if (*p != '$')
+		return false;
+	p++;
+
+	*param = atoi(p);
+	if (*param < 0 || *param > 99)
+		return false;
+
+	p++;
+	if (*param > 9) {
+		skip = 2;
+		p++;
+	}
+
+	memmove(p - skip, p, l - (p - key) + 1);
+
+	return true;
+}
+
+bool get_implied_rl_from_call_str(struct expression *expr, const char *data, struct range_list **rl)
+{
+	struct smatch_state *state;
+	struct expression *arg;
+	struct symbol *sym;
+	char buf[256];
+	char *name;
+	int param;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = expr->right;
+	if (expr->type != EXPR_CALL)
+		return false;
+
+	if (!split_param_key(data, &param, buf, sizeof(buf)))
+		return false;
+
+	if (strcmp(buf, "$") == 0) {
+		arg = get_argument_from_call_expr(expr->args, param);
+		if (!arg)
+			return false;
+		return get_implied_rl(arg, rl);
+	}
+
+	name = get_name_sym_from_key(expr, param, buf, &sym);
+	if (!name)
+		return false;
+
+	state = get_state(SMATCH_EXTRA, name, sym);
+	if (!estate_rl(state))
+		return false;
+	*rl = estate_rl(state);
+	return true;
+}
+
 char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl)
 {
 	*vsl = NULL;
