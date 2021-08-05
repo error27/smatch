@@ -2,6 +2,8 @@ struct foo {
 	int a;
 };
 
+int some_func(void);
+
 struct foo *a;
 struct foo *b;
 struct foo *c;
@@ -44,8 +46,6 @@ void func (void)
  * check-command: smatch --spammy sm_switch2.c
  *
  * check-output-start
-sm_switch2.c:31 func() warn: missing break? reassigning 'a->a'
-sm_switch2.c:31 func() error: potential NULL dereference 'a'.
-sm_switch2.c:32 func() error: potential NULL dereference 'b'.
+sm_switch2.c:33 func() warn: missing break? reassigning 'a->a'
  * check-output-end
  */
