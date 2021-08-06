@@ -2106,7 +2106,7 @@ static bool handle_bit_test(struct expression *expr)
 	rlf = cast_rl(get_type(var), rlf);
 	false_rl = rl_filter(orig_rl, rlf);
 
-	set_extra_expr_true_false(shift->right, alloc_estate_rl(true_rl), alloc_estate_rl(false_rl));
+	set_extra_expr_true_false(var, alloc_estate_rl(true_rl), alloc_estate_rl(false_rl));
 
 	return true;
 }
