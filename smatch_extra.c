@@ -1112,6 +1112,9 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	if (is_struct(left))
 		return;
 
+	if (expr_equiv(left, right))
+		return;
+
 	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
