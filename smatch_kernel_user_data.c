@@ -116,6 +116,41 @@ static void extra_nomod_hook(const char *name, struct symbol *sym, struct expres
 	set_state(my_id, name, sym, new);
 }
 
+static void store_type_info(struct expression *expr, struct smatch_state *state)
+{
+	struct symbol *type;
+	char *type_str, *member;
+
+	if (__in_fake_assign)
+		return;
+
+	if (!estate_rl(state))
+		return;
+
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_DEREF || !expr->member)
+		return;
+
+	type = get_type(expr->deref);
+	if (!type || !type->ident)
+		return;
+
+	type_str = type_to_str(type);
+	if (!type_str)
+		return;
+	member = get_member_name(expr);
+	if (!member)
+		return;
+
+	sql_insert_function_type_info(USER_DATA, type_str, member, state->name);
+}
+
+static void set_user_data(struct expression *expr, struct smatch_state *state)
+{
+	store_type_info(expr, state);
+	set_state_expr(my_id, expr, state);
+}
+
 static bool user_rl_known(struct expression *expr)
 {
 	struct range_list *rl;
@@ -287,7 +322,7 @@ static void tag_inner_struct_members(struct expression *expr, struct symbol *mem
 			continue;
 
 		edge_member = member_expression(expr, '.', tmp->ident);
-		set_state_expr(my_id, edge_member, new_state(type));
+		set_user_data(edge_member, new_state(type));
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -320,7 +355,7 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 		if (type->type == SYM_ARRAY) {
 			set_points_to_user_data(member);
 		} else {
-			set_state_expr(my_id, member, new_state(get_type(member)));
+			set_user_data(member, new_state(get_type(member)));
 		}
 	} END_FOR_EACH_PTR(tmp);
 }
@@ -331,7 +366,7 @@ static void tag_base_type(struct expression *expr)
 		expr = strip_expr(expr->unop);
 	else
 		expr = deref_expression(expr);
-	set_state_expr(my_id, expr, new_state(get_type(expr)));
+	set_user_data(expr, new_state(get_type(expr)));
 }
 
 static void tag_as_user_data(struct expression *expr)
@@ -347,7 +382,7 @@ static void tag_as_user_data(struct expression *expr)
 	if (!type)
 		return;
 	if (type == &void_ctype) {
-		set_state_expr(my_id, deref_expression(expr), new_state(&ulong_ctype));
+		set_user_data(deref_expression(expr), new_state(&ulong_ctype));
 		return;
 	}
 	if (type->type == SYM_BASETYPE) {
@@ -360,7 +395,7 @@ static void tag_as_user_data(struct expression *expr)
 		if (expr->type != EXPR_PREOP || expr->op != '&')
 			expr = deref_expression(expr);
 		else
-			set_state_expr(my_id, deref_expression(expr), new_state(&ulong_ctype));
+			set_user_data(deref_expression(expr), new_state(&ulong_ctype));
 		tag_struct_members(type, expr);
 	}
 }
@@ -486,7 +521,7 @@ static int handle_get_user(struct expression *expr)
 	name = expr_to_var(expr->right);
 	if (!name || (strcmp(name, "__val_gu") != 0 && strcmp(name, "__gu_val") != 0))
 		goto free;
-	set_state_expr(my_id, expr->left, new_state(get_type(expr->left)));
+	set_user_data(expr->left, new_state(get_type(expr->left)));
 	ret = 1;
 free:
 	free_string(name);
@@ -543,7 +578,7 @@ static bool handle_op_assign(struct expression *expr)
 			estate_set_treat_untagged(state);
 		if (state_is_new(binop_expr))
 			estate_set_new(state);
-		set_state_expr(my_id, expr->left, state);
+		set_user_data(expr->left, state);
 		return true;
 	}
 	return false;
@@ -621,7 +656,7 @@ set:
 	if (user_rl_treat_untagged(expr->right))
 		estate_set_treat_untagged(state);
 
-	set_state_expr(my_id, expr->left, state);
+	set_user_data(expr->left, state);
 
 	return;
 
@@ -636,7 +671,7 @@ clear_old_state:
 		return;
 
 	if (get_state_expr(my_id, expr->left))
-		set_state_expr(my_id, expr->left, alloc_estate_empty());
+		set_user_data(expr->left, alloc_estate_empty());
 }
 
 static void handle_eq_noteq(struct expression *expr)
