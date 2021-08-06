@@ -42,6 +42,7 @@ static char *pathname;
 static char *full_filename;
 static char *full_base_file;
 static char *cur_func;
+int base_file_stream;
 static unsigned int loop_count;
 static int last_goto_statement_handled;
 int __expr_stmt_count;
@@ -2162,6 +2163,7 @@ void smatch(struct string_list *filelist)
 		}
 		if (option_file_output)
 			open_output_files(base_file);
+		base_file_stream = input_stream_nr;
 		sym_list = sparse_keep_tokens(base_file);
 		split_c_file_functions(sym_list);
 	} END_FOR_EACH_PTR_NOTAG(base_file);

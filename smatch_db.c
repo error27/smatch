@@ -240,19 +240,26 @@ static int get_db_state_count(void)
 	return count;
 }
 
+static bool in_base_file(struct symbol *sym)
+{
+	return sym->pos.stream == base_file_stream;
+}
+
 static bool is_local(struct symbol *sym)
 {
 	if (sym->ctype.modifiers & MOD_STATIC)
 		return true;
 	if ((sym->ctype.modifiers & MOD_EXTERN) &&
-	    (sym->ctype.modifiers & MOD_INLINE))
+	    (sym->ctype.modifiers & MOD_INLINE) &&
+	    !in_base_file(sym))
 		return true;
 
 	if (!sym->definition)
 		return false;
 
 	if ((sym->definition->ctype.modifiers & MOD_EXTERN) &&
-	    (sym->definition->ctype.modifiers & MOD_INLINE))
+	    (sym->definition->ctype.modifiers & MOD_INLINE) &&
+	    !in_base_file(sym->definition))
 		return true;
 
 	return false;
@@ -291,7 +298,7 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 
 	sql_insert(return_states, "'%s', '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
 		   get_base_file(), get_function(), id, return_id,
-		   return_ranges, fn_static(), type, param, key, value);
+		   return_ranges, is_local(cur_func_sym), type, param, key, value);
 }
 
 static struct string_list *common_funcs;

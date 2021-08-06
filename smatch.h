@@ -220,6 +220,7 @@ struct smatch_state *get_modification_state(struct expression *expr);
 
 int outside_of_function(void);
 const char *get_filename(void);
+extern int base_file_stream;
 const char *get_base_file(void);
 char *get_function(void);
 int get_lineno(void);
