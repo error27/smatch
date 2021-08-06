@@ -955,6 +955,9 @@ static void get_tf_states(struct expression *expr,
 			  struct stree **implied_true,
 			  struct stree **implied_false)
 {
+	while (expr->type == EXPR_ASSIGNMENT && expr->op == '=')
+		expr = strip_parens(expr->left);
+
 	if (handled_by_parsed_conditions(expr, implied_true, implied_false))
 		return;
 
