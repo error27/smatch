@@ -45,7 +45,30 @@ static const char *kstr_funcs[] = {
 
 static const char *returns_user_data[] = {
 	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read",
+	"kvm_register_read", "nlmsg_data", "nla_data", "memdup_user",
+	"kmap_atomic", "skb_network_header",
+	/* Xen */
+	"hvmemul_get_seg_reg", "guest_cpu_user_regs",
+};
+
+/* In Xen, these functions are called "copy_from_guest" */
+static const char * xen_from_guest_funcs[] = {
+"copy_from_guest", "__copy_from_guest", "copy_from_guest_offset",
+"copy_from_user_hvm", "__raw_copy_from_guest", "__copy_from_user",
+"__hvm_copy", "hvm_copy_from_guest_phys", "hvm_copy_from_guest_virt",
+"hvm_fetch_from_guest_virt", "hvm_copy_from_guest_virt_nofault",
+"hvm_fetch_from_guest_virt_nofault",
+};
+
+// in Xen, these functions have user data in their first argument
+static const char * xen_hypercalls[] = {
+"hvm_memory_op_compat32", "hvm_grant_table_op_compat32", "hvm_vcpu_op_compat32",
+"hvm_physdev_op_compat32", "do_event_channel_op", "do_xen_version",
+"compat_xen_version", "do_sched_op", "compat_sched_op",
+"do_set_timer_op", "compat_set_timer_op", "do_hvm_op", "do_sysctl_op",
+"do_tmem_op", "hvm_physdev_op", "hvm_vcpu_op", "hvm_grant_table_op",
+"hvm_memory_op", "do_domctl", "arch_do_domctl", "do_sysctl", "arch_do_sysctl",
+"do_multicall"
 };
 
 static struct stree *start_states;
@@ -1172,12 +1195,34 @@ static void set_called(const char *name, struct symbol *sym, char *key, char *va
 	set_state(my_call_id, "this_function", NULL, &called);
 }
 
+static int ends_with(const char *symbol, const char *suffix)
+{
+	if(!symbol || !suffix)
+	    return 0;
+
+	int l = strnlen(symbol, 128);
+	int e = strnlen(suffix, 16);
+
+	/* Is the string smaller than the suffix? */
+	if(l < e)
+	    return 0;
+
+	/* Check from the end whether the strings match */
+	for(int i = 0; i <= e; ++ i) {
+		if( symbol[l-i] != suffix[e-i])
+		    return 0;
+	}
+
+	/* The suffix matches */
+	return 1;
+}
+
 static void match_syscall_definition(struct symbol *sym)
 {
 	struct symbol *arg;
 	char *macro;
 	char *name;
-	int is_syscall = 0;
+	int is_syscall = 0, i;
 
 	macro = get_macro_name(sym->pos);
 	if (macro &&
@@ -1186,13 +1231,33 @@ static void match_syscall_definition(struct symbol *sym)
 		is_syscall = 1;
 
 	name = get_function();
+
+	/* Currently only works if there is a name */
+	if (!name)
+		return;
+
 	if (!option_no_db && get_state(my_call_id, "this_function", NULL) != &called) {
-		if (name && strncmp(name, "sys_", 4) == 0)
+		if (strncmp(name, "sys_", 4) == 0)
 			is_syscall = 1;
 	}
 
-	if (name && strncmp(name, "compat_sys_", 11) == 0)
+	if (strncmp(name, "compat_sys_", 11) == 0)
 		is_syscall = 1;
+
+	/* Check whether function heuristically matchs hypercalls */
+	if (ends_with(name, "_op") && (
+		strncmp(name, "do_", 3) == 0 || strncmp(name, "arch_", 5) || strncmp(name, "hvm_", 4)
+		))
+		is_syscall = 1;
+	else if (strncmp(name, "do_", 3) == 0 && ends_with(name, "_op_compat"))
+		is_syscall = 1;
+	else if (strncmp(name, "hvm_", 4) == 0 && ends_with(name, "_op_compat32"))
+		is_syscall = 1;
+
+	/* Check against today's list of hypervalls */
+	for (i = 0; i < ARRAY_SIZE(xen_hypercalls); i++)
+		if(strncmp(xen_hypercalls[i], "hvm_", sizeof(xen_hypercalls[i])))
+			is_syscall = 1;
 
 	if (!is_syscall)
 		return;
@@ -1362,6 +1427,25 @@ void register_kernel_user_data(int id)
 	add_function_hook("copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("__copy_from_user", &match_user_copy, INT_PTR(0));
 	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
+
+	/* In Xen, these functions are called "copy_from_guest" */
+	for (i = 0; i < ARRAY_SIZE(xen_from_guest_funcs); i++)
+		add_function_hook(xen_from_guest_funcs[i], &match_user_copy, INT_PTR(0));
+
+	/* Xen hvm read functions */
+	add_function_hook("hvmemul_do_mmio", &match_user_copy, INT_PTR(5));
+	add_function_hook("hvmemul_do_direct_read", &match_user_copy, INT_PTR(4));
+	add_function_hook("hvmemul_do_io", &match_user_copy, INT_PTR(8));
+	add_function_hook("hvmemul_read_cr", &match_user_copy, INT_PTR(2));
+	add_function_hook("hvm_msr_read_intercept", &match_user_copy, INT_PTR(2));
+
+	/* Extra functions where we know tainted data is passed */
+	for (i = 0; i < ARRAY_SIZE(xen_hypercalls); i++)
+		add_function_hook(xen_hypercalls[i], &match_user_copy, INT_PTR(1));
+
+	/* Xen equivalent to kvm_register_read */
+	add_function_assign_hook("acpi_hw_register_read", &match_user_copy, NULL);
+
 	for (i = 0; i < ARRAY_SIZE(kstr_funcs); i++)
 		add_function_hook_late(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));

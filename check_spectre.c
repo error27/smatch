@@ -154,16 +154,24 @@ static void array_check(struct expression *expr)
 	struct expression_list *conditions;
 	struct expression *array_expr, *offset;
 	unsigned long long mask;
+
+	int impossible = 0, harmless = 0;
+	int user = 0, array = 0;
+
 	int array_size;
 	char *name;
 
 	expr = strip_expr(expr);
-	if (!is_array(expr))
+	array = is_array(expr);
+	if (!array)
 		return;
 
-	if (is_impossible_path())
+	impossible = is_impossible_path();
+	if (suppress_multiple && impossible)
 		return;
-	if (is_harmless(expr))
+
+	harmless = is_harmless(expr);
+	if (suppress_multiple && harmless)
 		return;
 
 	array_expr = get_array_base(expr);
@@ -192,10 +200,12 @@ static void array_check(struct expression *expr)
 	conditions = get_conditions(offset);
 
 	name = expr_to_str(array_expr);
-	sm_warning("potential spectre issue '%s' [%s]%s",
+	sm_warning("potential spectre issue '%s' [%s]%s%s%s",
 	       name,
 	       is_read(expr) ? "r" : "w",
-	       conditions ? " (local cap)" : "");
+	       conditions ? " (local cap)" : "",
+	       impossible ? " (impossible)" : "",
+	       harmless ? " (harmless)" : "");
 
 	set_spectre_first_half(expr);
 	if (suppress_multiple)

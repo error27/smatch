@@ -419,6 +419,7 @@ validation/%: $(PROGRAMS) FORCE
 
 clean: clean-check
 	@rm -f *.[oa] .*.d $(PROGRAMS) version.h smatch
+	$(MAKE) clean -C cwchash
 clean-check:
 	@echo "  CLEAN"
 	@find validation/ \( -name "*.c.output.*" \

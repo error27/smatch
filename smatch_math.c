@@ -1567,7 +1567,7 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	if (!expr)
 		return false;
 
-	if (++(*recurse_cnt) >= 200)
+	if (++(*recurse_cnt) >= 500)
 		return false;
 
 	switch(expr->type) {
@@ -1702,7 +1702,7 @@ static bool get_rl_helper(struct expression *expr, int implied, struct range_lis
 struct {
 	struct expression *expr;
 	sval_t sval;
-} cached_results[24];
+} cached_results[72];
 static int cache_idx;
 
 void clear_math_cache(void)

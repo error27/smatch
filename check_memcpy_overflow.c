@@ -368,5 +368,11 @@ void check_memcpy_overflow(int id)
 		add_function_hook("copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("_copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
+		add_function_hook("copy_from_guest", &match_limited, &b0_l2);
+		add_function_hook("_copy_from_guest", &match_limited, &b0_l2);
+		add_function_hook("__copy_from_guest", &match_limited, &b0_l2);
+		add_function_hook("copy_to_guest", &match_limited, &b0_l2);
+		add_function_hook("_copy_to_guest", &match_limited, &b0_l2);
+		add_function_hook("__copy_to_guest", &match_limited, &b0_l2);
 	}
 }
