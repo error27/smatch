@@ -300,6 +300,28 @@ static int is_being_modified(struct expression *expr)
 	return 0;
 }
 
+static bool is_just_silencing_used_variable(struct expression *expr)
+{
+	struct symbol *type;
+
+	while ((expr = expr_get_parent_expr(expr))) {
+		if (expr->type == EXPR_PREOP && expr->op == '(')
+			continue;
+		if (expr->type == EXPR_CAST) {
+			type = expr->cast_type;
+
+			if (!type)
+				return false;
+			if (type->type == SYM_NODE)
+				type = get_real_base_type(type);
+			if (type == &void_ctype)
+				return true;
+		}
+	}
+
+	return false;
+}
+
 static void match_symbol(struct expression *expr)
 {
 	char *name;
@@ -314,6 +336,9 @@ static void match_symbol(struct expression *expr)
 		return;
 
 	if (is_being_modified(expr))
+		return;
+
+	if (is_just_silencing_used_variable(expr))
 		return;
 
 	name = expr_to_str(expr);
