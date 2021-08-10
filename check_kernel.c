@@ -525,6 +525,8 @@ int get_gfp_param(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return -1;
 	type = get_type(expr->fn);
+	if (!type)
+		return -1;
 	if (type->type == SYM_PTR)
 		type = get_real_base_type(type);
 	if (type->type != SYM_FN)
