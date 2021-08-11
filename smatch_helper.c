@@ -1169,6 +1169,8 @@ int expr_equiv(struct expression *one, struct expression *two)
 
 	if (!one || !two)
 		return 0;
+	if (one == two)
+		return 1;
 	if (one->type != two->type)
 		return 0;
 	if (is_fake_call(one) || is_fake_call(two))
