@@ -96,6 +96,11 @@ db_types = {   0: "INTERNAL",
             1040: "PREEMPT_CNT",
             1041: "SMALLISH",
             1042: "FRESH_MTAG",
+            1044: "FRESH_ALLOC",
+            1047: "TIME",
+
+            2054: "PREEMPT_ADD",
+            2055: "PREEMPT_SUB",
 
             8017: "USER_DATA",
             9017: "USER_DATA_SET",
@@ -105,12 +110,15 @@ db_types = {   0: "INTERNAL",
             8019: "NO_OVERFLOW_SIMPLE",
             8020: "LOCKED",
             8021: "UNLOCKED",
+            8046: "RELEASE",
             9022: "HALF_LOCKED",
             9023: "LOCK_RESTORED",
             9024: "KNOWN_LOCKED",
             9025: "KNOWN_UNLOCKED",
             8023: "ATOMIC_INC",
             8024: "ATOMIC_DEC",
+            9027: "REFCOUNT_INC",
+            9028: "REFCOUNT_DEC",
 };
 
 def add_range(rl, min_val, max_val):
