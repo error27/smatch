@@ -517,9 +517,11 @@ def print_fn_ptrs(func):
     print("%s = " %(func), end = '')
     print(ptrs)
 
-def print_functions(member):
+def print_functions(struct, member):
     cur = con.cursor()
-    if member.find(" ") >= 0:
+    if struct:
+         cur.execute("select * from function_ptr where ptr like '(struct %s)->%s';" %(struct, member))
+    elif member.find(" ") >= 0:
         cur.execute("select * from function_ptr where ptr = '%s';" %(member))
     else:
         cur.execute("select * from function_ptr where ptr like '%%->%s';" %(member))
@@ -788,8 +790,13 @@ elif sys.argv[1] == "local":
         variable = sys.argv[3]
     local_values(filename, variable)
 elif sys.argv[1] == "functions":
-    member = sys.argv[2]
-    print_functions(member)
+    if len(sys.argv) == 4:
+        struct = sys.argv[2]
+        member = sys.argv[3]
+    else:
+        struct = ""
+        member = sys.argv[2]
+    print_functions(struct, member)
 elif sys.argv[1] == "trace_param":
     if len(sys.argv) != 4:
         usage()
