@@ -133,6 +133,9 @@ static void return_info_callback(int return_id, char *return_ranges,
 	struct smatch_state *estate;
 	sval_t sval;
 
+	if (sm->state != &power_of_two)
+		return;
+
 	if (param != -1 && !param_was_set_var_sym(sm->name, sm->sym))
 		return;
 
