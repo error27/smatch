@@ -88,7 +88,6 @@ static void process_states(void)
 			(sm->state == &freed) ? PARAM_FREED : MAYBE_FREED,
 			param, param_name, "1");
 	} END_FOR_EACH_SM(sm);
-
 }
 
 void check_frees_param(int id)
