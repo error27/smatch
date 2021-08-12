@@ -529,38 +529,45 @@ def print_functions(struct, member):
     for txt in cur:
         print("%-15s | %-15s | %-15s | %s" %(txt[0], txt[2], txt[1], txt[3]))
 
-def get_callers(func):
+def get_callers(func, restrict = ""):
+    if restrict == "":
+        restrict = "and type = 0"
     ret = []
     cur = con.cursor()
     ptrs = get_function_pointers(func)
     for ptr in ptrs:
-        cur.execute("select distinct caller from caller_info where function = '%s';" %(ptr))
+        cur.execute("select distinct caller from caller_info where function = '%s' %s;" %(ptr, restrict))
         for row in cur:
-            ret.append(row[0])
+                ret.append(row[0])
     return ret
 
 printed_funcs = []
-def call_tree_helper(func, indent = 0):
+def call_tree_helper(func, restrict = "", indent = 0):
     global printed_funcs
     if func in printed_funcs:
         return
     print("%s%s()" %(" " * indent, func))
     if func == "too common":
         return
-    if indent > 6:
+    if indent > 30:
         return
     printed_funcs.append(func)
-    callers = get_callers(func)
+    callers = get_callers(func, restrict)
     if len(callers) >= 20:
         print("Over 20 callers for %s()" %(func))
         return
     for caller in callers:
-        call_tree_helper(caller, indent + 2)
+        call_tree_helper(caller, restrict, indent + 2)
 
 def print_call_tree(func):
     global printed_funcs
     printed_funcs = []
     call_tree_helper(func)
+
+def print_preempt_tree(func):
+    global printed_funcs
+    printed_funcs = []
+    call_tree_helper(func, "and type = 2054")
 
 def function_type_value(struct_type, member):
     cur = con.cursor()
@@ -768,6 +775,9 @@ elif sys.argv[1] == "data_info":
 elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
     print_call_tree(func)
+elif sys.argv[1] == "preempt":
+    func = sys.argv[2]
+    print_preempt_tree(func)
 elif sys.argv[1] == "find_tagged":
     func = sys.argv[2]
     param = int(sys.argv[3])
