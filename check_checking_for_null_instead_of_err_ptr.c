@@ -48,6 +48,9 @@ static void match_condition(struct expression *expr)
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->left);
 
+	if (!is_pointer(expr))
+		return;
+
 	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
