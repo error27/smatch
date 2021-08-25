@@ -1030,6 +1030,9 @@ swap_stree:
 	return;
 
 complain:
+	if (common_false_positive(name))
+		return;
+
 	sm_msg("warn: inconsistent returns '%s'.", name);
 	sm_printf("  Locked on  : %s\n", show_rl(locked_lines));
 	sm_printf("  Unlocked on: %s\n", show_rl(unlocked_lines));
