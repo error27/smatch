@@ -393,7 +393,8 @@ static struct lock_info lock_table[] = {
 	{"drm_modeset_lock_single_interruptible", LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"modeset_unlock",			  UNLOCK, mutex, 0, "$"},
 //	{"nvkm_i2c_aux_acquire",		  LOCK,   mutex, 
-//	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 
+	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 0, "$->base.resv", &int_zero, &int_zero},
+	{"i915_gem_object_lock",		LOCK, mutex, 0, "$->base.resv"},
 
 	{"reiserfs_write_lock_nested",	 LOCK,   mutex, 0, "$"},
 	{"reiserfs_write_unlock_nested", UNLOCK, mutex, 0, "$"},
@@ -422,6 +423,12 @@ static struct lock_info lock_table[] = {
 
 	{"efx_rwsem_assert_write_locked", IGNORE_LOCK, sem, 0, "&"},
 
+	// The i915_gem_ww_ctx_unlock_all() is too complicated
+	{"i915_gem_object_pin_pages_unlocked", IGNORE_LOCK, mutex, 0, "$->base.resv"},
+	{"i915_gem_object_pin_map_unlocked", IGNORE_LOCK, mutex, 0, "$->base.resv"},
+	{"i915_gem_object_fill_blt", IGNORE_LOCK, mutex, 0, "$->base.resv"},
+	{"i915_vma_pin", IGNORE_LOCK, mutex, 0, "$->base.resv"},
+
 	{},
 };
 
@@ -442,6 +449,7 @@ static const char *false_positives[][2] = {
 	{"fs/jffs2/", "->alloc_sem"},
 	{"fs/xfs/", "->b_sema"},
 	{"mm/", "pvmw->ptl"},
+	{"drivers/gpu/drm/i915/", "->base.resv"},
 };
 
 static struct stree *start_states;
