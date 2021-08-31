@@ -700,7 +700,10 @@ struct expression *get_array_offset(struct expression *expr)
 		expr = strip_expr(expr->unop);
 	if (expr->type != EXPR_BINOP || expr->op != '+')
 		return NULL;
-	return strip_parens(expr->right);
+	expr = strip_parens(expr->right);
+	if (expr->type == EXPR_POSTOP)
+		expr = strip_parens(expr->unop);
+	return expr;
 }
 
 const char *show_state(struct smatch_state *state)
