@@ -631,7 +631,7 @@ static void match_assign(struct expression *expr)
 		goto clear_old_state;
 
 	/* Handled by DB code */
-	if (expr->right->type == EXPR_CALL || __in_fake_parameter_assign)
+	if (expr->right->type == EXPR_CALL)
 		return;
 
 	if (!get_user_rl(expr->right, &rl))
