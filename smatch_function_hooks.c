@@ -231,7 +231,7 @@ static void db_helper(struct expression *expr, param_key_hook *call_back, int pa
 		return;
 	}
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 

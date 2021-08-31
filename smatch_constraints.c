@@ -503,7 +503,7 @@ static void db_returns_constrained(struct expression *expr, int param, char *key
 	char *name;
 	struct symbol *sym;
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 

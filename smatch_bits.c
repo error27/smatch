@@ -483,7 +483,7 @@ static void returns_bit_set(struct expression *expr, int param, char *key, char 
 	unsigned long long set;
 	char *pEnd;
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 
 	if (!name)
 		return;
@@ -500,7 +500,7 @@ static void returns_bit_clear(struct expression *expr, int param, char *key, cha
 	char *pEnd;
 	struct bit_info *binfo;
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 
 	if (!name)
 		return;

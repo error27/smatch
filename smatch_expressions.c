@@ -313,7 +313,7 @@ struct expression *gen_expr_from_param_key(struct expression *expr, int param, c
 	struct symbol *sym;
 	char *name;
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 	if (!name || !sym)
 		goto free;
 

@@ -131,8 +131,8 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	bool add_dot = false;
 	int ret;
 
-	// FIXME:  this function has been marked for deletion!
-	// get_name_sym_from_key()
+	// FIXME:  this function has been marked for being made static
+	// Use get_name_sym_from_param_key().
 
 	if (!arg)
 		return NULL;
@@ -288,7 +288,7 @@ bool get_implied_rl_from_call_str(struct expression *expr, const char *data, str
 		return get_implied_rl(arg, rl);
 	}
 
-	name = get_name_sym_from_key(expr, param, buf, &sym);
+	name = get_name_sym_from_param_key(expr, param, buf, &sym);
 	if (!name)
 		return false;
 
@@ -623,7 +623,7 @@ struct symbol *get_param_sym_from_num(int num)
 	return NULL;
 }
 
-char *get_name_sym_from_key(struct expression *expr, int param, const char *key, struct symbol **sym)
+char *get_name_sym_from_param_key(struct expression *expr, int param, const char *key, struct symbol **sym)
 {
 	struct expression *call, *arg;
 	char *name;

@@ -151,7 +151,7 @@ static void returns_power_of_two_set(struct expression *expr, int param, char *k
 	char *name;
 	struct symbol *sym;
 
-	name = get_name_sym_from_key(expr, param, key, &sym);
+	name = get_name_sym_from_param_key(expr, param, key, &sym);
 	if (!name)
 		return;
 	set_state(my_id, name, sym, &power_of_two);
