@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import re
 import subprocess
+import io
 
 try:
     con = sqlite3.connect('smatch_db.sqlite')
@@ -529,6 +530,48 @@ def print_functions(struct, member):
     for txt in cur:
         print("%-15s | %-15s | %-15s | %s" %(txt[0], txt[2], txt[1], txt[3]))
 
+class CallTree:
+    def __init__(self, func, printed = ""):
+        self.name = func;
+        if printed == "":
+            self.printed = func + "()"
+        else:
+            self.printed = printed;
+        self.callers = []
+
+    def has_func(self, func):
+        if func == self.name:
+            return True
+        for c in self.callers:
+            if c.has_func(func):
+                return True
+        return False
+
+    def print_tree(self, out):
+        max_indent = 0
+        for c in self.callers:
+            indent = c.print_tree(out)
+            if indent > max_indent:
+                max_indent = indent
+        if max_indent != 0:
+            out.write("%s-> " %(" " *((max_indent - 1) * 3)))
+        out.write("%s\n" %(self.printed))
+        return max_indent + 1
+
+    def __repr__(self):
+        out = io.StringIO()
+        indent = 0
+        self.print_tree(out)
+        return out.getvalue()
+
+    def add_caller(self, func, printed = ""):
+        for c in self.callers:
+            if func == c.name:
+                return None
+        t = CallTree(func, printed)
+        self.callers.append(t)
+        return t
+
 def get_callers(func, restrict = ""):
     if restrict == "":
         restrict = "and type = 0"
@@ -564,10 +607,32 @@ def print_call_tree(func):
     printed_funcs = []
     call_tree_helper(func)
 
+def get_preempt_callers(call_tree, branch, func):
+    cur = con.cursor()
+    ptrs = get_function_pointers(func)
+    for ptr in ptrs:
+        cur.execute("select caller, value from caller_info where function = '%s' and type = 2054;" %(ptr))
+        for row in cur:
+            func = row[0]
+            if row[1] == "":
+                printed = func + "()"
+            else:
+                printed = func + "() " + row[1]
+            if not call_tree.has_func(func):
+                b = branch.add_caller(func, printed)
+                get_preempt_callers(call_tree, b, func)
+            else:
+                printed = printed + " <duplicate>"
+                branch.add_caller(func, printed)
+
+    return call_tree
+
 def print_preempt_tree(func):
     global printed_funcs
     printed_funcs = []
-    call_tree_helper(func, "and type = 2054")
+    call_tree = CallTree(func)
+    get_preempt_callers(call_tree, call_tree, func)
+    print(call_tree)
 
 def function_type_value(struct_type, member):
     cur = con.cursor()
