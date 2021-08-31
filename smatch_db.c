@@ -2435,7 +2435,7 @@ static void print_return_struct_info(int return_id, char *return_ranges,
 			if (sm->sym && sm->sym == sym)
 				param = -1;
 			else
-				return;
+				continue;
 		}
 
 		printed_name = get_param_name(sm);
