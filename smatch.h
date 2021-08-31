@@ -151,6 +151,17 @@ enum hook_type {
 
 struct range_list;
 
+typedef void (void_fn)(void);
+typedef void (expr_func)(struct expression *expr);
+typedef void (stmt_func)(struct statement *stmt);
+typedef void (sym_func)(struct symbol *sym);
+typedef void (name_sym_hook)(struct expression *expr, const char *name, struct symbol *sym);
+DECLARE_PTR_LIST(void_fn_list, void_fn);
+DECLARE_PTR_LIST(expr_fn_list, expr_func);
+DECLARE_PTR_LIST(stmt_fn_list, stmt_func);
+DECLARE_PTR_LIST(sym_fn_list, sym_func);
+DECLARE_PTR_LIST(name_sym_fn_list, name_sym_hook);
+
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);

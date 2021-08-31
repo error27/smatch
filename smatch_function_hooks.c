@@ -110,8 +110,6 @@ ALLOCATOR(return_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_list, struct return_implies_callback);
 static struct db_implies_list *db_return_states_list;
 
-typedef void (void_fn)(void);
-DECLARE_PTR_LIST(void_fn_list, void_fn *);
 static struct void_fn_list *return_states_before;
 static struct void_fn_list *return_states_after;
 
@@ -413,24 +411,24 @@ void select_return_param_key(int type, param_key_hook *callback)
 
 void select_return_states_before(void_fn *fn)
 {
-	void_fn **p = malloc(sizeof(void_fn *));
-	*p = fn;
+	void_fn *p = malloc(sizeof(*p));
+	p = fn;
 	add_ptr_list(&return_states_before, p);
 }
 
 void select_return_states_after(void_fn *fn)
 {
-	void_fn **p = malloc(sizeof(void_fn *));
-	*p = fn;
+	void_fn *p = malloc(sizeof(*p));
+	p = fn;
 	add_ptr_list(&return_states_after, p);
 }
 
 static void call_return_states_before_hooks(void)
 {
-	void_fn **fn;
+	void_fn *fn;
 
 	FOR_EACH_PTR(return_states_before, fn) {
-		(*fn)();
+		(fn)();
 	} END_FOR_EACH_PTR(fn);
 }
 
@@ -473,10 +471,10 @@ static void call_function_hooks(struct expression *expr, enum fn_hook_type type)
 
 static void call_return_states_after_hooks(struct expression *expr)
 {
-	void_fn **fn;
+	void_fn *fn;
 
 	FOR_EACH_PTR(return_states_after, fn) {
-		(*fn)();
+		(fn)();
 	} END_FOR_EACH_PTR(fn);
 	__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER_DB);
 	call_function_hooks(expr, REGULAR_CALL_LATE);

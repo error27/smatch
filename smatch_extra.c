@@ -61,9 +61,9 @@ int in_warn_on_macro(void)
 }
 
 typedef void (mod_hook)(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
-DECLARE_PTR_LIST(void_fn_list, mod_hook *);
-static struct void_fn_list *extra_mod_hooks;
-static struct void_fn_list *extra_nomod_hooks;
+DECLARE_PTR_LIST(mod_hook_list, mod_hook *);
+static struct mod_hook_list *extra_mod_hooks;
+static struct mod_hook_list *extra_nomod_hooks;
 
 void add_extra_mod_hook(mod_hook *fn)
 {
@@ -79,7 +79,7 @@ void add_extra_nomod_hook(mod_hook *fn)
 	add_ptr_list(&extra_nomod_hooks, p);
 }
 
-void call_extra_hooks(struct void_fn_list *hooks, const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+void call_extra_hooks(struct mod_hook_list *hooks, const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	mod_hook **fn;
 
