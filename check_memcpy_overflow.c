@@ -28,7 +28,7 @@ struct limiter {
 static struct limiter b0_l2 = {0, 2};
 static struct limiter b1_l2 = {1, 2};
 
-struct string_list *ignored_structs;
+static struct string_list *ignored_structs;
 
 static int get_the_max(struct expression *expr, sval_t *sval)
 {
