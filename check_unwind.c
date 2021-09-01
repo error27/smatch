@@ -69,6 +69,8 @@ static struct ref_func_info func_table[] = {
 
 	{ "request_free_mem_region", ALLOC,   -1, "$->start", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "__request_region", ALLOC,   1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "release_and_free_resource", RELEASE, 0, "$->start" },
+	{ "release_resource", RELEASE, 0, "$->start" },
 	{ "__release_region", RELEASE, 1, "$" },
 
 	{ "ioremap", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
