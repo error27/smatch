@@ -2376,16 +2376,16 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 	struct compare_data *data;
 	struct var_sym *left, *right;
 	int left_param, right_param;
-	char left_buf[256];
-	char right_buf[256];
+	const char *left_key, *right_key;
 	char info_buf[258];
-	const char *tmp_name;
 
 	print_return_value_comparison(return_id, return_ranges, expr);
 
 	FOR_EACH_MY_SM(link_id, __get_cur_stree(), tmp) {
-		if (get_param_num_from_sym(tmp->sym) < 0)
+		left_param = get_param_key_from_var_sym(tmp->name, tmp->sym, expr, &left_key);
+		if (left_param < -1 || !left_key)
 			continue;
+
 		links = tmp->state->data;
 		FOR_EACH_PTR(links, link) {
 			sm = get_sm_state(comparison_id, link, NULL);
@@ -2405,8 +2405,13 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			    strcmp(left->var, right->var) == 0)
 				continue;
 			/*
-			 * Both parameters link to this comparison so only
-			 * record the first one.
+			 * The both foo and bar in the "foo == bar" comparison
+			 * have link states.  To avoid duplicates only parse
+			 * the comparison if the link state is on the left.
+			 *
+			 * And actually let's move getting the left_name outside
+			 * the loop.
+			 *
 			 */
 			if (left->sym != tmp->sym ||
 			    strcmp(left->var, tmp->name) != 0)
@@ -2415,30 +2420,22 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			if (strstr(right->var, " orig"))
 				continue;
 
-			left_param = get_param_num_from_sym(left->sym);
-			right_param = get_param_num_from_sym(right->sym);
-			if (left_param < 0 || right_param < 0)
+			right_param = get_param_key_from_var_sym(right->var, right->sym, expr, &right_key);
+			if (right_param < 0 || !right_key || right_key[0] != '$')
 				continue;
-
-			tmp_name = get_param_name_var_sym(left->var, left->sym);
-			if (!tmp_name)
-				continue;
-			snprintf(left_buf, sizeof(left_buf), "%s", tmp_name);
-
-			tmp_name = get_param_name_var_sym(right->var, right->sym);
-			if (!tmp_name || tmp_name[0] != '$')
-				continue;
-			snprintf(right_buf, sizeof(right_buf), "$%d%s", right_param, tmp_name + 1);
 
 			/*
-			 * FIXME: this should reject $ type variables (as
-			 * opposed to $->foo type).  Those should come from
-			 * smatch_param_compare_limit.c.
+			 * The same param can have multiple names so we can get
+			 * duplicates.
 			 */
+			if (left_param == right_param &&
+			    strcmp(left_key, right_key) == 0)
+				continue;
 
-			snprintf(info_buf, sizeof(info_buf), "%s %s", show_comparison(data->comparison), right_buf);
+			snprintf(info_buf, sizeof(info_buf), "%s $%d%s",
+				 show_comparison(data->comparison), right_param, right_key + 1);
 			sql_insert_return_states(return_id, return_ranges,
-					PARAM_COMPARE, left_param, left_buf, info_buf);
+					PARAM_COMPARE, left_param, left_key, info_buf);
 		} END_FOR_EACH_PTR(link);
 
 	} END_FOR_EACH_SM(tmp);
