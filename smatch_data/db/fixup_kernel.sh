@@ -230,5 +230,11 @@ insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0, 103
 insert into return_states values ('faked', '$func', 0, 3, '0', 0,    0,  -1, '', '');
 insert into return_states values ('faked', '$func', 0, 3, '0', 0,    103,  0, '\$', '1-long_max');
 EOF
+
 done
+
+# it's easiest to pretend that invalid kobjects don't exist
+ID=$(echo "select distinct(return_id) from return_states where function = 'kobject_init' order by return_id desc limit 1;" | sqlite3 $db_file)
+echo "delete from return_states where function = 'kobject_init' and return_id = '$ID';" | sqlite3 $db_file
+
 
