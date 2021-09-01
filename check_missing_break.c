@@ -158,6 +158,24 @@ static void delete_my_states(int owner)
 	free_slist(&slist);
 }
 
+static void match_fallthrough(struct statement *stmt)
+{
+	const char *macro;
+
+	/*
+	 * I don't know why __attribute__() shows up as an iterator type but I
+	 * feel like this feels like a nice shortcut and it works so far as I
+	 * can tell.
+	 */
+	if (stmt->type != STMT_ITERATOR)
+		return;
+
+	macro = get_macro_name(stmt->pos);
+	if (!macro || strcmp(macro, "fallthrough") != 0)
+		return;
+	delete_my_states(my_id);
+}
+
 static void match_switch_end(struct statement *stmt)
 {
 
@@ -184,6 +202,7 @@ void check_missing_break(int id)
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 	add_hook(&match_stmt, STMT_HOOK);
+	add_hook(&match_fallthrough, STMT_HOOK);
 	add_hook(&match_switch, STMT_HOOK);
 	add_hook(&match_switch_end, STMT_HOOK_AFTER);
 }
