@@ -1,0 +1,7 @@
+copy_from_user 1-u64max
+copy_from_user 1-u64max[==$2]
+copy_from_user 2147483648-u64max[==$2]
+copy_to_user 1-u64max
+copy_to_user 1-u64max[==$2]
+copy_to_user 2147483648-u64max[==$2]
+__irq_domain_activate_irq 1-s32max
