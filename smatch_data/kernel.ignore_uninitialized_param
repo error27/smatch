@@ -112,3 +112,10 @@ adf7242_read_reg 2
 tfp410_readb 2
 asus_wmi_get_devstate 2
 e1000_read_nvm 2
+apds990x_read_word 2
+opb_readl 2
+alx_read_phy_dbg 2
+tc358768_read 2
+smum_send_msg_to_smc 2
+i2c_read_reg 3
+i2c_read_regs 3
