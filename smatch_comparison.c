@@ -2511,6 +2511,53 @@ static int split_op_param_key(char *value, int *op, int *param, char **key)
 	return 1;
 }
 
+void select_caller_info(const char *name, struct symbol *sym, char *value)
+{
+	struct var_sym_list *left_vsl = NULL;
+	struct var_sym_list *right_vsl = NULL;
+	char *right_key, *p, *right_name;
+	struct symbol *right_sym;
+	char comparison_name[128];
+	char right_buf[128];
+	int op, right_param;
+
+	if (!split_op_param_key(value, &op, &right_param, &right_key))
+		return;
+
+	right_sym = get_param_sym_from_num(right_param);
+	if (!right_sym || !right_sym->ident)
+		return;
+
+	p = strchr(right_key, '$');
+	if (!p)
+		return;
+
+	snprintf(right_buf, sizeof(right_buf), "%.*s%s%s", (int)(p - right_key),
+		 right_key, right_sym->ident->name, p + 1);
+	right_name = right_buf;
+
+	if (strcmp(name, right_name) > 0) {
+		struct symbol *tmp_sym = sym;
+		char *tmp_name = (char *)name;
+
+		name = right_name;
+		sym = right_sym;
+		right_name = tmp_name;
+		right_sym = tmp_sym;
+		op = flip_comparison(op);
+	}
+
+	add_var_sym(&left_vsl, name, sym);
+	add_var_sym(&right_vsl, right_name, right_sym);
+
+	snprintf(comparison_name, sizeof(comparison_name), "%s vs %s", name, right_name);
+
+	set_state(comparison_id, comparison_name, NULL,
+		  alloc_compare_state(NULL, name, left_vsl,
+				      op,
+				      NULL, right_name, right_vsl));
+}
+
 static void db_return_comparison(struct expression *expr, int left_param, char *key, char *value)
 {
 	struct expression *left_arg, *right_arg;
@@ -2661,10 +2708,13 @@ void register_comparison(int id)
 	add_pre_merge_hook(comparison_id, &pre_merge_hook);
 	add_merge_hook(comparison_id, &merge_compare_states);
 	add_hook(&free_data, AFTER_FUNC_HOOK);
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_split_return_callback(&print_return_comparison);
 
+	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	select_caller_name_sym(&select_caller_info, PARAM_COMPARE);
+
+	add_split_return_callback(&print_return_comparison);
 	select_return_states_hook(PARAM_COMPARE, &db_return_comparison);
+
 	add_hook(&match_preop, OP_HOOK);
 }
 
