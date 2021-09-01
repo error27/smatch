@@ -1,1 +1,8 @@
-CREATE TABLE mtag_info (file varchar(80), tag big int, type integer, value varchar(80));
+CREATE TABLE mtag_info (
+	file varchar(80),
+	tag big int,
+	type integer,
+	value varchar(80),
+
+	CONSTRAINT mtag_info_row UNIQUE (file, tag, type, value)
+);
