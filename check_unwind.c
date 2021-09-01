@@ -112,6 +112,14 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (parent_is_err_or_null_var_sym(sm->name, sm->sym))
 		return &param_released;
 
+	if (estate_min(state).value == 0 &&
+	    estate_max(state).value == 0)
+		return &param_released;
+	if (estate_type(state) == &int_ctype &&
+	    sval_is_negative(estate_min(state)) &&
+	    (estate_max(state).value == -1 || estate_max(state).value == 0))
+		return &param_released;
+
 	 return &undefined;
 }
 
