@@ -5,14 +5,13 @@ cat << EOF | sqlite3 $db_file
 /* we only care about the main ->read/write() functions. */
 delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
 delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
-delete from caller_info where function = '(struct file_operations)->read' and caller != '__vfs_read';
-delete from caller_info where function = '(struct file_operations)->write' and caller != '__vfs_write';
 delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
-delete from caller_info where function = '__vfs_write' and caller != 'vfs_write';
-delete from caller_info where function = '__vfs_read' and caller != 'vfs_read';
 delete from caller_info where function = '(struct file_operations)->write' and caller = 'do_loop_readv_writev';
+delete from caller_info where caller = '__kernel_write';
 delete from caller_info where function = 'do_splice_from' and caller = 'direct_splice_actor';
+delete from caller_info where function = 'vfs_write' and type = 8017 and parameter = 0;
+delete from caller_info where function = 'vfs_read' and type = 8017 and parameter = 0;
 
 /* delete these function pointers which cause false positives */
 delete from caller_info where function = '(struct file_operations)->open' and type != 0;
@@ -56,10 +55,6 @@ delete from caller_info where function = 'nf_tables_newexpr' and type = 8017 and
 delete from caller_info where caller = 'fb_set_var' and function = '(struct fb_ops)->fb_set_par' and type = 8017 and parameter = 0;
 delete from return_states where function = 'tty_lookup_driver' and parameter = 2 and type = 8017;
 delete from caller_info where function = 'iomap_apply' and type = 8017 and key = '*\$';
-delete from caller_info where function = 'vfs_write' and type = 8017 and parameter = 0;
-delete from caller_info where function = '__vfs_write' and type = 8017 and parameter = 0;
-delete from caller_info where function = 'vfs_read' and type = 8017 and parameter = 0;
-delete from caller_info where function = '__vfs_read' and type = 8017 and parameter = 0;
 delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 9018;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 8017;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 9018;
@@ -129,8 +124,6 @@ delete from return_states where file = 'drivers/pci/access.c' and (return >= 129
 
 /* Smatch can't parse wait_for_completion() */
 update return_states set return = '(-108),(-22),0' where function = '__spi_sync' and return = '(-115),(-108),(-22)';
-
-delete from caller_info where caller = '__kernel_write';
 
 /* We sometimes use pre-allocated 4097 byte buffers for performance critical code but pretend it is always PAGE_SIZE */
 update caller_info set value = 4096 where caller='kernfs_file_direct_read' and function='(struct kernfs_ops)->read' and type = 1002 and parameter = 1;
@@ -228,3 +221,4 @@ insert into return_states values ('faked', '$func', 0, 3, '0', 0,    0,  -1, '',
 insert into return_states values ('faked', '$func', 0, 3, '0', 0,    103,  0, '\$', '1-long_max');
 EOF
 done
+
