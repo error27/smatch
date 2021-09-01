@@ -863,6 +863,7 @@ enum info_type {
 	NOSPEC_WB	= 1036,
 	STMT_CNT	= 1037,
 	TERMINATED	= 1038,
+	SLEEP		= 1039,
 	FRESH_ALLOC	= 1044,
 	ALLOCATOR	= 1045,
 	FUNC_TIME	= 1047,
@@ -873,6 +874,8 @@ enum info_type {
 	BIT_IS_SET	= 1053,
 	BIT_IS_CLEAR	= 1054,
 
+	PREEMPT_ADD	= 2054,
+	PREEMPT_SUB	= 2055,
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	USER_DATA	= 8017,
 	USER_DATA_SET	= 9017,
@@ -1119,6 +1122,15 @@ void set_points_to_user_data(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();
+/* preempt */
+void __preempt_add(void);
+void __preempt_sub(void);
+int get_preempt_cnt(void);
+void clear_preempt_cnt(void);
+bool function_decrements_preempt(void);
+void add_sleep_callback(void_fn *fn);
+unsigned long GFP_DIRECT_RECLAIM(void);
+unsigned long GFP_ATOMIC(void);
 
 /* check_assigned_expr.c */
 extern int check_assigned_expr_id;
