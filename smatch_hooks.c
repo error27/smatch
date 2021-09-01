@@ -33,9 +33,6 @@ struct hook_container {
 ALLOCATOR(hook_container, "hook functions");
 DECLARE_PTR_LIST(hook_func_list, struct hook_container);
 
-typedef void (expr_func)(struct expression *expr);
-typedef void (stmt_func)(struct statement *stmt);
-typedef void (sym_func)(struct symbol *sym);
 typedef void (sym_list_func)(struct symbol_list *sym_list);
 typedef void (array_init_hook)(struct expression *array, int nr);
 
