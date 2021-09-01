@@ -187,6 +187,9 @@ delete from type_size where type = '(struct genl_info)->attrs';
 
 delete from return_states where function = 'fib6_tables_dump' and return = '1';
 
+insert into function_ptr values ("fixup_kernel.sh", "r get_handler()", "ioctl_standard_call ptr param 4", 1);
+insert into function_ptr values ("fixup_kernel.sh", "r get_handler()", "ioctl_standard_iw_point param 3", 1);
+
 delete from return_states where function = 'bus_for_each_dev' and return = '1';
 
 EOF
