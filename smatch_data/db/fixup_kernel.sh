@@ -182,6 +182,9 @@ delete from return_states where function = '__oom_kill_process' and type = 8021;
 /* These can not return NULL */
 delete from return_states where function='ext4_append' and return = '0';
 
+/* Smatch doesn't understand the allocation in genl_family_rcv_msg_attrs_parse() */
+delete from type_size where type = '(struct genl_info)->attrs';
+
 delete from return_states where function = 'fib6_tables_dump' and return = '1';
 
 delete from return_states where function = 'bus_for_each_dev' and return = '1';
