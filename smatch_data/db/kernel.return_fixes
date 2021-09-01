@@ -68,3 +68,16 @@ mutex_lock_killable (-35),(-4) (-4)
 mutex_lock_killable_nested (-35),(-4) (-4)
 ww_mutex_lock_interruptible (-35),(-4) (-4)
 ww_mutex_lock (-35),(-4) (-35)
+__devm_ioremap 1-u64max 4096-ptr_max
+ioremap 0-u64max 4096-ptr_max
+ioremap_uc 0-u64max 4096-ptr_max
+ioremap_wc 0-u64max 4096-ptr_max
+i2c_check_addr_busy 1 (-4095)-(-1)
+xa_err s32min-s32max[$0\ >>\ 2] (-4095)-(-1)[$0\ >>\ 2]
+mv88e6xxx_phy_ppu_disable s32min-(-1),1-s32max (-4095)-(-1)
+alloc_pages_exact_nid 1-u64max 4096-ptr_max
+vzalloc_node 1-18446744073709551614 4096-ptr_max
+vmalloc 1-18446744073709551614 4096-ptr_max
+__vmalloc_node 1-18446744073709551614 4096-ptr_max
+copy_to_user 0-s32max 0-s32max[<=$2]
+copy_from_user 0-s32max 0-s32max[<=$2]
