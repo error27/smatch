@@ -21,6 +21,7 @@ delete from caller_info where function = '(struct irq_router)->get' and type != 
 delete from caller_info where function = '(struct irq_router)->set' and type != 0;
 delete from caller_info where function = '(struct net_device_ops)->ndo_change_mtu' and caller = 'i40e_dbg_netdev_ops_write';
 delete from caller_info where function = '(struct timer_list)->function' and type != 0;
+delete from caller_info where function = '(struct work_struct)->func' and type != 0;
 
 /* 8017 is USER_DATA and  9017 is USER_DATA_SET */
 delete from caller_info where function = 'dev_hard_start_xmit' and type = 8017;
