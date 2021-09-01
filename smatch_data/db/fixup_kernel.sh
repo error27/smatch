@@ -150,6 +150,11 @@ update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_s
 
 /* other atomic stuff */
 delete from return_states where function = 'sg_common_write' and type = 8023;
+delete from return_states where function = 'schedule' and type = 8024;
+delete from return_states where function = '__mutex_lock_common' and type = 8024;
+delete from return_states where function = 'mutex_unlock' and type = 8024;
+delete from return_states where function = 'printk' and type = 8024;
+delete from return_states where function = 'vsnprintf' and type = 8024;
 
 update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
 update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
