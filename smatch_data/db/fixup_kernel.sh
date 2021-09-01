@@ -98,14 +98,6 @@ insert into return_states values ('faked', 'ksize', 0, 1, '0', 0,    0, -1, '', 
 insert into return_states values ('faked', 'ksize', 0, 1, '0', 0, 103,  0, '\$', '16');
 insert into return_states values ('faked', 'ksize', 0, 2, '1-4000000', 0,    0,  -1, '', '');
 
-/* store a bunch of capped functions */
-update return_states set return = '0-u32max[<=\$2]' where function = 'copy_to_user';
-update return_states set return = '0-u32max[<=\$2]' where function = '_copy_to_user';
-update return_states set return = '0-u32max[<=\$2]' where function = '__copy_to_user';
-update return_states set return = '0-u32max[<=\$2]' where function = 'copy_from_user';
-update return_states set return = '0-u32max[<=\$2]' where function = '_copy_from_user';
-update return_states set return = '0-u32max[<=\$2]' where function = '__copy_from_user';
-
 update return_states set return = '0-8' where function = '__arch_hweight8';
 update return_states set return = '0-16' where function = '__arch_hweight16';
 update return_states set return = '0-32' where function = '__arch_hweight32';
