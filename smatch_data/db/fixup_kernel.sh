@@ -35,6 +35,7 @@ delete from return_states where function='scnprintf' and type = 8017;
 delete from return_states where function='vsnprintf' and type = 8017;
 delete from return_states where function='snprintf' and type = 8017;
 delete from return_states where function='sprintf' and type = 8017;
+delete from return_states where function='poly1305_update' and type = 8017 and key = '\$->buflen';
 /* There is something setting skb->sk->sk_mark and friends to user_data and */
 /* because of recursion it gets passed to everything and is impossible to debug */
 delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
@@ -59,6 +60,8 @@ delete from caller_info where function = 'iomap_apply' and type = 8017 and key =
 delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 9018;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 8017;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 9018;
+# this is just too complicated for Smatch.  See how snd_ctl_find_id() is called.
+delete from caller_info where function = 'snd_ctl_notify_one' and type = 8017;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');
