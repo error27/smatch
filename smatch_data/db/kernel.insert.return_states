@@ -11,11 +11,18 @@ dlfb_submit_urb, "0" | 8021, 0, "$->urbs.limit_sem", ""
 hfs_find_exit, "" | 8021, 0, "$->tree->tree_lock", ""
 btrfs_tree_unlock, "" | 8021, 0, "$->lock", ""
 
+# The list_add_tail() can change ->next if it's the first item on the list
+list_add_tail, "" | 1012, 1, "$->next", "4096-ptr_max"
+
 # add PARAM_LIMITs
 vzalloc, "1-18446744073709551614" | 103, 0, "$", "1-128000000"
 __vmalloc_node, "1-18446744073709551614" | 103, 0, "$", "1-128000000"
+pin_user_pages, "1-s64max" | 103, 1, "$", "1-s32max"
 
 # The __device_attach_driver() function is too complicated for smatch
 device_add, "(-22),(-12),0", | 1012, 0, "$->driver", "4096-ptr_max"
 device_add, "0", 	     | 1012, 0, "$->driver", "4096-ptr_max"
 device_add, "s32min-s32max", | 1012, 0, "$->driver", "4096-ptr_max"
+
+# ATOMIC_INC/DEV stuff
+intel_context_put, "", | 8024, -2, "engine->gt->vm->ref.refcount.ref.counter", ""
