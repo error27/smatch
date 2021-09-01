@@ -179,8 +179,14 @@ update return_states set parameter = -1, key = '\$' where function = 'ipmi_ssif_
 update return_states set parameter = 1, key = '\$->tree->tree_lock' where function = 'hfs_find_init' and type = 8020 and parameter = 0;
 delete from return_states where function = '__oom_kill_process' and type = 8021;
 
-EOF
+/* These can not return NULL */
+delete from return_states where function='ext4_append' and return = '0';
 
+delete from return_states where function = 'fib6_tables_dump' and return = '1';
+
+delete from return_states where function = 'bus_for_each_dev' and return = '1';
+
+EOF
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
     echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 $db_file
@@ -202,7 +208,6 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
     echo "insert into function_ptr values ('$file', '$function', '$drv (struct rtl_hal_ops)->set_hw_reg', 1);" \
          | sqlite3 $db_file
 done
-
 
 for func in __kmalloc __kmalloc_track_caller ; do
 
