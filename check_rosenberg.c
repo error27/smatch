@@ -60,28 +60,35 @@ static void print_holey_warning(struct expression *data, const char *member)
 
 static int check_struct(struct expression *expr, struct symbol *type)
 {
-	struct symbol *tmp, *base_type;
-	const char *prev = NULL;
+	struct symbol *base_type, *prev_type;
+	struct symbol *tmp, *prev;
 	int align;
 
 	if (type->ctype.alignment == 1)
 		return 0;
 
 	align = 0;
+	prev = NULL;
+	prev_type = NULL;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
 		base_type = get_real_base_type(tmp);
 		if (base_type && base_type->type == SYM_STRUCT) {
 			if (check_struct(expr, base_type))
 				return 1;
 		}
+		if (base_type && base_type->type == SYM_BITFIELD &&
+		    prev_type && prev_type->type == SYM_BITFIELD)
+			goto next;
 
 		if (!tmp->ctype.alignment) {
 			sm_perror("cannot determine the alignment here");
 		} else if (align % tmp->ctype.alignment) {
-			print_holey_warning(expr, prev);
+
+			print_holey_warning(expr, prev->ident ? prev->ident->name : "<unknown>");
 			return 1;
 		}
 
+next:
 		if (base_type == &bool_ctype)
 			align += 1;
 		else if (type_bits(tmp) <= 0)
@@ -89,14 +96,20 @@ static int check_struct(struct expression *expr, struct symbol *type)
 		else
 			align += type_bytes(tmp);
 
-		if (tmp->ident)
-			prev = tmp->ident->name;
-		else
-			prev = NULL;
+		prev = tmp;
+		prev_type = base_type;
 	} END_FOR_EACH_PTR(tmp);
 
+	// FIXME: this isn't the correct fix.  See sbni_siocdevprivate().
+	if (prev_type && prev_type->type == SYM_BITFIELD)
+		return 0;
 	if (align % type->ctype.alignment) {
-		print_holey_warning(expr, prev);
+			sm_msg("%s: tmp='%s' align=%d ctype.align=%ld type='%s'", __func__,
+			       tmp->ident ? tmp->ident->name : "<unknown>",
+			       align, tmp->ctype.alignment,
+			       type_to_str(get_real_base_type(tmp)));
+
+		print_holey_warning(expr, (prev && prev->ident) ? prev->ident->name : "<unknown>");
 		return 1;
 	}
 
