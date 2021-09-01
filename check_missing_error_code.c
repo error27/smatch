@@ -112,7 +112,7 @@ static int check_pool(struct sm_state *goto_sm, struct sm_state *extra_sm)
 	int line = 0;
 	sval_t sval;
 
-	if (!goto_sm->pool)
+	if (goto_sm->merged || !goto_sm->pool)
 		return 0;
 
 	orig = __swap_cur_stree(goto_sm->pool);
