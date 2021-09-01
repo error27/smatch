@@ -190,6 +190,9 @@ delete from return_states where function = 'fib6_tables_dump' and return = '1';
 insert into function_ptr values ("fixup_kernel.sh", "r get_handler()", "ioctl_standard_call ptr param 4", 1);
 insert into function_ptr values ("fixup_kernel.sh", "r get_handler()", "ioctl_standard_iw_point param 3", 1);
 
+/* device_add() returns too many states so delete stuff */
+delete from return_states where function = '__device_attach' and type = 1012;
+
 delete from return_states where function = 'bus_for_each_dev' and return = '1';
 
 EOF
