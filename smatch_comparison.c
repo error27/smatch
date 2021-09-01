@@ -2570,7 +2570,6 @@ free:
 
 int param_compare_limit_is_impossible(struct expression *expr, int left_param, char *left_key, char *value)
 {
-	struct smatch_state *state;
 	char *left_name = NULL;
 	char *right_name = NULL;
 	struct symbol *left_sym, *right_sym;
@@ -2579,7 +2578,6 @@ int param_compare_limit_is_impossible(struct expression *expr, int left_param, c
 	int right_param;
 	char *right_key;
 	int ret = 0;
-	char buf[256];
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -2602,15 +2600,12 @@ int param_compare_limit_is_impossible(struct expression *expr, int left_param, c
 	if (!left_name || !right_name)
 		goto free;
 
-	snprintf(buf, sizeof(buf), "%s vs %s", left_name, right_name);
-	state = get_state(comparison_id, buf, NULL);
-	if (!state)
-		goto free;
-	state_op = state_to_comparison(state);
+	state_op = get_comparison_strings(left_name, right_name);
 	if (!state_op)
 		goto free;
 
-	if (!comparison_intersection(remove_unsigned_from_comparison(state_op), op))
+	if (comparison_intersection(remove_unsigned_from_comparison(state_op), op)
+			== IMPOSSIBLE_COMPARISON)
 		ret = 1;
 free:
 	free_string(left_name);
