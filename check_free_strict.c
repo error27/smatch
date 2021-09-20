@@ -253,15 +253,15 @@ static void match_return(struct expression *expr)
 	free_string(name);
 }
 
-static int counter_was_inced_name_sym(const char *name, struct symbol *sym)
+static int counter_was_inced_name_sym(const char *name, struct symbol *sym, const char *counter_str)
 {
 	char buf[256];
 
-	snprintf(buf, sizeof(buf), "%s->users.refs.counter", name);
+	snprintf(buf, sizeof(buf), "%s%s", name, counter_str);
 	return was_inced(buf, sym);
 }
 
-static int counter_was_inced(struct expression *expr)
+static int counter_was_inced(struct expression *expr, const char *counter_str)
 {
 	char *name;
 	struct symbol *sym;
@@ -271,7 +271,7 @@ static int counter_was_inced(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 
-	ret = counter_was_inced_name_sym(name, sym);
+	ret = counter_was_inced_name_sym(name, sym, counter_str);
 free:
 	free_string(name);
 	return ret;
@@ -317,15 +317,15 @@ free:
 	free_string(name);
 }
 
-static bool sk_buff_pointer(struct expression *expr)
+static bool is_ptr_to(struct expression *expr, const char *type)
 {
-	struct symbol *type;
+	struct symbol *sym;
 
-	type = get_type(expr);
-	if (!is_ptr_type(type))
+	sym = get_type(expr);
+	if (!is_ptr_type(sym))
 		return false;
-	type = get_real_base_type(type);
-	if (type && type->ident && strcmp(type->ident->name, "sk_buff") == 0)
+	sym = get_real_base_type(sym);
+	if (sym && sym->ident && strcmp(sym->ident->name, type) == 0)
 		return true;
 	return false;
 }
@@ -340,7 +340,11 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
 	if (!arg)
 		return;
-	if (sk_buff_pointer(arg) && counter_was_inced(arg))
+	if (is_ptr_to(arg, "sk_buff") &&
+	    counter_was_inced(arg, "->users.refs.counter"))
+		return;
+	if (is_ptr_to(arg, "buffer_head") &&
+	    counter_was_inced(arg, "->b_count.counter"))
 		return;
 	if (is_freed(arg)) {
 		char *name = expr_to_var(arg);
@@ -408,7 +412,7 @@ static void set_param_helper(struct expression *expr, int param,
 		goto free;
 
 	/* skbs are not free if we called skb_get(). */
-	if (counter_was_inced_name_sym(name, sym))
+	if (counter_was_inced_name_sym(name, sym, "->users.refs.counter"))
 		goto free;
 
 	if (state == &freed && !is_impossible_path()) {
