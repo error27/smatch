@@ -1,4 +1,4 @@
-VERSION=0.6.3
+VERSION=0.6.4
 
 ########################################################################
 # The following variables can be overwritten from the command line
@@ -64,7 +64,6 @@ LIB_OBJS += show-parse.o
 LIB_OBJS += simplify.o
 LIB_OBJS += sort.o
 LIB_OBJS += ssa.o
-LIB_OBJS += sset.o
 LIB_OBJS += stats.o
 LIB_OBJS += storage.o
 LIB_OBJS += symbol.o
@@ -94,6 +93,7 @@ LIB_OBJS += utils.o
 LIB_OBJS += macro_table.o
 LIB_OBJS += token_store.o
 LIB_OBJS += cwchash/hashtable.o
+LIB_OBJS += version.o
 
 PROGRAMS :=
 PROGRAMS += compile
@@ -231,6 +231,13 @@ $(warning sparse-llvm disabled on ${arch})
 endif
 else
 $(warning Your system does not have llvm, disabling sparse-llvm)
+endif
+
+ifeq ($(HAVE_BOOLECTOR),yes)
+PROGRAMS += scheck
+scheck-cflags  := -I${BOOLECTORDIR}/include/boolector
+scheck-ldflags := -L${BOOLECTORDIR}/lib
+scheck-ldlibs  := -lboolector -llgl -lbtor2parser
 endif
 
 ########################################################################
@@ -400,7 +407,7 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 selfcheck: $(OBJS:.o=.sc)
 
 SPARSE_VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(VERSION)')
-lib.o: version.h
+version.o: version.h
 version.h: FORCE
 	@echo '#define SPARSE_VERSION "$(SPARSE_VERSION)"' > version.h.tmp
 	@if cmp -s version.h version.h.tmp; then \

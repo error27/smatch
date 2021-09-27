@@ -298,14 +298,6 @@ static inline void remove_instruction(struct instruction_list **list, struct ins
 	delete_ptr_list_entry((struct ptr_list **)list, insn, count);
 }
 
-static void add_instruction_to_end(struct instruction *insn, struct basic_block *bb)
-{
-	struct instruction *br = delete_last_instruction(&bb->insns);
-	insn->bb = bb;
-	add_instruction(&bb->insns, insn);
-	add_instruction(&bb->insns, br);
-}
-
 static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction *i1, struct instruction *i2)
 {
 	struct basic_block *b1, *b2, *common;
@@ -343,7 +335,7 @@ static struct instruction * try_to_cse(struct entrypoint *ep, struct instruction
 	if (common) {
 		i1 = cse_one_instruction(i2, i1);
 		remove_instruction(&b1->insns, i1, 1);
-		add_instruction_to_end(i1, common);
+		insert_last_instruction(common, i1);
 	} else {
 		i1 = i2;
 	}

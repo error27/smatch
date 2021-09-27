@@ -18,7 +18,7 @@ struct pseudo_user {
 
 DECLARE_ALLOCATOR(pseudo_user);
 DECLARE_PTR_LIST(pseudo_user_list, struct pseudo_user);
-DECLARE_PTRMAP(phi_map, struct symbol *, pseudo_t);
+DECLARE_PTRMAP(phi_map, struct symbol *, struct instruction *);
 
 
 enum pseudo_type {
@@ -56,6 +56,11 @@ static inline bool is_zero(pseudo_t pseudo)
 static inline bool is_nonzero(pseudo_t pseudo)
 {
 	return pseudo->type == PSEUDO_VAL && pseudo->value != 0;
+}
+
+static inline bool is_positive(pseudo_t pseudo, unsigned size)
+{
+	return pseudo->type == PSEUDO_VAL && !(pseudo->value & sign_bit(size));
 }
 
 
@@ -109,10 +114,11 @@ struct instruction {
 		};
 		struct /* phi source */ {
 			pseudo_t phi_src;
-			struct instruction_list *phi_users;
+			struct instruction *phi_node;
 		};
 		struct /* unops */ {
 			pseudo_t src;
+			unsigned from;			/* slice */
 			struct symbol *orig_type;	/* casts */
 		};
 		struct /* memops */ {
@@ -126,10 +132,6 @@ struct instruction {
 		struct /* compare */ {
 			pseudo_t _src1, _src2;		// alias .src[12]
 			struct symbol *itype;		// input operands' type
-		};
-		struct /* slice */ {
-			pseudo_t base;
-			unsigned from, len;
 		};
 		struct /* setval */ {
 			struct expression *val;
@@ -150,6 +152,8 @@ struct instruction {
 		struct /* asm */ {
 			const char *string;
 			struct asm_rules *asm_rules;
+			unsigned int clobber_memory:1;
+			unsigned int output_memory:1;
 		};
 	};
 };
@@ -194,6 +198,14 @@ static inline void add_bb(struct basic_block_list **list, struct basic_block *bb
 static inline void add_instruction(struct instruction_list **list, struct instruction *insn)
 {
 	add_ptr_list(list, insn);
+}
+
+static inline void insert_last_instruction(struct basic_block *bb, struct instruction *insn)
+{
+	struct instruction *last = delete_last_instruction(&bb->insns);
+	add_instruction(&bb->insns, insn);
+	add_instruction(&bb->insns, last);
+	insn->bb = bb;
 }
 
 static inline void add_multijmp(struct multijmp_list **list, struct multijmp *multijmp)
@@ -292,6 +304,12 @@ static inline void use_pseudo(struct instruction *insn, pseudo_t p, pseudo_t *pp
 		add_pseudo_user_ptr(alloc_pseudo_user(insn, pp), &p->users);
 }
 
+static inline void link_phi(struct instruction *node, pseudo_t phi)
+{
+	use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+	phi->def->phi_node = node;
+}
+
 static inline void remove_bb_from_list(struct basic_block_list **list, struct basic_block *entry, int count)
 {
 	delete_ptr_list_entry((struct ptr_list **)list, entry, count);
@@ -314,7 +332,6 @@ struct entrypoint {
 };
 
 extern void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi, pseudo_t if_true, pseudo_t if_false);
-extern void insert_branch(struct basic_block *bb, struct instruction *br, struct basic_block *target);
 
 struct instruction *alloc_phisrc(pseudo_t pseudo, struct symbol *type);
 struct instruction *alloc_phi_node(struct basic_block *bb, struct symbol *type, struct ident *ident);

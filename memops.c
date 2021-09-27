@@ -17,23 +17,20 @@
 #include "simplify.h"
 #include "flow.h"
 
-/*
- * We should probably sort the phi list just to make it easier to compare
- * later for equality.
- */
 static void rewrite_load_instruction(struct instruction *insn, struct pseudo_list *dominators)
 {
-	pseudo_t new, phi;
+	pseudo_t new = NULL;
+	pseudo_t phi;
 
 	/*
 	 * Check for somewhat common case of duplicate
 	 * phi nodes.
 	 */
-	new = first_pseudo(dominators)->def->phi_src;
 	FOR_EACH_PTR(dominators, phi) {
-		if (new != phi->def->phi_src)
+		if (!new)
+			new = phi->def->phi_src;
+		else if (new != phi->def->phi_src)
 			goto complex_phi;
-		new->ident = new->ident ? : phi->ident;
 	} END_FOR_EACH_PTR(phi);
 
 	/*
@@ -48,9 +45,7 @@ static void rewrite_load_instruction(struct instruction *insn, struct pseudo_lis
 	goto end;
 
 complex_phi:
-	/* We leave symbol pseudos with a bogus usage list here */
-	if (insn->src->type != PSEUDO_SYM)
-		kill_use(&insn->src);
+	kill_use(&insn->src);
 	insn->opcode = OP_PHI;
 	insn->phi_list = dominators;
 
@@ -58,15 +53,15 @@ end:
 	repeat_phase |= REPEAT_CSE;
 }
 
-static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
-	struct basic_block *bb, unsigned long generation, struct pseudo_list **dominators,
+static int find_dominating_parents(struct instruction *insn,
+	struct basic_block *bb, struct pseudo_list **dominators,
 	int local)
 {
 	struct basic_block *parent;
 
 	FOR_EACH_PTR(bb->parents, parent) {
+		struct instruction *phisrc;
 		struct instruction *one;
-		struct instruction *br;
 		pseudo_t phi;
 
 		FOR_EACH_PTR_REVERSE(parent->insns, one) {
@@ -75,7 +70,7 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 				continue;
 			if (one == insn)
 				goto no_dominance;
-			dominance = dominates(pseudo, insn, one, local);
+			dominance = dominates(insn, one, local);
 			if (dominance < 0) {
 				if (one->opcode == OP_LOAD)
 					continue;
@@ -86,19 +81,20 @@ static int find_dominating_parents(pseudo_t pseudo, struct instruction *insn,
 			goto found_dominator;
 		} END_FOR_EACH_PTR_REVERSE(one);
 no_dominance:
-		if (parent->generation == generation)
+		if (parent->generation == bb->generation)
 			continue;
-		parent->generation = generation;
+		parent->generation = bb->generation;
 
-		if (!find_dominating_parents(pseudo, insn, parent, generation, dominators, local))
+		if (!find_dominating_parents(insn, parent, dominators, local))
 			return 0;
 		continue;
 
 found_dominator:
-		br = delete_last_instruction(&parent->insns);
-		phi = alloc_phi(parent, one->target, one->type);
+		phisrc = alloc_phisrc(one->target, one->type);
+		phisrc->phi_node = insn;
+		insert_last_instruction(parent, phisrc);
+		phi = phisrc->target;
 		phi->ident = phi->ident ? : one->target->ident;
-		add_instruction(&parent->insns, br);
 		use_pseudo(insn, phi, add_pseudo(dominators, phi));
 	} END_FOR_EACH_PTR(parent);
 	return 1;
@@ -145,7 +141,6 @@ static void simplify_loads(struct basic_block *bb)
 			pseudo_t pseudo = insn->src;
 			int local = local_pseudo(pseudo);
 			struct pseudo_list *dominators;
-			unsigned long generation;
 
 			if (insn->is_volatile)
 				continue;
@@ -159,7 +154,7 @@ static void simplify_loads(struct basic_block *bb)
 				int dominance;
 				if (!dom->bb)
 					continue;
-				dominance = dominates(pseudo, insn, dom, local);
+				dominance = dominates(insn, dom, local);
 				if (dominance) {
 					/* possible partial dominance? */
 					if (dominance < 0)  {
@@ -176,10 +171,9 @@ static void simplify_loads(struct basic_block *bb)
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, go find the parents */
-			generation = ++bb_generation;
-			bb->generation = generation;
+			bb->generation = ++bb_generation;
 			dominators = NULL;
-			if (find_dominating_parents(pseudo, insn, bb, generation, &dominators, local)) {
+			if (find_dominating_parents(insn, bb, &dominators, local)) {
 				/* This happens with initial assignments to structures etc.. */
 				if (!dominators) {
 					if (local) {
@@ -203,6 +197,30 @@ next_load:
 	} END_FOR_EACH_PTR_REVERSE(insn);
 }
 
+static bool try_to_kill_store(struct instruction *insn,
+			     struct instruction *dom, int local)
+{
+	int dominance = dominates(insn, dom, local);
+
+	if (dominance) {
+		/* possible partial dominance? */
+		if (dominance < 0)
+			return false;
+		if (insn->target == dom->target && insn->bb == dom->bb) {
+			// found a memop which makes the store redundant
+			kill_instruction_force(insn);
+			return false;
+		}
+		if (dom->opcode == OP_LOAD)
+			return false;
+		if (dom->is_volatile)
+			return false;
+		/* Yeehaa! Found one! */
+		kill_instruction_force(dom);
+	}
+	return true;
+}
+
 static void kill_dominated_stores(struct basic_block *bb)
 {
 	struct instruction *insn;
@@ -211,6 +229,7 @@ static void kill_dominated_stores(struct basic_block *bb)
 		if (!insn->bb)
 			continue;
 		if (insn->opcode == OP_STORE) {
+			struct basic_block *par;
 			struct instruction *dom;
 			pseudo_t pseudo = insn->src;
 			int local;
@@ -222,22 +241,28 @@ static void kill_dominated_stores(struct basic_block *bb)
 
 			local = local_pseudo(pseudo);
 			RECURSE_PTR_REVERSE(insn, dom) {
-				int dominance;
 				if (!dom->bb)
 					continue;
-				dominance = dominates(pseudo, insn, dom, local);
-				if (dominance) {
-					/* possible partial dominance? */
-					if (dominance < 0)
-						goto next_store;
-					if (dom->opcode == OP_LOAD)
-						goto next_store;
-					/* Yeehaa! Found one! */
-					kill_instruction_force(dom);
-				}
+				if (!try_to_kill_store(insn, dom, local))
+					goto next_store;
 			} END_FOR_EACH_PTR_REVERSE(dom);
 
 			/* OK, we should check the parents now */
+			FOR_EACH_PTR(bb->parents, par) {
+
+				if (bb_list_size(par->children) != 1)
+					goto next_parent;
+				FOR_EACH_PTR(par->insns, dom) {
+					if (!dom->bb)
+						continue;
+					if (dom == insn)
+						goto next_parent;
+					if (!try_to_kill_store(insn, dom, local))
+						goto next_parent;
+				} END_FOR_EACH_PTR(dom);
+next_parent:
+				;
+			} END_FOR_EACH_PTR(par);
 		}
 next_store:
 		/* Do the next one */;

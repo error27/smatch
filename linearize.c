@@ -407,11 +407,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_PHISOURCE: {
-		struct instruction *phi;
 		buf += sprintf(buf, "%s <- %s    ", show_pseudo(insn->target), show_pseudo(insn->phi_src));
-		FOR_EACH_PTR(insn->phi_users, phi) {
-			buf += sprintf(buf, " (%s)", show_pseudo(phi->target));
-		} END_FOR_EACH_PTR(phi);
 		break;
 	}
 
@@ -470,7 +466,7 @@ const char *show_instruction(struct instruction *insn)
 		break;
 
 	case OP_SLICE:
-		buf += sprintf(buf, "%s <- %s, %d, %d", show_pseudo(insn->target), show_pseudo(insn->base), insn->from, insn->len);
+		buf += sprintf(buf, "%s <- (%d) %s, %d", show_pseudo(insn->target), type_size(insn->orig_type), show_pseudo(insn->src), insn->from);
 		break;
 
 	case OP_NOT: case OP_NEG:
@@ -696,52 +692,12 @@ static void set_activeblock(struct entrypoint *ep, struct basic_block *bb)
 		add_bb(&ep->bbs, bb);
 }
 
-static void remove_parent(struct basic_block *child, struct basic_block *parent)
-{
-	remove_bb_from_list(&child->parents, parent, 1);
-	if (!child->parents)
-		repeat_phase |= REPEAT_CFG_CLEANUP;
-}
-
-/* Change a "switch" or a conditional branch into a branch */
-void insert_branch(struct basic_block *bb, struct instruction *jmp, struct basic_block *target)
-{
-	struct instruction *br, *old;
-	struct basic_block *child;
-
-	/* Remove the switch */
-	old = delete_last_instruction(&bb->insns);
-	assert(old == jmp);
-	kill_instruction(old);
-
-	br = alloc_instruction(OP_BR, 0);
-	br->bb = bb;
-	br->bb_true = target;
-	add_instruction(&bb->insns, br);
-
-	FOR_EACH_PTR(bb->children, child) {
-		if (child == target) {
-			target = NULL;	/* Trigger just once */
-			continue;
-		}
-		DELETE_CURRENT_PTR(child);
-		remove_parent(child, bb);
-	} END_FOR_EACH_PTR(child);
-	PACK_PTR_LIST(&bb->children);
-	repeat_phase |= REPEAT_CFG_CLEANUP;
-}
-	
-
 void insert_select(struct basic_block *bb, struct instruction *br, struct instruction *phi_node, pseudo_t if_true, pseudo_t if_false)
 {
 	pseudo_t target;
 	struct instruction *select;
 
-	/* Remove the 'br' */
-	delete_last_instruction(&bb->insns);
-
 	select = alloc_typed_instruction(OP_SEL, phi_node->type);
-	select->bb = bb;
 
 	assert(br->cond);
 	use_pseudo(select, br->cond, &select->src1);
@@ -754,8 +710,7 @@ void insert_select(struct basic_block *bb, struct instruction *br, struct instru
 	use_pseudo(select, if_true, &select->src2);
 	use_pseudo(select, if_false, &select->src3);
 
-	add_instruction(&bb->insns, select);
-	add_instruction(&bb->insns, br);
+	insert_last_instruction(bb, select);
 }
 
 static inline int bb_empty(struct basic_block *bb)
@@ -1239,8 +1194,8 @@ static pseudo_t linearize_slice(struct entrypoint *ep, struct expression *expr)
 
 	insn->target = new;
 	insn->from = expr->r_bitpos;
-	insn->len = expr->r_nrbits;
-	use_pseudo(insn, pre, &insn->base);
+	insn->orig_type = expr->base->ctype;
+	use_pseudo(insn, pre, &insn->src);
 	add_one_insn(ep, insn);
 	return new;
 }
@@ -1537,7 +1492,7 @@ static pseudo_t linearize_assignment(struct entrypoint *ep, struct expression *e
 static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expression *expr)
 {
 	struct expression *arg, *fn;
-	struct instruction *insn = alloc_typed_instruction(OP_CALL, expr->ctype);
+	struct instruction *insn;
 	pseudo_t retval, call;
 	struct ctype *ctype = NULL;
 	struct symbol *fntype;
@@ -1558,6 +1513,7 @@ static pseudo_t linearize_call_expression(struct entrypoint *ep, struct expressi
 
 	ctype = &fntype->ctype;
 
+	insn = alloc_typed_instruction(OP_CALL, expr->ctype);
 	add_symbol(&insn->fntypes, fntype);
 	FOR_EACH_PTR(expr->args, arg) {
 		pseudo_t new = linearize_expression(ep, arg);
@@ -1678,13 +1634,13 @@ static pseudo_t add_join_conditional(struct entrypoint *ep, struct expression *e
 	struct instruction *phi_node;
 
 	if (phi1 == VOID)
-		return phi2;
+		return (phi2 == VOID) ? phi2 : phi2->def->src;
 	if (phi2 == VOID)
-		return phi1;
+		return (phi1 == VOID) ? phi1 : phi1->def->src;
 
 	phi_node = alloc_typed_instruction(OP_PHI, expr->ctype);
-	use_pseudo(phi_node, phi1, add_pseudo(&phi_node->phi_list, phi1));
-	use_pseudo(phi_node, phi2, add_pseudo(&phi_node->phi_list, phi2));
+	link_phi(phi_node, phi1);
+	link_phi(phi_node, phi2);
 	phi_node->target = target = alloc_pseudo(phi_node);
 	add_one_insn(ep, phi_node);
 	return target;
@@ -1753,10 +1709,9 @@ static void insert_phis(struct basic_block *bb, pseudo_t src, struct symbol *cty
 	struct basic_block *parent;
 
 	FOR_EACH_PTR(bb->parents, parent) {
-		struct instruction *br = delete_last_instruction(&parent->insns);
-		pseudo_t phi = alloc_phi(parent, src, ctype);
-		add_instruction(&parent->insns, br);
-		use_pseudo(node, phi, add_pseudo(&node->phi_list, phi));
+		struct instruction *phisrc = alloc_phisrc(src, ctype);
+		insert_last_instruction(parent, phisrc);
+		link_phi(node, phisrc->target);
 	} END_FOR_EACH_PTR(parent);
 }
 
@@ -1789,7 +1744,7 @@ static pseudo_t linearize_logical(struct entrypoint *ep, struct expression *expr
 	src2 = linearize_expression_to_bool(ep, expr->right);
 	src2 = cast_pseudo(ep, src2, &bool_ctype, ctype);
 	phi2 = alloc_phi(ep->active, src2, ctype);
-	use_pseudo(node, phi2, add_pseudo(&node->phi_list, phi2));
+	link_phi(node, phi2);
 
 	// join
 	set_activeblock(ep, merge);
@@ -2049,7 +2004,7 @@ static void add_return(struct entrypoint *ep, struct basic_block *bb, struct sym
 	}
 	phi = alloc_phi(ep->active, src, ctype);
 	phi->ident = &return_ident;
-	use_pseudo(phi_node, phi, add_pseudo(&phi_node->phi_list, phi));
+	link_phi(phi_node, phi);
 }
 
 static pseudo_t linearize_fn_statement(struct entrypoint *ep, struct statement *stmt)
@@ -2127,43 +2082,55 @@ static pseudo_t linearize_range(struct entrypoint *ep, struct statement *stmt)
 ALLOCATOR(asm_rules, "asm rules");
 ALLOCATOR(asm_constraint, "asm constraints");
 
-static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+static void add_asm_rule(struct instruction *insn, struct asm_constraint_list **list, struct asm_operand *op, pseudo_t pseudo)
 {
-	pseudo_t pseudo = linearize_expression(ep, op->expr);
 	struct asm_constraint *rule = __alloc_asm_constraint(0);
-
+	rule->is_memory = op->is_memory;
 	rule->ident = op->name;
 	rule->constraint = op->constraint ? op->constraint->string->data : "";
 	use_pseudo(insn, pseudo, &rule->pseudo);
-	add_ptr_list(&insn->asm_rules->inputs, rule);
+	add_ptr_list(list, rule);
+}
+
+static void add_asm_input(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+{
+	pseudo_t pseudo = linearize_expression(ep, op->expr);
+
+	add_asm_rule(insn, &insn->asm_rules->inputs, op, pseudo);
+}
+
+static void add_asm_output_address(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
+{
+	pseudo_t pseudo;
+
+	if (!op->is_memory)
+		return;
+
+	pseudo = linearize_expression(ep, op->expr);
+	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
+	insn->output_memory = 1;
 }
 
 static void add_asm_output(struct entrypoint *ep, struct instruction *insn, struct asm_operand *op)
 {
 	struct access_data ad = { NULL, };
 	pseudo_t pseudo;
-	struct asm_constraint *rule;
 
-	if (op->is_memory) {
-		pseudo = linearize_expression(ep, op->expr);
-	} else {
-		if (!linearize_address_gen(ep, op->expr, &ad))
-			return;
-		pseudo = alloc_pseudo(insn);
-		linearize_store_gen(ep, pseudo, &ad);
-	}
-	rule = __alloc_asm_constraint(0);
-	rule->is_memory = op->is_memory;
-	rule->ident = op->name;
-	rule->constraint = op->constraint ? op->constraint->string->data : "";
-	use_pseudo(insn, pseudo, &rule->pseudo);
-	add_ptr_list(&insn->asm_rules->outputs, rule);
+	if (op->is_memory)
+		return;
+
+	if (!linearize_address_gen(ep, op->expr, &ad))
+		return;
+	pseudo = alloc_pseudo(insn);
+	linearize_store_gen(ep, pseudo, &ad);
+
+	add_asm_rule(insn, &insn->asm_rules->outputs, op, pseudo);
 }
 
 static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement *stmt)
 {
 	struct instruction *insn;
-	struct expression *expr;
+	struct expression *expr, *clob;
 	struct asm_rules *rules;
 	struct asm_operand *op;
 
@@ -2183,12 +2150,23 @@ static pseudo_t linearize_asm_statement(struct entrypoint *ep, struct statement 
 		add_asm_input(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
 
+	/* ... and the addresses for memory outputs */
+	FOR_EACH_PTR(stmt->asm_outputs, op) {
+		add_asm_output_address(ep, insn, op);
+	} END_FOR_EACH_PTR(op);
+
 	add_one_insn(ep, insn);
 
 	/* Assign the outputs */
 	FOR_EACH_PTR(stmt->asm_outputs, op) {
 		add_asm_output(ep, insn, op);
 	} END_FOR_EACH_PTR(op);
+
+	/* and finally, look if it clobbers memory */
+	FOR_EACH_PTR(stmt->asm_clobbers, clob) {
+		if (!strcmp(clob->string->data, "memory"))
+			insn->clobber_memory = 1;
+	} END_FOR_EACH_PTR(clob);
 
 	return VOID;
 }

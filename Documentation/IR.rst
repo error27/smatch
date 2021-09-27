@@ -381,7 +381,7 @@ Others
 	* .phi_src: operand (type must be compatible with .target, alias .src)
 	* .target: the "result" PSEUDO_PHI
 	* .type: type of .target
-	* .phi_users: list of phi instructions using the target pseudo
+	* .phi_node: the unique phi instruction using the target pseudo
 
 .. op:: OP_CALL
 	Function call.
@@ -408,7 +408,7 @@ Others
 	Extract a "slice" from an aggregate.
 
 	* .base: (pseudo_t) aggregate (alias .src)
-	* .from, .len: offet & size of the "slice" within the aggregate
+	* .from: offset of the "slice" within the aggregate
 	* .target: result
 	* .type: type of .target
 

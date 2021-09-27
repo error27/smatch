@@ -1,0 +1,105 @@
+v0.6.4 (2020-09-06)
+===================
+
+Fixes:
+  * build: fix version.h dependencies
+  * fix and complete the evaluation of atomic builtins
+  * fix some testcases related to bitfield manipulation
+  * llvm: fix crash with llvm-11 / use real phi-nodes
+  * fix: OP_INLINE should not use the function symbol
+  * fix testing if a OP_CALL's function is pure
+  * warn on all missing parameter types
+  * fix init_linearized_builtins()
+  * fix usage count in linearize_fma()
+  * linearize: fix a couple of 'selfcheck' warnings
+  * cfg: remove phi-sources when merging BBs
+  * cfg: remove phi-nodes when merging BBs
+  * cfg: add missing REPEAT_CFG_CLEANUP
+  * fix: rebuild dominance tree during CFG cleanup
+  * fix: drop qualifiers of casts and comma or statement expressions
+  * fix kill_insn(OP_SETVAL)
+  * fix trivial_phi() when the target is before the single value
+  * memops: fix wrong killing of stores partially dominated by a load
+  * memops: kill dead loads before phi-node conversion
+  * memops: kill more dead stores
+  * fix rem_usage() when the pseudo has a use list but is not PSEUDO_REG
+  * shut up a silly -Wmaybe-uninitialized warning
+  * fix add_join_conditional() when one of the alternative is VOID
+  * asm: fix killing OP_ASM
+  * asm: fix a test failure on 32-bit systems
+  * asm: output *memory* operands need their address as *input*
+  * asm: teach dominates() about OP_ASM
+  * fix the type in the assignment of 0 to a restricted variable
+  * fix SSA conversion of mismatched memops
+  * fix and improve the check that protects try_to_simplify_bb()
+  * fix remove_merging_phisrc() with duplicated CFG edges.
+  * fix null-pointer crash with with ident same as one of the attributes
+
+New:
+  * improve CFG simplification
+  * teach sparse about -funsigned-bitfields
+  * add a symbolic checker
+  * expand __builtin_object_size()
+  * let plain bitfields default to signed
+  * add support for __packed struct
+  * handle qualified anonymous structures
+  * move check_access() to late_warnings()
+  * let phi-sources to directly access to their phi-node
+  * small improvements to the ptrlist API
+  * warn when taking the address of a built-in function
+  * handle more graciously labels with no statement
+  * give an explicit type to compare's operands
+  * give a type to OP_SYMADDR
+  * add some notes about pseudos being typeless
+  * shrink struct basic_block
+  * pre-proc: strip leading "./" from include paths
+  * pre-proc: do some path normalization
+  * linearize __builtin_isdigit()
+
+IR Simplifications:
+  * simplify: essential OP_ADD & OP_SUB simplifications
+  * simplify and canonicalize unsigned compares
+  * simplify: basic unop simplifications
+  * simplify SEL(SEL(...), ...)
+  * simplify SEL(x == y, x, y) and friends
+  * simplify SEL(x, x, x) and SEL(x, 0, x)
+  * simplify & canonicalize compares
+  * simplify CBR-CBR on the same condition
+  * simplify unrestricted postop
+  * simplification of computed gotos with 1 or 2 targets
+  * simplify kill_insn() of unops and unop-ish instructions
+  * simplify: put PSEUDO_ARGS and PSEUDO_REGs in canonical order too
+  * simplify (~x {&,|,^} x) --> {0,~0,~0}
+  * simplify ((x cmp y) {&,|,^} (x !cmp y)) --> {0,1,1}
+  * simplify LSR + SEXT into ASR
+  * simplify and canonicalize signed compares
+  * simplify CMP(AND(x,M), C) and CMP(OR(x,M), C)
+  * simplify AND(x >= 0, x < C) --> (unsigned)x < C
+  * simplify TRUNC(x) {==,!=} C --> AND(x,M) {==,!=} C
+  * simplify of TRUNC(NOT(x)) --> NOT(TRUNC(x))
+  * factorize (x OP1 z) OP2 (y OP1 z) into (x OP2 y) OP1 z
+  * factorize SHIFT(x, s) OP SHIFT(y, s) into SHIFT((x OP y), s)
+  * factorize SEL(x, OP(y,z), y) into OP(SEL(x, z, 0), y)
+  * convert SEL(x & BIT1, BIT2, 0) into SHIFT(x & BIT1, S)
+  * canonicalize ((x & M) == M) --> ((x & M) != 0) when M is a power-of-2
+
+Testsuite:
+  * testsuite: add new tags: check-output-{match,returns}
+  * testsuite: fix parsing of tags used in the testcases
+  * testsuite: add option '-r' to 'test-suite format'
+
+Documentation:
+  * doc: fix: Sphinx's option ':noindex:' renamed into ':noindexentry:'
+  * doc: fix extracted autodoc when short description ends with a '?'
+  * doc: add some doc about using NULL or VOID in pointer lists
+  * doc: add some doc to flowgraph.h
+  * doc: extract doc related to simplification
+
+Cleanups:
+  * slice: small reorg of OP_SLICE in preparation for some incoming changes
+  * cleanup: removed an unused parameter for show_symbol_list()
+  * cleanup linearize_cond_branch()
+  * cleanup: remove unneeded REPEAT_SYMBOL_CLEANUP
+  * cleanup: no needs to use MARK_CURRENT_DELETED() for multi-jumps
+  * linearize: remove unneeded forward declarations
+  * linearize: only allocate call instructions when needed

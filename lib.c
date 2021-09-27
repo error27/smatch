@@ -46,7 +46,6 @@
 #include "linearize.h"
 #include "target.h"
 #include "machine.h"
-#include "version.h"
 #include "bits.h"
 
 int parse_error;

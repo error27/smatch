@@ -390,6 +390,69 @@ static struct symbol_op overflow_p_op = {
 };
 
 
+///
+// Evaluate the arguments of 'generic' integer operators.
+//
+// Parameters with a complete type are used like in a normal prototype.
+// The first parameter with a 'dynamic' type will be consider
+// as polymorphic and for each calls will be instancied with the type
+// of its effective argument.
+// The next dynamic parameters will the use this polymorphic type.
+// This allows to declare functions with some parameters having
+// a type variably defined at call time:
+//	int foo(int, T, T);
+static int evaluate_generic_int_op(struct expression *expr)
+{
+	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
+	struct symbol_list *types = NULL;
+	struct symbol *ctype = NULL;
+	struct expression *arg;
+	struct symbol *t;
+	int n = 0;
+
+	PREPARE_PTR_LIST(fntype->arguments, t);
+	FOR_EACH_PTR(expr->args, arg) {
+		n++;
+
+		if (!is_dynamic_type(t)) {
+			;
+		} else if (!ctype) {
+			// first 'dynamic' type, check that it's an integer
+			t = arg->ctype;
+			if (!t)
+				return 0;
+			if (t->type == SYM_NODE)
+				t = t->ctype.base_type;
+			if (!t)
+				return 0;
+			if (t->ctype.base_type != &int_type)
+				goto err;
+
+			// next 'dynamic' arguments will use this type
+			ctype = t;
+		} else {
+			// use the previous 'dynamic' type
+			t = ctype;
+		}
+		add_ptr_list(&types, t);
+		NEXT_PTR_LIST(t);
+	} END_FOR_EACH_PTR(arg);
+	FINISH_PTR_LIST(t);
+	return evaluate_arguments(types, expr->args);
+
+err:
+	sparse_error(arg->pos, "non-integer type for argument %d:", n);
+	info(arg->pos, "        %s", show_typename(arg->ctype));
+	expr->ctype = &bad_ctype;
+	return 0;
+}
+
+struct symbol_op generic_int_op = {
+	.args = args_prototype,
+	.evaluate = evaluate_generic_int_op,
+};
+
+
 static int eval_atomic_common(struct expression *expr)
 {
 	struct symbol *fntype = expr->fn->ctype->ctype.base_type;
@@ -454,6 +517,77 @@ static struct symbol_op atomic_op = {
 };
 
 
+///
+// expand __builtin_object_size()
+//
+// :note: type 1 and type 3 are not supported because the
+//	needed information isn't available after evaluation.
+static int expand_object_size(struct expression *expr, int cost)
+{
+	struct expression *arg = first_expression(expr->args);
+	int type = get_expression_value_silent(ptr_list_nth(expr->args, 1));
+	unsigned long val = -1, off = 0;
+
+	while (arg) {
+		switch (arg->type) {
+		case EXPR_IMPLIED_CAST:
+		case EXPR_CAST:
+			// ignore those
+			arg = arg->cast_expression;
+			continue;
+		case EXPR_BINOP:
+			// a constant add is (maybe) an offset
+			if (!arg->right || arg->op != '+' || arg->right->type != EXPR_VALUE)
+				break;
+			off += arg->right->value;
+			arg = arg->left;
+			continue;
+		case EXPR_PREOP:
+			// a deref is just intermediate variable
+			// and so the offset needs to be zeroed.
+			if (arg->op == '*') {
+				arg = arg->unop;
+				off = 0;
+				switch (arg->type) {
+				case EXPR_SYMBOL:
+					arg = arg->symbol->initializer;
+					continue;
+				default:
+					break;
+				}
+			}
+			break;
+		case EXPR_SYMBOL:
+			// the symbol we're looking after
+			val = bits_to_bytes(arg->symbol->bit_size);
+			break;
+		case EXPR_CALL:
+			// use alloc_size() attribute but only after linearization.
+			return UNSAFE;
+		default:
+			break;
+		}
+		break;
+	}
+
+	if (val == -1)
+		val = (type & 2) ? 0 : val;
+	else if (type & 1)
+		return UNSAFE;
+	else
+		val -= off;
+
+	expr->flags |= CEF_SET_ICE;
+	expr->type = EXPR_VALUE;
+	expr->value = val;
+	expr->taint = 0;
+	return 0;
+}
+
+static struct symbol_op object_size_op = {
+	.expand = expand_object_size,
+};
+
 /*
  * Builtin functions
  */
@@ -488,7 +622,7 @@ static void declare_builtin(int stream, const struct builtin_fn *entry)
 	}
 }
 
-static void declare_builtins(int stream, const struct builtin_fn tbl[])
+void declare_builtins(int stream, const struct builtin_fn tbl[])
 {
 	if (!tbl)
 		return;
@@ -598,7 +732,7 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__builtin_nan", &double_ctype, 0, { &const_string_ctype }},
 	{ "__builtin_nanf", &float_ctype, 0, { &const_string_ctype }},
 	{ "__builtin_nanl", &ldouble_ctype, 0, { &const_string_ctype }},
-	{ "__builtin_object_size", size_t_ctype, 0, { &const_ptr_ctype, &int_ctype }},
+	{ "__builtin_object_size", size_t_ctype, 0, { &const_ptr_ctype, &int_ctype }, .op = &object_size_op},
 	{ "__builtin_parity", &int_ctype, 0, { &uint_ctype }, .op = &parity_op },
 	{ "__builtin_parityl", &int_ctype, 0, { &ulong_ctype }, .op = &parity_op },
 	{ "__builtin_parityll", &int_ctype, 0, { &ullong_ctype }, .op = &parity_op },

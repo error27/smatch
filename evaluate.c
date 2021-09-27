@@ -226,12 +226,6 @@ static struct symbol *bigger_int_type(struct symbol *left, struct symbol *right)
 	return utype;
 }
 
-static int same_cast_type(struct symbol *orig, struct symbol *new)
-{
-	return orig->bit_size == new->bit_size &&
-	       orig->bit_offset == new->bit_offset;
-}
-
 static struct symbol *base_type(struct symbol *node, unsigned long *modp, struct ident **asp)
 {
 	unsigned long mod = 0;
@@ -316,10 +310,7 @@ static struct symbol *cast_to_bool(struct expression *expr);
 
 /*
  * This gets called for implicit casts in assignments and
- * integer promotion. We often want to try to move the
- * cast down, because the ops involved may have been
- * implicitly cast up, and we can get rid of the casts
- * early.
+ * integer promotion.
  */
 static struct expression * cast_to(struct expression *old, struct symbol *type)
 {
@@ -329,39 +320,6 @@ static struct expression * cast_to(struct expression *old, struct symbol *type)
 
 	if (old->ctype != &null_ctype && is_same_type(old, type))
 		return old;
-
-	/*
-	 * See if we can simplify the op. Move the cast down.
-	 */
-	switch (old->type) {
-	case EXPR_PREOP:
-		if (old->ctype->bit_size < type->bit_size)
-			break;
-		if (old->op == '~') {
-			old->ctype = type;
-			old->unop = cast_to(old->unop, type);
-			return old;
-		}
-		break;
-
-	case EXPR_IMPLIED_CAST:
-		warn_for_different_enum_types(old->pos, old->ctype, type);
-
-		if (old->ctype->bit_size >= type->bit_size) {
-			struct expression *orig = old->cast_expression;
-			if (same_cast_type(orig->ctype, type))
-				return orig;
-			if (old->ctype->bit_offset == type->bit_offset) {
-				old->ctype = type;
-				old->cast_type = type;
-				return old;
-			}
-		}
-		break;
-
-	default:
-		/* nothing */;
-	}
 
 	expr = alloc_expression(old->pos, EXPR_IMPLIED_CAST);
 	expr->ctype = type;
@@ -1442,7 +1400,7 @@ static int check_assignment_types(struct symbol *target, struct expression **rp,
 			if (sclass & TYPE_FOULED && unfoul(s) == t)
 				goto Cast;
 			if (!restricted_value(*rp, target))
-				return 1;
+				goto Cast;
 			if (s == t)
 				return 1;
 		} else if (!(sclass & TYPE_RESTRICT))
@@ -2170,7 +2128,6 @@ static struct symbol *evaluate_member_dereference(struct expression *expr)
 		}
 		expr->r_bitpos += bytes_to_bits(offset);
 		expr->type = EXPR_SLICE;
-		expr->r_nrbits = member->bit_size;
 		expr->r_bitpos += member->bit_offset;
 		expr->ctype = member;
 		return member;

@@ -83,7 +83,7 @@ static struct basic_block *phi_parent(struct basic_block *source, pseudo_t pseud
 //	number of element, a positive number if there was
 //	more than expected and a negative one if less.
 //
-// :note: we can't reuse a function like linearize_ptr_list()
+// :note: we can't reuse ptr_list_to_array() for the phi-sources
 //	because any VOIDs in the phi-list must be ignored here
 //	as in this context they mean 'entry has been removed'.
 static int get_phisources(struct instruction *sources[], int nbr, struct instruction *insn)
@@ -108,7 +108,7 @@ static int get_phisources(struct instruction *sources[], int nbr, struct instruc
 static int if_convert_phi(struct instruction *insn)
 {
 	struct instruction *array[2];
-	struct basic_block *parents[3];
+	struct basic_block *parents[2];
 	struct basic_block *bb, *bb1, *bb2, *source;
 	struct instruction *br;
 	pseudo_t p1, p2;
@@ -116,7 +116,7 @@ static int if_convert_phi(struct instruction *insn)
 	bb = insn->bb;
 	if (get_phisources(array, 2, insn))
 		return 0;
-	if (linearize_ptr_list((struct ptr_list *)bb->parents, (void **)parents, 3) != 2)
+	if (ptr_list_to_array(bb->parents, parents, 2) != 2)
 		return 0;
 	p1 = array[0]->phi_src;
 	bb1 = array[0]->bb;
@@ -452,6 +452,13 @@ static inline pseudo_t is_same_op(pseudo_t src, int op, unsigned osize)
 	if (def->orig_type->bit_size != osize)
 		return NULL;
 	return def->src;
+}
+
+static bool is_negate_of(pseudo_t p, pseudo_t ref)
+{
+	struct instruction *def;
+
+	return (DEF_OPCODE(def, p) == OP_NEG) && (def->src == ref);
 }
 
 ///
@@ -1162,13 +1169,63 @@ static int simplify_seteq_setne(struct instruction *insn, long long value)
 
 static int simplify_compare_constant(struct instruction *insn, long long value)
 {
-	unsigned long long bits = bits_mask(insn->itype->bit_size);
+	unsigned size = insn->itype->bit_size;
+	unsigned long long bits = bits_mask(size);
 	struct instruction *def;
 	pseudo_t src1, src2;
 	unsigned int osize;
 	int changed = 0;
 
 	switch (insn->opcode) {
+	case OP_SET_LT:
+		if (!value)
+			break;
+		if (value == sign_bit(size))	// (x <  SMIN) --> 0
+			return replace_with_pseudo(insn, value_pseudo(0));
+		if (value == sign_mask(size))	// (x <  SMAX) --> (x != SMAX)
+			return replace_opcode(insn, OP_SET_NE);
+		if (value == sign_bit(size) + 1)// (x < SMIN + 1) --> (x == SMIN)
+			return replace_binop_value(insn, OP_SET_EQ, sign_bit(size));
+		if (!(value & sign_bit(size)))
+			changed |= replace_binop_value(insn, OP_SET_LE, (value - 1) & bits);
+		break;
+	case OP_SET_LE:
+		if (!value)
+			break;
+		if (value == sign_mask(size))	// (x <= SMAX) --> 1
+			return replace_with_pseudo(insn, value_pseudo(1));
+		if (value == sign_bit(size))	// (x <= SMIN) --> (x == SMIN)
+			return replace_opcode(insn, OP_SET_EQ);
+		if (value == sign_mask(size) - 1) // (x <= SMAX - 1) --> (x != SMAX)
+			return replace_binop_value(insn, OP_SET_NE, sign_mask(size));
+		if (value & sign_bit(size))
+			changed |= replace_binop_value(insn, OP_SET_LT, (value + 1) & bits);
+		break;
+	case OP_SET_GE:
+		if (!value)
+			break;
+		if (value == sign_bit(size))	// (x >= SMIN) --> 1
+			return replace_with_pseudo(insn, value_pseudo(1));
+		if (value == sign_mask(size))	// (x >= SMAX) --> (x == SMAX)
+			return replace_opcode(insn, OP_SET_EQ);
+		if (value == sign_bit(size) + 1)// (x >= SMIN + 1) --> (x != SMIN)
+			return replace_binop_value(insn, OP_SET_NE, sign_bit(size));
+		if (!(value & sign_bit(size)))
+			changed |= replace_binop_value(insn, OP_SET_GT, (value - 1) & bits);
+		break;
+	case OP_SET_GT:
+		if (!value)
+			break;
+		if (value == sign_mask(size))	// (x >  SMAX) --> 0
+			return replace_with_pseudo(insn, value_pseudo(0));
+		if (value == sign_bit(size))	// (x >  SMIN) --> (x != SMIN)
+			return replace_opcode(insn, OP_SET_NE);
+		if (value == sign_mask(size) - 1) // (x > SMAX - 1) --> (x == SMAX)
+			return replace_binop_value(insn, OP_SET_EQ, sign_mask(size));
+		if (value & sign_bit(size))
+			changed |= replace_binop_value(insn, OP_SET_GE, (value + 1) & bits);
+		break;
+
 	case OP_SET_B:
 		if (!value)			// (x < 0) --> 0
 			return replace_with_pseudo(insn, value_pseudo(0));
@@ -1177,7 +1234,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		else if (value == bits)		// (x < ~0) --> (x != ~0)
 			return replace_binop_value(insn, OP_SET_NE, value);
 		else				// (x < y) --> (x <= (y-1))
-			changed |= replace_binop_value(insn, OP_SET_BE, value - 1);
+			changed |= replace_binop_value(insn, OP_SET_BE, (value - 1) & bits);
 		break;
 	case OP_SET_AE:
 		if (!value)			// (x >= 0) --> 1
@@ -1187,7 +1244,7 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		else if (value == bits)		// (x >= ~0) --> (x == ~0)
 			return replace_binop_value(insn, OP_SET_EQ, value);
 		else				// (x >= y) --> (x > (y-1)
-			changed |= replace_binop_value(insn, OP_SET_A, value - 1);
+			changed |= replace_binop_value(insn, OP_SET_A, (value - 1) & bits);
 		break;
 	case OP_SET_BE:
 		if (!value)			// (x <= 0) --> (x == 0)
@@ -1215,9 +1272,119 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 	src2 = insn->src2;
 	value = src2->value;
 	switch (DEF_OPCODE(def, src1)) {
+	case OP_AND:
+		if (!constant(def->src2))
+			break;
+		bits = def->src2->value;
+		switch (insn->opcode) {
+		case OP_SET_EQ:
+			if ((value & bits) != value)
+				return replace_with_value(insn, 0);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_NE, 0);
+			break;
+		case OP_SET_NE:
+			if ((value & bits) != value)
+				return replace_with_value(insn, 1);
+			if (value == bits && is_power_of_2(bits))
+				return replace_binop_value(insn, OP_SET_EQ, 0);
+			break;
+		case OP_SET_LE: case OP_SET_LT:
+			value = sign_extend(value, def->size);
+			if (insn->opcode == OP_SET_LT)
+				value -= 1;
+			if (bits & sign_bit(def->size))
+				break;
+			if (value < 0)
+				return replace_with_value(insn, 0);
+			if (value >= (long long)bits)
+				return replace_with_value(insn, 1);
+			if (value == 0)
+				return replace_opcode(insn, OP_SET_EQ);
+			break;
+		case OP_SET_GT: case OP_SET_GE:
+			value = sign_extend(value, def->size);
+			if (insn->opcode == OP_SET_GE)
+				value -= 1;
+			if (bits & sign_bit(def->size))
+				break;
+			if (value < 0)
+				return replace_with_value(insn, 1);
+			if (value >= (long long)bits)
+				return replace_with_value(insn, 0);
+			if (value == 0)
+				return replace_opcode(insn, OP_SET_NE);
+			break;
+		case OP_SET_B:
+			if (value > bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_BE:
+			if (value >= bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_AE:
+			if (value > bits)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_A:
+			if (value >= bits)
+				return replace_with_value(insn, 0);
+			break;
+		}
+		break;
+	case OP_OR:
+		if (!constant(def->src2))
+			break;
+		bits = def->src2->value;
+		switch (insn->opcode) {
+		case OP_SET_EQ:
+			if ((value & bits) != bits)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_NE:
+			if ((value & bits) != bits)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_B:
+			if (bits >= value)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_BE:
+			if (bits > value)
+				return replace_with_value(insn, 0);
+			break;
+		case OP_SET_AE:
+			if (bits > value)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_A:
+			if (bits >= value)
+				return replace_with_value(insn, 1);
+			break;
+		case OP_SET_LT:
+			value -= 1;
+		case OP_SET_LE:
+			if (bits & sign_bit(def->size)) {
+				value = sign_extend(value, def->size);
+				if (value >= -1)
+					return replace_with_value(insn, 1);
+			}
+			break;
+		case OP_SET_GE:
+			value -= 1;
+		case OP_SET_GT:
+			if (bits & sign_bit(def->size)) {
+				value = sign_extend(value, def->size);
+				if (value >= -1)
+					return replace_with_value(insn, 0);
+			}
+			break;
+		}
+		break;
 	case OP_SEXT:				// sext(x) cmp C --> x cmp trunc(C)
 		osize = def->orig_type->bit_size;
-		if (is_signed_constant(value, osize, def->size)) {
+		if (is_signed_constant(value, osize, size)) {
 			insn->itype = def->orig_type;
 			insn->src2 = value_pseudo(zero_extend(value, osize));
 			return replace_pseudo(insn, &insn->src1, def->src);
@@ -1225,27 +1392,43 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		switch (insn->opcode) {
 		case OP_SET_BE:
 			if (value >= sign_bit(osize)) {
+				insn->itype = def->orig_type;
 				replace_binop_value(insn, OP_SET_GE, 0);
 				return replace_pseudo(insn, &insn->src1, def->src);
 			}
 			break;
 		case OP_SET_A:
 			if (value >= sign_bit(osize)) {
+				insn->itype = def->orig_type;
 				replace_binop_value(insn, OP_SET_LT, 0);
 				return replace_pseudo(insn, &insn->src1, def->src);
 			}
 			break;
 		case OP_SET_LT: case OP_SET_LE:
-			if (value >= sign_bit(osize))
+			if (value < sign_bit(size))
 				return replace_with_value(insn, 1);
 			else
 				return replace_with_value(insn, 0);
 			break;
 		case OP_SET_GE: case OP_SET_GT:
-			if (value >= sign_bit(osize))
+			if (value < sign_bit(size))
 				return replace_with_value(insn, 0);
 			else
 				return replace_with_value(insn, 1);
+			break;
+		}
+		break;
+	case OP_TRUNC:
+		osize = def->orig_type->bit_size;
+		switch (insn->opcode) {
+		case OP_SET_EQ: case OP_SET_NE:
+			if (one_use(def->target)) {
+				insn->itype = def->orig_type;
+				def->type = def->orig_type;
+				def->size = osize;
+				def->src2 = value_pseudo(bits);
+				return replace_opcode(def, OP_AND);
+			}
 			break;
 		}
 		break;
@@ -1261,13 +1444,13 @@ static int simplify_compare_constant(struct instruction *insn, long long value)
 		}
 		switch (insn->opcode) {
 		case OP_SET_LT: case OP_SET_LE:
-			if (sign_extend(value, def->size) > (long long)bits)
+			if (sign_extend(value, size) > (long long)bits)
 				return replace_with_value(insn, 1);
 			else
 				return replace_with_value(insn, 0);
 			break;
 		case OP_SET_GE: case OP_SET_GT:
-			if (sign_extend(value, def->size) > (long long)bits)
+			if (sign_extend(value, size) > (long long)bits)
 				return replace_with_value(insn, 0);
 			else
 				return replace_with_value(insn, 1);
@@ -1604,6 +1787,8 @@ static inline bool can_move_to(pseudo_t src, struct instruction *dst)
 		return true;
 
 	def = src->def;
+	if (dst == def)
+		return false;
 	bbs = def->bb;
 	bbd = dst->bb;
 	if (bbs == bbd)
@@ -1752,6 +1937,17 @@ static int simplify_and_one_side(struct instruction *insn, pseudo_t *p1, pseudo_
 		if (DEF_OPCODE(defr, *p2) == opcode_negate(def->opcode)) {
 			if (def->src1 == defr->src1 && def->src2 == defr->src2)
 				return replace_with_value(insn, 0);
+		}
+		if (def->opcode == OP_SET_GE && is_zero(def->src2)) {
+			switch (DEF_OPCODE(defr, *p2)) {
+			case OP_SET_LE:
+				if (!is_positive(defr->src2, defr->itype->bit_size))
+					break;
+				// (x >= 0) && (x <= C) --> (x u<= C)
+				insn->itype = defr->itype;
+				replace_binop(insn, OP_SET_BE, &insn->src1, defr->src1, &insn->src2, defr->src2);
+				return REPEAT_CSE;
+			}
 		}
 		break;
 	case OP_OR:
@@ -2064,7 +2260,7 @@ static int simplify_memop(struct instruction *insn)
 static int simplify_cast(struct instruction *insn)
 {
 	unsigned long long mask;
-	struct instruction *def;
+	struct instruction *def, *def2;
 	pseudo_t src = insn->src;
 	pseudo_t val;
 	int osize;
@@ -2143,6 +2339,21 @@ static int simplify_cast(struct instruction *insn)
 			return replace_pseudo(insn, &insn->src1, def->src1);
 		}
 		break;
+	case OP_NOT:
+		switch (insn->opcode) {
+		case OP_TRUNC:
+			if (one_use(src)) {
+				// TRUNC(NOT(x)) --> NOT(TRUNC(x))
+				insn->opcode = OP_NOT;
+				def->orig_type = def->type;
+				def->opcode = OP_TRUNC;
+				def->type = insn->type;
+				def->size = insn->size;
+				return REPEAT_CSE;
+			}
+			break;
+		}
+		break;
 	case OP_OR:
 		switch (insn->opcode) {
 		case OP_TRUNC:
@@ -2161,6 +2372,17 @@ static int simplify_cast(struct instruction *insn)
 		case OP_TRUNC:
 			insn->orig_type = def->orig_type;
 			return replace_pseudo(insn, &insn->src1, def->src);
+		case OP_SEXT:
+			if (size != def->orig_type->bit_size)
+				break;
+			if (DEF_OPCODE(def2, def->src) != OP_LSR)
+				break;
+			if (def2->src2 != value_pseudo(size - def->size))
+				break;
+			// SEXT(TRUNC(LSR(x, N))) --> ASR(x, N)
+			insn->opcode = OP_ASR;
+			insn->src2 = def2->src2;
+			return replace_pseudo(insn, &insn->src1, def2->src1);
 		case OP_ZEXT:
 			if (size != def->orig_type->bit_size)
 				break;
@@ -2227,6 +2449,7 @@ static int simplify_select(struct instruction *insn)
 				opcode = OP_SET_NE;
 			}
 			insn->opcode = opcode;
+			insn->itype = insn->type;
 			/* insn->src1 is already cond */
 			insn->src2 = src1; /* Zero */
 			return REPEAT_CSE;
@@ -2249,6 +2472,20 @@ static int simplify_select(struct instruction *insn)
 			return replace_with_pseudo(insn, src1); // SEL(x!=y,x,y) --> x
 		if (src2 == def->src1 && src1 == def->src2)
 			return replace_with_pseudo(insn, src1); // SEL(y!=x,x,y) --> x
+		break;
+	case OP_SET_LE: case OP_SET_LT:
+	case OP_SET_BE: case OP_SET_B:
+		if (!one_use(cond))
+			break;
+		// SEL(x {<,<=} y, a, b) --> SEL(x {>=,>} y, b, a)
+		def->opcode = opcode_negate(def->opcode);
+		return switch_pseudo(insn, &insn->src2, insn, &insn->src3);
+	case OP_SET_GT:
+		if (one_use(cond) && is_zero(def->src2)) {
+			if (is_negate_of(src2, src1))
+				// SEL(x > 0, a, -a) --> SEL(x >= 0, a, -a)
+				return replace_opcode(def, OP_SET_GE);
+		}
 		break;
 	case OP_SEL:
 		if (constant(def->src2) && constant(def->src3)) {
@@ -2368,23 +2605,12 @@ static int simplify_branch(struct instruction *insn)
 	pseudo_t cond = insn->cond;
 
 	/* Constant conditional */
-	if (constant(cond)) {
-		insert_branch(insn->bb, insn, cond->value ? insn->bb_true : insn->bb_false);
-		return REPEAT_CSE;
-	}
+	if (constant(cond))
+		return convert_to_jump(insn, cond->value ? insn->bb_true : insn->bb_false);
 
 	/* Same target? */
-	if (insn->bb_true == insn->bb_false) {
-		struct basic_block *bb = insn->bb;
-		struct basic_block *target = insn->bb_false;
-		remove_bb_from_list(&target->parents, bb, 1);
-		remove_bb_from_list(&bb->children, target, 1);
-		insn->bb_false = NULL;
-		kill_use(&insn->cond);
-		insn->cond = NULL;
-		insn->opcode = OP_BR;
-		return REPEAT_CSE|REPEAT_CFG_CLEANUP;
-	}
+	if (insn->bb_true == insn->bb_false)
+		return convert_to_jump(insn, insn->bb_true);
 
 	/* Conditional on a SETNE $0 or SETEQ $0 */
 	if (cond->type == PSEUDO_REG) {
@@ -2400,14 +2626,10 @@ static int simplify_branch(struct instruction *insn)
 			if (constant(def->src2) && constant(def->src3)) {
 				long long val1 = def->src2->value;
 				long long val2 = def->src3->value;
-				if (!val1 && !val2) {
-					insert_branch(insn->bb, insn, insn->bb_false);
-					return REPEAT_CSE;
-				}
-				if (val1 && val2) {
-					insert_branch(insn->bb, insn, insn->bb_true);
-					return REPEAT_CSE;
-				}
+				if (!val1 && !val2)
+					return convert_to_jump(insn, insn->bb_false);
+				if (val1 && val2)
+					return convert_to_jump(insn, insn->bb_true);
 				if (val2) {
 					struct basic_block *tmp = insn->bb_true;
 					insn->bb_true = insn->bb_false;
@@ -2443,8 +2665,7 @@ static int simplify_switch(struct instruction *insn)
 	return 0;
 
 found:
-	insert_branch(insn->bb, insn, jmp->target);
-	return REPEAT_CSE;
+	return convert_to_jump(insn, jmp->target);
 }
 
 static struct basic_block *is_label(pseudo_t pseudo)
@@ -2481,7 +2702,7 @@ static int simplify_cgoto(struct instruction *insn)
 				continue;
 			remove_bb_from_list(&jmp->target->parents, bb, 1);
 			remove_bb_from_list(&bb->children, jmp->target, 1);
-			MARK_CURRENT_DELETED(jmp);
+			DELETE_CURRENT_PTR(jmp);
 		} END_FOR_EACH_PTR(jmp);
 		kill_use(&insn->src);
 		insn->opcode = OP_BR;

@@ -12,30 +12,28 @@
 *.c.smatch.sql
 
 # generated
-version.h
+/version.h
 
 # programs
-c2xml
-compile
-ctags
-example
-graph
-obfuscate
-sparse
-sparse-llvm
-semind
-test-dissect
-test-inspect
-test-lexing
-test-linearize
-test-parsing
-test-show-type
-test-unssa
-ctags
-c2xml
-smatch
-bak.smatch
-sparse-llvm
+/c2xml
+/compile
+/ctags
+/example
+/graph
+/obfuscate
+/scheck
+/semind
+/smatch
+/bak.smatch
+/sparse
+/sparse-llvm
+/test-dissect
+/test-inspect
+/test-lexing
+/test-linearize
+/test-parsing
+/test-show-type
+/test-unssa
 
 # tags
 tags

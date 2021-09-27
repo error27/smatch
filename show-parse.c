@@ -819,7 +819,7 @@ static int show_slice(struct expression *expr)
 {
 	int target = show_expression(expr->base);
 	int new = new_pseudo();
-	printf("\tslice.%d\t\tv%d,v%d,%d\n", expr->r_nrbits, target, new, expr->r_bitpos);
+	printf("\tslice.%d\t\tv%d,v%d,%d\n", expr->ctype->bit_size, target, new, expr->r_bitpos);
 	return new;
 }
 

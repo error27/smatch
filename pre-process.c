@@ -887,6 +887,12 @@ static void set_stream_include_path(struct stream *stream)
 			memcpy(m, stream->name, len);
 			m[len] = 0;
 			path = m;
+			/* normalize this path */
+			while (path[0] == '.' && path[1] == '/') {
+				path += 2;
+				while (path[0] == '/')
+					path++;
+			}
 		}
 		stream->path = path;
 	}

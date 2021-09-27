@@ -7,7 +7,6 @@
 #include <assert.h>
 #include "ssa.h"
 #include "lib.h"
-#include "sset.h"
 #include "dominate.h"
 #include "flowgraph.h"
 #include "linearize.h"
@@ -33,6 +32,9 @@ static inline bool is_promotable(struct symbol *type)
 	case SYM_STRUCT:
 		// we allow a single scalar field
 		// but a run of bitfields count for 1
+		// (and packed bifields are excluded).
+		if (type->packed)
+			return 0;
 		nbr = 0;
 		bf_seen = 0;
 		FOR_EACH_PTR(type->symbol_list, member) {
@@ -72,21 +74,6 @@ static inline bool is_promotable(struct symbol *type)
 	return 0;
 }
 
-static bool insn_before(struct instruction *a, struct instruction *b)
-{
-	struct basic_block *bb = a->bb;
-	struct instruction *insn;
-
-	assert(b->bb == bb);
-	FOR_EACH_PTR(bb->insns, insn) {
-		if (insn == a)
-			return true;
-		if (insn == b)
-			return false;
-	} END_FOR_EACH_PTR(insn);
-	assert(0);
-}
-
 static void kill_store(struct instruction *insn)
 {
 	remove_use(&insn->src);
@@ -94,10 +81,22 @@ static void kill_store(struct instruction *insn)
 	insn->bb = NULL;
 }
 
+static bool same_memop(struct instruction *a, struct instruction *b)
+{
+	if (a->size != b->size || a->offset != b->offset)
+		return false;
+	if (is_integral_type(a->type) && is_float_type(b->type))
+		return false;
+	if (is_float_type(a->type) && is_integral_type(b->type))
+		return false;
+	return true;
+}
+
 static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_stores, int nbr_uses)
 {
+	struct instruction *store = NULL;
 	struct instruction *insn;
-	pseudo_t val = NULL;
+	bool remove = false;
 
 	if (!bb)
 		return;
@@ -108,71 +107,32 @@ static void rewrite_local_var(struct basic_block *bb, pseudo_t addr, int nbr_sto
 			continue;
 		switch (insn->opcode) {
 		case OP_LOAD:
-			if (!val)
-				val = undef_pseudo();
-			replace_with_pseudo(insn, val);
+			if (!store)
+				replace_with_pseudo(insn, undef_pseudo());
+			else if (same_memop(store, insn))
+				replace_with_pseudo(insn, store->target);
+			else
+				remove = false;
 			break;
 		case OP_STORE:
-			val = insn->target;
-			// can't use kill_instruction() unless
-			// we add a fake user to val
-			kill_store(insn);
+			store = insn;
+			remove = true;
 			break;
 		}
 	} END_FOR_EACH_PTR(insn);
+	if (remove)
+		kill_store(store);
 }
-
-static bool rewrite_single_store(struct instruction *store)
-{
-	pseudo_t addr = store->src;
-	struct pseudo_user *pu;
-
-	FOR_EACH_PTR(addr->users, pu) {
-		struct instruction *insn = pu->insn;
-
-		if (insn->opcode != OP_LOAD)
-			continue;
-
-		// Let's try to replace the value of the load
-		// by the value from the store. This is only valid
-		// if the store dominate the load.
-
-		if (insn->bb == store->bb) {
-			// the load and the store are in the same BB
-			// we can convert if the load is after the store.
-			if (!insn_before(store, insn))
-				continue;
-		} else if (!domtree_dominates(store->bb, insn->bb)) {
-			// we can't convert this load
-			continue;
-		}
-
-		// OK, we can rewrite this load
-
-		// undefs ?
-
-		replace_with_pseudo(insn, store->target);
-	} END_FOR_EACH_PTR(pu);
-
-	// is there some unconverted loads?
-	if (pseudo_user_list_size(addr->users) > 1)
-		return false;
-
-	kill_store(store);
-	return true;
-}
-
-static struct sset *processed;
 
 // we would like to know:
 // is there one or more stores?
 // are all loads & stores local/done in a single block?
 static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 {
+	unsigned long generation = ++bb_generation;
 	struct basic_block_list *alpha = NULL;
 	struct basic_block_list *idf = NULL;
 	struct basic_block *samebb = NULL;
-	struct instruction *store = NULL;
 	struct basic_block *bb;
 	struct pseudo_user *pu;
 	unsigned long mod = var->ctype.modifiers;
@@ -199,7 +159,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 		return;
 
 	// 1) insert in the worklist all BBs that may modify var
-	sset_reset(processed);
 	FOR_EACH_PTR(addr->users, pu) {
 		struct instruction *insn = pu->insn;
 		struct basic_block *bb = insn->bb;
@@ -207,9 +166,10 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 		switch (insn->opcode) {
 		case OP_STORE:
 			nbr_stores++;
-			store = insn;
-			if (!sset_testset(processed, bb->nr))
+			if (bb->generation != generation) {
+				bb->generation = generation;
 				add_bb(&alpha, bb);
+			}
 			/* fall through */
 		case OP_LOAD:
 			if (local) {
@@ -228,11 +188,6 @@ static void ssa_convert_one_var(struct entrypoint *ep, struct symbol *var)
 				show_ident(var->ident));
 		}
 	} END_FOR_EACH_PTR(pu);
-
-	if (nbr_stores == 1) {
-		if (rewrite_single_store(store))
-			return;
-	}
 
 	// if all uses are local to a single block
 	// they can easily be rewritten and doesn't need phi-nodes
@@ -255,21 +210,40 @@ external_visibility:
 	kill_dead_stores(ep, addr, !mod);
 }
 
-static pseudo_t lookup_var(struct basic_block *bb, struct symbol *var)
+static struct instruction *lookup_var(struct basic_block *bb, struct symbol *var)
 {
 	do {
-		pseudo_t val = phi_map_lookup(bb->phi_map, var);
-		if (val)
-			return val;
+		struct instruction *insn = phi_map_lookup(bb->phi_map, var);
+		if (insn)
+			return insn;
 	} while ((bb = bb->idom));
-	return undef_pseudo();
+	return NULL;
 }
 
 static struct instruction_list *phis_all;
 static struct instruction_list *phis_used;
+static struct instruction_list *stores;
+
+static bool matching_load(struct instruction *def, struct instruction *insn)
+{
+	if (insn->size != def->size)
+		return false;
+	switch (def->opcode) {
+	case OP_STORE:
+	case OP_LOAD:
+		if (insn->offset != def->offset)
+			return false;
+	case OP_PHI:
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
 
 static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 {
+	struct instruction *def;
 	struct symbol *var;
 	pseudo_t addr;
 	pseudo_t val;
@@ -282,8 +256,8 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		var = addr->sym;
 		if (!var || !var->torename)
 			break;
-		phi_map_update(&bb->phi_map, var, insn->target);
-		kill_store(insn);
+		phi_map_update(&bb->phi_map, var, insn);
+		add_instruction(&stores, insn);
 		break;
 	case OP_LOAD:
 		addr = insn->src;
@@ -292,14 +266,22 @@ static void ssa_rename_insn(struct basic_block *bb, struct instruction *insn)
 		var = addr->sym;
 		if (!var || !var->torename)
 			break;
-		val = lookup_var(bb, var);
+		def = lookup_var(bb, var);
+		if (!def) {
+			val = undef_pseudo();
+		} else if (!matching_load(def, insn)) {
+			var->torename = false;
+			break;
+		} else {
+			val = def->target;
+		}
 		replace_with_pseudo(insn, val);
 		break;
 	case OP_PHI:
 		var = insn->type;
 		if (!var || !var->torename)
 			break;
-		phi_map_update(&bb->phi_map, var, insn->target);
+		phi_map_update(&bb->phi_map, var, insn);
 		add_instruction(&phis_all, insn);
 		break;
 	}
@@ -345,12 +327,13 @@ static void ssa_rename_phi(struct instruction *insn)
 	if (!var->torename)
 		return;
 	FOR_EACH_PTR(insn->bb->parents, par) {
-		struct instruction *term = delete_last_instruction(&par->insns);
-		pseudo_t val = lookup_var(par, var);
-		pseudo_t phi = alloc_phi(par, val, var);
+		struct instruction *def = lookup_var(par, var);
+		pseudo_t val = def ? def->target : undef_pseudo();
+		struct instruction *phisrc = alloc_phisrc(val, var);
+		pseudo_t phi = phisrc->target;
 		phi->ident = var->ident;
-		add_instruction(&par->insns, term);
-		use_pseudo(insn, phi, add_pseudo(&insn->phi_list, phi));
+		insert_last_instruction(par, phisrc);
+		link_phi(insn, phi);
 		mark_phi_used(val);
 	} END_FOR_EACH_PTR(par);
 }
@@ -374,6 +357,18 @@ static void ssa_rename_phis(struct entrypoint *ep)
 	} END_FOR_EACH_PTR(phi);
 }
 
+static void remove_dead_stores(struct instruction_list *stores)
+{
+	struct instruction *store;
+
+	FOR_EACH_PTR(stores, store) {
+		struct symbol *var = store->addr->sym;
+
+		if (var->torename)
+			kill_store(store);
+	} END_FOR_EACH_PTR(store);
+}
+
 void ssa_convert(struct entrypoint *ep)
 {
 	struct basic_block *bb;
@@ -390,9 +385,8 @@ void ssa_convert(struct entrypoint *ep)
 		bb->phi_map = NULL;
 	} END_FOR_EACH_PTR(bb);
 
-	processed = sset_init(first, last);
-
 	// try to promote memory accesses to pseudos
+	stores = NULL;
 	FOR_EACH_PTR(ep->accesses, pseudo) {
 		ssa_convert_one_var(ep, pseudo->sym);
 	} END_FOR_EACH_PTR(pseudo);
@@ -401,4 +395,7 @@ void ssa_convert(struct entrypoint *ep)
 	phis_all = phis_used = NULL;
 	ssa_rename_insns(ep);
 	ssa_rename_phis(ep);
+
+	// remove now dead stores
+	remove_dead_stores(stores);
 }

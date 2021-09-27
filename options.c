@@ -11,7 +11,6 @@
 #include "lib.h"
 #include "machine.h"
 #include "target.h"
-#include "version.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -974,7 +973,7 @@ static char **handle_os(char *arg, char **next)
 
 static char **handle_version(char *arg, char **next)
 {
-	printf("%s\n", SPARSE_VERSION);
+	printf("%s\n", sparse_version);
 	exit(0);
 }
 
