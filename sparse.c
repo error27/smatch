@@ -165,7 +165,7 @@ static void check_byte_count(struct instruction *insn, pseudo_t count)
 
 static void check_memset(struct instruction *insn)
 {
-	check_byte_count(insn, ptr_list_nth(insn->arguments, 3));
+	check_byte_count(insn, ptr_list_nth(insn->arguments, 2));
 }
 
 #define check_memcpy check_memset
