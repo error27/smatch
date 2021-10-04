@@ -79,6 +79,20 @@ static int get_start_preempt_cnt(void)
 	return ret;
 }
 
+static bool passes_MSG_DONTWAIT(struct expression *expr)
+{
+	struct expression *arg;
+	char *macro;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		macro = get_macro_name(arg->pos);
+		if (macro && strcmp(macro, "MSG_DONTWAIT") == 0)
+			return true;
+	} END_FOR_EACH_PTR(arg);
+
+	return false;
+}
+
 static void match_call_info(struct expression *expr)
 {
 	int start_cnt, cnt;
@@ -89,6 +103,8 @@ static void match_call_info(struct expression *expr)
 		return;
 	cnt = get_preempt_cnt();
 	if (cnt <= 0)
+		return;
+	if (passes_MSG_DONTWAIT(expr))
 		return;
 	start_cnt = get_start_preempt_cnt();
 	if (start_cnt < cnt)
