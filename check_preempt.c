@@ -53,9 +53,6 @@ void clear_preempt_cnt(void)
 {
 	struct smatch_state *state;
 
-	if (local_debug)
-		sm_msg("%s: here", __func__);
-
 	state = get_state(my_id, "preempt", NULL);
 	if (!state || PTR_INT(state->data) == 0)
 		return;
