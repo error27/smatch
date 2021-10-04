@@ -82,6 +82,7 @@ static struct preempt_info func_table[] = {
 	{ "mt76_tx_status_lock",		PREEMPT_ADD },
 
 	{ "preempt_count_sub",			PREEMPT_SUB },
+	{ "__preempt_count_dec_and_test",	PREEMPT_SUB },
 	{ "__preempt_count_sub",		PREEMPT_SUB },
 	{ "local_bh_enable",			PREEMPT_SUB },
 	{ "__local_bh_enable_ip",		PREEMPT_SUB },
