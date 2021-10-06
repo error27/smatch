@@ -30,22 +30,22 @@
 
 static int my_id;
 
-static int assigns_parameters(struct expression *fn, struct expression *arg)
+static bool assigns_parameters(struct expression *fn, struct expression *arg)
 {
 	int fn_param, arg_param;
 	char buf[32];
 
 	fn_param = get_param_num(fn);
 	if (fn_param < 0)
-		return 0;
+		return false;
 
 	arg_param = get_param_num(arg);
 	if (arg_param < 0)
-		return 0;
+		return false;
 
 	snprintf(buf, sizeof(buf), "%d", arg_param);
 	sql_insert_return_implies(FN_ARG_LINK, fn_param, "$", buf);
-	return 1;
+	return true;
 }
 
 static void link_function_arg(struct expression *fn, int param, struct expression *arg)
@@ -182,13 +182,13 @@ static void match_assign_function(struct expression *expr)
 	}
 }
 
-static int is_recursive_call(struct expression *call)
+static bool is_recursive_call(struct expression *call)
 {
 	if (call->fn->type != EXPR_SYMBOL)
-		return 0;
+		return false;
 	if (call->fn->symbol == cur_func_sym)
-		return 1;
-	return 0;
+		return true;
+	return false;
 }
 
 static void check_passes_fn_and_data(struct expression *call, struct expression *fn, char *key, char *value)
