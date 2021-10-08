@@ -501,9 +501,36 @@ bool is_ignored_kernel_data(const char *name)
 	if (strstr(name, ".lockdep_map."))
 		return true;
 
+	if (strstr(name, ".rwsem."))
+		return true;
+	if (strstr(name, "->rwsem."))
+		return true;
+
+	if (strstr(name, "->mutex."))
+		return true;
+	if (strstr(name, "->lockdep_mutex."))
+		return true;
+
+	if (strstr(name, ".completion.wait."))
+		return true;
+
+	if (strstr(name, "kobj.kset-"))
+		return true;
+	if (strstr(name, "power.suspend_timer."))
+		return true;
+	if (strstr(name, "power.work."))
+		return true;
+	if (strstr(name, ".lock.rlock."))
+		return true;
+	if (strstr(name, "lockdep_mutex."))
+		return true;
+
+	if (strstr(name, ">klist_devices."))
+		return true;
+
 	/* ignore mutex internals */
-	p = strstr(name, ".rlock.");
-	if (p) {
+	if ((p = strstr(name, ".rlock.")) ||
+	    (p = strstr(name, ">rlock."))) {
 		p += 7;
 		if (strncmp(p, "raw_lock", 8) == 0 ||
 		    strcmp(p, "owner") == 0 ||
