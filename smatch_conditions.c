@@ -634,7 +634,6 @@ int __handle_select_assigns(struct expression *expr)
 
 	if (!is_select_assign(expr))
 		return 0;
-	sm_debug("%d in __handle_ternary_assigns\n", get_lineno());
 	right = strip_expr(expr->right);
 	__pass_to_client(right, SELECT_HOOK);
 
