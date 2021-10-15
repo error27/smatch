@@ -447,16 +447,16 @@ static void call_return_states_before_hooks(void)
 	} END_FOR_EACH_PTR(fn);
 }
 
-static int call_call_backs(struct call_back_list *list, int type,
+static bool call_call_backs(struct call_back_list *list, int type,
 			    const char *fn, struct expression *expr)
 {
 	struct fcall_back *tmp;
-	int handled = 0;
+	bool handled = false;
 
 	FOR_EACH_PTR(list, tmp) {
 		if (tmp->type == type) {
 			(tmp->u.call_back)(fn, expr, tmp->info);
-			handled = 1;
+			handled = true;
 		}
 	} END_FOR_EACH_PTR(tmp);
 
@@ -522,18 +522,18 @@ static struct call_back_list *get_same_ranged_call_backs(struct call_back_list *
 	return ret;
 }
 
-static int in_list_exact_sval(struct range_list *list, struct data_range *drange)
+static bool in_list_exact_sval(struct range_list *list, struct data_range *drange)
 {
 	struct data_range *tmp;
 
 	FOR_EACH_PTR(list, tmp) {
 		if (ranges_equiv(tmp, drange))
-			return 1;
+			return true;
 	} END_FOR_EACH_PTR(tmp);
-	return 0;
+	return false;
 }
 
-static int assign_ranged_funcs(const char *fn, struct expression *expr,
+static bool assign_ranged_funcs(const char *fn, struct expression *expr,
 				 struct call_back_list *call_backs)
 {
 	struct fcall_back *tmp;
@@ -546,10 +546,10 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct range_list *handled_ranges = NULL;
 	struct call_back_list *same_range_call_backs = NULL;
 	struct range_list *rl;
-	int handled = 0;
+	int handled = false;
 
 	if (!call_backs)
-		return 0;
+		return false;
 
 	var_name = expr_to_var_sym(expr->left, &sym);
 	if (!var_name || !sym)
@@ -577,7 +577,7 @@ static int assign_ranged_funcs(const char *fn, struct expression *expr,
 		tmp_stree = __pop_fake_cur_stree();
 		merge_fake_stree(&final_states, tmp_stree);
 		free_stree(&tmp_stree);
-		handled = 1;
+		handled = true;
 	} END_FOR_EACH_PTR(tmp);
 
 	FOR_EACH_SM(final_states, sm) {
@@ -875,7 +875,7 @@ static void handle_ret_equals_param(char *ret_string, struct range_list *rl, str
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
-static int impossible_limit(struct db_callback_info *db_info, int param, char *key, char *value)
+static bool impossible_limit(struct db_callback_info *db_info, int param, char *key, char *value)
 {
 	struct expression *expr = db_info->expr;
 	struct expression *arg;
@@ -887,15 +887,15 @@ static int impossible_limit(struct db_callback_info *db_info, int param, char *k
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
-		return 0;
+		return false;
 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
-		return 0;
+		return false;
 
 	if (strcmp(key, "$") == 0) {
 		if (!get_implied_rl(arg, &passed))
-			return 0;
+			return false;
 
 		compare_type = get_arg_type(expr->fn, param);
 	} else {
@@ -904,17 +904,17 @@ static int impossible_limit(struct db_callback_info *db_info, int param, char *k
 
 		name = get_variable_from_key(arg, key, &sym);
 		if (!name || !sym)
-			return 0;
+			return false;
 
 		state = get_state(SMATCH_EXTRA, name, sym);
 		if (!state) {
 			free_string(name);
-			return 0;
+			return false;
 		}
 		passed = estate_rl(state);
 		if (!passed || is_whole_rl(passed)) {
 			free_string(name);
-			return 0;
+			return false;
 		}
 
 		compare_type = get_member_type_from_key(arg, key);
@@ -923,33 +923,33 @@ static int impossible_limit(struct db_callback_info *db_info, int param, char *k
 	passed = cast_rl(compare_type, passed);
 	call_results_to_rl(expr, compare_type, value, &limit);
 	if (!limit || is_whole_rl(limit))
-		return 0;
+		return false;
 	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
-		return 0;
+		return false;
 	if (option_debug || local_debug)
 		sm_msg("impossible: %d '%s' limit '%s' == '%s' return='%s'", param, key, show_rl(passed), value, db_info->ret_str);
-	return 1;
+	return true;
 }
 
-static int is_impossible_data(int type, struct db_callback_info *db_info, int param, char *key, char *value)
+static bool is_impossible_data(int type, struct db_callback_info *db_info, int param, char *key, char *value)
 {
 	if (type == PARAM_LIMIT && impossible_limit(db_info, param, key, value))
-		return 1;
+		return true;
 	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(db_info->expr, param, key, value)) {
 		if (local_debug)
 			sm_msg("param_compare_limit_is_impossible: %d %s %s", param, key, value);
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
-static int func_type_mismatch(struct expression *expr, const char *value)
+static bool func_type_mismatch(struct expression *expr, const char *value)
 {
 	struct symbol *type;
 
 	/* This makes faking returns easier */
 	if (!value || value[0] == '\0')
-		return 0;
+		return false;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -960,18 +960,18 @@ static int func_type_mismatch(struct expression *expr, const char *value)
 	 *
 	 */
 	if (expr->fn->type == EXPR_SYMBOL)
-		return 0;
+		return false;
 
 	type = get_type(expr->fn);
 	if (!type)
-		return 0;
+		return false;
 	if (type->type == SYM_PTR)
 		type = get_real_base_type(type);
 
 	if (strcmp(type_to_str(type), value) == 0)
-		return 0;
+		return false;
 
-	return 1;
+	return true;
 }
 
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
@@ -1391,15 +1391,15 @@ static int db_return_states_assign(struct expression *expr)
 	return db_info.handled;
 }
 
-static int handle_implied_return(struct expression *expr)
+static bool handle_implied_return(struct expression *expr)
 {
 	struct range_list *rl;
 
 	if (!get_implied_return(expr->right, &rl))
-		return 0;
+		return false;
 	rl = cast_rl(get_type(expr->left), rl);
 	set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
-	return 1;
+	return true;
 }
 
 static void match_assign_call(struct expression *expr)
@@ -1623,11 +1623,11 @@ static void match_macro_assign(struct expression *expr)
 	call_call_backs(call_backs, MACRO_ASSIGN_EXTRA, macro, expr);
 }
 
-int get_implied_return(struct expression *expr, struct range_list **rl)
+bool get_implied_return(struct expression *expr, struct range_list **rl)
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
-	int handled = 0;
+	bool handled = false;
 	char *fn;
 
 	*rl = NULL;

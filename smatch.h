@@ -214,7 +214,7 @@ void return_implies_param_key_exact(const char *look_for, sval_t start, sval_t e
 				    param_key_hook *call_back,
 				    int param, const char *key, void *info);
 void select_return_param_key(int type, param_key_hook *callback);
-int get_implied_return(struct expression *expr, struct range_list **rl);
+bool get_implied_return(struct expression *expr, struct range_list **rl);
 void allocate_hook_memory(void);
 void allocate_tracker_array(int num_checks);
 
