@@ -57,11 +57,12 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 		show_typename(sym->ctype.base_type));
 
 	switch (sym->kind) {
+	case 'd':
+		break;
 	case 's':
 		if (sym->type == SYM_STRUCT || sym->type == SYM_UNION)
 			break;
 		goto err;
-
 	case 'f':
 		if (sym->type != SYM_BAD && sym->ctype.base_type->type != SYM_FN)
 			goto err;
