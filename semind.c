@@ -329,6 +329,7 @@ done:
 	optind--;
 
 	sparse_initialize(argc - optind, argv + optind, &semind_filelist);
+	dissect_show_all_symbols = 1;
 }
 
 static void parse_cmdline_rm(int argc, char **argv)
