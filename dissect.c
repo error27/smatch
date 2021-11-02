@@ -615,6 +615,11 @@ static inline bool is_macro(struct symbol *sym)
 	return (sym->namespace == NS_MACRO || sym->namespace == NS_UNDEF);
 }
 
+static inline bool is_typedef(struct symbol *sym)
+{
+	return (sym->namespace == NS_TYPEDEF);
+}
+
 static inline struct symbol *do_symbol(struct symbol *sym)
 {
 	struct symbol *type = base_type(sym);
@@ -659,7 +664,7 @@ static void do_sym_list(struct symbol_list *list)
 
 static inline bool valid_namespace(enum namespace ns)
 {
-	return (ns == NS_MACRO || ns == NS_UNDEF || ns == NS_STRUCT || ns == NS_SYMBOL);
+	return (ns == NS_TYPEDEF || ns == NS_MACRO || ns == NS_UNDEF || ns == NS_STRUCT || ns == NS_SYMBOL);
 }
 
 static void do_file(char *file)
@@ -673,6 +678,12 @@ static void do_file(char *file)
 
 	DO_LIST(file_scope->symbols, sym,
 		if (input_streams[sym->pos.stream].fd != -1 && valid_namespace(sym->namespace)) {
+			if (is_typedef(sym)) {
+				sym->kind = 't';
+				reporter->r_symdef(sym);
+				continue;
+			}
+
 			if (is_macro(sym)) {
 				sym->kind = 'd';
 				reporter->r_symdef(sym);

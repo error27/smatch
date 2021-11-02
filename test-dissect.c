@@ -63,6 +63,8 @@ static void r_symbol(unsigned mode, struct position *pos, struct symbol *sym)
 		if (sym->type == SYM_STRUCT || sym->type == SYM_UNION)
 			break;
 		goto err;
+	case 't':
+		break;
 	case 'f':
 		if (sym->type != SYM_BAD && sym->ctype.base_type->type != SYM_FN)
 			goto err;
