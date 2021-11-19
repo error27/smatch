@@ -1699,7 +1699,7 @@ static bool get_rl_helper(struct expression *expr, int implied, struct range_lis
 	return true;
 }
 
-struct {
+static struct {
 	struct expression *expr;
 	sval_t sval;
 } cached_results[24];
