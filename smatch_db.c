@@ -667,8 +667,10 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		get_static_filter(fn->symbol));
 	if (row_count == 0 && fn->symbol && fn->symbol->definition)
 		set_state(my_id, "db_incomplete", NULL, &incomplete);
-	if (row_count > 3000)
+	if (row_count == 0 || row_count > 3000) {
+		mark_call_params_untracked(call);
 		return;
+	}
 
 	run_sql(callback, info, "select %s from return_states where %s order by file, return_id, type;",
 		cols, get_static_filter(fn->symbol));

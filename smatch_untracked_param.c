@@ -36,7 +36,6 @@
 #include "smatch_extra.h"
 
 static int my_id;
-static unsigned long tracked;
 
 STATE(untracked);
 STATE(lost);
@@ -76,11 +75,6 @@ static void call_lost_callbacks(struct expression *expr, int param)
 	FOR_EACH_PTR(lost_hooks, fn) {
 		(*fn)(expr, param);
 	} END_FOR_EACH_PTR(fn);
-}
-
-static void assume_tracked(struct expression *call_expr, int param, char *key, char *value)
-{
-	tracked = 1;
 }
 
 static char *get_array_from_key(struct expression *expr, int param, const char *key, struct symbol **sym)
@@ -161,10 +155,7 @@ static void match_after_call(struct expression *expr)
 	struct symbol *type;
 	int i;
 
-	if (lost_in_va_args(expr))
-		tracked = 0;
-
-	if (tracked)
+	if (!lost_in_va_args(expr))
 		return;
 
 	i = -1;
@@ -179,7 +170,6 @@ static void match_after_call(struct expression *expr)
 		set_state_expr(my_id, arg, &untracked);
 	} END_FOR_EACH_PTR(arg);
 }
-
 
 static void mark_all_params(int return_id, char *return_ranges, int type)
 {
@@ -262,7 +252,6 @@ void register_untracked_param(int id)
 {
 	my_id = id;
 
-	select_return_states_hook(INTERNAL, &assume_tracked);
 	select_return_states_hook(UNTRACKED_PARAM, &mark_untracked);
 	select_return_states_hook(LOST_PARAM, &mark_lost);
 	add_hook(&match_after_call, FUNCTION_CALL_HOOK_AFTER_DB);
@@ -270,6 +259,4 @@ void register_untracked_param(int id)
 	add_split_return_callback(&print_untracked_params);
 
 	add_hook(&match_param_assign_in_asm, ASM_HOOK);
-
-	add_function_data((unsigned long *)&tracked);
 }
