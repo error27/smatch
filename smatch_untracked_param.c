@@ -229,6 +229,27 @@ static void print_untracked_params(int return_id, char *return_ranges, struct ex
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void match_assign(struct expression *expr)
+{
+	struct expression *right;
+	int param;
+
+	if (__in_fake_var_assign)
+		return;
+
+	right = strip_expr(expr->right);
+
+	if (right->type != EXPR_SYMBOL)
+		return;
+	if (!is_pointer(expr->right))
+		return;
+	param = get_param_num(right);
+	if (param < 0)
+		return;
+
+	set_state_expr(my_id, right, &untracked);
+}
+
 static void match_param_assign_in_asm(struct statement *stmt)
 {
 	struct expression *expr;
@@ -258,5 +279,6 @@ void register_untracked_param(int id)
 
 	add_split_return_callback(&print_untracked_params);
 
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_param_assign_in_asm, ASM_HOOK);
 }
