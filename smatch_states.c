@@ -679,13 +679,12 @@ int __path_is_null(void)
 	return 1;
 }
 
-static void check_stree_stack_free(struct stree_stack **stack)
-{
-	if (*stack) {
-		sm_perror("stack not empty");
-		free_stack_and_strees(stack);
-	}
-}
+#define check_stree_stack_free(stack) do {					\
+	if (*stack) {								\
+		sm_perror("stack not empty %s", #stack);			\
+		free_stack_and_strees(stack);					\
+	}									\
+} while(0)
 
 void save_all_states(void)
 {
