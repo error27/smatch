@@ -782,6 +782,7 @@ void clear_all_states(void)
 
 	free_goto_stack();
 
+	clear_array_values_cache();
 	free_every_single_sm_state();
 	free_tmp_expressions();
 }

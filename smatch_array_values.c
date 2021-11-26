@@ -106,6 +106,41 @@ static char *get_array_name(struct expression *array)
 	return NULL;
 }
 
+static struct {
+	const char *name;
+	struct range_list *rl;
+} cached_results[4];
+
+static bool get_cached_select(const char *name, struct range_list **rl)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(cached_results); i++) {
+		if (!cached_results[i].name)
+			continue;
+		if (strcmp(name, cached_results[i].name) == 0) {
+			*rl = cached_results[i].rl;
+			return true;
+		}
+	}
+	return false;
+}
+
+static void store_result(const char *name, struct range_list *rl)
+{
+	static int idx;
+
+	idx = (idx + 1) % ARRAY_SIZE(cached_results);
+
+	cached_results[idx].name = name;
+	cached_results[idx].rl = rl;
+}
+
+void clear_array_values_cache(void)
+{
+	memset(cached_results, 0, sizeof(cached_results));
+}
+
 int get_array_rl(struct expression *expr, struct range_list **rl)
 {
 	struct expression *array;
@@ -123,6 +158,9 @@ int get_array_rl(struct expression *expr, struct range_list **rl)
 	if (!name)
 		return 0;
 
+	if (get_cached_select(name, rl))
+		return 1;
+
 	if (is_file_local(array)) {
 		run_sql(&get_vals, &db_info,
 			"select value from sink_info where file = '%s' and static = 1 and sink_name = '%s' and type = %d;",
@@ -132,7 +170,10 @@ int get_array_rl(struct expression *expr, struct range_list **rl)
 			"select value from sink_info where sink_name = '%s' and type = %d limit 10;",
 			name, DATA_VALUE);
 	}
-	if (!db_info.rl || db_info.count >= 10)
+	if (db_info.count >= 10)
+		db_info.rl = NULL;
+	store_result(name, db_info.rl);
+	if (!db_info.rl)
 		return 0;
 
 	*rl = db_info.rl;
