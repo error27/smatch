@@ -876,6 +876,19 @@ static bool handle_comparison_rl(struct expression *expr, int implied, int *recu
 
 		left = get_real_base_type(expr->left->symbol);
 		right = get_real_base_type(expr->right->symbol);
+
+		while (type_is_ptr(left) || type_is_ptr(right)) {
+
+			if ((type_is_ptr(left) && !type_is_ptr(right)) ||
+			    (!type_is_ptr(left) && type_is_ptr(right))) {
+				*res_sval = zero;
+				return true;
+			}
+
+			left = get_real_base_type(left);
+			right = get_real_base_type(right);
+		}
+
 		if (type_bits(left) == type_bits(right) &&
 		    type_positive_bits(left) == type_positive_bits(right))
 			*res_sval = one;
