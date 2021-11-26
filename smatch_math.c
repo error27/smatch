@@ -1453,107 +1453,59 @@ static bool handle_cast(struct expression *expr, int implied, int *recurse_cnt, 
 	return false;
 }
 
-static bool get_offset_from_down(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
-{
-	struct expression *index;
-	struct symbol *type = expr->in;
-	struct range_list *rl;
-	struct symbol *field;
-	int offset = 0;
-	sval_t sval = { .type = ssize_t_ctype };
-	sval_t tmp_sval = {};
-
-	/*
-	 * FIXME:  I don't really know what I'm doing here.  I wish that I
-	 * could just get rid of the __builtin_offset() function and use:
-	 * "&((struct bpf_prog *)NULL)->insns[fprog->len]" instead...
-	 * Anyway, I have done the minimum ammount of work to get that
-	 * expression to work.
-	 *
-	 */
-
-	if (expr->op != '.' || !expr->down ||
-	    expr->down->type != EXPR_OFFSETOF ||
-	    expr->down->op != '[' ||
-	    !expr->down->index)
-		return false;
-
-	index = expr->down->index;
-
-	examine_symbol_type(type);
-	type = get_real_base_type(type);
-	if (!type)
-		return false;
-	field = find_identifier(expr->ident, type->symbol_list, &offset);
-	if (!field)
-		return false;
-
-	type = get_real_base_type(field);
-	if (!type || type->type != SYM_ARRAY)
-		return false;
-	type = get_real_base_type(type);
-
-	if (get_implied_value_internal(index, recurse_cnt, &sval)) {
-		res_sval->type = ssize_t_ctype;
-		res_sval->value = offset + sval.value * type_bytes(type);
-		return true;
-	}
-
-	if (!get_rl_sval(index, implied, recurse_cnt, &rl, &tmp_sval))
-		return false;
-
-	/*
-	 * I'm not sure why get_rl_sval() would return an sval when
-	 * get_implied_value_internal() failed but it does when I
-	 * parse drivers/net/ethernet/mellanox/mlx5/core/en/monitor_stats.c
-	 *
-	 */
-	if (tmp_sval.type) {
-		res_sval->type = ssize_t_ctype;
-		res_sval->value = offset + sval.value * type_bytes(type);
-		return true;
-	}
-
-	sval.value = type_bytes(type);
-	rl = rl_binop(rl, '*', alloc_rl(sval, sval));
-	sval.value = offset;
-	*res = rl_binop(rl, '+', alloc_rl(sval, sval));
-	return true;
-}
-
-static bool get_offset_from_in(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
-{
-	struct symbol *type = get_real_base_type(expr->in);
-	struct symbol *field;
-	int offset = 0;
-
-	if (expr->op != '.' || !type || !expr->ident)
-		return false;
-
-	field = find_identifier(expr->ident, type->symbol_list, &offset);
-	if (!field)
-		return false;
-
-	res_sval->type = size_t_ctype;
-	res_sval->value = offset;
-
-	return true;
-}
-
 static bool handle_offsetof_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	if (get_offset_from_down(expr, implied, recurse_cnt, res, res_sval))
-		return true;
+	struct expression *down = expr->down;
+	struct range_list *offset_rl = NULL, *down_rl = NULL;
+	sval_t sval = { .type = ssize_t_ctype };
+	struct symbol *type;
 
-	if (get_offset_from_in(expr, implied, recurse_cnt, res, res_sval))
-		return true;
+	type = get_real_base_type(expr->in);
+	if (!type)
+		return false;
 
-	evaluate_expression(expr);
-	if (expr->type == EXPR_VALUE) {
-		*res_sval = sval_from_val(expr, expr->value);
-		return true;
+	if (expr->op == '.') {
+		struct symbol *field;
+		int offset = 0;
+
+		field = find_identifier(expr->ident, type->symbol_list, &offset);
+		if (!field)
+			return false;
+
+		sval.value = offset;
+		offset_rl = alloc_rl(sval, sval);
+		type = field;
+	} else {
+		if (!expr->index) {
+			sval.value = 0;
+			offset_rl = alloc_rl(sval, sval);
+		} else {
+			struct range_list *idx_rl = NULL, *bytes_rl;
+
+			if (get_rl_internal(expr->index, implied, recurse_cnt, &idx_rl))
+				return false;
+
+			sval.value = type_bytes(type);
+			if (sval.value <= 0)
+				return false;
+			bytes_rl = alloc_rl(sval, sval);
+
+			offset_rl = rl_binop(idx_rl, '*', bytes_rl);
+		}
 	}
-	return false;
+
+	if (down) {
+		if (down->type == EXPR_OFFSETOF && !down->in)
+			down->in = type;
+		if (!get_rl_internal(down, implied, recurse_cnt, &down_rl))
+			return false;
+
+		*res = rl_binop(offset_rl, '+', down_rl);
+	} else {
+		*res = offset_rl;
+	}
+
+	return true;
 }
 
 static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res)
