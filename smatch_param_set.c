@@ -235,13 +235,15 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 	int count = 0;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		bool untracked = false;
+
 		if (!estate_rl(sm->state))
 			continue;
 		extra = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
 		if (extra) {
 			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 			if (!rl)
-				continue;
+				untracked = true;
 		} else {
 			rl = estate_rl(sm->state);
 		}
@@ -257,6 +259,12 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			insert_string(&set_list, (char *)sm->name);
 			continue;
 		}
+		if (untracked) {
+			sql_insert_return_states(return_id, return_ranges,
+						 UNTRACKED_PARAM, param, param_name, "");
+			continue;
+		}
+
 		if (limit) {
 			char *new = get_two_dots(param_name);
 
