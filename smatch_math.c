@@ -985,7 +985,6 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 	struct expression *cond_true;
 	struct range_list *true_rl, *false_rl;
 	struct symbol *type;
-	int final_pass_orig = final_pass;
 
 	cond_true = expr->cond_true;
 	if (!cond_true)
@@ -1010,8 +1009,7 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 
 	type = get_type(expr);
 
-	__push_fake_cur_stree();
-	final_pass = 0;
+	init_fake_env();
 	__split_whole_condition(expr->conditional);
 	true_rl = NULL;
 	get_rl_internal(cond_true, implied, recurse_cnt, &true_rl);
@@ -1020,8 +1018,7 @@ static bool handle_conditional_rl(struct expression *expr, int implied, int *rec
 	false_rl = NULL;
 	get_rl_internal(expr->cond_false, implied, recurse_cnt, &false_rl);
 	__merge_true_states();
-	__free_fake_cur_stree();
-	final_pass = final_pass_orig;
+	end_fake_env();
 
 	if (!true_rl || !false_rl)
 		return false;
