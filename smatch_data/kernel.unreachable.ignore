@@ -11,6 +11,7 @@ inet_twsk_for_each_inmate
 udp_portaddr_for_each_entry_rcu
 hlist_for_each_safe
 hlist_for_each_entry_rcu
+hlist_for_each_entry_continue
 snd_pcm_group_for_each_entry
 DLM_ASSERT
 ata_for_each_dev
@@ -28,5 +29,18 @@ drm_mm_for_each_hole
 for_each_set_bit
 for_each_dpcm_fe
 dma_fence_chain_for_each
+dma_resv_for_each_fence_unlocked
+for_each_m4u
+for_each_node_mask_to_alloc
+nla_for_each_nested
+xa_for_each
+xa_for_each_marked
+tcf_exts_for_each_action
+do_for_each_ftrace_rec
 BUG
 WARN_ON
+INVALID_IDX
+SYSCALL_DEFINE1
+fui
+_mesa_float_to_half
+prevent_tail_call_optimization
