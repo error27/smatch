@@ -200,6 +200,17 @@ static int is_noreturn_func(struct expression *expr)
 {
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
 		return 0;
+
+	/*
+	 * It's almost impossible for Smatch to handle __builtin_constant_p()
+	 * the same way that GCC does so Smatch ends up making some functions
+	 * as no return functions incorrectly.
+	 *
+	 */
+	if (option_project == PROJ_KERNEL && expr->symbol->ident &&
+	    strstr(expr->symbol->ident->name, "__compiletime_assert"))
+		return 0;
+
 	if (expr->symbol->ctype.modifiers & MOD_NORETURN)
 		return 1;
 	return 0;
