@@ -19,9 +19,6 @@
 
 static int my_id;
 
-#define GFP_KERNEL_OLD 0x6000c0
-#define GFP_KERNEL 0xcc0
-
 static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 {
 	int arg_nr = PTR_INT(_arg);
@@ -31,12 +28,12 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	arg_expr = get_argument_from_call_expr(expr->args, arg_nr);
 	if (!get_value(arg_expr, &sval))
 		return;
-	if ((sval.uvalue & GFP_KERNEL) == GFP_KERNEL)
-		return;
-	if ((sval.uvalue & GFP_KERNEL_OLD) == GFP_KERNEL_OLD)
+
+	if ((sval.value & GFP_DIRECT_RECLAIM()) &&
+	    !(sval.uvalue & GFP_ATOMIC()))
 		return;
 
-	sm_error("kvmalloc() only makes sense with GFP_KERNEL");
+	sm_error("kvmalloc() does not make sense for no sleep code");
 }
 
 void check_kvmalloc_NOFS(int id)
