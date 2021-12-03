@@ -1,5 +1,8 @@
 regmap_read 2
 regmap_fields_read 2
+regmap_field_read 1
+regmap_raw_read 2
+regmap_bulk_read 2
 visorchannel_read 2
 dmam_alloc_coherent 2
 diva_pci_alloc_consistent 2
@@ -119,3 +122,13 @@ tc358768_read 2
 smum_send_msg_to_smc 2
 i2c_read_reg 3
 i2c_read_regs 3
+mtd_read 4
+sd_cmd52_read 3
+msp_readreg 3
+hmm_load 1
+s6e63m0_dcs_read 2
+ov490_read_reg 2
+comedi_buf_read_samples 1
+sja1105_unpack 1
+ice_read_flash_module 4
+hfs_bnode_read 1
