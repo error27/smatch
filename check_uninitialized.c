@@ -77,9 +77,38 @@ static void match_declarations(struct symbol *sym)
 	set_state(my_id, sym->ident->name, sym, &uninitialized);
 }
 
+static int is_initialized(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_SYMBOL)
+		return 1;
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return 1;
+	if (!slist_has_state(sm->possible, &uninitialized))
+		return 1;
+	return 0;
+}
+
+static void warn_about_special_assign(struct expression *expr)
+{
+	char *name;
+
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op == '=')
+		return;
+	if (is_initialized(expr->left))
+		return;
+
+	name = expr_to_str(expr->left);
+	sm_warning("uninitialized special assign '%s'", name);
+	free_string(name);
+}
+
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	if (__in_fake_struct_assign)
+	if (__in_fake_struct_assign && expr && is_fake_call(expr->right))
 		return;
 	if (expr && expr->smatch_flags & Fake)
 		return;
@@ -87,12 +116,16 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 		return;
 	if (strcmp(name, sym->ident->name) != 0)
 		return;
+	warn_about_special_assign(expr);
 	set_state(my_id, name, sym, &initialized);
 }
 
 static void match_assign(struct expression *expr)
 {
 	struct expression *right;
+
+	if (__in_fake_var_assign)
+		return;
 
 	right = strip_expr(expr->right);
 	if (right->type == EXPR_PREOP && right->op == '&')
@@ -132,21 +165,6 @@ static void match_negative_comparison(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	end_assume();
-}
-
-static int is_initialized(struct expression *expr)
-{
-	struct sm_state *sm;
-
-	expr = strip_expr(expr);
-	if (expr->type != EXPR_SYMBOL)
-		return 1;
-	sm = get_sm_state_expr(my_id, expr);
-	if (!sm)
-		return 1;
-	if (!slist_has_state(sm->possible, &uninitialized))
-		return 1;
-	return 0;
 }
 
 static void match_dereferences(struct expression *expr)
