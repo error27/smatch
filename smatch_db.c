@@ -2874,7 +2874,6 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNC_DEF_HOOK);
-	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
 
 	common_funcs = load_strings_from_file(option_project_str, "common_functions");
 	register_return_deletes();
@@ -2882,6 +2881,11 @@ void register_definition_db_callbacks(int id)
 	register_forced_return_splits();
 
 	add_hook(&dump_cache, END_FILE_HOOK);
+}
+
+void register_definition_db_callbacks_late(int id)
+{
+	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
 }
 
 void register_db_call_marker(int id)
