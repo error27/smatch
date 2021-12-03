@@ -1319,14 +1319,38 @@ static bool handle_strlen(struct expression *expr, int implied, int *recurse_cnt
 
 static bool handle_builtin_constant_p(struct expression *expr, int implied, int *recurse_cnt, sval_t *res_sval)
 {
-	struct expression *arg;
+	struct expression *arg, *assigned;
 	struct range_list *rl;
+	static bool nested;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	if (get_rl_internal(arg, RL_EXACT, recurse_cnt, &rl))
+	/*
+	 * Originally, Smatch used to pretend there were no constants but then
+	 * it turned out that we need to know at build time if some paths are
+	 * impossible or not to avoid crazy false positives.
+	 *
+	 * But then someone added a BUILD_BUG_ON(!__builtin_constant_p(_mask)).
+	 * So now we try to figure out if GCC can determine the value at
+	 * build time.
+	 */
+	if (get_rl_internal(arg, RL_EXACT, recurse_cnt, &rl)) {
+		*res_sval = one;
+		return true;
+	}
+
+	if (nested) {
+		*res_sval = zero;
+		return true;
+	}
+
+	assigned = get_assigned_expr(arg);
+	nested = true;
+	if (assigned && get_rl_internal(assigned, RL_EXACT, recurse_cnt, &rl))
 		*res_sval = one;
 	else
 		*res_sval = zero;
+	nested = false;
+
 	return true;
 }
 
