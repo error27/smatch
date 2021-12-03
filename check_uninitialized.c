@@ -190,6 +190,30 @@ static void match_condition(struct expression *expr)
 	set_state_expr(my_id, expr, &initialized);
 }
 
+static void match_function_pointer_call(struct expression *expr)
+{
+	struct expression *parent, *arg, *tmp;
+
+	/*
+	 * If you call a function pointer foo->read(&val) without checking
+	 * for errors then you knew what you were doing when you wrote that
+	 * code.  I'm not the police to try to prevent intentional bugs.
+	 *
+	 */
+	parent = expr_get_parent_expr(expr);
+	if (parent)
+		return;
+	if (expr->fn->type == EXPR_SYMBOL)
+		return;
+
+	FOR_EACH_PTR(expr->args, arg) {
+		tmp = strip_expr(arg);
+		if (tmp->type != EXPR_PREOP || tmp->op != '&')
+			continue;
+		set_state_expr(my_id, tmp->unop, &initialized);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static void match_call(struct expression *expr)
 {
 	struct expression *arg;
@@ -423,6 +447,7 @@ void check_uninitialized(int id)
 	add_hook(&match_dereferences, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
+	add_hook(&match_function_pointer_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_call_struct_members, FUNCTION_CALL_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);
 
