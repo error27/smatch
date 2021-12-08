@@ -607,7 +607,7 @@ static void sql_select_return_states_pointer(const char *cols,
 		"where return_states.function == function_ptr.function and "
 		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
 	/* The magic number 100 is just from testing on the kernel. */
-	if (return_count > 100) {
+	if (return_count == 0 || return_count > 100) {
 		mark_call_params_untracked(call);
 		return;
 	}
