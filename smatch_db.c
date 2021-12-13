@@ -2440,18 +2440,15 @@ static void print_return_struct_info(int return_id, char *return_ranges,
 
 	FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
 		param = get_param_num_from_sym(sm->sym);
-		if (param < 0) {
-			if (sm->sym && sm->sym == sym)
-				param = -1;
-			else
-				continue;
-		}
-
 		printed_name = get_param_name(sm);
 		if (!printed_name)
 			continue;
 
-		cb->callback(return_id, return_ranges, expr, param, printed_name, sm);
+		if (param >= 0)
+			cb->callback(return_id, return_ranges, expr, param, printed_name, sm);
+
+		if (sm->sym && sm->sym == sym)
+			cb->callback(return_id, return_ranges, expr, -1, printed_name, sm);
 	} END_FOR_EACH_SM(sm);
 }
 
