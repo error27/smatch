@@ -2791,7 +2791,10 @@ static void register_return_replacements(void)
 		get_next_string(&p);
 		replace_count++;
 	}
-	if (replace_count == 0 || replace_count % 3 != 0) {
+	if (replace_count == 0)
+		return;
+	if (replace_count % 3 != 0) {
+		printf("error parsing '%s' replace_count=%d\n", filename, replace_count);
 		replace_count = 0;
 		return;
 	}
