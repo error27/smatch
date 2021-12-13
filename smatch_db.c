@@ -1144,6 +1144,21 @@ static struct expression *get_fake_variable(struct expression *expr)
 	return tmp->left;
 }
 
+static struct sm_state *get_returned_sm(struct expression *expr)
+{
+	struct expression *fake;
+	struct sm_state *sm;
+
+	fake = expr_get_fake_parent_expr(expr);
+	if (fake && fake->type == EXPR_ASSIGNMENT && fake->op == '=') {
+		sm = get_sm_state_expr(SMATCH_EXTRA, fake->left);
+		if (sm)
+			return sm;
+	}
+
+	return get_sm_state_expr(SMATCH_EXTRA, expr);
+}
+
 static void match_call_info_new(struct expression *call)
 {
 	struct member_info_callback *cb;
@@ -1880,20 +1895,12 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 
 static int call_return_state_hooks_split_possible(struct expression *expr)
 {
-	struct expression *fake;
 	struct sm_state *sm;
 
 	if (!expr)
 		return 0;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
-	if (!sm) {
-		fake = expr_get_fake_parent_expr(expr);
-		if (!fake || fake->type != EXPR_ASSIGNMENT || fake->op != '=')
-			return 0;
-		fake = fake->left;
-		sm = get_sm_state_expr(SMATCH_EXTRA, fake);
-	}
+	sm = get_returned_sm(expr);
 	return split_possible_helper(sm, expr);
 }
 
@@ -1951,7 +1958,7 @@ static int split_positive_from_negative(struct expression *expr)
 	if (!sval_is_negative(rl_min(rl)))
 		return 0;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	sm = get_returned_sm(expr);
 	if (!sm)
 		return 0;
 	if (!has_possible_negative(sm))
@@ -2007,7 +2014,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	if (expr->type == EXPR_CALL)
 		return 0;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	sm = get_returned_sm(expr);
 	if (!sm)
 		return 0;
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
@@ -2104,7 +2111,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (nr_states > 2000)
 		return 0;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	sm = get_returned_sm(expr);
 	if (!sm)
 		return 0;
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
