@@ -781,6 +781,7 @@ int have_remaining_cases(void);
 void __merge_switches(struct expression *switch_expr, struct range_list *case_rl);
 void __push_default(void);
 void __set_default(void);
+bool __has_default_case(void);
 int __pop_default(void);
 
 void __push_conditions(void);

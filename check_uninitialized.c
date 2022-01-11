@@ -167,6 +167,43 @@ static void match_negative_comparison(struct expression *expr)
 	end_assume();
 }
 
+static struct statement *clear_states;
+static void match_enum_switch(struct statement *stmt)
+{
+	struct expression *expr;
+	struct symbol *type;
+
+	if (stmt->type != STMT_COMPOUND)
+		return;
+	stmt = stmt_get_parent_stmt(stmt);
+	if (!stmt || stmt->type != STMT_SWITCH)
+		return;
+
+	/* This ended up way uglier than I imagined */
+	if (__has_default_case())
+		return;
+
+	expr = strip_expr(stmt->switch_expression);
+	type = expr->ctype;
+	if (!type || type->type != SYM_ENUM)
+		return;
+
+	clear_states = stmt;
+}
+
+static void match_enum_switch_after(struct statement *stmt)
+{
+	struct sm_state *sm;
+
+	if (clear_states != stmt)
+		return;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->state == &merged)
+			set_state(my_id, sm->name, sm->sym, &initialized);
+	} END_FOR_EACH_SM(sm);
+}
+
 static void match_dereferences(struct expression *expr)
 {
 	char *name;
@@ -459,6 +496,8 @@ void check_uninitialized(int id)
 	add_extra_mod_hook(&extra_mod_hook);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_negative_comparison, CONDITION_HOOK);
+	add_hook(&match_enum_switch, STMT_HOOK_AFTER);
+	add_hook(&match_enum_switch_after, STMT_HOOK_AFTER);
 	add_untracked_param_hook(&match_untracked);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 

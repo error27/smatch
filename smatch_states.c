@@ -1198,6 +1198,14 @@ void __set_default(void)
 	set_state_stree_stack(&default_stack, 0, "has_default", NULL, &true_state);
 }
 
+bool __has_default_case(void)
+{
+	struct stree *stree;
+
+	stree = last_ptr_list((struct ptr_list *)default_stack);
+	return !!stree;
+}
+
 int __pop_default(void)
 {
 	struct stree *stree;
