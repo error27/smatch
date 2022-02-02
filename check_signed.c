@@ -39,7 +39,9 @@ static void match_assign(struct expression *expr)
 	sval_t min;
 	char *left_name, *right_name;
 
-	if (__in_fake_assign || __in_fake_var_assign)
+	if (__in_fake_assign)
+		return;
+	if (is_fake_var_assign(expr))
 		return;
 	if (expr->op == SPECIAL_AND_ASSIGN || expr->op == SPECIAL_OR_ASSIGN)
 		return;

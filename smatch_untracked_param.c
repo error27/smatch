@@ -234,7 +234,7 @@ static void match_assign(struct expression *expr)
 	struct expression *right;
 	int param;
 
-	if (__in_fake_var_assign)
+	if (is_fake_var_assign(expr))
 		return;
 
 	right = strip_expr(expr->right);

@@ -168,11 +168,13 @@ done:
 	in_recurse = false;
 }
 
-static void mark_sub_members_gone(const char *name, struct symbol *sym, struct smatch_state *state)
+static void mark_sub_members_gone(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct sm_state *sm;
 
-	if (__in_fake_assign || __in_fake_var_assign)
+	if (__in_fake_assign)
+		return;
+	if (is_fake_var_assign(expr))
 		return;
 
 	if (!estate_type(state) || estate_type(state)->type != SYM_PTR)
@@ -196,7 +198,7 @@ static void call_update_mtag_data(struct expression *expr,
 {
 	struct expression *faked;
 
-	if (__in_fake_var_assign)
+	if (is_fake_var_assign(expr))
 		return;
 
 	faked = get_faked_expression();
@@ -217,7 +219,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 		expr = gen_expression_from_name_sym(name, sym);
 	remove_from_equiv(name, sym);
 	set_union_info(name, sym, expr, state);
-	mark_sub_members_gone(name, sym, state);
+	mark_sub_members_gone(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
 	call_update_mtag_data(expr, state);
 	if ((__in_fake_assign || in_param_set) &&

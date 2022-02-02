@@ -610,6 +610,7 @@ extern int __in_fake_struct_assign;
 extern int __in_fake_var_assign;
 extern int __fake_state_cnt;
 extern int in_fake_env;
+bool is_fake_var_assign(struct expression *expr);
 void smatch (struct string_list *filelist);
 int inside_loop(void);
 int definitely_inside_loop(void);

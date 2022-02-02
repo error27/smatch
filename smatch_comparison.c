@@ -1679,7 +1679,7 @@ done:
 
 static bool is_empty_fake_assign(struct expression *expr)
 {
-	if (!__in_fake_var_assign)
+	if (is_fake_var_assign(expr))
 		return false;
 	if (get_state_chunk(link_id, expr->right))
 		return false;

@@ -120,7 +120,7 @@ out:
 
 static void match_alloc(const char *fn, struct expression *expr, void *unused)
 {
-	if (__in_fake_var_assign)
+	if (is_fake_var_assign(expr))
 		return;
 	if (!is_local(expr->left))
 		return;

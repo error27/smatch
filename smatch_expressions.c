@@ -330,6 +330,25 @@ bool is_fake_var(struct expression *expr)
 	return false;
 }
 
+bool is_fake_var_assign(struct expression *expr)
+{
+	struct expression *left;
+	struct symbol *sym;
+
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return false;
+	left = expr->left;
+	if (left->type != EXPR_SYMBOL)
+		return false;
+	if (!is_fake_var(left))
+		return false;
+
+	sym = left->symbol;
+	if (strncmp(sym->ident->name, "__fake_", 7) != 0)
+		return false;
+	return true;
+}
+
 struct expression *fake_variable(struct symbol *type, const char *name)
 {
 	struct symbol *sym, *node;

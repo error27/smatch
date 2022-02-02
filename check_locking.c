@@ -1150,7 +1150,7 @@ static void match_assign(struct expression *expr)
 	struct smatch_state *state;
 
 	/* This is only for the DB */
-	if (!__in_fake_var_assign)
+	if (is_fake_var_assign(expr))
 		return;
 	state = get_state_expr(my_id, expr->right);
 	if (!state)
