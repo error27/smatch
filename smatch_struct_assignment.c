@@ -148,16 +148,21 @@ static void split_fake_expr(struct expression *expr)
 
 static void handle_non_struct_assignments(struct expression *left, struct expression *right)
 {
-	struct symbol *type;
+	struct symbol *left_type, *right_type;
 	struct expression *assign;
 
 	while (right && right->type == EXPR_ASSIGNMENT)
 		right = strip_parens(right->left);
 
-	type = get_type(left);
-	if (!type)
+	left_type = get_type(left);
+	right_type = get_type(right);
+	if (!left_type || !right_type)
 		return;
-	if (type->type == SYM_PTR) {
+
+	if (right_type->type == SYM_ARRAY)
+		right = unknown_value_expression(left);
+
+	if (left_type->type == SYM_PTR) {
 		left = deref_expression(left);
 		if (right)
 			right = deref_expression(right);
@@ -167,12 +172,8 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 		split_fake_expr(assign);
 		return;
 	}
-	if (type->type != SYM_BASETYPE)
+	if (left_type->type != SYM_BASETYPE)
 		return;
-	right = strip_expr(right);
-	type = get_type(right);
-	if (!right || !type || type->type == SYM_ARRAY)
-		right = unknown_value_expression(left);
 	assign = assign_expression(left, '=', right);
 	split_fake_expr(assign);
 }
