@@ -41,17 +41,14 @@ struct var_sym *alloc_var_sym(const char *var, struct symbol *sym)
 
 struct var_sym_list *expr_to_vsl(struct expression *expr)
 {
-	struct expression *unop;
 	struct var_sym_list *ret = NULL;
+	struct var_sym_list *more;
 	char *var;
 	struct symbol *sym;
 
 	expr = strip_expr(expr);
 	if (!expr)
 		return NULL;
-
-	if (expr_to_sym(expr))
-		goto one_var;
 
 	if (expr->type == EXPR_BINOP ||
 	    expr->type == EXPR_LOGICAL ||
@@ -66,25 +63,22 @@ struct var_sym_list *expr_to_vsl(struct expression *expr)
 		return ret;
 	}
 
-	// handle "*(foo[bar])" I guess */
-	if ((expr->type == EXPR_PREOP && expr->op == '*')) {
-		unop = strip_expr(expr->unop);
-
-		if (unop->type == EXPR_SYMBOL)
-			goto one_var;
-		return expr_to_vsl(unop);
-	}
-
-	if (expr->type == EXPR_DEREF)
-		return expr_to_vsl(expr->deref);
-
-one_var:
 	var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym) {
-		free_string(var);
-		return NULL;
+	if (var && sym)
+		add_var_sym(&ret, var, sym);
+
+
+	// handle "*(foo[bar])" I guess */
+	if (expr->type == EXPR_PREOP && expr->op == '*') {
+		more = expr_to_vsl(expr->unop);
+		return combine_var_sym_lists(ret, more);
 	}
-	add_var_sym(&ret, var, sym);
+
+	if (expr->type == EXPR_DEREF) {
+		more = expr_to_vsl(expr->deref);
+		return combine_var_sym_lists(ret, more);
+	}
+
 	return ret;
 }
 
