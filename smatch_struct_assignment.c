@@ -344,7 +344,7 @@ static int copy_containter_states(struct expression *left, struct expression *ri
 	if (len >= sizeof(buf))
 		goto free;
 
-	FOR_EACH_SM(__get_cur_stree(), sm) {
+	FOR_EACH_SM_SAFE(__get_cur_stree(), sm) {
 		if (sm->sym != right_sym)
 			continue;
 		if (strncmp(sm->name, buf, len) != 0)
@@ -355,7 +355,7 @@ static int copy_containter_states(struct expression *left, struct expression *ri
 		new_sm->sym = left_sym;
 		__set_sm(new_sm);
 		ret = 1;
-	} END_FOR_EACH_SM(sm);
+	} END_FOR_EACH_SM_SAFE(sm);
 free:
 	free_string(left_name);
 	free_string(right_name);

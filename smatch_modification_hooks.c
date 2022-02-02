@@ -133,7 +133,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 	if (cur_func_sym && !__in_fake_assign)
 		set_state(my_id, name, sym, alloc_my_state(mod_expr, prev));
 
-	FOR_EACH_SM(__get_cur_stree(), sm) {
+	FOR_EACH_SM_SAFE(__get_cur_stree(), sm) {
 		if (sm->owner > num_checks)
 			continue;
 		if (!hooks[sm->owner] && !hooks_late[sm->owner])
@@ -150,8 +150,7 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 			if (hooks_late[sm->owner])
 				(hooks_late[sm->owner])(sm, mod_expr);
 		}
-
-	} END_FOR_EACH_SM(sm);
+	} END_FOR_EACH_SM_SAFE(sm);
 }
 
 static void call_modification_hooks(struct expression *expr, struct expression *mod_expr, int late)

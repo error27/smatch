@@ -91,6 +91,15 @@ bool avl_check_invariants(struct stree *avl);
 
 #define END_FOR_EACH_SM(_sm) }}
 
+#define FOR_EACH_SM_SAFE(avl, _sm) {		\
+	struct stree *_copy = clone_stree(avl);	\
+	AvlIter _i;				\
+	avl_foreach(_i, avl) {			\
+		_sm = _i.sm;
+
+#define END_FOR_EACH_SM_SAFE(_sm) }		\
+	free_stree(&_copy); }
+
 #define FOR_EACH_MY_SM(_owner, avl, _sm) {		\
 	bool __has_state = has_states(avl, _owner);	\
 	AvlIter _i;					\
