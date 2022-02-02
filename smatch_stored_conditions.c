@@ -166,10 +166,9 @@ static void store_all_links(struct expression *expr, struct expression *conditio
 		save_link_var_sym(vs->var, vs->sym, condition);
 	} END_FOR_EACH_PTR(vs);
 
+	/* This is used to store "array[0]" from "if (array[0] == 1) " */
 	var = expr_to_known_chunk_sym(expr, &sym);
-	if (!var || !sym)
-		var = expr_to_var_sym(expr, &sym);
-	if (!var || !sym)
+	if (!var && !sym)
 		goto free;
 	save_link_var_sym(var, sym, condition);
 free:
