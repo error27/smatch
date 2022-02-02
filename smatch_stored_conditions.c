@@ -186,15 +186,10 @@ static int condition_too_complicated(struct expression *expr)
 void __stored_condition(struct expression *expr)
 {
 	struct smatch_state *true_state, *false_state;
-	struct range_list *rl;
 	char *name;
-	sval_t val;
 
-	if (get_implied_value(expr, &val))
-		return;
-
-	if (get_implied_rl(expr, &rl) &&
-	    !rl_has_sval(rl, int_zero))
+	if (implied_condition_true(expr) ||
+	    implied_condition_false(expr))
 		return;
 
 	if (condition_too_complicated(expr))
@@ -205,6 +200,7 @@ void __stored_condition(struct expression *expr)
 		return;
 	true_state = alloc_state(expr, TRUE);
 	false_state = alloc_state(expr, FALSE);
+
 	set_true_false_states(my_id, name, NULL, true_state, false_state);
 	store_all_links(expr, expr);
 	free_string(name);
