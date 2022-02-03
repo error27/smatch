@@ -1605,6 +1605,9 @@ struct range_list *cast_rl(struct symbol *type, struct range_list *rl)
 	return ret;
 }
 
+/*
+ * This is the opposite of rl_intersection().
+ */
 struct range_list *rl_filter(struct range_list *rl, struct range_list *filter)
 {
 	struct data_range *tmp;
