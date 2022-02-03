@@ -23,10 +23,35 @@ static int my_id;
 
 STATE(power_of_two);
 
-bool is_power_of_two(struct expression *expr)
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	struct smatch_state *state;
+	sval_t sval;
+
+	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	if (!state)
+		return &undefined;
+	if (!estate_get_single_value(state, &sval))
+		return &undefined;
+
+	if (!(sval.uvalue & (sval.uvalue - 1)))
+		return &power_of_two;
+	return &undefined;
+}
+
+static bool implied_power_of_two(struct expression *expr)
 {
 	sval_t sval;
 
+	if (!get_implied_value(expr, &sval))
+		return false;
+	if (!(sval.uvalue & (sval.uvalue - 1)))
+		return true;
+	return false;
+}
+
+bool is_power_of_two(struct expression *expr)
+{
 	expr = strip_expr(expr);
 
 	if (expr->type == EXPR_BINOP &&
@@ -34,16 +59,24 @@ bool is_power_of_two(struct expression *expr)
 	    is_power_of_two(expr->left))
 		return true;
 
-	if (get_implied_value(expr, &sval)) {
-		if (!(sval.uvalue & (sval.uvalue - 1)))
-			return true;
-		return false;
-	}
+	if (implied_power_of_two(expr))
+		return true;
 
 	if (get_state_expr(my_id, expr) == &power_of_two)
 		return true;
 
 	return false;
+}
+
+static void set_power_of_two(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (type_bits(type) == 1)
+		return;
+
+	set_state_expr(my_id, expr->left, &power_of_two);
 }
 
 static bool is_sign_expansion(struct expression *expr)
@@ -71,11 +104,17 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
+	if (implied_power_of_two(expr->right)) {
+		if (get_state_expr(my_id, expr->left))
+			set_state_expr(my_id, expr->left, &power_of_two);
+		return;
+	}
+
 	if (is_sign_expansion(expr))
 		return;
 
 	if (is_power_of_two(expr->right))
-		set_state_expr(my_id, expr->left, &power_of_two);
+		set_power_of_two(expr->left);
 }
 
 static bool is_minus_mask(struct expression *left, struct expression *right)
@@ -119,7 +158,7 @@ static void caller_info_callback(struct expression *call, int param, char *print
 	sql_insert_caller_info(call, POWER_OF_TWO, param, printed_name, "");
 }
 
-static void set_power_of_two(const char *name, struct symbol *sym, char *value)
+static void set_power_of_two_name_sym(const char *name, struct symbol *sym, char *value)
 {
 	set_state(my_id, name, sym, &power_of_two);
 }
@@ -163,8 +202,9 @@ void register_power_of_two(int id)
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_caller_info_callback(my_id, caller_info_callback);
-	select_caller_name_sym(set_power_of_two, POWER_OF_TWO);
+	select_caller_name_sym(set_power_of_two_name_sym, POWER_OF_TWO);
 	add_return_info_callback(my_id, return_info_callback);
 	select_return_states_hook(POWER_OF_TWO_SET, &returns_power_of_two_set);
 }
