@@ -41,8 +41,8 @@ const char *show_sm(struct sm_state *sm)
 	if (!sm)
 		return "<none>";
 
-	pos = snprintf(buf, sizeof(buf), "[%s] %s = '%s'%s",
-		       check_name(sm->owner), sm->name, show_state(sm->state),
+	pos = snprintf(buf, sizeof(buf), "[%s] %s %p = '%s'%s",
+		       check_name(sm->owner), sm->name, sm->sym, show_state(sm->state),
 		       sm->merged ? " [merged]" : "");
 	if (pos > sizeof(buf))
 		goto truncate;
