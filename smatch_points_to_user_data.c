@@ -58,10 +58,6 @@ bool is_skb_data(struct expression *expr)
 	expr = strip_expr(expr);
 	if (!expr)
 		return false;
-
-	expr = strip_expr(expr);
-	if (!expr)
-		return false;
 	if (expr->type != EXPR_DEREF)
 		return false;
 
