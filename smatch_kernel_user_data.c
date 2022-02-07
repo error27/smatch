@@ -995,7 +995,7 @@ struct range_list *var_user_rl(struct expression *expr)
 found:
 	user_data_flag = 1;
 	absolute_rl = var_to_absolute_rl(expr);
-	return clone_rl(rl_intersection(rl, absolute_rl));
+	return rl_intersection(rl, absolute_rl);
 }
 
 static bool is_ptr_subtract(struct expression *expr)
