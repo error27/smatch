@@ -1043,6 +1043,42 @@ int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list 
 	return 0;
 }
 
+bool is_socket_stuff(struct symbol *sym)
+{
+	struct symbol *type;
+
+	/* This is a hack.
+	 * Basically I never want to consider an skb or sk as user pointer.
+	 * The skb->data is already marked as a source of user data, and if
+	 * anything else is marked as user data it's almost certainly wrong.
+	 *
+	 * Ideally, I would figure out where this bogus data is coming from,
+	 * but possibly it just was stuck in the database from previous updates
+	 * and can't get cleared out without deleting all user data.  Things
+	 * like this gets stuck in the DB because of recursion.
+	 *
+	 * I could make this a temporary hack, but I keep wanting to do it so
+	 * I'm just going to make it permanent.  It either doesn't change
+	 * anything or it makes life better.
+	 */
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT || !type->ident)
+		return false;
+
+	if (strcmp(type->ident->name, "sk_buff") == 0)
+		return true;
+	if (strcmp(type->ident->name, "sock") == 0)
+		return true;
+	if (strcmp(type->ident->name, "socket") == 0)
+		return true;
+
+	return false;
+}
+
 static void return_info_callback(int return_id, char *return_ranges,
 				 struct expression *returned_expr,
 				 int param,
@@ -1052,6 +1088,9 @@ static void return_info_callback(int return_id, char *return_ranges,
 	struct smatch_state *extra;
 	struct range_list *rl;
 	char buf[64];
+
+	if (is_socket_stuff(sm->sym))
+		return;
 
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
@@ -1097,6 +1136,9 @@ static void caller_info_callback(struct expression *call, int param, char *print
 	char buf[64];
 
 	if (is_ignored_macro(call->pos))
+		return;
+
+	if (is_socket_stuff(sm->sym))
 		return;
 
 	/*

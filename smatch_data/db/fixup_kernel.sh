@@ -41,6 +41,13 @@ delete from return_states where function='poly1305_update' and type = 8017 and k
 delete from caller_info where function = '__dev_queue_xmit' and type = 8017;
 delete from caller_info where function = '__netdev_start_xmit' and type = 8017;
 delete from caller_info where function = '(struct net_device_ops)->ndo_start_xmit' and type = 8017;
+delete from caller_info where function = '(struct net_device_ops)->ndo_start_xmit' and type = 9018;
+delete from caller_info where function = '(struct ieee80211_ops)->tx' and type = 8017;
+delete from caller_info where function = '(struct ieee80211_ops)->tx' and type = 9018;
+delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 8017;
+delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 9018;
+delete from caller_info where function = '__udp6_lib_rcv' and (type = 8017 or type = 9018);
+delete from caller_info where function = 'udpv6_rcv' and (type = 8017 or type = 9018);
 delete from caller_info where function = '(struct packet_type)->func' and type = 8017;
 delete from caller_info where function = '(struct bio)->bi_end_io' and type = 8017;
 delete from caller_info where function = '(struct mISDNchannel)->recv' and type = 8017;
@@ -55,13 +62,17 @@ delete from caller_info where caller = 'snd_ctl_elem_write' and function = '(str
 delete from caller_info where caller = 'snd_ctl_elem_read' and function = '(struct snd_kcontrol)->get' and type = 8017;
 delete from caller_info where function = 'nf_tables_newexpr' and type = 8017 and key = '\$->family';
 delete from caller_info where caller = 'fb_set_var' and function = '(struct fb_ops)->fb_set_par' and type = 8017 and parameter = 0;
+delete from caller_info where caller = 'f_audio_complete' and function = '(struct usb_audio_control)->set' and type = 8017;
 delete from return_states where function = 'tty_lookup_driver' and parameter = 2 and type = 8017;
 delete from caller_info where function = 'iomap_apply' and type = 8017 and key = '*\$';
 delete from caller_info where function = '(struct inet6_protocol)->handler' and type = 9018;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 8017;
 delete from caller_info where function = 'do_dentry_open param 2' and type = 9018;
+delete from caller_info where function = 'param_array param 7' and type = 9018;
 # this is just too complicated for Smatch.  See how snd_ctl_find_id() is called.
 delete from caller_info where function = 'snd_ctl_notify_one' and type = 8017;
+#temporary.  Just to fix recursion
+delete from caller_info where caller = 'ecryptfs_mkdir' and type = 8017;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');
@@ -194,6 +205,9 @@ insert into function_ptr values ("fixup_kernel.sh", "r get_handler()", "ioctl_st
 delete from return_states where function = '__device_attach' and type = 1012;
 
 delete from return_states where function = 'bus_for_each_dev' and return = '1';
+/* This matches the wrong function pointers with the wrong data pointer. */
+/* Delete it until it can be handled correctly. */
+delete from caller_info where function = 'device_for_each_child' and type != 0;
 
 EOF
 

@@ -1120,6 +1120,7 @@ bool we_pass_user_data(struct expression *call);
 /* smatch_points_to_user_data.c */
 bool is_user_data_fn(struct symbol *fn);
 bool is_skb_data(struct expression *expr);
+bool is_socket_stuff(struct symbol *sym);
 bool points_to_user_data(struct expression *expr);
 void set_points_to_user_data(struct expression *expr);
 

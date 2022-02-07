@@ -44,6 +44,7 @@
 
 static int my_id;
 STATE(user_data);
+STATE(user_data_set);
 
 static const char *returns_pointer_to_user_data[] = {
 	"nlmsg_data", "nla_data", "memdup_user", "kmap_atomic", "skb_network_header",
@@ -163,15 +164,21 @@ bool points_to_user_data(struct expression *expr)
 	if (is_points_to_user_data_fn(expr))
 		return true;
 
+	// FIXME if you have a struct pointer p then p->foo should be handled
+	// by smatch_kernel_user_data.c but if you have (p + 1)->foo then this
+	// should be handled here.
 	sm = get_sm_state_expr(my_id, expr);
-	if (sm && slist_has_state(sm->possible, &user_data))
+	if (!sm)
+		return false;
+	if (slist_has_state(sm->possible, &user_data) ||
+	    slist_has_state(sm->possible, &user_data_set))
 		return true;
 	return false;
 }
 
 void set_points_to_user_data(struct expression *expr)
 {
-	set_state_expr(my_id, expr, &user_data);
+	set_state_expr(my_id, expr, &user_data_set);
 }
 
 static void match_assign(struct expression *expr)
@@ -183,7 +190,7 @@ static void match_assign(struct expression *expr)
 		return;
 
 	if (points_to_user_data(expr->right)) {
-		set_points_to_user_data(expr->left);
+		set_state_expr(my_id, expr->left, &user_data);
 		return;
 	}
 
@@ -199,7 +206,7 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_unused)
 	src = get_argument_from_call_expr(expr->args, 1);
 
 	if (points_to_user_data(src)) {
-		set_points_to_user_data(dest);
+		set_state_expr(my_id, expr->left, &user_data_set);
 		return;
 	}
 
@@ -221,7 +228,7 @@ static void match_user_copy(const char *fn, struct expression *expr, void *_unus
 	if (get_implied_value(size, &sval))
 		return;
 
-	set_state_expr(my_id, dest, &user_data);
+	set_state_expr(my_id, dest, &user_data_set);
 }
 
 static void return_info_callback(int return_id, char *return_ranges,
@@ -230,17 +237,22 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 const char *printed_name,
 				 struct sm_state *sm)
 {
-	int type = USER_PTR_SET;
+	int type;
 
-	if (!slist_has_state(sm->possible, &user_data))
+	if (is_socket_stuff(sm->sym))
 		return;
 
 	if (param >= 0) {
-		if (get_state_stree(get_start_states(), my_id, sm->name, sm->sym))
+		if (!slist_has_state(sm->possible, &user_data_set))
 			return;
+		type = USER_PTR_SET;
 	} else {
-		if (!param_was_set_var_sym(sm->name, sm->sym))
+		if (slist_has_state(sm->possible, &user_data_set))
+			type = USER_PTR_SET;
+		else if (slist_has_state(sm->possible, &user_data))
 			type = USER_PTR;
+		else
+			return;
 	}
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return;
@@ -281,7 +293,10 @@ set_user:
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
-	set_state(my_id, name, sym, &user_data);
+	if (set)
+		set_state(my_id, name, sym, &user_data_set);
+	else
+		set_state(my_id, name, sym, &user_data);
 free:
 	free_string(name);
 }
@@ -310,7 +325,11 @@ static void set_param_user_ptr(const char *name, struct symbol *sym, char *key, 
 
 static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	if (!slist_has_state(sm->possible, &user_data))
+	if (is_socket_stuff(sm->sym))
+		return;
+
+	if (!slist_has_state(sm->possible, &user_data) &&
+	    !slist_has_state(sm->possible, &user_data_set))
 		return;
 	sql_insert_caller_info(call, USER_PTR, param, printed_name, "");
 }
