@@ -192,6 +192,7 @@ void register_param_limit(int id)
 {
 	my_id = id;
 
+	db_ignore_states(my_id);
 	set_dynamic_states(my_id);
 
 	add_extra_mod_hook(&extra_mod_hook);
