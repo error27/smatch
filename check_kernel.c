@@ -528,6 +528,9 @@ bool is_ignored_kernel_data(const char *name)
 	if (strstr(name, ">klist_devices."))
 		return true;
 
+	if (strstr(name, "->m_log->"))
+		return true;
+
 	/* ignore mutex internals */
 	if ((p = strstr(name, ".rlock.")) ||
 	    (p = strstr(name, ">rlock."))) {
