@@ -398,11 +398,25 @@ int param_was_set_var_sym(const char *name, struct symbol *sym)
 	return 0;
 }
 
+static struct expression *get_unfaked_expr(struct expression *expr)
+{
+	struct expression *tmp;
+
+	if (!is_fake_var(expr))
+		return expr;
+	tmp = expr_get_fake_parent_expr(expr);
+	if (!tmp || tmp->type != EXPR_ASSIGNMENT)
+		return expr;
+	return tmp->right;
+}
+
 int param_was_set(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
 	int ret = 0;
+
+	expr = get_unfaked_expr(expr);
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
