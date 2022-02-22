@@ -146,6 +146,9 @@ bool points_to_user_data(struct expression *expr)
 	if (!expr)
 		return false;
 
+	if (expr->type == EXPR_POSTOP)
+		expr = strip_expr(expr->unop);
+
 	if (is_fake_call(expr))
 		return false;
 
