@@ -748,6 +748,27 @@ struct expression *strip_parens(struct expression *expr)
 	return expr;
 }
 
+static struct expression *strip__builtin_choose_expr(struct expression *expr)
+{
+	struct expression *const_expr, *expr1, *expr2;
+	sval_t sval;
+
+	if (!sym_name_is("__builtin_choose_expr", expr->fn))
+		return expr;
+
+	const_expr = get_argument_from_call_expr(expr->args, 0);
+	expr1 = get_argument_from_call_expr(expr->args, 1);
+	expr2 = get_argument_from_call_expr(expr->args, 2);
+
+	if (!get_value(const_expr, &sval) || !expr1 || !expr2)
+		return expr;
+
+	if (sval.value)
+		return strip_expr(expr1);
+	else
+		return strip_expr(expr2);
+}
+
 static struct expression *strip_expr_helper(struct expression *expr, bool set_parent, bool cast)
 {
 	if (!expr)
@@ -777,6 +798,10 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 		if (set_parent)
 			expr_set_parent_expr(expr->unop, expr);
 
+		while (expr->op == '(' &&
+		       expr->unop->type == EXPR_PREOP &&
+		       expr->unop->op == '(')
+			expr = expr->unop;
 
 		if (expr->op == '(' && expr->unop->type == EXPR_STATEMENT &&
 			expr->unop->statement->type == STMT_COMPOUND)
@@ -823,6 +848,8 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 			expr = get_argument_from_call_expr(expr->args, 0);
 			return strip_expr_helper(expr, set_parent, cast);
 		}
+		if (sym_name_is("__builtin_choose_expr", expr->fn))
+			return strip__builtin_choose_expr(expr);
 		return expr;
 	}
 	return expr;
