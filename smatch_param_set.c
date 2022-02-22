@@ -201,20 +201,28 @@ static char *get_two_dots(const char *name)
  * This relies on the fact that these states are stored so that
  * foo->bar is before foo->bar->baz.
  */
-static int parent_set(struct string_list *list, const char *name)
+static int parent_set(struct string_list *list, const char *param_name, struct sm_state *sm)
 {
 	char *tmp;
 	int len;
 	int ret;
 
+	if (strncmp(param_name, "(*$)->", 6) == 0 && sm->sym && sm->sym->ident) {
+		char buf[64];
+
+		snprintf(buf, sizeof(buf), "*%s", sm->sym->ident->name);
+		if (get_state(my_id, buf, sm->sym))
+			return true;
+	}
+
 	FOR_EACH_PTR(list, tmp) {
 		len = strlen(tmp);
-		ret = strncmp(tmp, name, len);
+		ret = strncmp(tmp, sm->name, len);
 		if (ret < 0)
 			continue;
 		if (ret > 0)
 			return 0;
-		if (name[len] == '-')
+		if (sm->name[len] == '-')
 			return 1;
 	} END_FOR_EACH_PTR(tmp);
 
@@ -269,7 +277,7 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			char *new = get_two_dots(param_name);
 
 			/* no useful information here. */
-			if (is_whole_rl(rl) && parent_set(set_list, sm->name))
+			if (is_whole_rl(rl) && parent_set(set_list, param_name, sm))
 				continue;
 
 			if (new) {
@@ -295,7 +303,7 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 		}
 
 		/* no useful information here. */
-		if (is_whole_rl(rl) && parent_set(set_list, sm->name))
+		if (is_whole_rl(rl) && parent_set(set_list, param_name, sm))
 			continue;
 		if (is_whole_rl(rl) && parent_was_PARAM_CLEAR(sm->name, sm->sym))
 			continue;
