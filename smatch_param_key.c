@@ -32,11 +32,16 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	char buf[64];
 	int offset, len, ret;
 	bool is_addr = false;
+	bool is_star = false;
+	bool is_end = false;
 
 	if (add[0] == '&') {
 		is_addr = true;
 		add++;
 	}
+
+	if (orig[0] == '*')
+		is_star = true;
 
 	offset = 0;
 	while(orig[offset] == '*' || orig[offset] == '&' || orig[offset] == '(')
@@ -45,13 +50,20 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	len = strlen(remove);
 	if (len + offset > strlen(orig))
 		return NULL;
-	if (orig[offset + len] != '-')
+	if (orig[offset + len] == '\0')
+		is_end = true;
+	else if (orig[offset + len] != '-')
 		return NULL;
 	if (strncmp(orig + offset, remove, len) != 0)
 		return NULL;
 
+	if (!is_star && is_end)
+		return NULL;
+
 	ret = snprintf(buf, sizeof(buf), "%.*s%s%s%s", offset, orig,
-		       add, is_addr ? "." : "->", orig + offset + 2 + len);
+		       add,
+		       is_end ? "" : (is_addr ? "." : "->"),
+		       is_end ? "" : orig + offset + 2 + len);
 	if (ret >= sizeof(buf))
 		return NULL;
 	return alloc_string(buf);
@@ -86,14 +98,17 @@ static char *swap_with_param(const char *name, struct symbol *sym, struct symbol
 
 struct expression *map_container_of_to_simpler_expr_key(struct expression *expr, const char *orig_key, char **new_key)
 {
-	int offset;
+	struct expression *container;
+	int offset = -1;
 	char *p = (char *)orig_key;
 	char *start, *end;
 	char buf[64];
 	int ret;
+	bool arrow = false;
 
 	expr = strip_expr(expr);
-	if (expr->type != EXPR_DEREF)
+	if (expr->type != EXPR_DEREF &&
+	    (expr->type != EXPR_PREOP && expr->op == '&'))
 		return NULL;
 
 	while (*p != '\0') {
@@ -114,11 +129,24 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	if (offset != get_member_offset_from_deref(expr))
 		return NULL;
 
-	ret = snprintf(buf, sizeof(buf), "%.*s$.%s", (int)(start - orig_key), orig_key, end);
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = strip_expr(expr->unop);
+		if (expr->type != EXPR_DEREF)
+			return NULL;
+		expr = strip_expr(expr->deref);
+		if (expr->type != EXPR_PREOP || expr->op != '*')
+			return NULL;
+		container = expr->unop;
+		arrow = true;
+	}
+	container = expr->deref;
+
+	ret = snprintf(buf, sizeof(buf), "%.*s$%s%s", (int)(start - orig_key), orig_key, arrow ? "->" : ".", end);
 	if (ret >= sizeof(buf))
 		return NULL;
 	*new_key = alloc_sname(buf);
-	return expr->deref;
+
+	return container;
 }
 
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
@@ -133,6 +161,9 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 
 	// FIXME:  this function has been marked for being made static
 	// Use get_name_sym_from_param_key().
+
+	if (sym)
+		*sym = NULL;
 
 	if (!arg)
 		return NULL;
@@ -177,7 +208,7 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 
 	if (strstr(key, "<~$")) {
 		struct expression *expr;
-		char *new_key;
+		char *new_key = NULL;
 
 		expr = map_container_of_to_simpler_expr_key(arg, key, &new_key);
 		if (!expr)
@@ -707,6 +738,8 @@ const char *get_container_of_str(struct expression *expr)
 
 	state = get_state_expr(my_id, expr);
 	if (!state)
+		return NULL;
+	if (!strstr(state->name, "<~$"))
 		return NULL;
 	return state->name;
 }
