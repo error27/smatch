@@ -741,6 +741,7 @@ static void handle_pre_loop(struct statement *stmt)
 			__extra_pre_loop_hook_after(extra_sm,
 						stmt->iterator_post_statement,
 						stmt->iterator_pre_condition);
+		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__merge_breaks();
 	}
 	loop_count--;
@@ -770,6 +771,7 @@ static void handle_post_loop(struct statement *stmt)
 	} else {
 		__split_whole_condition(stmt->iterator_post_condition);
 		__use_false_states();
+		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__merge_breaks();
 	}
 	loop_count--;
