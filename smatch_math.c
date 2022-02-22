@@ -1632,7 +1632,8 @@ out_cast:
 		*res = rl;
 		return true;
 	}
-	if (type && (implied == RL_ABSOLUTE || implied == RL_REAL_ABSOLUTE)) {
+	if (type && (implied == RL_ABSOLUTE || implied == RL_REAL_ABSOLUTE) &&
+	    !custom_handle_variable) {
 		*res = alloc_whole_rl(type);
 		return true;
 	}
