@@ -1099,9 +1099,6 @@ struct range_list *var_to_absolute_rl(struct expression *expr)
 			return rl;
 		return alloc_whole_rl(get_type(expr));
 	}
-	/* err on the side of saying things are possible */
-	if (!estate_rl(state))
-		return alloc_whole_rl(get_type(expr));
 	return clone_rl(estate_rl(state));
 }
 
