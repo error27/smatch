@@ -271,6 +271,8 @@ static int should_warn(struct expression *expr)
 		return 0;
 	if (array_size > max.value)
 		return 0;
+	if (buf_comparison_index_ok(expr))
+		return 0;
 	if (constraint_met(array_expr, offset))
 		return 0;
 
