@@ -97,7 +97,8 @@ struct db_implies_callback {
 };
 ALLOCATOR(db_implies_callback, "return_implies callbacks");
 DECLARE_PTR_LIST(db_implies_cb_list, struct db_implies_callback);
-static struct db_implies_cb_list *return_implies_cb_list;
+static struct db_implies_cb_list *return_implies_cb_list_early;
+static struct db_implies_cb_list *return_implies_cb_list_late;
 static struct db_implies_cb_list *call_implies_cb_list;
 
 DECLARE_PTR_LIST(delete_list, delete_hook);
@@ -821,13 +822,22 @@ void select_call_implies_hook(int type, void (*callback)(struct expression *call
 	add_ptr_list(&call_implies_cb_list, cb);
 }
 
+void select_return_implies_hook_early(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value))
+{
+	struct db_implies_callback *cb = __alloc_db_implies_callback(0);
+
+	cb->type = type;
+	cb->callback = callback;
+	add_ptr_list(&return_implies_cb_list_early, cb);
+}
+
 void select_return_implies_hook(int type, void (*callback)(struct expression *call, struct expression *arg, char *key, char *value))
 {
 	struct db_implies_callback *cb = __alloc_db_implies_callback(0);
 
 	cb->type = type;
 	cb->callback = callback;
-	add_ptr_list(&return_implies_cb_list, cb);
+	add_ptr_list(&return_implies_cb_list_late, cb);
 }
 
 struct return_info {
@@ -1498,11 +1508,11 @@ static int call_implies_callbacks(void *_info, int argc, char **argv, char **azC
 	return 0;
 }
 
-static void match_return_implies(struct expression *expr)
+static void match_return_implies_helper(struct expression *expr, struct db_implies_cb_list *cb_list)
 {
 	struct implies_info info = {
 		.type = RETURN_IMPLIES,
-		.cb_list = return_implies_cb_list,
+		.cb_list = cb_list,
 	};
 
 	if (expr->fn->type != EXPR_SYMBOL ||
@@ -1512,6 +1522,16 @@ static void match_return_implies(struct expression *expr)
 	info.sym = expr->fn->symbol;
 	sql_select_implies("function, type, parameter, key, value", &info,
 			   return_implies_callbacks);
+}
+
+static void match_return_implies_early(struct expression *expr)
+{
+	match_return_implies_helper(expr, return_implies_cb_list_early);
+}
+
+static void match_return_implies_late(struct expression *expr)
+{
+	match_return_implies_helper(expr, return_implies_cb_list_late);
 }
 
 static void match_call_implies(struct symbol *sym)
@@ -2881,6 +2901,7 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNC_DEF_HOOK);
+	add_hook(&match_return_implies_early, CALL_HOOK_AFTER_INLINE);
 
 	common_funcs = load_strings_from_file(option_project_str, "common_functions");
 	register_return_deletes();
@@ -2892,7 +2913,7 @@ void register_definition_db_callbacks(int id)
 
 void register_definition_db_callbacks_late(int id)
 {
-	add_hook(&match_return_implies, CALL_HOOK_AFTER_INLINE);
+	add_hook(&match_return_implies_late, CALL_HOOK_AFTER_INLINE);
 }
 
 void register_db_call_marker(int id)

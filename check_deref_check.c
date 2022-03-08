@@ -92,6 +92,6 @@ void check_deref_check(int id)
 	my_id = id;
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook_early(DEREFERENCE, &set_param_dereferenced);
 	add_modification_hook(my_id, &underef);
 }

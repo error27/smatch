@@ -173,5 +173,5 @@ void check_sleep_info(int id)
 	add_hook(&match_gfp_t, FUNCTION_CALL_HOOK);
 
 	all_return_states_hook(&insert_sleep);
-	select_return_implies_hook(SLEEP, &select_sleep);
+	select_return_implies_hook_early(SLEEP, &select_sleep);
 }
