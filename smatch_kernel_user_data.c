@@ -48,17 +48,6 @@ static const char *returns_user_data[] = {
 	"kvm_register_read", "xdr_inline_decode",
 };
 
-static struct stree *start_states;
-static void save_start_states(struct statement *stmt)
-{
-	start_states = clone_stree(__get_cur_stree());
-}
-
-static void free_start_states(void)
-{
-	free_stree(&start_states);
-}
-
 static struct smatch_state *empty_state(struct sm_state *sm)
 {
 	return alloc_estate_empty();
@@ -1438,10 +1427,6 @@ void register_kernel_user_data(int id)
 	add_function_data(&func_gets_user_data);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
-	add_hook(&save_start_states, AFTER_DEF_HOOK);
-	add_hook(&free_start_states, AFTER_FUNC_HOOK);
-	add_function_data((unsigned long *)&start_states);
-
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_extra_nomod_hook(&extra_nomod_hook);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
@@ -1484,4 +1469,3 @@ void register_kernel_user_data2(int id)
 		return;
 	select_caller_info_hook(set_called, INTERNAL);
 }
-
