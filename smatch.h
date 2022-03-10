@@ -1117,6 +1117,7 @@ struct stree *get_user_stree(void);
 int get_user_rl(struct expression *expr, struct range_list **rl);
 int is_user_rl(struct expression *expr);
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl);
+bool user_rl_capped_var_sym(const char *name, struct symbol *sym);
 bool user_rl_capped(struct expression *expr);
 struct range_list *var_user_rl(struct expression *expr);
 bool we_pass_user_data(struct expression *call);

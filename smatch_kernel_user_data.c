@@ -241,6 +241,17 @@ static bool binop_capped(struct expression *expr)
 	return false;
 }
 
+bool user_rl_capped_var_sym(const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	state = get_state(my_id, name, sym);
+	if (state)
+		return estate_capped(state);
+
+	return true;
+}
+
 bool user_rl_capped(struct expression *expr)
 {
 	struct smatch_state *state;
