@@ -1389,7 +1389,7 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 	}
 
 	if (nr == -1)
-		snprintf(buf, sizeof(buf), "__sm_fake_%p", expr);
+		snprintf(buf, sizeof(buf), "__fake_return_%p", expr);
 	else
 		snprintf(buf, sizeof(buf), "__fake_param_%p_%d", call, nr);
 	var = fake_variable(type, buf);
