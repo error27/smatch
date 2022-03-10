@@ -45,7 +45,7 @@ static const char *kstr_funcs[] = {
 
 static const char *returns_user_data[] = {
 	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read",
+	"kvm_register_read", "xdr_inline_decode",
 };
 
 static struct stree *start_states;
@@ -1443,6 +1443,8 @@ void register_kernel_user_data(int id)
 		add_function_hook_late(kstr_funcs[i], &match_user_copy, INT_PTR(2));
 	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
 	add_function_hook("kvm_read_guest_virt", &match_user_copy, INT_PTR(2));
+	add_function_hook("vpu_iface_receive_msg", &match_user_copy, INT_PTR(1));
+	add_function_hook("xdr_stream_decode_u32", &match_user_copy, INT_PTR(1));
 
 	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++)
 		add_function_hook(returns_user_data[i], &match_returns_user_rl, NULL);
