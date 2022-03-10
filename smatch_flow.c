@@ -34,7 +34,7 @@ int final_pass;
 int __inline_call;
 struct expression  *__inline_fn;
 
-static int __smatch_lineno = 0;
+int __smatch_lineno = 0;
 
 static char *base_file;
 static const char *filename;
