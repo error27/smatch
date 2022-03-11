@@ -684,7 +684,7 @@ void set_dynamic_states(unsigned short owner);
 
 /* smatch_extras.c */
 int in_warn_on_macro(void);
-#define SMATCH_EXTRA 5 /* this is my_id from smatch extra set in smatch.c */
+extern int SMATCH_EXTRA;
 extern int RETURN_ID;
 
 struct data_range {

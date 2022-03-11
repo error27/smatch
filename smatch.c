@@ -46,6 +46,7 @@ int option_mem;
 char *option_datadir_str;
 int option_fatal_checks;
 int option_succeed;
+int SMATCH_EXTRA;
 
 FILE *sm_outfd;
 FILE *sql_outfd;
@@ -360,6 +361,7 @@ int main(int argc, char **argv)
 	open_smatch_db(option_db_file);
 	sparse_initialize(argc, argv, &filelist);
 	alloc_valid_ptr_rl();
+	SMATCH_EXTRA = id_from_name("register_smatch_extra");
 
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;
