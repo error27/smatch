@@ -614,7 +614,6 @@ int __handle_condition_assigns(struct expression *expr)
 	if (!is_condition(expr->right))
 		return 0;
 
-	sm_debug("%d in __handle_condition_assigns\n", get_lineno());
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
