@@ -384,6 +384,55 @@ static void hackup_unsigned_compares(struct expression *expr)
 		expr->op = make_op_unsigned(expr->op);
 }
 
+static bool handle_expr_statement_conditions(struct expression *expr)
+{
+	struct statement *last_stmt, *stmt;
+	struct expression *last_expr;
+
+	if (expr->type == EXPR_PREOP && expr->op == '(')
+		expr = expr->unop;
+	if (expr->type != EXPR_STATEMENT)
+		return false;
+
+	stmt = expr->statement;
+	if (stmt->type != STMT_COMPOUND)
+		return false;
+
+	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!last_stmt)
+		return false;
+
+	/*
+	 * I don't think this is right, but I'm not sure how to handle other
+	 * types of statements.
+	 */
+	if (last_stmt->type == STMT_EXPRESSION)
+		last_expr = last_stmt->expression;
+	else if (last_stmt->type == STMT_LABEL &&
+		 last_stmt->label_statement->type == STMT_EXPRESSION)
+		last_expr = last_stmt->label_statement->expression;
+	else
+		return false;
+
+	__expr_stmt_count++;
+	__push_scope_hooks();
+	FOR_EACH_PTR(stmt->stmts, stmt) {
+		if (stmt == last_stmt) {
+			if (stmt->type == STMT_LABEL)
+				__split_label_stmt(stmt);
+			split_conditions(last_expr);
+			goto done;
+		}
+		__split_stmt(stmt);
+	} END_FOR_EACH_PTR(stmt);
+	exit(1);
+done:
+	__call_scope_hooks();
+	__expr_stmt_count--;
+
+	return true;
+}
+
 static void do_condition(struct expression *expr)
 {
 	__fold_in_set_states();
@@ -406,6 +455,9 @@ static void split_conditions(struct expression *expr)
 		__fold_in_set_states();
 		return;
 	}
+
+	if (handle_expr_statement_conditions(expr))
+		return;
 
 	/*
 	 * On fast paths (and also I guess some people think it's cool) people
