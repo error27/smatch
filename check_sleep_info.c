@@ -164,6 +164,7 @@ void check_sleep_info(int id)
 		return;
 
 	add_function_hook("schedule", &match_sleep, NULL);
+	add_function_hook("msleep", &match_sleep, NULL);
 	add_function_hook("might_resched", &match_sleep, NULL);
 	add_function_hook("vfree", &match_sleep, NULL);
 	add_function_hook("__might_sleep", &match_might_sleep_fn, NULL);
