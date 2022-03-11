@@ -570,6 +570,11 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
+	if (!name)
+		return;
+	if (!true_state && !false_state)
+		return;
+
 	if (debug_on(check_name(owner), name)) {
 		struct smatch_state *tmp;
 
