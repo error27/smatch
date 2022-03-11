@@ -399,7 +399,7 @@ static int handle__builtin_choose_expr_assigns(struct expression *expr)
 	struct expression *const_expr, *right, *expr1, *expr2, *fake;
 	sval_t sval;
 
-	right = strip_expr(expr->right);
+	right = strip_parens(expr->right);
 	if (right->type != EXPR_CALL)
 		return 0;
 	if (!sym_name_is("__builtin_choose_expr", right->fn))
