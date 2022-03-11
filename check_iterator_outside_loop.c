@@ -101,8 +101,6 @@ static void match_dereference(struct expression *expr)
 		expr = strip_expr(expr->unop);
 
 	sm = get_sm_state_expr(my_id, expr);
-	if (local_debug)
-		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
 	if (!sm || !slist_has_state(sm->possible, &iterator))
 		return;
 

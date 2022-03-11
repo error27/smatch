@@ -576,15 +576,9 @@ static void load_container_data(struct symbol *arg, const char *info)
 
 	while (true) {
 		container_offset = strtoul(p, &p, 0);
-		if (local_debug)
-			sm_msg("%s: cur_tag = %llu container_offset = %d",
-			       __func__, cur_tag, container_offset);
 		if (!mtag_map_select_container(cur_tag, -container_offset, &container_tag))
 			return;
 		cur_tag = container_tag;
-		if (local_debug)
-			sm_msg("%s: container_tag = %llu p = '%s'",
-			       __func__, container_tag, p);
 		if (!p)
 			return;
 		if (p[0] != '-')
