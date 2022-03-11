@@ -589,7 +589,6 @@ def call_tree_helper(func, restrict = "", indent = 0):
     global printed_funcs
     if func in printed_funcs:
         return
-    print("%s%s()" %(" " * indent, func))
     if func == "too common":
         return
     if indent > 30:
@@ -600,11 +599,16 @@ def call_tree_helper(func, restrict = "", indent = 0):
         print("Over 20 callers for %s()" %(func))
         return
     for caller in callers:
+        if caller in printed_funcs:
+            print("%s+ %s()" %(" " * indent, caller))
+        else:
+            print("%s%s()" %(" " * (indent + 2), caller))
         call_tree_helper(caller, restrict, indent + 2)
 
 def print_call_tree(func):
     global printed_funcs
     printed_funcs = []
+    print("%s()" %(func))
     call_tree_helper(func)
 
 def get_preempt_callers(call_tree, branch, func):
