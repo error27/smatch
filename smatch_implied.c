@@ -67,7 +67,7 @@ bool implications_off;
 
 bool implied_debug;
 
-#define full_debug implied_debug
+#define full_debug 0
 #define DIMPLIED(msg...) do { if (full_debug) printf(msg); } while (0)
 
 bool debug_implied(void)
@@ -100,7 +100,7 @@ static const char *show_comparison(int op)
 
 static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 {
-	if (!full_debug && !option_debug && !implied_debug)
+	if (!full_debug && !option_debug)
 		return;
 
 	if (istrue && isfalse) {
@@ -646,7 +646,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 	separate_pools(sm, comparison, rl, &true_stack, &false_stack, NULL, mixed);
 
-	if (implied_debug) {
+	if (full_debug) {
 		struct sm_state *sm;
 
 		FOR_EACH_PTR(true_stack, sm) {
@@ -1074,6 +1074,10 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 		left_name = expr_to_var_sym(orig_expr->left, &left_sym);
 
 	FOR_EACH_SM(implied_true, tmp) {
+
+		if (implied_debug)
+			sm_msg("param_implication: param='%s' limit='%s' sm='%s'", name, show_rl(limit), show_sm(tmp));
+
 		/*
 		 * What we're trying to do here is preserve the sm state so that
 		 * smatch extra doesn't create a new sm state when it parses the
