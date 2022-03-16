@@ -322,7 +322,9 @@ static void match_condition(struct expression *expr)
 		free_string(name);
 	}
 
-	if (!possibly_false_rl(rl_left, expr->op, rl_right)) {
+	if (!possibly_false_rl(rl_left, expr->op, rl_right) &&
+	    !is_unconstant_macro(expr->left) &&
+	    !is_unconstant_macro(expr->right)) {
 		char *name = expr_to_str(expr);
 
 		sm_warning("always true condition '(%s) => (%s %s %s)'", name,
