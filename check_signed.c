@@ -229,15 +229,33 @@ static int print_unsigned_never_less_than_zero(struct expression *expr)
 	return 1;
 }
 
+static bool check_is_ulong_max_recursive(struct expression *expr)
+{
+	sval_t sval;
+
+	expr = strip_expr(expr);
+
+	if (!get_value(expr, &sval))
+		return false;
+
+	if (expr->type == EXPR_BINOP) {
+		if (check_is_ulong_max_recursive(expr->left))
+			return true;
+		return false;
+	}
+
+	if (sval_cmp(sval, sval_type_max(&ulong_ctype)) == 0)
+		return true;
+	return false;
+}
+
 static bool is_u64_vs_ulongmax(struct expression *expr)
 {
 	struct symbol *left, *right;
-	sval_t sval;
 
 	if (expr->op != '>' && expr->op != SPECIAL_UNSIGNED_GT)
 		return false;
-	if (!get_value(expr->right, &sval) ||
-	    !sval_is_max(sval))
+	if (!check_is_ulong_max_recursive(expr->right))
 		return false;
 
 	left = get_type(expr->left);
