@@ -1400,6 +1400,9 @@ void track_freed_param(struct expression *expr, struct smatch_state *state);
 void track_freed_param_var_sym(const char *name, struct symbol *sym,
 			       struct smatch_state *state);
 
+/* smatch_unconstant_macros.c */
+int is_unconstant_macro(struct expression *expr);
+
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&

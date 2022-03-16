@@ -20,8 +20,6 @@
 
 static int my_id;
 
-DEFINE_STRING_HASHTABLE_STATIC(unconstant_macros);
-
 static int does_inc_dec(struct expression *expr)
 {
 	if (expr->type == EXPR_PREOP || expr->type == EXPR_POSTOP) {
@@ -126,18 +124,6 @@ static void match_logic(struct expression *expr)
 		check_and(expr);
 }
 
-static int is_unconstant_macro(struct expression *expr)
-{
-	char *macro;
-
-	macro = get_macro_name(expr->pos);
-	if (!macro)
-		return 0;
-	if (search_unconstant_macros(unconstant_macros, macro))
-		return 1;
-	return 0;
-}
-
 static void match_condition(struct expression *expr)
 {
 	sval_t sval;
@@ -181,9 +167,6 @@ static void match_binop(struct expression *expr)
 void check_or_vs_and(int id)
 {
 	my_id = id;
-
-	unconstant_macros = create_function_hashtable(100);
-	load_strings("unconstant_macros", unconstant_macros);
 
 	add_hook(&match_logic, LOGIC_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
