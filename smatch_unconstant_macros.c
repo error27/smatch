@@ -24,12 +24,12 @@ DEFINE_STRING_HASHTABLE_STATIC(unconstant_macros);
 
 int is_unconstant_macro(struct expression *expr)
 {
-	char *macro;
+	char *ident;
 
-	macro = get_macro_name(expr->pos);
-	if (!macro)
+	ident = pos_ident(expr->pos);
+	if (!ident)
 		return 0;
-	if (search_unconstant_macros(unconstant_macros, macro))
+	if (search_unconstant_macros(unconstant_macros, ident))
 		return 1;
 	return 0;
 }
