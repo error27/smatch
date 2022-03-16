@@ -217,9 +217,9 @@ static int expand_one_symbol(struct token **list)
 		return 1;
 
 	sym = lookup_macro(token->ident);
-	store_macro_pos(token);
 	if (!sym)
 		return 1;
+	store_macro_pos(token);
 	if (sym->expand_simple) {
 		sym->expand_simple(token);
 		return 1;
