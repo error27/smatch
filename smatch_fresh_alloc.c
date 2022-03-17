@@ -44,7 +44,7 @@ struct alloc_info kernel_allocation_funcs[] = {
 	{"kmalloc_array", 0, 1},
 	{"sock_kmalloc", 1},
 	{"kmemdup", 1},
-	{"kmemdup_user", 1},
+	{"memdup_user", 1},
 	{"dma_alloc_attrs", 1},
 	{"pci_alloc_consistent", 1},
 	{"pci_alloc_coherent", 1},

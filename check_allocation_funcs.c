@@ -45,7 +45,7 @@ static const char *allocation_funcs[] = {
 	"devm_kmalloc_array",
 	"sock_kmalloc",
 	"kmemdup",
-	"kmemdup_user",
+	"memdup_user",
 	"dma_alloc_attrs",
 	"pci_alloc_consistent",
 	"pci_alloc_coherent",
