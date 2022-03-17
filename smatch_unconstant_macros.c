@@ -26,7 +26,9 @@ int is_unconstant_macro(struct expression *expr)
 {
 	char *ident;
 
-	ident = pos_ident(expr->pos);
+	ident = get_macro_name(expr->pos);
+	if (!ident)
+		ident = pos_ident(expr->pos);
 	if (!ident)
 		return 0;
 	if (search_unconstant_macros(unconstant_macros, ident))
