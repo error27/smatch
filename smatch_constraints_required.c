@@ -40,7 +40,7 @@ static struct allocator kernel_allocator_table[] = {
 	{"vzalloc", 0},
 	{"sock_kmalloc", 1},
 	{"kmemdup", 1},
-	{"kmemdup_user", 1},
+	{"memdup_user", 1},
 	{"dma_alloc_attrs", 1},
 	{"pci_alloc_consistent", 1},
 	{"pci_alloc_coherent", 1},
@@ -482,7 +482,7 @@ void register_constraints_required(int id)
 		add_allocation_function("vzalloc", &match_alloc, 0);
 		add_allocation_function("sock_kmalloc", &match_alloc, 1);
 		add_allocation_function("kmemdup", &match_alloc, 1);
-		add_allocation_function("kmemdup_user", &match_alloc, 1);
+		add_allocation_function("memdup_user", &match_alloc, 1);
 		add_allocation_function("dma_alloc_attrs", &match_alloc, 1);
 		add_allocation_function("pci_alloc_consistent", &match_alloc, 1);
 		add_allocation_function("pci_alloc_coherent", &match_alloc, 1);
