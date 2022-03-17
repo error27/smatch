@@ -1265,3 +1265,20 @@ int pop_int(struct int_stack **stack)
 
 	return PTR_INT(num) >> 2;
 }
+
+bool macro_to_ul(const char *macro, unsigned long *val)
+{
+	struct symbol *macro_sym;
+
+	macro_sym = lookup_macro_symbol(macro);
+	if (!macro_sym || !macro_sym->expansion)
+		return false;
+	if (token_type(macro_sym->expansion) == TOKEN_IDENT)
+		return macro_to_ul(show_ident(macro_sym->expansion->ident), val);
+
+	if (token_type(macro_sym->expansion) != TOKEN_NUMBER)
+		return false;
+
+	*val = strtoul(macro_sym->expansion->number, NULL, 0);
+	return true;
+}
