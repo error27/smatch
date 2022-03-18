@@ -303,3 +303,48 @@ void allocate_hook_memory(void)
 	memset(pre_merge_hooks, 0, num_checks * sizeof(*pre_merge_hooks));
 }
 
+void call_void_fns(struct void_fn_list *list)
+{
+	void_fn *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)();
+	} END_FOR_EACH_PTR(fn);
+}
+
+void call_expr_fns(struct expr_fn_list *list, struct expression *expr)
+{
+	expr_func *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(expr);
+	} END_FOR_EACH_PTR(fn);
+}
+
+void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt)
+{
+	stmt_func *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(stmt);
+	} END_FOR_EACH_PTR(fn);
+}
+
+void call_sym_fns(struct sym_fn_list *list, struct symbol *sym)
+{
+	sym_func *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(sym);
+	} END_FOR_EACH_PTR(fn);
+}
+
+void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, const char *name, struct symbol *sym)
+{
+	name_sym_hook *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(expr, name, sym);
+	} END_FOR_EACH_PTR(fn);
+}
+

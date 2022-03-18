@@ -162,6 +162,11 @@ DECLARE_PTR_LIST(expr_fn_list, expr_func);
 DECLARE_PTR_LIST(stmt_fn_list, stmt_func);
 DECLARE_PTR_LIST(sym_fn_list, sym_func);
 DECLARE_PTR_LIST(name_sym_fn_list, name_sym_hook);
+void call_void_fns(struct void_fn_list *list);
+void call_expr_fns(struct expr_fn_list *list, struct expression *expr);
+void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt);
+void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
+void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, const char *name, struct symbol *sym);
 
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
