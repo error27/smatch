@@ -420,15 +420,6 @@ void select_return_states_after(void_fn *fn)
 	add_ptr_list(&return_states_after, fn);
 }
 
-static void call_return_states_before_hooks(void)
-{
-	void_fn *fn;
-
-	FOR_EACH_PTR(return_states_before, fn) {
-		(fn)();
-	} END_FOR_EACH_PTR(fn);
-}
-
 static bool call_call_backs(struct call_back_list *list, int type,
 			    const char *fn, struct expression *expr)
 {
@@ -468,11 +459,7 @@ static void call_function_hooks(struct expression *expr, enum fn_hook_type type)
 
 static void call_return_states_after_hooks(struct expression *expr)
 {
-	void_fn *fn;
-
-	FOR_EACH_PTR(return_states_after, fn) {
-		(fn)();
-	} END_FOR_EACH_PTR(fn);
+	call_void_fns(return_states_after);
 	__pass_to_client(expr, FUNCTION_CALL_HOOK_AFTER_DB);
 	call_function_hooks(expr, REGULAR_CALL_LATE);
 }
@@ -1091,7 +1078,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	db_info.callbacks = db_return_states_list;
 	db_info.var_expr = var_expr;
 
-	call_return_states_before_hooks();
+	call_void_fns(return_states_before);
 
 	db_info.true_side = 1;
 	db_info.stree = NULL;
@@ -1342,7 +1329,7 @@ static int db_return_states_assign(struct expression *expr)
 	db_info.stree = NULL;
 	db_info.handled = 0;
 
-	call_return_states_before_hooks();
+	call_void_fns(return_states_before);
 
 	__push_fake_cur_stree();
 	sql_select_return_states("return_id, return, type, parameter, key, value",
@@ -1540,7 +1527,7 @@ static void db_return_states(struct expression *expr)
 	db_info.expr = expr;
 	db_info.stree = NULL;
 
-	call_return_states_before_hooks();
+	call_void_fns(return_states_before);
 
 	__push_fake_cur_stree();
 	__unnullify_path();
