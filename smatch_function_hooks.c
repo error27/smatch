@@ -1491,6 +1491,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		struct smatch_state *state;
 
 		set_state(-1, "unnull_path", NULL, &true_state);
+		__returns_lteq(db_info->expr, ret_str);
 		__add_return_comparison(strip_expr(db_info->expr), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
 		/*
