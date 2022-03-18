@@ -35,8 +35,8 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg_nr);
 	if (!get_value(arg_expr, &sval))
-		return;	
-	
+		return;
+
 	if (!macro_to_ul("__GFP_ZERO", &gfp))
 		return;
 
@@ -58,4 +58,3 @@ void check_kvmalloc_array_zero(int id)
 	add_function_hook("kvmalloc_array", &match_alloc, INT_PTR(2));
 	add_function_hook("kmalloc_array", &match_alloc, INT_PTR(2));
 }
-

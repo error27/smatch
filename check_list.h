@@ -212,6 +212,7 @@ CK(check_iterator_outside_loop)
 CK(check_list_add)
 CK(check_list_add_late)
 CK(check_sscanf_return)
+CK(check_kvmalloc_array_zero)
 CK(check_kvmalloc_NOFS)
 CK(check_uaf_netdev_priv)
 
