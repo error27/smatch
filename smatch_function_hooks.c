@@ -390,25 +390,11 @@ void select_return_states_hook(int type, return_implies_hook *callback)
 	add_ptr_list(&db_return_states_list, cb);
 }
 
-static bool already_called(struct db_implies_list *called, param_key_hook *call_back)
-{
-	struct return_implies_callback *tmp;
-
-	FOR_EACH_PTR(called, tmp) {
-		if (tmp->pk_callback == call_back)
-			return true;
-	} END_FOR_EACH_PTR(tmp);
-
-	return false;
-}
-
 static void call_db_return_callback(struct db_callback_info *db_info,
 				    struct return_implies_callback *cb,
 				    int param, char *key, char *value)
 {
 	if (cb->param_key) {
-		if (already_called(db_info->called, cb->pk_callback))
-			return;
 		db_helper(db_info->expr, cb->pk_callback, param, key, NULL);
 		add_ptr_list(&db_info->called, cb);
 	} else {
