@@ -1266,19 +1266,40 @@ int pop_int(struct int_stack **stack)
 	return PTR_INT(num) >> 2;
 }
 
+bool token_to_ul(struct token *token, unsigned long *val)
+{
+	int cnt = 0;
+
+	/* this function only works for very specific simple defines */
+	while (cnt++ < 20 && token) {
+		switch (token_type(token)) {
+		case TOKEN_IDENT:
+			if (macro_to_ul(show_ident(token->ident), val))
+				return true;
+			break;
+		case TOKEN_NUMBER:
+			*val = strtoul(token->number, NULL, 0);
+			return true;
+		}
+		token = token->next;
+	}
+	return false;
+}
+
 bool macro_to_ul(const char *macro, unsigned long *val)
 {
+	static const char *prev;
 	struct symbol *macro_sym;
+
+	if (!macro)
+		return false;
+	if (prev && strcmp(macro, prev) == 0)
+		return false;
+	if (!prev)
+		prev = macro;
 
 	macro_sym = lookup_macro_symbol(macro);
 	if (!macro_sym || !macro_sym->expansion)
 		return false;
-	if (token_type(macro_sym->expansion) == TOKEN_IDENT)
-		return macro_to_ul(show_ident(macro_sym->expansion->ident), val);
-
-	if (token_type(macro_sym->expansion) != TOKEN_NUMBER)
-		return false;
-
-	*val = strtoul(macro_sym->expansion->number, NULL, 0);
-	return true;
+	return token_to_ul(macro_sym->expansion, val);
 }
