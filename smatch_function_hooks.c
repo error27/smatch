@@ -412,16 +412,12 @@ void select_return_param_key(int type, param_key_hook *callback)
 
 void select_return_states_before(void_fn *fn)
 {
-	void_fn *p = malloc(sizeof(*p));
-	p = fn;
-	add_ptr_list(&return_states_before, p);
+	add_ptr_list(&return_states_before, fn);
 }
 
 void select_return_states_after(void_fn *fn)
 {
-	void_fn *p = malloc(sizeof(*p));
-	p = fn;
-	add_ptr_list(&return_states_after, p);
+	add_ptr_list(&return_states_after, fn);
 }
 
 static void call_return_states_before_hooks(void)
