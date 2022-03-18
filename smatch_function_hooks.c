@@ -960,6 +960,8 @@ static bool func_type_mismatch(struct expression *expr, const char *value)
 	return true;
 }
 
+void __returns_lteq(struct expression *expr, char *ret_str);
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -1043,6 +1045,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
+		__returns_lteq(db_info->expr, ret_str);
 		__add_return_comparison(strip_expr(db_info->expr), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(clone_rl(var_rl)));
@@ -1311,6 +1314,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
+		__returns_lteq(db_info->expr, ret_str);
 		__add_return_comparison(strip_expr(db_info->expr->right), ret_str);
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
