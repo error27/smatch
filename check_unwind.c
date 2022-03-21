@@ -147,8 +147,6 @@ static void mark_matches_as_undefined(const char *key)
 		state_len = strlen(sm->name);
 		if (state_len < key_len)
 			continue;
-		if (!slist_has_state(sm->possible, &alloc))
-			continue;
 
 		start_pos = state_len - key_len;
 		if ((start_pos == 0 || !isalnum(sm->name[start_pos - 1])) &&
