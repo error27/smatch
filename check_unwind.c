@@ -178,8 +178,23 @@ static bool is_alloc_primitive(struct expression *expr)
 
 static void return_param_alloc(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
+	struct smatch_state *state;
+	char *fn_name;
+
 	fn_has_alloc = true;
-	set_ssa_state(my_id, name, sym, &alloc);
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+	fn_name = expr_to_var(expr->fn);
+	if (!fn_name)
+		return;
+
+	state = alloc_state_str(fn_name);
+	state->data = &alloc;
+
+	set_ssa_state(my_id, name, sym, state);
 }
 
 static void return_param_release(struct expression *expr, const char *name, struct symbol *sym, void *data)
@@ -263,6 +278,27 @@ static int success_fail_positive(struct range_list *rl)
 	return UNKNOWN;
 }
 
+static const char *get_alloc_fn(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	const char *alloc_fn = NULL;
+	bool released = false;
+
+	if (sm->state->data == &alloc)
+		return sm->state->name;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state->data == &alloc)
+			alloc_fn = tmp->state->name;
+		if (tmp->state == &release)
+			released = true;
+	} END_FOR_EACH_PTR(tmp);
+
+	if (alloc_fn && !released)
+		return alloc_fn;
+	return NULL;
+}
+
 static void check_balance(const char *name, struct symbol *sym)
 {
 	struct range_list *inc_lines = NULL;
@@ -272,6 +308,7 @@ static void check_balance(const char *name, struct symbol *sym)
 	struct sm_state *return_sm;
 	struct sm_state *sm;
 	sval_t line = sval_type_val(&int_ctype, 0);
+	const char *fn_name = NULL;
 	int bucket;
 
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
@@ -297,6 +334,10 @@ static void check_balance(const char *name, struct symbol *sym)
 		if (state == &param_released)
 			state = &release;
 
+		fn_name = get_alloc_fn(sm);
+		if (fn_name)
+			state = &alloc;
+
 		if (state != &alloc &&
 		    state != &release)
 			goto swap_stree;
@@ -319,7 +360,7 @@ swap_stree:
 	return;
 
 complain:
-	sm_warning("'%s' not released on lines: %s.", ssa_name(name), show_rl(inc_lines));
+	sm_warning("'%s' from %s() not released on lines: %s.", ssa_name(name), fn_name, show_rl(inc_lines));
 }
 
 static void match_check_balanced(struct symbol *sym)
@@ -342,6 +383,8 @@ void check_unwind(int id)
 
 	if (option_project != PROJ_KERNEL)
 		return;
+
+	set_dynamic_states(my_id);
 
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
 		info = &func_table[i];
