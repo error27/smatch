@@ -236,14 +236,31 @@ enum {
 
 static int success_fail_positive(struct range_list *rl)
 {
-	if (!rl)
-		return UNKNOWN;
+	sval_t sval;
 
+	if (!rl)
+		return SUCCESS;
+
+	// Negatives are a failure
 	if (sval_is_negative(rl_min(rl)) && sval_is_negative(rl_max(rl)))
 		return FAIL;
 
-	if (rl_min(rl).value == 0)
-		return SUCCESS;
+	// NULL and error pointers are a failure
+	if (type_is_ptr(rl_type(rl)) && is_err_or_null(rl))
+		return FAIL;
+
+	if (rl_to_sval(rl, &sval)) {
+		if (sval.value == 0) {
+			// Zero is normally success but false is a failure
+			if (type_bits(sval.type) == 1)
+				return FAIL;
+			else
+				return SUCCESS;
+		}
+		// true is success
+		if (sval.value == 1 && type_bits(sval.type) == 1)
+			return SUCCESS;
+	}
 
 	return UNKNOWN;
 }
