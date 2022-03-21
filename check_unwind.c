@@ -194,7 +194,7 @@ static void return_param_release(struct expression *expr, const char *name, stru
 
 	start_sm = get_ssa_sm_state(my_id, name, sym);
 	if (start_sm) {
-		update_ssa_state(my_id, start_sm->name, start_sm->sym, &release);
+		update_ssa_sm(my_id, start_sm, &release);
 	} else {
 		if (fn_has_alloc) {
 			mark_matches_as_undefined(name);

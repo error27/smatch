@@ -207,6 +207,18 @@ void update_ssa_state(int owner, const char *name, struct symbol *sym,
 	set_state(owner, name, NULL, state);
 }
 
+void update_ssa_sm(int owner, struct sm_state *ssa_sm, struct smatch_state *state)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(ssa_sm->possible, tmp) {
+		if (tmp->state == &merged ||
+		    tmp->state == &undefined)
+			continue;
+		set_state(owner, tmp->state->name, NULL, state);
+	} END_FOR_EACH_PTR(tmp);
+}
+
 void set_ssa_state_expr(int owner, struct expression *expr,
 		struct smatch_state *state)
 {
@@ -222,30 +234,35 @@ void set_ssa_state_expr(int owner, struct expression *expr,
 
 struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sym)
 {
-	struct sm_state *sm, *ret, *tmp;
-
-	// TODO: what about if it is merged because one state is &alloc and the
-	//       other state is NULL/uninitialized
+	struct sm_state *sm, *tmp, *owner_sm;
+	struct sm_state *ret = NULL;
 
 	sm = get_sm_state(my_id, name, sym);
 	if (!sm || sm->state == &undefined)
 		return NULL;
-
-	ret = get_sm_state(owner, sm->state->name, NULL);
-	if (ret)
-		return ret;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp == sm ||
 		    tmp->state == &merged ||
 		    tmp->state == &undefined)
 			continue;
-		ret = get_sm_state(owner, tmp->state->name, NULL);
-		if (ret)
-			return ret;
+		owner_sm = get_sm_state(owner, tmp->state->name, NULL);
+		if (owner_sm) {
+			if (!ret)
+				ret = clone_sm(owner_sm);
+			else
+				ret = merge_sm_states(ret, owner_sm);
+		}
 	} END_FOR_EACH_PTR(tmp);
 
-	return NULL;
+	if (!ret)
+		return NULL;
+
+	tmp = ret;
+	ret = clone_sm(sm);
+	ret->state = tmp->state;
+
+	return ret;
 }
 
 /*

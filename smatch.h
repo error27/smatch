@@ -426,6 +426,7 @@ char *ssa_name(const char *name);
 void set_ssa_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
 void update_ssa_state(int owner, const char *name, struct symbol *sym,
 		      struct smatch_state *state);
+void update_ssa_sm(int owner, struct sm_state *sm, struct smatch_state *state);
 void set_ssa_state_expr(int owner, struct expression *expr, struct smatch_state *state);
 struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sym);
 struct sm_state *get_ssa_sm_state_expr(int owner, struct expression *expr);
