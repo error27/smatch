@@ -49,6 +49,7 @@ while (<>) {
     s/dma on the stack \(.*?\)/dma on the stack (...)/;
     s/possible ERR_PTR '' to .*/possible ERR_PTR '' to .../;
     s/inconsistent returns ([^ ]+?) locked \(\)/inconsistent returns ... locked ()/;
+    s/from (\S+)\(\) not released on lines:/from ... not released on lines:/;
     s/(.*) [^ ]* (too large for) [^ ]+ (.*)/$1 $2 $3/;
 
     add_msg($_);
