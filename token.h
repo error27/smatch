@@ -201,7 +201,7 @@ struct token {
 
 static inline struct token *containing_token(struct token **p)
 {
-	void *addr = (char *)p - ((char *)&((struct token *)0)->next - (char *)0);
+	void *addr = (char *)p - offsetof(struct token, next);
 	return addr;
 }
 
