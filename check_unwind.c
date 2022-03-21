@@ -311,7 +311,7 @@ static void check_balance(const char *name, struct symbol *sym)
 	struct sm_state *return_sm;
 	struct sm_state *sm;
 	sval_t line = sval_type_val(&int_ctype, 0);
-	const char *fn_name = NULL;
+	const char *tmp_name, *fn_name = NULL;
 	int bucket;
 
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
@@ -337,9 +337,11 @@ static void check_balance(const char *name, struct symbol *sym)
 		if (state == &param_released)
 			state = &release;
 
-		fn_name = get_alloc_fn(sm);
-		if (fn_name)
+		tmp_name = get_alloc_fn(sm);
+		if (tmp_name) {
+			fn_name = tmp_name;
 			state = &alloc;
+		}
 
 		if (state != &alloc &&
 		    state != &release)
