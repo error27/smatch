@@ -2107,6 +2107,8 @@ static bool is_kernel_success_fail(struct sm_state *sm)
 		rl = estate_rl(tmp->state);
 		if (!rl)
 			return false;
+		if (!is_leaf(tmp))
+			continue;
 		if (rl_min(rl).value == 0 && rl_max(rl).value == 0) {
 			has_zero = true;
 			continue;
