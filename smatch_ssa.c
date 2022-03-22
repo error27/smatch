@@ -242,8 +242,7 @@ struct sm_state *get_ssa_sm_state(int owner, const char *name, struct symbol *sy
 		return NULL;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp == sm ||
-		    tmp->state == &merged ||
+		if (tmp->state == &merged ||
 		    tmp->state == &undefined)
 			continue;
 		owner_sm = get_sm_state(owner, tmp->state->name, NULL);
