@@ -83,6 +83,8 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 		estate_set_treat_untagged(state);
 	if (estates_equiv(state, cur->state))
 		return;
+	if (estate_new(cur->state))
+		estate_set_new(state);
 	set_state(my_id, cur->name, cur->sym, state);
 }
 
