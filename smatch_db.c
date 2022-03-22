@@ -2093,6 +2093,35 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	return 1;
 }
 
+static bool is_neg_and_pos_err_code(struct range_list *rl)
+{
+	struct data_range *tmp, *last;
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+	if (!rl)
+		return false;
+
+	/* Assume s32min-(14),(-12)-(-1),1-s32max is an error code. */
+	last = last_ptr_list((struct ptr_list *)rl);
+	if (last->max.value >= 0 &&
+	    (last->min.value != 1 ||
+	     last->max.value != INT_MAX))
+		return false;
+
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (tmp == last)
+			break;
+		if (tmp->min.value != INT_MIN && tmp->min.value < -4095)
+			return false;
+		if (tmp->max.value < -4095 || tmp->max.value >= 0)
+			return false;
+	} END_FOR_EACH_PTR(tmp);
+
+	return true;
+}
+
 static bool is_kernel_success_fail(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -2114,11 +2143,7 @@ static bool is_kernel_success_fail(struct sm_state *sm)
 			continue;
 		}
 		has_neg = true;
-		if (rl_min(rl).value >= -4095 && rl_max(rl).value < 0)
-			continue;
-		if (strcmp(tmp->state->name, "s32min-(-1)") == 0)
-			continue;
-		if (strcmp(tmp->state->name, "s32min-(-1),1-s32max") == 0)
+		if (is_neg_and_pos_err_code(estate_rl(tmp->state)))
 			continue;
 		return false;
 	} END_FOR_EACH_PTR(tmp);
