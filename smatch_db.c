@@ -2153,6 +2153,7 @@ static bool is_kernel_success_fail(struct sm_state *sm)
 
 static int call_return_state_hooks_split_success_fail(struct expression *expr)
 {
+	struct expression *tmp_ret;
 	struct sm_state *sm;
 	struct range_list *rl;
 	struct range_list *nonzero_rl;
@@ -2169,7 +2170,10 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (nr_states > 2000)
 		return 0;
 
-	sm = get_returned_sm(expr);
+	tmp_ret = get_fake_variable(expr);
+	if (!tmp_ret)
+		tmp_ret = expr;
+	sm = get_returned_sm(tmp_ret);
 	if (!sm)
 		return 0;
 	if (ptr_list_size((struct ptr_list *)sm->possible) == 1)
@@ -2184,7 +2188,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	__push_fake_cur_stree();
 
 	final_pass = 0;
-	__split_whole_condition(expr);
+	__split_whole_condition(tmp_ret);
 	final_pass = final_pass_orig;
 
 	nonzero_rl = rl_filter(rl, rl_zero());
