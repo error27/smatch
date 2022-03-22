@@ -344,6 +344,14 @@ static int prev_expression_is_getting_address(struct expression *expr)
 			goto next;
 		if (parent->type == EXPR_DEREF && parent->op == '.')
 			goto next;
+		/* Handle &foo->array[offset] */
+		if (parent->type == EXPR_BINOP && parent->op == '+') {
+			parent = expr_get_parent_expr(parent);
+			if (!parent)
+				return 0;
+			if (parent->type == EXPR_PREOP && parent->op == '*')
+				goto next;
+		}
 
 		return 0;
 next:
