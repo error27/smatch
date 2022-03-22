@@ -26,8 +26,8 @@ fls s32min-s32max 0-32
 fls64 s64min-s64max 0-64
 __bitmap_weight s32min-s32max 0-s32max[<=$1]
 __bitmap_weight 0-s32max 0-s32max[<=$1]
-__ffs 0-u64max 0-63
-__ffs 0-u32max 0-31
+__ffs 0-u64max 1-64
+__ffs 0-u32max 1-32
 find_last_bit 0-u64max 0-u32max[<=$1]
 __spi_sync (-524),(-115),(-108),(-22) (-4095)-0
 tpm_tis_spi_read_bytes s32min-s32max (-4095)-0
@@ -81,3 +81,4 @@ vmalloc 1-18446744073709551614 4096-ptr_max
 __vmalloc_node 1-18446744073709551614 4096-ptr_max
 copy_to_user 0-s32max 0-s32max[<=$2]
 copy_from_user 0-s32max 0-s32max[<=$2]
+ffz 0-u64max 1-64
