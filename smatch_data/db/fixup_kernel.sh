@@ -173,6 +173,7 @@ delete from return_states where function = 'vsnprintf' and type = 8024;
 update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
 update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
 update return_states set value = '0-s32max' where function = 'dm_split_args' and type = 1025 and parameter = 0 and key = '*$';
+update return_states set value = '(-4095)-0' where function = 'usb_submit_urb' and return ='0' and type = 1025 and parameter = 0 and key = '\$->status';
 
 /* delete some function pointers which are sometimes byte units */
 delete from caller_info where function = '(struct i2c_algorithm)->master_xfer' and type = 1027;
