@@ -2386,18 +2386,16 @@ static bool is_kernel_error_path(struct expression *expr)
 {
 	struct range_list *rl;
 
-	/*
-	 * Splitting up returns requires resources.  It also requires resources
-	 * for the caller.  It doesn't seem worth it to split anything up.
-	 */
+	if (option_project != PROJ_KERNEL)
+		return false;
+
 	if (!get_implied_rl(expr, &rl))
 		return false;
 	if (rl_type(rl) != &int_ctype)
 		return false;
-	if (rl_min(rl).value >= -4095 &&
-	    rl_max(rl).value < 0)
-		return true;
-	return false;
+	if (!is_neg_and_pos_err_code(rl))
+		return false;
+	return true;
 }
 
 static void call_return_state_hooks(struct expression *expr)
