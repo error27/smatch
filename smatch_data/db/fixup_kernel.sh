@@ -128,6 +128,9 @@ update return_states set return = '0-u16max[==\$0]' where function = '__builtin_
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
 /* Just delete a lot of returns that everyone ignores */
 delete from return_states where file = 'drivers/pci/access.c' and (return >= 129 and return <= 137);
+delete from return_states where function = 'pci_bus_read_config_byte' and return != '0';
+delete from return_states where function = 'pci_bus_read_config_word' and return != '0';
+delete from return_states where function = 'pci_bus_read_config_dword' and return != '0';
 
 /* Smatch can't parse wait_for_completion() */
 update return_states set return = '(-108),(-22),0' where function = '__spi_sync' and return = '(-115),(-108),(-22)';
