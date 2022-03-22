@@ -1614,9 +1614,11 @@ static char *get_return_compare_str(struct expression *expr)
 
 static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
 {
+	struct expression *fake;
 	struct range_list *rl;
 	char *return_ranges;
 	sval_t sval;
+	const char *container_of_str;
 	char *fn_param_str;
 	char *compare_str;
 	char *math_str;
@@ -1633,9 +1635,14 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		return sval_to_str_or_err_ptr(sval);
 	}
 
+	container_of_str = get_container_of_str(expr);
 	fn_param_str = get_fn_param_str(expr);
 	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
+
+	fake = expr_get_fake_parent_expr(expr);
+	if (fake)
+		expr = fake->left;
 
 	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
@@ -1650,6 +1657,10 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	}
 	*rl_p = rl;
 
+	if (container_of_str) {
+		snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, container_of_str);
+		return alloc_sname(buf);
+	}
 	if (fn_param_str) {
 		snprintf(buf, sizeof(buf), "%s%s", return_ranges, fn_param_str);
 		return alloc_sname(buf);
