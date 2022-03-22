@@ -2499,16 +2499,22 @@ static void print_return_struct_info(int return_id, char *return_ranges,
 	int param;
 
 	FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
-		param = get_param_num_from_sym(sm->sym);
-		printed_name = get_param_name(sm);
+		param = get_param_key_from_var_sym(sm->name, sm->sym, expr, &printed_name);
 		if (!printed_name)
 			continue;
+		if (param < 0)
+			continue;
+		cb->callback(return_id, return_ranges, expr, param, printed_name, sm);
+	} END_FOR_EACH_SM(sm);
 
-		if (param >= 0)
-			cb->callback(return_id, return_ranges, expr, param, printed_name, sm);
-
-		if (sm->sym && sm->sym == sym)
-			cb->callback(return_id, return_ranges, expr, -1, printed_name, sm);
+	/* always print returned states after processing param states */
+	FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
+		param = get_param_key_from_var_sym(sm->name, sm->sym, expr, &printed_name);
+		if (!printed_name)
+			continue;
+		if (param != -1)
+			continue;
+		cb->callback(return_id, return_ranges, expr, -1, printed_name, sm);
 	} END_FOR_EACH_SM(sm);
 }
 
