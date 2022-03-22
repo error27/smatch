@@ -81,4 +81,7 @@ vmalloc 1-18446744073709551614 4096-ptr_max
 __vmalloc_node 1-18446744073709551614 4096-ptr_max
 copy_to_user 0-s32max 0-s32max[<=$2]
 copy_from_user 0-s32max 0-s32max[<=$2]
+search_cred_keyrings_rcu 0-ptr_max 4096-ptr_max
+lowmem_page_address 0-u64max 4096-ptr_max
+alloc_pages 1-u64max 4096-ptr_max
 ffz 0-u64max 1-64
