@@ -2359,6 +2359,70 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	return split_on_bool_sm(sm, expr);
 }
 
+static void call_hooks_based_on_pool(struct expression *expr, struct sm_state *gate_sm, struct sm_state *pool_sm)
+{
+	struct range_list *ret_rl;
+	const char *return_ranges;
+
+	__push_fake_cur_stree();
+
+	overwrite_states_using_pool(gate_sm, pool_sm);
+
+	return_ranges = get_return_ranges_str(expr, &ret_rl);
+	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
+	call_return_states_callbacks(return_ranges, expr);
+
+	__free_fake_cur_stree();
+}
+
+static bool split_by_impossible(struct expression *expr)
+{
+	static int impossible_id;
+	struct sm_state *sm, *tmp;
+	int nr_states;
+
+	if (!impossible_id)
+		impossible_id = id_from_name("register_impossible_return");
+	if (!impossible_id)
+		return false;
+
+	/*
+	 * The only states for register_impossible_return are &impossible,
+	 * &undefined and &merged.  This function will break otherwise.
+	 */
+
+	sm = get_sm_state(impossible_id, "impossible", NULL);
+	if (!sm || sm->state != &merged)
+		return false;
+
+	nr_states = get_db_state_count();
+	if (nr_states >= 1000)
+		return false;
+
+	/* handle possible */
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!is_leaf(tmp))
+			continue;
+		if (tmp->state != &undefined)
+			continue;
+		call_hooks_based_on_pool(expr, sm, tmp);
+		goto impossible;
+	} END_FOR_EACH_PTR(tmp);
+
+impossible:
+	/* handle impossible */
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!is_leaf(tmp))
+			continue;
+		if (strcmp(tmp->state->name, "impossible") != 0)
+			continue;
+		call_hooks_based_on_pool(expr, sm, tmp);
+		return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 struct expression *strip_expr_statement(struct expression *expr)
 {
 	struct expression *orig = expr;
@@ -2435,6 +2499,8 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (split_by_bool_param(expr)) {
 	} else if (split_by_null_nonnull_param(expr)) {
+		return;
+	} else if (split_by_impossible(expr)) {
 		return;
 	}
 
