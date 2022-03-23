@@ -609,6 +609,12 @@ static void sql_select_return_states_pointer(const char *cols,
 		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
 	/* The magic number 100 is just from testing on the kernel. */
 	if (return_count == 0 || return_count > 100) {
+		run_sql(callback, info,
+			"select distinct %s from return_states join function_ptr where "
+			"return_states.function == function_ptr.function and ptr = '%s' "
+			"and searchable = 1 and type = %d "
+			"order by function_ptr.file, return_states.file, return_id, type;",
+			cols, ptr, INTERNAL);
 		mark_call_params_untracked(call);
 		return;
 	}
