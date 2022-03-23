@@ -2334,11 +2334,8 @@ static int split_by_null_nonnull_param(struct expression *expr)
 	struct sm_state *sm;
 	int nr_possible;
 
-	/* function must only take one pointer */
-	if (ptr_list_size((struct ptr_list *)cur_func_sym->ctype.base_type->arguments) != 1)
-		return 0;
 	arg = first_ptr_list((struct ptr_list *)cur_func_sym->ctype.base_type->arguments);
-	if (!arg->ident)
+	if (!arg || !arg->ident)
 		return 0;
 	if (get_real_base_type(arg)->type != SYM_PTR)
 		return 0;
