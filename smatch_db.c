@@ -2498,6 +2498,7 @@ static void call_return_state_hooks(struct expression *expr)
 	} else if (splitable_function_call(expr)) {
 		return;
 	} else if (split_by_bool_param(expr)) {
+		return;
 	} else if (split_by_null_nonnull_param(expr)) {
 		return;
 	} else if (split_by_impossible(expr)) {
