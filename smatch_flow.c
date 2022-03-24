@@ -479,6 +479,9 @@ void __split_expr(struct expression *expr)
 		expr_set_parent_expr(expr->right, expr);
 
 		__pass_to_client(expr, BINOP_HOOK);
+		__split_expr(expr->left);
+		__split_expr(expr->right);
+		break;
 	case EXPR_COMMA:
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
