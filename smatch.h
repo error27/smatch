@@ -523,6 +523,8 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 			       const char **key);
 int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
 			  const char **key);
+int get_param_key_from_expr(struct expression *expr, struct expression *ret_expr,
+			    const char **key);
 int map_to_param(const char *name, struct symbol *sym);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);

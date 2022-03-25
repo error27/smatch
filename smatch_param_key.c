@@ -587,6 +587,24 @@ int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
 	return get_param_key_from_var_sym(sm->name, sm->sym, ret_expr, key);
 }
 
+int get_param_key_from_expr(struct expression *expr, struct expression *ret_expr,
+			    const char **key)
+{
+	char *name;
+	struct symbol *sym;
+	int ret = -2;
+
+	*key = NULL;
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = get_param_key_from_var_sym(name, sym, ret_expr, key);
+free:
+	free_string(name);
+	return ret;
+}
+
 int map_to_param(const char *name, struct symbol *sym)
 {
 	return get_param_key_from_var_sym(name, sym, NULL, NULL);
