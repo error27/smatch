@@ -325,6 +325,7 @@ SMATCH_OBJS += smatch_slist.o
 SMATCH_OBJS += smatch_start_states.o
 SMATCH_OBJS += smatch_statement_count.o
 SMATCH_OBJS += smatch_states.o
+SMATCH_OBJS += smatch_state_assigned.o
 SMATCH_OBJS += smatch_stored_conditions.o
 SMATCH_OBJS += smatch_string_list.o
 SMATCH_OBJS += smatch_strings.o

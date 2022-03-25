@@ -76,6 +76,7 @@ CK(register_statement_count)
 CK(register_fresh_alloc)
 CK(register_ssa)
 CK(register_unconstant_macros)
+CK(register_state_assigned)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)

@@ -1411,6 +1411,9 @@ void track_freed_param_var_sym(const char *name, struct symbol *sym,
 /* smatch_unconstant_macros.c */
 int is_unconstant_macro(struct expression *expr);
 
+/* smatch_assigned_state.c */
+void add_state_assigned_hook(int owner, sm_hook *call_back);
+
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&
