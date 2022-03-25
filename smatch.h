@@ -157,6 +157,7 @@ typedef void (expr_func)(struct expression *expr);
 typedef void (stmt_func)(struct statement *stmt);
 typedef void (sym_func)(struct symbol *sym);
 typedef void (name_sym_hook)(struct expression *expr, const char *name, struct symbol *sym);
+typedef void (sm_hook)(struct sm_state *sm, struct expression *mod_expr);
 DECLARE_PTR_LIST(void_fn_list, void_fn);
 DECLARE_PTR_LIST(expr_fn_list, expr_func);
 DECLARE_PTR_LIST(stmt_fn_list, stmt_func);
@@ -229,10 +230,10 @@ struct modification_data {
 	struct expression *cur;
 };
 
-typedef void (modification_hook)(struct sm_state *sm, struct expression *mod_expr);
 bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm);
-void add_modification_hook(int owner, modification_hook *call_back);
-void add_modification_hook_late(int owner, modification_hook *call_back);
+void add_all_modifications_hook(int owner, name_sym_hook *hook);
+void add_modification_hook(int owner, sm_hook *call_back);
+void add_modification_hook_late(int owner, sm_hook *call_back);
 struct smatch_state *get_modification_state(struct expression *expr);
 
 int outside_of_function(void);
