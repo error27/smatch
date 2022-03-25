@@ -1163,14 +1163,10 @@ static struct expression *get_fake_variable(struct expression *expr)
 static struct sm_state *get_returned_sm(struct expression *expr)
 {
 	struct expression *fake;
-	struct sm_state *sm;
 
-	fake = expr_get_fake_parent_expr(expr);
-	if (fake && fake->type == EXPR_ASSIGNMENT && fake->op == '=') {
-		sm = get_sm_state_expr(SMATCH_EXTRA, fake->left);
-		if (sm)
-			return sm;
-	}
+	fake = get_fake_variable(expr);
+	if (fake)
+		expr = fake;
 
 	return get_sm_state_expr(SMATCH_EXTRA, expr);
 }
@@ -1646,9 +1642,9 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
 
-	fake = expr_get_fake_parent_expr(expr);
+	fake = get_fake_variable(expr);
 	if (fake)
-		expr = fake->left;
+		expr = fake;
 
 	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
