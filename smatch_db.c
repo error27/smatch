@@ -1637,14 +1637,14 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 		return sval_to_str_or_err_ptr(sval);
 	}
 
+	fake = get_fake_variable(expr);
+	if (fake)
+		expr = fake;
+
 	container_of_str = get_container_of_str(expr);
 	fn_param_str = get_fn_param_str(expr);
 	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
-
-	fake = get_fake_variable(expr);
-	if (fake)
-		expr = fake;
 
 	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);
@@ -2471,8 +2471,6 @@ static void call_return_state_hooks(struct expression *expr)
 	if (__path_is_null())
 		return;
 
-	expr = strip_expr(expr);
-	expr = strip_expr_statement(expr);
 
 	if (is_impossible_path())
 		goto vanilla;
