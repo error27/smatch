@@ -112,6 +112,7 @@ static struct db_implies_list *db_return_states_list;
 
 static struct void_fn_list *return_states_before;
 static struct void_fn_list *return_states_after;
+static struct string_hook_list *return_string_hooks;
 
 struct db_callback_info {
 	int true_side;
@@ -418,6 +419,11 @@ void select_return_states_before(void_fn *fn)
 void select_return_states_after(void_fn *fn)
 {
 	add_ptr_list(&return_states_after, fn);
+}
+
+void add_return_string_hook(string_hook *fn)
+{
+	add_ptr_list(&return_string_hooks, fn);
 }
 
 static bool call_call_backs(struct call_back_list *list, int type,
@@ -1028,6 +1034,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 		set_state(-1, "unnull_path", NULL, &true_state);
 		__add_return_comparison(strip_expr(db_info->expr), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
+		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(clone_rl(var_rl)));
 	}
 
@@ -1297,6 +1304,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		__add_return_comparison(strip_expr(db_info->expr->right), ret_str);
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
+		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
 		set_fresh_mtag_returns(db_info);
 	}
@@ -1489,6 +1497,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		set_state(-1, "unnull_path", NULL, &true_state);
 		__add_return_comparison(strip_expr(db_info->expr), ret_str);
 		__add_return_to_param_mapping(db_info->expr, ret_str);
+		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		/*
 		 * We want to store the return values so that we can split the strees
 		 * in smatch_db.c.  This uses set_state() directly because it's not a

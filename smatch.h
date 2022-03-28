@@ -158,16 +158,19 @@ typedef void (stmt_func)(struct statement *stmt);
 typedef void (sym_func)(struct symbol *sym);
 typedef void (name_sym_hook)(struct expression *expr, const char *name, struct symbol *sym);
 typedef void (sm_hook)(struct sm_state *sm, struct expression *mod_expr);
+typedef void (string_hook)(struct expression *expr, const char *str);
 DECLARE_PTR_LIST(void_fn_list, void_fn);
 DECLARE_PTR_LIST(expr_fn_list, expr_func);
 DECLARE_PTR_LIST(stmt_fn_list, stmt_func);
 DECLARE_PTR_LIST(sym_fn_list, sym_func);
 DECLARE_PTR_LIST(name_sym_fn_list, name_sym_hook);
+DECLARE_PTR_LIST(string_hook_list, string_hook);
 void call_void_fns(struct void_fn_list *list);
 void call_expr_fns(struct expr_fn_list *list, struct expression *expr);
 void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt);
 void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
 void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, const char *name, struct symbol *sym);
+void call_string_hooks(struct string_hook_list *list, struct expression *expr, const char *str);
 
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
@@ -177,6 +180,7 @@ void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct sm_state *other));
 typedef void (scope_hook)(void *data);
 void add_scope_hook(scope_hook *hook, void *data);
+void add_return_string_hook(string_hook *fn);
 typedef void (param_key_hook)(struct expression *expr, const char *name, struct symbol *sym, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 typedef void (implication_hook)(const char *fn, struct expression *call_expr,

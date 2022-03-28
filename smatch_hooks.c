@@ -348,3 +348,12 @@ void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, c
 	} END_FOR_EACH_PTR(fn);
 }
 
+void call_string_hooks(struct string_hook_list *list, struct expression *expr, const char *str)
+{
+	string_hook *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(expr, str);
+	} END_FOR_EACH_PTR(fn);
+}
+
