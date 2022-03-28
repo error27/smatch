@@ -186,7 +186,7 @@ free:
 	free_string(right_name);
 }
 
-void __add_return_to_param_mapping(struct expression *expr, const char *return_string)
+static void return_str_to_param_mapping(struct expression *expr, const char *return_string)
 {
 	struct expression *call;
 	char *left_name = NULL;
@@ -229,6 +229,7 @@ void register_return_to_param(int id)
 {
 	my_id = id;
 	set_dynamic_states(my_id);
+	add_return_string_hook(return_str_to_param_mapping);
 	add_modification_hook(my_id, &undef);
 }
 

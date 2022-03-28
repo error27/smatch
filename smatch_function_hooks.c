@@ -1032,8 +1032,6 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr), ret_str);
-		__add_return_to_param_mapping(db_info->expr, ret_str);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(clone_rl(var_rl)));
 	}
@@ -1301,9 +1299,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr->right), ret_str);
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
-		__add_return_to_param_mapping(db_info->expr, ret_str);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
 		set_fresh_mtag_returns(db_info);
@@ -1495,8 +1491,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 		struct smatch_state *state;
 
 		set_state(-1, "unnull_path", NULL, &true_state);
-		__add_return_comparison(strip_expr(db_info->expr), ret_str);
-		__add_return_to_param_mapping(db_info->expr, ret_str);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		/*
 		 * We want to store the return values so that we can split the strees

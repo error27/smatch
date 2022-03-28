@@ -2007,12 +2007,13 @@ done:
 	free_string(right_var);
 }
 
-void __add_return_comparison(struct expression *call, const char *range)
+static void return_str_comparison(struct expression *call, const char *range)
 {
 	struct expression *arg;
 	int comparison;
 	char buf[16];
 
+	call = strip_expr(call);
 	if (!str_to_comparison_arg(range, call, &comparison, &arg))
 		return;
 	snprintf(buf, sizeof(buf), "%s", show_comparison(comparison));
@@ -2721,6 +2722,7 @@ void register_comparison(int id)
 void register_comparison_late(int id)
 {
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_return_string_hook(return_str_comparison);
 }
 
 void register_comparison_links(int id)
