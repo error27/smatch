@@ -43,7 +43,8 @@ static void match_assignment(struct expression *expr)
 		return;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (!hooks[sm->owner] ||
+		if (sm->owner >= num_checks ||
+		    !hooks[sm->owner] ||
 		    sm->sym != sym ||
 		    strcmp(sm->name, name) != 0)
 			continue;
