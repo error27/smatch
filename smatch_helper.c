@@ -1288,15 +1288,10 @@ bool token_to_ul(struct token *token, unsigned long *val)
 
 bool macro_to_ul(const char *macro, unsigned long *val)
 {
-	static const char *prev;
 	struct symbol *macro_sym;
 
 	if (!macro)
 		return false;
-	if (prev && strcmp(macro, prev) == 0)
-		return false;
-	if (!prev)
-		prev = macro;
 
 	macro_sym = lookup_macro_symbol(macro);
 	if (!macro_sym || !macro_sym->expansion)
