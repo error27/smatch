@@ -2007,18 +2007,21 @@ done:
 	free_string(right_var);
 }
 
-static void return_str_comparison(struct expression *call, const char *range)
+static void return_str_comparison(struct expression *expr, const char *range)
 {
 	struct expression *arg;
 	int comparison;
 	char buf[16];
 
-	call = strip_expr(call);
-	if (!str_to_comparison_arg(range, call, &comparison, &arg))
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+	if (!str_to_comparison_arg(range, expr, &comparison, &arg))
 		return;
 	snprintf(buf, sizeof(buf), "%s", show_comparison(comparison));
-	update_links_from_call(call, comparison, arg);
-	add_comparison(call, comparison, arg);
+	update_links_from_call(expr, comparison, arg);
+	add_comparison(expr, comparison, arg);
 }
 
 void __add_comparison_info(struct expression *expr, struct expression *call, const char *range)
