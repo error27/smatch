@@ -800,12 +800,70 @@ free:
 	free_string(param_name);
 }
 
+static bool get_offset_param(const char *ret_str, int *offset, int *param)
+{
+	const char *p;
+
+	if (!ret_str)
+		return false;
+	p = strstr(ret_str, "[(");
+	if (!p)
+		return false;
+	p += 2;
+	*offset = atoi(p);
+	p = strstr(p, "<~$");
+	if (!p)
+		return false;
+	p += 3;
+	if (!isdigit(p[0]))
+		return false;
+	*param = atoi(p);
+	return true;;
+}
+
+static void return_str_hook(struct expression *expr, const char *ret_str)
+{
+	struct expression *call, *arg;
+	struct symbol *sym;
+	int offset, param;
+	char buf[32];
+
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return;
+	call = expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (!call || call->type != EXPR_CALL)
+		return;
+
+	if (!get_offset_param(ret_str, &offset, &param))
+		return;
+
+	arg = get_argument_from_call_expr(call->args, param);
+	arg = strip_expr(arg);
+	if (!arg)
+		return;
+
+	/* fixme this could be better */
+	if (arg->type != EXPR_SYMBOL)
+		return;
+	sym = arg->symbol;
+
+	param = get_param_num(arg);
+	if (param < 0)
+		return;
+
+	snprintf(buf, sizeof(buf), "(%d<~$%d)", offset, param);
+	set_state_expr(my_id, expr->left, alloc_var_sym_state(buf, sym));
+}
+
 void register_param_key(int id)
 {
 	my_id = id;
 
 	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK_AFTER);
+	add_return_string_hook(return_str_hook);
 	add_modification_hook(my_id, &undef);
 }
 
