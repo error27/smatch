@@ -101,8 +101,9 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	struct expression *container;
 	int offset = -1;
 	char *p = (char *)orig_key;
-	char *start, *end;
 	char buf[64];
+	char *start;
+	int param;
 	int ret;
 	bool arrow = false;
 
@@ -115,10 +116,18 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 		if (*p == '(' && isdigit(*(p + 1))) {
 			start = p;
 			offset = strtoul(p + 1, &p, 10);
-			if (!p || p[0] != '<' || p[1] != '~' || p[2] != '$' ||
-			    p[3] != ')' || p[4] != '-' || p[5] != '>')
+			if (!p || strncmp(p, "<~$", 3) != 0)
 				return NULL;
-			end = p + 6;
+			p += 3;
+			if (!isdigit(p[0]))
+				return NULL;
+			param = strtoul(p + 1, &p, 10);
+			/* fixme */
+			if (param != 0)
+				return NULL;
+			if (!p || strncmp(p, ")->", 3) != 0)
+				return NULL;
+			p += 3;
 			break;
 		}
 		p++;
@@ -141,7 +150,7 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	}
 	container = expr->deref;
 
-	ret = snprintf(buf, sizeof(buf), "%.*s$%s%s", (int)(start - orig_key), orig_key, arrow ? "->" : ".", end);
+	ret = snprintf(buf, sizeof(buf), "%.*s$%s%s", (int)(start - orig_key), orig_key, arrow ? "->" : ".", p);
 	if (ret >= sizeof(buf))
 		return NULL;
 	*new_key = alloc_sname(buf);
@@ -745,7 +754,7 @@ char *handle_container_of_assign(struct expression *expr, struct symbol **sym)
 	if (param < 0)
 		return NULL;
 
-	snprintf(buf, sizeof(buf), "(%lld<~$)", sval.value);
+	snprintf(buf, sizeof(buf), "(%lld<~$%d)", sval.value, param);
 	*sym = orig->symbol;
 	return alloc_string(buf);
 }
