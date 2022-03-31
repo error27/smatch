@@ -240,11 +240,14 @@ free:
 	free_string(name);
 }
 
-static void param_key_function(const char *fn, struct expression *expr, void *data)
+static struct expression *get_parent_assignment(struct expression *expr)
 {
-	struct param_key_data *pkd = data;
 	struct expression *parent;
 	int cnt = 0;
+
+	parent = expr_get_fake_parent_expr(expr);
+	if (parent && parent->type == EXPR_ASSIGNMENT)
+		return parent;
 
 	parent = expr;
 	while (true) {
@@ -259,6 +262,17 @@ static void param_key_function(const char *fn, struct expression *expr, void *da
 	}
 
 	if (parent && parent->type == EXPR_ASSIGNMENT)
+		return parent;
+	return NULL;
+}
+
+static void param_key_function(const char *fn, struct expression *expr, void *data)
+{
+	struct param_key_data *pkd = data;
+	struct expression *parent;
+
+	parent = get_parent_assignment(expr);
+	if (parent)
 		expr = parent;
 
 	db_helper(expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
