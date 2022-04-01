@@ -226,24 +226,21 @@ static void ignore_path(const char *fn, struct expression *expr, void *data)
 	set_state(my_id, "path", NULL, &ignore);
 }
 
-static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
+static void unwind_return_info_callback(int return_id, char *return_ranges,
+				 struct expression *returned_expr,
+				 int param,
+				 const char *printed_name,
+				 struct sm_state *sm)
 {
-	struct sm_state *sm;
-	const char *param_name;
-	int param;
-
+	if (param < 0)
+		return;
+	if (sm->state != &param_released)
+		return;
 	if (is_impossible_path())
 		return;
 
-	FOR_EACH_MY_SM(info_id, __get_cur_stree(), sm) {
-		if (sm->state != &param_released)
-			continue;
-		param = get_param_key_from_sm(sm, expr, &param_name);
-		if (param < 0)
-			continue;
-		sql_insert_return_states(return_id, return_ranges, RELEASE,
-					 param, param_name, "");
-	} END_FOR_EACH_SM(sm);
+	sql_insert_return_states(return_id, return_ranges, RELEASE,
+				 param, printed_name, "");
 }
 
 enum {
@@ -432,5 +429,5 @@ void check_unwind_info(int id)
 	info_id = id;
 
 	add_unmatched_state_hook(info_id, &unmatched_state);
-	add_split_return_callback(match_return_info);
+	add_return_info_callback(info_id, unwind_return_info_callback);
 }
