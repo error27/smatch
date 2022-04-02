@@ -3,6 +3,7 @@
 #include "target.h"
 #include "machine.h"
 #include <string.h>
+#include <stdio.h>
 
 #define RISCV_32BIT	(1 << 0)
 #define RISCV_64BIT	(1 << 1)
@@ -64,7 +65,10 @@ static void parse_march_riscv(const char *arg)
 			goto ext;
 		}
 	}
-	die("invalid argument to '-march': '%s'\n", arg);
+
+unknown:
+	fprintf(stderr, "WARNING: invalid argument to '-march': '%s'\n", arg);
+	return;
 
 ext:
 	for (i = 0; i < ARRAY_SIZE(extensions); i++) {
@@ -77,7 +81,7 @@ ext:
 		}
 	}
 	if (arg[0])
-		die("invalid argument to '-march': '%s'\n", arg);
+		goto unknown;
 }
 
 static void init_riscv(const struct target *self)
