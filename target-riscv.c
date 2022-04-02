@@ -55,6 +55,9 @@ static void parse_march_riscv(const char *arg)
 	};
 	int i;
 
+	// Each -march=.. options entirely overrides previous ones
+	riscv_flags = 0;
+
 	for (i = 0; i < ARRAY_SIZE(basic_sets); i++) {
 		const char *pat = basic_sets[i].pattern;
 		size_t len = strlen(pat);
