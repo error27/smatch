@@ -1618,7 +1618,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 {
 	struct expression *fake;
 	struct range_list *rl;
-	char *return_ranges;
+	const char *return_ranges;
 	sval_t sval;
 	const char *container_of_str;
 	char *fn_param_str;
@@ -1631,17 +1631,23 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	if (!expr)
 		return alloc_sname("");
 
-	if (get_implied_value(expr, &sval)) {
-		sval = sval_cast(cur_func_return_type(), sval);
-		*rl_p = alloc_rl(sval, sval);
-		return sval_to_str_or_err_ptr(sval);
-	}
-
 	fake = get_fake_variable(expr);
 	if (fake)
 		expr = fake;
 
 	container_of_str = get_container_of_str(expr);
+
+	if (get_implied_value(expr, &sval)) {
+		sval = sval_cast(cur_func_return_type(), sval);
+		*rl_p = alloc_rl(sval, sval);
+		return_ranges = sval_to_str_or_err_ptr(sval);
+		if (container_of_str) {
+			snprintf(buf, sizeof(buf), "%s[%s]", return_ranges, container_of_str);
+			return alloc_sname(buf);
+		}
+		return return_ranges;
+	}
+
 	fn_param_str = get_fn_param_str(expr);
 	compare_str = expr_equal_to_param(expr, -1);
 	math_str = get_value_in_terms_of_parameter_math(expr);
