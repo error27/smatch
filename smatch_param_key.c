@@ -732,7 +732,7 @@ free:
 	return NULL;
 }
 
-char *handle_container_of_assign(struct expression *expr, struct symbol **sym)
+static char *handle_container_of_assign(struct expression *expr, struct symbol **sym)
 {
 	struct expression *right, *orig;
 	struct symbol *type;
