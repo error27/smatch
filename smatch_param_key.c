@@ -135,20 +135,24 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	if (*p == '\0')
 		return NULL;
 
-	if (offset != get_member_offset_from_deref(expr))
-		return NULL;
-
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		expr = strip_expr(expr->unop);
-		if (expr->type != EXPR_DEREF)
+	if (offset == get_member_offset_from_deref(expr)) {
+		if (expr->type == EXPR_PREOP && expr->op == '&') {
+			expr = strip_expr(expr->unop);
+			if (expr->type != EXPR_DEREF)
+				return NULL;
+			expr = strip_expr(expr->deref);
+			if (expr->type != EXPR_PREOP || expr->op != '*')
+				return NULL;
+			container = expr->unop;
+			arrow = true;
+		}
+		container = expr->deref;
+	} else {
+		container = get_stored_container(expr, offset);
+		if (!container)
 			return NULL;
-		expr = strip_expr(expr->deref);
-		if (expr->type != EXPR_PREOP || expr->op != '*')
-			return NULL;
-		container = expr->unop;
 		arrow = true;
 	}
-	container = expr->deref;
 
 	ret = snprintf(buf, sizeof(buf), "%.*s$%s%s", (int)(start - orig_key), orig_key, arrow ? "->" : ".", p);
 	if (ret >= sizeof(buf))
@@ -222,7 +226,10 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		expr = map_container_of_to_simpler_expr_key(arg, key, &new_key);
 		if (!expr)
 			return NULL;
-		arg = expr;
+		if (arg != expr) {
+			arg = expr;
+			*sym = expr_to_sym(expr);
+		}
 		key = new_key;
 	}
 
@@ -273,7 +280,7 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	return alloc_string(buf);
 }
 
-static bool split_param_key(char *value, int *param, char *key, int len)
+static bool split_param_key(const char *value, int *param, char *key, int len)
 {
 	char *p;
 	int l, skip = 1;
