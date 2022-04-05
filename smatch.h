@@ -533,6 +533,9 @@ int get_param_num(struct expression *expr);
 struct symbol *get_param_sym_from_num(int num);
 struct expression *map_container_of_to_simpler_expr_key(struct expression *expr, const char *orig_key, char **new_key);
 const char *get_container_of_str(struct expression *expr);
+bool get_offset_param(const char *ret_str, int *offset, int *param);
+/* smatch_points_to_container.c */
+struct expression *get_stored_container(struct expression *expr, int offset);
 
 int ms_since(struct timeval *start);
 int parent_is_gone_var_sym(const char *name, struct symbol *sym);

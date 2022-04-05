@@ -807,7 +807,7 @@ free:
 	free_string(param_name);
 }
 
-static bool get_offset_param(const char *ret_str, int *offset, int *param)
+bool get_offset_param(const char *ret_str, int *offset, int *param)
 {
 	const char *p;
 

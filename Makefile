@@ -311,6 +311,7 @@ SMATCH_OBJS += smatch_param_used.o
 SMATCH_OBJS += smatch_parse_call_math.o
 SMATCH_OBJS += smatch_parsed_conditions.o
 SMATCH_OBJS += smatch_passes_array_size.o
+SMATCH_OBJS += smatch_points_to_container.o
 SMATCH_OBJS += smatch_points_to_user_data.o
 SMATCH_OBJS += smatch_power_of_two.o
 SMATCH_OBJS += smatch_project.o
