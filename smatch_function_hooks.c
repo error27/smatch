@@ -963,6 +963,18 @@ static bool func_type_mismatch(struct expression *expr, const char *value)
 	return true;
 }
 
+static void process_return_states(struct db_callback_info *db_info)
+{
+	struct stree *stree;
+
+	set_implied_states(db_info);
+	free_ptr_list(&db_info->called);
+	stree = __pop_fake_cur_stree();
+	if (!db_info->cull)
+		merge_fake_stree(&db_info->stree, stree);
+	free_stree(&stree);
+}
+
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
 {
 	struct db_callback_info *db_info = _info;
@@ -971,7 +983,6 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	int type, param;
 	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
-	struct stree *stree;
 	int return_id;
 	int comparison;
 
@@ -988,12 +999,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	db_info->has_states = 1;
 	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		set_other_side_state(db_info);
-		set_implied_states(db_info);
-		free_ptr_list(&db_info->called);
-		stree = __pop_fake_cur_stree();
-		if (!db_info->cull)
-			merge_fake_stree(&db_info->stree, stree);
-		free_stree(&stree);
+		process_return_states(db_info);
 		__push_fake_cur_stree();
 		db_info->cull = 0;
 	}
@@ -1063,7 +1069,6 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 static void compare_db_return_states_callbacks(struct expression *left, int comparison, struct expression *right, struct stree *implied_true, struct stree *implied_false)
 {
 	struct stree *orig_states;
-	struct stree *stree;
 	struct stree *true_states;
 	struct stree *false_states;
 	struct sm_state *sm;
@@ -1103,12 +1108,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 				 call_expr, db_compare_callback, &db_info);
 	set_other_side_state(&db_info);
-	set_implied_states(&db_info);
-	free_ptr_list(&db_info.called);
-	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
-		merge_fake_stree(&db_info.stree, stree);
-	free_stree(&stree);
+	process_return_states(&db_info);
 	true_states = db_info.stree;
 	if (!true_states && db_info.has_states) {
 		__push_fake_cur_stree();
@@ -1130,12 +1130,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	sql_select_return_states("return_id, return, type, parameter, key, value", call_expr,
 			db_compare_callback, &db_info);
 	set_other_side_state(&db_info);
-	set_implied_states(&db_info);
-	free_ptr_list(&db_info.called);
-	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
-		merge_fake_stree(&db_info.stree, stree);
-	free_stree(&stree);
+	process_return_states(&db_info);
 	false_states = db_info.stree;
 	if (!false_states && db_info.has_states) {
 		__push_fake_cur_stree();
@@ -1260,7 +1255,6 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	int type, param;
 	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
-	struct stree *stree;
 	int return_id;
 
 	if (argc != 6)
@@ -1276,12 +1270,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		call_ranged_return_hooks(db_info);
 		set_return_assign_state(db_info);
-		set_implied_states(db_info);
-		free_ptr_list(&db_info->called);
-		stree = __pop_fake_cur_stree();
-		if (!db_info->cull)
-			merge_fake_stree(&db_info->stree, stree);
-		free_stree(&stree);
+		process_return_states(db_info);
 		__push_fake_cur_stree();
 		db_info->cull = 0;
 	}
@@ -1333,7 +1322,6 @@ static int db_return_states_assign(struct expression *expr)
 {
 	struct expression *right;
 	struct sm_state *sm;
-	struct stree *stree;
 	struct db_callback_info db_info = {};
 
 	right = strip_expr(expr->right);
@@ -1357,12 +1345,7 @@ static int db_return_states_assign(struct expression *expr)
 	if (db_info.handled)
 		call_ranged_return_hooks(&db_info);
 	set_return_assign_state(&db_info);
-	set_implied_states(&db_info);
-	free_ptr_list(&db_info.called);
-	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
-		merge_fake_stree(&db_info.stree, stree);
-	free_stree(&stree);
+	process_return_states(&db_info);
 
 	if (!db_info.stree && db_info.cull) { /* this means we culled everything */
 		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
@@ -1452,7 +1435,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	int type, param;
 	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
-	struct stree *stree;
 	int return_id;
 	char buf[64];
 
@@ -1468,12 +1450,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 	if (db_info->prev_return_id != -1 && type == INTERNAL) {
 		call_ranged_return_hooks(db_info);
-		set_implied_states(db_info);
-		free_ptr_list(&db_info->called);
-		stree = __pop_fake_cur_stree();
-		if (!db_info->cull)
-			merge_fake_stree(&db_info->stree, stree);
-		free_stree(&stree);
+		process_return_states(db_info);
 		__push_fake_cur_stree();
 		__unnullify_path();
 		db_info->cull = 0;
@@ -1530,7 +1507,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 static void db_return_states(struct expression *expr)
 {
 	struct sm_state *sm;
-	struct stree *stree;
 	struct db_callback_info db_info = {};
 
 	if (!__get_cur_stree())  /* no return functions */
@@ -1547,12 +1523,7 @@ static void db_return_states(struct expression *expr)
 	sql_select_return_states("return_id, return, type, parameter, key, value",
 			expr, db_return_states_callback, &db_info);
 	call_ranged_return_hooks(&db_info);
-	set_implied_states(&db_info);
-	free_ptr_list(&db_info.called);
-	stree = __pop_fake_cur_stree();
-	if (!db_info.cull)
-		merge_fake_stree(&db_info.stree, stree);
-	free_stree(&stree);
+	process_return_states(&db_info);
 
 	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);
