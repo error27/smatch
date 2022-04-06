@@ -2490,13 +2490,13 @@ static void call_return_state_hooks(struct expression *expr)
 		return;
 	} else if (is_kernel_error_path(expr)) {
 		goto vanilla;
+	} else if (call_return_state_hooks_split_success_fail(expr)) {
+		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
 		return;
 	} else if (split_positive_from_negative(expr)) {
 		return;
 	} else if (call_return_state_hooks_split_null_non_null_zero(expr)) {
-		return;
-	} else if (call_return_state_hooks_split_success_fail(expr)) {
 		return;
 	} else if (splitable_function_call(expr)) {
 		return;
