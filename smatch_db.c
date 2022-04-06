@@ -2474,9 +2474,18 @@ static void call_return_state_hooks(struct expression *expr)
 	int nr_states;
 	sval_t sval;
 
+	if (debug_db) {
+		struct range_list *rl = NULL;
+
+		get_absolute_rl(expr, &rl);
+		sm_msg("RETURN: expr='%s' rl='%s' %lu states%s", expr_to_str(expr),
+		       show_rl(rl), stree_count(__get_cur_stree()),
+		       is_impossible_path() ? " (impossible path)" : "");
+
+	}
+
 	if (__path_is_null())
 		return;
-
 
 	if (is_impossible_path())
 		goto vanilla;
@@ -2485,26 +2494,48 @@ static void call_return_state_hooks(struct expression *expr)
 		     !get_implied_value(expr, &sval)) &&
 	    (is_condition(expr) || is_boolean(expr))) {
 		call_return_state_hooks_compare(expr);
+		if (debug_db)
+			sm_msg("%s: bool", __func__);
 		return;
 	} else if (call_return_state_hooks_conditional(expr)) {
+		if (debug_db)
+			sm_msg("%s: condition", __func__);
 		return;
 	} else if (is_kernel_error_path(expr)) {
+		if (debug_db)
+			sm_msg("%s: kernel error path", __func__);
 		goto vanilla;
 	} else if (call_return_state_hooks_split_success_fail(expr)) {
+		if (debug_db)
+			sm_msg("%s: success_fail", __func__);
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
+		if (debug_db)
+			sm_msg("%s: split_possible", __func__);
 		return;
 	} else if (split_positive_from_negative(expr)) {
+		if (debug_db)
+			sm_msg("%s: positive negative", __func__);
 		return;
 	} else if (call_return_state_hooks_split_null_non_null_zero(expr)) {
+		if (debug_db)
+			sm_msg("%s: split zero non-zero", __func__);
 		return;
 	} else if (splitable_function_call(expr)) {
+		if (debug_db)
+			sm_msg("%s: split_function_call", __func__);
 		return;
 	} else if (split_by_bool_param(expr)) {
+		if (debug_db)
+			sm_msg("%s: bool param", __func__);
 		return;
 	} else if (split_by_null_nonnull_param(expr)) {
+		if (debug_db)
+			sm_msg("%s: null non-null param", __func__);
 		return;
 	} else if (split_by_impossible(expr)) {
+		if (debug_db)
+			sm_msg("%s: split by impossible", __func__);
 		return;
 	}
 
@@ -2521,6 +2552,8 @@ vanilla:
 		return;
 	}
 	call_return_states_callbacks(return_ranges, expr);
+	if (debug_db)
+		sm_msg("%s: vanilla", __func__);
 }
 
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
