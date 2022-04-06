@@ -221,6 +221,16 @@ static void return_param_release(struct expression *expr, const char *name, stru
 	}
 }
 
+static void return_param_ignore(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct sm_state *start_sm;
+
+	start_sm = get_ssa_sm_state(my_id, name, sym);
+	if (!start_sm)
+		return;
+	update_ssa_sm(my_id, start_sm, &ignore);
+}
+
 static void ignore_path(const char *fn, struct expression *expr, void *data)
 {
 	set_state(my_id, "path", NULL, &ignore);
@@ -406,7 +416,17 @@ void check_unwind(int id)
 	set_dynamic_states(my_id);
 
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		param_key_hook *hook;
+
 		info = &func_table[i];
+		if (info->type == ALLOC)
+			hook = &return_param_alloc;
+		else if (info->type == RELEASE)
+			hook = &return_param_release;
+		else if (info->type == IGNORE)
+			hook = &return_param_ignore;
+		else
+			exit(1);
 
 		if (info->call_back) {
 			add_function_hook(info->name, info->call_back, info);
@@ -414,18 +434,15 @@ void check_unwind(int id)
 			return_implies_param_key_exact(info->name,
 					*info->implies_start,
 					*info->implies_end,
-					&return_param_alloc,
-					info->param, info->key, info);
+					hook, info->param, info->key, info);
 		} else if (info->implies_start) {
 			return_implies_param_key(info->name,
 					*info->implies_start,
 					*info->implies_end,
-					&return_param_release,
-					info->param, info->key, info);
+					hook, info->param, info->key, info);
 		} else {
 			add_function_param_key_hook(info->name,
-				(info->type == ALLOC) ? &return_param_alloc : &return_param_release,
-				info->param, info->key, info);
+				hook, info->param, info->key, info);
 		}
 	}
 

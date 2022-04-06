@@ -932,6 +932,8 @@ enum info_type {
 	ELEM_LAST	= 8052,
 	USED_LAST	= 8053,
 	USED_COUNT	= 8054,
+
+	/* Do not use numbers above 100k */
 };
 
 extern struct sqlite3 *smatch_db;
