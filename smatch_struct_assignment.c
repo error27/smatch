@@ -110,9 +110,14 @@ static struct expression *get_right_base_expr(struct symbol *left_type, struct e
 	return right;
 }
 
-static struct expression *remove_addr(struct expression *expr)
+static struct expression *add_dereference(struct expression *expr)
 {
 	struct symbol *type;
+
+	/*
+	 * We want to re-write "memcpy(foo, bar, sizeof(*foo));" as
+	 * "*foo = *bar;".
+	 */
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -438,7 +443,7 @@ static void match_memset(const char *fn, struct expression *expr, void *_size_ar
 	val = get_argument_from_call_expr(expr->args, 1);
 
 	buf = strip_expr(buf);
-	__struct_members_copy(COPY_MEMSET, expr, remove_addr(buf), val);
+	__struct_members_copy(COPY_MEMSET, expr, add_dereference(buf), val);
 }
 
 static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
@@ -449,7 +454,7 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 	dest = get_argument_from_call_expr(expr->args, 0);
 	src = get_argument_from_call_expr(expr->args, 1);
 
-	__struct_members_copy(COPY_MEMCPY, expr, remove_addr(dest), remove_addr(src));
+	__struct_members_copy(COPY_MEMCPY, expr, add_dereference(dest), add_dereference(src));
 }
 
 static void match_memdup(const char *fn, struct expression *call_expr,
@@ -474,7 +479,7 @@ static void match_memcpy_unknown(const char *fn, struct expression *expr, void *
 	struct expression *dest;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
-	__struct_members_copy(COPY_MEMCPY, expr, remove_addr(dest), NULL);
+	__struct_members_copy(COPY_MEMCPY, expr, add_dereference(dest), NULL);
 }
 
 static void match_sscanf(const char *fn, struct expression *expr, void *unused)
@@ -486,7 +491,7 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	FOR_EACH_PTR(expr->args, arg) {
 		if (++i < 2)
 			continue;
-		__struct_members_copy(COPY_MEMCPY, expr, remove_addr(arg), NULL);
+		__struct_members_copy(COPY_MEMCPY, expr, add_dereference(arg), NULL);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -544,9 +549,9 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	if (strcmp(value, "0") == 0)
-		__struct_members_copy(COPY_MEMSET, expr, remove_addr(arg), zero_expr());
+		__struct_members_copy(COPY_MEMSET, expr, add_dereference(arg), zero_expr());
 	else
-		__struct_members_copy(COPY_MEMCPY, expr, remove_addr(arg), NULL);
+		__struct_members_copy(COPY_MEMCPY, expr, add_dereference(arg), NULL);
 }
 
 void register_struct_assignment(int id)
