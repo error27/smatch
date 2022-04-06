@@ -1420,6 +1420,7 @@ int is_unconstant_macro(struct expression *expr);
 
 /* smatch_assigned_state.c */
 void add_state_assigned_hook(int owner, sm_hook *call_back);
+void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
 
 static inline bool type_is_ptr(struct symbol *type)
 {

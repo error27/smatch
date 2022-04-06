@@ -226,6 +226,23 @@ static void ignore_path(const char *fn, struct expression *expr, void *data)
 	set_state(my_id, "path", NULL, &ignore);
 }
 
+static void match_sm_assign(struct sm_state *sm, struct expression *mod_expr)
+{
+	char *left;
+	bool tracked = true;
+
+	if (!mod_expr || mod_expr->type != EXPR_ASSIGNMENT)
+		return;
+
+	left = expr_to_str(mod_expr->left);
+	if (!left || strchr(left, '['))
+		tracked = false;
+	free_string(left);
+
+	if (!tracked)
+		set_state(my_id, sm->name, sm->sym, &ignore);
+}
+
 static void unwind_return_info_callback(int return_id, char *return_ranges,
 				 struct expression *returned_expr,
 				 int param,
@@ -417,6 +434,8 @@ void check_unwind(int id)
 	add_function_hook("__drmm_add_action", &ignore_path, NULL);
 	add_function_hook("pcim_enable_device", &ignore_path, NULL);
 	add_function_hook("pci_enable_device", &ignore_path, NULL);
+
+	add_ssa_state_assigned_hook(my_id, match_sm_assign);
 
 	add_function_data(&fn_has_alloc);
 

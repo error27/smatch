@@ -20,8 +20,10 @@
 #include "smatch_extra.h"
 
 static int my_id;
+static int ssa_id;
 
 static sm_hook **hooks;
+static sm_hook **ssa_hooks;
 
 void add_state_assigned_hook(int owner, sm_hook *call_back)
 {
@@ -30,10 +32,44 @@ void add_state_assigned_hook(int owner, sm_hook *call_back)
 	hooks[owner] = call_back;
 }
 
+void add_ssa_state_assigned_hook(int owner, sm_hook *call_back)
+{
+	if (ssa_hooks[owner])
+		sm_fatal("multiple ssa_state_assigned_hook hooks for %s", check_name(owner));
+	ssa_hooks[owner] = call_back;
+}
+
+static void call_ssa_hooks(struct sm_state *ssa_sm, struct sm_state *sm, struct expression *expr)
+{
+	struct sm_state *tmp;
+
+	if (!ssa_sm)
+		return;
+	if (!ssa_hooks[sm->owner])
+		return;
+	/* should be safe to assume sm->sym is NULL */
+	if (sm->sym)
+		return;
+
+	/*
+	 * Merged ssa states are a bit complicated to handle.
+	 * This is the laziest way to handle it, but it works for my
+	 * only use case and it might even be a good way to handle it.
+	 */
+	FOR_EACH_PTR(ssa_sm->possible, tmp) {
+		if (tmp->state == &merged ||
+		    tmp->state == &undefined)
+			continue;
+		if (strcmp(tmp->state->name, sm->name) == 0)
+			ssa_hooks[sm->owner](sm, expr);
+	} END_FOR_EACH_PTR(tmp);
+
+}
+
 static void match_assignment(struct expression *expr)
 {
 	struct expression *right;
-	struct sm_state *sm;
+	struct sm_state *ssa_sm, *sm;
 	struct symbol *sym;
 	char *name;
 
@@ -42,13 +78,18 @@ static void match_assignment(struct expression *expr)
 	if (!name || !sym)
 		return;
 
+	ssa_sm = get_sm_state(ssa_id, name, sym);
+
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (sm->owner >= num_checks ||
-		    !hooks[sm->owner] ||
-		    sm->sym != sym ||
-		    strcmp(sm->name, name) != 0)
+		if (sm->owner >= num_checks)
 			continue;
-		hooks[sm->owner](sm, expr);
+
+		call_ssa_hooks(ssa_sm, sm, expr);
+
+		if (hooks[sm->owner] &&
+		    sm->sym == sym &&
+		    strcmp(sm->name, name) == 0)
+			hooks[sm->owner](sm, expr);
 	} END_FOR_EACH_SM(sm);
 
 	free_string(name);
@@ -60,6 +101,10 @@ void register_state_assigned(int id)
 
 	hooks = malloc((num_checks + 1) * sizeof(*hooks));
 	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
+
+	ssa_id = id_from_name("register_ssa");
+	ssa_hooks = malloc((num_checks + 1) * sizeof(*ssa_hooks));
+	memset(ssa_hooks, 0, (num_checks + 1) * sizeof(*ssa_hooks));
 
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 }
