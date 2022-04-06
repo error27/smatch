@@ -421,6 +421,7 @@ void check_unwind(int id)
 	add_function_data(&fn_has_alloc);
 
 	select_return_param_key(RELEASE, &return_param_release);
+	select_return_param_key(RELEASE_OLD, &return_param_release);
 	add_hook(&match_check_balanced, END_FUNC_HOOK);
 }
 

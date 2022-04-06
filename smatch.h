@@ -847,6 +847,8 @@ enum info_type {
 	PARAM_LIMIT	= 103,
 	PARAM_FILTER	= 104,
 
+	RELEASE		= 500,
+
 	PARAM_VALUE	= 1001,
 	BUF_SIZE	= 1002,
 	CAPPED_DATA	= 1004,
@@ -923,7 +925,7 @@ enum info_type {
 	MTAG_ASSIGN	= 8035,
 	STRING_VALUE	= 8041,
 	ALLOC		= 8045,
-	RELEASE		= 8046,
+	RELEASE_OLD	= 8046, // FIXME: delete this after Jul 2022
 
 	BYTE_COUNT	= 8050,
 	ELEM_COUNT	= 8051,
