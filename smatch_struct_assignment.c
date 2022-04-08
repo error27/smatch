@@ -241,7 +241,6 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	struct expression *left_member;
 	struct expression *right_expr;
 	struct expression *assign;
-	int op = '.';
 
 	if (__in_fake_assign)
 		return;
@@ -264,10 +263,6 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		goto done;
 	}
 
-	if (is_pointer(left)) {
-		left = deref_expression(left);
-		op = '*';
-	}
 	if (mode != COPY_MEMSET)
 		right = get_right_base_expr(struct_type, right);
 
@@ -286,14 +281,14 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		if (!tmp->ident)
 			continue;
 
-		left_member = member_expression(left, op, tmp->ident);
+		left_member = member_expression(left, '.', tmp->ident);
 		right_expr = NULL;
 
 		switch (mode) {
 		case COPY_NORMAL:
 		case COPY_MEMCPY:
 			if (right)
-				right_expr = member_expression(right, op, tmp->ident);
+				right_expr = member_expression(right, '.', tmp->ident);
 			else
 				right_expr = unknown_value_expression(left_member);
 			break;
@@ -411,7 +406,8 @@ static void returns_container_of(struct expression *expr, int param, char *key, 
 
 void __fake_struct_member_assignments(struct expression *expr)
 {
-	struct symbol *left_type;
+	struct expression *left, *right;
+	struct symbol *type;
 
 	if (expr->op != '=')
 		return;
@@ -419,19 +415,27 @@ void __fake_struct_member_assignments(struct expression *expr)
 	if (is_noderef_ptr(expr->right))
 		return;
 
-	left_type = get_type(expr->left);
-	if (!left_type ||
-	    (left_type->type != SYM_PTR &&
-	     left_type->type != SYM_STRUCT))
+	type = get_type(expr->left);
+	if (!type)
+		return;
+	if (type->type != SYM_PTR && type->type != SYM_STRUCT)
 		return;
 
 	if (handle_param_offsets(expr))
 		return;
 
+	left = expr->left;
+	right = expr->right;
+
 	if (returns_zeroed_mem(expr->right))
-		__struct_members_copy(COPY_MEMSET, expr, expr->left, zero_expr());
-	else
-		__struct_members_copy(COPY_NORMAL, expr, expr->left, expr->right);
+		right = zero_expr();
+	else if (type->type == SYM_PTR) {
+		/* Convert "p = q;" to "*p = *q;" */
+		left = add_dereference(left);
+		right = add_dereference(right);
+	}
+
+	__struct_members_copy(COPY_NORMAL, expr, left, right);
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
