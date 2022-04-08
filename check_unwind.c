@@ -24,6 +24,8 @@
 static int my_id;
 static int info_id;
 
+#define IGNORE 100000
+
 STATE(alloc);
 STATE(release);
 STATE(param_released);
