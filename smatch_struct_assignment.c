@@ -307,10 +307,21 @@ done:
 
 static int returns_zeroed_mem(struct expression *expr)
 {
+	struct expression *tmp;
 	char *fn;
 
 	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 		return 0;
+
+	if (is_fake_call(expr)) {
+		tmp = get_faked_expression();
+		if (!tmp || tmp->type != EXPR_ASSIGNMENT || tmp->op != '=')
+			return 0;
+		expr = tmp->right;
+		if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+			return 0;
+	}
+
 	fn = expr_to_var(expr->fn);
 	if (!fn)
 		return 0;
