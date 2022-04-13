@@ -1,0 +1,2 @@
+for_each_gpio_desc
+for_each_gpio_desc_with_flag

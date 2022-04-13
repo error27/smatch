@@ -23,6 +23,24 @@ static int my_id;
 
 STATE(err_ptr);
 
+static struct string_list *ignored_macros;
+
+static int in_ignored_macro(struct position pos)
+{
+	const char *macro;
+	char *tmp;
+
+	macro = get_macro_name(pos);
+	if (!macro)
+		return 0;
+
+	FOR_EACH_PTR(ignored_macros, tmp) {
+		if (!strcmp(tmp, macro))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+	return 0;
+}
+
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 {
 	set_state(my_id, sm->name, sm->sym, &undefined);
@@ -71,6 +89,9 @@ static void match_condition(struct expression *expr)
 
 	err_rl = alloc_rl(err_min, err_max);
 	if (!possibly_true_rl(rl, SPECIAL_EQUAL, err_rl))
+		return;
+
+	if (in_ignored_macro(expr->pos))
 		return;
 
 	name = expr_to_str(expr);
@@ -126,6 +147,30 @@ static void register_err_ptr_funcs(void)
 	clear_token_alloc();
 }
 
+static void register_ignored_macros(void)
+{
+	struct token *token;
+	char *macro;
+	char name[256];
+
+	snprintf(name, 256, "%s.ignore_bogus_null_checks", option_project_str);
+
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		macro = alloc_string(show_ident(token->ident));
+		add_ptr_list(&ignored_macros, macro);
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void check_checking_for_null_instead_of_err_ptr(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -136,5 +181,6 @@ void check_checking_for_null_instead_of_err_ptr(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_hook(&match_condition2, CONDITION_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
+	register_ignored_macros();
 }
 
