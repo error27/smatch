@@ -45,6 +45,10 @@
  *
  * 	p1->x->y->z->one->two->three = p2->x->y->z->one->two->three;
  *
+ * We probably want to distinguish between between shallow and deep copies so
+ * that if we memset(p1, 0, sizeof(*p1)) then it just sets p1->x to zero and not
+ * p1->x->y.
+ *
  * I don't have a proper solution for this problem right now.  I just copy one
  * level and don't nest.  It should handle limitted nesting but intelligently.
  *
@@ -62,8 +66,8 @@
 
 enum {
 	COPY_NORMAL,
-	COPY_MEMCPY,
-	COPY_MEMSET,
+	COPY_UNKNOWN,
+	COPY_ZERO,
 };
 
 static struct symbol *get_struct_type(struct expression *expr)
@@ -190,7 +194,7 @@ static void set_inner_struct_members(int mode, struct expression *faked, struct 
 
 	if (member->ident) {
 		left = member_expression(left, '.', member->ident);
-		if (mode != COPY_MEMSET && right)
+		if (mode == COPY_NORMAL && right)
 			right = member_expression(right, '.', member->ident);
 	}
 
@@ -212,18 +216,13 @@ static void set_inner_struct_members(int mode, struct expression *faked, struct 
 
 		left_member = member_expression(left, '.', tmp->ident);
 
-		switch (mode) {
-		case COPY_NORMAL:
-		case COPY_MEMCPY:
-			if (right)
-				right_expr = member_expression(right, '.', tmp->ident);
-			else
-				right_expr = unknown_value_expression(left_member);
-			break;
-		case COPY_MEMSET:
-			right_expr = right;
-			break;
-		}
+		right_expr = NULL;
+		if (mode == COPY_NORMAL && right)
+			right_expr = member_expression(right, '.', tmp->ident);
+		if (mode == COPY_ZERO)
+			right_expr = zero_expr();
+		if (!right_expr)
+			right_expr = unknown_value_expression(left_member);
 
 		assign = assign_expression(left_member, '=', right_expr);
 		split_fake_expr(assign);
@@ -260,7 +259,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		goto done;
 	}
 
-	if (mode != COPY_MEMSET)
+	if (mode == COPY_NORMAL)
 		right = get_right_base_expr(struct_type, right);
 
 	FOR_EACH_PTR(struct_type->symbol_list, tmp) {
@@ -281,22 +280,13 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		left_member = member_expression(left, '.', tmp->ident);
 		right_expr = NULL;
 
-		switch (mode) {
-		case COPY_NORMAL:
-		case COPY_MEMCPY:
-			if (right)
-				right_expr = member_expression(right, '.', tmp->ident);
-			else
-				right_expr = unknown_value_expression(left_member);
-			break;
-		case COPY_MEMSET:
-			right_expr = right;
-			break;
-		}
-		if (!right_expr) {
-			sm_perror("No right member");
-			continue;
-		}
+		if (mode == COPY_NORMAL && right)
+			right_expr = member_expression(right, '.', tmp->ident);
+		if (mode == COPY_ZERO)
+			right_expr = zero_expr();
+		if (!right_expr)
+			right_expr = unknown_value_expression(left_member);
+
 		assign = assign_expression(left_member, '=', right_expr);
 		split_fake_expr(assign);
 	} END_FOR_EACH_PTR(tmp);
@@ -416,6 +406,7 @@ void __fake_struct_member_assignments(struct expression *expr)
 {
 	struct expression *left, *right;
 	struct symbol *type;
+	int mode;
 
 	if (expr->op != '=')
 		return;
@@ -435,44 +426,61 @@ void __fake_struct_member_assignments(struct expression *expr)
 	left = expr->left;
 	right = expr->right;
 
-	if (returns_zeroed_mem(expr->right))
-		right = zero_expr();
-	else if (type->type == SYM_PTR) {
+	if (type->type == SYM_PTR) {
 		/* Convert "p = q;" to "*p = *q;" */
 		left = add_dereference(left);
 		right = add_dereference(right);
 	}
 
-	__struct_members_copy(COPY_NORMAL, expr, left, right);
+	if (returns_zeroed_mem(expr->right))
+		mode = COPY_ZERO;
+	else if (types_equiv(get_type(left), get_type(right)))
+		mode = COPY_NORMAL;
+	else
+		mode = COPY_UNKNOWN;
+
+	__struct_members_copy(mode, expr, left, right);
 }
 
 static void match_memset(const char *fn, struct expression *expr, void *_size_arg)
 {
 	struct expression *buf;
 	struct expression *val;
+	int mode;
 
 	buf = get_argument_from_call_expr(expr->args, 0);
 	val = get_argument_from_call_expr(expr->args, 1);
 
 	buf = strip_expr(buf);
-	__struct_members_copy(COPY_MEMSET, expr, add_dereference(buf), val);
+	if (expr_is_zero(val))
+		mode = COPY_ZERO;
+	else
+		mode = COPY_UNKNOWN;
+	__struct_members_copy(mode, expr, add_dereference(buf), NULL);
 }
 
 static void match_memcpy(const char *fn, struct expression *expr, void *_arg)
 {
 	struct expression *dest;
 	struct expression *src;
+	int mode;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
 	src = get_argument_from_call_expr(expr->args, 1);
 
-	__struct_members_copy(COPY_MEMCPY, expr, add_dereference(dest), add_dereference(src));
+	if (types_equiv(get_type(src), get_type(dest)))
+		mode = COPY_NORMAL;
+	else
+		mode = COPY_UNKNOWN;
+
+	__struct_members_copy(mode, expr, add_dereference(dest), add_dereference(src));
 }
 
 static void match_memdup(const char *fn, struct expression *call_expr,
 			struct expression *expr, void *_unused)
 {
 	struct expression *left, *right, *arg;
+	int mode;
 
 	if (!expr || expr->type != EXPR_ASSIGNMENT)
 		return;
@@ -483,7 +491,13 @@ static void match_memdup(const char *fn, struct expression *call_expr,
 	if (right->type != EXPR_CALL)
 		return;
 	arg = get_argument_from_call_expr(right->args, 0);
-	__struct_members_copy(COPY_MEMCPY, expr, left, arg);
+
+	if (types_equiv(get_type(left), get_type(right)))
+		mode = COPY_NORMAL;
+	else
+		mode = COPY_UNKNOWN;
+
+	__struct_members_copy(mode, expr, add_dereference(left), add_dereference(arg));
 }
 
 static void match_memcpy_unknown(const char *fn, struct expression *expr, void *_arg)
@@ -491,7 +505,7 @@ static void match_memcpy_unknown(const char *fn, struct expression *expr, void *
 	struct expression *dest;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
-	__struct_members_copy(COPY_MEMCPY, expr, add_dereference(dest), NULL);
+	__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(dest), NULL);
 }
 
 static void match_sscanf(const char *fn, struct expression *expr, void *unused)
@@ -503,7 +517,7 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	FOR_EACH_PTR(expr->args, arg) {
 		if (++i < 2)
 			continue;
-		__struct_members_copy(COPY_MEMCPY, expr, add_dereference(arg), NULL);
+		__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(arg), NULL);
 	} END_FOR_EACH_PTR(arg);
 }
 
@@ -516,7 +530,7 @@ static void unop_expr(struct expression *expr)
 	if (!is_pointer(expr))
 		return;
 	faked_expression = expr;
-	__struct_members_copy(COPY_MEMCPY, expr, expr->unop, NULL);
+	__struct_members_copy(COPY_UNKNOWN, expr, expr->unop, NULL);
 	faked_expression = NULL;
 }
 
@@ -561,9 +575,9 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	if (strcmp(value, "0") == 0)
-		__struct_members_copy(COPY_MEMSET, expr, add_dereference(arg), zero_expr());
+		__struct_members_copy(COPY_ZERO, expr, add_dereference(arg), NULL);
 	else
-		__struct_members_copy(COPY_MEMCPY, expr, add_dereference(arg), NULL);
+		__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(arg), NULL);
 }
 
 void register_struct_assignment(int id)
