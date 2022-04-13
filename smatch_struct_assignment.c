@@ -104,9 +104,6 @@ static struct expression *get_right_base_expr(struct symbol *left_type, struct e
 	if (right->type == EXPR_CALL)
 		return NULL;
 
-	if (is_pointer(right))
-		right = deref_expression(right);
-
 	return right;
 }
 
