@@ -954,6 +954,7 @@ static struct stree *unmatched_stree;
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
+	struct expression *expr;
 	struct range_list *rl;
 
 	if (unmatched_stree) {
@@ -965,7 +966,12 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		return alloc_estate_empty();
 	if (get_global_rl(sm->name, sm->sym, &rl))
 		return alloc_estate_rl(rl);
-	return alloc_estate_whole(estate_type(sm->state));
+
+	expr = gen_expression_from_name_sym(sm->name, sm->sym);
+	if (!expr)
+		return alloc_estate_whole(estate_type(sm->state));
+	get_absolute_rl(expr, &rl);
+	return alloc_estate_rl(rl);
 }
 
 static void clear_the_pointed_at(struct expression *expr)
