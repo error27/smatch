@@ -231,6 +231,9 @@ static struct expression *gen_expression_from_name_sym_helper(const char *name, 
 	struct expression *ret;
 	int skip = 0;
 
+	if (!sym)
+		return NULL;
+
 	if (name[0] == '&' ||
 	    name[0] == '*' ||
 	    name[0] == '(') {
