@@ -341,8 +341,8 @@ void register_mtag_data(int id)
 	ignored_mtag = str_to_mtag("extern boot_params");
 	add_hook(&clear_cache, FUNC_DEF_HOOK);
 
-//	if (!option_info)
-//		return;
+	if (!option_info)
+		return;
 	add_hook(&match_global_assign, GLOBAL_ASSIGNMENT_HOOK);
 	add_hook(&match_end_file, END_FILE_HOOK);
 }
