@@ -425,6 +425,34 @@ static int handle__builtin_choose_expr_assigns(struct expression *expr)
 	return 1;
 }
 
+static void split_call(struct expression *expr)
+{
+	expr_set_parent_expr(expr->fn, expr);
+
+	if (sym_name_is("__builtin_constant_p", expr->fn))
+		return;
+	if (handle__builtin_choose_expr(expr))
+		return;
+	__split_expr(expr->fn);
+	split_args(expr);
+	if (is_inline_func(expr->fn))
+		add_inline_function(expr->fn->symbol->definition);
+	if (inlinable(expr->fn))
+		__inline_call = 1;
+	__process_post_op_stack();
+	__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
+	__pass_to_client(expr, FUNCTION_CALL_HOOK);
+	__inline_call = 0;
+	if (inlinable(expr->fn))
+		parse_inline(expr);
+	__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
+	if (is_noreturn_func(expr->fn))
+		nullify_path();
+	if (!expr_get_parent_expr(expr))
+		__discard_fake_states(expr);
+	handle_builtin_overflow_func(expr);
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -591,30 +619,7 @@ after_assign:
 		__merge_true_states();
 		break;
 	case EXPR_CALL:
-		expr_set_parent_expr(expr->fn, expr);
-
-		if (sym_name_is("__builtin_constant_p", expr->fn))
-			break;
-		if (handle__builtin_choose_expr(expr))
-			break;
-		__split_expr(expr->fn);
-		split_args(expr);
-		if (is_inline_func(expr->fn))
-			add_inline_function(expr->fn->symbol->definition);
-		if (inlinable(expr->fn))
-			__inline_call = 1;
-		__process_post_op_stack();
-		__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
-		__pass_to_client(expr, FUNCTION_CALL_HOOK);
-		__inline_call = 0;
-		if (inlinable(expr->fn))
-			parse_inline(expr);
-		__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
-		if (is_noreturn_func(expr->fn))
-			nullify_path();
-		if (!expr_get_parent_expr(expr))
-			__discard_fake_states(expr);
-		handle_builtin_overflow_func(expr);
+		split_call(expr);
 		break;
 	case EXPR_INITIALIZER:
 		split_expr_list(expr->expr_list, expr);
