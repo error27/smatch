@@ -181,6 +181,11 @@ bool points_to_user_data(struct expression *expr)
 
 void set_points_to_user_data(struct expression *expr)
 {
+	struct expression *tmp;
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		set_state_expr(my_id, tmp, &user_data_set);
 	set_state_expr(my_id, expr, &user_data_set);
 }
 
