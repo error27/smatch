@@ -580,6 +580,28 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(arg), NULL);
 }
 
+static void db_param_add_set(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+	struct symbol *type;
+
+	/*
+	 * This looks like memcpy(p, src, 8); and it does PARAM_SET *p.  So it's
+	 * different from a PARAM_CLEAR of "p" with no dereference.
+	 */
+
+	arg = gen_expr_from_param_key(expr, param, key);
+	if (!arg)
+		return;
+	type = get_type(arg);
+	if (!type)
+		return;
+	if (type->type != SYM_STRUCT && type->type != SYM_UNION)
+		return;
+
+	__struct_members_copy(COPY_UNKNOWN, expr, arg, NULL);
+}
+
 void register_struct_assignment(int id)
 {
 	add_function_hook("memset", &match_memset, NULL);
@@ -598,6 +620,8 @@ void register_struct_assignment(int id)
 	add_hook(&unop_expr, OP_HOOK);
 	register_clears_param();
 	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
+	select_return_states_hook(PARAM_ADD, &db_param_add_set);
+	select_return_states_hook(PARAM_SET, &db_param_add_set);
 
 	select_return_states_hook(CONTAINER, &returns_container_of);
 }
