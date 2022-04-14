@@ -430,7 +430,8 @@ void __split_expr(struct expression *expr)
 	if (!expr)
 		return;
 
-	// sm_msg(" Debug expr_type %d %s", expr->type, show_special(expr->op));
+//	if (local_debug)
+//		sm_msg("Debug expr_type %d %s expr = '%s'", expr->type, show_special(expr->op), expr_to_str(expr));
 
 	if (__in_fake_assign && expr->type != EXPR_ASSIGNMENT)
 		return;
