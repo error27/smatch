@@ -292,6 +292,9 @@ sub add_specs {
     } elsif ($spec eq 'aarch64') {
 	return (' --arch=aarch64' .
 		&float_types (1, 1, 36, [24,8], [53,11], [113,15]));
+    } elsif ($spec eq 'xtensa') {
+	return (' --arch=xtensa' .
+		&float_types (1, 1, 21, [24,8], [53,11], [53,11]));
     } elsif ($spec eq 'host_os_specs') {
 	my $os = `uname -s`;
 	chomp $os;
@@ -319,6 +322,8 @@ sub add_specs {
 	    return &add_specs ('x86_64') . ' -mx32';
 	} elsif ($gccmachine =~ '^x86_64-') {
 	    return &add_specs ('x86_64');
+	} elsif ($gccmachine =~ '^xtensa-') {
+	    return &add_specs ('xtensa');
 	}
 
 	# fall back to uname -m to determine the specifics.
@@ -348,6 +353,8 @@ sub add_specs {
 	    return &add_specs ('arm');
 	} elsif ($arch =~ /^(aarch64)$/i) {
 	    return &add_specs ('aarch64');
+	} elsif ($arch =~ /^(xtensa)$/i) {
+	    return &add_specs ('xtensa');
 	}
     } else {
 	die "$0: invalid specs: $spec\n";
