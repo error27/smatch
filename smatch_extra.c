@@ -1157,8 +1157,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 		right_state = get_state(SMATCH_EXTRA, right_name, right_sym);
 		if (right_state) {
-			/* simple assignment */
-			state = clone_estate(right_state);
+			state = clone_estate_cast(left_type, right_state);
 			goto done;
 		}
 
