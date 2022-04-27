@@ -105,8 +105,6 @@ static void match_done(struct expression *expr)
 
 static void match_end_func(struct symbol *sym)
 {
-	if (__inline_fn)
-		return;
 	free_stree(&first_halfs);
 }
 
@@ -116,6 +114,7 @@ void check_spectre_second_half(int id)
 
 	if (option_project != PROJ_KERNEL)
 		return;
+	add_function_data((unsigned long *)&first_halfs);
 	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_done, SYM_HOOK);
