@@ -442,7 +442,7 @@ struct statement *get_parent_stmt(struct expression *expr)
 
 	if (!expr)
 		return NULL;
-	while (--count >= 0 && (tmp = expr_get_parent_expr(expr)))
+	while (--count > 0 && (tmp = expr_get_parent_expr(expr)))
 		expr = tmp;
 	if (!count)
 		return NULL;
