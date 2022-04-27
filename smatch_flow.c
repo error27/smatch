@@ -1370,7 +1370,6 @@ static bool cast_arg(struct symbol *type, struct expression *arg)
 
 static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *call, struct expression *expr, int nr)
 {
-	struct expression *var, *assign, *parent;
 	char buf[64];
 	bool cast;
 
@@ -1409,17 +1408,7 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 		snprintf(buf, sizeof(buf), "__fake_return_%p", expr);
 	else
 		snprintf(buf, sizeof(buf), "__fake_param_%p_%d", call, nr);
-	var = fake_variable(type, buf);
-	assign = assign_expression(var, '=', expr);
-	assign->smatch_flags |= Fake;
-
-	parent = expr_get_parent_expr(expr);
-	expr_set_parent_expr(assign, parent);
-	expr_set_parent_expr(expr, assign);
-
-	__fake_state_cnt++;
-
-	return assign;
+	return create_fake_assign(buf, type, expr);
 }
 
 static void split_args(struct expression *expr)
