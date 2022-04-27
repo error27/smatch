@@ -1549,6 +1549,7 @@ static bool in_macro(struct expression *left, struct expression *right)
 
 static void handle_comparison(struct symbol *type, struct expression *left, int op, struct expression *right)
 {
+	struct smatch_state *left_state_orig, *right_state_orig;
 	struct range_list *left_orig;
 	struct range_list *left_true;
 	struct range_list *left_false;
@@ -1586,9 +1587,11 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	if (is_impossible_variable(left) || is_impossible_variable(right))
 		return;
 
+	left_state_orig = get_extra_state(left);
 	get_real_absolute_rl(left, &left_orig);
 	left_orig = cast_rl(type, left_orig);
 
+	right_state_orig = get_extra_state(right);
 	get_real_absolute_rl(right, &right_orig);
 	right_orig = cast_rl(type, right_orig);
 
@@ -1746,13 +1749,13 @@ static void handle_comparison(struct symbol *type, struct expression *left, int 
 	}
 
 	/* Don't introduce new states for known true/false conditions */
-	if (rl_equiv(left_orig, estate_rl(left_true_state)))
+	if (rl_equiv(estate_rl(left_state_orig), estate_rl(left_true_state)))
 		left_true_state = NULL;
-	if (rl_equiv(left_orig, estate_rl(left_false_state)))
+	if (rl_equiv(estate_rl(left_state_orig), estate_rl(left_false_state)))
 		left_false_state = NULL;
-	if (rl_equiv(right_orig, estate_rl(right_true_state)))
+	if (rl_equiv(estate_rl(right_state_orig), estate_rl(right_true_state)))
 		right_true_state = NULL;
-	if (rl_equiv(right_orig, estate_rl(right_false_state)))
+	if (rl_equiv(estate_rl(right_state_orig), estate_rl(right_false_state)))
 		right_false_state = NULL;
 
 	set_extra_expr_true_false(left, left_true_state, left_false_state);
