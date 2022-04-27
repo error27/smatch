@@ -198,7 +198,6 @@ static void call_update_mtag_data(struct expression *expr,
 {
 	struct expression *faked;
 
-
 	faked = get_faked_expression();
 	if (!faked)
 		goto update;
