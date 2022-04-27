@@ -61,6 +61,24 @@ struct expression *value_expr(long long val)
 	return expr;
 }
 
+static struct expression *symbol_expression_helper(struct symbol *sym, bool perm)
+{
+	struct expression *expr;
+
+	if (perm)
+		expr = alloc_expression(sym->pos, EXPR_SYMBOL);
+	else
+		expr = alloc_tmp_expression(sym->pos, EXPR_SYMBOL);
+	expr->symbol = sym;
+	expr->symbol_name = sym->ident;
+	return expr;
+}
+
+struct expression *symbol_expression(struct symbol *sym)
+{
+	return symbol_expression_helper(sym, false);
+}
+
 struct expression *member_expression(struct expression *deref, int op, struct ident *member)
 {
 	struct expression *expr;
@@ -105,6 +123,48 @@ struct expression *assign_expression(struct expression *left, int op, struct exp
 	return expr;
 }
 
+struct expression *assign_expression_perm(struct expression *left, int op, struct expression *right)
+{
+	struct expression *expr;
+
+	if (!right)
+		return NULL;
+
+	expr = alloc_expression(right->pos, EXPR_ASSIGNMENT);
+	expr->op = op;
+	expr->left = left;
+	expr->right = right;
+	return expr;
+}
+
+struct expression *create_fake_assign(const char *name, struct symbol *type, struct expression *right)
+{
+	struct expression *left, *assign, *parent;
+
+	if (!right)
+		return NULL;
+
+	if (!type) {
+		type = get_type(right);
+		if (!type)
+			return NULL;
+	}
+
+	left = fake_variable_perm(type, name);
+
+	assign = assign_expression_perm(left, '=', right);
+
+	assign->smatch_flags |= Fake;
+
+	parent = expr_get_parent_expr(right);
+	expr_set_parent_expr(assign, parent);
+	expr_set_parent_expr(right, assign);
+
+	__fake_state_cnt++;
+
+	return assign;
+}
+
 struct expression *binop_expression(struct expression *left, int op, struct expression *right)
 {
 	struct expression *expr;
@@ -113,24 +173,6 @@ struct expression *binop_expression(struct expression *left, int op, struct expr
 	expr->op = op;
 	expr->left = left;
 	expr->right = right;
-	return expr;
-}
-
-struct expression *array_element_expression(struct expression *array, struct expression *offset)
-{
-	struct expression *expr;
-
-	expr = binop_expression(array, '+', offset);
-	return deref_expression(expr);
-}
-
-struct expression *symbol_expression(struct symbol *sym)
-{
-	struct expression *expr;
-
-	expr = alloc_tmp_expression(sym->pos, EXPR_SYMBOL);
-	expr->symbol = sym;
-	expr->symbol_name = sym->ident;
 	return expr;
 }
 
@@ -145,6 +187,19 @@ struct expression *compare_expression(struct expression *left, int op, struct ex
 	expr->op = op;
 	expr->left = left;
 	expr->right = right;
+	return expr;
+}
+
+struct expression *alloc_expression_stmt_perm(struct statement *last_stmt)
+{
+	struct expression *expr;
+
+	if (!last_stmt)
+		return NULL;
+
+	expr = alloc_tmp_expression(last_stmt->pos, EXPR_STATEMENT);
+	expr->statement = last_stmt;
+
 	return expr;
 }
 
@@ -352,7 +407,7 @@ bool is_fake_var_assign(struct expression *expr)
 	return true;
 }
 
-struct expression *fake_variable(struct symbol *type, const char *name)
+static struct expression *fake_variable_helper(struct symbol *type, const char *name, bool perm)
 {
 	struct symbol *sym, *node;
 	struct expression *ret;
@@ -373,10 +428,24 @@ struct expression *fake_variable(struct symbol *type, const char *name)
 	node->ctype.base_type = type;
 	node->ctype.modifiers |= MOD_AUTO;
 
-	ret = symbol_expression(node);
+	if (perm)
+		ret = symbol_expression_helper(node, true);
+	else
+		ret = symbol_expression(node);
+
 	ret->smatch_flags |= Fake;
 
 	return ret;
+}
+
+struct expression *fake_variable(struct symbol *type, const char *name)
+{
+	return fake_variable_helper(type, name, false);
+}
+
+struct expression *fake_variable_perm(struct symbol *type, const char *name)
+{
+	return fake_variable_helper(type, name, true);
 }
 
 void expr_set_parent_expr(struct expression *expr, struct expression *parent)

@@ -219,11 +219,14 @@ struct expression *member_expression(struct expression *deref, int op, struct id
 struct expression *preop_expression(struct expression *expr, int op);
 struct expression *deref_expression(struct expression *expr);
 struct expression *assign_expression(struct expression *left, int op, struct expression *right);
+struct expression *assign_expression_perm(struct expression *left, int op, struct expression *right);
+struct expression *create_fake_assign(const char *name, struct symbol *type, struct expression *right);
 struct expression *binop_expression(struct expression *left, int op, struct expression *right);
 struct expression *array_element_expression(struct expression *array, struct expression *offset);
 struct expression *symbol_expression(struct symbol *sym);
 struct expression *gen_string_expression(char *str);
 struct expression *compare_expression(struct expression *left, int op, struct expression *right);
+struct expression *alloc_expression_stmt_perm(struct statement *last_stmt);
 struct expression *call_expression(struct expression *fn, struct expression_list *args);
 struct expression *unknown_value_expression(struct expression *expr);
 int is_fake_call(struct expression *expr);
@@ -232,6 +235,7 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 struct expression *gen_expr_from_param_key(struct expression *expr, int param, const char *key);
 bool is_fake_var(struct expression *expr);
 struct expression *fake_variable(struct symbol *type, const char *name);
+struct expression *fake_variable_perm(struct symbol *type, const char *name);
 void free_tmp_expressions(void);
 void expr_set_parent_expr(struct expression *expr, struct expression *parent);
 void expr_set_parent_stmt(struct expression *expr, struct statement *parent);
