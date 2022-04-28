@@ -166,12 +166,24 @@ static void match_preempt_count_zero(const char *fn, struct expression *call_exp
 static void match_preempt_count_non_zero(const char *fn, struct expression *call_expr,
 					 struct expression *assign_expr, void *_param)
 {
-	int cnt;
+	struct sm_state *sm, *tmp;
+	bool possibly_atomic = false;
 
-	cnt = get_preempt_cnt();
-	if (cnt == 0)
-		cnt = 1;
-	set_state(my_id, "preempt", NULL, alloc_state_num(cnt));
+	sm = get_sm_state(my_id, "preempt", NULL);
+	if (!sm)
+		return;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (tmp->state->data) {
+			possibly_atomic = true;
+			break;
+		}
+	} END_FOR_EACH_PTR(tmp);
+
+	if (!possibly_atomic)
+		return;
+
+	set_state(my_id, "preempt", NULL, alloc_state_num(1));
 }
 
 void check_preempt(int id)
@@ -185,8 +197,8 @@ void check_preempt(int id)
 	set_dynamic_states(my_id);
 	add_merge_hook(my_id, &merge_func);
 
-	return_implies_state("preempt_count", 0, 0, &match_preempt_count_zero, NULL);
-	return_implies_state("preempt_count", 1, INT_MAX, &match_preempt_count_non_zero, NULL);
+	return_implies_exact("preempt_count", int_zero, int_zero, &match_preempt_count_zero, NULL);
+	return_implies_exact("preempt_count", int_one, int_max, &match_preempt_count_non_zero, NULL);
 
 	select_caller_info_hook(&select_call_info, PREEMPT_ADD);
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
