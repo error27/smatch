@@ -93,6 +93,17 @@ static bool passes_MSG_DONTWAIT(struct expression *expr)
 	return false;
 }
 
+static bool is_no_preempt_caller(void)
+{
+	char *fn = get_function();
+
+	if (!fn)
+		return false;
+	if (strcmp(fn, "sg_miter_next") == 0)
+		return true;
+	return false;
+}
+
 static void match_call_info(struct expression *expr)
 {
 	int start_cnt, cnt;
@@ -105,6 +116,8 @@ static void match_call_info(struct expression *expr)
 	if (cnt <= 0)
 		return;
 	if (passes_MSG_DONTWAIT(expr))
+		return;
+	if (is_no_preempt_caller())
 		return;
 	start_cnt = get_start_preempt_cnt();
 	if (start_cnt < cnt)
