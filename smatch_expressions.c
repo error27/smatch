@@ -108,6 +108,11 @@ struct expression *deref_expression(struct expression *expr)
 	return preop_expression(expr, '*');
 }
 
+struct expression *deref_expression_no_parens(struct expression *expr)
+{
+	return preop_expression(expr, '*');
+}
+
 struct expression *assign_expression(struct expression *left, int op, struct expression *right)
 {
 	struct expression *expr;
@@ -174,6 +179,14 @@ struct expression *binop_expression(struct expression *left, int op, struct expr
 	expr->left = left;
 	expr->right = right;
 	return expr;
+}
+
+struct expression *array_element_expression(struct expression *array, struct expression *offset)
+{
+	struct expression *expr;
+
+	expr = binop_expression(array, '+', offset);
+	return deref_expression_no_parens(expr);
 }
 
 struct expression *compare_expression(struct expression *left, int op, struct expression *right)
