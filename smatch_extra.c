@@ -1924,6 +1924,7 @@ static int match_func_comparison(struct expression *expr)
 	struct expression *right = strip_expr(expr->right);
 
 	if (left->type == EXPR_CALL || right->type == EXPR_CALL) {
+		// TODO: faked_assign this should be handled as a fake assignment instead
 		function_comparison(left, expr->op, right);
 		return 1;
 	}
@@ -2910,10 +2911,19 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 
 static struct sm_state *get_sm_from_call(struct expression *expr)
 {
+	struct expression *fake;
+	struct sm_state *ret;
 	char buf[32];
 
 	if (is_fake_call(expr))
 		return NULL;
+
+	fake = expr_get_fake_parent_expr(expr);
+	if (fake && fake->type == EXPR_ASSIGNMENT) {
+		ret = get_sm_state_expr(SMATCH_EXTRA, fake->left);
+		if (ret)
+			return ret;
+	}
 
 	snprintf(buf, sizeof(buf), "return %p", expr);
 	return get_sm_state(SMATCH_EXTRA, buf, NULL);

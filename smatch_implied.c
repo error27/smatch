@@ -691,6 +691,7 @@ static struct expression *get_last_expr(struct statement *stmt)
 static struct expression *get_left_most_expr(struct expression *expr)
 {
 	struct statement *compound;
+	struct expression *fake;
 
 	compound = get_expression_statement(expr);
 	if (compound)
@@ -699,6 +700,9 @@ static struct expression *get_left_most_expr(struct expression *expr)
 	expr = strip_parens(expr);
 	if (expr->type == EXPR_ASSIGNMENT)
 		return get_left_most_expr(expr->left);
+	fake = expr_get_fake_parent_expr(expr);
+	if (fake && fake->type == EXPR_ASSIGNMENT)
+		return fake->left;
 	return expr;
 }
 

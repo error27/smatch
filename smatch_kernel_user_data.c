@@ -887,6 +887,7 @@ bool we_pass_user_data(struct expression *call)
 	return false;
 }
 
+// TODO: faked_assign this should already be handled
 static int db_returned_user_rl(struct expression *call, struct range_list **rl)
 {
 	struct smatch_state *state;
@@ -1348,6 +1349,7 @@ static void returns_param_user_data(struct expression *expr, int param, char *ke
 
 	if (param == -1) {
 		if (expr->type != EXPR_ASSIGNMENT) {
+			// TODO: faked_assign this should all be handled as a fake assignment
 			store_user_data_return(expr, key, value, OLD);
 			return;
 		}

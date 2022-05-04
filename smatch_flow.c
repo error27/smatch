@@ -425,8 +425,56 @@ static int handle__builtin_choose_expr_assigns(struct expression *expr)
 	return 1;
 }
 
+int is_condition_call(struct expression *expr)
+{
+	struct expression *tmp;
+
+	FOR_EACH_PTR_REVERSE(big_condition_stack, tmp) {
+		if (expr == tmp || expr_get_parent_expr(expr) == tmp)
+			return 1;
+		if (tmp->pos.line < expr->pos.line)
+			return 0;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
+	return 0;
+}
+
+static bool gen_fake_function_assign(struct expression *expr)
+{
+	struct expression *assign, *parent;
+	struct symbol *type;
+	char buf[64];
+
+	/* The rule is that every non-void function call has to be part of an
+	 * assignment.  TODO:  Should we create a fake non-casted assignment
+	 * for casted assignments?  Also faked assigns for += assignments?
+	 */
+	type = get_type(expr);
+	if (!type || type == &void_ctype)
+		return false;
+
+	parent = expr_get_parent_expr(expr);
+	if (parent && parent->type == EXPR_ASSIGNMENT)
+		return false;
+
+	if (expr_get_fake_parent_expr(expr))
+		return false;
+
+	// TODO: faked_assign skipping conditions is a hack
+	if (is_condition_call(expr))
+		return false;
+
+	snprintf(buf, sizeof(buf), "__fake_assign_%p", expr);
+	assign = create_fake_assign(buf, get_type(expr), expr);
+	__split_expr(assign);
+	return true;
+}
+
 static void split_call(struct expression *expr)
 {
+	if (gen_fake_function_assign(expr))
+		return;
+
 	expr_set_parent_expr(expr->fn, expr);
 
 	if (sym_name_is("__builtin_constant_p", expr->fn))

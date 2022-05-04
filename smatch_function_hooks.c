@@ -836,6 +836,8 @@ static void set_other_side_state(struct db_callback_info *db_info)
 	if (!db_info->ret_state)
 		return;
 
+	// TODO: faked_assign set ==$ equiv here
+
 	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
 	set_extra_expr_nomod(expr, state);
 	db_info->ret_state = NULL;
@@ -848,6 +850,8 @@ static void handle_ret_equals_param(char *ret_string, struct range_list *rl, str
 	long long param;
 	struct expression *arg;
 	struct range_list *orig;
+
+	// TODO: faked_assign This needs to be handled in the assignment code
 
 	str = strstr(ret_string, "==$");
 	if (!str)
@@ -1176,6 +1180,10 @@ void function_comparison(struct expression *left, int comparison, struct express
 	sval_t sval;
 	int call_on_left;
 
+	// TODO: faked_assign delete this
+	// condition calls should be faked and then handled as assignments
+	// this code is a lazy work around
+
 	if (unreachable())
 		return;
 
@@ -1436,7 +1444,6 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 	char *ret_str, *key, *value;
 	struct return_implies_callback *tmp;
 	int return_id;
-	char buf[64];
 
 	if (argc != 6)
 		return 0;
@@ -1483,14 +1490,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 		set_state(-1, "unnull_path", NULL, &true_state);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
-		/*
-		 * We want to store the return values so that we can split the strees
-		 * in smatch_db.c.  This uses set_state() directly because it's not a
-		 * real smatch_extra state.
-		 */
-		snprintf(buf, sizeof(buf), "return %p", db_info->expr);
 		state = alloc_estate_rl(ret_range);
-		set_state(SMATCH_EXTRA, buf, NULL, state);
 		store_return_state(db_info, ret_str, state);
 	}
 
@@ -1531,20 +1531,6 @@ static void db_return_states(struct expression *expr)
 
 	free_stree(&db_info.stree);
 	call_return_states_after_hooks(expr);
-}
-
-static int is_condition_call(struct expression *expr)
-{
-	struct expression *tmp;
-
-	FOR_EACH_PTR_REVERSE(big_condition_stack, tmp) {
-		if (expr == tmp || expr_get_parent_expr(expr) == tmp)
-			return 1;
-		if (tmp->pos.line < expr->pos.line)
-			return 0;
-	} END_FOR_EACH_PTR_REVERSE(tmp);
-
-	return 0;
 }
 
 static void db_return_states_call(struct expression *expr)
