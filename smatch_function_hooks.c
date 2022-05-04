@@ -522,6 +522,9 @@ static bool in_list_exact_sval(struct range_list *list, struct data_range *drang
 	return false;
 }
 
+/*
+ * The assign_ranged_funcs() function is called when we have no data from the DB.
+ */
 static bool assign_ranged_funcs(const char *fn, struct expression *expr,
 				 struct call_back_list *call_backs)
 {
@@ -533,7 +536,9 @@ static bool assign_ranged_funcs(const char *fn, struct expression *expr,
 	struct stree *tmp_stree;
 	struct stree *final_states = NULL;
 	struct range_list *handled_ranges = NULL;
+	struct range_list *unhandled_rl;
 	struct call_back_list *same_range_call_backs = NULL;
+	struct expression *call;
 	struct range_list *rl;
 	int handled = false;
 
@@ -543,6 +548,8 @@ static bool assign_ranged_funcs(const char *fn, struct expression *expr,
 	var_name = expr_to_var_sym(expr->left, &sym);
 	if (!var_name || !sym)
 		goto free;
+
+	call = strip_expr(expr->right);
 
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL &&
@@ -568,6 +575,17 @@ static bool assign_ranged_funcs(const char *fn, struct expression *expr,
 		free_stree(&tmp_stree);
 		handled = true;
 	} END_FOR_EACH_PTR(tmp);
+
+	unhandled_rl = rl_filter(alloc_whole_rl(get_type(call)), handled_ranges);
+	if (unhandled_rl) {
+		__push_fake_cur_stree();
+		rl = cast_rl(get_type(expr->left), unhandled_rl);
+		estate = alloc_estate_rl(rl);
+		set_extra_mod(var_name, sym, expr->left, estate);
+		tmp_stree = __pop_fake_cur_stree();
+		merge_fake_stree(&final_states, tmp_stree);
+		free_stree(&tmp_stree);
+	}
 
 	FOR_EACH_SM(final_states, sm) {
 		__set_sm(sm);
