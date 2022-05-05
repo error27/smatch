@@ -1036,14 +1036,18 @@ int is_user_rl(struct expression *expr)
 
 int get_user_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl)
 {
-	struct smatch_state *state;
+	struct smatch_state *state, *extra;
 
 	state = get_state(my_id, name, sym);
-	if (state && estate_rl(state)) {
-		*rl = estate_rl(state);
-		return 1;
-	}
-	return 0;
+	if (!estate_rl(state))
+		return 0;
+	*rl = estate_rl(state);
+
+	extra = get_state(SMATCH_EXTRA, name, sym);
+	if (estate_rl(extra))
+		*rl = rl_intersection(estate_rl(state), estate_rl(extra));
+
+	return 1;
 }
 
 bool is_socket_stuff(struct symbol *sym)
