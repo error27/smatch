@@ -104,6 +104,33 @@ bool is_freed_var_sym(const char *name, struct symbol *sym)
 	return false;
 }
 
+static bool expr_is_condition(struct expression *expr)
+{
+	struct statement *stmt;
+
+	stmt = expr_get_parent_stmt(expr);
+	if (!stmt)
+		return false;
+	if (stmt->type == STMT_IF || stmt->type == STMT_ITERATOR)
+		return true;
+	return false;
+}
+
+bool is_part_of_condition(struct expression *expr)
+{
+	struct expression *parent;
+
+	if (expr_is_condition(expr))
+		return true;
+
+	parent = expr_get_parent_expr(expr);
+	if (!parent)
+		return false;
+	if (parent->type == EXPR_LOGICAL || parent->type == EXPR_COMPARE)
+		return true;
+	return false;
+}
+
 static void match_symbol(struct expression *expr)
 {
 	struct expression *parent;
@@ -114,6 +141,10 @@ static void match_symbol(struct expression *expr)
 	if (__in_fake_parameter_assign)
 		return;
 
+	if (is_part_of_condition(expr))
+		return;
+
+	/* This ignores stuff like "get_new_ptr(&foo);" */
 	parent = expr_get_parent_expr(expr);
 	while (parent && parent->type == EXPR_PREOP && parent->op == '(')
 		parent = expr_get_parent_expr(parent);

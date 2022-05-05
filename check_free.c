@@ -62,6 +62,9 @@ static void match_symbol(struct expression *expr)
 	if (__in_fake_parameter_assign)
 		return;
 
+	if (is_part_of_condition(expr))
+		return;
+
 	parent = expr_get_parent_expr(expr);
 	while (parent && parent->type == EXPR_PREOP && parent->op == '(')
 		parent = expr_get_parent_expr(parent);
