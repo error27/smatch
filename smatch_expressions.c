@@ -463,8 +463,15 @@ struct expression *fake_variable_perm(struct symbol *type, const char *name)
 
 void expr_set_parent_expr(struct expression *expr, struct expression *parent)
 {
-	if (!expr)
+	struct expression *prev;
+
+	if (!expr || !parent)
 		return;
+
+	prev = expr_get_parent_expr(expr);
+	if (prev == parent)
+		return;
+
 	if (parent && parent->smatch_flags & Tmp)
 		return;
 
