@@ -50,7 +50,9 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 	estate_set_fuzzy_max(tmp, sval_max(estate_get_fuzzy_max(s1), estate_get_fuzzy_max(s2)));
 
-	if (estate_capped(s1) && estate_capped(s2))
+	if ((estate_capped(s1) && estate_capped(s2)) ||
+	    (estate_capped(s1) && estate_max(s2).value < 100) ||
+	    (estate_capped(s2) && estate_max(s1).value < 100))
 		estate_set_capped(tmp);
 
 	if (estate_treat_untagged(s1) && estate_treat_untagged(s2))
