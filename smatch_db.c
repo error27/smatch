@@ -2936,25 +2936,30 @@ static void register_return_deletes(void)
 	}
 }
 
+#define RETURN_FIX_SIZE 8196
 static void register_return_replacements(void)
 {
 	char *func, *orig, *new;
 	char filename[256];
-	char buf[4096];
 	int fd, ret, i;
+	char *buf;
 	char *p;
 
 	snprintf(filename, 256, "db/%s.return_fixes", option_project_str);
 	fd = open_schema_file(filename);
 	if (fd < 0)
 		return;
-	ret = read(fd, buf, sizeof(buf));
+	buf = malloc(RETURN_FIX_SIZE);
+	ret = read(fd, buf, RETURN_FIX_SIZE);
 	close(fd);
-	if (ret < 0)
+	if (ret < 0) {
+		free(buf);
 		return;
-	if (ret == sizeof(buf)) {
-		sm_ierror("file too large:  %s (limit %zd bytes)",
-		       filename, sizeof(buf));
+	}
+	if (ret == RETURN_FIX_SIZE) {
+		sm_ierror("file too large:  %s (limit %d bytes)",
+		       filename, RETURN_FIX_SIZE);
+		free(buf);
 		return;
 	}
 	buf[ret] = '\0';
@@ -2964,11 +2969,14 @@ static void register_return_replacements(void)
 		get_next_string(&p);
 		replace_count++;
 	}
-	if (replace_count == 0)
+	if (replace_count == 0) {
+		free(buf);
 		return;
+	}
 	if (replace_count % 3 != 0) {
 		printf("error parsing '%s' replace_count=%d\n", filename, replace_count);
 		replace_count = 0;
+		free(buf);
 		return;
 	}
 	replace_table = malloc(replace_count * sizeof(char *));
@@ -2984,6 +2992,7 @@ static void register_return_replacements(void)
 		replace_table[i++] = orig;
 		replace_table[i++] = new;
 	}
+	free(buf);
 }
 
 static void register_forced_return_splits(void)
