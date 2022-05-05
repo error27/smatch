@@ -85,3 +85,5 @@ search_cred_keyrings_rcu 0-ptr_max 4096-ptr_max
 lowmem_page_address 0-u64max 4096-ptr_max
 alloc_pages 1-u64max 4096-ptr_max
 ffz 0-u64max 1-64
+dma_resv_wait_timeout s64min-(-1) -512
+dma_resv_wait_timeout s64min-(-1),1-s64max 1-s64max[<=$3]
