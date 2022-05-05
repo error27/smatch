@@ -334,6 +334,8 @@ static void array_check(struct expression *expr)
 	offset = get_array_offset(expr);
 	if (!possible_comparison(size, SPECIAL_EQUAL, offset))
 		return;
+	if (getting_address(expr))
+		return;
 
 	array_str = expr_to_str(array);
 	offset_str = expr_to_str(offset);
