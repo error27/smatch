@@ -1639,6 +1639,24 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 	int comparison;
 	char *tmp;
 
+	/*
+	 * Say we have y < foo and we assign x = y; then that means x < foo.
+	 * Internally, smatch has links from "y" and "foo" to the comparison
+	 * "foo vs y".  There could also be a comparison with an array:
+	 * "x[idx] vs limit", so all three variables, "x", "idx" and "limit"
+	 * have a link.
+	 *
+	 * Also another thing which can happen is that you have an assignment
+	 * "x = y" and there is a comparison: "x vs y".  And clearly we don't
+	 * want to store "x < x".
+	 *
+	 * So what this function does is it takes each link "foo vs y" and it
+	 * swaps in "foo vs x".  Except it moves the "x" to the left so it's
+	 * "x vs foo" (or whatever) and the add_comparison_var_sym() will flip
+	 * it into the correct order.
+	 *
+	 */
+
 	left_var = chunk_to_var_sym(left, &left_sym);
 	if (!left_var)
 		goto done;
@@ -1657,19 +1675,34 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 		if (!state || !state->data)
 			continue;
 		data = state->data;
-		comparison = data->comparison;
-		expr = data->right;
-		var = data->right_var;
-		vsl = data->right_vsl;
-		if (strcmp(var, right_var) == 0) {
+		/* if there isn't a comparison then skip it. (can this happen?) */
+		if (!data->comparison)
+			continue;
+
+		/* right_var is from "left = right_var;".  "var" is the variable
+		 * bit from "right_var < var".
+		 */
+		if (strcmp(right_var, data->left_var) == 0) {
+			expr = data->right;
+			var = data->right_var;
+			vsl = data->right_vsl;
+			comparison = data->comparison;
+		} else if (strcmp(right_var, data->right_var) == 0) {
 			expr = data->left;
 			var = data->left_var;
 			vsl = data->left_vsl;
-			comparison = flip_comparison(comparison);
+			comparison = flip_comparison(data->comparison);
+		} else {
+			/* This means the right side is only part of the
+			 * comparison.  As in "x = i;" when "foo[i] < bar".
+			 */
+			continue;
 		}
+
 		/* n = copy_from_user(dest, src, n); leads to n <= n which is nonsense */
 		if (strcmp(left_var, var) == 0)
 			continue;
+
 		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
 	} END_FOR_EACH_PTR(tmp);
 
