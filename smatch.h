@@ -915,7 +915,9 @@ enum info_type {
 	SET_FS		= 8022,
 	ATOMIC_INC	= 8023,
 	ATOMIC_DEC	= 8024,
-	REFCOUNT	= 9025,
+	REFCOUNT_INIT	= 9025,
+	REFCOUNT_INC	= 9027,
+	REFCOUNT_DEC	= 9028,
 	NO_SIDE_EFFECT  = 8025,
 	FN_ARG_LINK	= 8028,
 	DATA_VALUE	= 8029,
@@ -1349,6 +1351,9 @@ int on_atomic_dec_path(void);
 int was_inced(const char *name, struct symbol *sym);
 void set_refcount_inc(char *name, struct symbol *sym);
 void set_refcount_dec(char *name, struct symbol *sym);
+void add_refcount_init_hook(name_sym_hook *hook);
+void add_refcount_inc_hook(name_sym_hook *hook);
+void add_refcount_dec_hook(name_sym_hook *hook);
 
 /* smatch_constraints.c */
 char *get_constraint_str(struct expression *expr);
