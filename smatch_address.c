@@ -124,8 +124,12 @@ int get_member_offset_from_deref(struct expression *expr)
 	 *
 	 */
 
-	if (expr->type != EXPR_DEREF)  /* hopefully, this doesn't happen */
-		return -1;
+	if (expr->type != EXPR_DEREF) {
+		if (expr->type == EXPR_PREOP && expr->op == '&')
+			expr = strip_expr(expr->unop);
+		else
+			return -1;
+	}
 
 	if (expr->member_offset >= 0)
 		return expr->member_offset;
