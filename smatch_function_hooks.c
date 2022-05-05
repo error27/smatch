@@ -992,6 +992,14 @@ static void process_return_states(struct db_callback_info *db_info)
 	set_implied_states(db_info);
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
+	if (debug_db) {
+		sm_msg("States from DB: %s expr='%s' ret_str='%s' rl='%s'",
+		       db_info->cull ? "Culling" : "Merging",
+		       expr_to_str(db_info->expr),
+		       db_info->ret_str, show_rl(db_info->rl));
+		__print_stree(stree);
+	}
+
 	if (!db_info->cull)
 		merge_fake_stree(&db_info->stree, stree);
 	free_stree(&stree);
