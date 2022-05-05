@@ -648,6 +648,7 @@ extern int option_time_stmt;
 extern struct expression_list *big_expression_stack;
 extern struct expression_list *big_condition_stack;
 extern struct statement_list *big_statement_stack;
+int is_condition_call(struct expression *expr);
 int is_assigned_call(struct expression *expr);
 int is_fake_assigned_call(struct expression *expr);
 void add_function_data(unsigned long *fn_data);
