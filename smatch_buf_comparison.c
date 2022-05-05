@@ -152,6 +152,7 @@ static void db_save_type_links(struct expression *array, int type_limit, struct 
 
 static void match_alloc_helper(struct expression *pointer, struct expression *size)
 {
+	struct smatch_state *state;
 	struct expression *tmp;
 	struct sm_state *sm;
 	int limit_type = ELEM_COUNT;
@@ -196,7 +197,8 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	}
 
 	db_save_type_links(pointer, limit_type, size);
-	sm = set_state_expr(size_id, pointer, alloc_compare_size(limit_type, size));
+	state = alloc_compare_size(limit_type, size);
+	sm = set_state_expr(size_id, pointer, state);
 	if (!sm)
 		return;
 	set_state_expr(link_id, size, alloc_state_expr(pointer));
@@ -215,6 +217,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
 {
+	struct smatch_state *state;
 	int start_arg = PTR_INT(_start_arg);
 	struct expression *pointer, *call, *arg;
 	struct sm_state *tmp;
@@ -234,8 +237,9 @@ static void match_calloc(const char *fn, struct expression *expr, void *_start_a
 		limit_type = ELEM_LAST;
 	}
 
+	state = alloc_compare_size(limit_type, arg);
 	db_save_type_links(pointer, limit_type, arg);
-	tmp = set_state_expr(size_id, pointer, alloc_compare_size(limit_type, arg));
+	tmp = set_state_expr(size_id, pointer, state);
 	if (!tmp)
 		return;
 	set_state_expr(link_id, arg, alloc_state_expr(pointer));
@@ -659,6 +663,7 @@ static int get_param(int param, char **name, struct symbol **sym)
 
 static void set_param_compare(const char *array_name, struct symbol *array_sym, char *key, char *value)
 {
+	struct smatch_state *state;
 	struct expression *array_expr;
 	struct expression *size_expr;
 	struct symbol *size_sym;
@@ -676,7 +681,8 @@ static void set_param_compare(const char *array_name, struct symbol *array_sym, 
 	size_expr = symbol_expression(size_sym);
 	limit_type = strtol(value, NULL, 10);
 
-	tmp = set_state_expr(size_id, array_expr, alloc_compare_size(limit_type, size_expr));
+	state = alloc_compare_size(limit_type, size_expr);
+	tmp = set_state_expr(size_id, array_expr, state);
 	if (!tmp)
 		return;
 	set_state_expr(link_id, size_expr, alloc_state_expr(array_expr));
