@@ -40,7 +40,7 @@ get_user_pages_remote (-133),(-14),(-12),1-s64max (-133),(-14),(-12),1-s64max[<=
 __nci_request s32min-s32max (-4095)-0
 wait_for_common s64min-s64max 0-s64max[<=$1]
 wait_for_common 64min-(-1),1-s64max 1-s64max[<=$1]
-dma_fence_wait_timeout s64min-(-1),1-s64max (-4095)-(-1),1-s32max[<=2]
+dma_fence_wait_timeout s64min-(-1),1-s64max (-4095)-(-1),1-s32max[<=$2]
 dma_fence_wait_timeout s64min-s64max (-4095)-s32max
 dma_fence_wait_timeout s32min-s32max (-4095)-s32max
 __fw_state_wait_common s32min-s32max (-4095)-(-1)
