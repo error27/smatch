@@ -73,6 +73,10 @@ static void match_symbol(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
+
+	if (is_percent_p_print(expr))
+		return;
+
 	name = expr_to_var(expr);
 	sm_warning("'%s' was already freed.", name);
 	free_string(name);

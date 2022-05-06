@@ -131,6 +131,57 @@ bool is_part_of_condition(struct expression *expr)
 	return false;
 }
 
+static bool is_percent_p(struct expression *str_expr, int idx)
+{
+	char *p;
+	int cnt = 0;
+
+	p = str_expr->string->data;
+	while (p[0]) {
+		if (p[0] == '%' && p[1] == '%') {
+			p += 2;
+			continue;
+		}
+		if (p[0] == '%') {
+			cnt++;
+			if (idx == cnt && p[1] == 'p')
+				return true;
+		}
+		p++;
+	}
+	return false;
+}
+
+bool is_percent_p_print(struct expression *expr)
+{
+	struct expression *parent, *arg;
+	int expr_idx, string_idx;
+
+	parent = expr_get_parent_expr(expr);
+	if (!parent || parent->type != EXPR_CALL)
+		return false;
+
+	expr_idx = -1;
+	FOR_EACH_PTR(parent->args, arg) {
+		expr_idx++;
+		if (arg == expr)
+			goto found;
+	} END_FOR_EACH_PTR(arg);
+
+	return false;
+found:
+
+	string_idx = -1;
+	FOR_EACH_PTR(parent->args, arg) {
+		string_idx++;
+		if (arg->type != EXPR_STRING)
+			continue;
+		return is_percent_p(arg, expr_idx - string_idx);
+	} END_FOR_EACH_PTR(arg);
+
+	return false;
+}
+
 static void match_symbol(struct expression *expr)
 {
 	struct expression *parent;
@@ -153,6 +204,10 @@ static void match_symbol(struct expression *expr)
 
 	if (!is_freed(expr))
 		return;
+
+	if (is_percent_p_print(expr))
+		return;
+
 	name = expr_to_var(expr);
 	sm_warning("'%s' was already freed.", name);
 	free_string(name);
