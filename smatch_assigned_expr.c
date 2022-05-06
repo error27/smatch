@@ -127,6 +127,7 @@ static void match_assignment(struct expression *expr)
 	if (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = right->left;
 
+	skip_mod = expr;
 	set_state(my_id, left_name, left_sym, alloc_state_expr(strip_expr(right)));
 
 	right_name = expr_to_var_sym(right, &right_sym);
@@ -181,7 +182,7 @@ void register_assigned_expr(int id)
 	my_id = check_assigned_expr_id = id;
 	set_dynamic_states(check_assigned_expr_id);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
-	add_modification_hook(my_id, &undef);
+	add_modification_hook_late(my_id, &undef);
 	select_return_states_hook(PARAM_SET, &record_param_assignment);
 }
 
