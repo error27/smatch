@@ -24,6 +24,16 @@ static int my_id;
 STATE(uninitialized);
 STATE(initialized);
 
+static bool uncertain_code_path(void)
+{
+	if (implications_off || parse_error)
+		return true;
+	if (is_impossible_path())
+		return true;
+
+	return false;
+}
+
 static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
 	if (is_impossible_path())
@@ -98,6 +108,10 @@ static void warn_about_special_assign(struct expression *expr)
 
 	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op == '=')
 		return;
+
+	if (uncertain_code_path())
+		return;
+
 	if (is_initialized(expr->left))
 		return;
 
@@ -208,12 +222,10 @@ static void match_dereferences(struct expression *expr)
 {
 	char *name;
 
-	if (implications_off || parse_error)
+	if (uncertain_code_path())
 		return;
 
 	if (expr->type != EXPR_PREOP)
-		return;
-	if (is_impossible_path())
 		return;
 	if (is_initialized(expr->unop))
 		return;
@@ -229,10 +241,7 @@ static void match_condition(struct expression *expr)
 {
 	char *name;
 
-	if (implications_off || parse_error)
-		return;
-
-	if (is_impossible_path())
+	if (uncertain_code_path())
 		return;
 
 	if (is_initialized(expr))
@@ -274,10 +283,7 @@ static void match_call(struct expression *expr)
 	struct expression *arg;
 	char *name;
 
-	if (parse_error)
-		return;
-
-	if (is_impossible_path())
+	if (uncertain_code_path())
 		return;
 
 	FOR_EACH_PTR(expr->args, arg) {
@@ -405,10 +411,7 @@ static void match_symbol(struct expression *expr)
 {
 	char *name;
 
-	if (implications_off || parse_error)
-		return;
-
-	if (is_impossible_path())
+	if (uncertain_code_path())
 		return;
 
 	if (is_initialized(expr))
