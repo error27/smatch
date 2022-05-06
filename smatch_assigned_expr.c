@@ -97,6 +97,9 @@ static void match_assignment(struct expression *expr)
 	char *left_name = NULL;
 	char *right_name = NULL;
 
+	if (!cur_func_sym)
+		return;
+
 	if (expr->op != '=')
 		return;
 	if (is_fake_call(expr->right))

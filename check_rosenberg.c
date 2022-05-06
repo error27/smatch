@@ -40,6 +40,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (!type || type->type != SYM_STRUCT)
 		return;
 
+	if (!cur_func_sym)
+		return;
+
 	set_state(my_member_id, name, sym, state);
 }
 
