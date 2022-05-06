@@ -86,6 +86,7 @@ rtsx_read_cfg_dw 3
 lola_read_param 3
 soc_dapm_read 2
 read_nic_byte 2
+read_nic_dword 2
 amd_smn_read 2
 meson_ao_cec_read 2
 pci_read_config_byte 2
@@ -132,3 +133,16 @@ comedi_buf_read_samples 1
 sja1105_unpack 1
 ice_read_flash_module 4
 hfs_bnode_read 1
+emc_read_lpddr_mode_register 3
+anx7625_aux_dpcd_read 3
+pcie_phy_read 2
+sprd_adi_read 2
+cdv_sb_read 2
+go7007_read_addr 2
+ov5647_read 2
+lgs8gxx_read_reg 2
+atbm8830_read_reg 2
+qla8044_rd_reg_indirect 2
+mv88e6xxx_g1_read 2
+ql_mii_read_reg_ex 2
+rtsx_pci_read_phy_register 2
