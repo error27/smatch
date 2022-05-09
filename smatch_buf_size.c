@@ -841,7 +841,6 @@ static void match_strndup(const char *fn, struct expression *expr, void *unused)
 	} else {
 		store_alloc(expr->left, size_to_rl(UNKNOWN_SIZE));
 	}
-
 }
 
 static void match_alloc_pages(const char *fn, struct expression *expr, void *_order_arg)
