@@ -696,12 +696,12 @@ int __handle_select_assigns(struct expression *expr)
 	 * For "x = frob() ?: y;" we only want to parse the frob() call once
 	 * so do the assignment and parse the condition in one step.
 	 */
-	if (right->cond_true) {
+	if (right->cond_true)
 		condition = right->conditional;
-	} else {
+	else
 		condition = assign_expression(expr->left, expr->op, right->conditional);
-		expr_set_parent_expr(condition, expr);
-	}
+
+	expr_set_parent_expr(condition, right);
 
 	__save_pre_cond_states();
 	__split_whole_condition(condition);
