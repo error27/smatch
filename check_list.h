@@ -4,6 +4,7 @@
 #endif
 
 CK(register_db_call_marker) /* always has to be first  */
+CK(register_mtag_data)      /* before smatch_extra to clear cache at start of function */
 CK(register_param_used)     /* get_state_hooks have to be registered before smatch_extra */
 CK(register_container_of)
 CK(register_container_of2)
@@ -67,7 +68,6 @@ CK(register_constraints_required)
 CK(register_about_fn_ptr_arg)
 CK(register_mtag)
 CK(register_mtag_map)
-CK(register_mtag_data)
 CK(register_param_to_mtag_data)
 CK(register_array_values)
 CK(register_nul_terminator)
