@@ -586,6 +586,16 @@ static bool handle_op_assign(struct expression *expr)
 	return false;
 }
 
+static void handle_derefed_pointers(struct expression *expr)
+{
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_PREOP ||
+	    expr->op != '*')
+		return;
+	expr = strip_expr(expr->unop);
+	set_points_to_user_data(expr);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct symbol *left_type, *right_type;
@@ -659,7 +669,7 @@ set:
 		estate_set_treat_untagged(state);
 
 	set_user_data(expr->left, state);
-
+	handle_derefed_pointers(expr->left);
 	return;
 
 clear_old_state:
