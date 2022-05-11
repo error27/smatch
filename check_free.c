@@ -180,6 +180,8 @@ static void match_call(struct expression *expr)
 			continue;
 		if (ignored_params[i])
 			continue;
+		if (is_percent_p_print(arg))
+			continue;
 
 		name = expr_to_var(arg);
 		if (is_free_func(expr->fn))

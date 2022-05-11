@@ -181,7 +181,8 @@ found:
 		string_idx++;
 		if (arg->type != EXPR_STRING)
 			continue;
-		return is_percent_p(arg, expr_idx - string_idx);
+		if (is_percent_p(arg, expr_idx - string_idx))
+			return true;
 	} END_FOR_EACH_PTR(arg);
 
 	return false;
@@ -314,6 +315,8 @@ static void match_call(struct expression *expr)
 		if (!is_freed(arg))
 			continue;
 		if (ignored_params[i])
+			continue;
+		if (is_percent_p_print(arg))
 			continue;
 
 		name = expr_to_var(arg);
