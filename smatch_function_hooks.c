@@ -841,9 +841,6 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 		// FIXME: preserve the sm state if possible
 		set_extra_expr_nomod(fake_assign->left, alloc_estate_rl(right));
 	}
-
-	db_info->ret_state = NULL;
-	db_info->ret_str = NULL;
 }
 
 static void set_other_side_state(struct db_callback_info *db_info)
@@ -937,7 +934,7 @@ static bool impossible_limit(struct db_callback_info *db_info, int param, char *
 		return false;
 	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
 		return false;
-	if (option_debug || local_debug)
+	if (option_debug || local_debug || debug_db)
 		sm_msg("impossible: %d '%s' limit '%s' == '%s' return='%s'", param, key, show_rl(passed), value, db_info->ret_str);
 	return true;
 }
@@ -947,7 +944,7 @@ static bool is_impossible_data(int type, struct db_callback_info *db_info, int p
 	if (type == PARAM_LIMIT && impossible_limit(db_info, param, key, value))
 		return true;
 	if (type == COMPARE_LIMIT && param_compare_limit_is_impossible(db_info->expr, param, key, value)) {
-		if (local_debug)
+		if (local_debug || debug_db)
 			sm_msg("param_compare_limit_is_impossible: %d %s %s", param, key, value);
 		return true;
 	}
@@ -993,16 +990,20 @@ static void process_return_states(struct db_callback_info *db_info)
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
 	if (debug_db) {
-		sm_msg("States from DB: %s expr='%s' ret_str='%s' rl='%s'",
+		sm_msg("States from DB: %s expr='%s' ret_str='%s' rl='%s' state='%s'",
 		       db_info->cull ? "Culling" : "Merging",
 		       expr_to_str(db_info->expr),
-		       db_info->ret_str, show_rl(db_info->rl));
+		       db_info->ret_str, show_rl(db_info->rl),
+		       db_info->ret_state ? db_info->ret_state->name : "<none>");
 		__print_stree(stree);
 	}
 
 	if (!db_info->cull)
 		merge_fake_stree(&db_info->stree, stree);
 	free_stree(&stree);
+
+	db_info->ret_state = NULL;
+	db_info->ret_str = NULL;
 }
 
 static int db_compare_callback(void *_info, int argc, char **argv, char **azColName)
