@@ -128,6 +128,11 @@ bool is_part_of_condition(struct expression *expr)
 		return false;
 	if (parent->type == EXPR_LOGICAL || parent->type == EXPR_COMPARE)
 		return true;
+	if (parent->type == EXPR_SELECT || parent->type == EXPR_CONDITIONAL)
+		return true;
+	if (parent->type == EXPR_PREOP && parent->op == '!')
+		return true;
+
 	return false;
 }
 
