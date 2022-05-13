@@ -196,6 +196,17 @@ static int db_size_callback(void *unused, int argc, char **argv, char **azColNam
 	return 0;
 }
 
+static struct expression *cached_type_expr, *cached_sym_expr;
+static struct range_list *cached_type_rl, *cached_sym_rl;
+
+static void match_clear_cache(struct symbol *sym)
+{
+	cached_type_expr = NULL;
+	cached_type_rl = NULL;
+	cached_sym_expr = NULL;
+	cached_sym_rl = NULL;
+}
+
 static struct range_list *size_from_db_type(struct expression *expr)
 {
 	int this_file_only = 0;
@@ -209,20 +220,25 @@ static struct range_list *size_from_db_type(struct expression *expr)
 	if (!name)
 		return NULL;
 
+	if (expr == cached_type_expr)
+		return clone_rl(cached_type_rl);
+	cached_type_expr = expr;
+	cached_type_rl = NULL;
+
 	if (this_file_only) {
 		db_size_rl = NULL;
 		run_sql(db_size_callback, NULL,
 			"select size from function_type_size where type = '%s' and file = '%s';",
 			name, get_filename());
-		if (db_size_rl)
-			return db_size_rl;
-		return NULL;
+		cached_type_rl = clone_rl(db_size_rl);
+		return db_size_rl;
 	}
 
 	db_size_rl = NULL;
 	run_sql(db_size_callback, NULL,
 		"select size from type_size where type = '%s';",
 		name);
+	cached_type_rl = clone_rl(db_size_rl);
 	return db_size_rl;
 }
 
@@ -238,10 +254,16 @@ static struct range_list *size_from_db_symbol(struct expression *expr)
 	    sym->ctype.modifiers & MOD_STATIC)
 		return NULL;
 
+	if (expr == cached_sym_expr)
+		return clone_rl(cached_sym_rl);
+	cached_sym_expr = expr;
+	cached_sym_rl = NULL;
+
 	db_size_rl = NULL;
 	run_sql(db_size_callback, NULL,
 		"select value from data_info where file = 'extern' and data = '%s' and type = %d;",
 		sym->ident->name, BUF_SIZE);
+	cached_sym_rl = clone_rl(db_size_rl);
 	return db_size_rl;
 }
 
@@ -1038,6 +1060,8 @@ void register_buf_size(int id)
 
 	if (option_info)
 		add_hook(record_global_size, BASE_HOOK);
+
+	add_hook(&match_clear_cache, AFTER_FUNC_HOOK);
 }
 
 void register_buf_size_late(int id)
