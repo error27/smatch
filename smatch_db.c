@@ -865,17 +865,42 @@ static int db_return_callback(void *_ret_info, int argc, char **argv, char **azC
 	return 0;
 }
 
+static struct expression *cached_expr, *cached_no_args;
+static const char *cached_str;
+static struct range_list *cached_rl, *cached_str_rl, *cached_no_args_rl;
+
+static void clear_cached_return_vals(void)
+{
+	cached_expr = NULL;
+	cached_rl = NULL;
+	cached_str = NULL;
+	cached_str_rl = NULL;
+	cached_no_args = NULL;
+	cached_no_args_rl = NULL;
+}
+
 struct range_list *db_return_vals(struct expression *expr)
 {
 	struct return_info ret_info = {};
 	struct sm_state *sm;
 
+	if (!expr)
+		return NULL;
+
 	if (is_fake_call(expr))
 		return NULL;
 
+	if (expr == cached_expr)
+		return clone_rl(cached_rl);
+
+	cached_expr = expr;
+	cached_rl = NULL;
+
 	sm = get_extra_sm_state(expr);
-	if (sm)
+	if (sm) {
+		cached_rl = clone_rl(estate_rl(sm->state));
 		return clone_rl(estate_rl(sm->state));
+	}
 	ret_info.static_returns_call = expr;
 	ret_info.return_type = get_type(expr);
 	if (!ret_info.return_type)
@@ -894,12 +919,20 @@ struct range_list *db_return_vals(struct expression *expr)
 			"select distinct return from return_states where %s;",
 			get_static_filter(expr->fn->symbol));
 	}
+	cached_rl = clone_rl(ret_info.return_range_list);
 	return ret_info.return_range_list;
 }
 
 struct range_list *db_return_vals_from_str(const char *fn_name)
 {
 	struct return_info ret_info;
+
+	if (!fn_name)
+		return NULL;
+	if (fn_name == cached_str)
+		return clone_rl(cached_str_rl);
+	cached_str = fn_name;
+	cached_str_rl = NULL;
 
 	ret_info.static_returns_call = NULL;
 	ret_info.return_type = &llong_ctype;
@@ -908,6 +941,7 @@ struct range_list *db_return_vals_from_str(const char *fn_name)
 	run_sql(db_return_callback, &ret_info,
 		"select distinct return from return_states where function = '%s';",
 		fn_name);
+	cached_str_rl = clone_rl(ret_info.return_range_list);
 	return ret_info.return_range_list;
 }
 
@@ -925,6 +959,11 @@ struct range_list *db_return_vals_no_args(struct expression *expr)
 	if (!expr || expr->type != EXPR_SYMBOL)
 		return NULL;
 
+	if (expr == cached_no_args)
+		return clone_rl(cached_no_args_rl);
+	cached_no_args = expr;
+	cached_no_args_rl = NULL;
+
 	ret_info.static_returns_call = expr;
 	ret_info.return_type = get_type(expr);
 	ret_info.return_type = get_real_base_type(ret_info.return_type);
@@ -935,6 +974,7 @@ struct range_list *db_return_vals_no_args(struct expression *expr)
 		"select distinct return from return_states where %s;",
 		get_static_filter(expr->symbol));
 
+	cached_no_args_rl = clone_rl(ret_info.return_range_list);
 	return ret_info.return_range_list;
 }
 
@@ -2660,6 +2700,7 @@ static void match_end_func_info(struct symbol *sym)
 
 static void match_after_func(struct symbol *sym)
 {
+	clear_cached_return_vals();
 	if (!__inline_fn)
 		reset_memdb(sym);
 }
