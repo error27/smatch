@@ -1390,7 +1390,7 @@ static bool cast_arg(struct symbol *type, struct expression *arg)
 	orig = get_type(arg);
 	if (!orig)
 		return true;
-	if (orig == type)
+	if (types_equiv(orig, type))
 		return false;
 
 	if (orig->type == SYM_ARRAY && type->type == SYM_PTR)
