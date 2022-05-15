@@ -900,6 +900,10 @@ enum info_type {
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
 	/* put random temporary stuff in the 7000-7999 range for testing */
+	HOST_DATA	= 7016,
+	HOST_DATA_SET	= 7017,
+	HOST_PTR	= 7018,
+	HOST_PTR_SET	= 7019,
 	USER_DATA	= 8017,
 	USER_DATA_SET	= 9017,
 	USER_PTR	= 9018,
@@ -1149,6 +1153,22 @@ bool is_skb_data(struct expression *expr);
 bool is_socket_stuff(struct symbol *sym);
 bool points_to_user_data(struct expression *expr);
 void set_points_to_user_data(struct expression *expr);
+
+/* smatch_kernel_host_data.c */
+int is_host_macro(struct expression *expr);
+int is_capped_host_data(struct expression *expr);
+int implied_host_data(struct expression *expr, struct range_list **rl);
+struct stree *get_host_stree(void);
+int get_host_rl(struct expression *expr, struct range_list **rl);
+int is_host_rl(struct expression *expr);
+int get_host_rl_var_sym(const char *name, struct symbol *sym, struct range_list **rl);
+bool host_rl_capped(struct expression *expr);
+struct range_list *var_host_rl(struct expression *expr);
+bool we_pass_host_data(struct expression *call);
+/* smatch_points_to_host_data.c */
+bool is_host_data_fn(struct symbol *fn);
+bool points_to_host_data(struct expression *expr);
+void set_points_to_host_data(struct expression *expr);
 
 /* check_locking.c */
 void print_held_locks();

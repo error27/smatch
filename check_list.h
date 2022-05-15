@@ -83,6 +83,9 @@ CK(register_kernel_user_data)
 CK(register_kernel_user_data2)
 CK(register_points_to_user_data)
 
+CK(register_kernel_host_data)
+CK(register_points_to_host_data)
+
 CK(check_debug)
 
 CK(check_bogus_loop)
