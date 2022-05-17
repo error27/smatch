@@ -338,7 +338,5 @@ void register_param_cleared(int id)
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);
 
 	load_func_table(func_table, ARRAY_SIZE(func_table));
-	if (option_project == PROJ_KERNEL)
-		load_func_table(kernel_func_table, ARRAY_SIZE(kernel_func_table));
 }
 
