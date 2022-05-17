@@ -566,7 +566,7 @@ static void register_clears_param(void)
 	clear_token_alloc();
 }
 
-static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
+static void db_buf_cleared(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
 
@@ -575,20 +575,15 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		return;
 
 	if (strcmp(value, "0") == 0)
-		__struct_members_copy(COPY_ZERO, expr, add_dereference(arg), NULL);
+		__struct_members_copy(COPY_ZERO, expr, arg, NULL);
 	else
-		__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(arg), NULL);
+		__struct_members_copy(COPY_UNKNOWN, expr, arg, NULL);
 }
 
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
 	struct symbol *type;
-
-	/*
-	 * This looks like memcpy(p, src, 8); and it does PARAM_SET *p.  So it's
-	 * different from a PARAM_CLEAR of "p" with no dereference.
-	 */
 
 	arg = gen_expr_from_param_key(expr, param, key);
 	if (!arg)
@@ -619,7 +614,7 @@ void register_struct_assignment(int id)
 
 	add_hook(&unop_expr, OP_HOOK);
 	register_clears_param();
-	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
+	select_return_states_hook(BUF_CLEARED, &db_buf_cleared);
 	select_return_states_hook(PARAM_ADD, &db_param_add_set);
 	select_return_states_hook(PARAM_SET, &db_param_add_set);
 

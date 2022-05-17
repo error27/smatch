@@ -35,6 +35,34 @@ static int my_id;
 STATE(cleared);
 STATE(zeroed);
 
+struct func_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	const char *value;
+	const sval_t *implies_start, *implies_end;
+	param_key_hook *call_back;
+};
+
+static struct func_info func_table[] = {
+	{ "memset", BUF_CLEARED, 0, "*$", "0"},
+	{ "memzero", BUF_CLEARED, 0, "*$", "0" },
+	{ "__memset", BUF_CLEARED, 0, "*$", "0"},
+	{ "__memzero", BUF_CLEARED, 0, "*$", "0" },
+
+	{ "memcpy", BUF_CLEARED, 0, "*$" },
+	{ "memmove", BUF_CLEARED, 0, "*$" },
+	{ "__memcpy", BUF_CLEARED, 0, "*$" },
+	{ "__memmove", BUF_CLEARED, 0, "*$" },
+
+	/* Should this be done some where else? */
+	{ "strcpy", BUF_CLEARED, 0, "*$" },
+	{ "strncpy", BUF_CLEARED, 0, "*$" },
+	{ "sprintf", BUF_CLEARED, 0, "*$" },
+	{ "snprintf", BUF_CLEARED, 0, "*$" },
+};
+
 static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
@@ -60,14 +88,28 @@ free:
 	free_string(name);
 }
 
-static void match_memset(const char *fn, struct expression *expr, void *arg)
-{
-	db_param_cleared(expr, PTR_INT(arg), (char *)"$", (char *)"0");
-}
-
 static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 {
-	db_param_cleared(expr, PTR_INT(arg), (char *)"$", (char *)"");
+	db_param_cleared(expr, PTR_INT(arg), (char *)"*$", (char *)"");
+}
+
+static void buf_cleared_db(struct expression *expr, const char *name, struct symbol *sym, const char *value)
+{
+	if (strcmp(value, "0") == 0)
+		set_state(my_id, name, sym, &zeroed);
+	else
+		set_state(my_id, name, sym, &cleared);
+}
+
+static void buf_cleared(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct func_info *info = data;
+	const char *value = "";
+
+	if (info && info->value)
+		value = info->value;
+
+	buf_cleared_db(expr, name, sym, value);
 }
 
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
@@ -219,7 +261,7 @@ static void match_usb_control_msg(const char *fn, struct expression *expr, void 
 	if (get_value(inout, &sval) && !(sval.uvalue & USB_DIR_IN))
 		return;
 
-	db_param_cleared(expr, 6, (char *)"$", (char *)"");
+	db_param_cleared(expr, 6, (char *)"*$", (char *)"");
 }
 
 static void match_assign(struct expression *expr)
@@ -233,6 +275,7 @@ static void match_assign(struct expression *expr)
 	type = get_type(expr->left);
 	if (!type || type->type != SYM_STRUCT)
 		return;
+
 	set_state_expr(my_id, expr->left, &cleared);
 }
 
@@ -247,23 +290,35 @@ static void match_array_assign(struct expression *expr)
 	set_state_expr(my_id, array_expr, &cleared);
 }
 
+static void load_func_table(struct func_info *table, int size)
+{
+	struct func_info *info;
+	param_key_hook *cb;
+	int i;
+
+	for (i = 0; i < size; i++) {
+		info = &table[i];
+
+		if (info->call_back)
+			cb = info->call_back;
+		else
+			cb = buf_cleared;
+
+		if (info->implies_start) {
+			return_implies_param_key(info->name,
+					*info->implies_start, *info->implies_end,
+					cb, info->param, info->key, info);
+		} else {
+			add_function_param_key_hook(info->name, cb,
+					info->param, info->key, info);
+		}
+	}
+}
+
 void register_param_cleared(int id)
 {
 	my_id = id;
 
-	add_function_hook("memset", &match_memset, INT_PTR(0));
-	add_function_hook("memzero", &match_memset, INT_PTR(0));
-	add_function_hook("__memset", &match_memset, INT_PTR(0));
-	add_function_hook("__memzero", &match_memset, INT_PTR(0));
-
-	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
-	add_function_hook("memmove", &match_memcpy, INT_PTR(0));
-	add_function_hook("__memcpy", &match_memcpy, INT_PTR(0));
-	add_function_hook("__memmove", &match_memcpy, INT_PTR(0));
-	add_function_hook("strcpy", &match_memcpy, INT_PTR(0));
-	add_function_hook("strncpy", &match_memcpy, INT_PTR(0));
-	add_function_hook("sprintf", &match_memcpy, INT_PTR(0));
-	add_function_hook("snprintf", &match_memcpy, INT_PTR(0));
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
@@ -273,9 +328,11 @@ void register_param_cleared(int id)
 	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
 	add_split_return_callback(&print_return_value_param);
 
-	if (option_project == PROJ_KERNEL) {
+	if (option_project == PROJ_KERNEL)
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);
-	}
 
+	load_func_table(func_table, ARRAY_SIZE(func_table));
+	if (option_project == PROJ_KERNEL)
+		load_func_table(kernel_func_table, ARRAY_SIZE(kernel_func_table));
 }
 
