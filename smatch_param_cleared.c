@@ -112,34 +112,21 @@ static void buf_cleared(struct expression *expr, const char *name, struct symbol
 	buf_cleared_db(expr, name, sym, value);
 }
 
-static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
+static void return_info_callback(int return_id, char *return_ranges,
+				 struct expression *returned_expr,
+				 int param,
+				 const char *printed_name,
+				 struct sm_state *sm)
 {
-	struct stree *stree;
-	struct sm_state *sm;
-	int param;
-	const char *param_name;
+	if (param < 0)
+		return;
 
-	stree = __get_cur_stree();
+	if (sm->state != &zeroed &&
+	    sm->state != &cleared)
+		return;
 
-	FOR_EACH_MY_SM(my_id, stree, sm) {
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
-
-		param_name = get_param_name(sm);
-		if (!param_name)
-			continue;
-
-		if (sm->state == &zeroed) {
-			sql_insert_return_states(return_id, return_ranges,
-						 BUF_CLEARED, param, param_name, "0");
-		}
-
-		if (sm->state == &cleared) {
-			sql_insert_return_states(return_id, return_ranges,
-						 BUF_CLEARED, param, param_name, "");
-		}
-	} END_FOR_EACH_SM(sm);
+	sql_insert_return_states(return_id, return_ranges, BUF_CLEARED, param,
+			printed_name, (sm->state == &zeroed) ? "0" : "");
 }
 
 static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym, int name_len)
@@ -332,7 +319,7 @@ void register_param_cleared(int id)
 	register_clears_param();
 
 	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
-	add_split_return_callback(&print_return_value_param);
+	add_return_info_callback(my_id, return_info_callback);
 
 	if (option_project == PROJ_KERNEL)
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);
