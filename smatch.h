@@ -1322,6 +1322,7 @@ int param_was_set(struct expression *expr);
 int param_was_set_var_sym(const char *name, struct symbol *sym);
 void print_limited_param_set(int return_id, char *return_ranges, struct expression *expr);
 /* param_clear */
+void __promote_sets_to_clears(int return_id, char *return_ranges, struct expression *expr);
 bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym);
 bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym);
 

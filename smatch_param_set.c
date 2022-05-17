@@ -242,6 +242,8 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 	char two_dot[80] = "";
 	int count = 0;
 
+	__promote_sets_to_clears(return_id, return_ranges, expr);
+
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		bool untracked = false;
 

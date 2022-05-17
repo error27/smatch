@@ -166,7 +166,13 @@ static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym,
 	return false;
 }
 
-static bool parent_was_clear(const char *name, struct symbol *sym, bool zero)
+enum clear_zero {
+	CLEAR,
+	ZERO,
+	ANY,
+};
+
+static bool parent_was_clear(const char *name, struct symbol *sym, enum clear_zero zero)
 {
 	struct sm_state *sm;
 	char buf[250];
@@ -196,9 +202,11 @@ static bool parent_was_clear(const char *name, struct symbol *sym, bool zero)
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!is_parent(sm, name, sym, len))
 			continue;
-		if (zero && sm->state == &zeroed)
+		if (zero == ZERO && sm->state == &zeroed)
 			return true;
-		if (!zero && sm->state == &cleared)
+		if (zero == CLEAR && sm->state == &cleared)
+			return true;
+		if (zero == ANY)
 			return true;
 		return false;
 	} END_FOR_EACH_SM(sm);
@@ -208,12 +216,76 @@ static bool parent_was_clear(const char *name, struct symbol *sym, bool zero)
 
 bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym)
 {
-	return parent_was_clear(name, sym, false);
+	return parent_was_clear(name, sym, CLEAR);
 }
 
 bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym)
 {
-	return parent_was_clear(name, sym, true);
+	return parent_was_clear(name, sym, ZERO);
+}
+
+static bool already_printed(struct symbol *arg)
+{
+	if (!arg || !arg->ident || !arg->ident->name)
+		return false;
+
+	return parent_was_clear(arg->ident->name, arg, ANY);
+}
+
+static bool all_members_set(struct symbol *arg)
+{
+	struct symbol *type, *tmp;
+	char buf[80];
+
+	if (!arg || !arg->ident || !arg->ident->name)
+		return false;
+
+	type = get_real_base_type(arg);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return false;
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (!tmp->ident)
+			return false;
+		snprintf(buf, sizeof(buf), "%s->%s", arg->ident->name, tmp->ident->name);
+		if (!param_was_set_var_sym(buf, arg))
+			return false;
+	} END_FOR_EACH_PTR(tmp);
+
+	return true;
+}
+
+void __promote_sets_to_clears(int return_id, char *return_ranges, struct expression *expr)
+{
+	struct symbol *arg;
+	char buf[256];
+	int i;
+
+	/*
+	 * This is called after BUF_CLEARED variables have been recorded but
+	 * before PARAM_SET.  If all the struct members have been set then
+	 * promote it to BUF_CLEARED.
+	 */
+
+	i = -1;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		i++;
+
+		if (!arg->ident)
+			continue;
+		if (already_printed(arg))
+			continue;
+		if (!all_members_set(arg))
+			continue;
+
+		snprintf(buf, sizeof(buf), "*%s", arg->ident->name);
+		set_state(my_id, buf, arg, &cleared);
+		sql_insert_return_states(return_id, return_ranges, BUF_CLEARED,
+				i, "*$", "");
+	} END_FOR_EACH_PTR(arg);
 }
 
 static void register_clears_param(void)
