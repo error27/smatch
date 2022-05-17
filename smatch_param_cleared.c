@@ -194,8 +194,13 @@ static bool parent_was_clear(const char *name, struct symbol *sym, bool zero)
 	buf[i] = '\0';
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (is_parent(sm, name, sym, len))
+		if (!is_parent(sm, name, sym, len))
+			continue;
+		if (zero && sm->state == &zeroed)
 			return true;
+		if (!zero && sm->state == &cleared)
+			return true;
+		return false;
 	} END_FOR_EACH_SM(sm);
 
 	return false;
