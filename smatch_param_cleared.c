@@ -142,80 +142,86 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	} END_FOR_EACH_SM(sm);
 }
 
-bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym)
+static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym, int name_len)
 {
-	struct sm_state *sm;
-	char buf[80];
-	int len, i;
+	const char *sm_name, *var_name;
+	int shared = 0;
+	int i;
 
-	if (!name)
-		return 0;
+	if (sm->sym != sym)
+		return false;
 
-	len = strlen(name);
-	if (len >= sizeof(buf))
-		len = sizeof(buf) - 1;
+	/* I think sm->name always starts with a '*' now */
+	if (sm->name[0] != '*')
+		return false;
+	sm_name = &sm->name[1];
+	var_name = name;
+	if (var_name[0] == '*')
+		var_name++;
 
-	for (i = len - 2; i >= 1; i--) {
-		if (name[i] != '-' && name[i] != '.')
-			continue;
-
-		memcpy(buf, name, i);
-		buf[i] = '\0';
-		sm = get_sm_state(my_id, buf, sym);
-		if (sm && sm->state == &cleared)
-			return true;
-		if (sm)
-			return false;
-
-		buf[0] = '&';
-		memcpy(buf + 1, name, i);
-		buf[i + 1] = '\0';
-		sm = get_sm_state(my_id, buf, sym);
-		if (sm && sm->state == &cleared)
-			return true;
-		if (sm)
-			return false;
+	for (i = 0; i < name_len; i++) {
+		if (!sm_name[i])
+			break;
+		if (sm_name[i] == var_name[i])
+			shared++;
+		else
+			break;
 	}
+
+	if (sm_name[shared] != '\0')
+		return false;
+
+	if (var_name[shared] == '.' ||
+	    var_name[shared] == '-' ||
+	    var_name[shared] == '\0')
+		return true;
 
 	return false;
 }
 
-bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym)
+static bool parent_was_clear(const char *name, struct symbol *sym, bool zero)
 {
 	struct sm_state *sm;
-	char buf[80];
+	char buf[250];
 	int len, i;
 
-	if (!name)
-		return 0;
+	if (!name || !sym)
+		return false;
 
 	len = strlen(name);
-	if (len >= sizeof(buf))
-		len = sizeof(buf) - 1;
-
-	for (i = len - 2; i >= 1; i--) {
-		if (name[i] != '-' && name[i] != '.')
-			continue;
-
-		memcpy(buf, name, i);
-		buf[i] = '\0';
-		sm = get_sm_state(my_id, buf, sym);
-		if (sm && sm->state == &zeroed)
-			return true;
-		if (sm)
-			return false;
-
-		buf[0] = '&';
-		memcpy(buf + 1, name, i);
-		buf[i + 1] = '\0';
-		sm = get_sm_state(my_id, buf, sym);
-		if (sm && sm->state == &zeroed)
-			return true;
-		if (sm)
-			return false;
+	if (len >= sizeof(buf)) {
+		/*
+		 * Haha.  If your variable is over 250 chars I want nothing to
+		 * to with it.
+		 */
+		return true;
 	}
 
+	for (i = len - 1; i > 0; i--) {
+		if (name[i] == '.' || name[i] == '-')
+			break;
+	}
+	if (i == 0)
+		return false;
+	memcpy(buf, name, i);
+	buf[i] = '\0';
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (is_parent(sm, name, sym, len))
+			return true;
+	} END_FOR_EACH_SM(sm);
+
 	return false;
+}
+
+bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym)
+{
+	return parent_was_clear(name, sym, false);
+}
+
+bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym)
+{
+	return parent_was_clear(name, sym, true);
 }
 
 static void register_clears_param(void)
