@@ -55,9 +55,9 @@ def get_function_pointers(func):
     return function_ptrs
 
 db_types = {   0: "INTERNAL",
-             101: "PARAM_CLEARED",
              103: "PARAM_LIMIT",
              104: "PARAM_FILTER",
+             501: "BUF_CLEARED",
             1001: "PARAM_VALUE",
             1002: "BUF_SIZE",
             1004: "CAPPED_DATA",

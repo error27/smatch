@@ -90,12 +90,12 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		if (sm->state == &zeroed) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, param_name, "0");
+						 BUF_CLEARED, param, param_name, "0");
 		}
 
 		if (sm->state == &cleared) {
 			sql_insert_return_states(return_id, return_ranges,
-						 PARAM_CLEARED, param, param_name, "");
+						 BUF_CLEARED, param, param_name, "");
 		}
 	} END_FOR_EACH_SM(sm);
 }
@@ -270,7 +270,7 @@ void register_param_cleared(int id)
 
 	register_clears_param();
 
-	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
+	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
 	add_split_return_callback(&print_return_value_param);
 
 	if (option_project == PROJ_KERNEL) {

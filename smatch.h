@@ -844,11 +844,11 @@ enum info_type {
 	 * We select these in order by type so if the order matters, then give
 	 * it a number below 100-999,9000-9999 ranges. */
 
-	PARAM_CLEARED	= 101,
 	PARAM_LIMIT	= 103,
 	PARAM_FILTER	= 104,
 
 	RELEASE		= 500,
+	BUF_CLEARED	= 501,
 
 	PARAM_VALUE	= 1001,
 	BUF_SIZE	= 1002,
