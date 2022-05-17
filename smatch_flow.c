@@ -441,6 +441,7 @@ int is_condition_call(struct expression *expr)
 
 static bool gen_fake_function_assign(struct expression *expr)
 {
+	static struct expression *parsed;
 	struct expression *assign, *parent;
 	struct symbol *type;
 	char buf[64];
@@ -457,8 +458,20 @@ static bool gen_fake_function_assign(struct expression *expr)
 	if (parent && parent->type == EXPR_ASSIGNMENT)
 		return false;
 
-	if (expr_get_fake_parent_expr(expr))
-		return false;
+	parent = expr_get_fake_parent_expr(expr);
+	if (parent) {
+		struct expression *left = parent->left;
+
+		if (parent == parsed)
+			return false;
+		if (!left || left->type != EXPR_SYMBOL)
+			return false;
+		if (strncmp(left->symbol_name->name, "__fake_assign_", 14) != 0)
+			return false;
+		parsed = parent;
+		__split_expr(parent);
+		return true;
+	}
 
 	// TODO: faked_assign skipping conditions is a hack
 	if (is_condition_call(expr))
@@ -466,6 +479,8 @@ static bool gen_fake_function_assign(struct expression *expr)
 
 	snprintf(buf, sizeof(buf), "__fake_assign_%p", expr);
 	assign = create_fake_assign(buf, get_type(expr), expr);
+
+	parsed = assign;
 	__split_expr(assign);
 	return true;
 }
