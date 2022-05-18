@@ -52,6 +52,9 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 		return;
 	if (param_was_set_var_sym(name, sym))
 		return;
+	if (parent_was_PARAM_CLEAR(name, sym))
+		return;
+
 	set_state_stree(&used_stree, my_id, name, sym, &used);
 }
 
