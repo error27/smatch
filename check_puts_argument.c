@@ -108,8 +108,6 @@ static void match_end_func(struct symbol *sym)
 
 	if (__inline_fn)
 		return;
-	if (is_reachable())
-		match_return(NULL);
 
 	FOR_EACH_PTR(putted_args, tracker) {
 		print_arg(tracker->sym);
