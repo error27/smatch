@@ -549,10 +549,12 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 static void match_local_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	local_debug = 1;
+	option_print_names++;
 }
 
 static void match_local_debug_off(const char *fn, struct expression *expr, void *info)
 {
+	option_print_names--;
 	local_debug = 0;
 }
 
