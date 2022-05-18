@@ -88,6 +88,9 @@ bool __print_states(const char *owner)
 		found = true;
 	} END_FOR_EACH_SM(sm);
 
+	if (!found)
+		sm_msg("no states found for '%s'", owner);
+
 	return found;
 }
 
