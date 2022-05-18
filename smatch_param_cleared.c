@@ -232,7 +232,35 @@ static bool already_printed(struct symbol *arg)
 	return parent_was_clear(arg->ident->name, arg, ANY);
 }
 
-static bool all_members_set(struct symbol *arg)
+static bool union_members_set(struct symbol *arg)
+{
+	struct sm_state *sm;
+	static int param_set_id;
+	struct symbol *type;
+	int cnt = 0;
+
+	if (!param_set_id)
+		param_set_id = id_from_name("register_param_set");
+
+	if (!arg || !arg->ident || !arg->ident->name)
+		return false;
+
+	type = get_real_base_type(arg);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_UNION)
+		return false;
+
+	FOR_EACH_MY_SM(param_set_id, __get_cur_stree(), sm) {
+		if (sm->sym == arg)
+			cnt++;
+	} END_FOR_EACH_SM(sm);
+
+	return cnt > 100;
+}
+
+static bool all_struct_members_set(struct symbol *arg)
 {
 	struct symbol *type, *tmp;
 	char buf[80];
@@ -278,13 +306,14 @@ void __promote_sets_to_clears(int return_id, char *return_ranges, struct express
 			continue;
 		if (already_printed(arg))
 			continue;
-		if (!all_members_set(arg))
-			continue;
+		if (union_members_set(arg) ||
+		    all_struct_members_set(arg)) {
 
-		snprintf(buf, sizeof(buf), "*%s", arg->ident->name);
-		set_state(my_id, buf, arg, &cleared);
-		sql_insert_return_states(return_id, return_ranges, BUF_CLEARED,
-				i, "*$", "");
+			snprintf(buf, sizeof(buf), "*%s", arg->ident->name);
+			set_state(my_id, buf, arg, &cleared);
+			sql_insert_return_states(return_id, return_ranges,
+					BUF_CLEARED, i, "*$", "");
+		}
 	} END_FOR_EACH_PTR(arg);
 }
 
