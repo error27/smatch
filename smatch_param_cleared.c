@@ -385,10 +385,52 @@ static void load_func_table(struct func_info *table, int size)
 	}
 }
 
+int param_add_set_counter[12];
+static void db_counter_reset(struct expression *expr)
+{
+	memset(param_add_set_counter, 0, sizeof(param_add_set_counter));
+}
+
+static void db_counter_inc(struct expression *expr, int param, char *key, char *value)
+{
+	if (param < 0 || param >= ARRAY_SIZE(param_add_set_counter))
+		return;
+	param_add_set_counter[param]++;
+}
+
+static void promote_void_param_sets(struct expression *expr)
+{
+	struct expression *arg, *deref;
+	struct symbol *type;
+	int i;
+
+	if (expr->type != EXPR_CALL) {
+		sm_msg("unexpected!");
+		return;
+	}
+
+	i = -1;
+	FOR_EACH_PTR(expr->args, arg) {
+		i++;
+
+		if (param_add_set_counter[i] < 100)
+			continue;
+
+		type = get_arg_type(expr->fn, i);
+		if (!type || type->type != SYM_PTR)
+			continue;
+		type = get_real_base_type(type);
+		if (type != &void_ctype)
+			continue;
+
+		deref = deref_expression(arg);
+		set_state_expr(my_id, deref, &cleared);
+	} END_FOR_EACH_PTR(arg);
+}
+
 void register_param_cleared(int id)
 {
 	my_id = id;
-
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
@@ -402,5 +444,10 @@ void register_param_cleared(int id)
 		add_function_hook("usb_control_msg", &match_usb_control_msg, NULL);
 
 	load_func_table(func_table, ARRAY_SIZE(func_table));
+
+	add_hook(&db_counter_reset, CALL_HOOK_AFTER_INLINE);
+	select_return_states_hook(PARAM_SET, &db_counter_inc);
+	select_return_states_hook(PARAM_ADD, &db_counter_inc);
+	add_hook(&promote_void_param_sets, FUNCTION_CALL_HOOK_AFTER_DB);
 }
 
