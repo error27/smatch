@@ -270,6 +270,9 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			continue;
 		}
 		if (untracked) {
+			if (parent_was_PARAM_CLEAR(sm->name, sm->sym))
+				continue;
+
 			sql_insert_return_states(return_id, return_ranges,
 						 UNTRACKED_PARAM, param, param_name, "");
 			continue;
