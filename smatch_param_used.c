@@ -27,6 +27,7 @@ STATE(used);
 
 static void get_state_hook(int owner, const char *name, struct symbol *sym)
 {
+	static const char *prev;
 	int arg;
 
 	if (!option_info)
@@ -41,6 +42,10 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 
 	if (!name || name[0] == '&')
 		return;
+
+	if (name == prev)
+		return;
+	prev = name;
 
 	arg = get_param_num_from_sym(sym);
 	if (arg < 0)
