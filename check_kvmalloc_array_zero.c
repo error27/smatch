@@ -67,7 +67,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 		while (entry->function) {
 			if (strcmp(fn, entry->function) == 0) {
 				sm_warning("Please consider using %s instead of %s",
-					   entry->alternative, function->function);
+					   entry->alternative, entry->function);
 				break;
 			}
 			entry++;
