@@ -1445,6 +1445,8 @@ void track_freed_param_var_sym(const char *name, struct symbol *sym,
 			       struct smatch_state *state);
 bool is_part_of_condition(struct expression *expr);
 
+void add_free_hook(name_sym_hook *hook);
+
 /* smatch_unconstant_macros.c */
 int is_unconstant_macro(struct expression *expr);
 
