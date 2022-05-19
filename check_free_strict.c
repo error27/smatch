@@ -147,6 +147,10 @@ static bool is_percent_p(struct expression *str_expr, int idx)
 			p += 2;
 			continue;
 		}
+		/* If we have print("%.*s %p", prec, str, p); then it takes 2 params */
+		if ((p[0] == '%' && p[1] == '*') ||
+		    (p[0] == '%' && p[1] == '.' && p[2] == '*'))
+			cnt++;
 		if (p[0] == '%') {
 			cnt++;
 			if (idx == cnt && p[1] == 'p')
