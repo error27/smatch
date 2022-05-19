@@ -375,46 +375,6 @@ free:
 	return ret;
 }
 
-void set_other_states_name_sym(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
-{
-	struct expression *tmp;
-	struct sm_state *sm;
-
-	FOR_EACH_MY_SM(check_assigned_expr_id, __get_cur_stree(), sm) {
-		tmp = sm->state->data;
-		if (!tmp)
-			continue;
-		if (tmp->type != EXPR_SYMBOL)
-			continue;
-		if (tmp->symbol != sym)
-			continue;
-		if (!tmp->symbol_name)
-			continue;
-		if (strcmp(tmp->symbol_name->name, name) != 0)
-			continue;
-		set_state(owner, tmp->symbol_name->name, tmp->symbol, state);
-	} END_FOR_EACH_SM(sm);
-
-	tmp = get_assigned_expr_name_sym(name, sym);
-	if (tmp)
-		set_state_expr(owner, tmp, state);
-}
-
-void set_other_states(int owner, struct expression *expr, struct smatch_state *state)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	set_other_states_name_sym(owner, name, sym, state);
-
-free:
-	free_string(name);
-}
-
 static bool is_ptr_to(struct expression *expr, const char *type)
 {
 	struct symbol *sym;
@@ -452,7 +412,6 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	}
 	track_freed_param(arg, &freed);
 	set_state_expr(my_id, arg, &freed);
-	set_other_states(my_id, arg, &freed);
 }
 
 static void match_kobject_put(const char *fn, struct expression *expr, void *param)
@@ -523,7 +482,6 @@ static void set_param_helper(struct expression *expr, int param,
 
 	track_freed_param_var_sym(name, sym, state);
 	set_state(my_id, name, sym, state);
-	set_other_states_name_sym(my_id, name, sym, state);
 free:
 	free_string(name);
 }
