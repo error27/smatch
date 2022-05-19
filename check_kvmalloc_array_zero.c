@@ -16,18 +16,41 @@
  */
 
 /*
- * This checks complains when we have kvmalloc_array used with
- * __GFP_ZERO flag, we can instead use kvcalloc which is designed
- * for it.
- * Similarly  kmalloc_array + __GPF_ZERO = kcalloc.
+ * This check complains when we have a function used with __GFP_ZERO flag and
+ * we can use a less verbose alternative.
+ *
+ * Example: kmalloc_array + __GPF_ZERO = kcalloc
  */
 
 #include "smatch.h"
 
 static int my_id;
 
+struct match_alloc_struct {
+	const char *function;
+	const char *alternative;
+	int flag_pos;
+};
+
+struct match_alloc_struct match_alloc_functions[] = {
+	{ "kmalloc", "kzalloc", 1 },
+	{ "kmalloc_node", "kzalloc_node", 1 },
+
+	{ "kmalloc_array", "kcalloc", 2 },
+	{ "kmalloc_array_node", "kcalloc_node", 2 },
+
+	{ "kvmalloc", "kvzalloc", 1 },
+	{ "kvmalloc_node", "kvzalloc_node", 1 },
+
+	{ "kvmalloc_array", "kvcalloc", 2 },
+
+	{ "kmem_cache_alloc", "kmem_cache_zalloc", 1 },
+	{ NULL, NULL, 0 }
+};
+
 static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 {
+	struct match_alloc_struct *entry = match_alloc_functions;
 	unsigned long gfp;
 	int arg_nr = PTR_INT(_arg);
 	struct expression *arg_expr;
@@ -41,20 +64,28 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 		return;
 
 	if (sval.uvalue & gfp) {
-		if (strcmp(fn,"kvmalloc_array") == 0)
-			sm_warning("Please consider using kvcalloc instead");
-		else
-			sm_warning("Please consider using kcalloc instead");
+		while (entry->function) {
+			if (strcmp(fn, entry->function) == 0) {
+				sm_warning("Please consider using %s instead of %s",
+					   entry->alternative, function->function);
+				break;
+			}
+			entry++;
+		}
 	}
 }
 
 void check_kvmalloc_array_zero(int id)
 {
+	struct match_alloc_struct *entry = match_alloc_functions;
+
 	if (option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;
 
-	add_function_hook("kvmalloc_array", &match_alloc, INT_PTR(2));
-	add_function_hook("kmalloc_array", &match_alloc, INT_PTR(2));
+	while (entry->function) {
+		add_function_hook(entry->function, &match_alloc, INT_PTR(entry->flag_pos));
+		entry++;
+	}
 }
