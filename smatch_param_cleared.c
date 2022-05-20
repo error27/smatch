@@ -248,7 +248,8 @@ static bool union_members_set(struct symbol *arg)
 	type = get_real_base_type(arg);
 	if (!type || type->type != SYM_PTR)
 		return false;
-	type = get_real_base_type(type);
+	while (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
 	if (!type || type->type != SYM_UNION)
 		return false;
 
