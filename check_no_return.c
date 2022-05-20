@@ -35,6 +35,8 @@ static void match_func_end(struct symbol *sym)
 		return;
 	if (out_of_memory() || taking_too_long())
 		return;
+	if (is_skipped_function())
+		return;
 	if (!returned)
 		sm_info("info: add to no_return_funcs");
 	returned = 0;
