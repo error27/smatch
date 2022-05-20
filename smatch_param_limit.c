@@ -49,6 +49,9 @@
 
 static int my_id;
 
+static struct stree *limit_states;
+static struct stree *ignore_states;
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -158,6 +161,11 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
 		if (tmp->name[0] == '&')
 			continue;
+
+		if (!get_state_stree(limit_states, my_id, tmp->name, tmp->sym) &&
+		    get_state_stree(ignore_states, my_id, tmp->name, tmp->sym))
+			continue;
+
 		param = get_param_num_from_sym(tmp->sym);
 		if (param < 0)
 			continue;
@@ -219,14 +227,53 @@ free:
 	free_string(param_name);
 }
 
+static bool is_just_dereference(struct expression *expr)
+{
+	struct symbol *type;
+
+	if (!expr)
+		return false;
+	if (in_condition())
+		return false;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return false;
+
+	if (expr->type == EXPR_DEREF)
+		return true;
+
+	return false;
+}
+
+static void extra_nomod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	if (is_just_dereference(expr)) {
+		set_state_stree(&ignore_states, my_id, name, sym, &undefined);
+		return;
+	}
+	set_state_stree(&limit_states, my_id, name, sym, &undefined);
+}
+
+static void match_end_func(struct symbol *sym)
+{
+	free_stree(&ignore_states);
+	free_stree(&limit_states);
+}
+
 void register_param_limit(int id)
 {
 	my_id = id;
+
+	add_function_data((unsigned long *)&limit_states);
+	add_function_data((unsigned long *)&ignore_states);
+	add_hook(&match_end_func, END_FUNC_HOOK);
 
 	db_ignore_states(my_id);
 	set_dynamic_states(my_id);
 
 	add_extra_mod_hook(&extra_mod_hook);
+	add_extra_nomod_hook(&extra_nomod_hook);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_estates);
 
