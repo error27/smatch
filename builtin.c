@@ -546,11 +546,19 @@ static int expand_object_size(struct expression *expr, int cost)
 			// a deref is just intermediate variable
 			// and so the offset needs to be zeroed.
 			if (arg->op == '*') {
+				struct expression *parent = arg;
 				arg = arg->unop;
 				off = 0;
 				switch (arg->type) {
 				case EXPR_SYMBOL:
 					arg = arg->symbol->initializer;
+					if (arg == parent) {
+						// stop at self-initialized vars
+						// and do not expand them.
+						arg = NULL;
+						val = -1;
+						break;
+					}
 					continue;
 				default:
 					break;
