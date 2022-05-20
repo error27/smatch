@@ -119,6 +119,34 @@ static bool sm_was_set(struct sm_state *sm)
 	return false;
 }
 
+static bool is_boring_pointer_info(const char *name, struct range_list *rl)
+{
+	char *rl_str;
+
+	/*
+	 * One way that PARAM_LIMIT can be set is by dereferencing pointers.
+	 * It's not necessarily very valuable to track that a pointer must
+	 * be non-NULL.  It's even less valuable to know that it's either NULL
+	 * or valid.  It can be nice to know that it's not an error pointer, I
+	 * suppose.  But let's not pass that data back to all the callers
+	 * forever.
+	 *
+	 */
+
+	if (strlen(name) < 40)
+		return false;
+
+	rl_str = show_rl(rl);
+	if (!rl_str)
+		return false;
+
+	if (strcmp(rl_str, "4096-ptr_max") == 0 ||
+	    strcmp(rl_str, "0,4096-ptr_max") == 0)
+		return true;
+
+	return false;
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state, *old;
@@ -155,6 +183,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 
 		rl = generify_mtag_range(state);
+		if (is_boring_pointer_info(param_name, rl))
+			continue;
+
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
 					 param, param_name, show_rl(rl));
 	} END_FOR_EACH_SM(tmp);
