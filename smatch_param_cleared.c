@@ -232,11 +232,37 @@ static bool already_printed(struct symbol *arg)
 	return parent_was_clear(arg->ident->name, arg, ANY);
 }
 
-static bool union_members_set(struct symbol *arg)
+static bool sym_is_void_pointer(struct symbol *sym)
+{
+	struct symbol *type;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+
+	return type == &void_ctype;
+}
+
+static bool sym_is_union_pointer(struct symbol *sym)
+{
+	struct symbol *type;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	while (type && type->type == SYM_PTR)
+		type = get_real_base_type(type);
+	if (!type || type->type != SYM_UNION)
+		return false;
+
+	return true;
+}
+
+static bool ambiguous_members_set(struct symbol *arg)
 {
 	struct sm_state *sm;
 	static int param_set_id;
-	struct symbol *type;
 	int cnt = 0;
 
 	if (!param_set_id)
@@ -245,12 +271,8 @@ static bool union_members_set(struct symbol *arg)
 	if (!arg || !arg->ident || !arg->ident->name)
 		return false;
 
-	type = get_real_base_type(arg);
-	if (!type || type->type != SYM_PTR)
-		return false;
-	while (type && type->type == SYM_PTR)
-		type = get_real_base_type(type);
-	if (!type || type->type != SYM_UNION)
+	if (!sym_is_void_pointer(arg) &&
+	    !sym_is_union_pointer(arg))
 		return false;
 
 	FOR_EACH_MY_SM(param_set_id, __get_cur_stree(), sm) {
@@ -307,7 +329,7 @@ void __promote_sets_to_clears(int return_id, char *return_ranges, struct express
 			continue;
 		if (already_printed(arg))
 			continue;
-		if (union_members_set(arg) ||
+		if (ambiguous_members_set(arg) ||
 		    all_struct_members_set(arg)) {
 
 			snprintf(buf, sizeof(buf), "*%s", arg->ident->name);
