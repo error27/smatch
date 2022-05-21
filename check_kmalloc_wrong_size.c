@@ -45,8 +45,9 @@ static void check_size_matches(int data_size, struct expression *size_expr)
 		sm_warning("double check that we're allocating correct size: %d vs %s", data_size, sval_to_str(sval));
 }
 
-static void match_alloc(const char *fn, struct expression *expr, void *unused)
+static void match_alloc(const char *fn, struct expression *expr, void *_arg_nr)
 {
+	int arg_nr = PTR_INT(_arg_nr);
 	struct expression *call = strip_expr(expr->right);
 	struct expression *arg;
 	int ptr_size;
@@ -55,7 +56,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *unused)
 	if (!ptr_size)
 		return;
 
-	arg = get_argument_from_call_expr(call->args, 0);
+	arg = get_argument_from_call_expr(call->args, arg_nr);
 	arg = strip_expr(arg);
 	if (!arg || arg->type != EXPR_BINOP || arg->op != '*')
 		return;
@@ -90,6 +91,6 @@ void check_kmalloc_wrong_size(int id)
 		return;
 	}
 
-	add_function_assign_hook("kmalloc", &match_alloc, NULL);
+	add_function_assign_hook("kmalloc", &match_alloc, INT_PTR(0));
 	add_function_assign_hook("kcalloc", &match_calloc, INT_PTR(1));
 }
