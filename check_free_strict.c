@@ -35,6 +35,37 @@ STATE(freed);
 STATE(maybe_freed);
 STATE(ok);
 
+static struct name_sym_fn_list *free_hooks;
+
+void add_free_hook(name_sym_hook *hook)
+{
+	add_ptr_list(&free_hooks, hook);
+}
+
+static void call_free_call_backs_name_sym(struct expression *expr, const char *name, struct symbol *sym)
+{
+	name_sym_hook *hook;
+
+	if (!expr)
+		expr = gen_expression_from_name_sym(name, sym);
+
+	FOR_EACH_PTR(free_hooks, hook) {
+		hook(expr, name, sym);
+	} END_FOR_EACH_PTR(hook);
+}
+
+static void call_free_call_backs(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name)
+		return;
+	call_free_call_backs_name_sym(expr, name, sym);
+	free_string(name);
+}
+
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (sm->state != &ok)
@@ -147,6 +178,10 @@ static bool is_percent_p(struct expression *str_expr, int idx)
 			p += 2;
 			continue;
 		}
+		/* If we have print("%.*s %p", prec, str, p); then it takes 2 params */
+		if ((p[0] == '%' && p[1] == '*') ||
+		    (p[0] == '%' && p[1] == '.' && p[2] == '*'))
+			cnt++;
 		if (p[0] == '%') {
 			cnt++;
 			if (idx == cnt && p[1] == 'p')
@@ -371,46 +406,6 @@ free:
 	return ret;
 }
 
-void set_other_states_name_sym(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
-{
-	struct expression *tmp;
-	struct sm_state *sm;
-
-	FOR_EACH_MY_SM(check_assigned_expr_id, __get_cur_stree(), sm) {
-		tmp = sm->state->data;
-		if (!tmp)
-			continue;
-		if (tmp->type != EXPR_SYMBOL)
-			continue;
-		if (tmp->symbol != sym)
-			continue;
-		if (!tmp->symbol_name)
-			continue;
-		if (strcmp(tmp->symbol_name->name, name) != 0)
-			continue;
-		set_state(owner, tmp->symbol_name->name, tmp->symbol, state);
-	} END_FOR_EACH_SM(sm);
-
-	tmp = get_assigned_expr_name_sym(name, sym);
-	if (tmp)
-		set_state_expr(owner, tmp, state);
-}
-
-void set_other_states(int owner, struct expression *expr, struct smatch_state *state)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	set_other_states_name_sym(owner, name, sym, state);
-
-free:
-	free_string(name);
-}
-
 static bool is_ptr_to(struct expression *expr, const char *type)
 {
 	struct symbol *sym;
@@ -447,8 +442,8 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 		free_string(name);
 	}
 	track_freed_param(arg, &freed);
+	call_free_call_backs(arg);
 	set_state_expr(my_id, arg, &freed);
-	set_other_states(my_id, arg, &freed);
 }
 
 static void match_kobject_put(const char *fn, struct expression *expr, void *param)
@@ -518,8 +513,9 @@ static void set_param_helper(struct expression *expr, int param,
 	}
 
 	track_freed_param_var_sym(name, sym, state);
+	if (state == &freed)
+		call_free_call_backs_name_sym(NULL, name, sym);
 	set_state(my_id, name, sym, state);
-	set_other_states_name_sym(my_id, name, sym, state);
 free:
 	free_string(name);
 }
@@ -611,7 +607,7 @@ static void match_untracked(struct expression *call, int param)
 	free_slist(&slist);
 }
 
-void add_free_hook(const char *func, func_hook *call_back, int param)
+static void register_free_hook(const char *func, func_hook *call_back, int param)
 {
 	insert_string(&handled, func);
 	add_function_hook(func, call_back, INT_PTR(param));
@@ -624,27 +620,29 @@ void check_free_strict(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_free_hook("free", &match_free, 0);
-	add_free_hook("kfree", &match_free, 0);
-	add_free_hook("vfree", &match_free, 0);
-	add_free_hook("kzfree", &match_free, 0);
-	add_free_hook("kvfree", &match_free, 0);
-	add_free_hook("kmem_cache_free", &match_free, 1);
-	add_free_hook("mempool_free", &match_free, 0);
-	add_free_hook("kfree_skb", &match_free, 0);
-	add_free_hook("kfree_skbmem", &match_free, 0);
-	add_free_hook("dma_pool_free", &match_free, 1);
-//	add_free_hook("spi_unregister_controller", &match_free, 0);
-	add_free_hook("netif_rx_internal", &match_free, 0);
-	add_free_hook("netif_rx", &match_free, 0);
-	add_free_hook("enqueue_to_backlog", &match_free, 0);
+	register_free_hook("memstick_free_host", &match_free, 0);
+	register_free_hook("free", &match_free, 0);
+	register_free_hook("kfree", &match_free, 0);
+	register_free_hook("vfree", &match_free, 0);
+	register_free_hook("kzfree", &match_free, 0);
+	register_free_hook("kvfree", &match_free, 0);
+	register_free_hook("kmem_cache_free", &match_free, 1);
+	register_free_hook("mempool_free", &match_free, 0);
+	register_free_hook("kfree_skb", &match_free, 0);
+	register_free_hook("kfree_skbmem", &match_free, 0);
+	register_free_hook("dma_pool_free", &match_free, 1);
+//	register_free_hook("spi_unregister_controller", &match_free, 0);
+	register_free_hook("netif_rx_internal", &match_free, 0);
+	register_free_hook("netif_rx", &match_free, 0);
+	register_free_hook("enqueue_to_backlog", &match_free, 0);
 
-	add_free_hook("brelse", &match_free, 0);
-	add_free_hook("kobject_put", &match_kobject_put, 0);
-	add_free_hook("kref_put", &match_kobject_put, 0);
-	add_free_hook("put_device", &match_kobject_put, 0);
+	register_free_hook("brelse", &match_free, 0);
+	register_free_hook("kobject_put", &match_kobject_put, 0);
+	register_free_hook("kref_put", &match_kobject_put, 0);
+	register_free_hook("put_device", &match_kobject_put, 0);
 
-	add_free_hook("dma_free_coherent", match_free, 2);
+	register_free_hook("dma_free_coherent", match_free, 2);
+	register_free_hook("free_netdev", &match_free, 0);
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);

@@ -112,13 +112,15 @@ static bool get_absolute(struct expression *expr, struct range_list **rl)
 
 static void match_assign(struct expression *expr)
 {
+	struct expression *right;
 	struct range_list *rl;
 	struct symbol *type;
 	sval_t sval;
 
 	if (expr->op != '=')
 		return;
-	if (is_fake_call(expr->right))
+	right = strip_expr(expr->right);
+	if (right->type == EXPR_CALL)
 		return;
 	if (in_iterator_pre_statement())
 		return;

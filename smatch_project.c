@@ -29,6 +29,7 @@
 static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
 static struct hashtable *skipped_funcs;
+static struct hashtable *skipped_macros;
 static struct hashtable *silenced_funcs;
 static struct hashtable *no_inline_funcs;
 
@@ -46,13 +47,21 @@ int is_skipped_function(void)
 
 static void match_function_def(struct symbol *sym)
 {
+	char *macro;
 	char *func;
 
 	func = get_function();
 	if (!func)
 		return;
-	if (search_func(skipped_funcs, func))
+	if (skipped_funcs && search_func(skipped_funcs, func)) {
 		set_function_skipped();
+		return;
+	}
+	macro = get_macro_name(cur_func_sym->pos);
+	if (macro && skipped_macros && search_func(skipped_macros, macro)) {
+		set_function_skipped();
+		return;
+	}
 }
 
 /*
@@ -132,33 +141,37 @@ static void register_ignored_macros(void)
 	clear_token_alloc();
 }
 
-static void register_skipped_functions(void)
+static struct hashtable *register_skipped(const char *filename)
 {
+	struct hashtable *table;
 	struct token *token;
 	char *func;
 	char name[256];
 
-	skipped_funcs = create_function_hashtable(500);
-
 	if (option_project == PROJ_NONE)
-		return;
+		return NULL;
 
-	snprintf(name, 256, "%s.skipped_functions", option_project_str);
+	snprintf(name, 256, "%s.%s", option_project_str, filename);
 
 	token = get_tokens_file(name);
 	if (!token)
-		return;
+		return NULL;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
+		return NULL;
+
+	table = create_function_hashtable(500);
+
 	token = token->next;
 	while (token_type(token) != TOKEN_STREAMEND) {
 		if (token_type(token) != TOKEN_IDENT)
-			return;
+			return table;
 		func = alloc_string(show_ident(token->ident));
-		insert_func(skipped_funcs, func, INT_PTR(1));
+		insert_func(table, func, INT_PTR(1));
 		token = token->next;
 	}
 	clear_token_alloc();
+
+	return table;
 }
 
 static void register_silenced_functions(void)
@@ -225,7 +238,8 @@ void register_project(int id)
 	add_function_data(&skipped);
 	register_no_return_funcs();
 	register_ignored_macros();
-	register_skipped_functions();
+	skipped_funcs = register_skipped("skipped_functions");
+	skipped_macros = register_skipped("skipped_macros");
 	register_silenced_functions();
 	register_no_inline_functions();
 }

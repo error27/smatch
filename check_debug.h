@@ -13,6 +13,7 @@ static inline void __smatch_implied(long long val){}
 static inline void __smatch_implied_min(long long val){}
 static inline void __smatch_implied_max(long long val){}
 static inline void __smatch_user_rl(long long val){}
+static inline void __smatch_host_rl(long long val){}
 static inline void __smatch_capped(long long val){}
 
 static inline void __smatch_hard_max(long long val){}

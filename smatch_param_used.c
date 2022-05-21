@@ -27,6 +27,7 @@ STATE(used);
 
 static void get_state_hook(int owner, const char *name, struct symbol *sym)
 {
+	static const char *prev;
 	int arg;
 
 	if (!option_info)
@@ -42,11 +43,18 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 	if (!name || name[0] == '&')
 		return;
 
+	if (name == prev)
+		return;
+	prev = name;
+
 	arg = get_param_num_from_sym(sym);
 	if (arg < 0)
 		return;
 	if (param_was_set_var_sym(name, sym))
 		return;
+	if (parent_was_PARAM_CLEAR(name, sym))
+		return;
+
 	set_state_stree(&used_stree, my_id, name, sym, &used);
 }
 

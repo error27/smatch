@@ -65,6 +65,8 @@ fi
 
 make $KERNEL_ARCH $KERNEL_CROSS_COMPILE clean
 find -name \*.c.smatch -exec rm \{\} \;
+find -name \*.c.smatch.sql -exec rm \{\} \;
+find -name \*.c.smatch.caller_info -exec rm \{\} \;
 make $KERNEL_ARCH $KERNEL_CROSS_COMPILE -j${NR_CPU} $ENDIAN -k CHECK="$CMD -p=kernel --file-output --succeed $*" \
 	C=1 $BUILD_PARAM $TARGET 2>&1 | tee $LOG
 BUILD_STATUS=${PIPESTATUS[0]}

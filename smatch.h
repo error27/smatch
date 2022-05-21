@@ -844,11 +844,11 @@ enum info_type {
 	 * We select these in order by type so if the order matters, then give
 	 * it a number below 100-999,9000-9999 ranges. */
 
-	PARAM_CLEARED	= 101,
 	PARAM_LIMIT	= 103,
 	PARAM_FILTER	= 104,
 
 	RELEASE		= 500,
+	BUF_CLEARED	= 501,
 
 	PARAM_VALUE	= 1001,
 	BUF_SIZE	= 1002,
@@ -1322,6 +1322,7 @@ int param_was_set(struct expression *expr);
 int param_was_set_var_sym(const char *name, struct symbol *sym);
 void print_limited_param_set(int return_id, char *return_ranges, struct expression *expr);
 /* param_clear */
+void __promote_sets_to_clears(int return_id, char *return_ranges, struct expression *expr);
 bool parent_was_PARAM_CLEAR(const char *name, struct symbol *sym);
 bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym);
 
@@ -1443,6 +1444,8 @@ void track_freed_param(struct expression *expr, struct smatch_state *state);
 void track_freed_param_var_sym(const char *name, struct symbol *sym,
 			       struct smatch_state *state);
 bool is_part_of_condition(struct expression *expr);
+
+void add_free_hook(name_sym_hook *hook);
 
 /* smatch_unconstant_macros.c */
 int is_unconstant_macro(struct expression *expr);

@@ -43,6 +43,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (!cur_func_sym)
 		return;
 
+	if (name && strstr(name, "->"))
+		return;
+
 	set_state(my_member_id, name, sym, state);
 }
 
@@ -425,7 +428,7 @@ void check_rosenberg(int id)
 	add_function_hook("__builtin_memcpy", &match_clear, INT_PTR(0));
 
 	register_clears_argument();
-	select_return_states_hook(PARAM_CLEARED, &db_param_cleared);
+	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
 
 	register_copy_funcs_from_file();
 }

@@ -242,6 +242,8 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 	char two_dot[80] = "";
 	int count = 0;
 
+	__promote_sets_to_clears(return_id, return_ranges, expr);
+
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		bool untracked = false;
 
@@ -268,6 +270,9 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			continue;
 		}
 		if (untracked) {
+			if (parent_was_PARAM_CLEAR(sm->name, sm->sym))
+				continue;
+
 			sql_insert_return_states(return_id, return_ranges,
 						 UNTRACKED_PARAM, param, param_name, "");
 			continue;

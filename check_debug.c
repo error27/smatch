@@ -215,6 +215,40 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_host_rl(const char *fn, struct expression *expr, void *info)
+{
+       struct expression *arg;
+       struct range_list *rl = NULL;
+       struct sm_state *sm;
+       bool capped = false;
+       bool new = false;
+       int host_id;
+       char *name;
+
+       host_id = id_from_name("register_kernel_host_data");
+       if (!host_id) {
+               sm_msg("no host id");
+               return;
+       }
+
+       arg = get_argument_from_call_expr(expr->args, 0);
+       name = expr_to_str(arg);
+
+       get_host_rl(arg, &rl);
+       if (rl)
+               capped = user_rl_capped(arg);
+       sm = get_sm_state_expr(host_id, arg);
+       if (sm && estate_new(sm->state))
+               new = true;
+
+       sm_msg("host rl: '%s' = '%s'%s %s sm='%s'", name, show_rl(rl),
+              capped ? " (capped)" : "",
+              new ? "(new)" : "(old)",
+              show_sm(sm));
+
+       free_string(name);
+}
+
 static void match_capped(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
@@ -515,10 +549,12 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 static void match_local_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	local_debug = 1;
+	option_print_names++;
 }
 
 static void match_local_debug_off(const char *fn, struct expression *expr, void *info)
 {
+	option_print_names--;
 	local_debug = 0;
 }
 
@@ -856,6 +892,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_implied_min", &match_print_implied_min, NULL);
 	add_function_hook("__smatch_implied_max", &match_print_implied_max, NULL);
 	add_function_hook("__smatch_user_rl", &match_user_rl, NULL);
+	add_function_hook("__smatch_host_rl", &match_host_rl, NULL);
 	add_function_hook("__smatch_capped", &match_capped, NULL);
 	add_function_hook("__smatch_hard_max", &match_print_hard_max, NULL);
 	add_function_hook("__smatch_fuzzy_max", &match_print_fuzzy_max, NULL);
