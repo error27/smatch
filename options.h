@@ -70,6 +70,8 @@ extern int dbg_postorder;
 extern int dump_macro_defs;
 extern int dump_macros_only;
 
+extern int dissect_show_all_symbols;
+
 extern unsigned long fdump_ir;
 extern int fhosted;
 extern unsigned int fmax_errors;

@@ -70,6 +70,8 @@ int dbg_postorder = 0;
 int dump_macro_defs = 0;
 int dump_macros_only = 0;
 
+int dissect_show_all_symbols = 0;
+
 unsigned long fdump_ir;
 int fhosted = 1;
 unsigned int fmax_errors = 100;
@@ -957,6 +959,9 @@ static char **handle_param(char *arg, char **next)
 
 	if (!value)
 		die("missing argument for --param option");
+
+	if (!strcmp(value, "dissect-show-all-symbols"))
+		dissect_show_all_symbols = 1;
 
 	return next;
 }
