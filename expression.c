@@ -427,8 +427,16 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 	case TOKEN_CHAR ... TOKEN_WIDE_CHAR_EMBEDDED_3:
 		expr = alloc_expression(token->pos, EXPR_VALUE);
 		expr->flags = CEF_SET_CHAR;
-		expr->ctype = token_type(token) < TOKEN_WIDE_CHAR ? &int_ctype : &long_ctype;
 		get_char_constant(token, &expr->value);
+
+		// TODO: handle 'u8', 'u' & 'U' prefixes.
+		if (token_type(token) < TOKEN_WIDE_CHAR) {
+			expr->ctype = &char_ctype;
+			cast_value(expr, &int_ctype, expr, expr->ctype);
+			expr->ctype = &int_ctype;
+		} else {
+			expr->ctype = wchar_ctype;
+		}
 		token = token->next;
 		break;
 
