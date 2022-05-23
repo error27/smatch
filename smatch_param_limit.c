@@ -52,6 +52,8 @@ static int my_id;
 static struct stree *limit_states;
 static struct stree *ignore_states;
 
+int __no_limits;
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -227,28 +229,9 @@ free:
 	free_string(param_name);
 }
 
-static bool is_just_dereference(struct expression *expr)
-{
-	struct symbol *type;
-
-	if (!expr)
-		return false;
-	if (in_condition())
-		return false;
-
-	type = get_type(expr);
-	if (!type || type->type != SYM_PTR)
-		return false;
-
-	if (expr->type == EXPR_DEREF)
-		return true;
-
-	return false;
-}
-
 static void extra_nomod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	if (is_just_dereference(expr)) {
+	if (__no_limits) {
 		set_state_stree(&ignore_states, my_id, name, sym, &undefined);
 		return;
 	}
