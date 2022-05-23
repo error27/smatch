@@ -84,18 +84,28 @@ static int fresh_callback(void *fresh, int argc, char **argv, char **azColName)
 
 static int fresh_from_db(struct expression *call)
 {
+	static struct expression *prev_call;
+	static int prev_ret;
 	int fresh = 0;
 
 	if (is_fake_call(call))
 		return 0;
 
+	if (call == prev_call)
+		return prev_ret;
+	prev_call = call;
+
 	/* for function pointers assume everything is used */
-	if (call->fn->type != EXPR_SYMBOL)
+	if (call->fn->type != EXPR_SYMBOL) {
+		prev_ret = 0;
 		return 0;
+	}
 
 	run_sql(&fresh_callback, &fresh,
 		"select * from return_states where %s and type = %d and parameter = -1 and key = '$' limit 1;",
 		get_static_filter(call->fn->symbol), FRESH_ALLOC);
+
+	prev_ret = fresh;
 	return fresh;
 }
 
