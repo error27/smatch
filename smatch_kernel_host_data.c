@@ -577,7 +577,7 @@ static bool handle_op_assign(struct expression *expr)
 static void match_assign_host(struct expression *expr)
 {
 	struct symbol *left_type, *right_type;
-	struct range_list *rl;
+	struct range_list *rl = NULL;
 	static struct expression *handled;
 	struct smatch_state *state;
 	struct expression *faked;
@@ -595,7 +595,7 @@ static void match_assign_host(struct expression *expr)
 
 	/* FIXME: handle fake array assignments frob(&host_array[x]); */
 
-	if (is_fake_call(expr->right) && faked &&
+	if (faked &&
 	    faked->type == EXPR_ASSIGNMENT &&
 	    points_to_host_data(faked->right)) {
 		rl = alloc_whole_rl(get_type(expr->left));
@@ -623,7 +623,12 @@ static void match_assign_host(struct expression *expr)
 	if (expr->right->type == EXPR_CALL)
 		return;
 
-	if (!get_host_rl(expr->right, &rl))
+	if (faked)
+		disable_type_val_lookups();
+	get_host_rl(expr->right, &rl);
+	if (faked)
+		enable_type_val_lookups();
+	if (!rl)
 		goto clear_old_state;
 
 	is_capped = host_rl_capped(expr->right);

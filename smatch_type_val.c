@@ -38,8 +38,20 @@
 
 static int my_id;
 
+static int no_type_vals;
+
 struct stree *fn_type_val;
 struct stree *global_type_val;
+
+void disable_type_val_lookups(void)
+{
+	no_type_vals++;
+}
+
+void enable_type_val_lookups(void)
+{
+	no_type_vals--;
+}
 
 static int get_vals(void *_db_vals, int argc, char **argv, char **azColName)
 {
@@ -85,6 +97,9 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 
 	if (get_cached(expr, rl, &ret))
 		return ret;
+
+	if (no_type_vals)
+		return 0;
 
 	member = get_member_name(expr);
 	if (!member)

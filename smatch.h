@@ -719,6 +719,8 @@ int get_absolute_min_helper(struct expression *expr, sval_t *sval);
 int get_absolute_max_helper(struct expression *expr, sval_t *sval);
 
 /* smatch_type_value.c */
+void disable_type_val_lookups(void);
+void enable_type_val_lookups(void);
 void clear_type_value_cache(void);
 int get_db_type_rl(struct expression *expr, struct range_list **rl);
 
