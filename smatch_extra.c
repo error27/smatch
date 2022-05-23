@@ -1430,6 +1430,17 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	struct symbol *sym;
 	char *name;
 
+	if (strcmp(key, "$") == 0 && arg->type == EXPR_PREOP && arg->op == '&') {
+		struct expression *tmp;
+
+		tmp = strip_expr(arg->unop);
+		if (tmp->type == EXPR_DEREF) {
+			tmp = strip_expr(tmp->deref);
+			if (tmp->type == EXPR_PREOP && tmp->op == '*')
+				arg = strip_expr(tmp->unop);
+		}
+	}
+
 	name = get_variable_from_key(arg, key, &sym);
 	if (name && sym) {
 		struct smatch_state *orig, *new;
