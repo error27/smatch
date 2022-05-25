@@ -79,26 +79,20 @@ void track_freed_param_var_sym(const char *name, struct symbol *sym,
 	set_state(my_id, name, sym, state);
 }
 
-static void param_freed_info(int return_id, char *return_ranges, struct expression *expr)
+static void return_freed_callback(int return_id, char *return_ranges,
+				 struct expression *returned_expr,
+				 int param,
+				 const char *printed_name,
+				 struct sm_state *sm)
 {
-	struct sm_state *sm;
-	int param;
-	const char *param_name;
+	if (strcmp(sm->state->name, "freed") != 0)
+		return;
 
 	if (on_atomic_dec_path())
 		return;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (strcmp(sm->state->name, "freed") != 0)
-			continue;
-
-		param = get_param_key_from_sm(sm, NULL, &param_name);
-		if (param < 0)
-			continue;
-
-		sql_insert_return_states(return_id, return_ranges, PARAM_FREED,
-					 param, param_name, "");
-	} END_FOR_EACH_SM(sm);
+	sql_insert_return_states(return_id, return_ranges, PARAM_FREED,
+				 param, printed_name, "");
 }
 
 void check_frees_param_strict(int id)
@@ -106,6 +100,6 @@ void check_frees_param_strict(int id)
 	my_id = id;
 
 	add_modification_hook(my_id, &set_ignore);
-	add_split_return_callback(&param_freed_info);
+	add_return_info_callback(my_id, return_freed_callback);
 	add_unmatched_state_hook(my_id, &unmatched_state);
 }
