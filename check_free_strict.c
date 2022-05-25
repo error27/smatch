@@ -35,6 +35,47 @@ STATE(freed);
 STATE(maybe_freed);
 STATE(ok);
 
+static void match_kobject_put(const char *fn, struct expression *expr, void *param);
+
+struct func_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
+};
+
+static struct func_info func_table[] = {
+	{ "free", PARAM_FREED, 0, "$" },
+	{ "kfree", PARAM_FREED, 0, "$" },
+	{ "vfree", PARAM_FREED, 0, "$" },
+	{ "kzfree", PARAM_FREED, 0, "$" },
+	{ "kvfree", PARAM_FREED, 0, "$" },
+
+	{ "kfree_skb", PARAM_FREED, 0, "$" },
+	{ "kfree_skbmem", PARAM_FREED, 0, "$" },
+
+	{ "mempool_free", PARAM_FREED, 0, "$" },
+	{ "kmem_cache_free", PARAM_FREED, 1, "$" },
+	{ "dma_pool_free", PARAM_FREED, 1, "$" },
+
+	{ "memstick_free_host", PARAM_FREED, 0, "$" },
+//	{ "spi_unregister_controller", PARAM_FREED, 0, "$" },
+	{ "netif_rx_internal", PARAM_FREED, 0, "$" },
+	{ "netif_rx", PARAM_FREED, 0, "$" },
+
+	{ "enqueue_to_backlog", PARAM_FREED, 0, "$" },
+
+	{ "brelse", PARAM_FREED, 0, "$" },
+	{ "dma_free_coherent", PARAM_FREED, 2, "$" },
+	{ "free_netdev", PARAM_FREED, 0, "$" },
+
+	{ "kobject_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
+	{ "kref_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
+	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
+};
+
 static struct name_sym_fn_list *free_hooks;
 
 void add_free_hook(name_sym_hook *hook)
@@ -607,42 +648,25 @@ static void match_untracked(struct expression *call, int param)
 	free_slist(&slist);
 }
 
-static void register_free_hook(const char *func, func_hook *call_back, int param)
-{
-	insert_string(&handled, func);
-	add_function_hook(func, call_back, INT_PTR(param));
-}
-
 void check_free_strict(int id)
 {
+	struct func_info *info;
+	int i;
+
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	register_free_hook("memstick_free_host", &match_free, 0);
-	register_free_hook("free", &match_free, 0);
-	register_free_hook("kfree", &match_free, 0);
-	register_free_hook("vfree", &match_free, 0);
-	register_free_hook("kzfree", &match_free, 0);
-	register_free_hook("kvfree", &match_free, 0);
-	register_free_hook("kmem_cache_free", &match_free, 1);
-	register_free_hook("mempool_free", &match_free, 0);
-	register_free_hook("kfree_skb", &match_free, 0);
-	register_free_hook("kfree_skbmem", &match_free, 0);
-	register_free_hook("dma_pool_free", &match_free, 1);
-//	register_free_hook("spi_unregister_controller", &match_free, 0);
-	register_free_hook("netif_rx_internal", &match_free, 0);
-	register_free_hook("netif_rx", &match_free, 0);
-	register_free_hook("enqueue_to_backlog", &match_free, 0);
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
 
-	register_free_hook("brelse", &match_free, 0);
-	register_free_hook("kobject_put", &match_kobject_put, 0);
-	register_free_hook("kref_put", &match_kobject_put, 0);
-	register_free_hook("put_device", &match_kobject_put, 0);
-
-	register_free_hook("dma_free_coherent", match_free, 2);
-	register_free_hook("free_netdev", &match_free, 0);
+		insert_string(&handled, info->name);
+		if (info->call_back)
+			add_function_hook(info->name, info->call_back, INT_PTR(info->param));
+		else
+			add_function_hook(info->name, &match_free, INT_PTR(info->param));
+	}
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
