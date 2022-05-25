@@ -2,3 +2,4 @@
 (struct hid_report)->field, <, (struct hid_report)->maxfield
 (struct pidff_device)->pid_id, <, (struct ff_device)->max_effects
 (struct usb_mixer_elem_info)->cache_val, <, (struct snd_ctl_elem_id)->index
+(struct usb_mixer_elem_info)->cache_val, <, kctl->id.index + kctl->count
