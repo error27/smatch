@@ -35,7 +35,7 @@ STATE(freed);
 STATE(maybe_freed);
 STATE(ok);
 
-static void match_kobject_put(const char *fn, struct expression *expr, void *param);
+static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data);
 
 struct func_info {
 	const char *name;
@@ -43,7 +43,7 @@ struct func_info {
 	int param;
 	const char *key;
 	const sval_t *implies_start, *implies_end;
-	func_hook *call_back;
+	param_key_hook *call_back;
 };
 
 static struct func_info func_table[] = {
@@ -93,18 +93,6 @@ static void call_free_call_backs_name_sym(struct expression *expr, const char *n
 	FOR_EACH_PTR(free_hooks, hook) {
 		hook(expr, name, sym);
 	} END_FOR_EACH_PTR(hook);
-}
-
-static void call_free_call_backs(struct expression *expr)
-{
-	char *name;
-	struct symbol *sym;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name)
-		return;
-	call_free_call_backs_name_sym(expr, name, sym);
-	free_string(name);
 }
 
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
@@ -460,14 +448,14 @@ static bool is_ptr_to(struct expression *expr, const char *type)
 	return false;
 }
 
-static void match_free(const char *fn, struct expression *expr, void *param)
+static void match_free(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
 	struct expression *arg;
 
 	if (is_impossible_path())
 		return;
 
-	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
+	arg = gen_expression_from_name_sym(name, sym);
 	if (!arg)
 		return;
 	if (is_ptr_to(arg, "sk_buff") &&
@@ -476,22 +464,20 @@ static void match_free(const char *fn, struct expression *expr, void *param)
 	if (is_ptr_to(arg, "buffer_head") &&
 	    counter_was_inced(arg, "->b_count.counter"))
 		return;
-	if (is_freed(arg)) {
-		char *name = expr_to_var(arg);
-
+	if (is_freed(arg))
 		sm_error("double free of '%s'", name);
-		free_string(name);
-	}
+
 	track_freed_param(arg, &freed);
-	call_free_call_backs(arg);
+	call_free_call_backs_name_sym(expr, name, sym);
 	set_state_expr(my_id, arg, &freed);
 }
 
-static void match_kobject_put(const char *fn, struct expression *expr, void *param)
+
+static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
 	struct expression *arg;
 
-	arg = get_argument_from_call_expr(expr->args, PTR_INT(param));
+	arg = gen_expression_from_name_sym(name, sym);
 	if (!arg)
 		return;
 	/* kobject_put(&cdev->kobj); */
@@ -651,6 +637,7 @@ static void match_untracked(struct expression *call, int param)
 void check_free_strict(int id)
 {
 	struct func_info *info;
+	param_key_hook *cb;
 	int i;
 
 	my_id = id;
@@ -662,10 +649,20 @@ void check_free_strict(int id)
 		info = &func_table[i];
 
 		insert_string(&handled, info->name);
+
 		if (info->call_back)
-			add_function_hook(info->name, info->call_back, INT_PTR(info->param));
+			cb = info->call_back;
 		else
-			add_function_hook(info->name, &match_free, INT_PTR(info->param));
+			cb = &match_free;
+
+		if (info->implies_start) {
+			return_implies_param_key(info->name,
+					*info->implies_start, *info->implies_end,
+					cb, info->param, info->key, info);
+		} else {
+			add_function_param_key_hook(info->name, cb,
+					info->param, info->key, info);
+		}
 	}
 
 	if (option_spammy)
