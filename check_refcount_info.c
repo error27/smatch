@@ -40,11 +40,6 @@ struct ref_func_info {
 	param_key_hook *call_back;
 };
 
-struct type_handler {
-	int type;
-	param_key_hook *call_back;
-};
-
 static void match_atomic_add(struct expression *expr, const char *name, struct symbol *sym, void *_unused);
 
 static struct ref_func_info func_table[] = {
