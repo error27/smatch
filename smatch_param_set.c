@@ -365,9 +365,17 @@ static bool sym_was_set(struct symbol *sym)
 
 int param_was_set_var_sym(const char *name, struct symbol *sym)
 {
+	struct symbol *param_sym;
+	const char *param_name;
 	struct sm_state *sm;
 	char buf[80];
 	int len, i;
+
+	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
+	if (param_name && param_sym) {
+		name = param_name;
+		sym = param_sym;
+	}
 
 	if (!name)
 		return 0;
