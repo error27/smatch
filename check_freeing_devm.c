@@ -59,7 +59,7 @@ static void match_free_func(const char *fn, struct expression *expr, void *_arg)
 	if (!get_state_expr(my_id, arg_expr))
 		return;
 	name = expr_to_str(arg_expr);
-	sm_warning("passing devm_ allocated variable to kfree. '%s'", name);
+	sm_warning("passing devm_ allocated variable to %s. '%s'", fn, name);
 	free_string(name);
 }
 
