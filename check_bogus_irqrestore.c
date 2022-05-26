@@ -19,12 +19,13 @@
 
 static int my_id;
 
-static void match_irqrestore(const char *fn, struct expression *expr, void *data)
+static void match_irqrestore(const char *fn, struct expression *expr, void *_arg_nr)
 {
+	int arg_nr = PTR_INT(_arg_nr);
 	struct expression *arg_expr;
 	sval_t tmp;
 
-	arg_expr = get_argument_from_call_expr(expr->args, 1);
+	arg_expr = get_argument_from_call_expr(expr->args, arg_nr);
 	if (!get_implied_value(arg_expr, &tmp))
 		return;
 	sm_error("calling '%s()' with bogus flags", fn);
@@ -36,5 +37,5 @@ void check_bogus_irqrestore(int id)
 		return;
 
 	my_id = id;
-	add_function_hook("spin_unlock_irqrestore", &match_irqrestore, NULL);
+	add_function_hook("spin_unlock_irqrestore", &match_irqrestore, INT_PTR(1));
 }
