@@ -101,6 +101,10 @@ void check_freeing_devm(int id)
 	add_function_assign_hook("devm_kcalloc", &match_assign, NULL);
 	add_function_assign_hook("devm_kmalloc_array", &match_assign, NULL);
 
+	add_function_assign_hook("devm_kmemdup", &match_assign, NULL);
+	add_function_assign_hook("devm_kstrdup", &match_assign, NULL);
+	add_function_assign_hook("devm_kasprintf", &match_assign, NULL);
+	add_function_assign_hook("devm_kvasprintf", &match_assign, NULL);
 
 	add_function_hook("kfree", &match_free_func, INT_PTR(0));
 	add_function_hook("krealloc", &match_free_func, INT_PTR(0));
