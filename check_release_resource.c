@@ -82,9 +82,9 @@ void check_release_resource(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_function_hook("request_resource", &match_request, (void *)1);
-	add_function_hook("release_resource", &match_release, (void *)0);
-	add_function_hook("request_mem_resource", &match_request, (void *)0);
-	add_function_hook("release_mem_resource", &match_release, (void *)0);
+	add_function_hook("request_resource", &match_request, INT_PTR(1));
+	add_function_hook("release_resource", &match_release, INT_PTR(0));
+	add_function_hook("request_mem_resource", &match_request, INT_PTR(0));
+	add_function_hook("release_mem_resource", &match_release, INT_PTR(0));
 	add_hook(&match_end_func, END_FUNC_HOOK);
 }
