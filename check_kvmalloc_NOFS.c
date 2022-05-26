@@ -33,7 +33,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	    !(sval.uvalue & GFP_ATOMIC()))
 		return;
 
-	sm_error("kvmalloc() does not make sense for no sleep code");
+	sm_error("%s() does not make sense for no sleep code", fn);
 }
 
 void check_kvmalloc_NOFS(int id)
