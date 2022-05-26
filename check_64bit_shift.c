@@ -93,6 +93,9 @@ void check_64bit_shift(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_hook(&match_shift_assignment, ASSIGNMENT_HOOK);
 	add_hook(&match_shift_mask, BINOP_HOOK);
 }
