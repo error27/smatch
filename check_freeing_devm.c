@@ -26,6 +26,29 @@ static void match_assign(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_id, expr->left, &devm);
 }
 
+/*
+ * This hook deals with things like:
+ * ptr = devm_kmalloc(...);
+ * if (!ptr)
+ * 	return -ENOMEM;
+ * another_val = ptr;			<==
+ */
+static void match_reassign(struct expression *expr)
+{
+	struct expression *left, *right;
+
+	if (expr->op != '=')
+		return;
+
+	right = strip_expr(expr->right);
+	if (!get_state_expr(my_id, right))
+		return;
+
+	left = strip_expr(expr->left);
+
+	set_state_expr(my_id, left, &devm);
+}
+
 static void match_free_func(const char *fn, struct expression *expr, void *_arg)
 {
 	struct expression *arg_expr;
@@ -82,4 +105,6 @@ void check_freeing_devm(int id)
 	add_function_hook("kfree", &match_free_func, INT_PTR(0));
 	add_function_hook("krealloc", &match_free_func, INT_PTR(0));
 	register_funcs_from_file();
+
+	add_hook(&match_reassign, ASSIGNMENT_HOOK);
 }
