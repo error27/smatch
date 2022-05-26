@@ -55,7 +55,7 @@ static void check_func_return(struct expression *expr)
 	if (strcmp(func, "printf") == 0 || strcmp(func, "vprintf") == 0)
 		return;
 
-	if (strcmp(func, "fprintf") == 0 || strcmp(func, "vfprintf")) {
+	if (strcmp(func, "fprintf") == 0 || strcmp(func, "vfprintf") == 0) {
 		const char *arg0 = expr_to_str(get_argument_from_call_expr(expr->args, 0));
 
 		if (arg0 != NULL &&
