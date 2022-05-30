@@ -121,8 +121,7 @@ static void match_condition2(struct expression *expr)
 
 warn:
 	name = expr_to_str(expr);
-	if (option_spammy)
-		sm_warning("'%s' could be an error pointer", name);
+	sm_warning("'%s' could be an error pointer", name);
 	free_string(name);
 }
 
@@ -179,7 +178,8 @@ void check_checking_for_null_instead_of_err_ptr(int id)
 	my_id = id;
 	register_err_ptr_funcs();
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_hook(&match_condition2, CONDITION_HOOK);
+	if (option_spammy)
+		add_hook(&match_condition2, CONDITION_HOOK);
 	add_modification_hook(my_id, &ok_to_use);
 	register_ignored_macros();
 }
