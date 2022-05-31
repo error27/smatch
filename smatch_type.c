@@ -345,6 +345,8 @@ static struct symbol *get_final_type_helper(struct expression *expr)
 
 	if (expr->type == EXPR_COMPARE)
 		return &int_ctype;
+	if (expr->type == EXPR_PREOP && expr->op == '!')
+		return &int_ctype;
 
 	return NULL;
 }
