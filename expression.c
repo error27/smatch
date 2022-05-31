@@ -433,7 +433,6 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		if (token_type(token) < TOKEN_WIDE_CHAR) {
 			expr->ctype = &char_ctype;
 			cast_value(expr, &int_ctype, expr, expr->ctype);
-			expr->ctype = &int_ctype;
 		} else {
 			expr->ctype = wchar_ctype;
 		}

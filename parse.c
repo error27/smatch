@@ -904,7 +904,6 @@ static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
 			continue;
 		}
 		cast_value(expr, base_type, expr, ctype);
-		expr->ctype = base_type;
 	} END_FOR_EACH_PTR(sym);
 }
 

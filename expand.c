@@ -110,11 +110,13 @@ void cast_value(struct expression *expr, struct symbol *newtype,
 	expr->taint = old->taint;
 	if (old_size == new_size) {
 		expr->value = old->value;
+		expr->ctype = newtype;
 		return;
 	}
 
 	// expand it to the full "long long" value
 	value = get_longlong(old);
+	expr->ctype = newtype;
 
 Int:
 	// _Bool requires a zero test rather than truncation.
@@ -153,6 +155,7 @@ Float:
 		value = (long long)old->fvalue;
 		expr->type = EXPR_VALUE;
 		expr->taint = 0;
+		expr->ctype = newtype;
 		goto Int;
 	}
 
@@ -168,6 +171,7 @@ Float:
 			expr->fvalue = (float)expr->fvalue;
 	}
 	expr->type = EXPR_FVALUE;
+	expr->ctype = newtype;
 }
 
 /* Return true if constant shift size is valid */
