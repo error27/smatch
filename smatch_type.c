@@ -438,7 +438,7 @@ int returns_unsigned(struct symbol *sym)
 
 int is_pointer(struct expression *expr)
 {
-	return type_is_ptr(get_type(expr));
+	return type_is_ptr(get_final_type(expr));
 }
 
 int returns_pointer(struct symbol *sym)
