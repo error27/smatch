@@ -94,9 +94,9 @@ static long long get_longlong(struct expression *expr)
 	return (value & andmask) | ormask;
 }
 
-void cast_value(struct expression *expr, struct symbol *newtype,
-		struct expression *old, struct symbol *oldtype)
+void cast_value(struct expression *expr, struct symbol *newtype, struct expression *old)
 {
+	struct symbol *oldtype = old->ctype;
 	int old_size = oldtype->bit_size;
 	int new_size = newtype->bit_size;
 	long long value, mask, signmask;
@@ -876,7 +876,7 @@ static int expand_cast(struct expression *expr)
 
 	/* Simplify normal integer casts.. */
 	if (target->type == EXPR_VALUE || target->type == EXPR_FVALUE) {
-		cast_value(expr, expr->ctype, target, target->ctype);
+		cast_value(expr, expr->ctype, target);
 		return 0;
 	}
 	return cost + 1;
