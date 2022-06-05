@@ -3,6 +3,7 @@
 #include "target.h"
 #include "machine.h"
 #include <string.h>
+#include <stdio.h>
 
 #define RISCV_32BIT	(1 << 0)
 #define RISCV_64BIT	(1 << 1)
@@ -37,22 +38,14 @@ static void parse_march_riscv(const char *arg)
 		{ "a",		RISCV_ATOMIC },
 		{ "f",		RISCV_FLOAT|RISCV_FDIV|RISCV_ZICSR },
 		{ "d",		RISCV_DOUBLE|RISCV_FDIV|RISCV_ZICSR },
-		{ "g",		RISCV_GENERIC },
-		{ "q",		0 },
-		{ "l",		0 },
 		{ "c",		RISCV_COMP },
-		{ "b",		0 },
-		{ "j",		0 },
-		{ "t",		0 },
-		{ "p",		0 },
-		{ "v",		0 },
-		{ "n",		0 },
-		{ "h",		0 },
-		{ "s",		0 },
 		{ "_zicsr",	RISCV_ZICSR },
 		{ "_zifencei",	RISCV_ZIFENCEI },
 	};
 	int i;
+
+	// Each -march=.. options entirely overrides previous ones
+	riscv_flags = 0;
 
 	for (i = 0; i < ARRAY_SIZE(basic_sets); i++) {
 		const char *pat = basic_sets[i].pattern;
@@ -64,7 +57,10 @@ static void parse_march_riscv(const char *arg)
 			goto ext;
 		}
 	}
-	die("invalid argument to '-march': '%s'\n", arg);
+
+unknown:
+	fprintf(stderr, "WARNING: invalid argument to '-march': '%s'\n", arg);
+	return;
 
 ext:
 	for (i = 0; i < ARRAY_SIZE(extensions); i++) {
@@ -77,7 +73,7 @@ ext:
 		}
 	}
 	if (arg[0])
-		die("invalid argument to '-march': '%s'\n", arg);
+		goto unknown;
 }
 
 static void init_riscv(const struct target *self)
