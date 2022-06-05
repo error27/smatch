@@ -337,7 +337,6 @@ struct token *compound_statement(struct token *, struct statement *);
 #define constant_expression(token,tree) conditional_expression(token, tree)
 
 /* Cast folding of constant values.. */
-void cast_value(struct expression *expr, struct symbol *newtype,
-	struct expression *old, struct symbol *oldtype);
+void cast_value(struct expression *expr, struct symbol *newtype, struct expression *old);
 
 #endif

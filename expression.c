@@ -432,8 +432,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 		// TODO: handle 'u8', 'u' & 'U' prefixes.
 		if (token_type(token) < TOKEN_WIDE_CHAR) {
 			expr->ctype = &char_ctype;
-			cast_value(expr, &int_ctype, expr, expr->ctype);
-			expr->ctype = &int_ctype;
+			cast_value(expr, &int_ctype, expr);
 		} else {
 			expr->ctype = wchar_ctype;
 		}
