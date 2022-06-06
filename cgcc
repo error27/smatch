@@ -42,11 +42,10 @@ while (@ARGV) {
 	$nargs = 1;
     }
 
-    # Ignore the extension if '-x c' is given.
+    # We don't want to run the checker on non-C files.
     if ($_ eq '-x') {
 	die ("$0: missing argument for $_") if !@ARGV;
-	die ("$0: invalid argument for $_") if $ARGV[0] ne 'c';
-	$do_check = 1;
+	$do_check = ($ARGV[0] eq 'c');
 	$nargs = 1;
     }
 
