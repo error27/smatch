@@ -6,3 +6,5 @@ copy_to_user 1-u64max[==$2]
 copy_to_user 2147483648-u64max[==$2]
 __irq_domain_activate_irq 1-s32max
 construct_key_and_link 0
+__i2c_mux_smbus_xfer 1-s32max
+i2c_mux_smbus_xfer 1-s32max
