@@ -1983,6 +1983,18 @@ static int call_return_state_hooks_split_possible(struct expression *expr)
 	return split_possible_helper(sm, expr);
 }
 
+static bool has_empty_state(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (!estate_rl(tmp->state))
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 static bool has_possible_negative(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -2039,6 +2051,8 @@ static int split_positive_from_negative(struct expression *expr)
 
 	sm = get_returned_sm(expr);
 	if (!sm)
+		return 0;
+	if (has_empty_state(sm))
 		return 0;
 	if (!has_possible_negative(sm))
 		return 0;
