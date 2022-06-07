@@ -1409,26 +1409,18 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	set_to_user_data(arg, key, value, NEW);
 }
 
-static void returns_param_capped(struct expression *expr, int param, char *key, char *value)
+static void match_capped(struct expression *expr, const char *name, struct symbol *sym, void *info)
 {
 	struct smatch_state *state, *new;
-	struct symbol *sym;
-	char *name;
-
-	name = get_name_sym_from_param_key(expr, param, key, &sym);
-	if (!name || !sym)
-		goto free;
 
 	state = get_state(my_id, name, sym);
 	if (!state || estate_capped(state))
-		goto free;
+		return;
 
 	new = clone_estate(state);
 	estate_set_capped(new);
 
 	set_state(my_id, name, sym, new);
-free:
-	free_string(name);
 }
 
 static void match_function_def(struct symbol *sym)
@@ -1482,7 +1474,14 @@ void register_kernel_user_data(int id)
 	select_caller_info_hook(set_param_user_data, USER_DATA);
 	select_return_states_hook(USER_DATA, &returns_param_user_data);
 	select_return_states_hook(USER_DATA_SET, &returns_param_user_data_set);
-	select_return_states_hook(CAPPED_DATA, &returns_param_capped);
+
+	select_return_param_key(CAPPED_DATA, &match_capped);
+	add_function_param_key_hook_late("memcpy", &match_capped, 2, "$", NULL);
+	add_function_param_key_hook_late("_memcpy", &match_capped, 2, "$", NULL);
+	add_function_param_key_hook_late("__memcpy", &match_capped, 2, "$", NULL);
+	add_function_param_key_hook_late("memset", &match_capped, 2, "$", NULL);
+	add_function_param_key_hook_late("_memset", &match_capped, 2, "$", NULL);
+	add_function_param_key_hook_late("__memset", &match_capped, 2, "$", NULL);
 }
 
 void register_kernel_user_data2(int id)
