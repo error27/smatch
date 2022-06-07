@@ -15,3 +15,5 @@ sync_set_bit
 bitmap_weight
 bitmap_intersects
 bitmap_empty
+constant_test_bit
+variable_test_bit
