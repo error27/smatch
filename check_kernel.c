@@ -537,6 +537,8 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, "regmap->lock_arg"))
 		return true;
+	if (strstr(name, "kworker->task"))
+		return true;
 
 	/* ignore mutex internals */
 	if ((p = strstr(name, ".rlock.")) ||
