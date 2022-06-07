@@ -498,6 +498,8 @@ bool is_ignored_kernel_data(const char *name)
 	 */
 	if (strstr(name, ".dep_map."))
 		return true;
+	if (strstr(name, "->dep_map."))
+		return true;
 	if (strstr(name, ".lockdep_map."))
 		return true;
 
@@ -529,6 +531,11 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 
 	if (strstr(name, "->m_log->"))
+		return true;
+
+	if (strstr(name, ".wait_lock."))
+		return true;
+	if (strstr(name, "regmap->lock_arg"))
 		return true;
 
 	/* ignore mutex internals */
