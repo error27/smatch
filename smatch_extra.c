@@ -193,6 +193,15 @@ static void mark_sub_members_gone(const char *name, struct symbol *sym, struct e
 	} END_FOR_EACH_SM(sm);
 }
 
+static void call_update_mtag_data(struct expression *expr,
+				  struct smatch_state *state)
+{
+	if (is_fake_var_assign(expr))
+		return;
+
+	update_mtag_data(expr, state);
+}
+
 static bool in_param_set;
 void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
@@ -202,7 +211,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 	set_union_info(name, sym, expr, state);
 	mark_sub_members_gone(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
-	update_mtag_data(expr, state);
+	call_update_mtag_data(expr, state);
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
 		return;
