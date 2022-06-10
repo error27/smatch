@@ -247,6 +247,9 @@ static void return_info_callback(int return_id, char *return_ranges,
 {
 	int type;
 
+	if (strncmp(printed_name, "&$", 2) == 0)
+		return;
+
 	if (is_socket_stuff(sm->sym))
 		return;
 
