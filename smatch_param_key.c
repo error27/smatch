@@ -32,16 +32,19 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	char buf[64];
 	int offset, len, ret;
 	bool is_addr = false;
-	bool is_star = false;
+	bool is_star = false;  /* fixme: this should be star_cnt */
 	bool is_end = false;
-
-	if (add[0] == '&') {
-		is_addr = true;
-		add++;
-	}
 
 	if (orig[0] == '*')
 		is_star = true;
+
+	if (add[0] == '&') {
+		if (is_star)
+			is_star = false;
+		else
+			is_addr = true;
+		add++;
+	}
 
 	offset = 0;
 	while(orig[offset] == '*' || orig[offset] == '&' || orig[offset] == '(')
