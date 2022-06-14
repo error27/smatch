@@ -179,14 +179,14 @@ bool points_to_user_data(struct expression *expr)
 	return false;
 }
 
-void set_points_to_user_data(struct expression *expr)
+void set_points_to_user_data(struct expression *expr, bool is_new)
 {
 	struct expression *tmp;
 
 	tmp = get_assigned_expr(expr);
 	if (tmp)
-		set_state_expr(my_id, tmp, &user_data_set);
-	set_state_expr(my_id, expr, &user_data_set);
+		set_state_expr(my_id, tmp, is_new ? &user_data_set : &user_data);
+	set_state_expr(my_id, expr, is_new ? &user_data_set : &user_data);
 }
 
 static void match_assign(struct expression *expr)
