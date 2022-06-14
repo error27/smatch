@@ -511,6 +511,9 @@ struct statement *get_current_statement(void);
 struct statement *get_prev_statement(void);
 struct expression *get_last_expr_from_expression_stmt(struct expression *expr);
 
+enum { RET_SUCCESS, RET_FAIL, RET_UNKNOWN };
+int success_fail_return(struct range_list *rl);
+
 #define RETURN_VAR    -1
 #define LOCAL_SCOPE   -2
 #define FILE_SCOPE    -3

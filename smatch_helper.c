@@ -1298,3 +1298,39 @@ bool macro_to_ul(const char *macro, unsigned long *val)
 		return false;
 	return token_to_ul(macro_sym->expansion, val);
 }
+
+int success_fail_return(struct range_list *rl)
+{
+	char *str;
+	sval_t sval;
+
+	if (!rl)
+		return RET_SUCCESS;
+
+	// Negatives are a failure
+	if (sval_is_negative(rl_max(rl)))
+		return RET_FAIL;
+
+	// NULL and error pointers are a failure
+	if (type_is_ptr(rl_type(rl)) && is_err_or_null(rl))
+		return RET_FAIL;
+
+	if (rl_to_sval(rl, &sval)) {
+		if (sval.value == 0) {
+			// Zero is normally success but false is a failure
+			if (type_bits(sval.type) == 1)
+				return RET_FAIL;
+			else
+				return RET_SUCCESS;
+		}
+		// true is success
+		if (sval.value == 1 && type_bits(sval.type) == 1)
+			return RET_SUCCESS;
+	}
+
+	str = show_rl(rl);
+	if (strcmp(str, "s32min-(-1),1-s32max") == 0)
+		return RET_FAIL;
+
+	return RET_UNKNOWN;
+}
