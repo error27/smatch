@@ -157,18 +157,15 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	struct sm_state *sm;
 	int limit_type = ELEM_COUNT;
 	sval_t sval;
-	int cnt = 0;
 
 	pointer = strip_expr(pointer);
 	size = strip_expr(size);
 	if (!size || !pointer)
 		return;
 
-	while ((tmp = get_assigned_expr(size))) {
+	tmp = get_assigned_expr_recurse(size);
+	if (tmp && tmp->op == EXPR_BINOP)
 		size = strip_expr(tmp);
-		if (cnt++ > 5)
-			break;
-	}
 
 	if (size->type == EXPR_BINOP && size->op == '*') {
 		struct expression *mult_left, *mult_right;
