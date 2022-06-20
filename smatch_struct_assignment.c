@@ -128,9 +128,9 @@ static struct expression *add_dereference(struct expression *expr)
 		return strip_expr(expr->unop);
 	type = get_type(expr);
 	if (!type)
-		return expr;
+		return NULL;
 	if (type->type != SYM_PTR && type->type != SYM_ARRAY)
-		return expr;
+		return NULL;
 
 	return deref_expression(expr);
 }
