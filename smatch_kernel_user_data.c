@@ -580,6 +580,7 @@ static bool handle_op_assign(struct expression *expr)
 			estate_set_treat_untagged(state);
 		if (state_is_new(binop_expr))
 			estate_set_new(state);
+		estate_set_assigned(state);
 		set_user_data(expr->left, state);
 		return true;
 	}
@@ -673,6 +674,7 @@ set:
 		estate_set_capped(state);
 	if (user_rl_treat_untagged(expr->right))
 		estate_set_treat_untagged(state);
+	estate_set_assigned(state);
 
 	set_user_data(expr->left, state);
 	handle_derefed_pointers(expr->left, is_new);
@@ -1118,7 +1120,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
 			return;
-		if (!param_was_set_var_sym(sm->name, sm->sym))
+		if (!estate_assigned(sm->state))
 			return;
 	}
 	rl = estate_rl(sm->state);
@@ -1348,6 +1350,7 @@ static void set_to_user_data(struct expression *expr, char *key, char *value, bo
 		estate_set_treat_untagged(state);
 	if (is_new)
 		estate_set_new(state);
+	estate_set_assigned(state);
 	set_state(my_id, name, sym, state);
 free:
 	free_string(name);

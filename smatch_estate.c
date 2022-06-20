@@ -58,6 +58,9 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	if (estate_treat_untagged(s1) && estate_treat_untagged(s2))
 		estate_set_treat_untagged(tmp);
 
+	if (estate_assigned(s1) || estate_assigned(s2))
+		estate_set_assigned(tmp);
+
 	if (estate_new(s1) || estate_new(s2))
 		estate_set_new(tmp);
 
@@ -180,6 +183,18 @@ bool estate_treat_untagged(struct smatch_state *state)
 void estate_set_treat_untagged(struct smatch_state *state)
 {
 	get_dinfo(state)->treat_untagged = true;
+}
+
+bool estate_assigned(struct smatch_state *state)
+{
+	if (!estate_rl(state))
+		return false;
+	return get_dinfo(state)->assigned;
+}
+
+void estate_set_assigned(struct smatch_state *state)
+{
+	get_dinfo(state)->assigned = true;
 }
 
 bool estate_new(struct smatch_state *state)

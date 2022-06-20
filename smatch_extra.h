@@ -32,6 +32,7 @@ struct data_info {
 	unsigned int hard_max:1;
 	unsigned int capped:1;
 	unsigned int treat_untagged:1;
+	unsigned int assigned:1;
 	unsigned int set:1;
 };
 DECLARE_ALLOCATOR(data_info);
@@ -158,6 +159,8 @@ bool estate_capped(struct smatch_state *state);
 void estate_set_capped(struct smatch_state *state);
 bool estate_treat_untagged(struct smatch_state *state);
 void estate_set_treat_untagged(struct smatch_state *state);
+bool estate_assigned(struct smatch_state *state);
+void estate_set_assigned(struct smatch_state *state);
 bool estate_new(struct smatch_state *state);
 void estate_set_new(struct smatch_state *state);
 
