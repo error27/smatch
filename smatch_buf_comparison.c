@@ -155,7 +155,7 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	struct smatch_state *state;
 	struct expression *tmp;
 	struct sm_state *sm;
-	int limit_type = ELEM_COUNT;
+	int limit_type = BYTE_COUNT;
 	sval_t sval;
 
 	pointer = strip_expr(pointer);
@@ -181,6 +181,7 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 			size = mult_left;
 		else
 			return;
+		limit_type = ELEM_COUNT;
 	}
 
 	/* Only save links to variables, not fixed sizes */
