@@ -238,7 +238,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	struct expression *right_expr;
 	struct expression *assign;
 
-	if (__in_fake_assign)
+	if (__in_fake_assign || !left)
 		return;
 	faked_expression = faked;
 
