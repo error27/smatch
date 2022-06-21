@@ -267,6 +267,9 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 	if (is_one_element_array(dest))
 		return;
 
+	if (buf_comp_has_bytes(dest, limit))
+		return;
+
 	if (is_ignored_struct(dest))
 		return;
 

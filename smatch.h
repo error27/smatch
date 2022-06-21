@@ -1345,6 +1345,7 @@ const char *limit_type_str(unsigned int limit_type);
 struct expression *get_size_variable(struct expression *buf, int *limit_type);
 struct expression *get_array_variable(struct expression *size);
 int buf_comparison_index_ok(struct expression *expr);
+bool buf_comp_has_bytes(struct expression *buf, struct expression *var);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);

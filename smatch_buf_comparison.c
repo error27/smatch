@@ -455,6 +455,27 @@ int buf_comparison_index_ok(struct expression *expr)
 	return 0;
 }
 
+bool buf_comp_has_bytes(struct expression *buf, struct expression *var)
+{
+	struct expression *size;
+	int limit_type;
+	int comparison;
+
+	size = get_size_variable(buf, &limit_type);
+	if (!size)
+		return false;
+	comparison = get_comparison(size, var);
+	if (comparison == UNKNOWN_COMPARISON ||
+	    comparison == IMPOSSIBLE_COMPARISON)
+		return false;
+
+	if (show_special(comparison)[0] == '<' ||
+	    show_special(comparison)[0] == '=')
+		return true;
+
+	return false;
+}
+
 static int known_access_ok_numbers(struct expression *expr)
 {
 	struct expression *array;
