@@ -10,6 +10,8 @@ CK(register_container_of)
 CK(register_container_of2)
 CK(register_smatch_extra)
 CK(register_smatch_extra_links)
+CK(register_buf_comparison)
+CK(register_buf_comparison_links)
 CK(register_modification_hooks)
 /*
  * Implications should probably be after all the modification and smatch_extra
@@ -20,8 +22,6 @@ CK(register_implications)
 CK(register_definition_db_callbacks)
 CK(register_project)        /* has to be early to set up some global stuff */
 CK(register_untracked_param)
-CK(register_buf_comparison)
-CK(register_buf_comparison_links)
 CK(register_param_compare_limit)
 CK(register_param_compare_limit_links)
 CK(register_returns_early)

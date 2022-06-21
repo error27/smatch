@@ -56,10 +56,15 @@ static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_s
 	return &merged;
 }
 
+static struct expression *ignore_link_mod;
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	struct expression *expr;
 	struct sm_state *tmp;
+
+	if (mod_expr == ignore_link_mod)
+		return;
+	ignore_link_mod = NULL;
 
 	expr = sm->state->data;
 	if (expr) {
@@ -74,6 +79,12 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 			set_state_expr(size_id, expr, &undefined);
 	} END_FOR_EACH_PTR(tmp);
 	set_state(link_id, sm->name, sm->sym, &undefined);
+}
+
+static void add_link(struct expression *size, struct expression *buf, struct expression *mod_expr)
+{
+	ignore_link_mod = mod_expr;
+	set_state_expr(link_id, size, alloc_state_expr(buf));
 }
 
 static const char *limit_map[] = {
@@ -150,7 +161,7 @@ static void db_save_type_links(struct expression *array, int type_limit, struct 
 	sql_insert_data_info(size, type_limit, array_name);
 }
 
-static void match_alloc_helper(struct expression *pointer, struct expression *size)
+static void match_alloc_helper(struct expression *pointer, struct expression *size, struct expression *mod_expr)
 {
 	struct smatch_state *state;
 	struct expression *tmp;
@@ -199,7 +210,7 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	sm = set_state_expr(size_id, pointer, state);
 	if (!sm)
 		return;
-	set_state_expr(link_id, size, alloc_state_expr(pointer));
+	add_link(size, pointer, mod_expr);
 }
 
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
@@ -210,7 +221,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	pointer = strip_expr(expr->left);
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, size_arg);
-	match_alloc_helper(pointer, arg);
+	match_alloc_helper(pointer, arg, expr);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
@@ -240,7 +251,7 @@ static void match_calloc(const char *fn, struct expression *expr, void *_start_a
 	tmp = set_state_expr(size_id, pointer, state);
 	if (!tmp)
 		return;
-	set_state_expr(link_id, arg, alloc_state_expr(pointer));
+	add_link(arg, pointer, expr);
 }
 
 static struct expression *get_size_variable_from_binop(struct expression *expr, int *limit_type)
@@ -685,7 +696,7 @@ static void set_param_compare(const char *array_name, struct symbol *array_sym, 
 	tmp = set_state_expr(size_id, array_expr, state);
 	if (!tmp)
 		return;
-	set_state_expr(link_id, size_expr, alloc_state_expr(array_expr));
+	add_link(size_expr, array_expr, NULL);
 }
 
 static void set_implied(struct expression *call, struct expression *array_expr, char *key, char *value)
@@ -708,7 +719,7 @@ static void set_implied(struct expression *call, struct expression *array_expr, 
 	tmp = set_state_expr(size_id, array_expr, alloc_compare_size(limit_type, size_expr));
 	if (!tmp)
 		return;
-	set_state_expr(link_id, size_expr, alloc_state_expr(array_expr));
+	add_link(size_expr, array_expr, call);
 }
 
 static void munge_start_states(struct statement *stmt)
@@ -770,7 +781,7 @@ static void set_used(struct expression *expr)
 	tmp = set_state_expr(size_id, array, alloc_compare_size(limit_type, offset->unop));
 	if (!tmp)
 		return;
-	set_state_expr(link_id, offset->unop, alloc_state_expr(array));
+	add_link(offset->unop, array, expr);
 }
 
 static int match_assign_array(struct expression *expr)
@@ -808,8 +819,36 @@ static int match_assign_size(struct expression *expr)
 	tmp = set_state_expr(size_id, array, alloc_compare_size(limit_type, expr->left));
 	if (!tmp)
 		return 0;
-	set_state_expr(link_id, expr->left, alloc_state_expr(array));
+	add_link(expr->left, array, expr);
 	return 1;
+}
+
+static bool match_assign_smaller(struct expression *expr)
+{
+	struct expression *array;
+	int comparison;
+
+	array = get_array_variable(expr->left);
+	if (!array)
+		return false;
+
+	comparison = get_comparison(expr->left, expr->right);
+	if (comparison == UNKNOWN_COMPARISON ||
+	    comparison == IMPOSSIBLE_COMPARISON)
+		return false;
+
+	/* This is assigning a smaller value to the variable than what it was. */
+	if (show_special(comparison)[0] != '>')
+		return false;
+
+	/*
+	 * This module doesn't have a way to say that it's less than the limit
+	 * only that it *is* the limit.  So you might expect to set a state here
+	 * but there is already a state so all we can do is ignore the
+	 * assignment.
+	 */
+	ignore_link_mod = expr;
+	return true;
 }
 
 static void match_assign(struct expression *expr)
@@ -819,7 +858,10 @@ static void match_assign(struct expression *expr)
 
 	if (match_assign_array(expr))
 		return;
-	match_assign_size(expr);
+	if (match_assign_size(expr))
+		return;
+	if (match_assign_smaller(expr))
+		return;
 }
 
 static void match_copy(const char *fn, struct expression *expr, void *unused)
@@ -901,5 +943,5 @@ void register_buf_comparison_links(int id)
 	link_id = id;
 	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
-	add_modification_hook(link_id, &match_link_modify);
+	add_modification_hook_late(link_id, &match_link_modify);
 }

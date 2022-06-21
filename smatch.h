@@ -234,6 +234,7 @@ struct modification_data {
 	struct expression *cur;
 };
 
+void allocate_modification_hooks(void);
 bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm);
 void add_all_modifications_hook(int owner, name_sym_hook *hook);
 void add_modification_hook(int owner, sm_hook *call_back);

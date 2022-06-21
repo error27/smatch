@@ -362,6 +362,7 @@ int main(int argc, char **argv)
 	sparse_initialize(argc, argv, &filelist);
 	alloc_valid_ptr_rl();
 	SMATCH_EXTRA = id_from_name("register_smatch_extra");
+	allocate_modification_hooks();
 
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
 		func = reg_funcs[i].func;

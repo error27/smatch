@@ -279,16 +279,19 @@ struct smatch_state *get_modification_state(struct expression *expr)
 	return get_state_expr(my_id, expr);
 }
 
+void allocate_modification_hooks(void)
+{
+	hooks = malloc((num_checks + 1) * sizeof(*hooks));
+	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
+	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
+	memset(hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
+}
+
 void register_modification_hooks(int id)
 {
 	my_id = id;
 
 	set_dynamic_states(my_id);
-
-	hooks = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
-	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
 
 	add_hook(&match_assign_early, ASSIGNMENT_HOOK);
 	add_hook(&unop_expr_early, OP_HOOK);
