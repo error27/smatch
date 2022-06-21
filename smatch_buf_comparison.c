@@ -856,6 +856,9 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 
+	if (is_fake_var_assign(expr))
+		return;
+
 	if (match_assign_array(expr))
 		return;
 	if (match_assign_size(expr))
