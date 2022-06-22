@@ -903,6 +903,7 @@ enum info_type {
 	BIT_IS_SET	= 1053,
 	BIT_IS_CLEAR	= 1054,
 
+	NEGATIVE_ERROR	= 1057,
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
 	/* put random temporary stuff in the 7000-7999 range for testing */
