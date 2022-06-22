@@ -268,6 +268,8 @@ extern bool implications_off;
 
 /* smatch_impossible.c */
 int is_impossible_path(void);
+void set_true_path_impossible(void);
+void set_false_path_impossible(void);
 void set_path_impossible(void);
 
 extern FILE *sm_outfd;

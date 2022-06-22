@@ -67,6 +67,22 @@ static void match_condition(struct expression *expr)
 		handle_compare(expr, SPECIAL_NOTEQUAL, zero_expr());
 }
 
+void set_true_path_impossible(void)
+{
+	set_true_false_states(my_id, "impossible", NULL, &impossible, NULL);
+	if (inside_loop())
+		return;
+	set_true_false_states(my_return_id, "impossible", NULL, &impossible, NULL);
+}
+
+void set_false_path_impossible(void)
+{
+	set_true_false_states(my_id, "impossible", NULL, NULL, &impossible);
+	if (inside_loop())
+		return;
+	set_true_false_states(my_return_id, "impossible", NULL, NULL, &impossible);
+}
+
 void set_path_impossible(void)
 {
 	set_state(my_id, "impossible", NULL, &impossible);

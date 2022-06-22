@@ -1376,6 +1376,15 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	update_tf_data(pre_stree, left_expr, left, left_vsl, right_expr, right, right_vsl, op, false_op);
 	free_stree(&pre_stree);
 
+	if (op == IMPOSSIBLE_COMPARISON &&
+	    false_op != IMPOSSIBLE_COMPARISON &&
+	    false_op != UNKNOWN_COMPARISON)
+		set_true_path_impossible();
+	if (op != IMPOSSIBLE_COMPARISON &&
+	    op != UNKNOWN_COMPARISON &&
+	    false_op == IMPOSSIBLE_COMPARISON)
+		set_false_path_impossible();
+
 	set_true_false_states(comparison_id, state_name, NULL, true_state, false_state);
 	__compare_param_limit_hook(left_expr, right_expr, state_name, true_state, false_state);
 	save_link(left_expr, state_name);
