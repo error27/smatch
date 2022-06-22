@@ -146,3 +146,6 @@ qla8044_rd_reg_indirect 2
 mv88e6xxx_g1_read 2
 ql_mii_read_reg_ex 2
 rtsx_pci_read_phy_register 2
+smb_word_op 4
+ufshcd_dme_get 2
+ufshcd_query_attr_retry 5
