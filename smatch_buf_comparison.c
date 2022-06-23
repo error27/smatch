@@ -848,9 +848,13 @@ static bool match_assign_smaller(struct expression *expr)
 {
 	struct expression *array;
 	int comparison;
+	sval_t sval;
 
 	array = get_array_variable(expr->left);
 	if (!array)
+		return false;
+
+	if (get_value(expr->right, &sval))
 		return false;
 
 	comparison = get_comparison(expr->left, expr->right);
