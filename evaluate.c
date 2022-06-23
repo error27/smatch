@@ -3555,7 +3555,7 @@ static struct symbol *evaluate_symbol(struct symbol *sym)
 		current_fn = sym;
 
 		examine_fn_arguments(base_type);
-		if (!base_type->stmt && base_type->inline_stmt)
+		if (!base_type->stmt && base_type->inline_stmt && sym->definition)
 			uninline(sym);
 		if (base_type->stmt)
 			evaluate_statement(base_type->stmt);
