@@ -516,9 +516,8 @@ int inline_function(struct expression *expr, struct symbol *sym)
 {
 	struct symbol_list * fn_symbol_list;
 	struct symbol *fn = sym->ctype.base_type;
-	struct expression_list *arg_list = expr->args;
 	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
-	struct symbol_list *name_list, *arg_decl;
+	struct symbol_list *arg_decl;
 	struct symbol *name;
 	struct expression *arg;
 
@@ -529,8 +528,6 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	if (fn->expanding)
 		return 0;
 
-	name_list = fn->arguments;
-
 	expr->type = EXPR_STATEMENT;
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
@@ -538,8 +535,8 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	fn_symbol_list = create_symbol_list(sym->inline_symbol_list);
 
 	arg_decl = NULL;
-	PREPARE_PTR_LIST(name_list, name);
-	FOR_EACH_PTR(arg_list, arg) {
+	PREPARE_PTR_LIST(fn->arguments, name);
+	FOR_EACH_PTR(expr->args, arg) {
 		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
 
 		if (name) {
