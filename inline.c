@@ -516,7 +516,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 {
 	struct symbol_list * fn_symbol_list;
 	struct symbol *fn = sym->ctype.base_type;
-	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
+	struct statement *stmt;
 	struct symbol_list *arg_decl;
 	struct symbol *name;
 	struct expression *arg;
@@ -528,6 +528,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	if (fn->expanding)
 		return 0;
 
+	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
 	expr->type = EXPR_STATEMENT;
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
