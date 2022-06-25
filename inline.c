@@ -567,6 +567,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	stmt->inline_fn = sym;
 
 	unset_replace_list(fn_symbol_list);
+	free_ptr_list(&fn_symbol_list);
 
 	return 1;
 }
