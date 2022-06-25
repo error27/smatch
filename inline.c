@@ -542,11 +542,15 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	FOR_EACH_PTR(arg_list, arg) {
 		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
 
-		a->ctype.base_type = arg->ctype;
 		if (name) {
 			*a = *name;
 			set_replace(name, a);
 			add_symbol(&fn_symbol_list, a);
+		} else {
+			// This may create a node of a node but it will
+			// be resolved later when the corresponding
+			// STMT_DECLARATION will be evaluated.
+			a->ctype.base_type = arg->ctype;
 		}
 		a->initializer = arg;
 		add_symbol(&arg_decl, a);
