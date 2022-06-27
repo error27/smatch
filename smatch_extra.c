@@ -193,10 +193,28 @@ static void mark_sub_members_gone(const char *name, struct symbol *sym, struct e
 	} END_FOR_EACH_SM(sm);
 }
 
+static bool is_fake_assign(struct expression *expr)
+{
+	struct expression *faked;
+
+	if (is_fake_var_assign(expr))
+		return true;
+
+	faked = get_faked_expression();
+	if (!faked || faked->type != EXPR_ASSIGNMENT || faked->op != '=')
+		return false;
+
+	faked = strip_expr(faked->right);
+	if (faked->type == EXPR_PREOP && faked->op == '&')
+		return true;
+
+	return false;
+}
+
 static void call_update_mtag_data(struct expression *expr,
 				  struct smatch_state *state)
 {
-	if (is_fake_var_assign(expr))
+	if (is_fake_assign(expr))
 		return;
 
 	update_mtag_data(expr, state);
