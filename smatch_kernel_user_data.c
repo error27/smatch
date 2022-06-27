@@ -1120,7 +1120,8 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
 			return;
-		if (!estate_assigned(sm->state))
+		if (!estate_assigned(sm->state) &&
+		    !estate_new(sm->state))
 			return;
 	}
 	rl = estate_rl(sm->state);
