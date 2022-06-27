@@ -567,6 +567,7 @@ static bool handle_op_assign(struct expression *expr)
 			estate_set_capped(state);
 		if (state_is_new(binop_expr))
 			estate_set_new(state);
+		estate_set_assigned(state);
 		set_host_data(expr->left, state);
 		handle_derefed_pointers(expr->left);
 		return true;
@@ -648,6 +649,7 @@ set:
 		estate_set_new(state);
 	if (is_capped)
 		estate_set_capped(state);
+	estate_set_assigned(state);
 	set_host_data(expr->left, state);
 	handle_derefed_pointers(expr->left);
 	return;
@@ -997,7 +999,8 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
 			return;
-		if (!param_was_set_var_sym(sm->name, sm->sym))
+		if (!estate_assigned(sm->state) &&
+		    !estate_new(sm->state))
 			return;
 	}
 	rl = estate_rl(sm->state);
@@ -1160,6 +1163,7 @@ static void set_to_host_data(struct expression *expr, char *key, char *value, bo
 		estate_set_capped(state);
 	if (is_new)
 		estate_set_new(state);
+	estate_set_assigned(state);
 	set_state(my_id, name, sym, state);
 free:
 	free_string(name);
