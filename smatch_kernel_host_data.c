@@ -38,112 +38,112 @@
 #include "smatch_extra.h"
 
 struct host_fn_info {
-        const char *name;
-        int type;
-        int param;
-        const char *key;
-        const sval_t *implies_start, *implies_end;
-        func_hook *call_back;
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
 };
 
 static struct host_fn_info func_table[] = {
-		/* Functions that return host data as return value */
-	    { "inb", HOST_DATA, -1, "$" },
-	  	{ "inw", HOST_DATA, -1, "$" },
-	    { "inl", HOST_DATA, -1, "$" },
-	   	{ "__inb", HOST_DATA, -1, "$" },
-	  	{ "__inw", HOST_DATA, -1, "$" },
-	    { "__inl", HOST_DATA, -1, "$" },
-	    { "ioread8", HOST_DATA, -1, "$" },
-	    { "ioread16", HOST_DATA, -1, "$" },
-	    { "ioread32", HOST_DATA, -1, "$" },
-	    { "ioread16be", HOST_DATA, -1, "$" },
-	    { "ioread32be", HOST_DATA, -1, "$" },
-	    { "ioread64_lo_hi", HOST_DATA, -1, "$" },
-	    { "ioread64_hi_lo", HOST_DATA, -1, "$" },
-	    { "ioread64be_lo_hi", HOST_DATA, -1, "$" },
-	    { "ioread64be_hi_lo", HOST_DATA, -1, "$" },
-	    { "iomap_readq", HOST_DATA, -1, "$" },
-	    { "iomap_readb", HOST_DATA, -1, "$" },
-	    { "iomap_readw", HOST_DATA, -1, "$" },
-	    { "iomap_readl", HOST_DATA, -1, "$" },
-	    { "readb", HOST_DATA, -1, "$" },
-	    { "readw", HOST_DATA, -1, "$" },
-	    { "readl", HOST_DATA, -1, "$" },
-	    { "readq", HOST_DATA, -1, "$" },
-	    { "__raw_readb", HOST_DATA, -1, "$" },
-	    { "__raw_readw", HOST_DATA, -1, "$" },
-	    { "__raw_readl", HOST_DATA, -1, "$" },
-	  	{ "__raw_readq", HOST_DATA, -1, "$" },
-	    { "__readq", HOST_DATA, -1, "$" },
-	    { "__readl", HOST_DATA, -1, "$" },
-	    { "__readb", HOST_DATA, -1, "$" },
-	    { "__readw", HOST_DATA, -1, "$" },
-	    { "native_read_msr", HOST_DATA, -1, "$" },
-	    { "native_read_msr_safe", HOST_DATA, -1, "$" },
-	    { "__rdmsr", HOST_DATA, -1, "$" },
-	    { "paravirt_read_msr", HOST_DATA, -1, "$" },
-	    { "paravirt_read_msr_safe", HOST_DATA, -1, "$" },
-	    /* the below 3 apic funcs are needed
-	     * since they unwrap to apic->read(reg),
-	     * apic->icr_read() and *(APIC_BASE + reg)*/
-	    { "apic_read", HOST_DATA, -1, "$" },
-	    { "apic_icr_read", HOST_DATA, -1, "$" },
-	    { "native_apic_mem_read", HOST_DATA, -1, "$" },
-	    /* the below one is x86_apic_ops.io_apic_read */
-	    { "io_apic_read", HOST_DATA, -1, "$" },
-	    /* virtio_cread8/16/32/64 funcs are needed
-	     * since they call vdev->config->get */
-	    { "virtio_cread8", HOST_DATA, -1, "$" },
-	    { "virtio_cread16", HOST_DATA, -1, "$" },
-	    { "virtio_cread32", HOST_DATA, -1, "$" },
-	    { "virtio_cread64", HOST_DATA, -1, "$" },
-	    { "__virtio16_to_cpu", HOST_DATA, -1, "$" },
-	    { "__virtio32_to_cpu", HOST_DATA, -1, "$" },
-	    { "__virtio64_to_cpu", HOST_DATA, -1, "$" },
-	    { "serial_dl_read", HOST_DATA, -1, "$" },
-	    { "serial_in", HOST_DATA, -1, "$" },
-	    { "serial_port_in", HOST_DATA, -1, "$" },
-	    { "cpuid_eax", HOST_DATA, -1, "$" },
-	    { "cpuid_ebx", HOST_DATA, -1, "$" },
-	    { "cpuid_ecx", HOST_DATA, -1, "$" },
-	    { "cpuid_edx", HOST_DATA, -1, "$" },
-	    /* Functions that return host data as argument 1 */
-        { "memcpy_fromio", HOST_DATA, 0, "*$" },
-	    /* Functions that return host data as argument 2 */
-        { "acpi_os_read_iomem", HOST_DATA, 1, "*$" },
-        { "mmio_insb", HOST_DATA, 1, "*$" },
-        { "mmio_insw", HOST_DATA, 1, "*$" },
-        { "mmio_insl", HOST_DATA, 1, "*$" },
-        { "acpi_read_bit_register", HOST_DATA, 1, "*$" },
-          /* Functions that return host data as argument 3 */
-        { "rdmsrl_on_cpu", HOST_DATA, 2, "*$" },
-        { "rdmsrl_safe_on_cpu", HOST_DATA, 2, "*$" },
-        { "__virtio_cread_many", HOST_DATA, 2, "*$" },
-        { "pci_user_read_config_word", HOST_DATA, 2, "*$" },
-        { "pci_user_read_config_dword", HOST_DATA, 2, "*$" },
-        { "pci_user_read_config_byte", HOST_DATA, 2, "*$" },
-          /* Functions that return host data as argument 4 */
-        { "pci_bus_read_config_byte", HOST_DATA, 3, "*$" },
-        { "pci_bus_read_config_word", HOST_DATA, 3, "*$" },
-        { "pci_bus_read_config_dword", HOST_DATA, 3, "*$" },
-         /* Functions that return host data as arguments 3 and 4 */
-        { "rdmsr_on_cpu", HOST_DATA, 2, "*$" },
-        { "rdmsr_on_cpu", HOST_DATA, 3, "*$" },
-        { "rdmsr_safe_on_cpu", HOST_DATA, 2, "*$" },
-        { "rdmsr_safe_on_cpu", HOST_DATA, 3, "*$" },
-       	/* Functions that return host data as argument 6 */
-        { "raw_pci_read", HOST_DATA, 5, "*$" },
-       	/* Functions that return host data as arguments 2-5 */
-        { "cpuid", HOST_DATA, 1, "*$" },
-        { "cpuid", HOST_DATA, 2, "*$" },
-        { "cpuid", HOST_DATA, 3, "*$" },
-        { "cpuid", HOST_DATA, 4, "*$" },
-        /* Functions that return host data as arguments 3-6 */
-        { "cpuid_count", HOST_DATA, 2, "*$" },
-        { "cpuid_count", HOST_DATA, 3, "*$" },
-        { "cpuid_count", HOST_DATA, 4, "*$" },
-        { "cpuid_count", HOST_DATA, 5, "*$" },
+	  /* Functions that return host data as return value */
+	{ "inb", HOST_DATA, -1, "$" },
+	{ "inw", HOST_DATA, -1, "$" },
+	{ "inl", HOST_DATA, -1, "$" },
+	{ "__inb", HOST_DATA, -1, "$" },
+	{ "__inw", HOST_DATA, -1, "$" },
+	{ "__inl", HOST_DATA, -1, "$" },
+	{ "ioread8", HOST_DATA, -1, "$" },
+	{ "ioread16", HOST_DATA, -1, "$" },
+	{ "ioread32", HOST_DATA, -1, "$" },
+	{ "ioread16be", HOST_DATA, -1, "$" },
+	{ "ioread32be", HOST_DATA, -1, "$" },
+	{ "ioread64_lo_hi", HOST_DATA, -1, "$" },
+	{ "ioread64_hi_lo", HOST_DATA, -1, "$" },
+	{ "ioread64be_lo_hi", HOST_DATA, -1, "$" },
+	{ "ioread64be_hi_lo", HOST_DATA, -1, "$" },
+	{ "iomap_readq", HOST_DATA, -1, "$" },
+	{ "iomap_readb", HOST_DATA, -1, "$" },
+	{ "iomap_readw", HOST_DATA, -1, "$" },
+	{ "iomap_readl", HOST_DATA, -1, "$" },
+	{ "readb", HOST_DATA, -1, "$" },
+	{ "readw", HOST_DATA, -1, "$" },
+	{ "readl", HOST_DATA, -1, "$" },
+	{ "readq", HOST_DATA, -1, "$" },
+	{ "__raw_readb", HOST_DATA, -1, "$" },
+	{ "__raw_readw", HOST_DATA, -1, "$" },
+	{ "__raw_readl", HOST_DATA, -1, "$" },
+	{ "__raw_readq", HOST_DATA, -1, "$" },
+	{ "__readq", HOST_DATA, -1, "$" },
+	{ "__readl", HOST_DATA, -1, "$" },
+	{ "__readb", HOST_DATA, -1, "$" },
+	{ "__readw", HOST_DATA, -1, "$" },
+	{ "native_read_msr", HOST_DATA, -1, "$" },
+	{ "native_read_msr_safe", HOST_DATA, -1, "$" },
+	{ "__rdmsr", HOST_DATA, -1, "$" },
+	{ "paravirt_read_msr", HOST_DATA, -1, "$" },
+	{ "paravirt_read_msr_safe", HOST_DATA, -1, "$" },
+	  /* the below 3 apic funcs are needed
+	   * since they unwrap to apic->read(reg),
+	   * apic->icr_read() and *(APIC_BASE + reg) */
+	{ "apic_read", HOST_DATA, -1, "$" },
+	{ "apic_icr_read", HOST_DATA, -1, "$" },
+	{ "native_apic_mem_read", HOST_DATA, -1, "$" },
+	  /* the below one is x86_apic_ops.io_apic_read */
+	{ "io_apic_read", HOST_DATA, -1, "$" },
+	  /* virtio_cread8/16/32/64 funcs are needed
+	   * since they call vdev->config->get */
+	{ "virtio_cread8", HOST_DATA, -1, "$" },
+	{ "virtio_cread16", HOST_DATA, -1, "$" },
+	{ "virtio_cread32", HOST_DATA, -1, "$" },
+	{ "virtio_cread64", HOST_DATA, -1, "$" },
+	{ "__virtio16_to_cpu", HOST_DATA, -1, "$" },
+	{ "__virtio32_to_cpu", HOST_DATA, -1, "$" },
+	{ "__virtio64_to_cpu", HOST_DATA, -1, "$" },
+	{ "serial_dl_read", HOST_DATA, -1, "$" },
+	{ "serial_in", HOST_DATA, -1, "$" },
+	{ "serial_port_in", HOST_DATA, -1, "$" },
+	{ "cpuid_eax", HOST_DATA, -1, "$" },
+	{ "cpuid_ebx", HOST_DATA, -1, "$" },
+	{ "cpuid_ecx", HOST_DATA, -1, "$" },
+	{ "cpuid_edx", HOST_DATA, -1, "$" },
+	  /* Functions that return host data as argument 1 */
+	{ "memcpy_fromio", HOST_DATA, 0, "*$" },
+	  /* Functions that return host data as argument 2 */
+	{ "acpi_os_read_iomem", HOST_DATA, 1, "*$" },
+	{ "mmio_insb", HOST_DATA, 1, "*$" },
+	{ "mmio_insw", HOST_DATA, 1, "*$" },
+	{ "mmio_insl", HOST_DATA, 1, "*$" },
+	{ "acpi_read_bit_register", HOST_DATA, 1, "*$" },
+	  /* Functions that return host data as argument 3 */
+	{ "rdmsrl_on_cpu", HOST_DATA, 2, "*$" },
+	{ "rdmsrl_safe_on_cpu", HOST_DATA, 2, "*$" },
+	{ "__virtio_cread_many", HOST_DATA, 2, "*$" },
+	{ "pci_user_read_config_word", HOST_DATA, 2, "*$" },
+	{ "pci_user_read_config_dword", HOST_DATA, 2, "*$" },
+	{ "pci_user_read_config_byte", HOST_DATA, 2, "*$" },
+	  /* Functions that return host data as argument 4 */
+	{ "pci_bus_read_config_byte", HOST_DATA, 3, "*$" },
+	{ "pci_bus_read_config_word", HOST_DATA, 3, "*$" },
+	{ "pci_bus_read_config_dword", HOST_DATA, 3, "*$" },
+	  /* Functions that return host data as arguments 3 and 4 */
+	{ "rdmsr_on_cpu", HOST_DATA, 2, "*$" },
+	{ "rdmsr_on_cpu", HOST_DATA, 3, "*$" },
+	{ "rdmsr_safe_on_cpu", HOST_DATA, 2, "*$" },
+	{ "rdmsr_safe_on_cpu", HOST_DATA, 3, "*$" },
+	  /* Functions that return host data as argument 6 */
+	{ "raw_pci_read", HOST_DATA, 5, "*$" },
+	  /* Functions that return host data as arguments 2-5 */
+	{ "cpuid", HOST_DATA, 1, "*$" },
+	{ "cpuid", HOST_DATA, 2, "*$" },
+	{ "cpuid", HOST_DATA, 3, "*$" },
+	{ "cpuid", HOST_DATA, 4, "*$" },
+	  /* Functions that return host data as arguments 3-6 */
+	{ "cpuid_count", HOST_DATA, 2, "*$" },
+	{ "cpuid_count", HOST_DATA, 3, "*$" },
+	{ "cpuid_count", HOST_DATA, 4, "*$" },
+	{ "cpuid_count", HOST_DATA, 5, "*$" },
 };
 
 static int my_id;
@@ -1050,7 +1050,7 @@ static void caller_info_callback_host(struct expression *call, int param, char *
 
 	snprintf(buf, sizeof(buf), "%s%s%s", show_rl(rl),
 		 estate_capped(sm->state) ? "[c]" : "", "");
-	sql_insert_caller_info(call, HOST_DATA, param, printed_name, buf);	
+	sql_insert_caller_info(call, HOST_DATA, param, printed_name, buf);
 }
 
 static void db_param_set(struct expression *expr, int param, char *key, char *value)
@@ -1258,19 +1258,18 @@ static void match_function_def(struct symbol *sym)
 static void set_param_host_input_data(struct expression *expr, const char *name,
 				 struct symbol *sym, void *data)
 {
-    struct expression *arg;
+	struct expression *arg;
 
-    func_gets_host_data = true;
+	func_gets_host_data = true;
 	arg = gen_expression_from_name_sym(name, sym);
 	tag_as_host_data(arg);
-    return;
 }
 
 void register_kernel_host_data(int id)
 {
 	int i;
 	struct host_fn_info *info;
-	
+
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
@@ -1290,7 +1289,7 @@ void register_kernel_host_data(int id)
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
 		info = &func_table[i];
 		add_function_param_key_hook_late(info->name, &set_param_host_input_data,
-										 info->param, info->key, info);
+						 info->param, info->key, info);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
