@@ -1177,7 +1177,7 @@ bool we_pass_host_data(struct expression *call);
 /* smatch_points_to_host_data.c */
 bool is_host_data_fn(struct symbol *fn);
 bool points_to_host_data(struct expression *expr);
-void set_points_to_host_data(struct expression *expr);
+void set_points_to_host_data(struct expression *expr, bool is_new);
 
 /* check_locking.c */
 void print_held_locks();

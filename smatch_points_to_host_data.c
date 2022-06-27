@@ -39,6 +39,7 @@
 
 static int my_id;
 STATE(host_data);
+STATE(host_data_set);
 
 static const char *returns_pointer_to_host_data[] = {
 	"virtqueue_get_buf"
@@ -169,19 +170,22 @@ bool points_to_host_data(struct expression *expr)
 		return true;
 
 	sm = get_sm_state_expr(my_id, expr);
-	if (sm && slist_has_state(sm->possible, &host_data))
+	if (!sm)
+		return false;
+	if (slist_has_state(sm->possible, &host_data) ||
+	    slist_has_state(sm->possible, &host_data_set))
 		return true;
 	return false;
 }
 
-void set_points_to_host_data(struct expression *expr)
+void set_points_to_host_data(struct expression *expr, bool is_new)
 {
 	struct expression *tmp;
 
 	tmp = get_assigned_expr(expr);
 	if (tmp)
-		set_state_expr(my_id, tmp, &host_data);
- 	set_state_expr(my_id, expr, &host_data);
+		set_state_expr(my_id, tmp, is_new ? &host_data_set : &host_data);
+	set_state_expr(my_id, expr, is_new ? &host_data_set : &host_data);
 }
 
 static void match_assign_host(struct expression *expr)
@@ -195,7 +199,7 @@ static void match_assign_host(struct expression *expr)
 	}
 
 	if (points_to_host_data(expr->right)) {
-		set_points_to_host_data(expr->left);
+		set_points_to_host_data(expr->left, false);
 		return;
 	}
 
@@ -212,7 +216,7 @@ static void match_memcpy_host(const char *fn, struct expression *expr, void *_un
 	src = get_argument_from_call_expr(expr->args, 1);
 
 	if (points_to_host_data(src)) {
-		set_points_to_host_data(dest);
+		set_points_to_host_data(dest, false);
 		return;
 	}
 
@@ -240,7 +244,7 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 				 const char *printed_name,
 				 struct sm_state *sm)
 {
-	int type = HOST_PTR_SET;
+	int type;
 
 	if (strncmp(printed_name, "&$", 2) == 0)
 		return;
@@ -249,11 +253,16 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 		return;
 
 	if (param >= 0) {
-		if (get_state_stree(get_start_states(), my_id, sm->name, sm->sym))
+		if (!slist_has_state(sm->possible, &host_data_set))
 			return;
+		type = HOST_PTR_SET;
 	} else {
-		if (!param_was_set_var_sym(sm->name, sm->sym))
+		if (slist_has_state(sm->possible, &host_data_set))
+			type = HOST_PTR_SET;
+		else if (slist_has_state(sm->possible, &host_data))
 			type = HOST_PTR;
+		else
+			return;
 	}
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return;
@@ -294,7 +303,10 @@ set_host:
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
-	set_state(my_id, name, sym, &host_data);
+	if (set)
+		set_state(my_id, name, sym, &host_data_set);
+	else
+		set_state(my_id, name, sym, &host_data);
 free:
 	free_string(name);
 }
@@ -323,8 +335,8 @@ static void set_param_host_ptr(const char *name, struct symbol *sym, char *key, 
 
 static void caller_info_callback_host(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-
-	if (!slist_has_state(sm->possible, &host_data))
+	if (!slist_has_state(sm->possible, &host_data) &&
+	    !slist_has_state(sm->possible, &host_data_set))
 		return;
 	sql_insert_caller_info(call, HOST_PTR, param, printed_name, "");
 }

@@ -419,7 +419,7 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 
 		member = member_expression(expr, op, tmp->ident);
 		if (type->type == SYM_ARRAY) {
-			set_points_to_host_data(member);
+			set_points_to_host_data(member, true);
 		} else {
 			set_host_data(member, new_state(get_type(member)));
 		}
@@ -455,7 +455,7 @@ static void tag_as_host_data(struct expression *expr)
 		}
 		if (type->type == SYM_BASETYPE) {
 			if (expr->type != EXPR_PREOP && expr->op != '&')
-				set_points_to_host_data(expr);
+				set_points_to_host_data(expr, true);
 			tag_base_type(expr);
 			return;
 		}
@@ -481,7 +481,7 @@ static void tag_as_host_data(struct expression *expr)
 
 	if (type->type == SYM_BASETYPE) {
 		if (expr->type == EXPR_PREOP && expr->op == '*')
-			set_points_to_host_data(expr->unop);
+			set_points_to_host_data(expr->unop, true);
 		set_host_data(expr, new_state(get_type(expr)));
 		return;
 	}
@@ -527,14 +527,14 @@ static bool state_is_new(struct expression *expr)
 	return false;
 }
 
-static void handle_derefed_pointers(struct expression *expr)
+static void handle_derefed_pointers(struct expression *expr, bool is_new)
 {
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_PREOP ||
 	    expr->op != '*')
 		return;
 	expr = strip_expr(expr->unop);
-	set_points_to_host_data(expr);
+	set_points_to_host_data(expr, is_new);
 }
 
 static bool handle_op_assign(struct expression *expr)
@@ -542,6 +542,7 @@ static bool handle_op_assign(struct expression *expr)
 	struct expression *binop_expr;
 	struct smatch_state *state;
 	struct range_list *rl;
+	bool is_new;
 
 	switch (expr->op) {
 	case SPECIAL_ADD_ASSIGN:
@@ -565,11 +566,12 @@ static bool handle_op_assign(struct expression *expr)
 		    expr->op == SPECIAL_MOD_ASSIGN ||
 		    host_rl_capped(binop_expr))
 			estate_set_capped(state);
-		if (state_is_new(binop_expr))
+		is_new = state_is_new(binop_expr);
+		if (is_new)
 			estate_set_new(state);
 		estate_set_assigned(state);
 		set_host_data(expr->left, state);
-		handle_derefed_pointers(expr->left);
+		handle_derefed_pointers(expr->left, is_new);
 		return true;
 	}
 	return false;
@@ -639,7 +641,7 @@ set:
 	if (type_is_ptr(left_type)) {
 		right_type = get_type(expr->right);
 		if (right_type && right_type->type == SYM_ARRAY)
-			set_points_to_host_data(expr->left);
+			set_points_to_host_data(expr->left, is_new);
 		return;
 	}
 
@@ -651,7 +653,7 @@ set:
 		estate_set_capped(state);
 	estate_set_assigned(state);
 	set_host_data(expr->left, state);
-	handle_derefed_pointers(expr->left);
+	handle_derefed_pointers(expr->left, is_new);
 	return;
 
 clear_old_state:
