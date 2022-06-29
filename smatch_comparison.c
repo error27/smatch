@@ -600,49 +600,6 @@ done:
 	return state;
 }
 
-static void save_start_states(struct statement *stmt)
-{
-	struct symbol *param;
-	char orig[64];
-	char state_name[128];
-	struct smatch_state *state;
-	struct string_list *links;
-	char *link;
-
-	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
-		struct var_sym_list *left_vsl = NULL;
-		struct var_sym_list *right_vsl = NULL;
-
-		if (!param->ident)
-			continue;
-		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
-		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
-		add_var_sym(&left_vsl, param->ident->name, param);
-		add_var_sym(&right_vsl, orig, param);
-		state = alloc_compare_state(
-				NULL, param->ident->name, left_vsl,
-				SPECIAL_EQUAL,
-				NULL, alloc_sname(orig), right_vsl);
-		set_state(comparison_id, state_name, NULL, state);
-
-		link = alloc_sname(state_name);
-		links = NULL;
-		insert_string(&links, link);
-		state = alloc_link_state(links);
-		set_state(link_id, param->ident->name, param, state);
-	} END_FOR_EACH_PTR(param);
-}
-
-static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_state *s2)
-{
-	struct smatch_state *ret;
-	struct string_list *links;
-
-	links = combine_string_lists(s1->data, s2->data);
-	ret = alloc_link_state(links);
-	return ret;
-}
-
 static void save_link_var_sym(const char *var, struct symbol *sym, const char *link)
 {
 	struct smatch_state *old_state, *new_state;
@@ -660,6 +617,42 @@ static void save_link_var_sym(const char *var, struct symbol *sym, const char *l
 
 	new_state = alloc_link_state(links);
 	set_state(link_id, var, sym, new_state);
+}
+
+static void save_start_states(struct statement *stmt)
+{
+	struct symbol *param;
+	char orig[64];
+	char state_name[128];
+	struct smatch_state *state;
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, param) {
+		struct var_sym_list *left_vsl = NULL;
+		struct var_sym_list *right_vsl = NULL;
+
+		if (!param->ident)
+			continue;
+		snprintf(orig, sizeof(orig), "%s orig", param->ident->name);
+		snprintf(state_name, sizeof(state_name), "%s vs %s", param->ident->name, orig);
+		add_var_sym(&left_vsl, param->ident->name, param);
+		add_var_sym(&right_vsl, orig, param);
+		state = alloc_compare_state(
+				NULL, param->ident->name, left_vsl,
+				SPECIAL_EQUAL,
+				NULL, alloc_sname(orig), right_vsl);
+		set_state(comparison_id, state_name, NULL, state);
+		save_link_var_sym(param->ident->name, param, state_name);
+	} END_FOR_EACH_PTR(param);
+}
+
+static struct smatch_state *merge_links(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct smatch_state *ret;
+	struct string_list *links;
+
+	links = combine_string_lists(s1->data, s2->data);
+	ret = alloc_link_state(links);
+	return ret;
 }
 
 static void match_inc(struct sm_state *sm, bool preserve)
