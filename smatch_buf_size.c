@@ -120,7 +120,7 @@ static int bytes_per_element(struct expression *expr)
 	if (!expr)
 		return 0;
 	if (expr->type == EXPR_STRING)
-		return 1;
+		return expr->wide + 1;
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		type = get_type(expr->unop);
 		if (type && type->type == SYM_ARRAY)
@@ -159,7 +159,7 @@ static int get_initializer_size(struct expression *expr)
 {
 	switch (expr->type) {
 	case EXPR_STRING:
-		return expr->string->length;
+		return expr->string->length * (expr->wide + 1);
 	case EXPR_INITIALIZER: {
 		struct expression *tmp;
 		int i = 0;
@@ -569,7 +569,7 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 
 	/* "BAR" */
 	if (expr->type == EXPR_STRING)
-		return alloc_int_rl(expr->string->length);
+		return alloc_int_rl(expr->string->length * (expr->wide + 1));
 
 	if (expr->type == EXPR_BINOP && expr->op == '+') {
 		sval_t offset;
