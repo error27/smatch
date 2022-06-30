@@ -233,6 +233,16 @@ static int is_ignored_struct(struct expression *expr)
 	return 0;
 }
 
+static bool is_marked_unsafe(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+	return strcmp(macro, "unsafe_memcpy") == 0;
+}
+
 static void match_limited(const char *fn, struct expression *expr, void *_limiter)
 {
 	struct limiter *limiter = (struct limiter *)_limiter;
@@ -271,6 +281,9 @@ static void match_limited(const char *fn, struct expression *expr, void *_limite
 		return;
 
 	if (is_ignored_struct(dest))
+		return;
+
+	if (is_marked_unsafe(dest))
 		return;
 
 	dest_name = expr_to_str(dest);
