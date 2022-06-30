@@ -167,6 +167,7 @@ static void match_after_call(struct expression *expr)
 			continue;
 
 		call_untracked_callbacks(expr, i);
+		call_lost_callbacks(expr, i);
 		set_state_expr(my_id, arg, &untracked);
 	} END_FOR_EACH_PTR(arg);
 }
