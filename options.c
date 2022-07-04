@@ -70,6 +70,8 @@ int dbg_postorder = 0;
 int dump_macro_defs = 0;
 int dump_macros_only = 0;
 
+int dissect_show_all_symbols = 0;
+
 unsigned long fdump_ir;
 int fhosted = 1;
 unsigned int fmax_errors = 100;
@@ -685,6 +687,19 @@ static const struct flag mflags[] = {
 
 static char **handle_switch_m(char *arg, char **next)
 {
+	if (!strcmp(arg, "meabi") && next[1] && next[1][0] != '-') {
+		// clang has such an option with syntax: -meabi <arg>
+		// It's used by the kernel for armv7.
+		// GCC has the same option but with no argument.
+		// Parse it here to consume the possible argument.
+		static const char *valid[] = { "gnu", "4", "5", "default", NULL };
+		int i;
+		for (i = 0; valid[i]; i++) {
+			if (!strcmp(next[1], valid[i]))
+				return ++next;
+		}
+	}
+
 	if (!strcmp(arg, "multiarch-dir")) {
 		return handle_multiarch_dir(arg, next);
 	} else {
@@ -957,6 +972,9 @@ static char **handle_param(char *arg, char **next)
 
 	if (!value)
 		die("missing argument for --param option");
+
+	if (!strcmp(value, "dissect-show-all-symbols"))
+		dissect_show_all_symbols = 1;
 
 	return next;
 }

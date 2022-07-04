@@ -3,6 +3,7 @@
 #include "target.h"
 #include "machine.h"
 #include <string.h>
+#include <stdio.h>
 
 #define RISCV_32BIT	(1 << 0)
 #define RISCV_64BIT	(1 << 1)
@@ -16,6 +17,8 @@
 #define RISCV_EMBD	(1 << 9)
 #define RISCV_FPU	(RISCV_FLOAT|RISCV_DOUBLE|RISCV_FDIV)
 #define RISCV_GENERIC	(RISCV_MUL|RISCV_DIV|RISCV_ATOMIC|RISCV_FPU)
+#define RISCV_ZICSR	(1 << 10)
+#define RISCV_ZIFENCEI	(1 << 11)
 
 static unsigned int riscv_flags;
 
@@ -33,22 +36,16 @@ static void parse_march_riscv(const char *arg)
 	}, extensions[] = {
 		{ "m",		RISCV_MUL|RISCV_DIV },
 		{ "a",		RISCV_ATOMIC },
-		{ "f",		RISCV_FLOAT|RISCV_FDIV },
-		{ "d",		RISCV_DOUBLE|RISCV_FDIV },
-		{ "g",		RISCV_GENERIC },
-		{ "q",		0 },
-		{ "l",		0 },
+		{ "f",		RISCV_FLOAT|RISCV_FDIV|RISCV_ZICSR },
+		{ "d",		RISCV_DOUBLE|RISCV_FDIV|RISCV_ZICSR },
 		{ "c",		RISCV_COMP },
-		{ "b",		0 },
-		{ "j",		0 },
-		{ "t",		0 },
-		{ "p",		0 },
-		{ "v",		0 },
-		{ "n",		0 },
-		{ "h",		0 },
-		{ "s",		0 },
+		{ "_zicsr",	RISCV_ZICSR },
+		{ "_zifencei",	RISCV_ZIFENCEI },
 	};
 	int i;
+
+	// Each -march=.. options entirely overrides previous ones
+	riscv_flags = 0;
 
 	for (i = 0; i < ARRAY_SIZE(basic_sets); i++) {
 		const char *pat = basic_sets[i].pattern;
@@ -60,7 +57,10 @@ static void parse_march_riscv(const char *arg)
 			goto ext;
 		}
 	}
-	die("invalid argument to '-march': '%s'\n", arg);
+
+unknown:
+	fprintf(stderr, "WARNING: invalid argument to '-march': '%s'\n", arg);
+	return;
 
 ext:
 	for (i = 0; i < ARRAY_SIZE(extensions); i++) {
@@ -73,7 +73,7 @@ ext:
 		}
 	}
 	if (arg[0])
-		die("invalid argument to '-march': '%s'\n", arg);
+		goto unknown;
 }
 
 static void init_riscv(const struct target *self)
@@ -127,6 +127,10 @@ static void predefine_riscv(const struct target *self)
 		predefine("__riscv_mul", 1, "1");
 	if ((riscv_flags & RISCV_MUL) && (riscv_flags & RISCV_DIV))
 		predefine("__riscv_muldiv", 1, "1");
+	if (riscv_flags & RISCV_ZICSR)
+		predefine("__riscv_zicsr", 1, "1");
+	if (riscv_flags & RISCV_ZIFENCEI)
+		predefine("__riscv_zifencei", 1, "1");
 
 	if (cmodel)
 		predefine_strong("__riscv_cmodel_%s", cmodel);

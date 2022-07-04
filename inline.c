@@ -155,6 +155,8 @@ static struct expression * copy_expression(struct expression *expr)
 
 	/* Cast/sizeof/__alignof__ */
 	case EXPR_CAST:
+		if (!expr->cast_expression)
+			return NULL;
 		if (expr->cast_expression->type == EXPR_INITIALIZER) {
 			struct expression *cast = expr->cast_expression;
 			struct symbol *sym = expr->cast_type;
@@ -514,9 +516,8 @@ int inline_function(struct expression *expr, struct symbol *sym)
 {
 	struct symbol_list * fn_symbol_list;
 	struct symbol *fn = sym->ctype.base_type;
-	struct expression_list *arg_list = expr->args;
-	struct statement *stmt = alloc_statement(expr->pos, STMT_COMPOUND);
-	struct symbol_list *name_list, *arg_decl;
+	struct statement *stmt;
+	struct symbol_list *arg_decl;
 	struct symbol *name;
 	struct expression *arg;
 
@@ -527,8 +528,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	if (fn->expanding)
 		return 0;
 
-	name_list = fn->arguments;
-
+	stmt = alloc_statement(expr->pos, STMT_COMPOUND);
 	expr->type = EXPR_STATEMENT;
 	expr->statement = stmt;
 	expr->ctype = fn->ctype.base_type;
@@ -536,18 +536,22 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	fn_symbol_list = create_symbol_list(sym->inline_symbol_list);
 
 	arg_decl = NULL;
-	PREPARE_PTR_LIST(name_list, name);
-	FOR_EACH_PTR(arg_list, arg) {
+	PREPARE_PTR_LIST(fn->arguments, name);
+	FOR_EACH_PTR(expr->args, arg) {
 		struct symbol *a = alloc_symbol(arg->pos, SYM_NODE);
 
-		a->ctype.base_type = arg->ctype;
 		if (name) {
 			*a = *name;
 			set_replace(name, a);
 			add_symbol(&fn_symbol_list, a);
+			a->initializer = arg;
+			add_symbol(&arg_decl, a);
+		} else {
+			// This may create a node of a node but it will
+			// be resolved later when the corresponding
+			// STMT_DECLARATION will be evaluated.
+			a->ctype.base_type = arg->ctype;
 		}
-		a->initializer = arg;
-		add_symbol(&arg_decl, a);
 
 		NEXT_PTR_LIST(name);
 	} END_FOR_EACH_PTR(arg);
@@ -563,6 +567,7 @@ int inline_function(struct expression *expr, struct symbol *sym)
 	stmt->inline_fn = sym;
 
 	unset_replace_list(fn_symbol_list);
+	free_ptr_list(&fn_symbol_list);
 
 	return 1;
 }

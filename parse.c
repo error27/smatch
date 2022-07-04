@@ -903,8 +903,7 @@ static void cast_enum_list(struct symbol_list *list, struct symbol *base_type)
 			expr->ctype = &int_ctype;
 			continue;
 		}
-		cast_value(expr, base_type, expr, ctype);
-		expr->ctype = base_type;
+		cast_value(expr, base_type, expr);
 	} END_FOR_EACH_PTR(sym);
 }
 
@@ -2348,6 +2347,11 @@ static inline struct token *case_statement(struct token *token, struct statement
 	stmt->type = STMT_CASE;
 	token = expect(token, ':', "after default/case");
 	add_case_statement(stmt);
+	if (match_op(token, '}')) {
+		warning(token->pos, "statement expected after case label");
+		stmt->case_statement = alloc_statement(token->pos, STMT_NONE);
+		return token;
+	}
 	return statement(token, &stmt->case_statement);
 }
 

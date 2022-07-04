@@ -206,6 +206,7 @@ const char *show_token(const struct token *token)
 		return "end-of-input";
 
 	case TOKEN_IDENT:
+	case TOKEN_ZERO_IDENT:
 		return show_ident(token->ident);
 
 	case TOKEN_NUMBER:
@@ -264,6 +265,7 @@ const char *quote_token(const struct token *token)
 		return "syntax error";
 
 	case TOKEN_IDENT:
+	case TOKEN_ZERO_IDENT:
 		return show_ident(token->ident);
 
 	case TOKEN_NUMBER:
