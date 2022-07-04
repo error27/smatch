@@ -1,3 +1,4 @@
+arch_test_bit
 set_bit
 clear_bit
 __clear_bit
