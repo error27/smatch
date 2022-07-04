@@ -348,6 +348,7 @@ void register_strlen(int id)
 
 	add_function_hook("snprintf", &match_snprintf, NULL);
 
+	add_function_hook("strscpy", &match_strlcpycat, NULL);
 	add_function_hook("strlcpy", &match_strlcpycat, NULL);
 	add_function_hook("strlcat", &match_strlcpycat, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
