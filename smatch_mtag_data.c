@@ -228,7 +228,7 @@ static int save_mtag_data(void *_unused, int argc, char **argv, char **azColName
 		return 0;
 
 	rl = (struct range_list *)strtoul(argv[3], NULL, 10);
-	sm_msg("SQL: insert into mtag_data values ('%s', '%s', '%s', '%s');",
+	sm_msg("SQL: insert or ignore into mtag_data values ('%s', '%s', '%s', '%s');",
 	       argv[0], argv[1], argv[2], show_rl(rl));
 
 	return 0;

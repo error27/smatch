@@ -138,7 +138,7 @@ static void match_string(struct expression *expr)
 	if (!get_string_mtag(expr, &tag))
 		return;
 
-	cache_sql(NULL, NULL, "insert into mtag_data values (%lld, %d, %d, '%q');",
+	cache_sql(NULL, NULL, "insert or ignore into mtag_data values (%lld, %d, %d, '%q');",
 		  tag, 0, STRING_VALUE, escape_newlines(expr->string->data));
 }
 

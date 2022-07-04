@@ -1,1 +1,9 @@
-CREATE TABLE mtag_data (tag big int, offset integer, type integer, value varchar(80));
+CREATE TABLE mtag_data (
+	tag big int,
+	offset integer,
+	type integer,
+	value varchar(80),
+
+	CONSTRAINT mtag_data_row UNIQUE (tag, offset, type, value)
+);
+
