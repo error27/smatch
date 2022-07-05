@@ -254,6 +254,7 @@ SMATCH_OBJS :=
 SMATCH_OBJS += avl.o
 SMATCH_OBJS += smatch_about_fn_ptr_arg.o
 SMATCH_OBJS += smatch_address.o
+SMATCH_OBJS += smatch_allocations.o
 SMATCH_OBJS += smatch_annotate.o
 SMATCH_OBJS += smatch_array_values.o
 SMATCH_OBJS += smatch_assigned_expr.o

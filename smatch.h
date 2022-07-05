@@ -172,6 +172,18 @@ void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
 void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, const char *name, struct symbol *sym);
 void call_string_hooks(struct string_hook_list *list, struct expression *expr, const char *str);
 
+struct allocation_info {
+	const char *size_str;
+	struct expression *total_size;
+	struct expression *nr_elems;
+	struct expression *elem_size;
+	long min, max;
+	bool zeroed;
+	bool safe;  /* safe from overflows */
+};
+typedef void (alloc_hook)(struct expression *expr, const char *name, struct symbol *sym, struct allocation_info *info);
+void add_allocation_hook(alloc_hook *func);
+
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);
 typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
