@@ -1261,6 +1261,13 @@ void __compare_param_limit_hook(struct expression *left_expr, struct expression 
 				const char *state_name,
 				struct smatch_state *true_state, struct smatch_state *false_state);
 int impossibly_high_comparison(struct expression *expr);
+void add_comparison_var_sym(
+		struct expression *left_expr,
+		const char *left_name, struct var_sym_list *left_vsl,
+		int comparison,
+		struct expression *right_expr,
+		const char *right_name, struct var_sym_list *right_vsl,
+		struct expression *mod_expr);
 
 /* smatch_sval.c */
 sval_t *sval_alloc(sval_t sval);
@@ -1361,6 +1368,7 @@ struct expression *get_size_variable(struct expression *buf, int *limit_type);
 struct expression *get_array_variable(struct expression *size);
 int buf_comparison_index_ok(struct expression *expr);
 bool buf_comp_has_bytes(struct expression *buf, struct expression *var);
+bool buf_comp2_has_bytes(struct expression *buf_expr, struct expression *var);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);

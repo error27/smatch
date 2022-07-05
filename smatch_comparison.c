@@ -831,9 +831,12 @@ static int is_self_assign(struct expression *expr)
 	return expr_equiv(expr->left, expr->right);
 }
 
+static struct expression *ignore_mod_expr;
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (mod_expr && is_self_assign(mod_expr))
+		return;
+	if (mod_expr && mod_expr == ignore_mod_expr)
 		return;
 
 	/* handled by match_inc_dec() */
@@ -1458,16 +1461,19 @@ void __comparison_match_condition(struct expression *expr)
 	handle_comparison(left, expr->op, right, NULL, NULL);
 }
 
-static void add_comparison_var_sym(
+void add_comparison_var_sym(
 		struct expression *left_expr,
 		const char *left_name, struct var_sym_list *left_vsl,
 		int comparison,
 		struct expression *right_expr,
-		const char *right_name, struct var_sym_list *right_vsl)
+		const char *right_name, struct var_sym_list *right_vsl,
+		struct expression *mod_expr)
 {
 	struct smatch_state *state;
 	struct var_sym *vs;
 	char state_name[256];
+
+	ignore_mod_expr = mod_expr;
 
 	if (strcmp(left_name, right_name) > 0) {
 		struct expression *tmp_expr = left_expr;
@@ -1705,7 +1711,7 @@ static void copy_comparisons(struct expression *left, struct expression *right)
 		if (strcmp(left_var, var) == 0)
 			continue;
 
-		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
+		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl, NULL);
 	} END_FOR_EACH_PTR(tmp);
 
 done:
@@ -2035,7 +2041,7 @@ static void update_links_from_call(struct expression *left,
 		comparison = combine_comparisons(left_compare, comparison);
 		if (!comparison)
 			continue;
-		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl);
+		add_comparison_var_sym(left, left_var, left_vsl, comparison, expr, var, vsl, NULL);
 	} END_FOR_EACH_PTR(tmp);
 
 done:
@@ -2427,6 +2433,8 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 
 		links = tmp->state->data;
 		FOR_EACH_PTR(links, link) {
+			if (strncmp(link, "$size", 5) == 0)
+				continue;
 			sm = get_sm_state(comparison_id, link, NULL);
 			if (!sm)
 				continue;
@@ -2647,7 +2655,7 @@ static void db_return_comparison(struct expression *expr, int left_param, char *
 	add_var_sym(&left_vsl, left_name, left_sym);
 	add_var_sym(&right_vsl, right_name, right_sym);
 
-	add_comparison_var_sym(NULL, left_name, left_vsl, op, NULL, right_name, right_vsl);
+	add_comparison_var_sym(NULL, left_name, left_vsl, op, NULL, right_name, right_vsl, NULL);
 
 free:
 	free_string(left_name);

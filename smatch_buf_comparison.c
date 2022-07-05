@@ -461,6 +461,9 @@ bool buf_comp_has_bytes(struct expression *buf, struct expression *var)
 	int limit_type;
 	int comparison;
 
+	if (buf_comp2_has_bytes(buf, var))
+		return true;
+
 	size = get_size_variable(buf, &limit_type);
 	if (!size)
 		return false;

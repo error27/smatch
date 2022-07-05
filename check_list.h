@@ -12,6 +12,7 @@ CK(register_smatch_extra)
 CK(register_smatch_extra_links)
 CK(register_buf_comparison)
 CK(register_buf_comparison_links)
+CK(register_buf_comparison2)
 CK(register_modification_hooks)
 /*
  * Implications should probably be after all the modification and smatch_extra

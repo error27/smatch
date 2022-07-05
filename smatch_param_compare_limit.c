@@ -86,7 +86,7 @@ static void save_link_var_sym(const char *var, struct symbol *sym, const char *l
 	set_state(link_id, var, sym, new_state);
 }
 
-static void add_comparison_var_sym(const char *left_name,
+static void add_comparison_limit_var_sym(const char *left_name,
 		struct var_sym_list *left_vsl,
 		int comparison,
 		const char *right_name, struct var_sym_list *right_vsl)
@@ -346,7 +346,7 @@ static void db_return_comparison(struct expression *expr, int left_param, char *
 	add_var_sym(&left_vsl, left_name, left_sym);
 	add_var_sym(&right_vsl, right_name, right_sym);
 
-	add_comparison_var_sym(left_name, left_vsl, op, right_name, right_vsl);
+	add_comparison_limit_var_sym(left_name, left_vsl, op, right_name, right_vsl);
 
 free:
 	free_string(left_name);
