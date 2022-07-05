@@ -18,3 +18,7 @@ bitmap_intersects
 bitmap_empty
 constant_test_bit
 variable_test_bit
+const_test_bit
+generic___set_bit
+___set_bit
+_test_bit
