@@ -956,11 +956,12 @@ static bool handle_logical_rl(struct expression *expr, int implied, int *recurse
 			goto zero;
 		break;
 	case SPECIAL_LOGICAL_AND:
-		if (left_known && right_known) {
-			if (left.value && right.value)
-				goto one;
+		if (left_known && left.value == 0)
 			goto zero;
-		}
+		if (right_known && right.value == 0)
+			goto zero;
+		if (left_known && right_known)
+			goto one;
 		break;
 	default:
 		return false;
