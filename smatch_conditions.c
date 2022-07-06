@@ -713,6 +713,8 @@ int __handle_select_assigns(struct expression *expr)
 		expr_set_parent_expr(fake_expr, expr);
 		__split_expr(fake_expr);
 		final_states = clone_stree(__get_cur_stree());
+	} else if (!is_false) {
+		final_states = clone_stree(__get_cur_stree());
 	}
 
 	if (is_true) {
