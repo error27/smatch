@@ -148,6 +148,8 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
+	if (name[0] == '&')
+		goto free;
 	if (is_ignored_param(symbol_expression(sym)))
 		goto free;
 	if (get_param_num_from_sym(sym) < 0)

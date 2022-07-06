@@ -54,6 +54,8 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
+	if (name[0] == '&')
+		goto free;
 
 	if (implied_not_equal_name_sym(name, sym, 0))
 		goto free;

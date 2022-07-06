@@ -2566,6 +2566,8 @@ static void caller_info_callback(struct expression *call, int param, char *print
 	struct range_list *rl;
 	sval_t dummy;
 
+	if (printed_name[0] == '&')
+		return;
 	if (estate_is_whole(sm->state) || !estate_rl(sm->state))
 		return;
 	if (filter_unused_param_value_info(call, param, printed_name, sm))
