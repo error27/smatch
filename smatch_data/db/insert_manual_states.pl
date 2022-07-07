@@ -57,7 +57,6 @@ sub insert_record($$$$$$$)
         if ($count == 1) {
             next;
         }
-        print("$func $ret $key $value $count\n");
 
         $insert->execute($file, $func, $call_id, $return_id, $ret, $static, $type, $param, $key, $value);
     }
