@@ -41,6 +41,11 @@ while true ; do
     fi
 done
 
+INFO=0
+if echo "$*" | grep -q info ; then
+    INFO=1
+fi
+
 # receive parameters from environment, which override
 [ -z "${SMATCH_ENV_TARGET:-}" ] || TARGET="$SMATCH_ENV_TARGET"
 [ -z "${SMATCH_ENV_BUILD_PARAM:-}" ] || BUILD_PARAM="$SMATCH_ENV_BUILD_PARAM"
@@ -71,8 +76,10 @@ make $KERNEL_ARCH $KERNEL_CROSS_COMPILE -j${NR_CPU} $ENDIAN -k CHECK="$CMD -p=ke
 	C=1 $BUILD_PARAM $TARGET 2>&1 | tee $LOG
 BUILD_STATUS=${PIPESTATUS[0]}
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > $WLOG
-find -name \*.c.smatch.sql -exec cat \{\} \; -exec rm \{\} \; > $WLOG.sql
-find -name \*.c.smatch.caller_info -exec cat \{\} \; -exec rm \{\} \; > $WLOG.caller_info
+if [[ $INFO -eq 1 ]] ; then
+    find -name \*.c.smatch.sql -exec cat \{\} \; -exec rm \{\} \; > $WLOG.sql
+    find -name \*.c.smatch.caller_info -exec cat \{\} \; -exec rm \{\} \; > $WLOG.caller_info
+fi
 
 echo "Done. Build with status $BUILD_STATUS. The warnings are saved to $WLOG"
 exit $BUILD_STATUS
