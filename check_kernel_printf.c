@@ -1188,8 +1188,6 @@ do_check_printf_call(const char *caller, const char *name, struct expression *ca
 
 	if (get_argument_from_call_expr(callexpr->args, vaidx))
 		sm_warning("excess argument passed to '%s'", name);
-
-
 }
 
 static void
@@ -1321,7 +1319,7 @@ void check_kernel_printf(int id)
 	printf_hook(brcmu_dbg_hex_dump, 3, 4);            /* drivers/net/wireless/brcm80211/include/brcmu_utils.h */
 	printf_hook(__iwl_crit, 2, 3);                    /* drivers/net/wireless/iwlwifi/iwl-debug.h */
 	printf_hook(__iwl_dbg, 5, 6);                     /* drivers/net/wireless/iwlwifi/iwl-debug.h */
-	printf_hook(__iwl_err, 4, 5);                     /* drivers/net/wireless/iwlwifi/iwl-debug.h */
+	printf_hook(__iwl_err, 3, 4);                     /* drivers/net/wireless/iwlwifi/iwl-debug.h */
 	printf_hook(__iwl_info, 2, 3);                    /* drivers/net/wireless/iwlwifi/iwl-debug.h */
 	printf_hook(__iwl_warn, 2, 3);                    /* drivers/net/wireless/iwlwifi/iwl-debug.h */
 	printf_hook(rsi_dbg, 2, 3);                       /* drivers/net/wireless/rsi/rsi_main.h */
