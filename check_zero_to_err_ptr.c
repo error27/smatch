@@ -21,6 +21,21 @@
 
 static int my_id;
 
+static bool is_select_assign(struct expression *expr)
+{
+	/* select assignments are faked in smatch_conditions.c */
+	expr = expr_get_parent_expr(expr);
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return false;
+	expr = expr_get_parent_expr(expr);
+	if (!expr)
+		return false;
+	if (expr->type == EXPR_CONDITIONAL ||
+	    expr->type == EXPR_SELECT)
+		return true;
+	return false;
+}
+
 static int is_comparison_call(struct expression *expr)
 {
 	expr = expr_get_parent_expr(expr);
@@ -133,6 +148,8 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 		return;
 
 	if (is_comparison_call(expr))
+		return;
+	if (is_select_assign(expr))
 		return;
 
 	if (next_line_checks_IS_ERR(expr, arg_expr))
