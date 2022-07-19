@@ -794,6 +794,7 @@ static void handle_pre_loop(struct statement *stmt)
 		stree = __pop_fake_cur_stree();
 
 		__discard_false_states();
+		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__use_breaks();
 
 		if (!__path_is_null())
@@ -838,6 +839,8 @@ static void handle_post_loop(struct statement *stmt)
 	loop_num++;
 	loop_count++;
 
+	__pass_to_client(stmt, POSTLOOP_HOOK);
+
 	__push_continues();
 	__push_breaks();
 	__merge_gotos(loop_name, NULL);
@@ -847,6 +850,7 @@ static void handle_post_loop(struct statement *stmt)
 		__save_gotos(loop_name, NULL);
 
 	if (is_forever_loop(stmt)) {
+		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__use_breaks();
 	} else {
 		__split_whole_condition(stmt->iterator_post_condition);
