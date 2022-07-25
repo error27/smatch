@@ -657,6 +657,8 @@ found:
 		return;
 	if (strstr(sm->name, "rcu"))
 		return;
+	if (strstr(sm->name, "timeline->mutex"))
+		return;
 	if (common_false_positive(sm->name))
 		return;
 
