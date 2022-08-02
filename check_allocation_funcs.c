@@ -29,54 +29,15 @@ static int my_id;
 
 static struct tracker_list *allocated;
 
-static const char *allocation_funcs[] = {
-	"kmalloc",
-	"kmalloc_node",
-	"kzalloc",
-	"kzalloc_node",
-	"vmalloc",
-	"vzalloc",
-	"__vmalloc",
-	"kvmalloc",
-	"kcalloc",
-	"__alloc_skb",
-	"kvcalloc",
-	"kmalloc_array",
-	"devm_kmalloc_array",
-	"sock_kmalloc",
-	"kmemdup",
-	"memdup_user",
-	"dma_alloc_attrs",
-	"devm_kmalloc",
-	"devm_kzalloc",
-	"krealloc",
-	"__alloc_bootmem",
-	"alloc_bootmem",
-	"get_zeroed_page",
-	"alloc_page",
-	"alloc_pages",
-	"alloc_pages_current",
-	"__get_free_pages",
-	"dma_alloc_contiguous",
-	"dma_alloc_coherent",
-	NULL,
-};
-
-static void match_allocation(const char *fn, struct expression *expr,
-			     void *info)
+static void match_allocation(struct expression *expr,
+			     const char *name, struct symbol *sym,
+			     struct allocation_info *info)
 {
-	char *left_name;
-	struct symbol *left_sym;
-
-	left_name = expr_to_var_sym(expr->left, &left_sym);
-	if (!left_name || !left_sym)
-		goto free;
-	if (left_sym->ctype.modifiers & 
-	    (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
-		goto free;
-	add_tracker(&allocated, my_id, left_name, left_sym);
-free:
-	free_string(left_name);
+	if (!sym)
+		return;
+	if (sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
+		return;
+	add_tracker(&allocated, my_id, name, sym);
 }
 
 static unsigned long returns_new_stuff;
@@ -115,8 +76,6 @@ static void match_end_func(struct symbol *sym)
 
 void check_allocation_funcs(int id)
 {
-	int i;
-
 	if (!option_info || option_project != PROJ_KERNEL)
 		return;
 
@@ -124,10 +83,9 @@ void check_allocation_funcs(int id)
 
 	add_function_data(&returns_old_stuff);
 	add_function_data(&returns_new_stuff);
+
+	add_allocation_hook(&match_allocation);
+
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, AFTER_FUNC_HOOK);
-	for (i = 0; allocation_funcs[i]; i++) {
-		add_function_assign_hook(allocation_funcs[i],
-					 &match_allocation, NULL);
-	}
 }
