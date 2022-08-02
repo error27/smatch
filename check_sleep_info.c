@@ -24,9 +24,6 @@ static int my_id;
 
 STATE(sleep);
 
-#define __GFP_ATOMIC 0x200u
-#define ___GFP_DIRECT_RECLAIM 0x400u
-
 unsigned long GFP_DIRECT_RECLAIM(void)
 {
 	static unsigned long saved_flags = -1;
@@ -37,27 +34,9 @@ unsigned long GFP_DIRECT_RECLAIM(void)
 
 	macro_sym = lookup_macro_symbol("___GFP_DIRECT_RECLAIM");
 	if (!macro_sym || !macro_sym->expansion)
-		return ___GFP_DIRECT_RECLAIM;
+		return 0;
 	if (token_type(macro_sym->expansion) != TOKEN_NUMBER)
-		return ___GFP_DIRECT_RECLAIM;
-
-	saved_flags = strtoul(macro_sym->expansion->number, NULL, 0);
-	return saved_flags;
-}
-
-unsigned long GFP_ATOMIC(void)
-{
-	static unsigned long saved_flags = -1;
-	struct symbol *macro_sym;
-
-	if (saved_flags != -1)
-		return saved_flags;
-
-	macro_sym = lookup_macro_symbol("___GFP_ATOMIC");
-	if (!macro_sym || !macro_sym->expansion)
-		return __GFP_ATOMIC;
-	if (token_type(macro_sym->expansion) != TOKEN_NUMBER)
-		return __GFP_ATOMIC;
+		return 0;
 
 	saved_flags = strtoul(macro_sym->expansion->number, NULL, 0);
 	return saved_flags;
@@ -125,8 +104,6 @@ static void match_gfp_t(struct expression *expr)
 		return;
 
 	if (!(sval.value & GFP_DIRECT_RECLAIM()))
-		return;
-	if (sval.uvalue & GFP_ATOMIC())
 		return;
 
 	name = expr_to_str(expr->fn);

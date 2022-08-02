@@ -29,8 +29,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_arg)
 	if (!get_value(arg_expr, &sval))
 		return;
 
-	if ((sval.value & GFP_DIRECT_RECLAIM()) &&
-	    !(sval.uvalue & GFP_ATOMIC()))
+	if (sval.value & GFP_DIRECT_RECLAIM())
 		return;
 
 	sm_error("%s() does not make sense for no sleep code", fn);
