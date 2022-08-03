@@ -951,14 +951,19 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	__push_scope_hooks();
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
+		// FIXME: what if default comes before the known case statement?
 		if (is_case_val(tmp, sval)) {
 			rl = alloc_rl(sval, sval);
 			__merge_switches(top_expression(switch_expr_stack), rl);
 			__pass_case_to_client(top_expression(switch_expr_stack), rl);
+			stmt_set_parent_stmt(tmp->case_statement, tmp);
+			__split_stmt(tmp->case_statement);
+			goto next;
 		}
 		if (__path_is_null())
 			continue;
 		__split_stmt(tmp);
+next:
 		if (__path_is_null()) {
 			__set_default();
 			goto out;
@@ -1475,6 +1480,7 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 		snprintf(buf, sizeof(buf), "__fake_return_%p", expr);
 	else
 		snprintf(buf, sizeof(buf), "__fake_param_%p_%d", call, nr);
+
 	return create_fake_assign(buf, type, expr);
 }
 
