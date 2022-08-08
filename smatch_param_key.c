@@ -109,6 +109,7 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	int param;
 	int ret;
 	bool arrow = false;
+	bool no_member = false;
 
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_DEREF &&
@@ -128,14 +129,21 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 			/* fixme */
 			if (param != 0)
 				return NULL;
-			if (!p || strncmp(p, ")->", 3) != 0)
+			if (!p)
+				return NULL;
+			if (strcmp(p, ")") == 0) {
+				no_member = true;
+				p++;
+				break;
+			}
+			if (strncmp(p, ")->", 3) != 0)
 				return NULL;
 			p += 3;
 			break;
 		}
 		p++;
 	}
-	if (*p == '\0')
+	if (!no_member && *p == '\0')
 		return NULL;
 
 	if (offset == get_member_offset_from_deref(expr)) {
@@ -155,6 +163,11 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 		if (!container)
 			return NULL;
 		arrow = true;
+	}
+
+	if (no_member) {
+		*new_key = alloc_sname("$");
+		return container;
 	}
 
 	ret = snprintf(buf, sizeof(buf), "%.*s$%s%s", (int)(start - orig_key), orig_key, arrow ? "->" : ".", p);
