@@ -175,9 +175,18 @@ free:
 	free_string(var);
 }
 
+static int is_untracked_var_helper(struct expression *expr, void *unused)
+{
+	if (expr->type == EXPR_SYMBOL)
+		return is_untracked(expr);
+	return 0;
+}
+
 static int condition_too_complicated(struct expression *expr)
 {
 	if (get_complication_score(expr) > 2)
+		return 1;
+	if (recurse(expr, is_untracked_var_helper, NULL, 0) == 1)
 		return 1;
 	return 0;
 }
