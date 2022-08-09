@@ -19,9 +19,9 @@
 
 #define RECURSE_LIMIT 10
 
-static int recurse(struct expression *expr,
-		   int (func)(struct expression *expr, void *p),
-		   void *param, int nr)
+int recurse(struct expression *expr,
+	    int (func)(struct expression *expr, void *p),
+	    void *param, int nr)
 {
 	int ret;
 

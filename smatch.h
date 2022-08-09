@@ -1323,6 +1323,9 @@ struct string_list *combine_string_lists(struct string_list *one, struct string_
 struct stree *get_start_states(void);
 
 /* smatch_recurse.c */
+int recurse(struct expression *expr,
+	    int (func)(struct expression *expr, void *p),
+	    void *param, int nr);
 int has_symbol(struct expression *expr, struct symbol *sym);
 int has_variable(struct expression *expr, struct expression *var);
 int has_inc_dec(struct expression *expr);
