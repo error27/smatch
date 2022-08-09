@@ -1376,6 +1376,8 @@ void mark_untracked(struct expression *expr, int param, const char *key, const c
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
 void add_lost_param_hook(void (func)(struct expression *call, int param));
 void mark_all_params_untracked(int return_id, char *return_ranges, struct expression *expr);
+/* smatch_untracked_var.c */
+bool is_untracked(struct expression *expr);
 
 /* smatch_strings.c */
 struct state_list *get_strings(struct expression *expr);

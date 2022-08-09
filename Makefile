@@ -344,6 +344,7 @@ SMATCH_OBJS += smatch_type_val.o
 SMATCH_OBJS += smatch_unconstant_macros.o
 SMATCH_OBJS += smatch_unknown_value.o
 SMATCH_OBJS += smatch_untracked_param.o
+SMATCH_OBJS += smatch_untracked_var.o
 SMATCH_OBJS += smatch_var_sym.o
 
 CFLAGS+=-D__CHECKNAME__='"$(subst .c,,$(notdir $<))"'
