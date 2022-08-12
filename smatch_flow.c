@@ -994,10 +994,11 @@ static void split_case(struct statement *stmt)
 				  stmt->case_statement->case_expression,
 				  stmt->case_statement->case_to);
 		if (!tmp)
-			break;
+			goto next;
 		rl = rl_union(rl, tmp);
 		if (!stmt->case_expression)
 			__set_default();
+next:
 		stmt = stmt->case_statement;
 	}
 
