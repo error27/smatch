@@ -105,6 +105,8 @@ static void match_assignment(struct expression *expr)
 		return;
 	if (is_fake_call(expr->right))
 		return;
+	if (is_fake_var_assign(expr))
+		return;
 	if (__in_fake_struct_assign) {
 		struct range_list *rl;
 
