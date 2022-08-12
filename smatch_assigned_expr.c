@@ -94,6 +94,7 @@ static void match_assignment(struct expression *expr)
 {
 	static struct expression *ignored_expr, *right;
 	struct symbol *left_sym, *right_sym;
+	struct smatch_state *state;
 	char *left_name = NULL;
 	char *right_name = NULL;
 
@@ -127,8 +128,12 @@ static void match_assignment(struct expression *expr)
 	if (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = right->left;
 
+	state = alloc_state_expr(strip_expr(right));
+	if (!state)
+		goto free;
+
 	skip_mod = expr;
-	set_state(my_id, left_name, left_sym, alloc_state_expr(strip_expr(right)));
+	set_state(my_id, left_name, left_sym, state);
 
 	right_name = expr_to_var_sym(right, &right_sym);
 	if (!right_name || !right_sym)
