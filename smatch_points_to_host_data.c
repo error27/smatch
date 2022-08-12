@@ -26,11 +26,11 @@
  * on such data, i.e. verify that that there are no spectre v1 gadgets
  * on this attack surface or even simply report locations where host data
  * is being processed in the kernel source code (useful for a targeted code
- * audit). 
- * Similar as smatch_points_to_user_data.c it works with 
- * smatch_kernel_host_data.c code. 
+ * audit).
+ * Similar as smatch_points_to_user_data.c it works with
+ * smatch_kernel_host_data.c code.
  *
- *  Copyright (C) 2022 Elena Reshetova Intel Corporation. 
+ *  Copyright (C) 2022 Elena Reshetova Intel Corporation.
  */
 
 #include "smatch.h"
