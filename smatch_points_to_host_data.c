@@ -249,9 +249,6 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 	if (strncmp(printed_name, "&$", 2) == 0)
 		return;
 
-	if (!slist_has_state(sm->possible, &host_data))
-		return;
-
 	if (param >= 0) {
 		if (!slist_has_state(sm->possible, &host_data_set))
 			return;
