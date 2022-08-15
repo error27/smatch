@@ -44,8 +44,9 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"__alloc_skb", "$0"},
 
 	{"devm_kmalloc", "$1"},
-	{"devm_kzalloc", "$1"},
+	{"devm_kzalloc", "$1", .zeroed=true},
 	{"devm_kmalloc_array", "$1 * $2"},
+	{"devm_kcalloc", "$1 * $2", .zeroed=true},
 
 	{"dma_alloc_attrs", "$1"},
 	{"dma_alloc_coherent", "$1"},
@@ -67,7 +68,8 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"vzalloc", "$0", .zeroed=true},
 
 	{"kvmalloc", "$0"},
-	{"kvmalloc_array", "$0"},
+	{"kvmalloc_array", "$0 * $1"},
+	{"kvzalloc", "$0", .zeroed=true},
 	{"kvcalloc", "$0 * $1", .zeroed=true},
 
 	{"kmemdup", "$1"},
