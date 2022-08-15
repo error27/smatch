@@ -48,8 +48,8 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"devm_kmalloc_array", "$1 * $2"},
 	{"devm_kcalloc", "$1 * $2", .zeroed=true},
 
-	{"dma_alloc_attrs", "$1"},
-	{"dma_alloc_coherent", "$1"},
+	{"dma_alloc_attrs", "$1", .zeroed=true},
+	{"dma_alloc_coherent", "$1", .zeroed=true},
 	{"dma_alloc_consistent", "$1"},
 	{"dma_alloc_contiguous", "$1"},
 
