@@ -174,6 +174,7 @@ void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, c
 void call_string_hooks(struct string_hook_list *list, struct expression *expr, const char *str);
 
 struct allocation_info {
+	const char *fn_name;
 	const char *size_str;
 	struct expression *total_size;
 	struct expression *nr_elems;

@@ -98,6 +98,7 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 	struct allocation_info data = { };
 	alloc_hook *fn;
 
+	data.fn_name = info->name;
 	data.size_str = info->size;
 	data.zeroed = info->zeroed;
 
