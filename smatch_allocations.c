@@ -72,6 +72,7 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"kvcalloc", "$0 * $1", .zeroed=true},
 
 	{"kmemdup", "$1"},
+	{"devm_kmemdup", "$2"},
 	{"memdup_user", "$1"},
 
 	{"sock_kmalloc", "$1"},
