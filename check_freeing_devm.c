@@ -26,6 +26,17 @@ static void match_assign(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_id, expr->left, &devm);
 }
 
+static void match_allocation(struct expression *expr,
+			     const char *name, struct symbol *sym,
+			     struct allocation_info *info)
+{
+	/*
+	 * Only handle devm_ memory allocator
+	 */
+	if (strncmp(info->fn_name, "devm_", 5) == 0)
+		match_assign(name, expr, NULL);
+}
+
 /*
  * This hook deals with things like:
  * ptr = devm_kmalloc(...);
@@ -96,12 +107,12 @@ void check_freeing_devm(int id)
 
 	my_id = id;
 
-	add_function_assign_hook("devm_kmalloc", &match_assign, NULL);
-	add_function_assign_hook("devm_kzalloc", &match_assign, NULL);
-	add_function_assign_hook("devm_kcalloc", &match_assign, NULL);
-	add_function_assign_hook("devm_kmalloc_array", &match_assign, NULL);
+	/*
+	 * We register all allocation functions, but only devm_ will be handled
+	 * in match_allocation()
+	 */
+	add_allocation_hook(&match_allocation);
 
-	add_function_assign_hook("devm_kmemdup", &match_assign, NULL);
 	add_function_assign_hook("devm_kstrdup", &match_assign, NULL);
 	add_function_assign_hook("devm_kasprintf", &match_assign, NULL);
 	add_function_assign_hook("devm_kvasprintf", &match_assign, NULL);
