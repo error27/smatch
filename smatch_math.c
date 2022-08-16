@@ -269,19 +269,8 @@ static bool handle_preop_rl(struct expression *expr, int implied, int *recurse_c
 	}
 }
 
-static bool handle_divide_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_divide_rl(struct range_list *left_rl, struct range_list *right_rl, int implied, int *recurse_cnt, struct range_list **res)
 {
-	struct range_list *left_rl = NULL;
-	struct range_list *right_rl = NULL;
-	struct symbol *type;
-
-	type = get_type(expr);
-
-	get_rl_internal(expr->left, implied, recurse_cnt, &left_rl);
-	left_rl = cast_rl(type, left_rl);
-	get_rl_internal(expr->right, implied, recurse_cnt, &right_rl);
-	right_rl = cast_rl(type, right_rl);
-
 	if (!left_rl || !right_rl)
 		return false;
 
@@ -419,20 +408,15 @@ static bool max_is_unknown_max(struct range_list *rl)
 	return sval_is_max(rl_max(rl));
 }
 
-static bool handle_add_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
+static bool handle_add_rl(struct expression *expr,
+			  struct range_list *left_rl, struct range_list *right_rl,
+			  int implied, int *recurse_cnt, struct range_list **res)
 {
-	struct range_list *left_rl = NULL;
-	struct range_list *right_rl = NULL;
 	struct range_list *valid;
 	struct symbol *type;
 	sval_t min, max;
 
 	type = get_type(expr);
-
-	get_rl_internal(expr->left, implied, recurse_cnt, &left_rl);
-	left_rl = cast_rl(type, left_rl);
-	get_rl_internal(expr->right, implied, recurse_cnt, &right_rl);
-	right_rl = cast_rl(type, right_rl);
 
 	if (!left_rl)
 		return false;
@@ -776,11 +760,11 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 	case SPECIAL_LEFTSHIFT:
 		return handle_left_shift(expr, implied, recurse_cnt, res);
 	case '+':
-		return handle_add_rl(expr, implied, recurse_cnt, res);
+		return handle_add_rl(expr, left_rl, right_rl, implied, recurse_cnt, res);
 	case '-':
 		return handle_subtract_rl(expr, implied, recurse_cnt, res);
 	case '/':
-		return handle_divide_rl(expr, implied, recurse_cnt, res);
+		return handle_divide_rl(left_rl, right_rl, implied, recurse_cnt, res);
 	}
 
 	if (!left_rl || !right_rl)
