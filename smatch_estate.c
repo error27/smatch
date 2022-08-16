@@ -35,6 +35,7 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
 	struct related_list *rlist;
+	bool capped = false;
 
 	if (estates_equiv(s1, s2))
 		return s1;
@@ -50,9 +51,15 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 	estate_set_fuzzy_max(tmp, sval_max(estate_get_fuzzy_max(s1), estate_get_fuzzy_max(s2)));
 
-	if ((estate_capped(s1) && estate_capped(s2)) ||
-	    (estate_capped(s1) && estate_max(s2).value < 100) ||
-	    (estate_capped(s2) && estate_max(s1).value < 100))
+	if (estate_capped(s1) && estate_capped(s2))
+		capped = true;
+	if (estate_rl(s1) && estate_rl(s2)) {
+		if (estate_capped(s1) && estate_max(s2).uvalue < 100)
+			capped = true;
+		if (estate_capped(s2) && estate_max(s1).uvalue < 100)
+			capped = true;
+	}
+	if (capped)
 		estate_set_capped(tmp);
 
 	if (estate_treat_untagged(s1) && estate_treat_untagged(s2))
