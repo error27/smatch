@@ -29,6 +29,8 @@
 static int my_id;
 static int my_call_id;
 
+static struct expression *ignore_clear;
+
 STATE(called);
 static unsigned long func_gets_user_data;
 
@@ -402,14 +404,13 @@ static void tag_as_user_data(struct expression *expr)
 	}
 }
 
-static struct expression *ignore_param_set;
 static void match_user_copy(const char *fn, struct expression *expr, void *_param)
 {
 	int param = PTR_INT(_param);
 	struct expression *dest;
 
 	func_gets_user_data = true;
-	ignore_param_set = expr;
+	ignore_clear = expr;
 
 	dest = get_argument_from_call_expr(expr->args, param);
 	dest = strip_expr(dest);
@@ -612,6 +613,8 @@ static void match_assign(struct expression *expr)
 		return;
 
 	faked = get_faked_expression();
+	if (faked && faked == ignore_clear)
+		return;
 
 	/* FIXME: handle fake array assignments frob(&user_array[x]); */
 
@@ -1207,7 +1210,7 @@ static void db_param_set(struct expression *expr, int param, char *key, char *va
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
 		return;
-	if (expr == ignore_param_set)
+	if (expr == ignore_clear)
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, param);
