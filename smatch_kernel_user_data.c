@@ -929,8 +929,17 @@ struct stree *get_user_stree(void)
 	return get_all_states_stree(my_id);
 }
 
-static int user_data_flag;
-static int no_user_data_flag;
+struct int_stack *user_data_flags, *no_user_data_flags;
+
+static void set_flag(struct int_stack **stack)
+{
+	int num;
+
+	num = pop_int(stack);
+	num = 1;
+	push_int(stack, num);
+}
+
 struct range_list *var_user_rl(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -938,7 +947,7 @@ struct range_list *var_user_rl(struct expression *expr)
 	struct range_list *absolute_rl;
 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		no_user_data_flag = 1;
+		set_flag(&no_user_data_flags);
 		return NULL;
 	}
 
@@ -974,7 +983,7 @@ struct range_list *var_user_rl(struct expression *expr)
 		if (left && !right) {
 			rl = rl_binop(left, '/', abs_right);
 			if (sval_cmp(rl_max(left), rl_max(rl)) < 0)
-				no_user_data_flag = 1;
+				set_flag(&no_user_data_flags);
 		}
 
 		return NULL;
@@ -1010,14 +1019,14 @@ struct range_list *var_user_rl(struct expression *expr)
 		struct expression *array = get_array_base(expr);
 
 		if (!get_state_expr(my_id, array)) {
-			no_user_data_flag = 1;
+			set_flag(&no_user_data_flags);
 			return NULL;
 		}
 	}
 
 	return NULL;
 found:
-	user_data_flag = 1;
+	set_flag(&user_data_flags);
 	absolute_rl = var_to_absolute_rl(expr);
 	return rl_intersection(rl, absolute_rl);
 }
@@ -1036,13 +1045,20 @@ static bool is_ptr_subtract(struct expression *expr)
 
 int get_user_rl(struct expression *expr, struct range_list **rl)
 {
+	int user_data, no_user_data;
+
 	if (is_ptr_subtract(expr))
 		return 0;
 
-	user_data_flag = 0;
-	no_user_data_flag = 0;
+	push_int(&user_data_flags, 0);
+	push_int(&no_user_data_flags, 0);
+
 	custom_get_absolute_rl(expr, &var_user_rl, rl);
-	if (!user_data_flag || no_user_data_flag)
+
+	user_data = pop_int(&user_data_flags);
+	no_user_data = pop_int(&no_user_data_flags);
+
+	if (!user_data || no_user_data)
 		*rl = NULL;
 
 	return !!*rl;

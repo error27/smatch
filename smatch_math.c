@@ -1866,12 +1866,14 @@ int custom_get_absolute_rl(struct expression *expr,
 			   struct range_list *(*fn)(struct expression *expr),
 			   struct range_list **rl)
 {
+	struct range_list *(*orig_fn)(struct expression *expr);
 	int ret;
 
 	*rl = NULL;
+	orig_fn = custom_handle_variable;
 	custom_handle_variable = fn;
 	ret = get_rl_helper(expr, RL_REAL_ABSOLUTE, rl);
-	custom_handle_variable = NULL;
+	custom_handle_variable = orig_fn;
 	return ret;
 }
 
