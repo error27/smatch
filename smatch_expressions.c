@@ -154,7 +154,7 @@ struct expression *assign_expression_perm(struct expression *left, int op, struc
 
 struct expression *create_fake_assign(const char *name, struct symbol *type, struct expression *right)
 {
-	struct expression *left, *assign, *parent;
+	struct expression *left, *assign;
 
 	if (!right)
 		return NULL;
@@ -171,8 +171,7 @@ struct expression *create_fake_assign(const char *name, struct symbol *type, str
 
 	assign->smatch_flags |= Fake;
 
-	parent = expr_get_parent_expr(right);
-	expr_set_parent_expr(assign, parent);
+	assign->parent = right->parent;
 	expr_set_parent_expr(right, assign);
 
 	__fake_state_cnt++;
@@ -527,10 +526,16 @@ struct expression *expr_get_fake_parent_expr(struct expression *expr)
 
 struct statement *expr_get_parent_stmt(struct expression *expr)
 {
+	struct expression *parent;
+
 	if (!expr)
 		return NULL;
-	if (expr->parent & 0x1UL)
+	if (expr->parent & 0x1UL) {
+		parent = (struct expression *)(expr->parent & ~0x1UL);
+		if (parent->smatch_flags & Fake)
+			return expr_get_parent_stmt(parent);
 		return NULL;
+	}
 	return (struct statement *)expr->parent;
 }
 
