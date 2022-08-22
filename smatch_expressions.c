@@ -48,6 +48,16 @@ struct expression *zero_expr(void)
 	return zero;
 }
 
+struct expression *sval_to_expr(sval_t sval)
+{
+	struct expression *expr;
+
+	expr = alloc_tmp_expression(get_cur_pos(), EXPR_VALUE);
+	expr->value = sval.value;
+	expr->ctype = sval.type;
+	return expr;
+}
+
 struct expression *value_expr(long long val)
 {
 	struct expression *expr;
