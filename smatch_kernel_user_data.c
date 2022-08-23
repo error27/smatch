@@ -433,29 +433,40 @@ static int is_dev_attr_name(struct expression *expr)
 	return ret;
 }
 
-static int ends_in_n(struct expression *expr)
+static bool is_percent_n(struct expression *expr, int pos)
 {
-	struct string *str;
+	char *p;
+	int cnt = 0;
 
 	if (!expr)
-		return 0;
+		return false;
 	if (expr->type != EXPR_STRING || !expr->string)
-		return 0;
+		return false;
 
-	str = expr->string;
-	if (str->length < 3)
-		return 0;
+	p = expr->string->data;
+	while (*p) {
+		if (p[0] != '%' ||
+		    (p[0] == '%' && p[1] == '%')) {
+			p++;
+			continue;
+		}
+		if (pos != cnt) {
+			cnt++;
+			p++;
+			continue;
+		}
+		if (p[1] == 'n')
+			return true;
+		return false;
+	}
 
-	if (str->data[str->length - 3] == '%' &&
-	    str->data[str->length - 2] == 'n')
-		return 1;
-	return 0;
+	return false;
 }
 
 static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *str, *format, *arg;
-	int i, last;
+	int i;
 
 	func_gets_user_data = true;
 
@@ -467,14 +478,12 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	if (is_dev_attr_name(format))
 		return;
 
-	last = ptr_list_size((struct ptr_list *)expr->args) - 1;
-
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
 		if (i < 2)
 			continue;
-		if (i == last && ends_in_n(format))
+		if (is_percent_n(format, i - 2))
 			continue;
 		tag_as_user_data(arg);
 	} END_FOR_EACH_PTR(arg);
