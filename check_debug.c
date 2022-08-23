@@ -236,7 +236,7 @@ static void match_host_rl(const char *fn, struct expression *expr, void *info)
 
        get_host_rl(arg, &rl);
        if (rl)
-               capped = user_rl_capped(arg);
+               capped = host_rl_capped(arg);
        sm = get_sm_state_expr(host_id, arg);
        if (sm && estate_new(sm->state))
                new = true;
