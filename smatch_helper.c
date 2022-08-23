@@ -137,6 +137,15 @@ static int FORMAT_ATTR(4) append(char *dest, int off, int len, const char *fmt, 
 	return n;
 }
 
+struct expression *get_assigned_call(struct expression *expr)
+{
+	while (expr && expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (!expr || expr->type != EXPR_CALL)
+		return NULL;
+	return expr;
+}
+
 /*
  * If you have "foo(a, b, 1);" then use
  * get_argument_from_call_expr(expr, 0) to return the expression for

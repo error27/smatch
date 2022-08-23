@@ -465,6 +465,7 @@ struct smatch_state *alloc_state_num(int num);
 struct smatch_state *alloc_state_str(const char *name);
 struct smatch_state *merge_str_state(struct smatch_state *s1, struct smatch_state *s2);
 struct smatch_state *alloc_state_expr(struct expression *expr);
+struct expression *get_assigned_call(struct expression *expr);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
 struct expression *get_array_expr(struct expression *expr);
