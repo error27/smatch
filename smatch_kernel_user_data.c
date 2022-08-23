@@ -938,7 +938,7 @@ struct stree *get_user_stree(void)
 	return get_all_states_stree(my_id);
 }
 
-struct int_stack *user_data_flags, *no_user_data_flags;
+static struct int_stack *user_data_flags, *no_user_data_flags;
 
 static void set_flag(struct int_stack **stack)
 {
