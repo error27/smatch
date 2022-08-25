@@ -20,6 +20,7 @@
  * do {
  *    if (xxx)
  *        continue;
+ * }
  * while (0);
  *
  * Then the continue is equivalent of a break.  So what was really intended?
@@ -76,9 +77,9 @@ static void match_stmt(struct statement *stmt)
 	if (stmt->type != STMT_ITERATOR)
 		return;
 
-	if (is_do_while_zero(stmt)) {
+	if (is_do_while_zero(stmt))
 		push_statement(&iterator_stack, stmt);
-	} else
+	else
 		push_statement(&iterator_stack, NULL);
 }
 
