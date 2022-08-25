@@ -70,8 +70,11 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 
 	{"kvmalloc", "$0"},
 	{"kvmalloc_array", "$0 * $1"},
+	{"kvmalloc_node", "$0"},
 	{"kvzalloc", "$0", .zeroed=true},
 	{"kvcalloc", "$0 * $1", .zeroed=true},
+	{"kvzalloc_node", "$0", .zeroed=true},
+	{"kvrealloc", "$2"},
 
 	{"kmemdup", "$1"},
 	{"devm_kmemdup", "$2"},
