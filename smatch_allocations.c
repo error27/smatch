@@ -17,8 +17,10 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "parse.h"
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 static int my_id;
@@ -92,6 +94,58 @@ void add_allocation_hook(alloc_hook *hook)
 	add_ptr_list(&hook_funcs, hook);
 }
 
+static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
+{
+	struct expression *call, *arg1, *arg2;
+	const char *p;
+	int op;
+	int param;
+
+	if (!size_str)
+		return;
+
+	p = size_str;
+	if (*p != '$')
+		return;
+	p++;
+	if (!isdigit(*p))
+		return;
+	param = atoi(p);
+
+	call = get_assigned_call(expr);
+	if (!call)
+		return;
+	arg1 = get_argument_from_call_expr(call->args, param);
+	if (!arg1)
+		return;
+
+	p++;
+	if (*p == '\0') {
+		data->total_size = arg1;
+		return;
+	}
+	while (*p == ' ')
+		p++;
+	op = *p;
+	if (op != '*' && op != '+')
+		return;
+	p++;
+	while (p[0] == ' ')
+		p++;
+	if (p[0] != '$' || !isdigit(p[1]))
+		return;
+	p++;
+	param = atoi(p);
+	arg2 = get_argument_from_call_expr(call->args, param);
+	if (!arg2)
+		return;
+
+	if (op == '*') {
+		data->nr_elems = arg1;
+		data->elem_size = arg2;
+	}
+}
+
 static void match_alloc(struct expression *expr, const char *name, struct symbol *sym, void *_info)
 {
 	struct alloc_fn_info *info = _info;
@@ -101,6 +155,7 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 	data.fn_name = info->name;
 	data.size_str = info->size;
 	data.zeroed = info->zeroed;
+	load_size_data(&data, expr, info->size);
 
 	FOR_EACH_PTR(hook_funcs, fn) {
 		fn(expr, name, sym, &data);
