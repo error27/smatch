@@ -212,7 +212,13 @@ static struct expression *strip_parens_symbol(struct expression *expr)
 
 	if (expr->type != EXPR_PREOP || expr->op != '(')
 		return expr;
-	unop = strip_parens(expr->unop);
+	/*
+	 * This should probably be strip_parens() but expr_to_str() doesn't
+	 * print casts so we may as well strip those too.  In other words,
+	 * instead of fixing the code to print the cast, it's easier to just
+	 * write even more code that relies on the bug.  ;)
+	 */
+	unop = strip_expr(expr->unop);
 	if (unop->type != EXPR_SYMBOL)
 		return expr;
 	return unop;
