@@ -2766,6 +2766,21 @@ static void db_param_filter(struct expression *expr, int param, char *key, char 
 	db_param_limit_filter(expr, param, key, value, PARAM_FILTER);
 }
 
+static struct expression *get_star_pointer_hack(struct expression *arg, const char *key)
+{
+	/* if we are setting *(p + offset) then we are setting *p */
+	if (strcmp(key, "*$") != 0)
+		return NULL;
+
+	arg = strip_expr(arg);
+	if (arg->op != '+')
+		return NULL;
+	arg = strip_expr(arg->left);
+	if (!is_pointer(arg))
+		return NULL;
+	return arg;
+}
+
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg, *gen_expr;
@@ -2791,8 +2806,14 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	if (param_type && param_type->type == SYM_STRUCT)
 		return;
 	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
+	if (!name || !sym) {
+		arg = get_star_pointer_hack(arg, key);
+		if (!arg)
+			goto free;
+		name = get_variable_from_key(arg, key, &sym);
+		if (!name || !sym)
+			goto free;
+	}
 	gen_expr = gen_expression_from_key(arg, key);
 
 	state = get_state(SMATCH_EXTRA, name, sym);
