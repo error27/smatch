@@ -784,6 +784,31 @@ static struct expression *strip__builtin_choose_expr(struct expression *expr)
 		return strip_expr(expr2);
 }
 
+struct expression *strip_Generic(struct expression *expr)
+{
+	struct type_expression *map;
+	struct symbol *type, *tmp;
+
+	if (!expr || expr->type != EXPR_GENERIC)
+		return expr;
+
+	type = get_type(expr->control);
+
+	for (map = expr->map; map; map = map->next) {
+		tmp = get_real_base_type(map->type);
+		if (!types_equiv(type, tmp))
+			continue;
+		if (!map->expr)
+			return expr;
+		return map->expr;
+	}
+
+	if (!expr->def)
+		return expr;
+
+	return expr->def;
+}
+
 static struct expression *strip_expr_helper(struct expression *expr, bool set_parent, bool cast)
 {
 	if (!expr)
@@ -866,6 +891,8 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 		if (sym_name_is("__builtin_choose_expr", expr->fn))
 			return strip__builtin_choose_expr(expr);
 		return expr;
+	case EXPR_GENERIC:
+		return strip_Generic(expr);
 	}
 	return expr;
 }

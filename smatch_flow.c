@@ -705,6 +705,14 @@ after_assign:
 	case EXPR_STRING:
 		__pass_to_client(expr, STRING_HOOK);
 		break;
+	case EXPR_GENERIC: {
+		struct expression *tmp;
+
+		tmp = strip_Generic(expr);
+		if (tmp != expr)
+			__split_expr(tmp);
+		break;
+	}
 	default:
 		break;
 	};
