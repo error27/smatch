@@ -44,13 +44,21 @@ static int match_strlen(struct expression *call, void *unused, struct range_list
 
 static int match_strnlen(struct expression *call, void *unused, struct range_list **rl)
 {
-	struct expression *limit;
+	struct range_list *terminated_rl = NULL;
+	struct expression *str, *limit;
 	sval_t fixed;
 	sval_t bound;
 	sval_t ulong_max = sval_type_val(&ulong_ctype, ULONG_MAX);
 
-	match_strlen(call, NULL, rl);
+	str = get_argument_from_call_expr(call->args, 0);
 	limit = get_argument_from_call_expr(call->args, 1);
+	if (!str || !limit)
+		return 1;
+
+	if (is_nul_terminated(str)) {
+		match_strlen(call, NULL, &terminated_rl);
+		*rl = terminated_rl;
+	}
 	if (!get_implied_max(limit, &bound))
 		return 1;
 	if (sval_cmp(bound, ulong_max) == 0)
@@ -60,8 +68,12 @@ static int match_strnlen(struct expression *call, void *unused, struct range_lis
 		return 1;
 	}
 
-	bound.value++;
-	*rl = remove_range(*rl, bound, ulong_max);
+	if (terminated_rl) {
+		bound.value++;
+		*rl = remove_range(*rl, bound, ulong_max);
+	} else {
+		*rl = alloc_rl(ulong_zero, bound);
+	}
 
 	return 1;
 }
