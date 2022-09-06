@@ -119,6 +119,7 @@ static struct host_fn_info func_table[] = {
 	  /* Functions that return host data as argument 3 */
 	{ "rdmsrl_on_cpu", HOST_DATA, 2, "*$" },
 	{ "rdmsrl_safe_on_cpu", HOST_DATA, 2, "*$" },
+	{ "(struct virtio_config_ops)->get", HOST_DATA, 2, "*$" },
 	{ "__virtio_cread_many", HOST_DATA, 2, "*$" },
 	{ "pci_user_read_config_word", HOST_DATA, 2, "*$" },
 	{ "pci_user_read_config_dword", HOST_DATA, 2, "*$" },
