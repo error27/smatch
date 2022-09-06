@@ -146,6 +146,23 @@ static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 	return cb;
 }
 
+static const char *get_fn_name(struct expression *fn)
+{
+	fn = strip_expr(fn);
+	if (!fn)
+		return NULL;
+	if (fn->type == EXPR_SYMBOL && fn->symbol)
+		return fn->symbol->ident->name;
+	return get_member_name(fn);
+}
+
+static struct call_back_list *get_call_backs(const char *fn_name)
+{
+	if (!fn_name)
+		return NULL;
+	return search_callback(func_hash, (char *)fn_name);
+}
+
 void add_function_hook(const char *look_for, func_hook *call_back, void *info)
 {
 	struct fcall_back *cb;
@@ -459,22 +476,19 @@ static bool call_call_backs(struct call_back_list *list, int type,
 static void call_function_hooks(struct expression *expr, enum fn_hook_type type)
 {
 	struct call_back_list *call_backs;
-	struct expression *fn;
+	const char *fn_name;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
 		return;
 
-	fn = strip_expr(expr->fn);
-	if (fn->type != EXPR_SYMBOL || !fn->symbol)
-		return;
-
-	call_backs = search_callback(func_hash, (char *)fn->symbol->ident->name);
+	fn_name = get_fn_name(expr->fn);
+	call_backs = get_call_backs(fn_name);
 	if (!call_backs)
 		return;
 
-	call_call_backs(call_backs, type, fn->symbol->ident->name, expr);
+	call_call_backs(call_backs, type, fn_name, expr);
 }
 
 static void call_return_states_after_hooks(struct expression *expr)
@@ -601,7 +615,7 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 {
 	struct call_back_list *call_backs;
 	struct fcall_back *tmp;
-	const char *fn;
+	const char *fn_name;
 	struct data_range *value_range;
 	struct stree *true_states = NULL;
 	struct stree *false_states = NULL;
@@ -609,10 +623,8 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 
 	*implied_true = NULL;
 	*implied_false = NULL;
-	if (expr->fn->type != EXPR_SYMBOL || !expr->fn->symbol)
-		return;
-	fn = expr->fn->symbol->ident->name;
-	call_backs = search_callback(func_hash, (char *)expr->fn->symbol->ident->name);
+	fn_name = get_fn_name(expr->fn);
+	call_backs = get_call_backs(fn_name);
 	if (!call_backs)
 		return;
 	value_range = alloc_range(sval, sval);
@@ -625,7 +637,7 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 			continue;
 		if (!true_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
-		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
+		(tmp->u.ranged)(fn_name, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_stree = __pop_fake_cur_stree();
 	merge_fake_stree(&true_states, tmp_stree);
@@ -639,7 +651,7 @@ static void call_implies_callbacks(int comparison, struct expression *expr, sval
 			continue;
 		if (!false_comparison_range_LR(comparison, tmp->range, value_range, left))
 			continue;
-		(tmp->u.ranged)(fn, expr, NULL, tmp->info);
+		(tmp->u.ranged)(fn_name, expr, NULL, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 	tmp_stree = __pop_fake_cur_stree();
 	merge_fake_stree(&false_states, tmp_stree);
@@ -1240,25 +1252,23 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 	struct range_list *range_rl;
 	struct expression *expr;
 	struct fcall_back *tmp;
-	char *fn;
+	const char *fn_name;
 
 	expr = strip_expr(db_info->expr);
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL ||
-	    expr->fn->type != EXPR_SYMBOL)
+	if (expr->type != EXPR_CALL)
 		return;
 
-	fn = expr->fn->symbol_name->name;
-
-	call_backs = search_callback(func_hash, fn);
+	fn_name = get_fn_name(expr->fn);
+	call_backs = get_call_backs(fn_name);
 	FOR_EACH_PTR(call_backs, tmp) {
 		if (tmp->type != RANGED_CALL)
 			continue;
 		range_rl = alloc_rl(tmp->range->min, tmp->range->max);
 		range_rl = cast_rl(estate_type(db_info->ret_state), range_rl);
 		if (possibly_true_rl(range_rl, SPECIAL_EQUAL, estate_rl(db_info->ret_state)))
-			(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+			(tmp->u.ranged)(fn_name, expr, db_info->expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 
 	FOR_EACH_PTR(call_backs, tmp) {
@@ -1279,7 +1289,7 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 		if (remove_range(estate_rl(db_info->ret_state),
 				 rl_min(range_rl), rl_max(range_rl)))
 			continue;
-		(tmp->u.ranged)(fn, expr, db_info->expr, tmp->info);
+		(tmp->u.ranged)(fn_name, expr, db_info->expr, tmp->info);
 	} END_FOR_EACH_PTR(tmp);
 }
 
@@ -1410,7 +1420,7 @@ static bool handle_implied_return(struct expression *expr)
 static void match_assign_call(struct expression *expr)
 {
 	struct call_back_list *call_backs;
-	const char *fn;
+	const char *fn_name;
 	struct expression *right;
 	int handled = 0;
 	struct range_list *rl;
@@ -1419,17 +1429,11 @@ static void match_assign_call(struct expression *expr)
 		return;
 
 	right = strip_expr(expr->right);
-	if (right->fn->type != EXPR_SYMBOL || !right->fn->symbol) {
-		handled |= db_return_states_assign(expr);
-		if (!handled)
-			goto assigned_unknown;
-		return;
-	}
 	if (is_fake_call(right))
 		return;
 
-	fn = right->fn->symbol->ident->name;
-	call_backs = search_callback(func_hash, (char *)fn);
+	fn_name = get_fn_name(right->fn);
+	call_backs = get_call_backs(fn_name);
 
 	/*
 	 * The ordering here is sort of important.
@@ -1448,16 +1452,16 @@ static void match_assign_call(struct expression *expr)
 	if (db_return_states_assign(expr))
 		handled = 1;
 	else
-		handled = assign_ranged_funcs(fn, expr, call_backs);
+		handled = assign_ranged_funcs(fn_name, expr, call_backs);
 	handled |= handle_implied_return(expr);
 
 
-	call_call_backs(call_backs, ASSIGN_CALL, fn, expr);
+	call_call_backs(call_backs, ASSIGN_CALL, fn_name, expr);
 
 	if (handled)
 		return;
 
-assigned_unknown:
+	/* assignment wasn't handled at all */
 	get_absolute_rl(expr->right, &rl);
 	rl = cast_rl(get_type(expr->left), rl);
 	set_extra_expr_mod(expr->left, alloc_estate_rl(rl));
