@@ -578,6 +578,22 @@ static bool handle_op_assign(struct expression *expr)
 	return false;
 }
 
+static struct range_list *strip_negatives(struct range_list *rl)
+{
+	sval_t min = rl_min(rl);
+	sval_t minus_one = { .type = rl_type(rl), .value = -1 };
+	sval_t over = { .type = rl_type(rl), .value = INT_MAX + 1ULL };
+	sval_t max = sval_type_max(rl_type(rl));
+
+	if (!rl)
+		return NULL;
+
+	if (type_unsigned(rl_type(rl)) && type_bits(rl_type(rl)) > 31)
+		return remove_range(rl, over, max);
+
+	return remove_range(rl, min, minus_one);
+}
+
 static void match_assign_host(struct expression *expr)
 {
 	struct symbol *left_type, *right_type;
@@ -639,14 +655,16 @@ static void match_assign_host(struct expression *expr)
 	is_new = state_is_new(expr->right);
 
 set:
+	right_type = get_type(expr->right);
 	if (type_is_ptr(left_type)) {
-		right_type = get_type(expr->right);
 		if (right_type && right_type->type == SYM_ARRAY)
 			set_points_to_host_data(expr->left, is_new);
 		return;
 	}
 
 	rl = cast_rl(left_type, rl);
+	if (is_capped && type_unsigned(right_type) && type_signed(left_type))
+		rl = strip_negatives(rl);
 	state = alloc_estate_rl(rl);
 	if (is_new)
 		estate_set_new(state);
@@ -692,22 +710,6 @@ static void handle_eq_noteq(struct expression *expr)
 				expr->op == SPECIAL_EQUAL ? alloc_estate_empty() : NULL,
 				expr->op == SPECIAL_EQUAL ? NULL : alloc_estate_empty());
 	}
-}
-
-static struct range_list *strip_negatives(struct range_list *rl)
-{
-	sval_t min = rl_min(rl);
-	sval_t minus_one = { .type = rl_type(rl), .value = -1 };
-	sval_t over = { .type = rl_type(rl), .value = INT_MAX + 1ULL };
-	sval_t max = sval_type_max(rl_type(rl));
-
-	if (!rl)
-		return NULL;
-
-	if (type_unsigned(rl_type(rl)) && type_bits(rl_type(rl)) > 31)
-		return remove_range(rl, over, max);
-
-	return remove_range(rl, min, minus_one);
 }
 
 static void handle_compare(struct expression *expr)
