@@ -494,7 +494,7 @@ static int get_rl_from_function(struct expression *expr, struct range_list **rl)
 	int i;
 
 	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
-	    !expr->fn->symbol_name || !expr->fn->symbol_name->name)
+	    !expr->fn->symbol_name)
 		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++) {

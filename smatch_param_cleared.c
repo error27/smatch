@@ -365,7 +365,7 @@ bool parent_was_PARAM_CLEAR_ZERO(const char *name, struct symbol *sym)
 
 static bool already_printed(struct symbol *arg)
 {
-	if (!arg || !arg->ident || !arg->ident->name)
+	if (!arg || !arg->ident)
 		return false;
 
 	return parent_was_clear(arg->ident->name, arg, ANY);
@@ -407,7 +407,7 @@ static bool ambiguous_members_set(struct symbol *arg)
 	if (!param_set_id)
 		param_set_id = id_from_name("register_param_set");
 
-	if (!arg || !arg->ident || !arg->ident->name)
+	if (!arg || !arg->ident)
 		return false;
 
 	if (!sym_is_void_pointer(arg) &&
@@ -427,7 +427,7 @@ static bool all_struct_members_set(struct symbol *arg)
 	struct symbol *type, *tmp;
 	char buf[80];
 
-	if (!arg || !arg->ident || !arg->ident->name)
+	if (!arg || !arg->ident)
 		return false;
 
 	type = get_real_base_type(arg);

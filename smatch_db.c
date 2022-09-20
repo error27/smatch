@@ -734,7 +734,7 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 		return;
 	}
 
-	if (sym->ident->name && is_common_function(sym->ident->name))
+	if (is_common_function(sym->ident->name))
 		return;
 	run_sql(caller_info_callback, data,
 		"select %s from common_caller_info where %s order by call_id;",

@@ -92,8 +92,7 @@ static bool is_head_next(struct expression *expr)
 
 	if (expr->type != EXPR_DEREF)
 		return false;
-	if (!expr->member || !expr->member->name ||
-	    strcmp(expr->member->name, "next") != 0)
+	if (!expr->member || strcmp(expr->member->name, "next") != 0)
 		return false;
 
 	type = get_type(expr->deref);
@@ -103,8 +102,7 @@ static bool is_head_next(struct expression *expr)
 		type = get_real_base_type(type);
 	if (type->type != SYM_STRUCT)
 		return false;
-	if (!type->ident || !type->ident->name ||
-	    strcmp(type->ident->name, "list_head") != 0)
+	if (!type->ident || strcmp(type->ident->name, "list_head") != 0)
 		return false;
 	return true;
 }

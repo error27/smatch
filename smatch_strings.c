@@ -130,7 +130,7 @@ static void match_string(struct expression *expr)
 {
 	mtag_t tag;
 
-	if (expr->type != EXPR_STRING || !expr->string->data)
+	if (expr->type != EXPR_STRING)
 		return;
 	if (expr->string->length > 255)
 		return;
