@@ -439,6 +439,17 @@ int is_condition_call(struct expression *expr)
 	return 0;
 }
 
+static struct expression *expr_get_parent_no_parens(struct expression *expr)
+{
+	do {
+		expr = expr_get_parent_expr(expr);
+	} while (expr &&
+		 expr->type == EXPR_PREOP &&
+		 expr->op == '(');
+
+	return expr;
+}
+
 static bool gen_fake_function_assign(struct expression *expr)
 {
 	static struct expression *parsed;
@@ -454,7 +465,7 @@ static bool gen_fake_function_assign(struct expression *expr)
 	if (!type || type == &void_ctype)
 		return false;
 
-	parent = expr_get_parent_expr(expr);
+	parent = expr_get_parent_no_parens(expr);
 	if (parent && parent->type == EXPR_ASSIGNMENT)
 		return false;
 
