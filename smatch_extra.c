@@ -1396,9 +1396,7 @@ static void check_dereference(struct expression *expr)
 		rl = rl_intersection(estate_rl(state), valid_ptr_rl);
 		if (rl_equiv(rl, estate_rl(state)))
 			return;
-		__no_limits++;
 		set_extra_expr_nomod(expr, alloc_estate_rl(rl));
-		__no_limits--;
 	} else {
 		struct range_list *rl;
 
@@ -1472,9 +1470,11 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 			new = alloc_estate_range(valid_ptr_min_sval, valid_ptr_max_sval);
 		}
 
-		__no_limits++;
+		if (!orig)
+			__no_limits++;
 		set_extra_nomod(name, sym, NULL, new);
-		__no_limits--;
+		if (!orig)
+			__no_limits--;
 	}
 	free_string(name);
 
