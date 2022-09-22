@@ -87,3 +87,6 @@ alloc_pages 1-u64max 4096-ptr_max
 ffz 0-u64max 1-64
 dma_resv_wait_timeout s64min-(-1) -512
 dma_resv_wait_timeout s64min-(-1),1-s64max 1-s64max[<=$3]
+mmc_io_rw_direct_host s32min-(-1),1-s32max (-4095)-(-1)
+ad3552r_transfer s32min-(-1),1-s32max (-4095)-(-1)
+adin1110_read_reg s32min-(-1),1-s32max (-4095)-(-1)
