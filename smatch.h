@@ -513,6 +513,7 @@ struct expression *get_array_base(struct expression *expr);
 struct expression *get_array_offset(struct expression *expr);
 const char *show_state(struct smatch_state *state);
 struct statement *get_expression_statement(struct expression *expr);
+struct expression *strip_Generic(struct expression *expr);
 struct expression *strip_parens(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 struct expression *strip_no_cast(struct expression *expr);
