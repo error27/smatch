@@ -1181,6 +1181,7 @@ void set_points_to_user_data(struct expression *expr, bool is_new);
 
 /* smatch_kernel_host_data.c */
 int is_host_macro(struct expression *expr);
+int get_host_data_fn_param(const char *fn);
 int is_capped_host_data(struct expression *expr);
 int implied_host_data(struct expression *expr, struct range_list **rl);
 struct stree *get_host_stree(void);
@@ -1194,7 +1195,7 @@ bool we_pass_host_data(struct expression *call);
 bool is_host_data_fn(struct symbol *fn);
 bool points_to_host_data(struct expression *expr);
 void set_points_to_host_data(struct expression *expr, bool is_new);
-
+bool is_fn_points_to_host_data(char* fn);
 /* check_locking.c */
 void print_held_locks();
 /* preempt */

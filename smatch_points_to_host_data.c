@@ -101,6 +101,21 @@ bool is_host_data_fn(struct symbol *fn)
 	return false;
 }
 
+bool is_fn_points_to_host_data(char* fn)
+{
+	int i;
+
+	if (!fn)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(returns_pointer_to_host_data); i++) {
+		if (strcmp(fn, returns_pointer_to_host_data[i]) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static bool is_points_to_host_data_fn(struct expression *expr)
 {
 	expr = strip_expr(expr);

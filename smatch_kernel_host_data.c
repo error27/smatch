@@ -147,6 +147,25 @@ static struct host_fn_info func_table[] = {
 	{ "cpuid_count", HOST_DATA, 5, "*$" },
 };
 
+int get_host_data_fn_param(const char *fn)
+{
+	int ret = 0;
+
+	if (!fn)
+		return ret;
+
+	for (int i = 0; i < ARRAY_SIZE(func_table); i++) {
+		if (strcmp(fn, func_table[i].name) == 0) {
+			ret = func_table[i].param;
+		}
+	}
+	if ((!ret) && (is_fn_points_to_host_data(fn))) {
+		ret = -1;
+	}
+
+	return ret;
+}
+
 static int my_id;
 static unsigned long func_gets_host_data;
 static struct stree *start_states;
