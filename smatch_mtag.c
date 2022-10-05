@@ -50,7 +50,7 @@
 
 static int my_id;
 
-mtag_t str_to_mtag(const char *str)
+unsigned long long str_to_llu_hash(const char *str)
 {
 	unsigned char c[EVP_MAX_MD_SIZE];
 	unsigned long long *tag = (unsigned long long *)&c;
@@ -68,10 +68,19 @@ mtag_t str_to_mtag(const char *str)
 	EVP_DigestFinal_ex(mdctx, c, NULL);
 	EVP_MD_CTX_destroy(mdctx);
 
-	*tag &= ~MTAG_ALIAS_BIT;
-	*tag &= ~MTAG_OFFSET_MASK;
-
 	return *tag;
+}
+
+mtag_t str_to_mtag(const char *str)
+{
+	unsigned long long tag;
+
+	tag = str_to_llu_hash(str);
+
+	tag &= ~MTAG_ALIAS_BIT;
+	tag &= ~MTAG_OFFSET_MASK;
+
+	return tag;
 }
 
 static int save_allocator(void *_allocator, int argc, char **argv, char **azColName)
