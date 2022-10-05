@@ -20,10 +20,10 @@ int main(void)
  * check-command: smatch -I.. sm_mtag3.c
  *
  * check-output-start
-sm_mtag3.c:8 main() implied: &x = '799717014380380160'
+sm_mtag3.c:8 main() implied: &x = '7475740836921503744'
 sm_mtag3.c:9 main() implied: (array[1]) - array = '4'
 sm_mtag3.c:10 main() implied: array[1] - array = '1'
-sm_mtag3.c:11 main() implied: array[1] = '7934625272050024452'
+sm_mtag3.c:11 main() implied: array[1] = '685747191403540484'
 sm_mtag3.c:12 main() implied: 0 + 1 = '4'
  * check-output-end
  */

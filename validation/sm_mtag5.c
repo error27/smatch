@@ -28,10 +28,10 @@ int main(void)
  * check-command: smatch -I.. sm_mtag5.c
  *
  * check-output-start
-sm_mtag5.c:17 main() implied: &x = '799717014380380160'
-sm_mtag5.c:18 main() implied: &aaa = '126458562737565696'
-sm_mtag5.c:19 main() implied: &aaa.b = '126458562737565700'
-sm_mtag5.c:20 main() implied: array = '7934625272050024448'
-sm_mtag5.c:21 main() implied: &array[1] = '7934625272050024452'
+sm_mtag5.c:17 main() implied: &x = '7475740836921503744'
+sm_mtag5.c:18 main() implied: &aaa = '6045882893841539072'
+sm_mtag5.c:19 main() implied: &aaa.b = '6045882893841539076'
+sm_mtag5.c:20 main() implied: array = '685747191403540480'
+sm_mtag5.c:21 main() implied: &array[1] = '685747191403540484'
  * check-output-end
  */

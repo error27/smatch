@@ -46,21 +46,27 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 static int my_id;
 
 mtag_t str_to_mtag(const char *str)
 {
-	unsigned char c[MD5_DIGEST_LENGTH];
+	unsigned char c[EVP_MAX_MD_SIZE];
 	unsigned long long *tag = (unsigned long long *)&c;
-	MD5_CTX mdContext;
+	EVP_MD_CTX *mdctx;
+	const EVP_MD *md;
 	int len;
 
 	len = strlen(str);
-	MD5_Init(&mdContext);
-	MD5_Update(&mdContext, str, len);
-	MD5_Final(c, &mdContext);
+
+	mdctx = EVP_MD_CTX_create();
+	md = EVP_sha1();
+
+	EVP_DigestInit_ex(mdctx, md, NULL);
+	EVP_DigestUpdate(mdctx, str, len);
+	EVP_DigestFinal_ex(mdctx, c, NULL);
+	EVP_MD_CTX_destroy(mdctx);
 
 	*tag &= ~MTAG_ALIAS_BIT;
 	*tag &= ~MTAG_OFFSET_MASK;
