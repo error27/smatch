@@ -73,6 +73,9 @@ static unsigned long long str_to_llu_hash_helper(const char *str, bool store)
 	EVP_DigestFinal_ex(mdctx, c, NULL);
 	EVP_MD_CTX_destroy(mdctx);
 
+	/* I don't like negatives in the DB */
+	*tag &= ~MTAG_ALIAS_BIT;
+
 	if (store)
 		store_hash(str, *tag);
 
@@ -90,7 +93,6 @@ mtag_t str_to_mtag(const char *str)
 
 	tag = str_to_llu_hash_helper(str, false);
 
-	tag &= ~MTAG_ALIAS_BIT;
 	tag &= ~MTAG_OFFSET_MASK;
 
 	return tag;
