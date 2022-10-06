@@ -462,7 +462,7 @@ def print_unmerged_caller_values(filename, func, ptrs, param_names):
             else:
                 name = name.replace("$", "$%d" %(parameter))
 
-            print("%s | %s | %s | %s" %(filename, caller, name, value))
+            print("%s | %s | %s | %s" %(hash_to_string(filename), caller, name, value))
         print("==========================")
 
 def print_caller_values(filename, func, ptrs):
