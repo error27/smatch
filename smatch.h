@@ -974,6 +974,7 @@ extern struct sqlite3 *cache_db;
 
 bool db_incomplete(void);
 void db_ignore_states(int id);
+unsigned long long get_base_file_id(void);
 typedef bool (delete_hook)(struct expression *expr);
 void add_delete_return_hook(delete_hook *hook);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
@@ -1073,6 +1074,7 @@ do {										\
 #define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 0, 1, 0, values);
 #define sql_insert_late(table, values...) sql_insert_helper(table, 0, 0, 1, values);
 #define sql_insert_cache(table, values...) sql_insert_helper(table, cache_db, 1, 0, values);
+#define sql_insert_cache_or_ignore(table, values...) sql_insert_helper(table, cache_db, 1, 0, values);
 
 char *get_static_filter(struct symbol *sym);
 

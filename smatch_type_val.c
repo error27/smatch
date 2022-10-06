@@ -408,8 +408,8 @@ static char *db_get_parameter_type(int param)
 
 	run_sql(set_param_type, &ret,
 		"select value from fn_data_link where "
-		"file = '%s' and function = '%s' and static = %d and type = %d and parameter = %d and key = '$';",
-		(cur_func_sym->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+		"file = 0x%llx and function = '%s' and static = %d and type = %d and parameter = %d and key = '$';",
+		(cur_func_sym->ctype.modifiers & MOD_STATIC) ? get_base_file_id() : 0,
 		cur_func_sym->ident->name,
 		!!(cur_func_sym->ctype.modifiers & MOD_STATIC),
 		PASSES_TYPE, param);

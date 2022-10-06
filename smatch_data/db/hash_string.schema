@@ -1,0 +1,6 @@
+CREATE TABLE hash_string (
+	hash big int,
+	value varchar(80),
+
+	CONSTRAINT mtag_info_row UNIQUE (hash, value)
+);

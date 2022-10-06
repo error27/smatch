@@ -1,5 +1,5 @@
 CREATE TABLE type_info (
-	file varchar(80),
+	file big int,
 	type integer,
 	key varchar(80),
 	value varchar(80),

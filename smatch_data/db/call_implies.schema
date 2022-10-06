@@ -1,5 +1,5 @@
 CREATE TABLE call_implies (
-	file varchar(128),
+	file big int,
 	function varchar(64),
 	call_id integer,
 	static boolean,

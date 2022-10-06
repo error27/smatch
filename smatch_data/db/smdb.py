@@ -267,6 +267,19 @@ def val_to_txt(val):
     else:
         return "%d" %(val)
 
+hash_strings = {}
+def hash_to_string(sha):
+    if sha in hash_strings:
+        return hash_strings[sha]
+
+    cur = con.cursor()
+    cur.execute("select value from hash_string where hash = '%d';" %(sha))
+    for txt in cur:
+        hash_strings[sha] = txt[0]
+    if not sha in hash_strings:
+        hash_strings[sha] = "%x" %(sha)
+    return hash_strings[sha]
+
 def get_next_str(txt):
     val = ""
     parsed = 0
@@ -355,7 +368,7 @@ def display_caller_info(printed, cur, param_names):
         if len(param_names) and parameter in param_names:
             key = key.replace("$", param_names[parameter])
 
-        print("%20s | %20s | %20s |" %(txt[0], txt[1], txt[2]), end = '')
+        print("%20s | %20s | %20s |" %(hash_to_string(txt[0]), txt[1], txt[2]), end = '')
         print(" %18s |" %(type_to_str(txt[5])), end = '')
         print(" %2d | %15s | %s" %(parameter, key, txt[8]))
     return printed
@@ -474,7 +487,7 @@ def print_return_states(func):
             if count == 0:
                 print("file | function | return_id | return_value | type | param | key | value |")
             count += 1
-            print("%s | %s | %2s | %13s" %(txt[0], txt[1], txt[3], txt[4]), end = '')
+            print("%s | %s | %2s | %13s" %(hash_to_string(txt[0]), txt[1], txt[3], txt[4]), end = '')
             print("| %15s |" %(type_to_str(txt[6])), end = '')
             print(" %2d | %20s | %20s |" %(txt[7], txt[8], txt[9]))
     except:
@@ -488,7 +501,7 @@ def print_return_implies(func):
         if not count:
             print("file | function | type | param | key | value |")
         count += 1
-        print("%15s | %15s" %(txt[0], txt[1]), end = '')
+        print("%15s | %15s" %(hash_to_string(txt[0]), txt[1]), end = '')
         print("| %15s" %(type_to_str(txt[4])), end = '')
         print("| %3d | %15s | %15s |" %(txt[5], txt[6], txt[7]))
 
@@ -502,14 +515,14 @@ def print_type_size(struct_type, member):
     cur.execute("select * from function_type_size where type like '(struct %s)->%s';" %(struct_type, member))
     print("file | function | type | size")
     for txt in cur:
-        print("%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], txt[2], txt[3]))
+        print("%-15s | %-15s | %-15s | %s" %(hash_to_string(txt[0]), txt[1], txt[2], txt[3]))
 
 def print_data_info(struct_type, member):
     cur = con.cursor()
     cur.execute("select * from data_info where data like '(struct %s)->%s';" %(struct_type, member))
     print("file | data | type | value")
     for txt in cur:
-        print("%-15s | %-15s | %-15s | %s" %(txt[0], txt[1], type_to_str(txt[2]), txt[3]))
+        print("%-15s | %-15s | %-15s | %s" %(hash_to_string(txt[0]), txt[1], type_to_str(txt[2]), txt[3]))
 
 def print_fn_ptrs(func):
     ptrs = get_function_pointers(func)
@@ -528,7 +541,7 @@ def print_functions(struct, member):
         cur.execute("select * from function_ptr where ptr like '%%->%s';" %(member))
     print("File | Pointer | Function | Static")
     for txt in cur:
-        print("%-15s | %-15s | %-15s | %s" %(txt[0], txt[2], txt[1], txt[3]))
+        print("%-15s | %-15s | %-15s | %s" %(hash_to_string(txt[0]), txt[2], txt[1], txt[3]))
 
 class CallTree:
     def __init__(self, func, printed = ""):
@@ -642,7 +655,7 @@ def function_type_value(struct_type, member):
     cur = con.cursor()
     cur.execute("select * from function_type_value where type like '(struct %s)->%s';" %(struct_type, member))
     for txt in cur:
-        print("%-30s | %-30s | %s | %s" %(txt[0], txt[1], txt[2], txt[3]))
+        print("%-30s | %-30s | %s | %s" %(hash_to_string(txt[0]), txt[1], txt[2], txt[3]))
 
 def rl_too_big(txt):
     rl = txt_to_rl(txt)
@@ -795,7 +808,7 @@ def print_locals(filename):
     cur = con.cursor()
     cur.execute("select file,data,value from data_info where file = '%s' and type = 8029 and value != 0;" %(filename))
     for txt in cur:
-        print("%s | %s | %s" %(txt[0], txt[1], txt[2]))
+        print("%s | %s | %s" %(hash_to_string(txt[0]), txt[1], txt[2]))
 
 def constraint(struct_type, member):
     cur = con.cursor()

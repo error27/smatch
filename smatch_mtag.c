@@ -50,7 +50,12 @@
 
 static int my_id;
 
-unsigned long long str_to_llu_hash(const char *str)
+static void store_hash(const char *str, unsigned long long hash)
+{
+	sql_insert_cache_or_ignore(hash_string, "0x%llx, '%s'", hash, str);
+}
+
+static unsigned long long str_to_llu_hash_helper(const char *str, bool store)
 {
 	unsigned char c[EVP_MAX_MD_SIZE];
 	unsigned long long *tag = (unsigned long long *)&c;
@@ -68,14 +73,22 @@ unsigned long long str_to_llu_hash(const char *str)
 	EVP_DigestFinal_ex(mdctx, c, NULL);
 	EVP_MD_CTX_destroy(mdctx);
 
+	if (store)
+		store_hash(str, *tag);
+
 	return *tag;
+}
+
+unsigned long long str_to_llu_hash(const char *str)
+{
+	return str_to_llu_hash_helper(str, true);
 }
 
 mtag_t str_to_mtag(const char *str)
 {
 	unsigned long long tag;
 
-	tag = str_to_llu_hash(str);
+	tag = str_to_llu_hash_helper(str, false);
 
 	tag &= ~MTAG_ALIAS_BIT;
 	tag &= ~MTAG_OFFSET_MASK;

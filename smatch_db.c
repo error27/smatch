@@ -284,6 +284,11 @@ static void set_fn_mtag(struct symbol *sym)
 	__fn_mtag = str_to_mtag(buf);
 }
 
+unsigned long long get_base_file_id(void)
+{
+	return str_to_llu_hash(get_base_file());
+}
+
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
@@ -297,8 +302,8 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 	else
 		id = __fn_mtag;
 
-	sql_insert(return_states, "'%s', '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
-		   get_base_file(), get_function(), id, return_id,
+	sql_insert(return_states, "0x%llx, '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
+		   get_base_file_id(), get_function(), id, return_id,
 		   return_ranges, is_local(cur_func_sym), type, param, key, value);
 }
 
@@ -346,8 +351,8 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	if (__inline_call) {
 		mem_sql(NULL, NULL,
-			"insert into caller_info values ('%s', '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
-			get_base_file(), get_function(), fn, (unsigned long)call,
+			"insert into caller_info values (0x%llx, '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
+			get_base_file_id(), get_function(), fn, (unsigned long)call,
 			is_static(call->fn), type, param, key, value);
 	}
 
@@ -361,8 +366,8 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	sm_outfd = caller_info_fd;
 	sm_msg("SQL_caller_info: insert into caller_info values ("
-	       "'%s', '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
-	       get_base_file(), get_function(), fn, is_static(call->fn),
+	       "0x%llx, '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
+	       get_base_file_id(), get_function(), fn, is_static(call->fn),
 	       type, param, key, value);
 	sm_outfd = tmp_fd;
 
@@ -371,59 +376,59 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 void sql_insert_function_ptr(const char *fn, const char *struct_name)
 {
-	sql_insert_or_ignore(function_ptr, "'%s', '%s', '%s', 0",
-			     get_base_file(), fn, struct_name);
+	sql_insert_or_ignore(function_ptr, "0x%llx, '%s', '%s', 0",
+			     get_base_file_id(), fn, struct_name);
 }
 
 void sql_insert_return_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert_or_ignore(return_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'",
-		get_base_file(), get_function(), (unsigned long)__inline_fn,
+	sql_insert_or_ignore(return_implies, "0x%llx, '%s', %lu, %d, %d, %d, '%s', '%s'",
+		get_base_file_id(), get_function(), (unsigned long)__inline_fn,
 		fn_static(), type, param, key, value);
 }
 
 void sql_insert_call_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert_or_ignore(call_implies, "'%s', '%s', %lu, %d, %d, %d, '%s', '%s'",
-		get_base_file(), get_function(), (unsigned long)__inline_fn,
+	sql_insert_or_ignore(call_implies, "0x%llx, '%s', %lu, %d, %d, %d, '%s', '%s'",
+		get_base_file_id(), get_function(), (unsigned long)__inline_fn,
 		fn_static(), type, param, key, value);
 }
 
 void sql_insert_function_type_size(const char *member, const char *ranges)
 {
-	sql_insert(function_type_size, "'%s', '%s', '%s', '%s'", get_base_file(), get_function(), member, ranges);
+	sql_insert(function_type_size, "0x%llx, '%s', '%s', '%s'", get_base_file_id(), get_function(), member, ranges);
 }
 
 void sql_insert_function_type_info(int type, const char *struct_type, const char *member, const char *value)
 {
-	sql_insert(function_type_info, "'%s', '%s', %d, '%s', '%s', '%s'", get_base_file(), get_function(), type, struct_type, member, value);
+	sql_insert(function_type_info, "0x%llx, '%s', %d, '%s', '%s', '%s'", get_base_file_id(), get_function(), type, struct_type, member, value);
 }
 
 void sql_insert_type_info(int type, const char *member, const char *value)
 {
-	sql_insert_cache(type_info, "'%s', %d, '%s', '%s'", get_base_file(), type, member, value);
+	sql_insert_cache(type_info, "0x%llx, %d, '%s', '%s'", get_base_file_id(), type, member, value);
 }
 
 void sql_insert_local_values(const char *name, const char *value)
 {
-	sql_insert(local_values, "'%s', '%s', '%s'", get_base_file(), name, value);
+	sql_insert(local_values, "0x%llx, '%s', '%s'", get_base_file_id(), name, value);
 }
 
 void sql_insert_function_type_value(const char *type, const char *value)
 {
-	sql_insert(function_type_value, "'%s', '%s', '%s', '%s'", get_base_file(), get_function(), type, value);
+	sql_insert(function_type_value, "0x%llx, '%s', '%s', '%s'", get_base_file_id(), get_function(), type, value);
 }
 
 void sql_insert_function_type(int param, const char *value)
 {
-	sql_insert(function_type, "'%s', '%s', %d, %d, '%s'",
-		   get_base_file(), get_function(), fn_static(), param, value);
+	sql_insert(function_type, "0x%llx, '%s', %d, %d, '%s'",
+		   get_base_file_id(), get_function(), fn_static(), param, value);
 }
 
 void sql_insert_parameter_name(int param, const char *value)
 {
-	sql_insert(parameter_name, "'%s', '%s', %d, %d, '%s'",
-		   get_base_file(), get_function(), fn_static(), param, value);
+	sql_insert(parameter_name, "0x%llx, '%s', %d, %d, '%s'",
+		   get_base_file_id(), get_function(), fn_static(), param, value);
 }
 
 void sql_insert_data_info(struct expression *data, int type, const char *value)
@@ -433,15 +438,15 @@ void sql_insert_data_info(struct expression *data, int type, const char *value)
 	data_name = get_data_info_name(data);
 	if (!data_name)
 		return;
-	sql_insert(data_info, "'%s', '%s', %d, '%s'",
-		   is_static(data) ? get_base_file() : "extern",
+	sql_insert(data_info, "0x%llx, '%s', %d, '%s'",
+		   is_static(data) ? get_base_file_id() : 0,
 		   data_name, type, value);
 }
 
 void sql_insert_data_info_var_sym(const char *var, struct symbol *sym, int type, const char *value)
 {
-	sql_insert(data_info, "'%s', '%s', %d, '%s'",
-		   (sym->ctype.modifiers & MOD_STATIC) ? get_base_file() : "extern",
+	sql_insert(data_info, "0x%llx, '%s', %d, '%s'",
+		   (sym->ctype.modifiers & MOD_STATIC) ? get_base_file_id() : 0,
 		   var, type, value);
 }
 
@@ -478,8 +483,8 @@ void sql_insert_fn_data_link(struct expression *fn, int type, int param, const c
 	if (fn->type != EXPR_SYMBOL || !fn->symbol->ident)
 		return;
 
-	sql_insert(fn_data_link, "'%s', '%s', %d, %d, %d, '%s', '%s'",
-		   is_local(fn->symbol) ? get_base_file() : "extern",
+	sql_insert(fn_data_link, "0x%llx, '%s', %d, %d, %d, '%s', '%s'",
+		   is_local(fn->symbol) ? get_base_file_id() : 0,
 		   fn->symbol->ident->name,
 		   is_local(fn->symbol),
 		   type, param, key, value);
@@ -562,8 +567,8 @@ char *get_static_filter(struct symbol *sym)
 
 	if (is_local(sym)) {
 		snprintf(sql_filter, sizeof(sql_filter),
-			 "file = '%s' and function = '%s' and static = '1'",
-			 get_base_file(), sym->ident->name);
+			 "file = 0x%llx and function = '%s' and static = '1'",
+			 get_base_file_id(), sym->ident->name);
 	} else {
 		snprintf(sql_filter, sizeof(sql_filter),
 			 "function = '%s' and static = '0'", sym->ident->name);
@@ -1373,13 +1378,13 @@ static char *get_next_ptr_name(void)
 	return NULL;
 }
 
-static void get_ptr_names(const char *file, const char *name)
+static void get_ptr_names(unsigned long long file, const char *name)
 {
 	char sql_filter[1024];
 	int before, after;
 
 	if (file) {
-		snprintf(sql_filter, 1024, "file = '%s' and function = '%s';",
+		snprintf(sql_filter, 1024, "file = 0x%llx and function = '%s';",
 			 file, name);
 	} else {
 		snprintf(sql_filter, 1024, "function = '%s';", name);
@@ -1396,7 +1401,7 @@ static void get_ptr_names(const char *file, const char *name)
 		return;
 
 	while ((name = get_next_ptr_name()))
-		get_ptr_names(NULL, name);
+		get_ptr_names(0, name);
 }
 
 static void match_data_from_db(struct symbol *sym)
@@ -1419,9 +1424,9 @@ static void match_data_from_db(struct symbol *sym)
 		char *ptr;
 
 		if (sym->ctype.modifiers & MOD_STATIC)
-			get_ptr_names(get_base_file(), sym->ident->name);
+			get_ptr_names(get_base_file_id(), sym->ident->name);
 		else
-			get_ptr_names(NULL, sym->ident->name);
+			get_ptr_names(0, sym->ident->name);
 
 		if (ptr_list_size((struct ptr_list *)ptr_names) > 20) {
 			__free_ptr_list((struct ptr_list **)&ptr_names);
@@ -2798,6 +2803,7 @@ static void init_cachedb(void)
 		"db/mtag_data.schema",
 		"db/mtag_info.schema",
 		"db/sink_info.schema",
+		"db/hash_string.schema",
 	};
 	static char buf[4096];
 	int fd;
@@ -2863,7 +2869,7 @@ static void dump_cache(struct symbol_list *sym_list)
 {
 	const char *cache_tables[] = {
 		"type_info", "return_implies", "call_implies", "mtag_data",
-		"mtag_info", "mtag_about", "sink_info",
+		"mtag_info", "mtag_about", "sink_info", "hash_string",
 	};
 	char buf[64];
 	int i;

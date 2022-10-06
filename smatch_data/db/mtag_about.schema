@@ -1,6 +1,6 @@
 CREATE TABLE mtag_about (
 	tag big int,
-	file varchar(80),
+	file big int,
 	function varchar(80),
 	line integer,
 	left_name varchar(80),
