@@ -1117,6 +1117,7 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner != owner || sm->sym != sym)
 			continue;
+
 		sm_name = sm->name;
 		add_star = false;
 		if (sm_name[0] == '*') {
@@ -2531,7 +2532,6 @@ static void call_return_state_hooks(struct expression *expr)
 		sm_msg("RETURN: expr='%s' rl='%s' %lu states%s", expr_to_str(expr),
 		       show_rl(rl), stree_count(__get_cur_stree()),
 		       is_impossible_path() ? " (impossible path)" : "");
-
 	}
 
 	if (__path_is_null())
