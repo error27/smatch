@@ -1246,16 +1246,6 @@ static int get_param(int param, char **name, struct symbol **sym)
 
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
-		/*
-		 * this is a temporary hack to work around a bug (I think in sparse?)
-		 * 2.6.37-rc1:fs/reiserfs/journal.o
-		 * If there is a function definition without parameter name found
-		 * after a function implementation then it causes a crash.
-		 * int foo() {}
-		 * int bar(char *);
-		 */
-		if (arg->ident->name < (char *)100)
-			continue;
 		if (i == param) {
 			*name = arg->ident->name;
 			*sym = arg;
