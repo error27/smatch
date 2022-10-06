@@ -283,6 +283,7 @@ SMATCH_OBJS += smatch_fresh_alloc.o
 SMATCH_OBJS += smatch_function_hooks.o
 SMATCH_OBJS += smatch_function_info.o
 SMATCH_OBJS += smatch_function_ptrs.o
+SMATCH_OBJS += smatch_hash.o
 SMATCH_OBJS += smatch_helper.o
 SMATCH_OBJS += smatch_hooks.o
 SMATCH_OBJS += smatch_ignore.o
@@ -380,6 +381,12 @@ SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS)
 	$(Q)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
+sm_hash: sm_hash.o $(SMATCH_OBJS)
+	$(Q)$(LD) -o sm_hash sm_hash.o smatch_hash.o $(SMATCH_LDFLAGS)
+
+sm_hash.o: sm_hash.c smatch.h
+	$(CC) $(CFLAGS) -c sm_hash.c
+
 check_list_local.h:
 	touch check_list_local.h
 
@@ -390,7 +397,7 @@ $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h \
 	smatch_constants.h avl.h
 
 ########################################################################
-all: $(PROGRAMS) smatch
+all: $(PROGRAMS) smatch sm_hash
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS) -lm

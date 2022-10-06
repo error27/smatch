@@ -46,8 +46,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#include <openssl/evp.h>
-
 static int my_id;
 
 static void store_hash(const char *str, unsigned long long hash)
@@ -55,43 +53,21 @@ static void store_hash(const char *str, unsigned long long hash)
 	sql_insert_cache_or_ignore(hash_string, "0x%llx, '%s'", hash, str);
 }
 
-static unsigned long long str_to_llu_hash_helper(const char *str, bool store)
-{
-	unsigned char c[EVP_MAX_MD_SIZE];
-	unsigned long long *tag = (unsigned long long *)&c;
-	EVP_MD_CTX *mdctx;
-	const EVP_MD *md;
-	int len;
-
-	len = strlen(str);
-
-	mdctx = EVP_MD_CTX_create();
-	md = EVP_sha1();
-
-	EVP_DigestInit_ex(mdctx, md, NULL);
-	EVP_DigestUpdate(mdctx, str, len);
-	EVP_DigestFinal_ex(mdctx, c, NULL);
-	EVP_MD_CTX_destroy(mdctx);
-
-	/* I don't like negatives in the DB */
-	*tag &= ~MTAG_ALIAS_BIT;
-
-	if (store)
-		store_hash(str, *tag);
-
-	return *tag;
-}
-
 unsigned long long str_to_llu_hash(const char *str)
 {
-	return str_to_llu_hash_helper(str, true);
+	unsigned long long hash;
+
+	hash = str_to_llu_hash_helper(str);
+	store_hash(str, hash);
+
+	return hash;
 }
 
 mtag_t str_to_mtag(const char *str)
 {
 	unsigned long long tag;
 
-	tag = str_to_llu_hash_helper(str, false);
+	tag = str_to_llu_hash_helper(str);
 
 	tag &= ~MTAG_OFFSET_MASK;
 
