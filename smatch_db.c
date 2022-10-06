@@ -1775,7 +1775,8 @@ static bool handle_forced_split(const char *return_ranges, struct expression *ex
 	int i;
 
 	for (i = 0; i < split_count; i++) {
-		if (strcmp(get_function(), forced_splits[i]->func) == 0) {
+		if (get_function() &&
+		    strcmp(get_function(), forced_splits[i]->func) == 0) {
 			data = forced_splits[i];
 			break;
 		}
