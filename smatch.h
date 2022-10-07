@@ -1071,9 +1071,9 @@ do {										\
 	}									\
 } while (0)
 
-#define sql_insert(table, values...) sql_insert_helper(table, 0, 0, 0, values);
-#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, 0, 1, 0, values);
-#define sql_insert_late(table, values...) sql_insert_helper(table, 0, 0, 1, values);
+#define sql_insert(table, values...) sql_insert_helper(table, NULL, 0, 0, values);
+#define sql_insert_or_ignore(table, values...) sql_insert_helper(table, NULL, 1, 0, values);
+#define sql_insert_late(table, values...) sql_insert_helper(table, NULL, 0, 1, values);
 #define sql_insert_cache(table, values...) sql_insert_helper(table, cache_db, 1, 0, values);
 #define sql_insert_cache_or_ignore(table, values...) sql_insert_helper(table, cache_db, 1, 0, values);
 
