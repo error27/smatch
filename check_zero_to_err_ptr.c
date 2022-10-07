@@ -46,6 +46,25 @@ static int is_comparison_call(struct expression *expr)
 	return 1;
 }
 
+static bool is_switch_condition(struct expression *expr)
+{
+	struct statement *stmt;
+
+	stmt = expr_get_parent_stmt(expr);
+	if (stmt && stmt->type == STMT_SWITCH)
+		return true;
+	return false;
+}
+
+static bool is_condition_expr(struct expression *expr)
+{
+	if (is_comparison_call(expr) ||
+	    is_select_assign(expr) ||
+	    is_switch_condition(expr))
+		return true;
+	return false;
+}
+
 static int next_line_is_if(struct expression *expr)
 {
 	struct expression *next;
@@ -147,9 +166,7 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 	if (!sm)
 		return;
 
-	if (is_comparison_call(expr))
-		return;
-	if (is_select_assign(expr))
+	if (is_condition_expr(expr))
 		return;
 
 	if (next_line_checks_IS_ERR(expr, arg_expr))
