@@ -359,6 +359,7 @@ next:
 	} while (1);
 }
 
+int __in_builtin_overflow_func;
 static void handle_builtin_overflow_func(struct expression *expr)
 {
 	struct expression *a, *b, *res, *assign;
@@ -378,7 +379,10 @@ static void handle_builtin_overflow_func(struct expression *expr)
 	res = get_argument_from_call_expr(expr->args, 2);
 
 	assign = assign_expression(deref_expression(res), '=', binop_expression(a, op, b));
+
+	__in_builtin_overflow_func++;
 	__split_expr(assign);
+	__in_builtin_overflow_func--;
 }
 
 static int handle__builtin_choose_expr(struct expression *expr)

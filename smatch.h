@@ -647,6 +647,7 @@ extern int __in_fake_assign;
 extern int __in_fake_parameter_assign;
 extern int __in_fake_struct_assign;
 extern int __in_fake_var_assign;
+extern int __in_builtin_overflow_func;
 extern int __fake_state_cnt;
 extern int in_fake_env;
 bool is_fake_var_assign(struct expression *expr);
