@@ -550,7 +550,6 @@ static void split_conditions(struct expression *expr)
 static int inside_condition;
 void __split_whole_condition(struct expression *expr)
 {
-	sm_debug("%d in __split_whole_condition\n", get_lineno());
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
@@ -562,12 +561,10 @@ void __split_whole_condition(struct expression *expr)
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
 	inside_condition--;
-	sm_debug("%d done __split_whole_condition\n", get_lineno());
 }
 
 void __handle_logic(struct expression *expr)
 {
-	sm_debug("%d in __handle_logic\n", get_lineno());
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
@@ -581,7 +578,6 @@ void __handle_logic(struct expression *expr)
 	pop_expression(&big_expression_stack);
 	__merge_false_states();
 	inside_condition--;
-	sm_debug("%d done __handle_logic\n", get_lineno());
 }
 
 int is_condition(struct expression *expr)
@@ -657,7 +653,7 @@ int __handle_condition_assigns(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK);
-	sm_debug("%d done __handle_condition_assigns\n", get_lineno());
+
 	return 1;
 }
 
@@ -737,8 +733,6 @@ int __handle_select_assigns(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&final_states);
-
-	sm_debug("%d done __handle_ternary_assigns\n", get_lineno());
 
 	return 1;
 }
