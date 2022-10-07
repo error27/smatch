@@ -137,7 +137,7 @@ static int bytes_per_element(struct expression *expr)
 	return type_bytes(type);
 }
 
-static int bytes_to_elements(struct expression *expr, int bytes)
+int bytes_to_elements(struct expression *expr, int bytes)
 {
 	int bpe;
 

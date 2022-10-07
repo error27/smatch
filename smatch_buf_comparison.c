@@ -446,6 +446,11 @@ int buf_comparison_index_ok(struct expression *expr)
 	if ((limit_type == ELEM_COUNT || limit_type == ELEM_LAST) &&
 	    (comparison == '<' || comparison == SPECIAL_UNSIGNED_LT))
 		return 1;
+
+	if (limit_type == BYTE_COUNT && bytes_per_element(array) == 1 &&
+	    (comparison == '<' || comparison == SPECIAL_UNSIGNED_LT))
+		return 1;
+
 	if (limit_type == ELEM_LAST &&
 	    (comparison == SPECIAL_LTE ||
 	     comparison == SPECIAL_UNSIGNED_LTE ||

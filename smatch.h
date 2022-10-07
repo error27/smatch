@@ -1147,6 +1147,7 @@ int id_from_name(const char *name);
 
 
 /* smatch_buf_size.c */
+int bytes_to_elements(struct expression *expr, int bytes);
 int get_array_size(struct expression *expr);
 int get_array_size_bytes(struct expression *expr);
 int get_array_size_bytes_min(struct expression *expr);
