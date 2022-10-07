@@ -162,6 +162,8 @@ void __pass_to_client(void *data, enum hook_type type)
 		case SYM_LIST_PTR:
 			pass_sym_list_to_client(container->fn, data);
 			break;
+		default:
+			sm_warning("internal error. Unhandled hook type: %d", type);
 		}
 	} END_FOR_EACH_PTR(container);
 }
