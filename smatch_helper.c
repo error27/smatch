@@ -1349,6 +1349,10 @@ int success_fail_return(struct range_list *rl)
 	if (!rl)
 		return RET_SUCCESS;
 
+	/* NFSv3 uses negative error codes such as -EIOCBQUEUED for success */
+	if (rl_to_sval(rl, &sval) && sval.value == -529)
+		return RET_SUCCESS;
+
 	// Negatives are a failure
 	if (sval_is_negative(rl_max(rl)))
 		return RET_FAIL;
