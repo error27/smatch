@@ -128,6 +128,16 @@ const char *get_base_file(void)
 	return base_file;
 }
 
+unsigned long long get_file_id(void)
+{
+	return str_to_llu_hash(get_filename());
+}
+
+unsigned long long get_base_file_id(void)
+{
+	return str_to_llu_hash(get_base_file());
+}
+
 static void set_position(struct position pos)
 {
 	int len;

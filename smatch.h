@@ -259,6 +259,8 @@ int outside_of_function(void);
 const char *get_filename(void);
 extern int base_file_stream;
 const char *get_base_file(void);
+unsigned long long get_file_id(void);
+unsigned long long get_base_file_id(void);
 char *get_function(void);
 int get_lineno(void);
 extern int final_pass;
@@ -975,7 +977,6 @@ extern struct sqlite3 *cache_db;
 
 bool db_incomplete(void);
 void db_ignore_states(int id);
-unsigned long long get_base_file_id(void);
 typedef bool (delete_hook)(struct expression *expr);
 void add_delete_return_hook(delete_hook *hook);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);

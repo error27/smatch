@@ -228,8 +228,8 @@ static struct range_list *size_from_db_type(struct expression *expr)
 	if (this_file_only) {
 		db_size_rl = NULL;
 		run_sql(db_size_callback, NULL,
-			"select size from function_type_size where type = '%s' and file = '%s';",
-			name, get_filename());
+			"select size from function_type_size where type = '%s' and file = %d;",
+			name, get_file_id());
 		cached_type_rl = clone_rl(db_size_rl);
 		return db_size_rl;
 	}

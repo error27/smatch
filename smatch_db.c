@@ -284,11 +284,6 @@ static void set_fn_mtag(struct symbol *sym)
 	__fn_mtag = str_to_mtag(buf);
 }
 
-unsigned long long get_base_file_id(void)
-{
-	return str_to_llu_hash(get_base_file());
-}
-
 void sql_insert_return_states(int return_id, const char *return_ranges,
 		int type, int param, const char *key, const char *value)
 {
