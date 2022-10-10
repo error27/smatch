@@ -261,7 +261,7 @@ static struct range_list *size_from_db_symbol(struct expression *expr)
 
 	db_size_rl = NULL;
 	run_sql(db_size_callback, NULL,
-		"select value from data_info where file = 'extern' and data = '%s' and type = %d;",
+		"select value from data_info where file = 0 and data = '%s' and type = %d;",
 		sym->ident->name, BUF_SIZE);
 	cached_sym_rl = clone_rl(db_size_rl);
 	return db_size_rl;
