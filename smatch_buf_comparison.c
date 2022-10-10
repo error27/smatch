@@ -175,7 +175,7 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 		return;
 
 	tmp = get_assigned_expr_recurse(size);
-	if (tmp && tmp->op == EXPR_BINOP)
+	if (tmp && tmp->type == EXPR_BINOP)
 		size = strip_expr(tmp);
 
 	if (size->type == EXPR_BINOP && size->op == '*') {
