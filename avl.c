@@ -65,7 +65,7 @@ static struct stree *avl_new(void)
 
 	avl->root = NULL;
 	avl->base_stree = NULL;
-	avl->has_states = calloc(num_checks + 1, sizeof(char));
+	avl->has_states = calloc(num_checks, sizeof(char));
 	avl->count = 0;
 	avl->stree_id = 0;
 	avl->references = 1;

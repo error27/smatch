@@ -2876,8 +2876,8 @@ void open_smatch_db(char *db_file)
 	if (option_no_db)
 		return;
 
-	use_states = malloc(num_checks + 1);
-	memset(use_states, 0xff, num_checks + 1);
+	use_states = malloc(num_checks);
+	memset(use_states, 0xff, num_checks);
 
 	init_memdb();
 	init_cachedb();

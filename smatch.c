@@ -64,11 +64,11 @@ static struct reg_func_info {
 	reg_func func;
 	int enabled;
 } reg_funcs[] = {
-	{NULL, NULL},
+	{"internal", NULL},
 #include "check_list.h"
 };
 #undef CK
-int num_checks = ARRAY_SIZE(reg_funcs) - 1;
+int num_checks = ARRAY_SIZE(reg_funcs);
 
 const char *check_name(unsigned short id)
 {

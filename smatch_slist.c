@@ -125,7 +125,7 @@ int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 int *dynamic_states;
 void allocate_dynamic_states_array(int num_checks)
 {
-	dynamic_states = calloc(num_checks + 1, sizeof(int));
+	dynamic_states = calloc(num_checks, sizeof(int));
 }
 
 void set_dynamic_states(unsigned short owner)

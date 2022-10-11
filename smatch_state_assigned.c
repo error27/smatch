@@ -99,12 +99,12 @@ void register_state_assigned(int id)
 {
 	my_id = id;
 
-	hooks = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
+	hooks = malloc(num_checks * sizeof(*hooks));
+	memset(hooks, 0, num_checks * sizeof(*hooks));
 
 	ssa_id = id_from_name("register_ssa");
-	ssa_hooks = malloc((num_checks + 1) * sizeof(*ssa_hooks));
-	memset(ssa_hooks, 0, (num_checks + 1) * sizeof(*ssa_hooks));
+	ssa_hooks = malloc(num_checks * sizeof(*ssa_hooks));
+	memset(ssa_hooks, 0, num_checks * sizeof(*ssa_hooks));
 
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 }

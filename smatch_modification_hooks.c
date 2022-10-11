@@ -281,10 +281,10 @@ struct smatch_state *get_modification_state(struct expression *expr)
 
 void allocate_modification_hooks(void)
 {
-	hooks = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(hooks, 0, (num_checks + 1) * sizeof(*hooks));
-	hooks_late = malloc((num_checks + 1) * sizeof(*hooks));
-	memset(hooks_late, 0, (num_checks + 1) * sizeof(*hooks));
+	hooks = malloc(num_checks * sizeof(*hooks));
+	memset(hooks, 0, num_checks * sizeof(*hooks));
+	hooks_late = malloc(num_checks * sizeof(*hooks));
+	memset(hooks_late, 0, num_checks * sizeof(*hooks));
 }
 
 void register_modification_hooks(int id)
