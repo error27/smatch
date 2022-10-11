@@ -1825,12 +1825,27 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 	if (ret == UNKNOWN_COMPARISON)
 		goto free;
 
-	if ((is_plus_one(a) || is_minus_one(b)) && ret == '<')
-		ret = SPECIAL_LTE;
-	else if ((is_minus_one(a) || is_plus_one(b)) && ret == '>')
-		ret = SPECIAL_GTE;
-	else
+	if (is_plus_one(a) || is_minus_one(b)) {
+		if (ret == '<')
+			ret = SPECIAL_LTE;
+		else if (ret == SPECIAL_EQUAL)
+			ret = '>';
+		else if (ret == SPECIAL_GTE)
+			ret = '>';
+		else
+			ret = UNKNOWN_COMPARISON;
+	} else if ((is_minus_one(a) || is_plus_one(b))) {
+		if (ret == '>')
+			ret = SPECIAL_GTE;
+		else if (ret == SPECIAL_EQUAL)
+			ret = '<';
+		else if (ret == SPECIAL_LTE)
+			ret = '<';
+		else
+			ret = UNKNOWN_COMPARISON;
+	} else {
 		ret = UNKNOWN_COMPARISON;
+	}
 
 free:
 	free_string(one);
