@@ -1799,8 +1799,6 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 	a = strip_parens(a);
 	b = strip_parens(b);
 
-	move_plus_to_minus(&a, &b);
-
 	simplify_binops(&a, &b);
 
 	one = chunk_to_var(a);
