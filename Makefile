@@ -381,8 +381,8 @@ SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS)
 	$(Q)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
-sm_hash: sm_hash.o $(SMATCH_OBJS)
-	$(Q)$(LD) -o sm_hash sm_hash.o smatch_hash.o $(SMATCH_LDFLAGS)
+smatch_data/db/sm_hash: sm_hash.o $(SMATCH_OBJS)
+	$(Q)$(LD) -o smatch_data/db/sm_hash sm_hash.o smatch_hash.o $(SMATCH_LDFLAGS)
 
 sm_hash.o: sm_hash.c smatch.h
 	$(CC) $(CFLAGS) -c sm_hash.c
@@ -397,7 +397,7 @@ $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h \
 	smatch_constants.h avl.h
 
 ########################################################################
-all: $(PROGRAMS) smatch sm_hash
+all: $(PROGRAMS) smatch smatch_data/db/sm_hash
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS) -lm
