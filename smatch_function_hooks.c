@@ -262,6 +262,9 @@ static struct expression *get_parent_assignment(struct expression *expr)
 	struct expression *parent;
 	int cnt = 0;
 
+	if (expr->type == EXPR_ASSIGNMENT)
+		return NULL;
+
 	parent = expr_get_fake_parent_expr(expr);
 	if (parent && parent->type == EXPR_ASSIGNMENT)
 		return parent;
@@ -322,7 +325,10 @@ void add_function_param_key_hook(const char *look_for, param_key_hook *call_back
 	struct param_key_data *pkd;
 
 	pkd = alloc_pkd(call_back, param, key, info);
-	add_function_hook(look_for, &param_key_function, pkd);
+	if (param == -1)
+		add_function_assign_hook(look_for, &param_key_function, pkd);
+	else
+		add_function_hook(look_for, &param_key_function, pkd);
 }
 
 void add_function_param_key_hook_late(const char *look_for, param_key_hook *call_back,
