@@ -1249,6 +1249,7 @@ void __split_stmt(struct statement *stmt)
 	static int indent_cnt;
 	sval_t sval;
 	struct timeval start, stop;
+	bool skip_after = false;
 
 	gettimeofday(&start, NULL);
 
@@ -1367,6 +1368,8 @@ void __split_stmt(struct statement *stmt)
 		break;
 	case STMT_LABEL:
 		__split_label_stmt(stmt);
+		__pass_to_client(stmt, STMT_HOOK_AFTER);
+		skip_after = true;
 		__split_stmt(stmt->label_statement);
 		break;
 	case STMT_GOTO:
@@ -1409,7 +1412,8 @@ void __split_stmt(struct statement *stmt)
 		__split_expr(stmt->range_high);
 		break;
 	}
-	__pass_to_client(stmt, STMT_HOOK_AFTER);
+	if (!skip_after)
+		__pass_to_client(stmt, STMT_HOOK_AFTER);
 	if (--indent_cnt == 1)
 		__discard_fake_states(NULL);
 
