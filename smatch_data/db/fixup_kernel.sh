@@ -1,10 +1,16 @@
 #!/bin/bash
 
 db_file=$1
+bin_dir=$(dirname $0)
+
+FS_READ_WRITE=$(${bin_dir}/sm_hash 'fs/read_write.c')
+DRIVERS_PCI_ACCESS=$(${bin_dir}/sm_hash 'drivers/pci/access.c')
+DRIVERS_RAPIDIO_ACCESS=$(${bin_dir}/sm_hash 'drivers/rapidio/rio-access.c')
+
 cat << EOF | sqlite3 $db_file
 /* we only care about the main ->read/write() functions. */
-delete from caller_info where function = '(struct file_operations)->read' and file != 'fs/read_write.c';
-delete from caller_info where function = '(struct file_operations)->write' and file != 'fs/read_write.c';
+delete from caller_info where function = '(struct file_operations)->read' and file != ${FS_READ_WRITE};
+delete from caller_info where function = '(struct file_operations)->write' and file != ${FS_READ_WRITE};
 delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
 delete from caller_info where function = '(struct file_operations)->write' and caller = 'do_loop_readv_writev';
@@ -127,7 +133,7 @@ update return_states set return = '0-u16max[==\$0]' where function = '__builtin_
 
 delete from return_states where function = 'bitmap_allocate_region' and return = '1';
 /* Just delete a lot of returns that everyone ignores */
-delete from return_states where file = 'drivers/pci/access.c' and (return >= 129 and return <= 137);
+delete from return_states where file = ${DRIVERS_PCI_ACCESS} and (return >= 129 and return <= 137);
 delete from return_states where function = 'pci_bus_read_config_byte' and return != '0';
 delete from return_states where function = 'pci_bus_read_config_word' and return != '0';
 delete from return_states where function = 'pci_bus_read_config_dword' and return != '0';
@@ -182,7 +188,7 @@ delete from caller_info where function = '(struct i2c_algorithm)->master_xfer' a
 delete from type_info where key = '(union anonymous)->__val';
 
 /* This is RIO_BAD_SIZE */
-delete from return_states where file = 'drivers/rapidio/rio-access.c' and return = '129';
+delete from return_states where file = ${DRIVERS_RAPIDIO_ACCESS} and return = '129';
 
 /* Smatch sucks at loops */
 delete from return_states where function = 'ata_dev_next' and type = 103;
