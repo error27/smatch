@@ -20,6 +20,7 @@
  * want to know what the type is for that.
  */
 
+#include <ctype.h>
 #include "smatch.h"
 #include "smatch_slist.h"
 
@@ -318,6 +319,8 @@ static struct symbol *get_type_helper(struct expression *expr)
 	case EXPR_OFFSETOF:
 		ret = &ulong_ctype;
 		break;
+	case EXPR_GENERIC:
+		return get_type_helper(strip_Generic(expr));
 	default:
 		return NULL;
 	}
