@@ -960,7 +960,6 @@ enum info_type {
 	MTAG_ASSIGN	= 8035,
 	STRING_VALUE	= 8041,
 	ALLOC		= 8045,
-	RELEASE_OLD	= 8046, // FIXME: delete this after Jul 2022
 
 	BYTE_COUNT	= 8050,
 	ELEM_COUNT	= 8051,
