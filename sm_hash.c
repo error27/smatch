@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 	hash = str_to_llu_hash_helper(argv[1]);
 
-	printf("0x%llu\n", hash);
+	printf("%llu\n", hash);
 
 	return 0;
 }
