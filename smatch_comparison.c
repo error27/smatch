@@ -2287,7 +2287,6 @@ static void match_call_info(struct expression *expr)
 			struct var_sym_list *right_vsl;
 			struct var_sym *right_vs;
 
-
 			if (strstr(link, " orig"))
 				continue;
 			sm = get_sm_state(comparison_id, link, NULL);
@@ -2436,6 +2435,7 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 	int left_param, right_param;
 	const char *left_key, *right_key;
 	char info_buf[258];
+	int compare_type;
 
 	print_return_value_comparison(return_id, return_ranges, expr);
 
@@ -2492,10 +2492,15 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			    strcmp(left_key, right_key) == 0)
 				continue;
 
+			compare_type = PARAM_COMPARE;
+			if (!param_was_set_var_sym(right->var, right->sym) &&
+			    !param_was_set_var_sym(left->var, left->sym))
+				compare_type = COMPARE_LIMIT;
+
 			snprintf(info_buf, sizeof(info_buf), "%s $%d%s",
 				 show_comparison(data->comparison), right_param, right_key + 1);
 			sql_insert_return_states(return_id, return_ranges,
-					PARAM_COMPARE, left_param, left_key, info_buf);
+					compare_type, left_param, left_key, info_buf);
 		} END_FOR_EACH_PTR(link);
 
 	} END_FOR_EACH_SM(tmp);
