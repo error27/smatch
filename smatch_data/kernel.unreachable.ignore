@@ -44,3 +44,6 @@ SYSCALL_DEFINE1
 fui
 _mesa_float_to_half
 prevent_tail_call_optimization
+outb
+outw
+outl
