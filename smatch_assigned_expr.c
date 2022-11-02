@@ -130,6 +130,9 @@ static void match_assignment(struct expression *expr)
 	if (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = right->left;
 
+	right = strip__builtin_choose_expr(right);
+	right = strip_Generic(right);
+
 	state = alloc_state_expr(strip_expr(right));
 	if (!state)
 		goto free;

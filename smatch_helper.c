@@ -763,10 +763,13 @@ struct expression *strip_parens(struct expression *expr)
 	return expr;
 }
 
-static struct expression *strip__builtin_choose_expr(struct expression *expr)
+struct expression *strip__builtin_choose_expr(struct expression *expr)
 {
 	struct expression *const_expr, *expr1, *expr2;
 	sval_t sval;
+
+	if (expr->type != EXPR_CALL)
+		return expr;
 
 	if (!sym_name_is("__builtin_choose_expr", expr->fn))
 		return expr;
