@@ -47,3 +47,5 @@ prevent_tail_call_optimization
 outb
 outw
 outl
+__put_user
+put_user
