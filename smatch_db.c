@@ -2183,6 +2183,9 @@ static bool is_kernel_success_fail(struct sm_state *sm)
 	bool has_zero = false;
 	bool has_neg = false;
 
+	if (!sm)
+		return false;
+
 	if (!type_signed(estate_type(sm->state)))
 		return false;
 
