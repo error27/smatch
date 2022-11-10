@@ -71,6 +71,8 @@ static struct func_info func_table[] = {
 	{ "dma_free_coherent", PARAM_FREED, 2, "$" },
 	{ "free_netdev", PARAM_FREED, 0, "$" },
 
+	{ "qdisc_enqueue", PARAM_FREED, 0, "$" },
+
 	{ "kobject_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "kref_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
