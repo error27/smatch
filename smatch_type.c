@@ -444,6 +444,17 @@ int is_pointer(struct expression *expr)
 	return type_is_ptr(get_final_type(expr));
 }
 
+bool is_void_ptr(struct symbol *type)
+{
+	if (!type)
+		return false;
+	if (type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+
+	return types_equiv(type, &void_ctype);
+}
+
 int returns_pointer(struct symbol *sym)
 {
 	if (!sym)

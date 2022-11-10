@@ -587,6 +587,7 @@ int expr_unsigned(struct expression *expr);
 int expr_signed(struct expression *expr);
 int returns_unsigned(struct symbol *base_type);
 int is_pointer(struct expression *expr);
+bool is_void_ptr(struct symbol *type);
 int returns_pointer(struct symbol *base_type);
 sval_t sval_type_max(struct symbol *base_type);
 sval_t sval_type_min(struct symbol *base_type);
