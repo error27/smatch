@@ -805,11 +805,18 @@ static void fake_return_assignment(struct db_callback_info *db_info, int type, i
 
 static void set_fresh_mtag_returns(struct db_callback_info *db_info)
 {
-	struct expression *expr = db_info->expr->left;
+	struct expression *expr;
 	struct smatch_state *state;
 
 	if (!db_info->ret_state)
 		return;
+
+	if (!db_info->expr ||
+	    db_info->expr->type != EXPR_ASSIGNMENT ||
+	    db_info->expr->op != '=')
+		return;
+
+	expr = db_info->expr->left;
 
 	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
 	state = get_mtag_return(db_info->expr, state);
@@ -818,9 +825,6 @@ static void set_fresh_mtag_returns(struct db_callback_info *db_info)
 
 	set_real_absolute(expr, state);
 	set_extra_expr_mod(expr, state);
-
-	db_info->ret_state = NULL;
-	db_info->ret_str = NULL;
 }
 
 static void set_return_assign_state(struct db_callback_info *db_info)
@@ -1005,6 +1009,7 @@ static void process_return_states(struct db_callback_info *db_info)
 	struct stree *stree;
 
 	set_implied_states(db_info);
+	set_fresh_mtag_returns(db_info);
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
 	if (debug_db) {
@@ -1356,7 +1361,6 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
 		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
-		set_fresh_mtag_returns(db_info);
 	}
 
 	FOR_EACH_PTR(db_return_states_list, tmp) {
