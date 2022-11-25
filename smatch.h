@@ -262,6 +262,7 @@ const char *get_base_file(void);
 unsigned long long get_file_id(void);
 unsigned long long get_base_file_id(void);
 char *get_function(void);
+extern int __smatch_lineno;
 int get_lineno(void);
 extern int final_pass;
 extern struct symbol *cur_func_sym;
