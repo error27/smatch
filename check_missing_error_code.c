@@ -37,20 +37,13 @@
 
 static int my_id;
 
-/*
- * Instead of having a bunch of different states declared here,
- * what this does is it has "goto == &yup" and "cleanup == &yup"
- *
- */
-STATE(yup);
-
 static unsigned long set_label;
 
 static void match_goto(struct statement *stmt)
 {
 	if (stmt->type != STMT_GOTO)
 		return;
-	set_state(my_id, "goto", NULL, &yup);
+	set_state(my_id, "goto", NULL, &true_state);
 }
 
 static void match_label(struct statement *stmt)
@@ -59,7 +52,7 @@ static void match_label(struct statement *stmt)
 
 	if (stmt->type != STMT_LABEL)
 		return;
-	if (get_state(my_id, "cleanup", NULL) == &yup) {
+	if (get_state(my_id, "cleanup", NULL) == &true_state) {
 		/* The second label in a cleanup block is still cleanup. */
 		set_label = true;
 		return;
@@ -85,7 +78,7 @@ static void match_label_after(struct statement *stmt)
 	if (stmt->type != STMT_LABEL)
 		return;
 	if (set_label) {
-		set_state(my_id, "cleanup", NULL, &yup);
+		set_state(my_id, "cleanup", NULL, &true_state);
 		set_label = false;
 	}
 }
@@ -168,10 +161,10 @@ static void match_return(struct statement *stmt)
 		return;
 	if (cur_func_return_type() != &int_ctype)
 		return;
-	if (get_state(my_id, "cleanup", NULL) != &yup)
+	if (get_state(my_id, "cleanup", NULL) != &true_state)
 		return;
-	goto_sm = get_sm_state(my_id, "goto", NULL);
-	if (!goto_sm || goto_sm->state != &yup)
+	goto_sm = get_goto_sm_state();
+	if (!goto_sm || goto_sm->state != &true_state)
 		return;
 	extra_sm = get_extra_sm_state(stmt->ret_value);
 	if (!extra_sm)
