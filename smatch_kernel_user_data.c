@@ -346,7 +346,7 @@ static void tag_inner_struct_members(struct expression *expr, struct symbol *mem
 void __set_user_string(struct expression *expr);
 static void tag_struct_members(struct symbol *type, struct expression *expr)
 {
-	struct symbol *tmp;
+	struct symbol *tmp, *member_type;
 	struct expression *member;
 	int op = '*';
 
@@ -356,11 +356,12 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 	}
 
 	FOR_EACH_PTR(type->symbol_list, tmp) {
-		type = get_real_base_type(tmp);
-		if (!type)
+		member_type = get_real_base_type(tmp);
+		if (!member_type)
 			continue;
 
-		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
+		if (member_type->type == SYM_UNION ||
+		    member_type->type == SYM_STRUCT) {
 			tag_inner_struct_members(expr, tmp);
 			continue;
 		}
@@ -369,7 +370,7 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 			continue;
 
 		member = member_expression(expr, op, tmp->ident);
-		if (type->type == SYM_ARRAY) {
+		if (member_type->type == SYM_ARRAY) {
 			set_points_to_user_data(member, true);
 		} else {
 			set_user_data(member, new_state(get_type(member)));
