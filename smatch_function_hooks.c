@@ -134,6 +134,28 @@ struct db_callback_info {
 	int handled;
 };
 
+static struct expression_list *fake_calls;
+
+void add_fake_call_after_return(struct expression *call)
+{
+	add_ptr_list(&fake_calls, call);
+}
+
+static void parse_fake_calls(void)
+{
+	struct expression_list *list;
+	struct expression *call;
+
+	list = fake_calls;
+	fake_calls = NULL;
+
+	FOR_EACH_PTR(list, call) {
+		__split_expr(call);
+	} END_FOR_EACH_PTR(call);
+
+	__free_ptr_list((struct ptr_list **)&list);
+}
+
 static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 					   void *info)
 {
@@ -1010,6 +1032,7 @@ static void process_return_states(struct db_callback_info *db_info)
 
 	set_implied_states(db_info);
 	set_fresh_mtag_returns(db_info);
+	parse_fake_calls();
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
 	if (debug_db) {
