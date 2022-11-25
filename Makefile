@@ -283,6 +283,7 @@ SMATCH_OBJS += smatch_fresh_alloc.o
 SMATCH_OBJS += smatch_function_hooks.o
 SMATCH_OBJS += smatch_function_info.o
 SMATCH_OBJS += smatch_function_ptrs.o
+SMATCH_OBJS += smatch_goto_tracker.o
 SMATCH_OBJS += smatch_hash.o
 SMATCH_OBJS += smatch_helper.o
 SMATCH_OBJS += smatch_hooks.o
