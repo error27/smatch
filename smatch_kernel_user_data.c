@@ -34,6 +34,19 @@ static struct expression *ignore_clear;
 STATE(called);
 static unsigned long func_gets_user_data;
 
+struct user_fn_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
+};
+
+static struct user_fn_info func_table[] = {
+	{ "brcmf_fweh_dequeue_event", USER_DATA, -1, "&$->emsg" },
+};
+
 static const char *kstr_funcs[] = {
 	"kstrtoull", "kstrtoll", "kstrtoul", "kstrtol", "kstrtouint",
 	"kstrtoint", "kstrtou64", "kstrtos64", "kstrtou32", "kstrtos32",
@@ -1443,6 +1456,16 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	set_to_user_data(arg, key, value, NEW);
 }
 
+static void set_param_key_user_data(struct expression *expr, const char *name,
+				    struct symbol *sym, void *data)
+{
+	struct expression *arg;
+
+	func_gets_user_data = true;
+	arg = gen_expression_from_name_sym(name, sym);
+	tag_as_user_data(arg);
+}
+
 static void match_capped(struct expression *expr, const char *name, struct symbol *sym, void *info)
 {
 	struct smatch_state *state, *new;
@@ -1465,6 +1488,7 @@ static void match_function_def(struct symbol *sym)
 
 void register_kernel_user_data(int id)
 {
+	struct user_fn_info *info;
 	int i;
 
 	my_id = id;
@@ -1516,6 +1540,12 @@ void register_kernel_user_data(int id)
 	add_function_param_key_hook_late("memset", &match_capped, 2, "$", NULL);
 	add_function_param_key_hook_late("_memset", &match_capped, 2, "$", NULL);
 	add_function_param_key_hook_late("__memset", &match_capped, 2, "$", NULL);
+
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
+		add_function_param_key_hook_late(info->name, &set_param_key_user_data,
+						 info->param, info->key, info);
+	}
 }
 
 void register_kernel_user_data2(int id)
