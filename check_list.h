@@ -80,6 +80,7 @@ CK(register_unconstant_macros)
 CK(register_state_assigned)
 CK(register_points_to_container)
 CK(register_allocations)
+CK(register_goto_tracker)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)

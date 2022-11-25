@@ -1475,6 +1475,9 @@ extern int option_mem;
 unsigned long get_mem_kb(void);
 unsigned long get_max_memory(void);
 
+/* smatch_goto_tracker.c */
+struct sm_state *get_goto_sm_state(void);
+
 /* check_is_nospec.c */
 bool is_nospec(struct expression *expr);
 long get_stmt_cnt(void);
