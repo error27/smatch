@@ -44,7 +44,7 @@ static int my_id;
  */
 STATE(yup);
 
-static bool set_label;
+static unsigned long set_label;
 
 static void match_goto(struct statement *stmt)
 {
@@ -195,6 +195,8 @@ void check_missing_error_code(int id)
 		return;
 
 	my_id = id;
+
+	add_function_data(&set_label);
 
 	add_hook(&match_goto, STMT_HOOK);
 	add_hook(&match_label, STMT_HOOK);
