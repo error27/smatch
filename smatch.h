@@ -1161,6 +1161,7 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr);
 int get_real_array_size(struct expression *expr);
 int last_member_is_resizable(struct symbol *type);
 /* smatch_strlen.c */
+bool is_strlen(struct expression *expr);
 int get_implied_strlen(struct expression *expr, struct range_list **rl);
 int get_size_from_strlen(struct expression *expr);
 

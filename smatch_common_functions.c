@@ -101,6 +101,8 @@ void register_common_functions(int id)
 	 * the database and smatch_data/.
 	 */
 	add_implied_return_hook("strlen", &match_strlen, NULL);
+	add_implied_return_hook("__builtin_strlen", &match_strlen, NULL);
+	add_implied_return_hook("__fortify_strlen", &match_strlen, NULL);
 	add_implied_return_hook("strnlen", &match_strnlen, NULL);
 	add_implied_return_hook("sprintf", &match_sprintf, INT_PTR(1));
 	add_implied_return_hook("snprintf", &match_sprintf, INT_PTR(2));

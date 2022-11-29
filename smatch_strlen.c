@@ -69,6 +69,19 @@ static void match_string_assignment(struct expression *expr)
 	set_state_expr(my_strlen_id, expr->left, alloc_estate_rl(clone_rl(rl)));
 }
 
+bool is_strlen(struct expression *expr)
+{
+	if (!expr || expr->type != EXPR_CALL)
+		return false;
+
+	if (sym_name_is("strlen", expr->fn) ||
+	    sym_name_is("__builtin_strlen", expr->fn) ||
+	    sym_name_is("__fortify_strlen", expr->fn))
+		return true;
+
+	return false;
+}
+
 static void match_strlen(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *right;
@@ -104,17 +117,18 @@ static void match_strlen_condition(struct expression *expr)
 	struct smatch_state *false_state = NULL;
 	int op;
 
+	expr = strip_expr(expr);
 	if (expr->type != EXPR_COMPARE)
 		return;
 
 	left = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 
-	if (left->type == EXPR_CALL && sym_name_is("strlen", left->fn)) {
+	if (left->type == EXPR_CALL && is_strlen(left)) {
 		str = get_argument_from_call_expr(left->args, 0);
 		strlen_left = 1;
 	}
-	if (right->type == EXPR_CALL && sym_name_is("strlen", right->fn)) {
+	if (right->type == EXPR_CALL && is_strlen(right)) {
 		str = get_argument_from_call_expr(right->args, 0);
 		strlen_right = 1;
 	}
@@ -352,6 +366,7 @@ void register_strlen(int id)
 	add_function_hook("strlcpy", &match_strlcpycat, NULL);
 	add_function_hook("strlcat", &match_strlcpycat, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
+	add_function_hook("__builtin_strcpy", &match_strcpy, NULL);
 }
 
 void register_strlen_equiv(int id)
@@ -359,6 +374,8 @@ void register_strlen_equiv(int id)
 	my_equiv_id = id;
 	set_dynamic_states(my_equiv_id);
 	add_function_assign_hook("strlen", &match_strlen, NULL);
+	add_function_assign_hook("__builtin_strlen", &match_strlen, NULL);
+	add_function_assign_hook("__fortify_strlen", &match_strlen, NULL);
 	add_modification_hook(my_equiv_id, &set_strlen_equiv_undefined);
 }
 
