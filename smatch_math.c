@@ -1418,7 +1418,7 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 	    sym_name_is("__ffs", expr->fn))
 		return handle_ffs(expr, implied, recurse_cnt, res, res_sval);
 
-	if (sym_name_is("strlen", expr->fn))
+	if (is_strlen(expr))
 		return handle_strlen(expr, implied, recurse_cnt, res, res_sval);
 
 	if (implied == RL_EXACT || implied == RL_HARD)
