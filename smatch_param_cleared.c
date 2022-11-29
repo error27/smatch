@@ -50,11 +50,14 @@ static struct func_info func_table[] = {
 	{ "memzero", BUF_CLEARED, 0, "*$", "0" },
 	{ "__memset", BUF_CLEARED, 0, "*$", "0"},
 	{ "__memzero", BUF_CLEARED, 0, "*$", "0" },
+	{ "__builtin_memset", BUF_CLEARED, 0, "*$", "0"},
 
 	{ "memcpy", BUF_CLEARED, 0, "*$" },
 	{ "memmove", BUF_CLEARED, 0, "*$" },
 	{ "__memcpy", BUF_CLEARED, 0, "*$" },
 	{ "__memmove", BUF_CLEARED, 0, "*$" },
+	{ "__builtin_memmove", BUF_CLEARED, 0, "*$" },
+	{ "__builtin_memcpy", BUF_CLEARED, 0, "*$" },
 
 	/* Should this be done some where else? */
 	{ "strcpy", BUF_CLEARED, 0, "*$" },
