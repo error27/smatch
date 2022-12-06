@@ -31,6 +31,9 @@ lookup_rightempty
 MAKE_RAW_BYTE
 MAKE_RAW_BYTE_56K
 mdelay
+memcpy
+memmove
+memset
 MsgHead
 MUL64
 NEW_AUX_ENT
