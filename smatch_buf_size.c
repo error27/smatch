@@ -880,8 +880,7 @@ static void match_alloc_pages(const char *fn, struct expression *expr, void *_or
 		return;
 
 	sval.type = &int_ctype;
-	sval.value = 1 << sval.value;
-	sval.value *= 4096;
+	sval.value = (1 << sval.value) * 4096;
 
 	store_alloc(expr->left, alloc_rl(sval, sval));
 }
