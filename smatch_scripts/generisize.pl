@@ -51,6 +51,7 @@ while (<>) {
     s/inconsistent returns ([^ ]+?) locked \(\)/inconsistent returns ... locked ()/;
     s/from (\S+)\(\) not released on lines:/from ... not released on lines:/;
     s/(.*) [^ ]* (too large for) [^ ]+ (.*)/$1 $2 $3/;
+    s/error: (.*?)\(\) '' too small /error: ...\(\) '' too small /;
 
     add_msg($_);
 }
