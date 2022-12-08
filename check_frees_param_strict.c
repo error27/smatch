@@ -46,8 +46,13 @@ static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 
 void track_freed_param(struct expression *expr, struct smatch_state *state)
 {
+	struct expression *tmp;
 	const char *key;
 	int param;
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
 
 	param = get_param_key_from_expr(expr, NULL, &key);
 	if (param < 0)
@@ -61,6 +66,12 @@ void track_freed_param(struct expression *expr, struct smatch_state *state)
 void track_freed_param_var_sym(const char *name, struct symbol *sym,
 			       struct smatch_state *state)
 {
+	struct expression *tmp;
+
+	tmp = get_assigned_expr_name_sym(name, sym);
+	if (tmp)
+		track_freed_param(tmp, state);
+
 	if (get_param_num_from_sym(sym) < 0)
 		return;
 	/*
