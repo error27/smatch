@@ -86,5 +86,6 @@ static inline void __smatch_timer_start(void){}
 static inline void __smatch_timer_stop(void){}
 
 static inline void __smatch_container(long long container, long long x){}
+static inline void __smatch_param_key(long long val){}
 
 #endif

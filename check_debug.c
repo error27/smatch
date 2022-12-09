@@ -780,6 +780,22 @@ static void match_container(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_param_key(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	const char *key = NULL;
+	char *name;
+	int param;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+
+	param = get_param_key_from_expr(arg, NULL, &key);
+
+	name = expr_to_str(expr);
+	sm_msg("expr='%s' param=%d key='%s'", name, param, key);
+	free_string(name);
+}
+
 static struct timeval debug_timer;
 static void match_timer_start(const char *fn, struct expression *expr, void *info)
 {
@@ -932,6 +948,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_mem", &match_mem, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
 	add_function_hook("__smatch_container", &match_container, NULL);
+	add_function_hook("__smatch_param_key", &match_param_key, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
 	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);
 
