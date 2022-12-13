@@ -786,7 +786,7 @@ static bool fake_a_param_assignment(struct expression *expr, const char *ret_str
 		if (estate_rl(faked)) {
 			rl = rl_intersection(estate_rl(faked), estate_rl(orig));
 			if (rl)
-				set_extra_expr_nomod(expr, alloc_estate_rl(rl));
+				set_extra_expr_nomod(left, alloc_estate_rl(rl));
 		}
 	}
 
