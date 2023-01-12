@@ -133,7 +133,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (!estate_get_single_value(state, &sval) || sval.value != 0)
 		return &undefined;
 	/* It makes it easier to consider NULL pointers as freed.  */
-	return &freed;
+	return sm->state;
 }
 
 struct smatch_state *merge_frees(struct smatch_state *s1, struct smatch_state *s2)
