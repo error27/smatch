@@ -296,7 +296,7 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	return alloc_string(buf);
 }
 
-static bool split_param_key(const char *value, int *param, char *key, int len)
+bool split_param_key(const char *value, int *param, char *key, int len)
 {
 	char *p;
 	int l, skip = 1;

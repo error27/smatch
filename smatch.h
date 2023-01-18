@@ -1000,6 +1000,7 @@ void select_return_implies_hook(int type, void (*callback)(struct expression *ca
 struct range_list *db_return_vals(struct expression *expr);
 struct range_list *db_return_vals_from_str(const char *fn_name);
 struct range_list *db_return_vals_no_args(struct expression *expr);
+bool split_param_key(const char *value, int *param, char *key, int len);
 bool get_implied_rl_from_call_str(struct expression *expr, const char *data, struct range_list **rl);
 char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl);
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym);
