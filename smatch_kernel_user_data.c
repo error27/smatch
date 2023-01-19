@@ -45,6 +45,7 @@ struct user_fn_info {
 
 static struct user_fn_info func_table[] = {
 	{ "brcmf_fweh_dequeue_event", USER_DATA, -1, "&$->emsg" },
+	{ "iov_iter_count", USER_DATA, -1, "$" },
 };
 
 static const char *kstr_funcs[] = {
@@ -1461,10 +1462,15 @@ static void set_param_key_user_data(struct expression *expr, const char *name,
 				    struct symbol *sym, void *data)
 {
 	struct expression *arg;
+	struct symbol *type;
 
 	func_gets_user_data = true;
 	arg = gen_expression_from_name_sym(name, sym);
-	tag_as_user_data(arg);
+	type = get_type(arg);
+	if (type_is_ptr(type))
+		tag_as_user_data(arg);
+	else
+		set_state_expr(my_id, arg, alloc_estate_whole(type));
 }
 
 static void match_capped(struct expression *expr, const char *name, struct symbol *sym, void *info)
