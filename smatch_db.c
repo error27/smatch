@@ -1652,9 +1652,9 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	const char *return_ranges;
 	sval_t sval;
 	const char *container_of_str;
+	const char *math_str;
 	char *fn_param_str;
 	char *compare_str;
-	char *math_str;
 	char buf[128];
 
 	*rl_p = NULL;
@@ -1680,8 +1680,10 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	}
 
 	fn_param_str = get_fn_param_str(expr);
+	math_str = get_param_key_swap_dollar(expr);
 	compare_str = expr_equal_to_param(expr, -1);
-	math_str = get_value_in_terms_of_parameter_math(expr);
+	if (!math_str)
+		math_str = get_value_in_terms_of_parameter_math(expr);
 
 	if (get_implied_rl(expr, &rl) && !is_whole_rl(rl)) {
 		rl = cast_rl(cur_func_return_type(), rl);

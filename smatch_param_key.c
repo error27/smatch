@@ -637,6 +637,29 @@ free:
 	return ret;
 }
 
+const char *get_param_key_swap_dollar(struct expression *expr)
+{
+	struct sm_state *sm;
+	const char *key, *p;
+	char buf[64];
+	int param;
+
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm || slist_has_state(sm->possible, &undefined))
+		return NULL;
+
+	param = get_param_key_from_expr(expr, NULL, &key);
+	if (param < 0)
+		return NULL;
+
+	p = strchr(key, '$');
+	if (!p)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "%.*s%d%s", (int)(p - key + 1), key, param, p + 1);
+	return alloc_sname(buf);
+}
+
 int map_to_param(const char *name, struct symbol *sym)
 {
 	return get_param_key_from_var_sym(name, sym, NULL, NULL);
