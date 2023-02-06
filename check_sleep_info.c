@@ -50,7 +50,8 @@ static void do_sleep(void)
 		fn();
 	} END_FOR_EACH_PTR(fn);
 
-	set_state(my_id, "sleep", NULL, &sleep);
+	if (!function_decrements_preempt())
+		set_state(my_id, "sleep", NULL, &sleep);
 	clear_preempt_cnt();
 }
 
@@ -121,8 +122,6 @@ static void match_gfp_t(struct expression *expr)
 
 static void insert_sleep(void)
 {
-	if (function_decrements_preempt())
-		return;
 	if (get_state(my_id, "sleep", NULL) != &sleep)
 		return;
 	sql_insert_return_implies(SLEEP, -1, "", "");
