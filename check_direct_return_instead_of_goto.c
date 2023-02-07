@@ -65,6 +65,87 @@ static bool is_do_nothing_goto(struct statement *goto_stmt)
 	return false;
 }
 
+static bool is_printk_stmt(struct statement *stmt)
+{
+	char *str;
+
+	if (!stmt)
+		return false;
+
+	str = pos_ident(stmt->pos);
+	if (!str)
+		return false;
+
+	if (strcmp(str, "dev_err") == 0 ||
+	    strcmp(str, "dev_info") == 0 ||
+	    strcmp(str, "dev_warn") == 0 ||
+	    strcmp(str, "dev_warn") == 0 ||
+	    strcmp(str, "dev_notice") == 0 ||
+	    strcmp(str, "dev_dbg") == 0)
+		return true;
+
+	if (strcmp(str, "pr_err") == 0 ||
+	    strcmp(str, "pr_info") == 0 ||
+	    strcmp(str, "pr_warn") == 0 ||
+	    strcmp(str, "pr_warn") == 0 ||
+	    strcmp(str, "pr_notice") == 0 ||
+	    strcmp(str, "pr_debug") == 0)
+		return true;
+
+	return false;
+}
+
+static bool label_name_matches(struct statement *goto_stmt,
+			       struct statement *stmt)
+{
+	if (!stmt)
+		return false;
+
+	if (stmt->type != STMT_LABEL)
+		return false;
+
+	if (!stmt->label_identifier ||
+	    stmt->label_identifier->type != SYM_LABEL ||
+	    !stmt->label_identifier->ident)
+		return false;
+
+	if (strcmp(stmt->label_identifier->ident->name,
+		   goto_stmt->goto_label->ident->name) == 0)
+		return true;
+
+	return false;
+}
+
+static bool is_printk_goto(struct statement *goto_stmt)
+{
+	struct symbol *fn;
+	struct statement *stmt, *tmp;
+
+	fn = get_base_type(cur_func_sym);
+	if (!fn)
+		return false;
+	stmt = fn->stmt;
+	if (!stmt)
+		stmt = fn->inline_stmt;
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return false;
+
+	FOR_EACH_PTR_REVERSE(stmt->stmts, tmp) {
+		if (tmp->type == STMT_RETURN)
+			continue;
+		if (tmp->type == STMT_LABEL &&
+		    !is_printk_stmt(tmp->label_statement))
+			return false;
+		if (is_printk_stmt(tmp))
+			continue;
+		if (label_name_matches(goto_stmt, tmp))
+			return true;
+		return false;
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+
+	return false;
+}
+
 static void match_goto(struct statement *stmt)
 {
 	/* Find the first goto */
@@ -79,6 +160,9 @@ static void match_goto(struct statement *stmt)
 		return;
 
 	if (is_do_nothing_goto(stmt))
+		return;
+
+	if (is_printk_goto(stmt))
 		return;
 
 	goto_stmt = stmt;
