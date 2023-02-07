@@ -1215,7 +1215,7 @@ void __preempt_sub(void);
 int get_preempt_cnt(void);
 void clear_preempt_cnt(void);
 bool function_decrements_preempt(void);
-void add_sleep_callback(void_fn *fn);
+void add_sleep_callback(expr_func *fn);
 unsigned long GFP_DIRECT_RECLAIM(void);
 unsigned long GFP_ATOMIC(void);
 

@@ -19,7 +19,8 @@
 #include "smatch_extra.h"
 #include "smatch_slist.h"
 
-static struct void_fn_list *hooks;
+static struct expr_fn_list *hooks;
+
 static int my_id;
 
 STATE(sleep);
@@ -42,13 +43,9 @@ unsigned long GFP_DIRECT_RECLAIM(void)
 	return saved_flags;
 }
 
-static void do_sleep(void)
+static void do_sleep(struct expression *expr)
 {
-	void_fn *fn;
-
-	FOR_EACH_PTR(hooks, fn) {
-		fn();
-	} END_FOR_EACH_PTR(fn);
+	call_expr_fns(hooks, expr);
 
 	if (!function_decrements_preempt())
 		set_state(my_id, "sleep", NULL, &sleep);
@@ -57,7 +54,7 @@ static void do_sleep(void)
 
 static void match_sleep(const char *fn, struct expression *expr, void *unused)
 {
-	do_sleep();
+	do_sleep(expr);
 }
 
 static void match_might_sleep_fn(const char *fn, struct expression *expr, void *unused)
@@ -70,7 +67,7 @@ static void match_might_sleep_fn(const char *fn, struct expression *expr, void *
 	if (!rl_to_sval(rl, &sval) || sval.value != 0)
 		return;
 
-	do_sleep();
+	do_sleep(expr);
 }
 
 static void match_might_sleep_macro(struct statement *stmt)
@@ -82,18 +79,17 @@ static void match_might_sleep_macro(struct statement *stmt)
 	    strcmp(macro, "might_sleep") != 0)
 		return;
 
-	do_sleep();
+	do_sleep(NULL);
 }
 
 static void select_sleep(struct expression *call, struct expression *arg, char *key, char *unused)
 {
-	do_sleep();
+	do_sleep(call);
 }
 
 static void match_gfp_t(struct expression *expr)
 {
 	struct expression *arg;
-	char *name;
 	sval_t sval;
 	int param;
 
@@ -107,17 +103,7 @@ static void match_gfp_t(struct expression *expr)
 	if (!(sval.value & GFP_DIRECT_RECLAIM()))
 		return;
 
-	name = expr_to_str(expr->fn);
-	if (name &&
-	    (strncmp(name, "__xa_", 5) == 0 ||
-	     strncmp(name, "xa_", 3) == 0 ||
-	     strcmp(name, "ttm_bo_swapout") == 0)) {
-		free_string(name);
-		return;
-	}
-	free_string(name);
-
-	do_sleep();
+	do_sleep(expr);
 }
 
 static void insert_sleep(void)
@@ -127,7 +113,7 @@ static void insert_sleep(void)
 	sql_insert_return_implies(SLEEP, -1, "", "");
 }
 
-void add_sleep_callback(void_fn *fn)
+void add_sleep_callback(expr_func *fn)
 {
 	add_ptr_list(&hooks, fn);
 }

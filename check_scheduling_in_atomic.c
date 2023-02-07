@@ -19,12 +19,37 @@
 
 static int my_id;
 
+static bool is_strange_GFP_function(struct expression *expr)
+{
+	char *name;
+	bool ret = false;
+
+	if (!expr || expr->type != EXPR_CALL)
+		return false;
+
+	name = expr_to_str(expr->fn);
+	if (!name)
+		return false;
+
+	if (strncmp(name, "__xa_", 5) == 0 ||
+	    strncmp(name, "xa_", 3) == 0 ||
+	    strcmp(name, "ttm_bo_swapout") == 0 ||
+	    strcmp(name, "mas_store_gfp") == 0)
+		ret = true;
+
+	free_string(name);
+	return ret;
+}
+
 static int warn_line;
-static void schedule(void)
+static void schedule(struct expression *expr)
 {
 	if (is_impossible_path())
 		return;
 	if (get_preempt_cnt() <= 0)
+		return;
+
+	if (is_strange_GFP_function(expr))
 		return;
 
 	if (warn_line == get_lineno())
