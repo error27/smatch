@@ -80,6 +80,8 @@ static struct preempt_info func_table[] = {
 	{ "task_rq_lock",			PREEMPT_ADD },
 	{ "netif_tx_lock_bh",			PREEMPT_ADD },
 	{ "mt76_tx_status_lock",		PREEMPT_ADD },
+	{ "rht_lock",				PREEMPT_ADD },
+	{ "bit_spin_lock",			PREEMPT_ADD },
 
 	{ "preempt_count_sub",			PREEMPT_SUB },
 	{ "__preempt_count_dec_and_test",	PREEMPT_SUB },
@@ -109,6 +111,8 @@ static struct preempt_info func_table[] = {
 	{ "queue_request_and_unlock",		PREEMPT_SUB },
 	{ "netif_tx_unlock_bh",			PREEMPT_SUB },
 	{ "mt76_tx_status_unlock",		PREEMPT_SUB },
+	{ "rht_unlock",				PREEMPT_SUB },
+	{ "bit_spin_unlock",			PREEMPT_SUB },
 };
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
