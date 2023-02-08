@@ -1381,5 +1381,8 @@ int success_fail_return(struct range_list *rl)
 	if (strcmp(str, "s32min-(-1),1-s32max") == 0)
 		return RET_FAIL;
 
+	if (strcmp(str, "0-s32max") == 0)
+		return RET_SUCCESS;
+
 	return RET_UNKNOWN;
 }
