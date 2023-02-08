@@ -219,6 +219,7 @@ void function_comparison(struct expression *left, int comparison, struct express
 struct expression *zero_expr();
 struct expression *sval_to_expr(sval_t sval);
 struct expression *value_expr(long long val);
+struct expression *cast_expression(struct expression *expr, struct symbol *type);
 struct expression *member_expression(struct expression *deref, int op, struct ident *member);
 struct expression *preop_expression(struct expression *expr, int op);
 struct expression *deref_expression(struct expression *expr);

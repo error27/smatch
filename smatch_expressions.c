@@ -89,6 +89,16 @@ struct expression *symbol_expression(struct symbol *sym)
 	return symbol_expression_helper(sym, false);
 }
 
+struct expression *cast_expression(struct expression *expr, struct symbol *type)
+{
+	struct expression *cast;
+
+	cast = alloc_tmp_expression(expr->pos, EXPR_CAST);
+	cast->cast_type = type;
+	cast->cast_expression = expr;
+	return cast;
+}
+
 struct expression *member_expression(struct expression *deref, int op, struct ident *member)
 {
 	struct expression *expr;
