@@ -45,7 +45,10 @@ struct user_fn_info {
 
 static struct user_fn_info func_table[] = {
 	{ "brcmf_fweh_dequeue_event", USER_DATA, -1, "&$->emsg" },
+	{ "cfg80211_find_elem_match", USER_DATA, -1, "$" },
 	{ "iov_iter_count", USER_DATA, -1, "$" },
+	{ "wilc_wlan_rxq_remove", USER_DATA, -1, "$->buffer" },
+	{ "cfg80211_find_vendor_ie", USER_DATA, -1, "$" },
 };
 
 static const char *kstr_funcs[] = {
