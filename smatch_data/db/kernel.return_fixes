@@ -21,6 +21,7 @@ simple_write_to_buffer s64min-s64max 0-s32max[<=$1]
 atomic_read s32min-s32max s32min-s32max[==$0->counter]
 notifier_to_errno (-2147483646)-(-1) (-4095)-(-1)
 notifier_to_errno (-2147450878)-(-1) (-4095)-(-1)
+notifier_to_errno (-32769)-(-1) (-4095)-(-1)
 mc_status_to_error s32min-s32max (-4095)-0
 fls s32min-s32max 0-32
 fls64 s64min-s64max 0-64
