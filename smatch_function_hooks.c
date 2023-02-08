@@ -706,6 +706,32 @@ static void store_return_state(struct db_callback_info *db_info, const char *ret
 	db_info->ret_state = state;
 }
 
+static struct expression_list *unfaked_calls;
+
+struct expression *get_unfaked_call(void)
+{
+	return last_ptr_list((struct ptr_list *)unfaked_calls);
+}
+
+static void store_unfaked_call(struct expression *expr)
+{
+	push_expression(&unfaked_calls, expr);
+}
+
+static void clear_unfaked_call(void)
+{
+	delete_ptr_list_last((struct ptr_list **)&unfaked_calls);
+}
+
+void fake_param_assign_helper(struct expression *call, struct expression *fake_assign)
+{
+	store_unfaked_call(call);
+	__in_fake_parameter_assign++;
+	__split_expr(fake_assign);
+	__in_fake_parameter_assign--;
+	clear_unfaked_call();
+}
+
 static bool fake_a_param_assignment(struct expression *expr, const char *ret_str, struct smatch_state *orig)
 {
 	struct expression *arg, *left, *right, *tmp, *fake_assign;
@@ -767,9 +793,7 @@ static bool fake_a_param_assignment(struct expression *expr, const char *ret_str
 	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
 		return false;
 	fake_assign = assign_expression(left, '=', right);
-	__in_fake_parameter_assign++;
-	__split_expr(fake_assign);
-	__in_fake_parameter_assign--;
+	fake_param_assign_helper(expr, fake_assign);
 
 	/*
 	 * If the return is "0-65531[$0->nla_len - 4]" the faked expression
