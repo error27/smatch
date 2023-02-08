@@ -345,11 +345,13 @@ struct expression *gen_expression_from_name_sym(const char *name, struct symbol 
 struct expression *gen_expression_from_key(struct expression *arg, const char *key)
 {
 	struct expression *ret;
-	struct token *token, *prev, *end;
+	struct token *token, *end;
 	const char *p = key;
 	char buf[4095];
 	char *alloc;
+	int cnt = 0;
 	size_t len;
+	bool star;
 
 	if (strcmp(key, "*$") == 0 &&
 	    arg->type == EXPR_PREOP &&
@@ -375,14 +377,23 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	ret = arg;
 	while (token_type(token) == TOKEN_SPECIAL &&
 	       (token->special == SPECIAL_DEREFERENCE || token->special == '.')) {
-		prev = token;
+		if (token->special == SPECIAL_DEREFERENCE)
+			star = true;
+		else
+			star = false;
+
+		if (cnt++ == 0 && ret->type == EXPR_PREOP && ret->op == '&') {
+			ret = strip_expr(ret->unop);
+			star = false;
+		}
+
 		token = token->next;
 		if (token_type(token) != TOKEN_IDENT)
 			return NULL;
-		ret = deref_expression(ret);
-		ret = member_expression(ret,
-				        (prev->special == SPECIAL_DEREFERENCE) ? '*' : '.',
-					token->ident);
+
+		if (star)
+			ret = deref_expression(ret);
+		ret = member_expression(ret, star ? '*' : '.', token->ident);
 		token = token->next;
 	}
 
