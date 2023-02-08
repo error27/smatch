@@ -1020,6 +1020,9 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 	struct range_list *rl;
 	char buf[64];
 
+	if (is_ignored_kernel_data(printed_name))
+		return;
+
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
 			return;
@@ -1061,6 +1064,9 @@ static void caller_info_callback_host(struct expression *call, int param, char *
 	 */
 	type = get_arg_type(call->fn, param);
 	if (strcmp(printed_name, "$") != 0 && type && type_bits(type) < type_bits(&ptr_ctype))
+		return;
+
+	if (is_ignored_kernel_data(printed_name))
 		return;
 
 	if (strcmp(sm->state->name, "") == 0)
