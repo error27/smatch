@@ -1113,7 +1113,7 @@ static void do_array_assign(struct expression *left, int op, struct expression *
 	set_extra_array_mod(left, alloc_estate_rl(rl));
 }
 
-static void match_vanilla_assign(struct expression *left, struct expression *right)
+static void match_vanilla_assign(struct expression *left, struct expression *right, struct expression *mod_expr)
 {
 	struct range_list *orig_rl = NULL;
 	struct range_list *rl = NULL;
@@ -1207,7 +1207,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	}
 
 done:
-	set_extra_mod(name, sym, left, state);
+	set_extra_mod(name, sym, mod_expr, state);
 free:
 	free_string(right_name);
 }
@@ -1236,7 +1236,7 @@ static void match_assign(struct expression *expr)
 	    !is_fake_call(right))
 		return; /* handled in smatch_function_hooks.c */
 	if (expr->op == '=') {
-		match_vanilla_assign(left, right);
+		match_vanilla_assign(left, right, expr);
 		return;
 	}
 
