@@ -1032,7 +1032,7 @@ char *get_member_name(struct expression *expr)
 		 *
 		 */
 
-		deref = expr->deref;
+		deref = strip_parens(expr->deref);
 		if (deref->type != EXPR_DEREF || !deref->member)
 			return NULL;
 		sym = get_type(deref->deref);
