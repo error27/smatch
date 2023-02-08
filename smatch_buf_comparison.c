@@ -213,6 +213,96 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	add_link(size, pointer, mod_expr);
 }
 
+static struct expression *get_struct_size_count(struct expression *expr)
+{
+	/*
+	 * There are three ways that struct_size() can be implemented but
+	 * we can ignore build time constants so really there are two ways we
+	 * care about:
+	 * 1) Using __ab_c_size()
+	 * 2) Using size_add(struct_size, size_mul(elem_count, elem_size))
+	 *
+	 */
+
+	if (expr->type != EXPR_CALL)
+		return NULL;
+
+	if (sym_name_is("__ab_c_size", expr->fn))
+		return get_argument_from_call_expr(expr->args, 0);
+
+	if (!sym_name_is("size_add", expr->fn))
+		return NULL;
+	expr = get_argument_from_call_expr(expr->args, 1);
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_CALL ||
+	    !sym_name_is("size_mul", expr->fn))
+		return NULL;
+
+	return get_argument_from_call_expr(expr->args, 0);
+}
+
+static struct expression *get_variable_struct_member(struct expression *expr)
+{
+	struct symbol *type, *last_member;
+	sval_t sval;
+
+	/*
+	 * This is a hack.  It should look at how the size is calculated instead
+	 * of just assuming that it's the last element.  However, ugly hacks are
+	 * easier to write.
+	 */
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return NULL;
+	last_member = last_ptr_list((struct ptr_list *)type->symbol_list);
+	if (!last_member || !last_member->ident)
+		return NULL;
+	type = get_real_base_type(last_member);
+	if (!type || type->type != SYM_ARRAY)
+		return NULL;
+	/* Is non-zero array size */
+	if (type->array_size) {
+		if (!get_implied_value(type->array_size, &sval) ||
+		    sval.value != 0)
+			return NULL;
+	}
+
+	return member_expression(expr, '*', last_member->ident);
+}
+
+static void match_struct_size_helper(struct expression *pointer, struct expression *size, struct expression *mod_expr)
+{
+	struct expression *tmp, *count, *member;
+	struct smatch_state *state;
+	struct sm_state *sm;
+
+	if (option_project != PROJ_KERNEL)
+		return;
+
+	pointer = strip_expr(pointer);
+	tmp = get_assigned_expr_recurse(size);
+	if (tmp)
+		size = tmp;
+	size = strip_expr(size);
+	if (!size || !pointer)
+		return;
+	count = get_struct_size_count(size);
+	if (!count)
+		return;
+	member = get_variable_struct_member(pointer);
+
+	db_save_type_links(member, ELEM_COUNT, count);
+	state = alloc_compare_size(ELEM_COUNT, count);
+	sm = set_state_expr(size_id, member, state);
+	if (!sm)
+		return;
+	add_link(count, member, mod_expr);
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
@@ -222,6 +312,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	call = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(call->args, size_arg);
 	match_alloc_helper(pointer, arg, expr);
+	match_struct_size_helper(pointer, arg, expr);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
