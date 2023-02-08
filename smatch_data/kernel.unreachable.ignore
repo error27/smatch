@@ -49,3 +49,4 @@ outw
 outl
 __put_user
 put_user
+damon_for_each_target
