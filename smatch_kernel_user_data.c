@@ -1164,6 +1164,8 @@ static void return_info_callback(int return_id, char *return_ranges,
 
 	if (is_socket_stuff(sm->sym))
 		return;
+	if (is_ignored_kernel_data(printed_name))
+		return;
 
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
@@ -1213,6 +1215,8 @@ static void caller_info_callback(struct expression *call, int param, char *print
 		return;
 
 	if (is_socket_stuff(sm->sym))
+		return;
+	if (is_ignored_kernel_data(printed_name))
 		return;
 
 	/*
