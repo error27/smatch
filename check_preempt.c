@@ -186,6 +186,29 @@ static void match_preempt_count_non_zero(const char *fn, struct expression *call
 	set_state(my_id, "preempt", NULL, alloc_state_num(1));
 }
 
+static int set_sleeps(void *_sleeps, int argc, char **argv, char **azColName)
+{
+	int *fn_sleeps = _sleeps;
+
+	*fn_sleeps = 1;
+	return 0;
+}
+
+static void silence_duplicates(struct symbol *sym)
+{
+	int fn_sleeps = 0;
+
+	if (!sym || !sym->ident)
+		return;
+
+	run_sql(set_sleeps, &fn_sleeps,
+		"select * from return_implies where %s and type = %d;",
+		get_static_filter(sym), SLEEP);
+
+	if (fn_sleeps)
+		set_state(my_id, "preempt", NULL, alloc_state_num(0));
+}
+
 void check_preempt(int id)
 {
 	my_id = id;
@@ -201,6 +224,7 @@ void check_preempt(int id)
 	return_implies_exact("preempt_count", int_one, int_max, &match_preempt_count_non_zero, NULL);
 
 	select_caller_info_hook(&select_call_info, PREEMPT_ADD);
+	add_hook(&silence_duplicates, AFTER_DEF_HOOK);
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 }
 
