@@ -79,14 +79,12 @@ static bool is_printk_stmt(struct statement *stmt)
 	if (strcmp(str, "dev_err") == 0 ||
 	    strcmp(str, "dev_info") == 0 ||
 	    strcmp(str, "dev_warn") == 0 ||
-	    strcmp(str, "dev_warn") == 0 ||
 	    strcmp(str, "dev_notice") == 0 ||
 	    strcmp(str, "dev_dbg") == 0)
 		return true;
 
 	if (strcmp(str, "pr_err") == 0 ||
 	    strcmp(str, "pr_info") == 0 ||
-	    strcmp(str, "pr_warn") == 0 ||
 	    strcmp(str, "pr_warn") == 0 ||
 	    strcmp(str, "pr_notice") == 0 ||
 	    strcmp(str, "pr_debug") == 0)
