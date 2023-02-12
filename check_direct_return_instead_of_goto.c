@@ -90,6 +90,11 @@ static bool is_printk_stmt(struct statement *stmt)
 	    strcmp(str, "pr_debug") == 0)
 		return true;
 
+	if (strstr(str, "_dev_err") ||
+	    strstr(str, "_dev_warn") ||
+	    strstr(str, "_dev_dbg"))
+		return true;
+
 	return false;
 }
 
