@@ -363,10 +363,12 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	size_t len;
 	bool star;
 
-	if (strcmp(key, "*$") == 0 &&
-	    arg->type == EXPR_PREOP &&
-	    arg->op == '&')
-		return strip_expr(arg->unop);
+	if (strcmp(key, "*$") == 0) {
+		if (arg->type == EXPR_PREOP &&
+		    arg->op == '&')
+			return strip_expr(arg->unop);
+		return deref_expression(arg);
+	}
 
 	/* The idea is that we can parse either $0->foo or $->foo */
 	if (key[0] != '$')
