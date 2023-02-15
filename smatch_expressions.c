@@ -415,18 +415,28 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 
 struct expression *gen_expr_from_param_key(struct expression *expr, int param, const char *key)
 {
-	struct expression *ret = NULL;
-	struct symbol *sym;
-	char *name;
+	struct expression *call, *arg;
 
-	name = get_name_sym_from_param_key(expr, param, key, &sym);
-	if (!name || !sym)
-		goto free;
+	if (!expr)
+		return NULL;
 
-	ret = gen_expression_from_name_sym(name, sym);
-free:
-	free_string(name);
-	return ret;
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return NULL;
+
+	if (param == -1) {
+		if (expr->type != EXPR_ASSIGNMENT)
+			return NULL;
+		arg = expr->left;
+	} else {
+		arg = get_argument_from_call_expr(call->args, param);
+		if (!arg)
+			return NULL;
+	}
+
+	return gen_expression_from_key(arg, key);
 }
 
 bool is_fake_var(struct expression *expr)
