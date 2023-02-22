@@ -201,7 +201,7 @@ static void turn_off_unreachable(struct statement *stmt)
 	}
 
 	if (stmt->type == STMT_IF &&
-	    known_condition_true(stmt->if_conditional) &&  __path_is_null()) {
+	    known_condition_true(stmt->if_conditional) && __path_is_null()) {
 		print_unreached = 0;
 		return;
 	}
