@@ -52,6 +52,9 @@ static int is_ignored_macro(struct statement *stmt)
 	if (!name)
 		return 0;
 
+	if (strncmp(name, "for_", 4) == 0)
+		return 1;
+
 	FOR_EACH_PTR(ignore_names, tmp) {
 		if (strcmp(tmp, name) == 0)
 			return 1;
