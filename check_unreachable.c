@@ -23,13 +23,13 @@ static int print_unreached = 1;
 static struct string_list *turn_off_names;
 static struct string_list *ignore_names;
 
-static int empty_statement(struct statement *stmt)
+static bool empty_statement(struct statement *stmt)
 {
 	if (!stmt)
-		return 0;
+		return false;
 	if (stmt->type == STMT_EXPRESSION && !stmt->expression)
-		return 1;
-	return 0;
+		return true;
+	return false;
 }
 
 static void print_unreached_initializers(struct symbol_list *sym_list)
@@ -43,27 +43,27 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 	} END_FOR_EACH_PTR(sym);
 }
 
-static int is_ignored_macro(struct statement *stmt)
+static bool is_ignored_macro(struct statement *stmt)
 {
 	char *name;
 	char *tmp;
 
 	name = get_macro_name(stmt->pos);
 	if (!name)
-		return 0;
+		return false;
 
 	if (strncmp(name, "for_", 4) == 0)
-		return 1;
+		return true;
 
 	FOR_EACH_PTR(ignore_names, tmp) {
 		if (strcmp(tmp, name) == 0)
-			return 1;
+			return true;
 	} END_FOR_EACH_PTR(tmp);
 
-	return 0;
+	return false;
 }
 
-static int prev_line_was_endif(struct statement *stmt)
+static bool prev_line_was_endif(struct statement *stmt)
 {
 	struct token *token;
 	struct position pos = stmt->pos;
@@ -74,18 +74,18 @@ static int prev_line_was_endif(struct statement *stmt)
 	token = pos_get_token(pos);
 	if (token && token_type(token) == TOKEN_IDENT &&
 	    strcmp(show_ident(token->ident), "endif") == 0)
-		return 1;
+		return true;
 
 	pos.line--;
 	token = pos_get_token(pos);
 	if (token && token_type(token) == TOKEN_IDENT &&
 	    strcmp(show_ident(token->ident), "endif") == 0)
-		return 1;
+		return true;
 
-	return 0;
+	return false;
 }
 
-static int we_jumped_into_the_middle_of_a_loop(struct statement *stmt)
+static bool we_jumped_into_the_middle_of_a_loop(struct statement *stmt)
 {
 	struct statement *prev;
 
@@ -103,11 +103,11 @@ static int we_jumped_into_the_middle_of_a_loop(struct statement *stmt)
 	 */
 
 	if (stmt->type != STMT_ITERATOR)
-		return 0;
+		return false;
 	prev = get_prev_statement();
 	if (prev && prev->type == STMT_GOTO)
-		return 1;
-	return 0;
+		return true;
+	return false;
 }
 
 static void unreachable_stmt(struct statement *stmt)
@@ -161,19 +161,19 @@ static void unreachable_stmt(struct statement *stmt)
 	print_unreached = 0;
 }
 
-static int is_turn_off(char *name)
+static bool is_turn_off(char *name)
 {
 	char *tmp;
 
 	if (!name)
-		return 0;
+		return false;
 
 	FOR_EACH_PTR(turn_off_names, tmp) {
 		if (strcmp(tmp, name) == 0)
-			return 1;
+			return true;
 	} END_FOR_EACH_PTR(tmp);
 
-	return 0;
+	return false;
 }
 
 static char *get_function_name(struct statement *stmt)
