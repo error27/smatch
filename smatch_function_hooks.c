@@ -1661,7 +1661,6 @@ static void db_return_states_call(struct expression *expr)
 static void match_function_call_early(struct expression *expr)
 {
 	call_function_hooks(expr, REGULAR_CALL_EARLY);
-	db_return_states_call(expr);
 }
 
 static void match_function_call(struct expression *expr)
