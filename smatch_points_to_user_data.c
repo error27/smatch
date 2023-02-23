@@ -46,6 +46,21 @@ static int my_id;
 STATE(user_data);
 STATE(user_data_set);
 
+struct user_fn_info {
+	const char *name;
+	int type;
+	int param;
+	const char *key;
+};
+
+static struct user_fn_info func_table[] = {
+	{ "(struct ksmbd_transport_ops)->read", USER_DATA, 1, "$" },
+};
+
+static struct user_fn_info call_table[] = {
+	{ "__handle_ksmbd_work", USER_DATA, 0, "$->request_buf" },
+};
+
 static const char *returns_pointer_to_user_data[] = {
 	"nlmsg_data", "nla_data", "memdup_user", "kmap_atomic", "skb_network_header",
 	"cfg80211_find_elem_match", "ieee80211_bss_get_elem", "cfg80211_find_elem",
@@ -334,6 +349,18 @@ static void set_param_user_ptr(const char *name, struct symbol *sym, char *key, 
 	set_state(my_id, fullname, sym, &user_data);
 }
 
+static void set_param_key_user_ptr_set(struct expression *expr, const char *name,
+				    struct symbol *sym, void *data)
+{
+	set_state(my_id, name, sym, &user_data_set);
+}
+
+static void set_param_key_user_ptr(struct expression *expr, const char *name,
+				    struct symbol *sym, void *data)
+{
+	set_state(my_id, name, sym, &user_data);
+}
+
 static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	if (is_socket_stuff(sm->sym))
@@ -342,11 +369,15 @@ static void caller_info_callback(struct expression *call, int param, char *print
 	if (!slist_has_state(sm->possible, &user_data) &&
 	    !slist_has_state(sm->possible, &user_data_set))
 		return;
+
 	sql_insert_caller_info(call, USER_PTR, param, printed_name, "");
 }
 
 void register_points_to_user_data(int id)
 {
+	struct user_fn_info *info;
+	int i;
+
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
@@ -367,4 +398,16 @@ void register_points_to_user_data(int id)
 	select_caller_info_hook(set_param_user_ptr, USER_PTR);
 	select_return_states_hook(USER_PTR, &returns_user_ptr);
 	select_return_states_hook(USER_PTR_SET, &returns_user_ptr_set);
+
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
+		add_function_param_key_hook_late(info->name, &set_param_key_user_ptr_set,
+						 info->param, info->key, info);
+	}
+
+	for (i = 0; i < ARRAY_SIZE(call_table); i++) {
+		info = &call_table[i];
+		add_function_param_key_hook_early(info->name, &set_param_key_user_ptr,
+						 info->param, info->key, info);
+	}
 }
