@@ -32,8 +32,10 @@
  * add_implied_return_hook() let's you manually adjust the return range.
  *
  * Every call:
+ *     add_function_param_key_hook_early()
  *     add_function_param_key_hook()
  *     add_function_param_key_hook_late()
+ *     add_function_hook_early()
  *     add_function_hook()
  *
  * Just for some return ranges:
@@ -81,6 +83,7 @@ static struct hashtable *func_hash;
 int __in_fake_parameter_assign;
 
 enum fn_hook_type {
+	REGULAR_CALL_EARLY,
 	REGULAR_CALL,
 	REGULAR_CALL_LATE,
 	RANGED_CALL,
@@ -190,6 +193,14 @@ void add_function_hook(const char *look_for, func_hook *call_back, void *info)
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(REGULAR_CALL, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
+void add_function_hook_early(const char *look_for, func_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(REGULAR_CALL_EARLY, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -339,6 +350,20 @@ static struct param_key_data *alloc_pkd(param_key_hook *call_back, int param, co
 	pkd->info = info;
 
 	return pkd;
+}
+
+void add_function_param_key_hook_early(const char *look_for, param_key_hook *call_back,
+				       int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	if (param == -1) {
+		printf("pointless early hook for '%s'", look_for);
+		return;
+	}
+
+	pkd = alloc_pkd(call_back, param, key, info);
+	add_function_hook_early(look_for, &param_key_function, pkd);
 }
 
 void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
@@ -1633,6 +1658,12 @@ static void db_return_states_call(struct expression *expr)
 	db_return_states(expr);
 }
 
+static void match_function_call_early(struct expression *expr)
+{
+	call_function_hooks(expr, REGULAR_CALL_EARLY);
+	db_return_states_call(expr);
+}
+
 static void match_function_call(struct expression *expr)
 {
 	call_function_hooks(expr, REGULAR_CALL);
@@ -1705,6 +1736,7 @@ void create_function_hook_hash(void)
 
 void register_function_hooks(int id)
 {
+	add_hook(&match_function_call_early, FUNCTION_CALL_HOOK_BEFORE);
 	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
