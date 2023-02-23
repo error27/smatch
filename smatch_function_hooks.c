@@ -1733,9 +1733,13 @@ void create_function_hook_hash(void)
 	func_hash = create_function_hashtable(5000);
 }
 
-void register_function_hooks(int id)
+void register_function_hooks_early(int id)
 {
 	add_hook(&match_function_call_early, FUNCTION_CALL_HOOK_BEFORE);
+}
+
+void register_function_hooks(int id)
+{
 	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
