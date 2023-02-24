@@ -642,12 +642,12 @@ void __split_expr(struct expression *expr)
 		else
 			__pass_to_client(expr, ASSIGNMENT_HOOK);
 
-		__fake_struct_member_assignments(expr);
-
 		/* Re-examine ->right for inlines.  See the commit message */
 		right = strip_expr(expr->right);
 		if (expr->op == '=' && right->type == EXPR_CALL)
 			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
+
+		__fake_struct_member_assignments(expr);
 
 after_assign:
 		if (get_macro_name(right->pos) &&
