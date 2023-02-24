@@ -156,6 +156,45 @@ static bool is_array_of_user_data(struct expression *expr)
 	return points_to_user_data(deref);
 }
 
+static struct expression *remove_addr_stuff(struct expression *expr)
+{
+	/* take "&foo->bar" and return "foo" */
+	expr = strip_expr(expr);
+	if (expr->type != EXPR_PREOP || expr->op != '&')
+		return expr;
+	expr = strip_expr(expr->unop);
+	while (expr && expr->type == EXPR_DEREF) {
+		expr = strip_expr(expr->deref);
+		if (expr->op == '.')
+			continue;
+		else
+			break;
+	}
+	if (expr->type == EXPR_PREOP && expr->op == '*')
+		expr = strip_expr(expr->unop);
+	return expr;
+}
+
+static bool math_points_to_user_data(struct expression *expr)
+{
+	struct sm_state *sm;
+
+	// TODO: is_array_of_user_data() should probably be handled here
+
+	if (expr->type == EXPR_BINOP && expr->op == '+')
+		return math_points_to_user_data(expr->left);
+
+	expr = remove_addr_stuff(expr);
+
+	sm = get_sm_state_expr(my_id, expr);
+	if (!sm)
+		return false;
+	if (slist_has_state(sm->possible, &user_data) ||
+	    slist_has_state(sm->possible, &user_data_set))
+		return true;
+	return false;
+}
+
 bool points_to_user_data(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -177,7 +216,7 @@ bool points_to_user_data(struct expression *expr)
 		return true;
 
 	if (expr->type == EXPR_BINOP && expr->op == '+')
-		expr = strip_expr(expr->left);
+		return math_points_to_user_data(expr);
 
 	if (is_skb_data(expr))
 		return true;
