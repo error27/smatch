@@ -111,9 +111,12 @@ bool is_user_data_fn(struct symbol *fn)
 	return false;
 }
 
+static struct expression *returns_user_data_fn;
 static bool is_points_to_user_data_fn(struct expression *expr)
 {
 	expr = strip_expr(expr);
+	if (returns_user_data_fn && expr == returns_user_data_fn)
+		return true;
 	if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
 	    !expr->fn->symbol)
 		return false;
@@ -319,6 +322,8 @@ set_user:
 	name = get_variable_from_key(arg, key, &sym);
 	if (!name || !sym)
 		goto free;
+	if (param == -1 && strcmp(key, "$") == 0)
+		returns_user_data_fn = call;
 	if (set)
 		set_state(my_id, name, sym, &user_data_set);
 	else
@@ -383,6 +388,7 @@ void register_points_to_user_data(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	add_function_data((unsigned long *)&returns_user_data_fn);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	add_function_hook("copy_from_user", &match_user_copy, NULL);
