@@ -15,7 +15,6 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
-#include "scope.h"
 #include "smatch.h"
 #include "smatch_slist.h"
 #include "smatch_extra.h"
