@@ -91,7 +91,7 @@ const char *show_label(struct basic_block *bb)
 
 	if (!bb)
 		return ".L???";
-	snprintf(buf, 64, ".L%u", bb->nr);
+	snprintf(buf, 16, ".L%u", bb->nr);
 	return buf;
 }
 
