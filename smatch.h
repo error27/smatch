@@ -1446,6 +1446,7 @@ int get_offset_from_container_of(struct expression *expr);
 char *get_container_name(struct expression *container, struct expression *expr);
 
 /* smatch_mtag.c */
+unsigned long long str_to_llu_hash_helper(const char *str);
 unsigned long long str_to_llu_hash(const char *str);
 mtag_t str_to_mtag(const char *str);
 int get_string_mtag(struct expression *expr, mtag_t *tag);
