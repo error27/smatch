@@ -541,6 +541,60 @@ static void split_call(struct expression *expr)
 	handle_builtin_overflow_func(expr);
 }
 
+void parse_assignment(struct expression *expr)
+{
+	struct expression *right;
+
+	expr_set_parent_expr(expr->left, expr);
+	expr_set_parent_expr(expr->right, expr);
+
+	right = strip_expr(expr->right);
+	if (!right)
+		return;
+
+	__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
+
+	/* foo = !bar() */
+	if (__handle_condition_assigns(expr))
+		goto after_assign;
+	/* foo = (x < 5 ? foo : 5); */
+	if (__handle_select_assigns(expr))
+		goto after_assign;
+	/* foo = ({frob(); frob(); frob(); 1;}) */
+	if (__handle_expr_statement_assigns(expr))
+		return;  // FIXME: got after
+	/* foo = (3, 4); */
+	if (handle_comma_assigns(expr))
+		goto after_assign;
+	if (handle__builtin_choose_expr_assigns(expr))
+		goto after_assign;
+	if (handle_postop_assigns(expr))
+		return;  /* no need to goto after_assign */
+
+	__split_expr(expr->right);
+	if (outside_of_function())
+		__pass_to_client(expr, GLOBAL_ASSIGNMENT_HOOK);
+	else
+		__pass_to_client(expr, ASSIGNMENT_HOOK);
+
+
+	// FIXME: the ordering of this is tricky
+	__fake_struct_member_assignments(expr);
+
+	/* Re-examine ->right for inlines.  See the commit message */
+	right = strip_expr(expr->right);
+	if (expr->op == '=' && right->type == EXPR_CALL)
+		__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
+
+after_assign:
+	if (get_macro_name(right->pos) &&
+	    get_macro_name(expr->pos) != get_macro_name(right->pos))
+		__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
+
+	__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
+	__split_expr(expr->left);
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -607,59 +661,9 @@ void __split_expr(struct expression *expr)
 		__process_post_op_stack();
 		__split_expr(expr->right);
 		break;
-	case EXPR_ASSIGNMENT: {
-		struct expression *right;
-
-		expr_set_parent_expr(expr->left, expr);
-		expr_set_parent_expr(expr->right, expr);
-
-		right = strip_expr(expr->right);
-		if (!right)
-			break;
-
-		__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
-
-		/* foo = !bar() */
-		if (__handle_condition_assigns(expr))
-			goto after_assign;
-		/* foo = (x < 5 ? foo : 5); */
-		if (__handle_select_assigns(expr))
-			goto after_assign;
-		/* foo = ({frob(); frob(); frob(); 1;}) */
-		if (__handle_expr_statement_assigns(expr))
-			break;  // FIXME: got after
-		/* foo = (3, 4); */
-		if (handle_comma_assigns(expr))
-			goto after_assign;
-		if (handle__builtin_choose_expr_assigns(expr))
-			goto after_assign;
-		if (handle_postop_assigns(expr))
-			break;  /* no need to goto after_assign */
-
-		__split_expr(expr->right);
-		if (outside_of_function())
-			__pass_to_client(expr, GLOBAL_ASSIGNMENT_HOOK);
-		else
-			__pass_to_client(expr, ASSIGNMENT_HOOK);
-
-		// FIXME: the ordering of this is tricky
-		__fake_struct_member_assignments(expr);
-
-		/* Re-examine ->right for inlines.  See the commit message */
-		right = strip_expr(expr->right);
-		if (expr->op == '=' && right->type == EXPR_CALL)
-			__pass_to_client(expr, CALL_ASSIGNMENT_HOOK);
-
-
-after_assign:
-		if (get_macro_name(right->pos) &&
-		    get_macro_name(expr->pos) != get_macro_name(right->pos))
-			__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
-
-		__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
-		__split_expr(expr->left);
+	case EXPR_ASSIGNMENT:
+		parse_assignment(expr);
 		break;
-	}
 	case EXPR_DEREF:
 		expr_set_parent_expr(expr->deref, expr);
 
