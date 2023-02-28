@@ -62,6 +62,18 @@ static void match_assign(struct expression *expr)
 	set_state_expr(my_id, expr->left, &error_code);
 }
 
+static bool is_empty_state(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_extra_state(expr);
+	if (!state)
+		return false;
+	if (estate_rl(state))
+		return false;
+	return true;
+}
+
 bool holds_kernel_error_codes(struct expression *expr)
 {
 	if (!expr)
@@ -69,6 +81,9 @@ bool holds_kernel_error_codes(struct expression *expr)
 
 	if (is_error_macro(expr))
 		return true;
+
+	if (is_empty_state(expr))
+		return false;
 
 	return expr_has_possible_state(my_id, expr, &error_code);
 }
