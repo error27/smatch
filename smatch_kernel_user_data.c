@@ -375,7 +375,7 @@ static void tag_struct_members(struct symbol *type, struct expression *expr)
 
 		member = member_expression(expr, op, tmp->ident);
 		if (member_type->type == SYM_ARRAY) {
-			set_points_to_user_data(member, true);
+			set_array_user_ptr(member, true);
 		} else {
 			set_user_data(member, new_state(get_type(member)));
 		}
@@ -409,7 +409,7 @@ static void tag_as_user_data(struct expression *expr)
 	}
 	if (type->type == SYM_BASETYPE) {
 		if (expr->type != EXPR_PREOP && expr->op != '&')
-			set_points_to_user_data(expr, true);
+			set_array_user_ptr(expr, true);
 		tag_base_type(expr);
 		return;
 	}
@@ -638,7 +638,7 @@ static void handle_derefed_pointers(struct expression *expr, bool is_new)
 	    expr->op != '*')
 		return;
 	expr = strip_expr(expr->unop);
-	set_points_to_user_data(expr, is_new);
+	set_array_user_ptr(expr, is_new);
 }
 
 static void match_assign(struct expression *expr)
@@ -681,7 +681,7 @@ static void match_assign(struct expression *expr)
 	    is_struct_ptr(get_type(expr->left))) {
 		handled = expr;
 		// This should be handled by smatch_points_to_user_data.c
-		// set_points_to_user_data(expr->left);
+		// set_array_user_ptr(expr->left);
 	}
 
 	if (handle_op_assign(expr))
@@ -708,7 +708,7 @@ set:
 	right_type = get_type(expr->right);
 	if (type_is_ptr(left_type)) {
 		if (right_type && right_type->type == SYM_ARRAY)
-			set_points_to_user_data(expr->left, is_new);
+			set_array_user_ptr(expr->left, is_new);
 		return;
 	}
 

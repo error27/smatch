@@ -1194,7 +1194,7 @@ bool is_user_data_fn(struct symbol *fn);
 bool is_skb_data(struct expression *expr);
 bool is_socket_stuff(struct symbol *sym);
 bool points_to_user_data(struct expression *expr);
-void set_points_to_user_data(struct expression *expr, bool is_new);
+void set_array_user_ptr(struct expression *expr, bool is_new);
 
 /* smatch_kernel_host_data.c */
 int is_host_macro(struct expression *expr);

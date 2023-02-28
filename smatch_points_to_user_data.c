@@ -236,7 +236,7 @@ bool points_to_user_data(struct expression *expr)
 	return false;
 }
 
-void set_points_to_user_data(struct expression *expr, bool is_new)
+void set_array_user_ptr(struct expression *expr, bool is_new)
 {
 	struct expression *tmp;
 
