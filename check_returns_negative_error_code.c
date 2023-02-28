@@ -76,6 +76,8 @@ static bool is_empty_state(struct expression *expr)
 
 bool holds_kernel_error_codes(struct expression *expr)
 {
+	struct range_list *rl;
+
 	if (!expr)
 		return false;
 
@@ -85,17 +87,23 @@ bool holds_kernel_error_codes(struct expression *expr)
 	if (is_empty_state(expr))
 		return false;
 
+	if (get_implied_rl(expr, &rl)) {
+		if (rl_min(rl).value >= 0 &&
+		    rl_max(rl).uvalue <= INT_MAX)
+			return false;
+
+		if (type_positive_bits(rl_type(rl)) >= 63 &&
+		    !sval_is_negative(rl_min(rl)) &&
+		    rl_max(rl).uvalue <= UINT_MAX)
+			return false;
+	}
+
 	return expr_has_possible_state(my_id, expr, &error_code);
 }
 
 static void match_return(int return_id, char *return_ranges, struct expression *expr)
 {
-	struct range_list *rl;
-
 	if (!expr)
-		return;
-
-	if (!get_implied_rl(expr, &rl) || !sval_is_negative(rl_min(rl)))
 		return;
 
 	if (!holds_kernel_error_codes(expr))
