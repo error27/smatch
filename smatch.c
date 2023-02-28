@@ -54,6 +54,7 @@ FILE *caller_info_fd;
 
 int sm_nr_errors;
 int sm_nr_checks;
+int __cur_check_id;
 
 bool __silence_warnings_for_stmt;
 
@@ -365,6 +366,7 @@ int main(int argc, char **argv)
 	allocate_modification_hooks();
 
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
+		__cur_check_id = i;
 		func = reg_funcs[i].func;
 		/* The script IDs start at 1.
 		   0 is used for internal stuff. */
@@ -373,6 +375,7 @@ int main(int argc, char **argv)
 		    strncmp(reg_funcs[i].name, "register_", 9) == 0)
 			func(i);
 	}
+	__cur_check_id = 0;
 
 	smatch(filelist);
 	free_string(data_dir);

@@ -95,10 +95,12 @@ DECLARE_PTR_LIST(scope_hook_list, struct scope_container);
 DECLARE_PTR_LIST(scope_hook_stack, struct scope_hook_list);
 static struct scope_hook_stack *scope_hooks;
 
+extern int __cur_check_id;
 void add_hook(void *func, enum hook_type type)
 {
 	struct hook_container *container = __alloc_hook_container(0);
 
+	container->owner = __cur_check_id;
 	container->hook_type = type;
 	container->fn = func;
 
