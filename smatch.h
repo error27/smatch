@@ -702,6 +702,9 @@ int is_last_stmt(struct statement *cur_stmt);
 /* smatch_struct_assignment.c */
 struct expression *get_faked_expression(void);
 void __fake_struct_member_assignments(struct expression *expr);
+void create_recursive_fake_assignments(struct expression *expr,
+		void (*assign_handler)(struct expression *expr, void *data),
+		void *data);
 
 /* smatch_project.c */
 int is_no_inline_function(const char *function);
