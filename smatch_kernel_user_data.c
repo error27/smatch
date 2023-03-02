@@ -401,12 +401,8 @@ static void tag_as_user_data(struct expression *expr)
 	if (!type || type->type != SYM_PTR)
 		return;
 	type = get_real_base_type(type);
-	if (!type)
+	if (!type || type == &void_ctype)
 		return;
-	if (type == &void_ctype) {
-		set_user_data(deref_expression(expr), new_state(&ulong_ctype));
-		return;
-	}
 	if (type->type == SYM_BASETYPE) {
 		if (expr->type != EXPR_PREOP && expr->op != '&')
 			set_array_user_ptr(expr, true);
