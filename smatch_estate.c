@@ -113,6 +113,8 @@ int estate_has_fuzzy_max(struct smatch_state *state)
 
 void estate_set_fuzzy_max(struct smatch_state *state, sval_t fuzzy_max)
 {
+	if (is_ptr_type(estate_type(state)))
+		return;
 	if (!rl_has_sval(estate_rl(state), fuzzy_max))
 		return;
 	get_dinfo(state)->fuzzy_max = fuzzy_max;
@@ -120,6 +122,8 @@ void estate_set_fuzzy_max(struct smatch_state *state, sval_t fuzzy_max)
 
 void estate_copy_fuzzy_max(struct smatch_state *new, struct smatch_state *old)
 {
+	if (is_ptr_type(estate_type(new)))
+		return;
 	if (!estate_has_fuzzy_max(old))
 		return;
 	estate_set_fuzzy_max(new, estate_get_fuzzy_max(old));
