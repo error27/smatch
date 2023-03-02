@@ -220,6 +220,10 @@ delete from return_states where function = 'bus_for_each_dev' and return = '1';
 /* Delete it until it can be handled correctly. */
 delete from caller_info where function = 'device_for_each_child' and type != 0;
 
+/* The only work queue we care about is process_one_work() */
+delete from caller_info where caller = 'cache_set_flush' and function = '(struct work_struct)->func';
+delete from caller_info where caller = 'sctp_inq_push' and function = '(struct work_struct)->func';
+
 EOF
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
