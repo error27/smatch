@@ -409,13 +409,8 @@ static void tag_as_user_data(struct expression *expr)
 		tag_base_type(expr);
 		return;
 	}
-	if (type->type == SYM_STRUCT || type->type == SYM_UNION) {
-		if (expr->type != EXPR_PREOP || expr->op != '&')
-			expr = deref_expression(expr);
-		else
-			set_user_data(deref_expression(expr), new_state(&ulong_ctype));
-		tag_struct_members(type, expr);
-	}
+	if (type->type == SYM_STRUCT || type->type == SYM_UNION)
+		tag_struct_members(type, deref_expression(expr));
 }
 
 static void match_user_copy(const char *fn, struct expression *expr, void *_param)
