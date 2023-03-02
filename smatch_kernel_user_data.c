@@ -655,10 +655,11 @@ static void match_assign(struct expression *expr)
 	if (faked &&
 	    faked->type == EXPR_ASSIGNMENT &&
 	    points_to_user_data(faked->right)) {
-		if (is_skb_data(faked->right))
+		if (is_skb_data(faked->right)) {
 			func_gets_user_data = true;
-		rl = alloc_whole_rl(get_type(expr->left));
-		is_new = true;
+			is_new = true;
+		}
+		rl = alloc_whole_rl(left_type);
 		goto set;
 	}
 
