@@ -281,16 +281,11 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_unused)
 
 static void match_user_copy(const char *fn, struct expression *expr, void *_unused)
 {
-	struct expression *dest, *size;
-	sval_t sval;
+	struct expression *dest;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
 	dest = strip_expr(dest);
 	if (!dest)
-		return;
-
-	size = get_argument_from_call_expr(expr->args, 2);
-	if (get_implied_value(size, &sval))
 		return;
 
 	set_state_expr(my_id, dest, &user_data_set);
