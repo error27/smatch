@@ -1219,7 +1219,7 @@ bool we_pass_host_data(struct expression *call);
 bool is_host_data_fn(struct symbol *fn);
 bool points_to_host_data(struct expression *expr);
 void set_points_to_host_data(struct expression *expr, bool is_new);
-bool is_fn_points_to_host_data(char* fn);
+bool is_fn_points_to_host_data(const char *fn);
 /* check_locking.c */
 void print_held_locks();
 /* preempt */

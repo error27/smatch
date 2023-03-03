@@ -101,7 +101,7 @@ bool is_host_data_fn(struct symbol *fn)
 	return false;
 }
 
-bool is_fn_points_to_host_data(char* fn)
+bool is_fn_points_to_host_data(const char *fn)
 {
 	int i;
 
