@@ -1445,15 +1445,10 @@ static void set_param_key_user_data(struct expression *expr, const char *name,
 				    struct symbol *sym, void *data)
 {
 	struct expression *arg;
-	struct symbol *type;
 
 	func_gets_user_data = true;
 	arg = gen_expression_from_name_sym(name, sym);
-	type = get_type(arg);
-	if (type_is_ptr(type))
-		tag_as_user_data(arg);
-	else
-		set_state_expr(my_id, arg, alloc_estate_whole(type));
+	set_state_expr(my_id, arg, new_state(get_type(arg)));
 }
 
 static void match_capped(struct expression *expr, const char *name, struct symbol *sym, void *info)
