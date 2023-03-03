@@ -611,6 +611,8 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 
 void register_struct_assignment(int id)
 {
+	add_function_data((unsigned long *)&faked_expression);
+
 	add_function_hook("memset", &match_memset, NULL);
 	add_function_hook("__memset", &match_memset, NULL);
 	add_function_hook("__builtin_memset", &match_memset, NULL);
