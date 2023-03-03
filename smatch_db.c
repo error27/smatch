@@ -2662,10 +2662,8 @@ static void print_return_struct_info(int return_id, char *return_ranges,
 
 	/* always print returned states after processing param states */
 	FOR_EACH_MY_SM(cb->owner, __get_cur_stree(), sm) {
-		param = get_param_key_from_var_sym(sm->name, sm->sym, expr, &printed_name);
-		if (!printed_name)
-			continue;
-		if (param != -1)
+		param = get_return_param_key_from_var_sym(sm->name, sm->sym, expr, &printed_name);
+		if (param != -1 || !printed_name)
 			continue;
 		cb->callback(return_id, return_ranges, expr, -1, printed_name, sm);
 	} END_FOR_EACH_SM(sm);

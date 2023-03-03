@@ -554,6 +554,32 @@ free:
 	return alloc_string(ret);
 }
 
+int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,
+				      struct expression *ret_expr,
+				      const char **key)
+{
+	const char *param_name;
+	struct symbol *ret_sym;
+	char *ret_str;
+
+	if (!ret_expr)
+		return -2;
+
+	ret_str = expr_to_str_sym(ret_expr, &ret_sym);
+	if (ret_str && ret_sym == sym) {
+		param_name = state_name_to_param_name(name, ret_str);
+		if (param_name) {
+			free_string(ret_str);
+			if (key)
+				*key = param_name;
+			return -1;
+		}
+	}
+	free_string(ret_str);
+
+	return -2;
+}
+
 int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 			       struct expression *ret_expr,
 			       const char **key)
@@ -577,23 +603,9 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 		}
 	}
 
-	/* it's the return value */
-	if (ret_expr) {
-		struct symbol *ret_sym;
-		char *ret_str;
-
-		ret_str = expr_to_str_sym(ret_expr, &ret_sym);
-		if (ret_str && ret_sym == sym) {
-			param_name = state_name_to_param_name(name, ret_str);
-			if (param_name) {
-				free_string(ret_str);
-				if (key)
-					*key = param_name;
-				return -1;
-			}
-		}
-		free_string(ret_str);
-	}
+	param = get_return_param_key_from_var_sym(name, sym, ret_expr, key);
+	if (param == -1)
+		return param;
 
 	other_name = get_param_var_sym_var_sym(name, sym, ret_expr, &other_sym);
 	if (!other_name || !other_sym)
