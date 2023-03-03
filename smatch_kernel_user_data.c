@@ -303,101 +303,6 @@ bool user_rl_treat_untagged(struct expression *expr)
 	return true;  /* not actually user data */
 }
 
-static void tag_inner_struct_members(struct expression *expr, struct symbol *member)
-{
-	struct expression *edge_member;
-	struct symbol *base = get_real_base_type(member);
-	struct symbol *tmp;
-
-	if (member->ident)
-		expr = member_expression(expr, '.', member->ident);
-
-	FOR_EACH_PTR(base->symbol_list, tmp) {
-		struct symbol *type;
-
-		type = get_real_base_type(tmp);
-		if (!type)
-			continue;
-
-		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
-			tag_inner_struct_members(expr, tmp);
-			continue;
-		}
-
-		if (!tmp->ident)
-			continue;
-
-		edge_member = member_expression(expr, '.', tmp->ident);
-		set_user_data(edge_member, new_state(type));
-	} END_FOR_EACH_PTR(tmp);
-}
-
-void __set_user_string(struct expression *expr);
-static void tag_struct_members(struct symbol *type, struct expression *expr)
-{
-	struct symbol *tmp, *member_type;
-	struct expression *member;
-	int op = '*';
-
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		expr = strip_expr(expr->unop);
-		op = '.';
-	}
-
-	FOR_EACH_PTR(type->symbol_list, tmp) {
-		member_type = get_real_base_type(tmp);
-		if (!member_type)
-			continue;
-
-		if (member_type->type == SYM_UNION ||
-		    member_type->type == SYM_STRUCT) {
-			tag_inner_struct_members(expr, tmp);
-			continue;
-		}
-
-		if (!tmp->ident)
-			continue;
-
-		member = member_expression(expr, op, tmp->ident);
-		if (member_type->type == SYM_ARRAY) {
-			set_array_user_ptr(member, true);
-		} else {
-			set_user_data(member, new_state(get_type(member)));
-		}
-	} END_FOR_EACH_PTR(tmp);
-}
-
-static void tag_base_type(struct expression *expr)
-{
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		expr = strip_expr(expr->unop);
-	else
-		expr = deref_expression(expr);
-	set_user_data(expr, new_state(get_type(expr)));
-}
-
-static void tag_as_user_data(struct expression *expr)
-{
-	struct symbol *type;
-
-	expr = strip_expr(expr);
-
-	type = get_type(expr);
-	if (!type || type->type != SYM_PTR)
-		return;
-	type = get_real_base_type(type);
-	if (!type || type == &void_ctype)
-		return;
-	if (type->type == SYM_BASETYPE) {
-		if (expr->type != EXPR_PREOP && expr->op != '&')
-			set_array_user_ptr(expr, true);
-		tag_base_type(expr);
-		return;
-	}
-	if (type->type == SYM_STRUCT || type->type == SYM_UNION)
-		tag_struct_members(type, deref_expression(expr));
-}
-
 static int is_dev_attr_name(struct expression *expr)
 {
 	char *name;
@@ -464,7 +369,7 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 			continue;
 		if (is_percent_n(format, i - 2))
 			continue;
-		tag_as_user_data(arg);
+		mark_as_user_data(deref_expression(arg), true);
 	} END_FOR_EACH_PTR(arg);
 }
 
