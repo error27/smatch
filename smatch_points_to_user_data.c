@@ -53,18 +53,66 @@ struct user_fn_info {
 	const char *key;
 };
 
+// Old stuff that was here, but I no longer believe is user data
+// kmap_atomic()
+// skb_network_header
+
+//	add_function_hook("memcpy_fromiovec", &match_user_copy, INT_PTR(0));
+//	add_function_hook("usb_control_msg", &match_user_copy, INT_PTR(6));
+
 static struct user_fn_info func_table[] = {
-	{ "(struct ksmbd_transport_ops)->read", USER_DATA, 1, "$" },
+	{ "copy_from_user", USER_PTR_SET, 0, "$" },
+	{ "__copy_from_user", USER_PTR_SET, 0, "$" },
+	{ "kvm_read_guest_virt", USER_PTR_SET, 2, "$" },
+	{ "vpu_iface_receive_msg", USER_PTR_SET, 1, "$" },
+	{ "xdr_stream_decode_u32", USER_PTR_SET, 1, "$" },
+
+	{ "(struct ksmbd_transport_ops)->read", USER_PTR_SET, 1, "$" },
+	{ "nlmsg_data", USER_PTR_SET, -1, "$" },
+	{ "nla_data", USER_PTR_SET, -1, "$" },
+	{ "memdup_user", USER_PTR_SET, -1, "$" },
+	{ "cfg80211_find_elem_match", USER_PTR_SET, -1, "$" },
+	{ "ieee80211_bss_get_elem", USER_PTR_SET, -1, "$" },
+	{ "cfg80211_find_elem", USER_PTR_SET, -1, "$" },
+	{ "ieee80211_bss_get_ie", USER_PTR_SET, -1, "$" },
+
+	{ "brcmf_fweh_dequeue_event", USER_PTR_SET, -1, "&$->emsg" },
+	{ "wilc_wlan_rxq_remove", USER_PTR_SET, -1, "$->buffer" },
+	{ "cfg80211_find_vendor_ie", USER_PTR_SET, -1, "$" },
+
+	{ "xdr_inline_decode", USER_PTR_SET, -1, "$" },
+
+	{ "kstrtoull", USER_PTR_SET, 2, "$" },
+	{ "kstrtoll", USER_PTR_SET, 2, "$" },
+	{ "kstrtoul", USER_PTR_SET, 2, "$" },
+	{ "kstrtol", USER_PTR_SET, 2, "$" },
+	{ "kstrtoint", USER_PTR_SET, 2, "$" },
+	{ "kstrtou64", USER_PTR_SET, 2, "$" },
+	{ "kstrtos64", USER_PTR_SET, 2, "$" },
+	{ "kstrtou32", USER_PTR_SET, 2, "$" },
+	{ "kstrtos32", USER_PTR_SET, 2, "$" },
+	{ "kstrtou16", USER_PTR_SET, 2, "$" },
+	{ "kstrtos16", USER_PTR_SET, 2, "$" },
+	{ "kstrtou8", USER_PTR_SET, 2, "$" },
+	{ "kstrtos8", USER_PTR_SET, 2, "$" },
+	{ "kstrtoull_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtoll_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtoul_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtol_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtouint_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtoint_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtou16_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtos16_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtou8_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtos8_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtou64_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtos64_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtou32_from_user", USER_PTR_SET, 2, "$" },
+	{ "kstrtos32_from_user", USER_PTR_SET, 2, "$" },
 };
 
 static struct user_fn_info call_table[] = {
 	{ "__handle_ksmbd_work", USER_DATA, 0, "$->request_buf" },
-};
-
-static const char *returns_pointer_to_user_data[] = {
-	"nlmsg_data", "nla_data", "memdup_user", "kmap_atomic", "skb_network_header",
-	"cfg80211_find_elem_match", "ieee80211_bss_get_elem", "cfg80211_find_elem",
-	"ieee80211_bss_get_ie",
 };
 
 bool is_skb_data(struct expression *expr)
@@ -93,34 +141,6 @@ bool is_skb_data(struct expression *expr)
 		return false;
 
 	return true;
-}
-
-bool is_user_data_fn(struct symbol *fn)
-{
-	int i;
-
-	if (!fn || !fn->ident)
-		return false;
-
-	for (i = 0; i < ARRAY_SIZE(returns_pointer_to_user_data); i++) {
-		if (strcmp(fn->ident->name, returns_pointer_to_user_data[i]) == 0) {
-//			func_gets_user_data = true;
-			return true;
-		}
-	}
-	return false;
-}
-
-static struct expression *returns_user_data_fn;
-static bool is_points_to_user_data_fn(struct expression *expr)
-{
-	expr = strip_expr(expr);
-	if (returns_user_data_fn && expr == returns_user_data_fn)
-		return true;
-	if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
-	    !expr->fn->symbol)
-		return false;
-	return is_user_data_fn(expr->fn->symbol);
 }
 
 static bool is_array_of_user_data(struct expression *expr)
@@ -221,9 +241,6 @@ bool points_to_user_data(struct expression *expr)
 	if (is_skb_data(expr))
 		return true;
 
-	if (is_points_to_user_data_fn(expr))
-		return true;
-
 	// FIXME if you have a struct pointer p then p->foo should be handled
 	// by smatch_kernel_user_data.c but if you have (p + 1)->foo then this
 	// should be handled here.
@@ -255,10 +272,13 @@ static void match_assign(struct expression *expr)
 		return;
 
 	if (points_to_user_data(expr->right)) {
+		// FIXME: if the types are different then mark the stuff on
+		// the left as user data.
 		set_state_expr(my_id, expr->left, &user_data);
 		return;
 	}
 
+	// FIXME: just use a modification hook
 	if (get_state_expr(my_id, expr->left))
 		set_state_expr(my_id, expr->left, &undefined);
 }
@@ -279,16 +299,83 @@ static void match_memcpy(const char *fn, struct expression *expr, void *_unused)
 		set_state_expr(my_id, dest, &undefined);
 }
 
-static void match_user_copy(const char *fn, struct expression *expr, void *_unused)
+static void fake_assign_helper(struct expression *expr, void *data)
 {
-	struct expression *dest;
+	struct expression *left = expr->left;
+	struct symbol *type;
+	bool set = data;
 
-	dest = get_argument_from_call_expr(expr->args, 0);
-	dest = strip_expr(dest);
-	if (!dest)
+	type = get_type(left);
+	if (!type)
+		return;
+	if (type->type == SYM_BASETYPE)
+		mark_as_user_data(left, set);
+	else if (type->type == SYM_ARRAY)
+		set_array_user_ptr(expr, set);
+}
+
+static void returns_user_ptr_helper(struct expression *expr, const char *name, struct symbol *sym, bool set)
+{
+	struct expression *call, *arg;
+
+	call = expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(expr->right);
+	if (!call || call->type != EXPR_CALL)
 		return;
 
-	set_state_expr(my_id, dest, &user_data_set);
+	if (!set && !we_pass_user_data(call))
+		return;
+
+	arg = gen_expression_from_name_sym(name, sym);
+	if (!arg)
+		return;
+
+	create_recursive_fake_assignments(deref_expression(arg), &fake_assign_helper, INT_PTR(set));
+
+
+	if (arg->type == EXPR_PREOP && arg->op == '&') {
+		struct symbol *type;
+
+		type = get_type(arg->unop);
+		if (!type || type->type != SYM_ARRAY)
+			return;
+	}
+
+	set_state_expr(my_id, arg, set ? &user_data_set : &user_data);
+}
+
+static void returns_user_ptr(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	returns_user_ptr_helper(expr, name, sym, false);
+}
+
+static void returns_user_ptr_set(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	returns_user_ptr_helper(expr, name, sym, true);
+}
+
+static void set_param_user_ptr(const char *name, struct symbol *sym, char *value)
+{
+	set_state(my_id, name, sym, &user_data);
+}
+
+static void set_caller_param_key_user_ptr(struct expression *expr, const char *name,
+				    struct symbol *sym, void *data)
+{
+	set_state(my_id, name, sym, &user_data);
+}
+
+static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
+	if (is_socket_stuff(sm->sym))
+		return;
+
+	if (!slist_has_state(sm->possible, &user_data) &&
+	    !slist_has_state(sm->possible, &user_data_set))
+		return;
+
+	sql_insert_caller_info(call, USER_PTR, param, printed_name, "");
 }
 
 static void return_info_callback(int return_id, char *return_ranges,
@@ -299,7 +386,8 @@ static void return_info_callback(int return_id, char *return_ranges,
 {
 	int type;
 
-	if (strncmp(printed_name, "&$", 2) == 0)
+	/* is this even possible? */
+	if (strcmp(printed_name, "&$") == 0)
 		return;
 
 	if (is_socket_stuff(sm->sym))
@@ -324,94 +412,6 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, "");
 }
 
-static void returns_user_ptr_helper(struct expression *expr, int param, char *key, char *value, bool set)
-{
-	struct expression *arg;
-	struct expression *call;
-	char *name;
-	struct symbol *sym;
-
-	call = expr;
-	while (call->type == EXPR_ASSIGNMENT)
-		call = strip_expr(call->right);
-	if (call->type != EXPR_CALL)
-		return;
-
-	if (!set && !we_pass_user_data(call))
-		return;
-
-	if (param == -1) {
-		if (expr->type != EXPR_ASSIGNMENT) {
-			/* Nothing to do.  Fake assignments should handle it */
-			return;
-		}
-		arg = expr->left;
-		goto set_user;
-	}
-
-	arg = get_argument_from_call_expr(call->args, param);
-	if (!arg)
-		return;
-set_user:
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-	if (param == -1 && strcmp(key, "$") == 0)
-		returns_user_data_fn = call;
-	if (set)
-		set_state(my_id, name, sym, &user_data_set);
-	else
-		set_state(my_id, name, sym, &user_data);
-free:
-	free_string(name);
-}
-
-static void returns_user_ptr(struct expression *expr, int param, char *key, char *value)
-{
-	returns_user_ptr_helper(expr, param, key, value, false);
-}
-
-static void returns_user_ptr_set(struct expression *expr, int param, char *key, char *value)
-{
-	returns_user_ptr_helper(expr, param, key, value, true);
-}
-
-static void set_param_user_ptr(const char *name, struct symbol *sym, char *key, char *value)
-{
-	struct expression *expr;
-	char *fullname;
-
-	expr = symbol_expression(sym);
-	fullname = get_variable_from_key(expr, key, NULL);
-	if (!fullname)
-		return;
-	set_state(my_id, fullname, sym, &user_data);
-}
-
-static void set_param_key_user_ptr_set(struct expression *expr, const char *name,
-				    struct symbol *sym, void *data)
-{
-	set_state(my_id, name, sym, &user_data_set);
-}
-
-static void set_param_key_user_ptr(struct expression *expr, const char *name,
-				    struct symbol *sym, void *data)
-{
-	set_state(my_id, name, sym, &user_data);
-}
-
-static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
-{
-	if (is_socket_stuff(sm->sym))
-		return;
-
-	if (!slist_has_state(sm->possible, &user_data) &&
-	    !slist_has_state(sm->possible, &user_data_set))
-		return;
-
-	sql_insert_caller_info(call, USER_PTR, param, printed_name, "");
-}
-
 void register_points_to_user_data(int id)
 {
 	struct user_fn_info *info;
@@ -422,12 +422,7 @@ void register_points_to_user_data(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_function_data((unsigned long *)&returns_user_data_fn);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-
-	add_function_hook("copy_from_user", &match_user_copy, NULL);
-	add_function_hook("memcpy_from_msg", &match_user_copy, NULL);
-	add_function_hook("__copy_from_user", &match_user_copy, NULL);
 
 	add_function_hook("memcpy", &match_memcpy, NULL);
 	add_function_hook("__memcpy", &match_memcpy, NULL);
@@ -435,19 +430,21 @@ void register_points_to_user_data(int id)
 	add_caller_info_callback(my_id, caller_info_callback);
 	add_return_info_callback(my_id, return_info_callback);
 
-	select_caller_info_hook(set_param_user_ptr, USER_PTR);
-	select_return_states_hook(USER_PTR, &returns_user_ptr);
-	select_return_states_hook(USER_PTR_SET, &returns_user_ptr_set);
-
-	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
-		info = &func_table[i];
-		add_function_param_key_hook_late(info->name, &set_param_key_user_ptr_set,
-						 info->param, info->key, info);
-	}
-
+	select_caller_name_sym(set_param_user_ptr, USER_PTR);
 	for (i = 0; i < ARRAY_SIZE(call_table); i++) {
 		info = &call_table[i];
-		add_function_param_key_hook_early(info->name, &set_param_key_user_ptr,
+		add_function_param_key_hook_early(info->name,
+						  &set_caller_param_key_user_ptr,
+						  info->param, info->key, info);
+	}
+
+	select_return_param_key(USER_PTR, &returns_user_ptr);
+	select_return_param_key(USER_PTR_SET, &returns_user_ptr_set);
+	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
+		info = &func_table[i];
+		add_function_param_key_hook_late(info->name,
+						 &returns_user_ptr_set,
 						 info->param, info->key, info);
 	}
+
 }
