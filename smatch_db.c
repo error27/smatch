@@ -3098,8 +3098,8 @@ void register_definition_db_callbacks(int id)
 {
 	my_id = id;
 
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_hook(&match_call_info_new, FUNCTION_CALL_HOOK);
+	add_hook(&match_call_info, FUNCTION_CALL_HOOK_BEFORE);
+	add_hook(&match_call_info_new, FUNCTION_CALL_HOOK_BEFORE);
 	add_split_return_callback(match_return_info);
 	add_split_return_callback(print_returned_struct_members);
 	add_split_return_callback(print_return_info);
@@ -3126,7 +3126,7 @@ void register_definition_db_callbacks_late(int id)
 
 void register_db_call_marker(int id)
 {
-	add_hook(&match_call_marker, FUNCTION_CALL_HOOK);
+	add_hook(&match_call_marker, FUNCTION_CALL_HOOK_BEFORE);
 }
 
 char *get_data_info_name(struct expression *expr)
