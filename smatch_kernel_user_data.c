@@ -49,7 +49,7 @@ static struct user_fn_info func_table[] = {
 
 static const char *returns_user_data[] = {
 	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read", "xdr_inline_decode",
+	"kvm_register_read",
 };
 
 static struct smatch_state *empty_state(struct sm_state *sm)
