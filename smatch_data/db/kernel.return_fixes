@@ -93,3 +93,4 @@ ad3552r_transfer s32min-(-1),1-s32max (-4095)-(-1)
 adin1110_read_reg s32min-(-1),1-s32max (-4095)-(-1)
 iov_iter_count 0-u64max[$0->count] 0-1000000000[$0->count]
 nla_nest_start_noflag 0-u64max 4096-ptr_max
+debugfs_initialized 0 0-1
