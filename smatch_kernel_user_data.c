@@ -45,11 +45,11 @@ struct user_fn_info {
 
 static struct user_fn_info func_table[] = {
 	{ "iov_iter_count", USER_DATA, -1, "$" },
-};
-
-static const char *returns_user_data[] = {
-	"simple_strtol", "simple_strtoll", "simple_strtoul", "simple_strtoull",
-	"kvm_register_read",
+	{ "simple_strtol", USER_DATA, -1, "$" },
+	{ "simple_strtoll", USER_DATA, -1, "$" },
+	{ "simple_strtoul", USER_DATA, -1, "$" },
+	{ "simple_strtoull", USER_DATA, -1, "$" },
+	{ "kvm_register_read", USER_DATA, -1, "$" },
 };
 
 static struct smatch_state *empty_state(struct sm_state *sm)
@@ -371,23 +371,6 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 			continue;
 		mark_as_user_data(deref_expression(arg), true);
 	} END_FOR_EACH_PTR(arg);
-}
-
-static int get_rl_from_function(struct expression *expr, struct range_list **rl)
-{
-	int i;
-
-	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL ||
-	    !expr->fn->symbol_name)
-		return 0;
-
-	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++) {
-		if (strcmp(expr->fn->symbol_name->name, returns_user_data[i]) == 0) {
-			*rl = alloc_whole_rl(get_type(expr));
-			return 1;
-		}
-	}
-	return 0;
 }
 
 static int comes_from_skb_data(struct expression *expr)
@@ -736,11 +719,6 @@ static void match_condition(struct expression *expr)
 	handle_compare(expr);
 }
 
-static void match_returns_user_rl(const char *fn, struct expression *expr, void *unused)
-{
-	func_gets_user_data = true;
-}
-
 static int get_user_macro_rl(struct expression *expr, struct range_list **rl)
 {
 	struct expression *parent;
@@ -884,9 +862,6 @@ struct range_list *var_user_rl(struct expression *expr)
 
 		return NULL;
 	}
-
-	if (get_rl_from_function(expr, &rl))
-		goto found;
 
 	if (get_user_macro_rl(expr, &rl))
 		goto found;
@@ -1388,9 +1363,6 @@ void register_kernel_user_data(int id)
 	add_extra_nomod_hook(&extra_nomod_hook);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_merge_hook(my_id, &merge_estates);
-
-	for (i = 0; i < ARRAY_SIZE(returns_user_data); i++)
-		add_function_hook(returns_user_data[i], &match_returns_user_rl, NULL);
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
