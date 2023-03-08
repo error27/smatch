@@ -32,6 +32,7 @@ CK(register_param_cleared)  /* param_set relies on param_cleared */
 CK(register_param_limit)    /* param limit has to be before param_set */
 CK(register_param_set)
 
+CK(register_dereferences)
 CK(register_smatch_ignore)
 CK(register_buf_size)
 CK(register_strlen)

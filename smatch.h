@@ -131,7 +131,7 @@ enum hook_type {
 	MACRO_ASSIGNMENT_HOOK,
 	BINOP_HOOK,
 	OP_HOOK,
-	DEREF_HOOK,
+	DEREF_HOOK,  /* DEREF_HOOK is junk.  Better to use add_dereference_hook() */
 	CASE_HOOK,
 	ASM_HOOK,
 	CAST_HOOK,
@@ -172,6 +172,8 @@ void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt);
 void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
 void call_name_sym_fns(struct name_sym_fn_list *list, struct expression *expr, const char *name, struct symbol *sym);
 void call_string_hooks(struct string_hook_list *list, struct expression *expr, const char *str);
+
+void add_dereference_hook(expr_func *fn);
 
 struct allocation_info {
 	const char *fn_name;
