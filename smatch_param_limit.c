@@ -219,6 +219,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (get_state(my_id, param_name, param_sym))
 		goto free;
 
+	if (__in_buf_clear)
+		return;
+
 	orig = get_state(SMATCH_EXTRA, param_name, param_sym);
 	if (!orig)
 		orig = alloc_estate_whole(estate_type(state));
