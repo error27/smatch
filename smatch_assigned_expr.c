@@ -101,6 +101,9 @@ static void match_assignment(struct expression *expr)
 	if (!cur_func_sym)
 		return;
 
+	if (__in_buf_clear)
+		return;
+
 	if (expr->op != '=')
 		return;
 	if (is_fake_call(expr->right))

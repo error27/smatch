@@ -658,6 +658,7 @@ int in_condition(void);
 extern int __in_fake_assign;
 extern int __in_fake_parameter_assign;
 extern int __in_fake_struct_assign;
+extern int __in_buf_clear;
 extern int __in_fake_var_assign;
 extern int __in_builtin_overflow_func;
 extern int __fake_state_cnt;

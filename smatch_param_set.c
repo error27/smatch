@@ -135,6 +135,12 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (parent_is_set(param_name, param_sym, state))
 		return;
 
+	if (get_state(my_id, param_name, param_sym))
+		goto reset;
+
+	if (__in_buf_clear)
+		return;
+reset:
 	set_state(my_id, param_name, param_sym, state);
 free:
 	free_string(param_name);

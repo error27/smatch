@@ -27,6 +27,7 @@
 
 int __in_fake_assign;
 int __in_fake_struct_assign;
+int __in_buf_clear;
 int __in_fake_var_assign;
 int __fake_state_cnt;
 int in_fake_env;
