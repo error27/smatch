@@ -149,3 +149,5 @@ rtsx_pci_read_phy_register 2
 smb_word_op 4
 ufshcd_dme_get 2
 ufshcd_query_attr_retry 5
+hl_access_mem 2
+dal_gpio_get_value 1
