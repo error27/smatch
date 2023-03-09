@@ -34,6 +34,7 @@ static int my_id;
 
 STATE(cleared);
 STATE(zeroed);
+STATE(add);
 
 struct func_info {
 	const char *name;
@@ -205,6 +206,15 @@ static struct func_info func_table[] = {
 	{"mutex_lock_io_nested",            BUF_CLEARED, 0, "*$"},
 };
 
+static struct smatch_state *merge_hook(struct smatch_state *s1, struct smatch_state *s2)
+{
+	if (s1 == &cleared && s2 == &zeroed)
+		return &cleared;
+	if (s1 == &zeroed && s2 == &cleared)
+		return &cleared;
+	return &add;
+}
+
 static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
@@ -228,6 +238,11 @@ static void db_param_cleared(struct expression *expr, int param, char *key, char
 		set_state(my_id, name, sym, &cleared);
 free:
 	free_string(name);
+}
+
+static void db_buf_add(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	set_state(my_id, name, sym, &add);
 }
 
 static void match_memcpy(const char *fn, struct expression *expr, void *arg)
@@ -263,12 +278,15 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param < 0)
 		return;
 
-	if (sm->state != &zeroed &&
-	    sm->state != &cleared)
+	if (sm->state != &add &&
+	    sm->state != &cleared &&
+	    sm->state != &zeroed)
 		return;
 
-	sql_insert_return_states(return_id, return_ranges, BUF_CLEARED, param,
-			printed_name, (sm->state == &zeroed) ? "0" : "");
+	sql_insert_return_states(return_id, return_ranges,
+			(sm->state == &add) ? BUF_ADD : BUF_CLEARED,
+			param, printed_name,
+			(sm->state == &zeroed) ? "0" : "");
 }
 
 static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym, int name_len)
@@ -311,6 +329,7 @@ static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym,
 enum clear_zero {
 	CLEAR,
 	ZERO,
+	ADD,
 	ANY,
 };
 
@@ -347,6 +366,8 @@ static bool parent_was_clear(const char *name, struct symbol *sym, enum clear_ze
 		if (zero == ZERO && sm->state == &zeroed)
 			return true;
 		if (zero == CLEAR && sm->state == &cleared)
+			return true;
+		if (zero == ADD && sm->state == &add)
 			return true;
 		if (zero == ANY)
 			return true;
@@ -626,12 +647,15 @@ void register_param_cleared(int id)
 {
 	my_id = id;
 
+	add_merge_hook(my_id, &merge_hook);
+
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
 
 	register_clears_param();
 
 	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
+	select_return_param_key(BUF_ADD, &db_buf_add);
 	add_return_info_callback(my_id, return_info_callback);
 
 	if (option_project == PROJ_KERNEL)

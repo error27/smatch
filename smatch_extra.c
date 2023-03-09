@@ -2920,6 +2920,38 @@ static void set_param_value(const char *name, struct symbol *sym, char *key, cha
 	set_state(SMATCH_EXTRA, fullname, sym, state);
 }
 
+static void db_buf_add_helper(struct expression *expr, void *data)
+{
+	struct expression *left = expr->left;
+	struct sm_state *sm;
+
+	sm = get_sm_state_expr(my_id, left);
+	if (!sm)
+		return;
+
+	set_state(my_id, sm->name, sm->sym, alloc_estate_whole(estate_type(sm->state)));
+}
+
+static void db_buf_add(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg;
+
+	/*
+	 * There really isn't much we can do with a BUF_ADD.  A BUF_CLEAR is
+	 * like a full modification which some stuff cares about.  A no_mod
+	 * thing is useful because that's normally bounds checking etc.  But
+	 * with BUF_ADD the only thing we can say is do is delete any previous
+	 * known states.
+	 *
+	 */
+
+	arg = gen_expr_from_param_key(expr, param, key);
+	if (!arg)
+		return;
+
+	create_recursive_fake_assignments(deref_expression(arg), &db_buf_add_helper, NULL);
+}
+
 static void set_param_fuzzy_max(const char *name, struct symbol *sym, char *key, char *value)
 {
 	struct expression *expr;
@@ -3029,6 +3061,7 @@ void register_smatch_extra(int id)
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_set);
+	select_return_states_hook(BUF_ADD, &db_buf_add);
 	add_lost_param_hook(&match_lost_param);
 	select_return_states_hook(PARAM_VALUE, &db_param_value);
 	select_return_states_after(&db_limited_after);

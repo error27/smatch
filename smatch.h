@@ -896,6 +896,7 @@ enum info_type {
 
 	RELEASE		= 500,
 	BUF_CLEARED	= 501,
+	BUF_ADD		= 502,
 
 	PARAM_VALUE	= 1001,
 	BUF_SIZE	= 1002,
