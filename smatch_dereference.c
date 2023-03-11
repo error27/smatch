@@ -57,22 +57,12 @@ static void match_pointer_as_array(struct expression *expr)
 static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct expression *deref;
-	struct symbol *sym;
-	char *name;
 
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-	if (name[0] == '&')
-		goto free;
-
-	deref = gen_expression_from_name_sym(name, sym);
+	deref = gen_expression_from_key(arg, key);
 	if (!deref)
-		goto free;
+		return;
 
 	call_deref_hooks(deref);
-free:
-	free_string(name);
 }
 
 void register_dereferences(int id)
@@ -81,6 +71,6 @@ void register_dereferences(int id)
 
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	select_return_implies_hook_early(DEREFERENCE, &set_param_dereferenced);
 }
 
