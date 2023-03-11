@@ -38,7 +38,8 @@ static void call_deref_hooks(struct expression *expr)
 
 static void match_dereference(struct expression *expr)
 {
-	if (expr->type != EXPR_PREOP)
+	if (expr->type != EXPR_PREOP ||
+	    expr->op != '*')
 		return;
 	expr = strip_expr(expr->unop);
 	if (!is_pointer(expr))
