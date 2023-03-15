@@ -595,6 +595,7 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 	struct range_list *rl;
 	struct sm_state *sm;
 	char *name;
+	int len;
 
 	sm_msg("---- about ----");
 	match_print_implied(fn, expr, NULL);
@@ -615,9 +616,15 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 	if (points_to_user_data(arg))
 		sm_msg("points to user data");
 
+	len = strlen(name);
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (strcmp(sm->name, name) != 0)
-			continue;
+		if (strcmp(sm->name, name) == 0)
+			goto print;
+		if (strncmp(sm->name, name, len) == 0 &&
+		    sm->name[len] == ':')
+			goto print;
+		continue;
+print:
 		sm_msg("%s", show_sm(sm));
 	} END_FOR_EACH_SM(sm);
 }
