@@ -664,6 +664,7 @@ extern int __in_buf_clear;
 extern int __in_fake_var_assign;
 extern int __in_builtin_overflow_func;
 extern int __fake_state_cnt;
+extern int __debug_skip;
 extern int in_fake_env;
 bool is_fake_var_assign(struct expression *expr);
 void smatch (struct string_list *filelist);
