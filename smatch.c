@@ -24,6 +24,7 @@
 
 char *option_debug_check;
 char *option_debug_var;
+char *option_process_function;
 char *option_project_str = (char *)"smatch_generic";
 static char *option_db_file = (char *)"smatch_db.sqlite";
 enum project_type option_project = PROJ_NONE;
@@ -233,6 +234,11 @@ void parse_args(int *argcp, char ***argvp)
 			enable_disable_checks((*argvp)[1] + 10, 0);
 			option_enable = 1;
 			option_disable = 1;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && strncmp((*argvp)[1], "--function=", 11) == 0) {
+			option_process_function = (*argvp)[1] + 11;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}

@@ -1941,6 +1941,9 @@ static void split_function(struct symbol *sym)
 	cur_func_sym = sym;
 	if (sym->ident)
 		cur_func = sym->ident->name;
+	if (option_process_function && cur_func &&
+	    strcmp(option_process_function, cur_func) != 0)
+		return;
 	set_position(sym->pos);
 	clear_function_data();
 	loop_count = 0;
