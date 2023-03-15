@@ -546,6 +546,11 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 	option_debug = 0;
 }
 
+static void match_start_skip(const char *fn, struct expression *expr, void *info)
+{
+	__debug_skip = true;
+}
+
 static void match_local_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	local_debug = 1;
@@ -936,6 +941,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_debug_check", &match_debug_check, NULL);
 	add_function_hook("__smatch_debug_var", &match_debug_var, NULL);
 	add_function_hook("__smatch_debug_off", &match_debug_off, NULL);
+	add_function_hook("__smatch_start_skip", &match_start_skip, NULL);
 	add_function_hook("__smatch_local_debug_on", &match_local_debug_on, NULL);
 	add_function_hook("__smatch_local_debug_off", &match_local_debug_off, NULL);
 	add_function_hook("__smatch_debug_db_on", &match_debug_db_on, NULL);

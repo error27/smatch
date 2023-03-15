@@ -30,6 +30,7 @@ int __in_fake_struct_assign;
 int __in_buf_clear;
 int __in_fake_var_assign;
 int __fake_state_cnt;
+int __debug_skip;
 int in_fake_env;
 int final_pass;
 int __inline_call;
@@ -596,9 +597,22 @@ after_assign:
 	__split_expr(expr->left);
 }
 
+static bool skip_split_off(struct expression *expr)
+{
+	if (expr->type == EXPR_CALL &&
+	    sym_name_is("__smatch_stop_skip", expr->fn))
+		return true;
+	return false;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
+		return;
+
+	if (skip_split_off(expr))
+		__debug_skip = 0;
+	if (__debug_skip)
 		return;
 
 //	if (local_debug)

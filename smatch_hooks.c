@@ -152,6 +152,9 @@ void __pass_to_client(void *data, enum hook_type type)
 {
 	struct hook_container *container;
 
+	if (__debug_skip)
+		return;
+
 	FOR_EACH_PTR(hook_array[type], container) {
 		switch (data_types[type]) {
 		case EXPR_PTR:
