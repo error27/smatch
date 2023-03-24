@@ -61,6 +61,7 @@ struct statement_list *big_statement_stack;
 struct statement *__prev_stmt;
 struct statement *__cur_stmt;
 struct statement *__next_stmt;
+static struct expression_list *parsed_inlines;
 int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
 static struct timeval fn_start_time;
@@ -1299,6 +1300,7 @@ void __split_stmt(struct statement *stmt)
 
 	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
+	free_expression_stack(&parsed_inlines);
 	set_position(stmt->pos);
 	__pass_to_client(stmt, STMT_HOOK);
 
@@ -2004,6 +2006,8 @@ static void save_flow_state(void)
 
 	__add_ptr_list(&backup, cur_func_sym);
 
+	__add_ptr_list(&backup, parsed_inlines);
+
 	__add_ptr_list(&backup, __prev_stmt);
 	__add_ptr_list(&backup, __cur_stmt);
 	__add_ptr_list(&backup, __next_stmt);
@@ -2034,6 +2038,8 @@ static void restore_flow_state(void)
 	__cur_stmt = pop_backup();
 	__prev_stmt = pop_backup();
 
+	parsed_inlines = pop_backup();
+
 	cur_func_sym = pop_backup();
 	switch_expr_stack = pop_backup();
 	big_condition_stack = pop_backup();
@@ -2044,7 +2050,18 @@ static void restore_flow_state(void)
 	loop_num = PTR_INT(pop_backup()) >> 2;
 }
 
-static void parse_inline(struct expression *call)
+static bool already_parsed(struct expression *call)
+{
+	struct expression *expr;
+
+	FOR_EACH_PTR(parsed_inlines, expr) {
+		if (expr == call)
+			return true;
+	} END_FOR_EACH_PTR(expr);
+	return false;
+}
+
+void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
@@ -2054,6 +2071,10 @@ static void parse_inline(struct expression *call)
 
 	if (out_of_memory() || taking_too_long())
 		return;
+
+	if (already_parsed(call))
+		return;
+	__add_ptr_list((struct ptr_list **)&parsed_inlines, call);
 
 	save_flow_state();
 
@@ -2076,6 +2097,7 @@ static void parse_inline(struct expression *call)
 	big_expression_stack = NULL;
 	big_condition_stack = NULL;
 	switch_expr_stack = NULL;
+	parsed_inlines = NULL;
 
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
