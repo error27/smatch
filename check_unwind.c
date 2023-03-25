@@ -188,6 +188,9 @@ static void return_param_alloc(struct expression *expr, const char *name, struct
 	if (strncmp(name, "__fake_", 7) == 0)
 		return;
 
+	if (sym->ctype.modifiers & (MOD_NONLOCAL | MOD_STATIC | MOD_ADDRESSABLE))
+		return;
+
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
