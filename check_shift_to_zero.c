@@ -45,6 +45,7 @@ static void match_binop2(struct expression *expr)
 	struct expression *left;
 	struct expression *tmp;
 	sval_t mask, shift;
+	char *macro, *inner;
 
 	if (expr->op != SPECIAL_RIGHTSHIFT)
 		return;
@@ -64,7 +65,20 @@ static void match_binop2(struct expression *expr)
 	if (mask.uvalue >> shift.uvalue)
 		return;
 
-	sm_warning("mask and shift to zero");
+	macro = get_macro_name(expr->pos);
+	inner = get_inner_macro(expr->pos);
+	if (macro && inner) {
+		if (strcmp(macro, "unlikely") == 0)
+			goto warn;
+		if (strcmp(inner, "unlikely") == 0 ||
+		    strcmp(inner, "__const_hweight8") == 0 ||
+		    strcmp(inner, "BITS_PER_LONG") == 0 ||
+		    strcmp(inner, "CORDIC_PRECISION_SHIFT") == 0)
+			return;
+	}
+
+warn:
+	sm_warning("mask and shift to zero: expr='%s'", expr_to_str(expr));
 }
 
 static void match_assign(struct expression *expr)
