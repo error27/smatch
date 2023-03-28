@@ -12,6 +12,11 @@ if [[ "$info_file" = "" ]] ; then
     exit 1
 fi
 
+if [ ! -e "$info_file" ] ; then
+    echo "no such file: $info_file"
+    exit 1
+fi
+
 bin_dir=$(dirname $0)
 db_file=smatch_db.sqlite.new
 
