@@ -28,6 +28,8 @@
 
 #define VAR_LEN 512
 
+static struct expression *strip_expr_helper(struct expression *expr, bool set_parent, bool cast, int *nest);
+
 char *alloc_string(const char *str)
 {
 	char *tmp;
@@ -812,8 +814,45 @@ struct expression *strip_Generic(struct expression *expr)
 	return expr->def;
 }
 
-static struct expression *strip_expr_helper(struct expression *expr, bool set_parent, bool cast)
+static struct expression *strip_plus_zero(struct expression *expr, bool set_parent, bool cast, int *nest)
 {
+	struct symbol *left_type, *right_type;
+
+	if (*nest > 4)
+		return expr;
+
+	if (expr->type != EXPR_BINOP || expr->op != '+')
+		return expr;
+
+	/* don't strip away zero from the my_array[0] */
+	if (!is_array(expr->left))
+		return expr;
+
+	left_type = get_type(expr->left);
+	right_type = get_type(expr->right);
+	if (!left_type || !right_type)
+		return expr;
+
+	if (expr_is_zero(expr->left)) {
+		if (type_positive_bits(left_type) > 31 &&
+		    type_positive_bits(left_type) > type_positive_bits(right_type))
+			return expr;
+		return strip_expr_helper(expr->right, set_parent, cast, nest);
+	}
+	if (expr_is_zero(expr->right)) {
+		if (type_positive_bits(right_type) > 31 &&
+		    type_positive_bits(right_type) > type_positive_bits(left_type))
+			return expr;
+		return strip_expr_helper(expr->left, set_parent, cast, nest);
+	}
+
+	return expr;
+}
+
+static struct expression *strip_expr_helper(struct expression *expr, bool set_parent, bool cast, int *nest)
+{
+	(*nest)++;
+
 	if (!expr)
 		return NULL;
 
@@ -832,7 +871,7 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 			if (type != expr->cast_type)
 				return expr;
 		}
-		return strip_expr_helper(expr->cast_expression, set_parent, cast);
+		return strip_expr_helper(expr->cast_expression, set_parent, cast, nest);
 	case EXPR_PREOP: {
 		struct expression *unop;
 
@@ -850,7 +889,7 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 			expr->unop->statement->type == STMT_COMPOUND)
 			return expr;
 
-		unop = strip_expr_helper(expr->unop, set_parent, cast);
+		unop = strip_expr_helper(expr->unop, set_parent, cast, nest);
 
 		if (expr->op == '*' && unop &&
 		    unop->type == EXPR_PREOP && unop->op == '&') {
@@ -858,7 +897,7 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 
 			if (type && type->type == SYM_ARRAY)
 				return expr;
-			return strip_expr_helper(unop->unop, set_parent, cast);
+			return strip_expr_helper(unop->unop, set_parent, cast, nest);
 		}
 
 		if (expr->op == '(')
@@ -871,16 +910,16 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 			if (expr->cond_true) {
 				if (set_parent)
 					expr_set_parent_expr(expr->cond_true, expr);
-				return strip_expr_helper(expr->cond_true, set_parent, cast);
+				return strip_expr_helper(expr->cond_true, set_parent, cast, nest);
 			}
 			if (set_parent)
 				expr_set_parent_expr(expr->conditional, expr);
-			return strip_expr_helper(expr->conditional, set_parent, cast);
+			return strip_expr_helper(expr->conditional, set_parent, cast, nest);
 		}
 		if (known_condition_false(expr->conditional)) {
 			if (set_parent)
 				expr_set_parent_expr(expr->cond_false, expr);
-			return strip_expr_helper(expr->cond_false, set_parent, cast);
+			return strip_expr_helper(expr->cond_false, set_parent, cast, nest);
 		}
 		return expr;
 	case EXPR_CALL:
@@ -889,30 +928,79 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 		    sym_name_is("__builtin_bswap32", expr->fn) ||
 		    sym_name_is("__builtin_bswap64", expr->fn)) {
 			expr = get_argument_from_call_expr(expr->args, 0);
-			return strip_expr_helper(expr, set_parent, cast);
+			return strip_expr_helper(expr, set_parent, cast, nest);
 		}
 		if (sym_name_is("__builtin_choose_expr", expr->fn))
 			return strip__builtin_choose_expr(expr);
 		return expr;
+	case EXPR_BINOP:
+		return strip_plus_zero(expr, set_parent, cast, nest);
 	case EXPR_GENERIC:
 		return strip_Generic(expr);
 	}
 	return expr;
 }
 
+struct strip_cache_res {
+	struct expression *expr;
+	struct expression *res;
+};
+#define STRIP_CACHE_SIZE 4
+static struct strip_cache_res strip_cache[STRIP_CACHE_SIZE];
+static struct strip_cache_res strip_no_cast_cache[STRIP_CACHE_SIZE];
+static struct strip_cache_res strip_set_parent_cache[STRIP_CACHE_SIZE];
+
+static struct expression *call_strip_helper(struct expression *expr,
+					    struct strip_cache_res *cache,
+					    int *idx,
+					    bool set_parent,
+					    bool cast)
+{
+	struct expression *ret;
+	int nest = 0;
+	int i;
+
+	if (!expr)
+		return NULL;
+
+	for (i = 0; i < ARRAY_SIZE(strip_cache); i++) {
+		if (cache[i].expr == expr)
+			return cache[i].res;
+	}
+
+	ret = strip_expr_helper(expr, set_parent, cast, &nest);
+	*idx = (*idx + 1) % STRIP_CACHE_SIZE;
+	cache[*idx].expr = expr;
+	cache[*idx].res = ret;
+	return ret;
+}
+
 struct expression *strip_expr(struct expression *expr)
 {
-	return strip_expr_helper(expr, false, true);
+	static int cache_idx;
+
+	return call_strip_helper(expr, strip_cache, &cache_idx, false, true);
 }
 
 struct expression *strip_no_cast(struct expression *expr)
 {
-	return strip_expr_helper(expr, false, false);
+	static int cache_idx;
+
+	return call_strip_helper(expr, strip_no_cast_cache, &cache_idx, false, false);
 }
 
 struct expression *strip_expr_set_parent(struct expression *expr)
 {
-	return strip_expr_helper(expr, true, true);
+	static int cache_idx;
+
+	return call_strip_helper(expr, strip_set_parent_cache, &cache_idx, true, true);
+}
+
+void clear_strip_cache(void)
+{
+	memset(strip_cache, 0, sizeof(strip_cache));
+	memset(strip_no_cast_cache, 0, sizeof(strip_no_cast_cache));
+	memset(strip_set_parent_cache, 0, sizeof(strip_set_parent_cache));
 }
 
 static void delete_state_tracker(struct tracker *t)

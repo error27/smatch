@@ -2135,6 +2135,7 @@ void free_data_info_allocs(void)
 
 	free_all_rl();
 	clear_math_cache();
+	clear_strip_cache();
 
 	desc->blobs = NULL;
 	desc->allocations = 0;
