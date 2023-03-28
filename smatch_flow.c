@@ -61,7 +61,8 @@ struct statement_list *big_statement_stack;
 struct statement *__prev_stmt;
 struct statement *__cur_stmt;
 struct statement *__next_stmt;
-static struct expression_list *parsed_inlines;
+static struct expression_list *parsed_calls;
+static int indent_cnt;
 int __in_pre_condition = 0;
 int __bail_on_rest_of_function = 0;
 static struct timeval fn_start_time;
@@ -539,9 +540,10 @@ static void split_call(struct expression *expr)
 	__pass_to_client(expr, CALL_HOOK_AFTER_INLINE);
 	if (is_noreturn_func(expr->fn))
 		nullify_path();
-	if (!expr_get_parent_expr(expr))
+	if (!expr_get_parent_expr(expr) && indent_cnt == 1)
 		__discard_fake_states(expr);
 	handle_builtin_overflow_func(expr);
+	__add_ptr_list((struct ptr_list **)&parsed_calls, expr);
 }
 
 void parse_assignment(struct expression *expr)
@@ -1266,9 +1268,26 @@ static void find_asm_gotos(struct statement *stmt)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static bool already_parsed_call(struct expression *call)
+{
+	struct expression *expr;
+
+	FOR_EACH_PTR(parsed_calls, expr) {
+		if (expr == call)
+			return true;
+	} END_FOR_EACH_PTR(expr);
+	return false;
+}
+
+static void free_parsed_call_stuff(bool free_fake_states)
+{
+	free_expression_stack(&parsed_calls);
+	if (free_fake_states)
+		__discard_fake_states(NULL);
+}
+
 void __split_stmt(struct statement *stmt)
 {
-	static int indent_cnt;
 	sval_t sval;
 	struct timeval start, stop;
 	bool skip_after = false;
@@ -1300,7 +1319,7 @@ void __split_stmt(struct statement *stmt)
 
 	add_ptr_list(&big_statement_stack, stmt);
 	free_expression_stack(&big_expression_stack);
-	free_expression_stack(&parsed_inlines);
+	free_parsed_call_stuff(indent_cnt == 1);
 	set_position(stmt->pos);
 	__pass_to_client(stmt, STMT_HOOK);
 
@@ -1438,7 +1457,7 @@ void __split_stmt(struct statement *stmt)
 	if (!skip_after)
 		__pass_to_client(stmt, STMT_HOOK_AFTER);
 	if (--indent_cnt == 1)
-		__discard_fake_states(NULL);
+		free_parsed_call_stuff(true);
 
 out:
 	__process_post_op_stack();
@@ -1507,6 +1526,9 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 	bool cast;
 
 	if (!expr || !cur_func_sym)
+		return NULL;
+
+	if (already_parsed_call(call))
 		return NULL;
 
 	if (expr->type == EXPR_ASSIGNMENT)
@@ -2006,7 +2028,7 @@ static void save_flow_state(void)
 
 	__add_ptr_list(&backup, cur_func_sym);
 
-	__add_ptr_list(&backup, parsed_inlines);
+	__add_ptr_list(&backup, parsed_calls);
 
 	__add_ptr_list(&backup, __prev_stmt);
 	__add_ptr_list(&backup, __cur_stmt);
@@ -2038,7 +2060,7 @@ static void restore_flow_state(void)
 	__cur_stmt = pop_backup();
 	__prev_stmt = pop_backup();
 
-	parsed_inlines = pop_backup();
+	parsed_calls = pop_backup();
 
 	cur_func_sym = pop_backup();
 	switch_expr_stack = pop_backup();
@@ -2048,17 +2070,6 @@ static void restore_flow_state(void)
 	final_pass = PTR_INT(pop_backup()) >> 2;
 	loop_count = PTR_INT(pop_backup()) >> 2;
 	loop_num = PTR_INT(pop_backup()) >> 2;
-}
-
-static bool already_parsed(struct expression *call)
-{
-	struct expression *expr;
-
-	FOR_EACH_PTR(parsed_inlines, expr) {
-		if (expr == call)
-			return true;
-	} END_FOR_EACH_PTR(expr);
-	return false;
 }
 
 void parse_inline(struct expression *call)
@@ -2072,9 +2083,8 @@ void parse_inline(struct expression *call)
 	if (out_of_memory() || taking_too_long())
 		return;
 
-	if (already_parsed(call))
+	if (already_parsed_call(call))
 		return;
-	__add_ptr_list((struct ptr_list **)&parsed_inlines, call);
 
 	save_flow_state();
 
@@ -2097,7 +2107,7 @@ void parse_inline(struct expression *call)
 	big_expression_stack = NULL;
 	big_condition_stack = NULL;
 	switch_expr_stack = NULL;
-	parsed_inlines = NULL;
+	parsed_calls = NULL;
 
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
