@@ -127,6 +127,10 @@ static bool is_boring_pointer_info(const char *name, struct range_list *rl)
 {
 	char *rl_str;
 
+	/* addresses are always boring */
+	if (name[0] == '&')
+		return true;
+
 	/*
 	 * One way that PARAM_LIMIT can be set is by dereferencing pointers.
 	 * It's not necessarily very valuable to track that a pointer must
