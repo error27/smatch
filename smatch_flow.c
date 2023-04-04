@@ -593,7 +593,7 @@ void parse_assignment(struct expression *expr)
 
 after_assign:
 	if (get_macro_name(right->pos) &&
-	    get_macro_name(expr->pos) != get_macro_name(right->pos))
+	    get_macro_name(expr->left->pos) != get_macro_name(right->pos))
 		__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
