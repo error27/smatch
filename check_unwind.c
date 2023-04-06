@@ -464,6 +464,7 @@ void check_unwind_path(int id)
 	path_id = id;
 
 	add_function_hook("devm_add_action_or_reset", &ignore_path, NULL);
+	add_function_hook("__devm_add_action_or_reset", &ignore_path, NULL);
 	add_function_hook("drmm_add_action", &ignore_path, NULL);
 	add_function_hook("__drmm_add_action", &ignore_path, NULL);
 	add_function_hook("pcim_enable_device", &ignore_path, NULL);
