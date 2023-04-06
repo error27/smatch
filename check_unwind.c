@@ -305,41 +305,6 @@ static void unwind_return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, "");
 }
 
-enum {
-	UNKNOWN, FAIL, SUCCESS, NUM_BUCKETS
-};
-
-static int success_fail_positive(struct range_list *rl)
-{
-	sval_t sval;
-
-	if (!rl)
-		return SUCCESS;
-
-	// Negatives are a failure
-	if (sval_is_negative(rl_min(rl)) && sval_is_negative(rl_max(rl)))
-		return FAIL;
-
-	// NULL and error pointers are a failure
-	if (type_is_ptr(rl_type(rl)) && is_err_or_null(rl))
-		return FAIL;
-
-	if (rl_to_sval(rl, &sval)) {
-		if (sval.value == 0) {
-			// Zero is normally success but false is a failure
-			if (type_bits(sval.type) == 1)
-				return FAIL;
-			else
-				return SUCCESS;
-		}
-		// true is success
-		if (sval.value == 1 && type_bits(sval.type) == 1)
-			return SUCCESS;
-	}
-
-	return UNKNOWN;
-}
-
 static const char *get_alloc_fn(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -361,7 +326,7 @@ static const char *get_alloc_fn(struct sm_state *sm)
 static void check_balance(const char *name, struct symbol *sym)
 {
 	struct range_list *inc_lines = NULL;
-	int inc_buckets[NUM_BUCKETS] = {};
+	int inc_buckets[RET_UNKNOWN + 1] = {};
 	struct stree *stree, *orig_stree;
 	struct smatch_state *state;
 	struct sm_state *return_sm;
@@ -403,8 +368,8 @@ static void check_balance(const char *name, struct symbol *sym)
 		    state != &release)
 			goto swap_stree;
 
-		bucket = success_fail_positive(estate_rl(return_sm->state));
-		if (bucket != FAIL)
+		bucket = success_fail_return(estate_rl(return_sm->state));
+		if (bucket != RET_FAIL)
 			goto swap_stree;
 
 		if (state == &alloc) {
@@ -415,7 +380,7 @@ swap_stree:
 		__swap_cur_stree(orig_stree);
 	} END_FOR_EACH_PTR(stree);
 
-	if (inc_buckets[FAIL])
+	if (inc_buckets[RET_FAIL])
 		goto complain;
 
 	return;
