@@ -449,6 +449,7 @@ void check_unwind(int id)
 	add_function_hook("pcim_enable_device", &ignore_path, NULL);
 	add_function_hook("pci_enable_device", &ignore_path, NULL);
 	add_function_hook("put_device", &ignore_path, NULL);
+	add_function_hook("component_match_add_release", &ignore_path, NULL);
 
 	add_ssa_state_assigned_hook(my_id, match_sm_assign);
 
