@@ -126,6 +126,14 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	 return &undefined;
 }
 
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	if (cur->state == &param_released)
+		return;
+	if (is_impossible_path())
+		set_state(my_id, cur->name, cur->sym, &undefined);
+}
+
 static bool is_param_var_sym(const char *name, struct symbol *sym)
 {
 	const char *key;
@@ -411,6 +419,7 @@ void check_unwind(int id)
 		return;
 
 	set_dynamic_states(my_id);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
 		param_key_hook *hook;
