@@ -133,7 +133,29 @@ static bool is_param_var_sym(const char *name, struct symbol *sym)
 	return get_param_key_from_var_sym(name, sym, NULL, &key) >= 0;
 }
 
-static void mark_matches_as_undefined(const char *key)
+static bool mark_same_name_as_undefined(const char *name)
+{
+	struct sm_state *sm;
+	int len;
+
+	if (!name)
+		return false;
+
+	len = strlen(name);
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (strncmp(sm->name, name, len) != 0)
+			continue;
+		if (sm->name[len] != ':')
+			continue;
+		set_state(sm->owner, sm->name, sm->sym, &unknown);
+		return true;
+	} END_FOR_EACH_SM(sm);
+
+	return false;
+}
+
+static void mark_partial_matches_as_undefined(const char *key)
 {
 	struct sm_state *sm;
 	int start_pos, state_len, key_len;
@@ -157,6 +179,13 @@ static void mark_matches_as_undefined(const char *key)
 			update_ssa_state(my_id, sm->name, sm->sym, &unknown);
 
 	} END_FOR_EACH_SM(sm);
+}
+
+static void mark_matches_as_undefined(const char *name)
+{
+	if (mark_same_name_as_undefined(name))
+		return;
+	mark_partial_matches_as_undefined(name);
 }
 
 static bool is_alloc_primitive(struct expression *expr)
