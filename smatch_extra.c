@@ -168,6 +168,7 @@ done:
 	in_recurse = false;
 }
 
+extern int __no_limits;
 static void mark_sub_members_gone(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct sm_state *sm;
@@ -189,7 +190,9 @@ static void mark_sub_members_gone(const char *name, struct symbol *sym, struct e
 			continue;
 		if (!is_sub_member(name, sym, sm))
 			continue;
+		__no_limits++;
 		set_extra_nomod(sm->name, sm->sym, NULL, alloc_estate_empty());
+		__no_limits--;
 	} END_FOR_EACH_SM(sm);
 }
 
@@ -1380,7 +1383,6 @@ static void asm_expr(struct statement *stmt)
 	} END_FOR_EACH_PTR(op);
 }
 
-extern int __no_limits;
 static void check_dereference(struct expression *expr)
 {
 	struct smatch_state *state;
