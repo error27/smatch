@@ -343,8 +343,7 @@ static int success_fail_positive(struct range_list *rl)
 static const char *get_alloc_fn(struct sm_state *sm)
 {
 	struct sm_state *tmp;
-	const char *alloc_fn = NULL;
-	bool released = false;
+
 	if (slist_has_state(sm->possible, &unknown))
 		return NULL;
 
@@ -353,13 +352,9 @@ static const char *get_alloc_fn(struct sm_state *sm)
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state->data == &alloc)
-			alloc_fn = tmp->state->name;
-		if (tmp->state == &release)
-			released = true;
+			return tmp->state->name;
 	} END_FOR_EACH_PTR(tmp);
 
-	if (alloc_fn && !released)
-		return alloc_fn;
 	return NULL;
 }
 
