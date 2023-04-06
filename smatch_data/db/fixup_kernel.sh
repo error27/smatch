@@ -224,6 +224,9 @@ delete from caller_info where function = 'device_for_each_child' and type != 0;
 delete from caller_info where caller = 'cache_set_flush' and function = '(struct work_struct)->func';
 delete from caller_info where caller = 'sctp_inq_push' and function = '(struct work_struct)->func';
 
+/* dev_err() stores that dev->[class,bus,driver] is not an error pointer (useless info). */
+delete from return_states where function = '__dev_printk' and type = 103;
+
 EOF
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
