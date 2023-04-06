@@ -9,8 +9,8 @@ DRIVERS_RAPIDIO_ACCESS=$(${bin_dir}/sm_hash 'drivers/rapidio/rio-access.c')
 
 cat << EOF | sqlite3 $db_file
 /* we only care about the main ->read/write() functions. */
-delete from caller_info where function = '(struct file_operations)->read' and file != ${FS_READ_WRITE};
-delete from caller_info where function = '(struct file_operations)->write' and file != ${FS_READ_WRITE};
+delete from caller_info where function = '(struct file_operations)->read' and caller != 'vfs_read';
+delete from caller_info where function = '(struct file_operations)->write' and caller != 'vfs_write';
 delete from function_ptr where function = '(struct file_operations)->read';
 delete from function_ptr where function = '(struct file_operations)->write';
 delete from caller_info where function = '(struct file_operations)->write' and caller = 'do_loop_readv_writev';
