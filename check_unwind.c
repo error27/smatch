@@ -30,6 +30,7 @@ STATE(alloc);
 STATE(release);
 STATE(param_released);
 STATE(ignore);
+STATE(unknown);
 
 static unsigned long fn_has_alloc;
 
@@ -153,7 +154,7 @@ static void mark_matches_as_undefined(const char *key)
 		start_pos = state_len - key_len;
 		if ((start_pos == 0 || !isalnum(sm->name[start_pos - 1])) &&
 		    strcmp(sm->name + start_pos, key) == 0)
-			update_ssa_state(my_id, sm->name, sm->sym, &undefined);
+			update_ssa_state(my_id, sm->name, sm->sym, &unknown);
 
 	} END_FOR_EACH_SM(sm);
 }
@@ -315,6 +316,8 @@ static const char *get_alloc_fn(struct sm_state *sm)
 	struct sm_state *tmp;
 	const char *alloc_fn = NULL;
 	bool released = false;
+	if (slist_has_state(sm->possible, &unknown))
+		return NULL;
 
 	if (sm->state->data == &alloc)
 		return sm->state->name;
