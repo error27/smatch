@@ -128,6 +128,8 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 
 static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
+	if (cur->state == &ignore)
+		return;
 	if (cur->state == &param_released)
 		return;
 	if (is_impossible_path())
