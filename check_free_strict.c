@@ -70,6 +70,7 @@ static struct func_info func_table[] = {
 	{ "brelse", PARAM_FREED, 0, "$" },
 	{ "dma_free_coherent", PARAM_FREED, 2, "$" },
 	{ "free_netdev", PARAM_FREED, 0, "$" },
+	{ "sock_release", PARAM_FREED, 0, "$" },
 
 	{ "qdisc_enqueue", PARAM_FREED, 0, "$" },
 
