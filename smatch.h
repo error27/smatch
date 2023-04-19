@@ -1506,6 +1506,10 @@ struct sm_state *get_goto_sm_state(void);
 bool is_nospec(struct expression *expr);
 long get_stmt_cnt(void);
 
+/* check_kernel_units.c */
+struct smatch_state *get_units(struct expression *expr);
+char *get_unit_str(struct expression *expr);
+bool is_array_size_units(struct expression *expr);
 /* smatch_nul_terminator.c */
 bool is_nul_terminated_var_sym(const char *name, struct symbol *sym);
 bool is_nul_terminated(struct expression *expr);

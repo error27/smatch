@@ -345,6 +345,7 @@ SMATCH_OBJS += smatch_type_links.o
 SMATCH_OBJS += smatch_type.o
 SMATCH_OBJS += smatch_type_val.o
 SMATCH_OBJS += smatch_unconstant_macros.o
+SMATCH_OBJS += smatch_units.o
 SMATCH_OBJS += smatch_unknown_value.o
 SMATCH_OBJS += smatch_untracked_param.o
 SMATCH_OBJS += smatch_untracked_var.o
