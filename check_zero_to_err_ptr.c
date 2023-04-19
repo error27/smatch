@@ -157,11 +157,12 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
 	struct sm_state *sm, *tmp;
+	int arg = PTR_INT(data);
 
 	if (is_impossible_path())
 		return;
 
-	arg_expr = get_argument_from_call_expr(expr->args, 0);
+	arg_expr = get_argument_from_call_expr(expr->args, arg);
 	sm = get_sm_state_expr(SMATCH_EXTRA, arg_expr);
 	if (!sm)
 		return;
@@ -200,7 +201,8 @@ void check_zero_to_err_ptr(int id)
 		return;
 
 	my_id = id;
-	add_function_hook("ERR_PTR", &match_err_ptr, NULL);
-	add_function_hook("ERR_CAST", &match_err_ptr, NULL);
-	add_function_hook("PTR_ERR", &match_err_ptr, NULL);
+	add_function_hook("ERR_PTR", &match_err_ptr, INT_PTR(0));
+	add_function_hook("ERR_CAST", &match_err_ptr, INT_PTR(0));
+	add_function_hook("PTR_ERR", &match_err_ptr, INT_PTR(0));
+	add_function_hook("dev_err_probe", &match_err_ptr, INT_PTR(1));
 }
