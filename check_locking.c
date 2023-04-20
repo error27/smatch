@@ -429,6 +429,9 @@ static struct lock_info lock_table[] = {
 	{"i915_gem_object_fill_blt", IGNORE_LOCK, mutex, 0, "$->base.resv"},
 	{"i915_vma_pin", IGNORE_LOCK, mutex, 0, "$->base.resv"},
 
+	{ "perf_event_period", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
+	{ "perf_event_enable", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
+
 	{},
 };
 
