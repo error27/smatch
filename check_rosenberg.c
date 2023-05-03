@@ -144,6 +144,19 @@ static int has_global_scope(struct expression *expr)
 	return toplevel(sym->scope);
 }
 
+static int was_initialized(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name)
+		return 0;
+	if (sym->initializer)
+		return 1;
+	return 0;
+}
+
 static void match_clear(const char *fn, struct expression *expr, void *_arg_no)
 {
 	struct expression *ptr, *tmp;
@@ -267,6 +280,8 @@ static void check_was_initialized(struct expression *data)
 		return;
 
 	if (has_global_scope(data))
+		return;
+	if (was_initialized(data))
 		return;
 	if (was_memset(data))
 		return;
