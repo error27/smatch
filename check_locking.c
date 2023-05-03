@@ -395,6 +395,7 @@ static struct lock_info lock_table[] = {
 //	{"nvkm_i2c_aux_acquire",		  LOCK,   mutex, 
 	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 0, "$->base.resv", &int_zero, &int_zero},
 	{"i915_gem_object_lock",		LOCK, mutex, 0, "$->base.resv"},
+	{"msm_gem_lock",		LOCK, mutex, 0, "$->resv"},
 
 	{"reiserfs_write_lock_nested",	 LOCK,   mutex, 0, "$"},
 	{"reiserfs_write_unlock_nested", UNLOCK, mutex, 0, "$"},
@@ -417,6 +418,20 @@ static struct lock_info lock_table[] = {
 	{"rcu_read_lock_sched_notrace",   LOCK,   rcu_read, NO_ARG, "rcu_read"},
 	{"rcu_read_unlock_sched",         UNLOCK, rcu_read, NO_ARG, "rcu_read"},
 	{"rcu_read_unlock_sched_notrace", UNLOCK, rcu_read, NO_ARG, "rcu_read"},
+
+	{"gfs2_trans_begin", LOCK, sem, 0, "&$->sd_log_flush_lock", &int_zero, &int_zero},
+
+	{"lock_sock",        LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
+	{"lock_sock_nested", LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
+	{"lock_sock_fast",   LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
+	{"__lock_sock",      LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
+	{"release_sock",     UNLOCK, spin_lock, 0, "&$->sk_lock.slock"},
+	{"__release_sock",   UNLOCK, spin_lock, 0, "&$->sk_lock.slock"},
+
+	{"lock_task_sighand", LOCK,  spin_lock, 0, "&$->sighand->siglock", &valid_ptr_min_sval, &valid_ptr_max_sval},
+
+	{"rcu_nocb_unlock_irqrestore", RESTORE, spin_lock, 0, "&$->nocb_lock"},
+	{"rcu_nocb_unlock_irqrestore", RESTORE, irq, 1, "$" },
 
 	{"bch_write_bdev_super",	IGNORE_LOCK, sem, 0, "&$->sb_write_mutex"},
 	{"dlfb_set_video_mode",		IGNORE_LOCK, sem, 0, "&$->urbs.limit_sem"},
