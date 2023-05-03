@@ -1098,8 +1098,6 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 		ignored_reset = expr->left;
 
 		name = get_variable_from_key(expr->left, key, &sym);
-		if (!name || !sym)
-			goto free;
 	} else {
 		arg = get_argument_from_call_expr(call->args, param);
 		if (!arg)
@@ -1107,8 +1105,6 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 
 		arg = remove_spinlock_check(arg);
 		name = get_variable_from_key(arg, key, &sym);
-		if (!name || !sym)
-			goto free;
 	}
 
 	if (!name || !sym)
