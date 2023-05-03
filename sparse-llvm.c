@@ -296,13 +296,14 @@ static LLVMValueRef get_sym_value(LLVMModuleRef module, struct symbol *sym)
 			const char *s = expr->string->data;
 			LLVMValueRef indices[] = { LLVMConstInt(LLVMInt64Type(), 0, 0), LLVMConstInt(LLVMInt64Type(), 0, 0) };
 			LLVMValueRef data;
+			LLVMTypeRef gepType = LLVMPointerType(LLVMInt8Type(), 0);
 
 			data = LLVMAddGlobal(module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
 			LLVMSetLinkage(data, LLVMPrivateLinkage);
 			LLVMSetGlobalConstant(data, 1);
 			LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
 
-			result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
+			result = LLVMConstGEP2(gepType, data, indices, ARRAY_SIZE(indices));
 			return result;
 		}
 		default:
@@ -479,13 +480,14 @@ static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValu
 	LLVMTypeRef type = LLVMTypeOf(base);
 	unsigned int as = LLVMGetPointerAddressSpace(type);
 	LLVMTypeRef bytep = LLVMPointerType(LLVMInt8Type(), as);
+	LLVMTypeRef elementType = LLVMGetElementType(bytep);
 	LLVMValueRef addr;
 	const char *name = LLVMGetValueName(off);
 
 	/* convert base to char* type */
 	base = LLVMBuildPointerCast(builder, base, bytep, name);
 	/* addr = base + off */
-	addr = LLVMBuildInBoundsGEP(builder, base, &off, 1, name);
+	addr = LLVMBuildInBoundsGEP2(builder, elementType, base, &off, 1, name);
 	/* convert back to the actual pointer type */
 	addr = LLVMBuildPointerCast(builder, addr, type, name);
 	return addr;
@@ -706,12 +708,14 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef addr, target;
 	char name[MAX_PSEUDO_NAME];
+	LLVMTypeRef elementType;
 
 	addr = calc_memop_addr(fn, insn);
+	elementType = LLVMGetElementType(LLVMTypeOf(addr));
 
 	/* perform load */
 	pseudo_name(insn->target, name);
-	target = LLVMBuildLoad(fn->builder, addr, name);
+	target = LLVMBuildLoad2(fn->builder, elementType, addr, name);
 
 	insn->target->priv = target;
 }
@@ -797,6 +801,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 static void output_op_call(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, func;
+	LLVMTypeRef funcType;
 	struct symbol *ctype;
 	int n_arg = 0, i;
 	struct pseudo *arg;
@@ -811,6 +816,9 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 		func = get_operand(fn, ctype, insn->func);
 	else
 		func = pseudo_to_value(fn, ctype, insn->func);
+
+	funcType = LLVMGetElementType(LLVMTypeOf(func));
+
 	i = 0;
 	FOR_EACH_PTR(insn->arguments, arg) {
 		NEXT_PTR_LIST(ctype);
@@ -819,7 +827,7 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	FINISH_PTR_LIST(ctype);
 
 	pseudo_name(insn->target, name);
-	target = LLVMBuildCall(fn->builder, func, args, n_arg, name);
+	target = LLVMBuildCall2(fn->builder, funcType, func, args, n_arg, name);
 
 	insn->target->priv = target;
 }
