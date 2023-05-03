@@ -146,15 +146,26 @@ static int has_global_scope(struct expression *expr)
 
 static int was_initialized(struct expression *expr)
 {
-	struct symbol *sym;
+	struct symbol *sym, *type;
 	char *name;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name)
 		return 0;
-	if (sym->initializer)
+	if (!sym->initializer)
+		return 0;
+	type = get_real_base_type(sym);
+	if (!type)
+		return 0;
+	if (type->type != SYM_STRUCT)
 		return 1;
-	return 0;
+
+	/* Fully initializing a struct does not clear the holes */
+	if (ptr_list_size((struct ptr_list *)sym->initializer->expr_list) >=
+	    ptr_list_size((struct ptr_list *)type->symbol_list))
+		return 0;
+
+	return 1;
 }
 
 static void match_clear(const char *fn, struct expression *expr, void *_arg_no)
