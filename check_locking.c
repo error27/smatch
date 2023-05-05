@@ -916,9 +916,6 @@ static int sm_both_locked_and_unlocked(struct sm_state *sm)
 	return is_locked && is_unlocked;
 }
 
-enum {
-	ERR_PTR, VALID_PTR, NEGATIVE, ZERO, POSITIVE, NUM_BUCKETS,
-};
 
 static bool is_EINTR(struct range_list *rl)
 {
@@ -927,36 +924,6 @@ static bool is_EINTR(struct range_list *rl)
 	if (!rl_to_sval(rl, &sval))
 		return false;
 	return sval.value == -4;
-}
-
-static int success_fail_positive(struct range_list *rl)
-{
-	/* void returns are the same as success (zero in the kernel) */
-	if (!rl)
-		return ZERO;
-
-	if (rl_type(rl)->type != SYM_PTR &&
-	    !is_whole_rl(rl) &&
-	    sval_is_negative(rl_min(rl)))
-		return NEGATIVE;
-
-	if (rl_min(rl).value == 0 && rl_max(rl).value == 0)
-		return ZERO;
-
-	if (is_err_ptr(rl_min(rl)) &&
-	    is_err_ptr(rl_max(rl)))
-		return ERR_PTR;
-
-	/*
-	 * Trying to match ERR_PTR(ret) but without the expression struct.
-	 * Ugly...
-	 */
-	if (type_bits(&long_ctype) == 64 &&
-	    rl_type(rl)->type == SYM_PTR &&
-	    rl_min(rl).value == INT_MIN)
-		return ERR_PTR;
-
-	return POSITIVE;
 }
 
 static bool sym_in_lock_table(struct symbol *sym)
@@ -979,6 +946,8 @@ static bool func_in_lock_table(struct expression *expr)
 		return false;
 	return sym_in_lock_table(expr->symbol);
 }
+
+#define NUM_BUCKETS (RET_UNKNOWN + 1)
 
 static void check_lock(char *name, struct symbol *sym)
 {
@@ -1023,7 +992,7 @@ static void check_lock(char *name, struct symbol *sym)
 		    is_EINTR(estate_rl(return_sm->state)))
 			goto swap_stree;
 
-		bucket = success_fail_positive(estate_rl(return_sm->state));
+		bucket = success_fail_return(estate_rl(return_sm->state));
 		if (sm->state == &locked) {
 			add_range(&locked_lines, line, line);
 			locked_buckets[bucket] = true;
@@ -1044,11 +1013,8 @@ swap_stree:
 		if (locked_buckets[i] && unlocked_buckets[i])
 			goto complain;
 	}
-	if (locked_buckets[NEGATIVE] &&
-	    (unlocked_buckets[ZERO] || unlocked_buckets[POSITIVE]))
-		goto complain;
 
-	if (locked_buckets[ERR_PTR])
+	if (locked_buckets[RET_FAIL])
 		goto complain;
 
 	return;
