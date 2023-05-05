@@ -447,6 +447,10 @@ static struct lock_info lock_table[] = {
 	{ "perf_event_period", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
 	{ "perf_event_enable", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
 
+	{ "deactivate_locked_super", UNLOCK, spin_lock, 0, "&$->s_umount"},
+	{ "ext4_lock_group", LOCK,	spin_lock, 0, "$"},
+	{ "ext4_unlock_group", UNLOCK,	spin_lock, 0, "$"},
+
 	{},
 };
 
