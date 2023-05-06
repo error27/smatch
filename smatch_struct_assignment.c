@@ -626,8 +626,11 @@ void register_struct_assignment(int id)
 	add_function_hook("__builtin_memcpy", &match_memcpy, INT_PTR(0));
 	add_function_hook("__builtin_memmove", &match_memcpy, INT_PTR(0));
 
-	if (option_project == PROJ_KERNEL)
+	if (option_project == PROJ_KERNEL) {
 		return_implies_state_sval("kmemdup", valid_ptr_min_sval, valid_ptr_max_sval, &match_memdup, NULL);
+		add_function_hook("copy_from_user", &match_memcpy, INT_PTR(0));
+		add_function_hook("_copy_from_user", &match_memcpy, INT_PTR(0));
+	}
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
 
