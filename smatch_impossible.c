@@ -21,6 +21,8 @@
 static int my_id;
 static int my_return_id;
 
+unsigned long nothing_impossible;
+
 STATE(impossible);
 
 int is_impossible_path(void)
@@ -102,11 +104,19 @@ static void match_case(struct expression *expr, struct range_list *rl)
 
 static void print_impossible_return(int return_id, char *return_ranges, struct expression *expr)
 {
+	if (nothing_impossible)
+		return;
+
 	if (get_state(my_return_id, "impossible", NULL) == &impossible) {
 		if (option_debug)
 			sm_msg("impossible return.  return_id = %d return ranges = %s", return_id, return_ranges);
 		sql_insert_return_states(return_id, return_ranges, CULL_PATH, -1, "", "");
 	}
+}
+
+static void match_thread_stuff(const char *fn, struct expression *expr, void *unused)
+{
+	nothing_impossible = true;
 }
 
 void register_impossible(int id)
@@ -120,6 +130,20 @@ void register_impossible(int id)
 void register_impossible_return(int id)
 {
 	my_return_id = id;
+
+	add_function_data(&nothing_impossible);
+	if (option_project == PROJ_KERNEL) {
+		add_function_hook("wait_for_completion", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_timeout", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_io", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_io_timeout", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_interruptible", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_interruptible_timeout", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_killable", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_state", &match_thread_stuff, NULL);
+		add_function_hook("wait_for_completion_killable_timeout", &match_thread_stuff, NULL);
+		add_function_hook("try_wait_for_completion", &match_thread_stuff, NULL);
+	}
 
 	add_split_return_callback(&print_impossible_return);
 }
