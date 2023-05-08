@@ -52,6 +52,16 @@ static inline int equalkeys(void *_pos1, void *_pos2)
 
 static void insert_macro_string(struct string_list **str_list, char *new)
 {
+	char *tmp;
+
+	if (!new)
+		return;
+
+	FOR_EACH_PTR(*str_list, tmp) {
+		if (strcmp(tmp, new) == 0)
+			return;
+	} END_FOR_EACH_PTR(tmp);
+
 	add_ptr_list(str_list, new);
 }
 
