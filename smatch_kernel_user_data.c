@@ -918,6 +918,13 @@ int get_user_rl(struct expression *expr, struct range_list **rl)
 {
 	int user_data, no_user_data;
 
+	if (!expr)
+		return 0;
+
+	if (__in_fake_struct_assign &&
+	    !has_states(__get_cur_stree(), my_id))
+		return 0;
+
 	if (is_ptr_subtract(expr))
 		return 0;
 
