@@ -62,11 +62,6 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 
 static void match_end_func(struct symbol *sym)
 {
-	/*
-	 * FIXME: either this isn't needed or we need to copy a stree into the
-	 * return_stree_stack as well.
-	 */
-	merge_stree(&all_return_states, __get_cur_stree());
 	call_hooks();
 }
 
