@@ -160,7 +160,8 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct smatch_state *state, *old;
 	struct sm_state *tmp;
 	struct range_list *rl;
-	const char *param_name;
+	const char *orig_name, *key;
+	struct symbol *sym;
 	int param;
 
 	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
@@ -171,15 +172,14 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		    get_state_stree(ignore_states, my_id, tmp->name, tmp->sym))
 			continue;
 
-		param = get_param_num_from_sym(tmp->sym);
+		orig_name = get_param_var_sym_var_sym(tmp->name, tmp->sym, NULL, &sym);
+		if (!orig_name || !sym)
+			continue;
+		param = get_param_key_from_var_sym(orig_name, sym, NULL, &key);
 		if (param < 0)
 			continue;
 
-		param_name = get_param_name(tmp);
-		if (!param_name)
-			continue;
-
-		state = __get_state(my_id, tmp->name, tmp->sym);
+		state = __get_state(my_id, orig_name, sym);
 		if (!state) {
 			if (sm_was_set(tmp))
 				continue;
@@ -192,15 +192,15 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (old && rl_equiv(estate_rl(old), estate_rl(state)))
 			continue;
 
-		if (is_ignored_kernel_data(param_name))
+		if (is_ignored_kernel_data(key))
 			continue;
 
 		rl = generify_mtag_range(state);
-		if (is_boring_pointer_info(param_name, rl))
+		if (is_boring_pointer_info(key, rl))
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
-					 param, param_name, show_rl(rl));
+					 param, key, show_rl(rl));
 	} END_FOR_EACH_SM(tmp);
 }
 
