@@ -798,7 +798,8 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	} else if (stmt->type == STMT_EXPRESSION) {
 		struct expression *fake_assign;
 
-		fake_assign = assign_expression(expr->left, expr->op, stmt->expression);
+		right = strip_no_cast(stmt->expression);
+		fake_assign = assign_expression(expr->left, expr->op, right);
 		expr_set_parent_expr(fake_assign, expr);
 		__split_expr(fake_assign);
 
