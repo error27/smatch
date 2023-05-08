@@ -130,6 +130,16 @@ void mark_lost(struct expression *expr, int param, const char *key, const char *
 	mark_untracked_lost(expr, param, key, LOST_PARAM);
 }
 
+void mark_call_params_untracked(struct expression *call)
+{
+	struct expression *arg;
+	int i = 0;
+
+	FOR_EACH_PTR(call->args, arg) {
+		mark_untracked(call, i++, "$", NULL);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static int lost_in_va_args(struct expression *expr)
 {
 	struct symbol *fn;

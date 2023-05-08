@@ -1412,6 +1412,7 @@ bool buf_comp2_has_bytes(struct expression *buf_expr, struct expression *var);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, const char *key, const char *value);
+void mark_call_params_untracked(struct expression *call);
 void add_untracked_param_hook(void (func)(struct expression *call, int param));
 void add_lost_param_hook(void (func)(struct expression *call, int param));
 void mark_all_params_untracked(int return_id, char *return_ranges, struct expression *expr);

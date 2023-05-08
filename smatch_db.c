@@ -590,16 +590,6 @@ static int get_row_count(void *_row_count, int argc, char **argv, char **azColNa
 	return 0;
 }
 
-static void mark_call_params_untracked(struct expression *call)
-{
-	struct expression *arg;
-	int i = 0;
-
-	FOR_EACH_PTR(call->args, arg) {
-		mark_untracked(call, i++, "$", NULL);
-	} END_FOR_EACH_PTR(arg);
-}
-
 static void sql_select_return_states_pointer(const char *cols,
 	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
