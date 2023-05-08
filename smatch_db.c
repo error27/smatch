@@ -377,9 +377,16 @@ void sql_insert_function_ptr(const char *fn, const char *struct_name)
 
 void sql_insert_return_implies(int type, int param, const char *key, const char *value)
 {
-	sql_insert_or_ignore(return_implies, "0x%llx, '%s', %lu, %d, %d, %d, '%s', '%s'",
-		get_base_file_id(), get_function(), (unsigned long)__inline_fn,
-		fn_static(), type, param, key, value);
+	unsigned long long id;
+
+	if (__inline_fn)
+		id = (unsigned long)__inline_fn;
+	else
+		id = __fn_mtag;
+
+	sql_insert_or_ignore(return_implies, "0x%llx, '%s', %llu, %d, %d, %d, '%s', '%s'",
+		get_base_file_id(), get_function(), id, fn_static(), type,
+		param, key, value);
 }
 
 void sql_insert_call_implies(int type, int param, const char *key, const char *value)
