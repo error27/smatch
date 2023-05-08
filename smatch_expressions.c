@@ -123,6 +123,9 @@ struct expression *preop_expression(struct expression *expr, int op)
 
 struct expression *deref_expression(struct expression *expr)
 {
+	/* The *&foo is just foo */
+	if (expr->type == EXPR_PREOP && expr->op == '&')
+		return strip_expr(expr->unop);
 	if (expr->type == EXPR_BINOP)
 		expr = preop_expression(expr, '(');
 	return preop_expression(expr, '*');
