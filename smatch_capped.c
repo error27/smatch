@@ -161,9 +161,14 @@ static void match_condition(struct expression *expr)
 		left = strip_expr(left->left);
 
 	/* If we're dealing with known expressions, that's for smatch_extra.c */
-	if (get_implied_value(left, &sval) ||
-	    get_implied_value(right, &sval))
-		return;
+	if (__in_pre_condition) {
+		if (get_implied_value(right, &sval))
+			return;
+	} else {
+		if (get_implied_value(left, &sval) ||
+		    get_implied_value(right, &sval))
+			return;
+	}
 
 	switch (expr->op) {
 	case '<':
