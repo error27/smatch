@@ -193,6 +193,7 @@ CK(register_param_bits_clear)
 CK(check_do_while_loop_limit)
 CK(check_ida_alloc)
 CK(check_divide_condition)
+CK(check_units)
 
 /* <- your test goes here */
 /* CK(register_template) */
