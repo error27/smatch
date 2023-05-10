@@ -2443,6 +2443,9 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 		left_param = get_param_key_from_var_sym(tmp->name, tmp->sym, expr, &left_key);
 		if (left_param < -1 || !left_key)
 			continue;
+		if (strcmp(left_key, "$") == 0 &&
+		    param_was_set_var_sym(tmp->name, tmp->sym))
+			continue;
 
 		links = tmp->state->data;
 		FOR_EACH_PTR(links, link) {
@@ -2490,6 +2493,10 @@ static void print_return_comparison(int return_id, char *return_ranges, struct e
 			 */
 			if (left_param == right_param &&
 			    strcmp(left_key, right_key) == 0)
+				continue;
+
+			if (strcmp(right_key, "$") == 0 &&
+			    param_was_set_var_sym(right->var, right->sym))
 				continue;
 
 			compare_type = PARAM_COMPARE;
