@@ -82,6 +82,8 @@ static inline void __smatch_expr(const char *str, void *p){}
 static inline void __smatch_state_count(void){}
 static inline void __smatch_mem(void){}
 
+static inline void __smatch_units(long long var){}
+
 static inline void __smatch_timer_start(void){}
 static inline void __smatch_timer_stop(void){}
 

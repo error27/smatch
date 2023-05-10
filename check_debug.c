@@ -748,6 +748,25 @@ static void match_bits(const char *fn, struct expression *expr, void *_unused)
 	       name, info->set, info->possible);
 }
 
+static void match_units(const char *fn, struct expression *expr, void *info)
+{
+	static int units_id;
+	struct expression *arg;
+	struct sm_state *sm;
+	char *name;
+
+	if (!units_id)
+		units_id = id_from_name("register_units");
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	sm = get_sm_state_expr(units_id, arg);
+	name = expr_to_str(arg);
+
+	sm_msg("units: '%s' '%s'", name, sm ? show_sm(sm) : get_unit_str(arg));
+
+	free_string(name);
+}
+
 static void match_mtag(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
