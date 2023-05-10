@@ -69,20 +69,6 @@ static struct smatch_state *str_to_units(const char *str)
 
 static struct smatch_state *get_units_from_type(struct expression *expr);
 
-static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
-{
-	if (cur->state == other->state)
-		return;
-
-	if (cur->state == &undefined || cur->state == &merged ||
-	    other->state == &undefined || other->state == &merged)
-		return;
-
-	if (!__cur_stmt || __cur_stmt->type != STMT_RETURN)
-		sm_msg("warn: ambiguous units merge '%s' '%s' or '%s'",
-		       cur->name, cur->state->name, other->state->name);
-}
-
 static struct smatch_state *merge_units(struct smatch_state *s1, struct smatch_state *s2)
 {
 	if (s1 == &undefined)
@@ -105,7 +91,6 @@ static bool is_ignored_type(char *name)
 
 static void store_type_in_db(struct expression *expr, struct smatch_state *state)
 {
-	struct smatch_state *old_units;
 	char *member;
 
 	member = get_member_name(expr);
@@ -114,12 +99,6 @@ static void store_type_in_db(struct expression *expr, struct smatch_state *state
 	if (is_ignored_type(member))
 		return;
 
-	old_units = get_units_from_type(expr);
-	if (old_units && old_units != state) {
-		sm_msg("warn: other places set '%s' to '%s' instead of '%s'",
-		       member, old_units->name, state->name);
-	}
-//	sm_msg("%s: insert: member='%s' units='%s'", __func__, member, state->name);
 	sql_insert_cache(type_info, "0x%llx, %d, '%s', '%s'", get_base_file_id(), UNITS, member, state->name);
 }
 
@@ -601,7 +580,6 @@ void register_units(int id)
 					    (void *)info->value);
 	}
 
-	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_merge_hook(my_id, &merge_units);
 
 	add_hook(&match_binop_check, BINOP_HOOK);
