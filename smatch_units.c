@@ -20,14 +20,14 @@
 
 static int my_id;
 
-STATE(bit);
-STATE(byte);
-STATE(array_size);
-STATE(longs);
-STATE(page);
-STATE(msec);
-//STATE(ns);
-STATE(jiffy);
+GLOBAL_STATE(unit_bit);
+GLOBAL_STATE(unit_byte);
+GLOBAL_STATE(unit_array_size);
+GLOBAL_STATE(unit_long);
+GLOBAL_STATE(unit_page);
+GLOBAL_STATE(unit_msec);
+GLOBAL_STATE(unit_ns);
+GLOBAL_STATE(unit_jiffy);
 
 struct type_info {
 	const char *name;
@@ -38,8 +38,8 @@ struct type_info {
 };
 
 static struct type_info func_table[] = {
-	{ "msecs_to_jiffies_timeout", UNITS, -1, "$", "jiffy" },
-	{ "round_jiffies_up_relative", UNITS, -1, "$", "jiffy" },
+	{ "unit_msecs_to_jiffies_timeout", UNITS, -1, "$", "unit_jiffy" },
+	{ "round_jiffies_up_relative", UNITS, -1, "$", "unit_jiffy" },
 };
 
 static struct smatch_state *str_to_units(const char *str)
@@ -47,20 +47,20 @@ static struct smatch_state *str_to_units(const char *str)
 	if (!str)
 		return NULL;
 
-	if (strcmp(str, "bit") == 0)
-		return &bit;
-	if (strcmp(str, "byte") == 0)
-		return &byte;
-	if (strcmp(str, "page") == 0)
-		return &page;
-	if (strcmp(str, "msec") == 0)
-		return &msec;
-	if (strcmp(str, "jiffy") == 0)
-		return &jiffy;
-	if (strcmp(str, "longs") == 0)
-		return &longs;
-	if (strcmp(str, "array_size") == 0)
-		return &array_size;
+	if (strcmp(str, "unit_bit") == 0)
+		return &unit_bit;
+	if (strcmp(str, "unit_byte") == 0)
+		return &unit_byte;
+	if (strcmp(str, "unit_page") == 0)
+		return &unit_page;
+	if (strcmp(str, "unit_msec") == 0)
+		return &unit_msec;
+	if (strcmp(str, "unit_jiffy") == 0)
+		return &unit_jiffy;
+	if (strcmp(str, "unit_long") == 0)
+		return &unit_long;
+	if (strcmp(str, "unit_array_size") == 0)
+		return &unit_array_size;
 	if (strcmp(str, "unknown") == 0)
 		return NULL;
 
@@ -169,43 +169,43 @@ static struct smatch_state *binop_helper(struct expression *left, int op, struct
 
 	switch(op) {
 	case '-':
-		// subtracting pointers gives byte units
+		// subtracting pointers gives unit_byte
 		/* fall through */
 	case '+':
 		left_state = get_units(left);
 		right_state = get_units(right);
-		if (left_state == &array_size ||
-		    right_state == &array_size)
+		if (left_state == &unit_array_size ||
+		    right_state == &unit_array_size)
 			return NULL;
 
 		return left_state ? left_state : right_state;
 	case '*':
 		/* FIXME: A multiply is almost always bytes but it can be bits. */
 		if (is_PAGE_SIZE(right))
-			return &byte;
+			return &unit_byte;
 		if (!get_implied_value(right, &val))
 			return NULL;
-		/* 4096 is almost always a page -> bytes converstion */
+		/* 4096 is almost always a unit_page -> bytes converstion */
 		if (val.value == 4096)
-			return &byte;
+			return &unit_byte;
 		return NULL;
 	case '/':
 		if (is_BITS_PER_LONG(right))
-			return &longs;
+			return &unit_long;
 		if (is_PAGE_SIZE(right))
-			return &page;
+			return &unit_page;
 		if (!get_implied_value(right, &val))
 			return NULL;
 		if (val.value == 4096)
-			return &page;
+			return &unit_page;
 		return NULL;
 	case SPECIAL_LEFTSHIFT:
 		if (is_PAGE_SHIFT(right))
-			return &byte;
+			return &unit_byte;
 		return NULL;
 	case SPECIAL_RIGHTSHIFT:
 		if (is_PAGE_SHIFT(right))
-			return &page;
+			return &unit_page;
 		return NULL;
 	}
 	return NULL;
@@ -222,10 +222,10 @@ static struct smatch_state *get_units_call(struct expression *expr)
 	if (!expr || expr->type != EXPR_CALL)
 		return NULL;
 
-	if (sym_name_is("msecs_to_jiffies", expr->fn))
-		return &jiffy;
-	if (sym_name_is("jiffies_to_msecs", expr->fn))
-		return &msec;
+	if (sym_name_is("unit_msecs_to_jiffies", expr->fn))
+		return &unit_jiffy;
+	if (sym_name_is("jiffies_to_unit_msecs", expr->fn))
+		return &unit_msec;
 
 	return NULL;
 }
@@ -256,7 +256,7 @@ static struct smatch_state *get_units_from_type(struct expression *expr)
 	if (!member)
 		return NULL;
 	if (strcmp(member, "(struct vm_area_struct)->vm_pgoff") == 0)
-		return &page;
+		return &unit_page;
 	cache_sql(&db_units, &units, "select value from type_info where type = %d and key = '%s';",
 		  UNITS, member);
 	run_sql(&db_units, &units, "select value from type_info where type = %d and key = '%s';",
@@ -283,21 +283,21 @@ struct smatch_state *get_units(struct expression *expr)
 
 	if (expr->type == EXPR_PTRSIZEOF ||
 	    expr->type == EXPR_SIZEOF)
-		return &byte;
+		return &unit_byte;
 
 	ident = pos_ident(expr->pos);
 	if (ident) {
 		if (strcmp(ident, "sizeof") == 0 ||
 		    strcmp(ident, "PAGE_SIZE") == 0)
-			return &byte;
+			return &unit_byte;
 		if (strcmp(ident, "jiffies") == 0)
-			return &jiffy;
+			return &unit_jiffy;
 		if (strcmp(ident, "BITS_PER_LONG") == 0)
-			return &bit;
+			return &unit_bit;
 		if (strcmp(ident, "BITS_PER_LONG_LONG") == 0)
-			return &bit;
+			return &unit_bit;
 		if (strcmp(ident, "ARRAY_SIZE") == 0)
-			return &array_size;
+			return &unit_array_size;
 	}
 
 	if (expr->type == EXPR_BINOP)
@@ -317,7 +317,7 @@ struct smatch_state *get_units(struct expression *expr)
 
 bool is_array_size_units(struct expression *expr)
 {
-	return get_units(expr) == &array_size;
+	return get_units(expr) == &unit_array_size;
 }
 
 static void match_allocation(struct expression *expr,
@@ -338,10 +338,10 @@ static void match_allocation(struct expression *expr,
 		return;
 	}
 
-	if (get_units(left) == &byte)
-		set_units(right, &array_size);
-	if (get_units(right) == &byte)
-		set_units(left, &array_size);
+	if (get_units(left) == &unit_byte)
+		set_units(right, &unit_array_size);
+	if (get_units(right) == &unit_byte)
+		set_units(left, &unit_array_size);
 }
 
 static void check_mult(struct expression *expr)
@@ -353,9 +353,9 @@ static void check_mult(struct expression *expr)
 	left = get_units(expr->left);
 	right = get_units(expr->right);
 
-	if (left == &bit || right == &bit)
+	if (left == &unit_bit || right == &unit_bit)
 		bit_found++;
-	if (left == &byte || right == &byte)
+	if (left == &unit_byte || right == &unit_byte)
 		byte_found++;
 
 	if (bit_found && byte_found) {
@@ -405,12 +405,12 @@ static void match_binop_set(struct expression *expr)
 	struct symbol *type;
 
 	if (expr->op == SPECIAL_LEFTSHIFT && is_PAGE_SHIFT(expr->right)) {
-		set_units(expr->left, &page);
+		set_units(expr->left, &unit_page);
 		return;
 	}
 
 	if (expr->op == SPECIAL_RIGHTSHIFT && is_PAGE_SHIFT(expr->right)) {
-		set_units(expr->left, &byte);
+		set_units(expr->left, &unit_byte);
 		return;
 	}
 

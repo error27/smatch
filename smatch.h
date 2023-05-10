@@ -39,10 +39,19 @@ struct smatch_state {
 	void *data;
 };
 #define STATE(_x) static struct smatch_state _x = { .name = #_x }
+#define GLOBAL_STATE(_x) struct smatch_state _x = { .name = #_x }
 extern struct smatch_state undefined;
 extern struct smatch_state merged;
 extern struct smatch_state true_state;
 extern struct smatch_state false_state;
+extern struct smatch_state unit_bit;
+extern struct smatch_state unit_byte;
+extern struct smatch_state unit_array_size;
+extern struct smatch_state unit_long;
+extern struct smatch_state unit_page;
+extern struct smatch_state unit_msec;
+extern struct smatch_state unit_ns;
+extern struct smatch_state unit_jiffy;
 DECLARE_ALLOCATOR(smatch_state);
 
 static inline void *INT_PTR(int i)
