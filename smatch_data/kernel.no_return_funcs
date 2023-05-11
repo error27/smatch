@@ -95,6 +95,7 @@ kgdboc_reset_disconnect
 kthread
 kthreadd
 kunit_abort
+kunit_do_failed_assertion
 kunit_generic_run_threadfn_adapter
 kunit_test_unsuccessful_try
 kunit_try_catch_throw
