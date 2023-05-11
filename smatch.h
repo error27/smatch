@@ -957,6 +957,7 @@ enum info_type {
 	BIT_IS_CLEAR	= 1054,
 
 	NEGATIVE_ERROR	= 1057,
+	ERR_PTR		= 1060,
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
 	/* put random temporary stuff in the 7000-7999 range for testing */
@@ -1546,6 +1547,8 @@ int is_unconstant_macro(struct expression *expr);
 /* smatch_assigned_state.c */
 void add_state_assigned_hook(int owner, sm_hook *call_back);
 void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
+
+bool possible_err_ptr(struct expression *expr);
 
 static inline bool type_is_ptr(struct symbol *type)
 {
