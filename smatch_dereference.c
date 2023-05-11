@@ -38,13 +38,40 @@ static void call_deref_hooks(struct expression *expr)
 
 static void match_dereference(struct expression *expr)
 {
+	struct expression *p, *tmp;
+
 	if (expr->type != EXPR_PREOP ||
 	    expr->op != '*')
 		return;
-	expr = strip_expr(expr->unop);
-	if (!is_pointer(expr))
+	p = strip_expr(expr->unop);
+	if (!is_pointer(p))
 		return;
-	call_deref_hooks(expr);
+	call_deref_hooks(p);
+
+	tmp = get_assigned_expr(p);
+	if (!tmp)
+		return;
+	/*
+	 * Imagine we have:
+	 * p = &foo->bar;
+	 * x = p->whatever;
+	 *
+	 * Note that we only care about address assignments because other
+	 * dereferences would have been handled already.
+	 */
+	p = strip_expr(tmp->unop);
+	if (tmp->type != EXPR_PREOP || tmp->op != '&')
+		return;
+	p = strip_expr(tmp->unop);
+	if (p->type != EXPR_DEREF)
+		return;
+	p = strip_expr(p->deref);
+	if (p->type != EXPR_PREOP || p->op != '*')
+		return;
+	p = strip_expr(p->unop);
+	if (!is_pointer(p))
+		return;
+	call_deref_hooks(p);
 }
 
 static void match_pointer_as_array(struct expression *expr)
