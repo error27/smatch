@@ -113,6 +113,7 @@ static struct preempt_info func_table[] = {
 	{ "mt76_tx_status_unlock",		PREEMPT_SUB },
 	{ "rht_unlock",				PREEMPT_SUB },
 	{ "bit_spin_unlock",			PREEMPT_SUB },
+	{ "__bit_spin_unlock",			PREEMPT_SUB },
 };
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
