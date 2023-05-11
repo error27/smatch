@@ -979,6 +979,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_state_count", &match_state_count, NULL);
 	add_function_hook("__smatch_mem", &match_mem, NULL);
 	add_function_hook("__smatch_exit", &match_exit, NULL);
+	add_function_hook("__smatch_units", &match_units, NULL);
 	add_function_hook("__smatch_container", &match_container, NULL);
 	add_function_hook("__smatch_param_key", &match_param_key, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
