@@ -91,6 +91,7 @@ CK(register_points_to_user_data)
 
 CK(register_kernel_host_data)
 CK(register_points_to_host_data)
+CK(register_kernel_err_ptr)
 
 CK(check_debug)
 
