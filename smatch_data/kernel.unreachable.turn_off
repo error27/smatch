@@ -2,3 +2,6 @@ BUG
 panic
 LBUG
 ASSERT
+KUNIT_FAIL
+kunit_err
+DEFINE_TEST_ALLOC
