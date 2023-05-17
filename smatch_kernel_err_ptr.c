@@ -86,8 +86,11 @@ static void set_error_code(struct expression *expr, const char *name, struct sym
 	char *macro;
 
 	macro = get_macro_name(expr->pos);
-	if (macro && strcmp(macro, "for_each_gpio_desc") == 0)
-		return;
+	if (macro) {
+		if (strcmp(macro, "for_each_gpio_desc") == 0 ||
+		    strcmp(macro, "for_each_gpio_desc_with_flag") == 0)
+			return;
+	}
 
 	set_state(my_id, name, sym, &err_ptr);
 }
