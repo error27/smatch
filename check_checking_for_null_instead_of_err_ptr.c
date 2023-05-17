@@ -21,47 +21,9 @@
 
 static int my_id;
 
-STATE(err_ptr);
-
-static struct string_list *ignored_macros;
-
-static int in_ignored_macro(struct position pos)
-{
-	const char *macro;
-	char *tmp;
-
-	macro = get_macro_name(pos);
-	if (!macro)
-		return 0;
-
-	FOR_EACH_PTR(ignored_macros, tmp) {
-		if (!strcmp(tmp, macro))
-			return 1;
-	} END_FOR_EACH_PTR(tmp);
-	return 0;
-}
-
-static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
-static void match_returns_err_ptr(const char *fn, struct expression *expr,
-				void *info)
-{
-	set_state_expr(my_id, expr->left, &err_ptr);
-}
-
 static void match_condition(struct expression *expr)
 {
-	struct sm_state *sm;
-	struct range_list *rl;
-	sval_t zero = {
-		.type = NULL,
-		{ .value = 0, }
-	};
 	char *name;
-	struct range_list *err_rl;
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->left);
@@ -69,34 +31,12 @@ static void match_condition(struct expression *expr)
 	if (!is_pointer(expr))
 		return;
 
-	sm = get_sm_state_expr(my_id, expr);
-	if (!sm)
-		return;
-	if (!slist_has_state(sm->possible, &err_ptr))
-		return;
-	if (!get_implied_rl(expr, &rl))
-		return;
-	zero.type = rl_type(rl);
-	if (rl_has_sval(rl, zero))
-		return;
-
-	/*
-	 * At this point we already know that the condition is bogus because
-	 * it's non-NULL.  But let's do another filter to make sure it really is
-	 * a possible error pointer.
-	 *
-	 */
-
-	err_rl = alloc_rl(err_min, err_max);
-	if (!possibly_true_rl(rl, SPECIAL_EQUAL, err_rl))
-		return;
-
-	if (in_ignored_macro(expr->pos))
-		return;
-
-	name = expr_to_str(expr);
-	sm_msg("warn: '%s' is an error pointer or valid", name);
-	free_string(name);
+	if (implied_not_equal(expr, 0) &&
+	    possible_err_ptr(expr)) {
+		name = expr_to_str(expr);
+		sm_msg("warn: '%s' is an error pointer or valid", name);
+		free_string(name);
+	}
 }
 
 static void match_condition2(struct expression *expr)
@@ -125,62 +65,14 @@ warn:
 	free_string(name);
 }
 
-static void register_err_ptr_funcs(void)
-{
-	struct token *token;
-	const char *func;
-
-	token = get_tokens_file("kernel.returns_err_ptr");
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		func = show_ident(token->ident);
-		add_function_assign_hook(func, &match_returns_err_ptr, NULL);
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
-static void register_ignored_macros(void)
-{
-	struct token *token;
-	char *macro;
-	char name[256];
-
-	snprintf(name, 256, "%s.ignore_bogus_null_checks", option_project_str);
-
-	token = get_tokens_file(name);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		macro = alloc_string(show_ident(token->ident));
-		add_ptr_list(&ignored_macros, macro);
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
 void check_checking_for_null_instead_of_err_ptr(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;
 
 	my_id = id;
-	register_err_ptr_funcs();
 	add_hook(&match_condition, CONDITION_HOOK);
 	if (option_spammy)
 		add_hook(&match_condition2, CONDITION_HOOK);
-	add_modification_hook(my_id, &ok_to_use);
-	register_ignored_macros();
 }
 
