@@ -21,6 +21,38 @@
 
 static int my_id;
 
+static const char *untrusted_fn_ptrs[] = {
+	"(struct target_core_fabric_ops)->fabric_make_np",
+	"(struct target_core_fabric_ops)->fabric_make_tpg",
+	"(struct configfs_group_operations)->make_item",
+	"(cgroup_subsys_state)->css_alloc",
+};
+
+static bool from_untrusted_fn_ptr(struct expression *expr)
+{
+	struct expression *prev;
+	char *member_name;
+	bool ret = false;
+	int i;
+
+	prev = get_assigned_expr(expr);
+	if (!prev || prev->type != EXPR_CALL)
+		return false;
+
+	member_name = get_member_name(prev->fn);
+	if (!member_name)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(untrusted_fn_ptrs); i++) {
+		if (strcmp(member_name, untrusted_fn_ptrs[i]) == 0) {
+			ret = true;
+			break;
+		}
+	}
+	free_string(member_name);
+	return ret;
+}
+
 static void match_condition(struct expression *expr)
 {
 	char *name;
@@ -32,7 +64,8 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (implied_not_equal(expr, 0) &&
-	    possible_err_ptr(expr)) {
+	    possible_err_ptr(expr) &&
+	    !from_untrusted_fn_ptr(expr)) {
 		name = expr_to_str(expr);
 		sm_msg("warn: '%s' is an error pointer or valid", name);
 		free_string(name);
@@ -60,6 +93,9 @@ static void match_condition2(struct expression *expr)
 	return;
 
 warn:
+	if (from_untrusted_fn_ptr(expr))
+		return;
+
 	name = expr_to_str(expr);
 	sm_warning("'%s' could be an error pointer", name);
 	free_string(name);
