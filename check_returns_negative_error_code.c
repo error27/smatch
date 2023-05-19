@@ -28,6 +28,21 @@ static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	struct sm_state *sm;
+	sval_t sval;
+
+	sm = get_sm_state(SMATCH_EXTRA, cur->name, cur->sym);
+	if (!sm || !estate_rl(sm->state))
+		return;
+	if (type_unsigned(estate_type(sm->state)))
+		return;
+	sval = estate_min(sm->state);
+	if (sval.value == 0)
+		set_state(my_id, cur->name, cur->sym, &undefined);
+}
+
 static bool is_error_macro(struct expression *expr)
 {
 	char *macro;
@@ -127,6 +142,7 @@ void check_returns_negative_error_code(int id)
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_modification_hook(my_id, &clear_state);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_split_return_callback(&match_return);
 	select_return_param_key(NEGATIVE_ERROR, &set_error_code);
 }
