@@ -21,6 +21,16 @@
 static int my_id;
 static struct expr_fn_list *deref_hooks;
 
+struct deref_info {
+	const char *name;
+	int param;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+};
+static struct deref_info fn_deref_table[] = {
+	{ "nla_data", 0, "$" },
+};
+
 void add_dereference_hook(expr_func *fn)
 {
 	add_ptr_list(&deref_hooks, fn);
@@ -92,12 +102,31 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	call_deref_hooks(deref);
 }
 
+static void param_deref(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct expression *deref;
+
+	deref = gen_expression_from_name_sym(name, sym);
+	if (!deref)
+		return;
+
+	call_deref_hooks(deref);
+}
+
 void register_dereferences(int id)
 {
+	struct deref_info *info;
+	int i;
+
 	my_id = id;
 
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
 	select_return_implies_hook_early(DEREFERENCE, &set_param_dereferenced);
+
+	for (i = 0; i < ARRAY_SIZE(fn_deref_table); i++) {
+		info = &fn_deref_table[i];
+		add_function_param_key_hook(info->name, &param_deref, info->param, info->key, info);
+	}
 }
 
