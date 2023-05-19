@@ -88,6 +88,8 @@ static void match_pointer_as_array(struct expression *expr)
 {
 	if (!is_array(expr))
 		return;
+	if (getting_address(expr))
+		return;
 	call_deref_hooks(get_array_base(expr));
 }
 
