@@ -53,6 +53,7 @@ while (<>) {
     s/(.*) [^ ]* (too large for) [^ ]+ (.*)/$1 $2 $3/;
     s/error: (.*?)\(\) '' too small /error: ...\(\) '' too small /;
     s/ \S+?\(\)/ ()/;
+    s/potentially tagged address \(.*\)/potentially tagged address ()/;
 
     add_msg($_);
 }
