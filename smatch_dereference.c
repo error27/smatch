@@ -69,7 +69,6 @@ static void match_dereference(struct expression *expr)
 	 * Note that we only care about address assignments because other
 	 * dereferences would have been handled already.
 	 */
-	p = strip_expr(tmp->unop);
 	if (tmp->type != EXPR_PREOP || tmp->op != '&')
 		return;
 	p = strip_expr(tmp->unop);
