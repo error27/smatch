@@ -28,9 +28,6 @@
 
 static int my_id;
 
-#define VAR_ON_RIGHT 0
-#define VAR_ON_LEFT 1
-
 static void match_assign(struct expression *expr)
 {
 	struct symbol *sym;
@@ -212,23 +209,6 @@ static int compare_against_macro(struct expression *expr)
 	return !!get_macro_name(expr->right->pos);
 }
 
-static int print_unsigned_never_less_than_zero(struct expression *expr)
-{
-	sval_t known;
-	char *name;
-
-	if (expr->op != SPECIAL_UNSIGNED_LT)
-		return 0;
-
-	if (!get_value(expr->right, &known) || known.value != 0)
-		return 0;
-
-	name = expr_to_str(expr->left);
-	sm_warning("unsigned '%s' is never less than zero.", name);
-	free_string(name);
-	return 1;
-}
-
 static bool check_is_ulong_max_recursive(struct expression *expr)
 {
 	sval_t sval;
@@ -301,10 +281,6 @@ static void match_condition(struct expression *expr)
 	if (compare_against_macro(expr))
 		return;
 	if (cap_both_sides(expr))
-		return;
-
-	/* This is a special case for the common error */
-	if (print_unsigned_never_less_than_zero(expr))
 		return;
 
 	/* check that one and only one side is known */
