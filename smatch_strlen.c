@@ -22,8 +22,6 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
-#define UNKNOWN_SIZE (-1)
-
 static int my_strlen_id;
 /*
  * The trick with the my_equiv_id is that if we have:
@@ -43,9 +41,14 @@ static struct smatch_state *size_to_estate(int size)
 	return alloc_estate_sval(sval);
 }
 
+static struct smatch_state *unknown_strlen(void)
+{
+	return alloc_estate_sval(int_minus_one);
+}
+
 static struct smatch_state *unmatched_strlen_state(struct sm_state *sm)
 {
-	return size_to_estate(UNKNOWN_SIZE);
+	return unknown_strlen();
 }
 
 static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_expr)
