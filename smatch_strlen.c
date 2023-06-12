@@ -51,9 +51,32 @@ static struct smatch_state *unmatched_strlen_state(struct sm_state *sm)
 	return unknown_strlen();
 }
 
+static bool handle_plus_plus(struct sm_state *sm, struct expression *mod_expr)
+{
+	struct range_list *rl;
+
+	if (!mod_expr)
+		return false;
+	if (mod_expr->type != EXPR_PREOP && mod_expr->type != EXPR_POSTOP)
+		return false;
+	if (mod_expr->op != SPECIAL_INCREMENT)
+		return false;
+
+	if (inside_loop())
+		return false;
+	if (!estate_rl(sm->state) || estate_min(sm->state).value <= 0)
+		return false;
+
+	rl = rl_binop(estate_rl(sm->state), '-', alloc_rl(int_one, int_one));
+	set_state(sm->owner, sm->name, sm->sym, alloc_estate_rl(rl));
+	return true;
+}
+
 static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_expr)
 {
-	set_state(sm->owner, sm->name, sm->sym, size_to_estate(UNKNOWN_SIZE));
+	if (handle_plus_plus(sm, mod_expr))
+		return;
+	set_state(sm->owner, sm->name, sm->sym, unknown_strlen());
 }
 
 static void set_strlen_equiv_undefined(struct sm_state *sm, struct expression *mod_expr)
