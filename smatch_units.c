@@ -89,6 +89,31 @@ static bool is_ignored_type(char *name)
 	return false;
 }
 
+static bool ARRAY_SIZE_is_bytes(struct expression *expr)
+{
+	sval_t sval;
+
+	expr = strip_expr(expr);
+	if (!expr)
+		return false;
+
+	/*
+	 * The kernel ARRAY_SIZE() macro is sizeof(array)/sizeof(array[0]) + 0
+	 * where 0 does some fancy type checking.
+	 *
+	 */
+	if (expr->type == EXPR_BINOP &&
+	    expr->op == '+' &&
+	    expr_is_zero(expr->right))
+		return ARRAY_SIZE_is_bytes(expr->left);
+
+	if (expr->type != EXPR_BINOP || expr->op != '/')
+		return false;
+	if (!get_value(expr->right, &sval) || sval.value != 1)
+		return false;
+	return true;
+}
+
 static void store_type_in_db(struct expression *expr, struct smatch_state *state)
 {
 	char *member;
@@ -260,6 +285,9 @@ struct smatch_state *get_units(struct expression *expr)
 	if (!expr)
 		return NULL;
 
+	if (expr_is_zero(expr))
+		return NULL;
+
 	if (expr->type == EXPR_PTRSIZEOF ||
 	    expr->type == EXPR_SIZEOF)
 		return &unit_byte;
@@ -275,8 +303,11 @@ struct smatch_state *get_units(struct expression *expr)
 			return &unit_bit;
 		if (strcmp(ident, "BITS_PER_LONG_LONG") == 0)
 			return &unit_bit;
-		if (strcmp(ident, "ARRAY_SIZE") == 0)
+		if (strcmp(ident, "ARRAY_SIZE") == 0) {
+			if (ARRAY_SIZE_is_bytes(expr))
+				return &unit_byte;
 			return &unit_array_size;
+		}
 	}
 
 	if (expr->type == EXPR_BINOP)
