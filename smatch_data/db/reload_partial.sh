@@ -17,11 +17,13 @@ db_file=smatch_db.sqlite
 
 files=$(grep "insert into caller_info" $info_file | cut -d : -f 1 | sort -u)
 for c_file in $files; do
-    echo "FILE $c_file"
-    echo "delete from caller_info where file = '$c_file';" | sqlite3 $db_file
-    echo "delete from return_states where file = '$c_file';" | sqlite3 $db_file
-    echo "delete from call_implies where file = '$c_file';" | sqlite3 $db_file
-    echo "delete from return_implies where file = '$c_file';" | sqlite3 $db_file
+    HASH=$(${bin_dir}/sm_hash $c_file)
+    echo "FILE '$c_file' HASH $HASH"
+
+    echo "delete from caller_info where file = '${HASH}';" | sqlite3 $db_file
+    echo "delete from return_states where file = '${HASH}';" | sqlite3 $db_file
+    echo "delete from call_implies where file = '${HASH}';" | sqlite3 $db_file
+    echo "delete from return_implies where file = '${HASH}';" | sqlite3 $db_file
 done
 
 tmp_file=$(mktemp)
