@@ -17,7 +17,7 @@ sub get_too_common_functions($$$)
     my $project = shift;
     my $warns = shift;
 
-    open(FUNCS, "grep 'SQL_caller_info: ' $warns | grep '%call_marker%' | cut -d \"'\" -f 6 | sort | uniq -c | ");
+    open(FUNCS, "grep 'SQL_caller_info: ' $warns | grep '%call_marker%' | cut -d \"'\" -f 4 | sort | uniq -c | ");
 
     while (<FUNCS>) {
         if ($_ =~ /(\d+) (.*)/) {
@@ -68,7 +68,7 @@ my ($fn, $dummy, $sql);
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
-    # test.c:11 frob() SQL_caller_info: insert into caller_info values ('test.c', 'frob', '__smatch_buf_size', %CALL_ID%, 1, 0, -1, '', ');
+    # net/mac80211/util.c:1857 ieee80211_send_auth() SQL_caller_info: insert into caller_info values (0x1e4debd9f09b1007, 'ieee80211_send_auth', 'fortify_memcpy_chk', %CALL_ID%, 0, 0, -1, '%call_marker%', 'bool(*)(ulong, ulong, ulong, ulong, ulong, char*)');
 
     if (!($_ =~ /^.*? \w+\(\) SQL_caller_info: /)) {
         next;
