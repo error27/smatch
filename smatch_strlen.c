@@ -261,6 +261,31 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_strlen_id, dest, alloc_estate_rl(rl));
 }
 
+static void match_str_chr(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct expression *call, *orig;
+	struct smatch_state *state;
+	struct range_list *rl;
+	sval_t max;
+
+	call = expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(expr->right);
+	if (!call || call->type != EXPR_CALL)
+		return;
+
+	orig = get_argument_from_call_expr(call->args, 0);
+	if (!get_implied_strlen(orig, &rl))
+		return;
+	max = rl_max(rl);
+	max.value--;
+	if (max.value < 0)
+		return;
+
+	state = alloc_estate_range(int_one, max);
+	set_state(my_strlen_id, name, sym, state);
+}
+
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
 {
 	sval_t sval;
@@ -393,6 +418,14 @@ void register_strlen(int id)
 	add_function_hook("strlcpy", &match_strlcpycat, NULL);
 	add_function_hook("strlcat", &match_strlcpycat, NULL);
 	add_function_hook("strcpy", &match_strcpy, NULL);
+	/*
+	 * I would have made strchr only apply for success returns but some
+	 * arches (arm64) impliment strchr outside the kernel so we don't know
+	 * the return values.  Having a NULL with a strlen is fine because if
+	 * someone uses the NULL then we're already in trouble.
+	 */
+	add_function_param_key_hook("strchr", match_str_chr, -1, "$", NULL);
+
 	add_function_hook("__builtin_strcpy", &match_strcpy, NULL);
 }
 
