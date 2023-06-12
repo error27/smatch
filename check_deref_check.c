@@ -27,42 +27,13 @@ static void underef(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &undefined);
 }
 
-static void match_dereference(struct expression *expr)
+static void deref_hook(struct expression *expr)
 {
-	if (__in_fake_assign)
-		return;
-
-	if (expr->type != EXPR_PREOP)
-		return;
-	expr = strip_expr(expr->unop);
-	if (!is_pointer(expr))
-		return;
 	if (implied_not_equal(expr, 0))
 		return;
-
 	if (is_impossible_path())
 		return;
-
 	set_state_expr(my_id, expr, &derefed);
-}
-
-static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-	if (name[0] == '&')
-		goto free;
-
-	if (implied_not_equal_name_sym(name, sym, 0))
-		goto free;
-	set_state(my_id, name, sym, &derefed);
-
-free:
-	free_string(name);
 }
 
 static void match_condition(struct expression *expr)
@@ -92,8 +63,9 @@ static void match_condition(struct expression *expr)
 void check_deref_check(int id)
 {
 	my_id = id;
-	add_hook(&match_dereference, DEREF_HOOK);
-	add_hook(&match_condition, CONDITION_HOOK);
-	select_return_implies_hook_early(DEREFERENCE, &set_param_dereferenced);
+
+	add_dereference_hook(deref_hook);
 	add_modification_hook(my_id, &underef);
+
+	add_hook(&match_condition, CONDITION_HOOK);
 }
