@@ -81,6 +81,8 @@ static struct user_fn_info func_table[] = {
 	{ "cfg80211_find_vendor_ie", USER_PTR_SET, -1, "$" },
 
 	{ "xdr_inline_decode", USER_PTR_SET, -1, "$" },
+	{ "ntfs_read_run_nb", USER_PTR_SET, 3, "$" },
+	{ "ntfs_read_bh", USER_PTR_SET, 3, "(0<~$0)" },
 
 	{ "kstrtoull", USER_PTR_SET, 2, "$" },
 	{ "kstrtoll", USER_PTR_SET, 2, "$" },
@@ -332,7 +334,6 @@ static void returns_user_ptr_helper(struct expression *expr, const char *name, s
 		return;
 
 	create_recursive_fake_assignments(deref_expression(arg), &fake_assign_helper, INT_PTR(set));
-
 
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		struct symbol *type;
