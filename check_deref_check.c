@@ -16,6 +16,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_slist.h"
 #include "smatch_extra.h"
 
 static int my_id;
@@ -60,6 +61,26 @@ static void match_condition(struct expression *expr)
 	set_state_expr(my_id, expr, &undefined);
 }
 
+static void match_err_check(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct sm_state *sm;
+	char *macro;
+
+	if (__in_pre_condition)
+		return;
+
+	sm = get_sm_state(my_id, name, sym);
+	if (!sm || sm->state != &derefed)
+		return;
+
+	macro = get_macro_name(expr->pos);
+	if (macro && strcmp(macro, "gvt_vgpu_err") == 0)
+		return;
+
+	sm_warning("variable dereferenced before IS_ERR check '%s' (see line %d)", sm->name, sm->line);
+	set_state_expr(my_id, expr, &undefined);
+}
+
 void check_deref_check(int id)
 {
 	my_id = id;
@@ -68,4 +89,8 @@ void check_deref_check(int id)
 	add_modification_hook(my_id, &underef);
 
 	add_hook(&match_condition, CONDITION_HOOK);
+
+	add_function_param_key_hook("IS_ERR", &match_err_check, 0, "$", NULL);
+	add_function_param_key_hook("PTR_ERR_OR_ZERO", &match_err_check, 0, "$", NULL);
+	add_function_param_key_hook("IS_ERR_OR_NULL", &match_err_check, 0, "$", NULL);
 }
