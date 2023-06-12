@@ -225,6 +225,7 @@ static void match_strlcpycat(const char *fn, struct expression *expr, void *unus
 	struct expression *dest;
 	struct expression *src;
 	struct expression *limit_expr;
+	struct smatch_state *state;
 	int src_len;
 	sval_t limit;
 
@@ -241,23 +242,23 @@ static void match_strlcpycat(const char *fn, struct expression *expr, void *unus
 	if (src_len != 0 && strcmp(fn, "strcpy") == 0 && src_len < limit.value)
 		limit.value = src_len;
 
-	set_state_expr(my_strlen_id, dest, size_to_estate(limit.value - 1));
+	state = alloc_estate_range(int_zero, sval_type_val(&int_ctype, limit.value - 1));
+	set_state_expr(my_strlen_id, dest, state);
 }
 
 static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *dest;
 	struct expression *src;
-	int src_len;
+	struct range_list *rl;
 
 	dest = get_argument_from_call_expr(expr->args, 0);
 	src = get_argument_from_call_expr(expr->args, 1);
 
-	src_len = get_size_from_strlen(src);
-	if (src_len == 0)
+	if (!get_implied_strlen(src, &rl))
 		return;
 
-	set_state_expr(my_strlen_id, dest, size_to_estate(src_len - 1));
+	set_state_expr(my_strlen_id, dest, alloc_estate_rl(rl));
 }
 
 static int get_strlen_from_string(struct expression *expr, struct range_list **rl)
