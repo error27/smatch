@@ -813,6 +813,7 @@ static void handle_pre_loop(struct statement *stmt)
 	loop_name = get_loop_name(loop_num);
 	loop_num++;
 
+	split_declaration(stmt->iterator_syms);
 	if (stmt->iterator_pre_statement) {
 		__split_stmt(stmt->iterator_pre_statement);
 		__prev_stmt = stmt->iterator_pre_statement;
