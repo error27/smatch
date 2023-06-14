@@ -798,6 +798,29 @@ static char *get_loop_name(int num)
 	return alloc_sname(buf);
 }
 
+static struct bool_stmt_fn_list *once_through_hooks;
+void add_once_through_hook(bool_stmt_func *fn)
+{
+	add_ptr_list(&once_through_hooks, fn);
+}
+
+static bool call_once_through_hooks(struct statement *stmt)
+{
+	bool_stmt_func *fn;
+
+	if (implied_condition_true(stmt->iterator_pre_condition))
+		return true;
+	if (option_assume_loops)
+		return true;
+
+	FOR_EACH_PTR(once_through_hooks, fn) {
+		if ((fn)(stmt))
+			return true;
+	} END_FOR_EACH_PTR(fn);
+
+	return false;
+}
+
 /*
  * Pre Loops are while and for loops.
  */
@@ -819,7 +842,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__prev_stmt = stmt->iterator_pre_statement;
 	}
 
-	once_through = implied_condition_true(stmt->iterator_pre_condition);
+	once_through = call_once_through_hooks(stmt);
 
 	loop_count++;
 	__push_continues();
@@ -838,9 +861,6 @@ static void handle_pre_loop(struct statement *stmt)
 	free_stree(&stree);
 	if (extra_sm)
 		extra_sm = get_sm_state(extra_sm->owner, extra_sm->name, extra_sm->sym);
-
-	if (option_assume_loops)
-		once_through = 1;
 
 	__split_stmt(stmt->iterator_statement);
 	if (is_forever_loop(stmt)) {
