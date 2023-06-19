@@ -117,10 +117,15 @@ static struct symbol *get_binop_type(struct expression *expr)
 
 static struct symbol *get_type_symbol(struct expression *expr)
 {
+	struct symbol *type;
+
 	if (!expr || expr->type != EXPR_SYMBOL || !expr->symbol)
 		return NULL;
 
-	return get_real_base_type(expr->symbol);
+	type = get_real_base_type(expr->symbol);
+	if (type == &autotype_ctype)
+		return get_type(expr->symbol->initializer);
+	return type;
 }
 
 static struct symbol *get_member_symbol(struct symbol_list *symbol_list, struct ident *member)
