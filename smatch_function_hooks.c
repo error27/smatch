@@ -1667,6 +1667,8 @@ static void match_function_call(struct expression *expr)
 {
 	call_function_hooks(expr, REGULAR_CALL);
 	db_return_states_call(expr);
+	/* If we have no database there could be unprocessed fake calls */
+	parse_fake_calls();
 }
 
 static void match_macro_assign(struct expression *expr)
@@ -1740,6 +1742,7 @@ void register_function_hooks_early(int id)
 
 void register_function_hooks(int id)
 {
+	add_function_data((unsigned long *)&fake_calls);
 	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
