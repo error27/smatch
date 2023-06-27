@@ -2783,6 +2783,65 @@ static struct expression *get_star_pointer_hack(struct expression *arg, const ch
 	return arg;
 }
 
+static bool handle_param_assign(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *arg, *left, *right, *fake_assign;
+	struct range_list *filter, *filtered;
+	struct symbol *arg_type, *param_type;
+	struct smatch_state *state, *clone;
+	char right_key[64];
+	int right_param;
+	char buf[64];
+	char *p;
+
+	p = strchr(value, '[');
+	if (!p)
+		return false;
+	p++;
+	if (*p != '$')
+		return false;
+	snprintf(buf, sizeof(buf), "%s", p);
+	p = strchr(buf, ']');
+	if (!p)
+		return false;
+	*p = '\0';
+
+	if (!split_param_key(buf, &right_param, right_key, sizeof(right_key)))
+		return false;
+
+	left = gen_expr_from_param_key(expr, param, key);
+	if (!left)
+		return false;
+	right = gen_expr_from_param_key(expr, right_param, right_key);
+	if (!right)
+		return false;
+
+	fake_assign = assign_expression(left, '=', right);
+	fake_param_assign_helper(expr, fake_assign, true);
+
+	/* Assignment faked.  Now filter the results */
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return false;
+	state = get_extra_state(left);
+	if (!state)
+		return false;
+	arg_type = get_arg_type_from_key(expr->fn, param, arg, key);
+	param_type = get_member_type_from_key(arg, key);
+	if (param_type && param_type->type == SYM_STRUCT)
+		return false;
+	call_results_to_rl(expr, arg_type, value, &filter);
+	filter = cast_rl(param_type, filter);
+	filtered = rl_intersection(estate_rl(state), filter);
+
+	if (!rl_equiv(estate_rl(state), filtered)) {
+		clone = clone_partial_estate(state, filtered);
+		set_extra_expr_nomod(left, clone);
+	}
+
+	return true;
+}
+
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg, *gen_expr;
@@ -2798,6 +2857,11 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 		expr = strip_expr(expr->right);
 	if (expr->type != EXPR_CALL)
 		return;
+
+	if (op == PARAM_SET) {
+		if (handle_param_assign(expr, param, key, value))
+			return;
+	}
 
 	arg = get_argument_from_call_expr(expr->args, param);
 	if (!arg)
