@@ -186,13 +186,67 @@ static void handle_non_struct_assignments(struct expression *left, struct expres
 	assign_handler(assign, data);
 }
 
+static bool dont_care(int mode, struct stree *left_care, struct stree *right_care,
+		      struct expression *left, struct expression *right)
+{
+	struct symbol *left_sym, *right_sym;
+	int left_len = 0, right_len = 0;
+	char *left_name = NULL;
+	char *right_name = NULL;
+	struct sm_state *sm;
+	int ret = false;
+	int len;
+
+	if (mode == COPY_ZERO)
+		return false;
+
+	left_name = expr_to_str_sym(left, &left_sym);
+	if (left_name && !strstr(left_name, "->"))
+		goto free;
+	if (left_name)
+		left_len = strlen(left_name);
+
+	ret = true;
+	FOR_EACH_SM(left_care, sm) {
+		len = strlen(sm->name);
+		if (left_name && left_sym == sm->sym &&
+		    len >= left_len &&
+		    strncmp(sm->name, left_name, len)) {
+			ret = false;
+			goto free;
+		}
+	} END_FOR_EACH_SM(sm);
+
+	right_name = expr_to_str_sym(right, &right_sym);
+	if (right_name)
+		right_len = strlen(right_name);
+	if (!right_sym || left_sym == right_sym)
+		goto free;
+
+	FOR_EACH_SM(right_care, sm) {
+		len = strlen(sm->name);
+		if (right_name && right_sym == sm->sym &&
+		    len >= right_len &&
+		    strncmp(sm->name, right_name, len)) {
+			ret = false;
+			goto free;
+		}
+	} END_FOR_EACH_SM(sm);
+
+free:
+	free_string(left_name);
+	free_string(right_name);
+	return ret;
+}
+
 static void set_inner_struct_members(int mode, struct expression *faked,
 		struct expression *left, struct expression *right, struct symbol *member,
+		struct stree *care_left, struct stree *care_right,
 		void (*assign_handler)(struct expression *expr, void *data),
 		void *data)
 {
 	struct expression *left_member;
-	struct expression *right_expr = NULL;  /* silence GCC */
+	struct expression *right_expr;
 	struct expression *assign;
 	struct symbol *base = get_real_base_type(member);
 	struct symbol *tmp;
@@ -202,6 +256,9 @@ static void set_inner_struct_members(int mode, struct expression *faked,
 		if (mode == COPY_NORMAL && right)
 			right = member_expression(right, '.', member->ident);
 	}
+
+	if (dont_care(mode, care_left, care_right, left, right))
+		return;
 
 	FOR_EACH_PTR(base->symbol_list, tmp) {
 		struct symbol *type;
@@ -213,7 +270,7 @@ static void set_inner_struct_members(int mode, struct expression *faked,
 		if (type->type == SYM_ARRAY)
 			continue;
 		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
-			set_inner_struct_members(mode, faked, left, right, tmp, assign_handler, data);
+			set_inner_struct_members(mode, faked, left, right, tmp, care_left, care_right, assign_handler, data);
 			continue;
 		}
 		if (!tmp->ident)
@@ -234,6 +291,36 @@ static void set_inner_struct_members(int mode, struct expression *faked,
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void get_care_stree(struct expression *left, struct stree **left_care,
+			   struct expression *right, struct stree **right_care)
+{
+	struct symbol *left_sym, *right_sym;
+	struct sm_state *sm;
+
+	*left_care = NULL;
+	*right_care = NULL;
+
+	left_sym = expr_to_sym(left);
+	right_sym = expr_to_sym(right);
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (!sm->sym)
+			continue;
+		if (sm->sym == left_sym)
+			overwrite_sm_state_stree(left_care, sm);
+	} END_FOR_EACH_SM(sm);
+
+	if (!right_sym || left_sym == right_sym)
+		return;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (!sm->sym)
+			continue;
+		if (sm->sym == right_sym)
+			overwrite_sm_state_stree(right_care, sm);
+	} END_FOR_EACH_SM(sm);
+}
+
 static void __struct_members_copy(int mode, struct expression *faked,
 				  struct expression *left,
 				  struct expression *right,
@@ -241,12 +328,15 @@ static void __struct_members_copy(int mode, struct expression *faked,
 				  void *data)
 {
 	struct symbol *struct_type, *tmp, *type;
+	struct stree *care_left = NULL;
+	struct stree *care_right = NULL;
 	struct expression *left_member;
 	struct expression *right_expr;
 	struct expression *assign;
 
 	if (__in_fake_assign || !left)
 		return;
+
 	faked_expression = faked;
 
 	left = strip_expr(left);
@@ -269,6 +359,8 @@ static void __struct_members_copy(int mode, struct expression *faked,
 	if (mode == COPY_NORMAL)
 		right = get_right_base_expr(struct_type, right);
 
+	if (mode != COPY_ZERO)
+		get_care_stree(left, &care_left, right, &care_right);
 	FOR_EACH_PTR(struct_type->symbol_list, tmp) {
 		type = get_real_base_type(tmp);
 		if (!type)
@@ -277,7 +369,9 @@ static void __struct_members_copy(int mode, struct expression *faked,
 			continue;
 
 		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
-			set_inner_struct_members(mode, faked, left, right, tmp, assign_handler, data);
+			set_inner_struct_members(mode, faked, left, right, tmp,
+						 care_left, care_right,
+						 assign_handler, data);
 			continue;
 		}
 
@@ -298,6 +392,8 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		assign_handler(assign, data);
 	} END_FOR_EACH_PTR(tmp);
 
+	free_stree(&care_left);
+	free_stree(&care_right);
 done:
 	faked_expression = NULL;
 }
