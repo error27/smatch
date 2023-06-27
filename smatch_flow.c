@@ -1609,6 +1609,28 @@ static void split_args(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void call_cleanup_fn(void *_sym)
+{
+	struct symbol *sym = _sym;
+	struct expression *call, *arg;
+	struct expression_list *args = NULL;
+
+	if (!sym->cleanup)
+		return;
+
+	arg = symbol_expression(sym);
+	arg = preop_expression(arg, '&');
+	add_ptr_list(&args, arg);
+	call = call_expression(sym->cleanup, args);
+
+	__split_expr(call);
+}
+
+static void add_cleanup_hook(struct symbol *sym)
+{
+	add_scope_hook(&call_cleanup_fn, sym);
+}
+
 static void split_sym(struct symbol *sym)
 {
 	if (!sym)
@@ -1618,6 +1640,8 @@ static void split_sym(struct symbol *sym)
 
 	__split_stmt(sym->stmt);
 	__split_expr(sym->array_size);
+	if (sym->cleanup)
+		add_cleanup_hook(sym);
 	split_symlist(sym->arguments);
 	split_symlist(sym->symbol_list);
 	__split_stmt(sym->inline_stmt);
