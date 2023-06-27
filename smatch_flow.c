@@ -425,6 +425,11 @@ static int handle__builtin_choose_expr_assigns(struct expression *expr)
 	struct expression *const_expr, *right, *expr1, *expr2, *fake;
 	sval_t sval;
 
+	/*
+	 * We can't use strip_no_cast() because it strips out
+	 * __builtin_choose_expr() which turns this function into a no-op.
+	 *
+	 */
 	right = strip_parens(expr->right);
 	if (right->type != EXPR_CALL)
 		return 0;
