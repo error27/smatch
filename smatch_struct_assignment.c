@@ -63,6 +63,8 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+static int my_id;
+
 enum {
 	COPY_NORMAL,
 	COPY_UNKNOWN,
@@ -613,6 +615,8 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 
 void register_struct_assignment(int id)
 {
+	my_id = id;
+
 	add_function_data((unsigned long *)&faked_expression);
 
 	add_function_hook("memset", &match_memset, NULL);
