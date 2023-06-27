@@ -130,6 +130,7 @@ struct db_callback_info {
 	int prev_return_id;
 	int cull;
 	int has_states;
+	bool states_merged;
 	char *ret_str;
 	struct smatch_state *ret_state;
 	struct expression *var_expr;
@@ -1093,8 +1094,10 @@ static void process_return_states(struct db_callback_info *db_info)
 		__print_stree(stree);
 	}
 
-	if (!db_info->cull)
+	if (!db_info->cull) {
 		merge_fake_stree(&db_info->stree, stree);
+		db_info->states_merged = true;
+	}
 	free_stree(&stree);
 
 	db_info->ret_state = NULL;
@@ -1281,6 +1284,9 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 
 	free_stree(&true_states);
 	free_stree(&false_states);
+
+	if (!db_info.states_merged)
+		mark_call_params_untracked(call_expr);
 
 	call_return_states_after_hooks(call_expr);
 
@@ -1483,6 +1489,10 @@ static int db_return_states_assign(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&db_info.stree);
+
+	if (!db_info.states_merged)
+		mark_call_params_untracked(right);
+
 	call_return_states_after_hooks(right);
 
 	return db_info.handled;
@@ -1643,6 +1653,10 @@ static void db_return_states(struct expression *expr)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&db_info.stree);
+
+	if (!db_info.states_merged)
+		mark_call_params_untracked(expr);
+
 	call_return_states_after_hooks(expr);
 }
 
