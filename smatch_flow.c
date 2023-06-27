@@ -551,7 +551,8 @@ static void split_call(struct expression *expr)
 	__add_ptr_list((struct ptr_list **)&parsed_calls, expr);
 }
 
-void parse_assignment(struct expression *expr)
+static unsigned long skip_split;
+void parse_assignment(struct expression *expr, bool shallow)
 {
 	struct expression *right;
 
@@ -561,6 +562,9 @@ void parse_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	if (!right)
 		return;
+
+	if (shallow)
+		skip_split++;
 
 	__pass_to_client(expr, RAW_ASSIGNMENT_HOOK);
 
@@ -572,14 +576,14 @@ void parse_assignment(struct expression *expr)
 		goto after_assign;
 	/* foo = ({frob(); frob(); frob(); 1;}) */
 	if (__handle_expr_statement_assigns(expr))
-		return;  // FIXME: got after
+		goto done;  // FIXME: goto after
 	/* foo = (3, 4); */
 	if (handle_comma_assigns(expr))
 		goto after_assign;
 	if (handle__builtin_choose_expr_assigns(expr))
 		goto after_assign;
 	if (handle_postop_assigns(expr))
-		return;  /* no need to goto after_assign */
+		goto done;  /* no need to goto after_assign */
 
 	__split_expr(expr->right);
 	if (outside_of_function())
@@ -603,6 +607,10 @@ after_assign:
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
 	__split_expr(expr->left);
+
+done:
+	if (shallow)
+		skip_split--;
 }
 
 static bool skip_split_off(struct expression *expr)
@@ -621,6 +629,9 @@ void __split_expr(struct expression *expr)
 	if (skip_split_off(expr))
 		__debug_skip = 0;
 	if (__debug_skip)
+		return;
+
+	if (skip_split)
 		return;
 
 //	if (local_debug)
@@ -685,7 +696,7 @@ void __split_expr(struct expression *expr)
 		__split_expr(expr->right);
 		break;
 	case EXPR_ASSIGNMENT:
-		parse_assignment(expr);
+		parse_assignment(expr, false);
 		break;
 	case EXPR_DEREF:
 		expr_set_parent_expr(expr->deref, expr);
