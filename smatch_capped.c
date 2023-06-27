@@ -150,7 +150,6 @@ static void match_condition(struct expression *expr)
 	struct smatch_state *right_false = NULL;
 	sval_t sval;
 
-
 	if (expr->type != EXPR_COMPARE)
 		return;
 
