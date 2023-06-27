@@ -800,13 +800,6 @@ static int handle_zero_comparison(struct expression *expr,
 	if (expr->type == EXPR_POSTOP)
 		expr = strip_expr(expr->unop);
 
-	if (expr->type == EXPR_ASSIGNMENT) {
-		/* most of the time ->pools will be empty here because we
-		   just set the state, but if have assigned a conditional
-		   function there are implications. */
-		expr = expr->left;
-	}
-
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
