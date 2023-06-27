@@ -110,7 +110,7 @@ static void insert_sleep(void)
 {
 	if (get_state(my_id, "sleep", NULL) != &sleep)
 		return;
-	sql_insert_return_implies(SLEEP, -1, "", "");
+	sql_insert_return_implies(SLEEP, -2, "", "");
 }
 
 void add_sleep_callback(expr_func *fn)
