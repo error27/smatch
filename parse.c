@@ -79,7 +79,8 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
 
 static attr_t
-	attribute_packed, attribute_aligned, attribute_modifier,
+	attribute_packed, attribute_aligned, attribute_cleanup,
+	attribute_modifier,
 	attribute_function,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
@@ -361,6 +362,10 @@ static struct symbol_op aligned_op = {
 	.attribute = attribute_aligned,
 };
 
+static struct symbol_op cleanup_op = {
+	.attribute = attribute_cleanup,
+};
+
 static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
@@ -537,6 +542,7 @@ static struct init_keyword {
 	/* Attributes */
 	D("packed",		&packed_op),
 	D("aligned",		&aligned_op),
+	D("__cleanup__",	&cleanup_op),
 	D("nocast",		&attr_mod_op,		.mods = MOD_NOCAST),
 	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
 	D("safe",		&attr_mod_op,		.mods = MOD_SAFE),
@@ -1111,6 +1117,18 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 		return token;
 	} else if (alignment > ctx->ctype.alignment)
 		ctx->ctype.alignment = alignment;
+	return token;
+}
+
+static struct token *attribute_cleanup(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	struct expression *expr = NULL;
+
+	if (match_op(token, '(')) {
+		token = parens_expression(token, &expr, "in attribute");
+		if (expr && expr->type == EXPR_SYMBOL)
+			ctx->cleanup = expr;
+	}
 	return token;
 }
 
@@ -1910,6 +1928,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
+		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		add_symbol(list, decl);
 		if (!match_op(token, ','))
@@ -1964,6 +1983,7 @@ struct token *typename(struct token *token, struct symbol **p, int *forced)
 	token = declarator(token, &ctx);
 	apply_modifiers(token->pos, &ctx);
 	sym->ctype = ctx.ctype;
+	sym->cleanup = ctx.cleanup;
 	sym->endpos = token->pos;
 	class = ctx.storage_class;
 	if (forced)
@@ -2978,6 +2998,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	decl->ctype = ctx.ctype;
 	decl->ctype.modifiers |= mod;
+	decl->cleanup = ctx.cleanup;
 	decl->endpos = token->pos;
 
 	/* Just a type declaration? */
@@ -3102,6 +3123,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
+		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		if (!ident) {
 			sparse_error(token->pos, "expected identifier name in type definition");
