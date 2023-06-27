@@ -406,7 +406,8 @@ void filter_by_comparison(struct range_list **rl, int comparison, struct range_l
 	struct symbol *cast_type;
 	sval_t min, max;
 
-	if (comparison == UNKNOWN_COMPARISON)
+	if (comparison == UNKNOWN_COMPARISON ||
+	    comparison == IMPOSSIBLE_COMPARISON)
 		return;
 
 	cast_type = rl_type(left_orig);
@@ -1322,6 +1323,8 @@ int possibly_true(struct expression *left, int comparison, struct expression *ri
 
 	if (comparison == UNKNOWN_COMPARISON)
 		return 1;
+	if (comparison == IMPOSSIBLE_COMPARISON)
+		return 0;
 	if (!get_implied_rl(left, &rl_left))
 		return 1;
 	if (!get_implied_rl(right, &rl_right))
@@ -1381,6 +1384,8 @@ int possibly_true_rl(struct range_list *left_ranges, int comparison, struct rang
 
 	if (!left_ranges || !right_ranges || comparison == UNKNOWN_COMPARISON)
 		return 1;
+	if (comparison == IMPOSSIBLE_COMPARISON)
+		return 0;
 
 	type = rl_type(left_ranges);
 	if (type_positive_bits(type) < type_positive_bits(rl_type(right_ranges)))
@@ -1407,6 +1412,8 @@ int possibly_false_rl(struct range_list *left_ranges, int comparison, struct ran
 
 	if (!left_ranges || !right_ranges || comparison == UNKNOWN_COMPARISON)
 		return 1;
+	if (comparison == IMPOSSIBLE_COMPARISON)
+		return 0;
 
 	type = rl_type(left_ranges);
 	if (type_positive_bits(type) < type_positive_bits(rl_type(right_ranges)))
