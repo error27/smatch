@@ -15,6 +15,23 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+/*
+ * The param/key stuff is changes "0/$->foo" into a name/sym pair.
+ * It also handles more complicated mappings like container_of(param).
+ * The problem with the current implementation of the container_of()
+ * code in 2023 is that it does stuff like (1624<~$0)->sk.sk_write_queue.next
+ * where 1624 is the number of bytes.  It's difficult to write that kind
+ * of code by hand.
+ *
+ * We also need to be able to handle things like netdev_priv().  When you
+ * allocate a netdev struct then you have to specify how much space you need
+ * for your private data and it allocates a enough data to hold everything.
+ * the netdev_priv() function returns a pointer to beyond the end of the
+ * netdev struct.  So the container_of() macro subtracts and the netdev_priv()
+ * function adds.
+ *
+ */
+
 #include "ctype.h"
 #include "smatch.h"
 #include "smatch_extra.h"
@@ -178,6 +195,31 @@ struct expression *map_container_of_to_simpler_expr_key(struct expression *expr,
 	return container;
 }
 
+struct expression *map_netdev_priv_to_simpler_expr_key(struct expression *expr, const char *orig_key, char **new_key)
+{
+	struct expression *priv;
+	char buf[64];
+	int diff;
+	char *p;
+
+	priv = get_netdev_priv(expr);
+	if (!priv)
+		return NULL;
+	if (priv->type != EXPR_SYMBOL || !priv->symbol_name)
+		return NULL;
+
+	p = strstr(orig_key, "r netdev_priv($)");
+	if (!p)
+		return NULL;
+	diff = p - orig_key;
+	if (diff == 1) /* remove () */
+		snprintf(buf, sizeof(buf), "$%s", orig_key + 18);
+	else
+		snprintf(buf, sizeof(buf), "%.*s$%s", diff, orig_key, orig_key + diff + 16);
+	*new_key = alloc_sname(buf);
+	return priv;
+}
+
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
 	struct symbol *type;
@@ -240,6 +282,20 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		char *new_key = NULL;
 
 		expr = map_container_of_to_simpler_expr_key(arg, key, &new_key);
+		if (!expr)
+			return NULL;
+		if (arg != expr) {
+			arg = expr;
+			*sym = expr_to_sym(expr);
+		}
+		key = new_key;
+	}
+
+	if (strstr(key, "(r netdev_priv($))")) {
+		struct expression *expr;
+		char *new_key = NULL;
+
+		expr = map_netdev_priv_to_simpler_expr_key(arg, key, &new_key);
 		if (!expr)
 			return NULL;
 		if (arg != expr) {
@@ -386,6 +442,9 @@ static char *state_name_to_param_name(const char *state_name, const char *param_
 	 * param name.
 	 */
 	if (strstr(state_name, "<~$"))
+		return (char *)state_name;
+
+	if (strstr(state_name, "r netdev_priv($)"))
 		return (char *)state_name;
 
 	name_len = strlen(param_name);
@@ -809,6 +868,34 @@ static char *handle_container_of_assign(struct expression *expr, struct symbol *
 	return alloc_string(buf);
 }
 
+static char *handle_netdev_priv_assign(struct expression *expr, struct symbol **sym)
+{
+	struct expression *right, *arg;
+	char buf[64];
+
+	if (option_project != PROJ_KERNEL)
+		return NULL;
+
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return NULL;
+	right = strip_expr(expr->right);
+	if (!right || right->type != EXPR_CALL)
+		return NULL;
+
+	if (!sym_name_is("netdev_priv", right->fn))
+		return NULL;
+
+	arg = get_argument_from_call_expr(right->args, 0);
+	arg = strip_expr(arg);
+	if (!arg || arg->type != EXPR_SYMBOL)
+		return NULL;
+
+	/* This isn't necessarily tied to a param */
+	snprintf(buf, sizeof(buf), "(r netdev_priv($))");
+	*sym = arg->symbol;
+	return alloc_string(buf);
+}
+
 const char *get_container_of_str(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -839,6 +926,10 @@ static void match_assign(struct expression *expr)
 		goto set_state;
 
 	param_name = handle_container_of_assign(expr, &param_sym);
+	if (param_name && param_sym)
+		goto set_state;
+
+	param_name = handle_netdev_priv_assign(expr, &param_sym);
 	if (param_name && param_sym)
 		goto set_state;
 
