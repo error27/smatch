@@ -269,12 +269,47 @@ static void buf_cleared(struct expression *expr, const char *name, struct symbol
 	buf_cleared_db(expr, name, sym, value);
 }
 
+static bool parent_set(struct stree *set, struct sm_state *sm)
+{
+	struct sm_state *tmp;
+	int len;
+	int ret;
+
+	FOR_EACH_SM(set, tmp) {
+		len = strlen(tmp->name);
+		ret = strncmp(tmp->name, sm->name, len);
+		if (ret < 0)
+			continue;
+		if (ret > 0)
+			return false;
+		if (sm->name[len] == '-' || sm->name[len] == '.') {
+			/*
+			 * Don't say things are zero when they're not.
+			 * Not based on tested but it doesn't feel right.
+			 */
+			if (sm->state == &cleared && tmp->state == &zeroed)
+				return false;
+
+			return true;
+		}
+	} END_FOR_EACH_SM(tmp);
+
+	return false;
+}
+
 static void return_info_callback(int return_id, char *return_ranges,
 				 struct expression *returned_expr,
 				 int param,
 				 const char *printed_name,
 				 struct sm_state *sm)
 {
+	static struct stree *already_set;
+	static int prev_return_id;
+
+	if (return_id != prev_return_id)
+		free_stree(&already_set);
+	prev_return_id = return_id;
+
 	if (param < 0)
 		return;
 
@@ -283,10 +318,15 @@ static void return_info_callback(int return_id, char *return_ranges,
 	    sm->state != &zeroed)
 		return;
 
+	if (parent_set(already_set, sm))
+		return;
+
 	sql_insert_return_states(return_id, return_ranges,
 			(sm->state == &add) ? BUF_ADD : BUF_CLEARED,
 			param, printed_name,
 			(sm->state == &zeroed) ? "0" : "");
+
+	avl_insert(&already_set, sm);
 }
 
 static bool is_parent(struct sm_state *sm, const char *name, struct symbol *sym, int name_len)
