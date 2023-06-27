@@ -692,23 +692,6 @@ static void db_buf_cleared(struct expression *expr, int param, char *key, char *
 	__in_buf_clear--;
 }
 
-static void db_param_add_set(struct expression *expr, int param, char *key, char *value)
-{
-	struct expression *arg;
-	struct symbol *type;
-
-	arg = gen_expr_from_param_key(expr, param, key);
-	if (!arg)
-		return;
-	type = get_type(arg);
-	if (!type)
-		return;
-	if (type->type != SYM_STRUCT && type->type != SYM_UNION)
-		return;
-
-	__struct_members_copy(COPY_UNKNOWN, expr, arg, NULL, split_fake_expr, NULL);
-}
-
 void register_struct_assignment(int id)
 {
 	my_id = id;
