@@ -678,6 +678,7 @@ int __handle_select_assigns(struct expression *expr)
 	struct sm_state *sm;
 	int is_true;
 	int is_false;
+	char buf[64];
 
 	if (!is_select_assign(expr))
 		return 0;
@@ -692,15 +693,23 @@ int __handle_select_assigns(struct expression *expr)
 	 * For "x = frob() ?: y;" we only want to parse the frob() call once
 	 * so do the assignment and parse the condition in one step.
 	 */
-	if (right->cond_true)
+	if (right->cond_true) {
 		condition = right->conditional;
-	else
-		condition = assign_expression(expr->left, expr->op, right->conditional);
+		expr_set_parent_expr(condition, right);
+		__save_pre_cond_states();
+		__split_whole_condition(condition);
+	} else {
+		struct expression *fake_condition, *fake_assign;
 
-	expr_set_parent_expr(condition, right);
-
-	__save_pre_cond_states();
-	__split_whole_condition(condition);
+		snprintf(buf, sizeof(buf), "fake_cond_%p", expr);
+		fake_condition = create_fake_assign(buf, get_type(right->conditional), right->conditional);
+		expr_set_parent_expr(fake_condition, right);
+		__save_pre_cond_states();
+		__split_whole_condition(fake_condition);
+		fake_assign = assign_expression(expr->left, expr->op, fake_condition->left);
+		expr_set_parent_expr(fake_assign, right);
+		__split_expr(fake_assign);
+	}
 
 	if (!is_false && right->cond_true) {
 		struct expression *fake_expr;
