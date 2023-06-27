@@ -611,10 +611,8 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 	if (!other_name || !other_sym)
 		return -2;
 	param = get_param_num_from_sym(other_sym);
-	if (param < 0) {
-		sm_msg("internal: '%s' parameter not found", other_name);
+	if (param < 0)
 		return -2;
-	}
 
 	param_name = get_param_name_var_sym(other_name, other_sym);
 	if (param_name) {
@@ -691,14 +689,8 @@ int get_param_num_from_sym(struct symbol *sym)
 		return GLOBAL_SCOPE;
 	}
 
-	if (!cur_func_sym) {
-		if (!parse_error) {
-			sm_msg("warn: internal.  problem with scope:  %s",
-			       sym->ident ? sym->ident->name : "<anon var>");
-		}
+	if (!cur_func_sym)
 		return GLOBAL_SCOPE;
-	}
-
 
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
