@@ -16,17 +16,9 @@
  */
 
 /*
- * This is almost the same as smatch_param_filter.c.  The difference is that
- * this only deals with values passed on the stack and param filter only deals
- * with values changed so that the caller sees the new value.  It other words
- * the key for these should always be "$" and the key for param_filter should
- * never be "$".  Also smatch_param_set() should never use "$" as the key.
- * Param set should work together with param_filter to determine the value that
- * the caller sees at the end.
+ * The PARAM_LIMIT code is for functions like this:
  *
- * This is for functions like this:
- *
- * int foo(int a)
+ * int frob(int a)
  * {
  *        if (a >= 0 && a < 10) {
  *                 a = 42;
@@ -35,11 +27,29 @@
  *        return 0;
  * }
  *
- * If we pass in 5, it returns 1.
+ * If frob() returns 1, then we know that a must have been in the 0-9 range
+ * at the start.  Or if we return 0 then a is outside that range.  So if the
+ * caller passes a 5 then the function must return 1.
  *
- * It's a bit complicated because we can't just consider the final value, we
- * have to always consider the passed in value.
+ * The "a" variable gets set to 42 in the middle, but we don't care about
+ * that, we only care about the passed in value.
  *
+ * Originally, this code looked at the starting stree and the final stree and
+ * asked was this variable set part way through?  (Over simplification).  This
+ * approach works, but the problem is that it produces too many results.  For
+ * example, if we dereference a pointer then we know that it must be non-NULL.
+ * So that was recorded as a PARAM_LIMIT.  Another thing is that if we have
+ * two callers and we do "if (caller_one) return true; else return false;".  The
+ * if (caller_one) condition might have implications so maybe it sets twenty
+ * different states instead of just the one.
+ *
+ * These extra PARAM_LIMITs are still correct, but the problem is that they
+ * take up space in the database.  Perhaps more importantly parsing PARAM_LIMITS
+ * is very expensive because we have to figure out the implications for that.
+ * (2023: idea: Parse all the PARAM_LIMITS at once instead of sequentially).
+ * The PARAM_LIMITS create a lot of sm_state history and use a lot of resources.
+ *
+ * So we need a more deliberate approach.
  */
 
 #include "smatch.h"
