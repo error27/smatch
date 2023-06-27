@@ -643,8 +643,7 @@ void register_struct_assignment(int id)
 	add_hook(&unop_expr, OP_HOOK);
 	register_clears_param();
 	select_return_states_hook(BUF_CLEARED, &db_buf_cleared);
-	select_return_states_hook(PARAM_ADD, &db_param_add_set);
-	select_return_states_hook(PARAM_SET, &db_param_add_set);
+	select_return_states_hook(BUF_ADD, &db_buf_cleared);
 
 	select_return_states_hook(CONTAINER, &returns_container_of);
 }
