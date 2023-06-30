@@ -827,7 +827,7 @@ hexbyte(const char *fmt, int fmt_len, struct expression *arg, int vaidx, struct 
 		sm_warning("could not determine type of argument %d", vaidx);
 		return;
 	}
-	if (type == &char_ctype || type == &schar_ctype)
+	if (type_signed(type) && (type == &char_ctype || type == &schar_ctype))
 		sm_warning("argument %d to %.*s specifier has type '%s'",
 		       vaidx, fmt_len, fmt, type_to_str(type));
 }
