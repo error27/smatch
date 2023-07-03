@@ -82,6 +82,18 @@ static bool is_if_else_clamp_stmt(struct expression *var, struct expression *exp
 	return false;
 }
 
+static bool is_allowed_zero(struct expression *expr)
+{
+	char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+	if (strcmp(macro, "ARRAY_SIZE") == 0)
+		return true;
+	return false;
+}
+
 static bool has_upper_bound(struct expression *var, struct expression *expr)
 {
 	struct expression *parent, *prev;
@@ -126,6 +138,9 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (!expr_is_zero(right))
+		return;
+
+	if (is_allowed_zero(right))
 		return;
 
 	if (op != SPECIAL_UNSIGNED_LT && !expr_unsigned(left))
