@@ -29,6 +29,29 @@ static int right_side_changes(struct expression *expr)
 	return 1;
 }
 
+static bool is_lt_ARRAY_SIZE(struct expression *expr)
+{
+	char *macro;
+
+	/*
+	 * One cause of false positives is:
+	 * for (i = 0; i < ARRAY_SIZE(); i++) {
+	 * but the ARRAY_SIZE() is zero.  Silence these false positives.
+	 *
+	 */
+	if (!expr || expr->type != EXPR_COMPARE)
+		return false;
+	if (expr->op != '<' && expr->op != SPECIAL_UNSIGNED_LT)
+		return false;
+	if (!expr_is_zero(expr->right))
+		return false;
+	macro = get_macro_name(expr->right->pos);
+	if (!macro || strcmp(macro, "ARRAY_SIZE") != 0)
+		return false;
+
+	return true;
+}
+
 static struct expression *get_iterator_set(struct statement *stmt)
 {
 	struct expression *expr;
@@ -78,6 +101,9 @@ static void match_loop(struct statement *stmt)
 	 * false positives.
 	 */
 	if (right_side_changes(stmt->iterator_pre_condition))
+		goto free;
+
+	if (is_lt_ARRAY_SIZE(stmt->iterator_pre_condition))
 		goto free;
 
 	if (implied_condition_false(stmt->iterator_pre_condition))
