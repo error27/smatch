@@ -209,51 +209,6 @@ static int compare_against_macro(struct expression *expr)
 	return !!get_macro_name(expr->right->pos);
 }
 
-static bool check_is_ulong_max_recursive(struct expression *expr)
-{
-	sval_t sval;
-
-	expr = strip_expr(expr);
-
-	if (!get_value(expr, &sval))
-		return false;
-
-	if (expr->type == EXPR_BINOP) {
-		if (check_is_ulong_max_recursive(expr->left))
-			return true;
-		return false;
-	}
-
-	if (sval_cmp(sval, sval_type_max(&ulong_ctype)) == 0)
-		return true;
-	return false;
-}
-
-static bool is_u64_vs_ulongmax(struct expression *expr)
-{
-	struct symbol *left, *right;
-
-	if (expr->op != '>' && expr->op != SPECIAL_UNSIGNED_GT)
-		return false;
-	if (!check_is_ulong_max_recursive(expr->right))
-		return false;
-
-	left = get_type(expr->left);
-	right = get_type(expr->right);
-
-	if (left == right)
-		return true;
-	if (type_positive_bits(left) < type_positive_bits(right))
-		return true;
-
-	if (type_bits(left) != 64)
-		return false;
-	if (right != &ulong_ctype && right != &uint_ctype)
-		return false;
-
-	return true;
-}
-
 static void match_condition(struct expression *expr)
 {
 	struct symbol *type;
@@ -304,16 +259,6 @@ static void match_condition(struct expression *expr)
 		rl_left = cast_rl(type, rl_left_orig);
 	} else {
 		return;
-	}
-
-	if (!possibly_true_rl(rl_left, expr->op, rl_right) &&
-	    !is_u64_vs_ulongmax(expr)) {
-		char *name = expr_to_str(expr);
-
-		sm_warning("impossible condition '(%s) => (%s %s %s)'", name,
-		       show_rl(rl_left), show_special(expr->op),
-		       show_rl(rl_right));
-		free_string(name);
 	}
 
 	if (!possibly_false_rl(rl_left, expr->op, rl_right) &&

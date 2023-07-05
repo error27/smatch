@@ -197,6 +197,7 @@ CK(check_do_while_loop_limit)
 CK(check_ida_alloc)
 CK(check_divide_condition)
 CK(check_units)
+CK(check_impossible_compare)
 
 /* <- your test goes here */
 /* CK(register_template) */
