@@ -365,8 +365,6 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		type = get_real_base_type(tmp);
 		if (!type)
 			continue;
-		if (type->type == SYM_ARRAY)
-			continue;
 
 		if (type->type == SYM_UNION || type->type == SYM_STRUCT) {
 			set_inner_struct_members(mode, faked, left, right, tmp,

@@ -313,7 +313,7 @@ static void fake_assign_helper(struct expression *expr, void *data)
 	if (type->type == SYM_BASETYPE)
 		mark_as_user_data(left, set);
 	else if (type->type == SYM_ARRAY)
-		set_array_user_ptr(expr, set);
+		set_array_user_ptr(left, set);
 }
 
 static void returns_user_ptr_helper(struct expression *expr, const char *name, struct symbol *sym, bool set)
