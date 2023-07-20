@@ -18,256 +18,138 @@
 #define _GNU_SOURCE
 #include <string.h>
 #include "smatch.h"
-#include "smatch_slist.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
-STATE(checked);
-STATE(modified);
-
-struct stree *to_check;
-
-static struct statement *get_cur_stmt(void)
+static bool in_same_block(struct expression *one, struct expression *two)
 {
-	return last_ptr_list((struct ptr_list *)big_statement_stack);
+	struct statement *a, *b;
+
+	a = get_parent_stmt(one);
+	b = get_parent_stmt(two);
+	if (!a || !b)
+		return false;
+	return a->parent == b->parent;
 }
 
-static void set_modified(struct sm_state *sm, struct expression *mod_expr)
+static bool is_loop_condition(struct expression *expr)
 {
-	set_state(my_id, sm->name, sm->sym, &modified);
+	struct statement *stmt;
+
+	/*
+	 * Two things.  First of all get_stored_condition() is buggy.
+	 * Secondly, even if it were not buggy there would be an
+	 * issue checking the pre condition before the loop runs.
+	 */
+	stmt = get_parent_stmt(expr);
+	if (stmt && stmt->type == STMT_ITERATOR)
+		return true;
+	return false;
 }
 
-static struct expression *strip_condition(struct expression *expr)
+static bool is_part_of_logical(struct expression *expr)
+{
+	while ((expr = expr_get_parent_expr(expr))) {
+		if (expr->type == EXPR_PREOP) {
+		    if (expr->op == '!' ||
+			expr->op == '(')
+			continue;
+		}
+		if (expr->type == EXPR_COMPARE)
+			continue;
+		if (expr->type == EXPR_LOGICAL)
+			return true;
+		return false;
+	}
+	return false;
+}
+
+static bool last_in_chain_of_else_if_statements(struct expression *expr)
+{
+	struct statement *stmt;
+
+	stmt = get_parent_stmt(expr);
+	if (!stmt)
+		return false;
+	if (stmt->type != STMT_IF)
+		return false;
+	if (stmt->if_false)
+		return false;
+	stmt = stmt_get_parent_stmt(stmt);
+	if (!stmt)
+		return false;
+	if (stmt->type != STMT_IF)
+		return false;
+	return true;
+}
+
+static bool is_global(struct expression *expr)
+{
+	struct symbol *sym;
+
+	sym = expr_to_sym(expr);
+	if (!sym)
+		return false;
+	return !!(sym->ctype.modifiers & MOD_TOPLEVEL);
+}
+
+static bool is_dereference(struct expression *expr)
 {
 	expr = strip_expr(expr);
 
-	if (expr->type == EXPR_PREOP && expr->op == '!')
-		return strip_condition(expr->unop);
-
-	if (expr->type == EXPR_COMPARE &&
-	    (expr->op == SPECIAL_EQUAL ||
-	     expr->op == SPECIAL_NOTEQUAL)) {
-		if (expr_is_zero(expr->left))
-			return strip_condition(expr->right);
-		if (expr_is_zero(expr->right))
-			return strip_condition(expr->left);
+	if (expr->type == EXPR_COMPARE ||
+	    expr->type == EXPR_BINOP) {
+		if (is_dereference(expr->left) ||
+		    is_dereference(expr->right))
+			return true;
+		return false;
 	}
-
-	return expr;
-}
-
-static int conditions_match(struct expression *cond, struct expression *prev)
-{
-	prev = strip_condition(prev);
-
-	if (prev == cond)
-		return 1;
-
-	if (prev->type == EXPR_LOGICAL) {
-		if (conditions_match(cond, prev->left) ||
-		    conditions_match(cond, prev->right))
-			return 1;
-	}
-
-	return 0;
-}
-
-/*
- * People like to do "if (foo) { ... } else if (!foo) { ... }".  Don't
- * complain when they do that even though it is nonsense.
- */
-static int is_obvious_else(struct expression *cond)
-{
-	struct statement *parent;
-	struct expression *prev;
-
-	if (!get_cur_stmt())
-		return 0;
-	parent = get_cur_stmt()->parent;
-	if (!parent)
-		return 0;
-
-	if (parent->type != STMT_IF)
-		return 0;
-
-	if (!parent->if_false)
-		return 0;
-	if (parent->if_false != get_cur_stmt())
-		return 0;
-
-	prev = strip_condition(parent->if_conditional);
-
-	return conditions_match(cond, prev);
-}
-
-static int name_means_synchronize(const char *name)
-{
-	if (!name)
-		return 0;
-
-	if (strcasestr(name, "wait"))
-		return 1;
-	if (strcasestr(name, "down"))
-		return 1;
-	if (strcasestr(name, "lock") && !strcasestr(name, "unlock"))
-		return 1;
-	if (strcasestr(name, "delay"))
-		return 1;
-	if (strcasestr(name, "schedule"))
-		return 1;
-	if (strcmp(name, "smp_rmb") == 0)
-		return 1;
-	if (strcmp(name, "mb") == 0)
-		return 1;
-	if (strcmp(name, "barrier") == 0)
-		return 1;
-	return 0;
-}
-
-static int previous_statement_was_synchronize(void)
-{
-	struct statement *stmt;
-	struct position pos;
-	struct position prev_pos;
-	char *ident;
-
-	if (!__cur_stmt)
-		return 0;
-
-	if (__prev_stmt) {
-		prev_pos = __prev_stmt->pos;
-		prev_pos.line -= 3;
-	} else {
-		prev_pos = __cur_stmt->pos;
-		prev_pos.line -= 5;
-	}
-
-	FOR_EACH_PTR_REVERSE(big_statement_stack, stmt) {
-		if (stmt->pos.line < prev_pos.line)
-			return 0;
-		pos = stmt->pos;
-		ident = get_macro_name(pos);
-		if (name_means_synchronize(ident))
-			return 1;
-		ident = pos_ident(pos);
-		if (!ident)
-			continue;
-		if (strcmp(ident, "if") == 0) {
-			pos.pos += 4;
-			ident = pos_ident(pos);
-			if (!ident)
-				continue;
-		}
-		if (name_means_synchronize(ident))
-			return 1;
-	} END_FOR_EACH_PTR_REVERSE(stmt);
-	return 0;
+	if (expr->type != EXPR_DEREF)
+		return false;
+	return true;
 }
 
 static void match_condition(struct expression *expr)
 {
+	struct expression *old_condition;
 	struct smatch_state *state;
-	sval_t dummy;
 	char *name;
 
-	if (inside_loop())
-		return;
-
-	if (get_value(expr, &dummy))
+	if (__in_fake_parameter_assign)
 		return;
 
 	if (get_macro_name(expr->pos))
 		return;
 
+	if (is_loop_condition(expr))
+		return;
+
+	if (is_part_of_logical(expr))
+		return;
+
+	if (last_in_chain_of_else_if_statements(expr))
+		return;
+
+	if (is_global(expr))
+		return;
+
+	if (is_dereference(expr))
+		return;
+
 	state = get_stored_condition(expr);
 	if (!state || !state->data)
 		return;
-	if (get_macro_name(((struct expression *)state->data)->pos))
+	old_condition = state->data;
+	if (get_macro_name(old_condition->pos))
 		return;
 
-	/*
-	 * we allow double checking for NULL because people do this all the time
-	 * and trying to stop them is a losers' battle.
-	 */
-	if (is_pointer(expr) && implied_condition_true(expr))
-		return;
-
-	if (definitely_inside_loop()) {
-		struct symbol *sym;
-
-		if (__inline_fn)
-			return;
-
-		name = expr_to_var_sym(expr, &sym);
-		if (!name)
-			return;
-		set_state_expr(my_id, expr, &checked);
-		set_state_stree(&to_check, my_id, name, sym, &checked);
-		free_string(name);
-		return;
-	}
-
-	if (is_obvious_else(state->data))
-		return;
-
-	/*
-	 * It's common to test something, then take a lock and test if it is
-	 * still true.
-	 */
-	if (previous_statement_was_synchronize())
+	if (inside_loop() && !in_same_block(old_condition, expr))
 		return;
 
 	name = expr_to_str(expr);
-	sm_warning("we tested '%s' before and it was '%s'", name, state->name);
+	sm_warning("duplicate check '%s' (previous on line %d)", name, old_condition->pos.line);
 	free_string(name);
-}
-
-int get_check_line(struct sm_state *sm)
-{
-	struct sm_state *tmp;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == &checked)
-			return tmp->line;
-	} END_FOR_EACH_PTR(tmp);
-
-	return get_lineno();
-}
-
-static void after_loop(struct statement *stmt)
-{
-	struct sm_state *check, *sm;
-
-	if (!stmt || stmt->type != STMT_ITERATOR)
-		return;
-	if (definitely_inside_loop())
-		return;
-	if (__inline_fn)
-		return;
-
-	FOR_EACH_SM(to_check, check) {
-		continue;
-		sm = get_sm_state(my_id, check->name, check->sym);
-		continue;
-		if (!sm)
-			continue;
-		if (slist_has_state(sm->possible, &modified))
-			continue;
-
-		sm_printf("%s:%d %s() ", get_filename(), get_check_line(sm), get_function());
-		sm_printf("warn: we tested '%s' already\n", check->name);
-	} END_FOR_EACH_SM(check);
-
-	free_stree(&to_check);
-}
-
-static void match_func_end(struct symbol *sym)
-{
-	if (__inline_fn)
-		return;
-	if (to_check)
-		sm_msg("debug: odd...  found an function without an end.");
-	free_stree(&to_check);
 }
 
 void check_double_checking(int id)
@@ -278,7 +160,4 @@ void check_double_checking(int id)
 		return;
 
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_modification_hook(my_id, &set_modified);
-	add_hook(after_loop, STMT_HOOK_AFTER);
-	add_hook(&match_func_end, AFTER_FUNC_HOOK);
 }
