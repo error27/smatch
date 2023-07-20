@@ -540,6 +540,13 @@ void __fake_struct_member_assignments(struct expression *expr)
 	else
 		mode = COPY_UNKNOWN;
 
+	if (is_pointer(left)) {
+		struct expression *assign;
+
+		assign = assign_expression(left, '=', right);
+		split_fake_expr(assign, 0);
+	}
+
 	__struct_members_copy(mode, expr, left, right, split_fake_expr, NULL);
 }
 
