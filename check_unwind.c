@@ -22,7 +22,6 @@
 #include "smatch_slist.h"
 
 static int my_id;
-static int path_id;
 static int info_id;
 
 #define IGNORE 100000
@@ -346,7 +345,7 @@ static void check_balance(const char *name, struct symbol *sym)
 			goto swap_stree;
 		if (db_incomplete())
 			goto swap_stree;
-		if (get_state(path_id, "path", NULL) == &ignore)
+		if (has_devm_cleanup())
 			goto swap_stree;
 
 		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
@@ -452,25 +451,6 @@ void check_unwind(int id)
 
 	select_return_param_key(RELEASE, &return_param_release);
 	add_hook(&match_check_balanced, END_FUNC_HOOK);
-}
-
-static void ignore_path(const char *fn, struct expression *expr, void *data)
-{
-	set_state(path_id, "path", NULL, &ignore);
-}
-
-void check_unwind_path(int id)
-{
-	path_id = id;
-
-	add_function_hook("devm_add_action_or_reset", &ignore_path, NULL);
-	add_function_hook("__devm_add_action_or_reset", &ignore_path, NULL);
-	add_function_hook("drmm_add_action", &ignore_path, NULL);
-	add_function_hook("__drmm_add_action", &ignore_path, NULL);
-	add_function_hook("pcim_enable_device", &ignore_path, NULL);
-	add_function_hook("pci_enable_device", &ignore_path, NULL);
-	add_function_hook("put_device", &ignore_path, NULL);
-	add_function_hook("component_match_add_release", &ignore_path, NULL);
 }
 
 void check_unwind_info(int id)
