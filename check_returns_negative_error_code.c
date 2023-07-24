@@ -77,6 +77,18 @@ static void match_assign(struct expression *expr)
 	set_state_expr(my_id, expr->left, &error_code);
 }
 
+static void match_condition(struct expression *expr)
+{
+	if (expr->type != EXPR_COMPARE)
+		return;
+	if (expr->op != '<' && expr->op != SPECIAL_LTE)
+		return;
+	if (!expr_is_zero(expr->right))
+		return;
+
+	set_true_false_states_expr(my_id, expr->left, NULL, &undefined);
+}
+
 static bool is_empty_state(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -141,6 +153,7 @@ void check_returns_negative_error_code(int id)
 		return;
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_condition, CONDITION_HOOK);
 	add_modification_hook(my_id, &clear_state);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_split_return_callback(&match_return);
