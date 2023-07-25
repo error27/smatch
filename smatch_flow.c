@@ -93,13 +93,17 @@ const sval_t valid_ptr_min_sval = {
 	.type = &ptr_ctype,
 	{.value = 4096},
 };
+sval_t ptr_err_min = { .type = &ptr_ctype };
+sval_t ptr_err_max = { .type = &ptr_ctype };
+sval_t ulong_ULONG_MAX = { .type = &ulong_ctype };
+
 sval_t valid_ptr_max_sval = {
 	.type = &ptr_ctype,
 	{.value = ULONG_MAX & ~(MTAG_OFFSET_MASK)},
 };
 struct range_list *valid_ptr_rl;
 
-void alloc_valid_ptr_rl(void)
+void alloc_ptr_constants(void)
 {
 	valid_ptr_max = sval_type_max(&ulong_ctype).value & ~(MTAG_OFFSET_MASK);
 	valid_ptr_max_sval.value = valid_ptr_max;
@@ -107,6 +111,10 @@ void alloc_valid_ptr_rl(void)
 	valid_ptr_rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	valid_ptr_rl = cast_rl(&ptr_ctype, valid_ptr_rl);
 	valid_ptr_rl = clone_rl_permanent(valid_ptr_rl);
+
+	ptr_err_min = sval_cast(&ptr_ctype, err_min);
+	ptr_err_max = sval_cast(&ptr_ctype, err_max);
+	ulong_ULONG_MAX = sval_type_max(&ulong_ctype);
 }
 
 int outside_of_function(void)

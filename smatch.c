@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 	create_function_hook_hash();
 	open_smatch_db(option_db_file);
 	sparse_initialize(argc, argv, &filelist);
-	alloc_valid_ptr_rl();
+	alloc_ptr_constants();
 	SMATCH_EXTRA = id_from_name("register_smatch_extra");
 	allocate_modification_hooks();
 
