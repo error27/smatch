@@ -30,7 +30,7 @@ static int implied_err_cast_return(struct expression *call, void *unused, struct
 
 	arg = get_argument_from_call_expr(call->args, 0);
 	if (!get_implied_rl(arg, rl))
-		*rl = alloc_rl(ptr_err_min, ptr_err_max);
+		return false;
 
 	*rl = cast_rl(get_type(call), *rl);
 	return !!*rl;
