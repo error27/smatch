@@ -240,6 +240,7 @@ CK(check_kvmalloc_NOFS)
 CK(check_uaf_netdev_priv)
 //CK(check_host_input)
 CK(check_direct_return_instead_of_goto)
+CK(check_negative_error_code_type_promoted)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
