@@ -520,6 +520,7 @@ static struct init_keyword {
 	N("_Float64",		&spec_op,	.type = &float64_ctype),
 	N("_Float64x",		&spec_op,	.type = &float64x_ctype),
 	N("_Float128",		&spec_op,	.type = &float128_ctype),
+	N("__float128",		&spec_op,	.type = &float128_ctype),
 }, keywords[] = {
 	/* Statements */
 	N("if",			&if_op),
