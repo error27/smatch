@@ -36,11 +36,6 @@ STATE(trigger);
 
 static unsigned long silenced;
 
-static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 struct statement *ignored_stmt;
 static void trigger_list_del(struct sm_state *sm, struct expression *mod_expr)
 {
@@ -144,7 +139,7 @@ void check_list_add(int id)
 	add_function_hook("list_add_tail", &match_add, NULL);
 	add_function_hook("list_del", &match_del, NULL);
 
-	add_modification_hook(my_id, &set_ignore);
+	add_modification_hook(my_id, &set_undefined);
 
 	add_function_hook("kfree", &match_free, 0);
 }

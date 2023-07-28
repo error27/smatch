@@ -28,11 +28,6 @@ static int my_id;
 
 STATE(do_not_use);
 
-static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static int valid_use(void)
 {
 	struct expression *tmp;
@@ -127,6 +122,6 @@ void check_dev_queue_xmit(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 	my_id = id;
-	add_modification_hook(my_id, ok_to_use);
+	add_modification_hook(my_id, &set_undefined);
 	register_funcs_from_file();
 }

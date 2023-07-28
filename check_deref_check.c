@@ -23,11 +23,6 @@ static int my_id;
 
 STATE(derefed);
 
-static void underef(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static void deref_hook(struct expression *expr)
 {
 	if (implied_not_equal(expr, 0))
@@ -86,7 +81,7 @@ void check_deref_check(int id)
 	my_id = id;
 
 	add_dereference_hook(deref_hook);
-	add_modification_hook(my_id, &underef);
+	add_modification_hook(my_id, &set_undefined);
 
 	add_hook(&match_condition, CONDITION_HOOK);
 

@@ -467,6 +467,11 @@ struct stree *__get_cur_stree(void);
 int is_reachable(void);
 void add_get_state_hook(void (*fn)(int owner, const char *name, struct symbol *sym));
 
+static inline void set_undefined(struct sm_state *sm, struct expression *mod_expr)
+{
+	set_state(sm->owner, sm->name, sm->sym, &undefined);
+}
+
 /* smatch_ssa.c */
 char *ssa_name(const char *name);
 void set_ssa_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state);

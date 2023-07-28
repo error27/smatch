@@ -23,11 +23,6 @@ static int my_id;
 
 STATE(err_ptr);
 
-static void clear_state(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 bool possible_err_ptr(struct expression *expr)
 {
 	struct range_list *rl;
@@ -112,7 +107,7 @@ void register_kernel_err_ptr(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
-	add_modification_hook(my_id, &clear_state);
+	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	add_return_info_callback(my_id, &match_return_info);

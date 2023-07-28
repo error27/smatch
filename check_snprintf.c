@@ -21,11 +21,6 @@
 
 static int my_id;
 
-static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static void match_snprintf(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *call;
@@ -82,6 +77,6 @@ void check_snprintf(int id)
 	set_dynamic_states(my_id);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_function_assign_hook("snprintf", &match_snprintf, NULL);
-	add_modification_hook(my_id, &ok_to_use);
+	add_modification_hook(my_id, &set_undefined);
 }
 

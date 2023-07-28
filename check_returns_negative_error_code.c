@@ -23,11 +23,6 @@ static int my_id;
 
 STATE(error_code);
 
-static void clear_state(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
 	struct sm_state *sm;
@@ -154,7 +149,7 @@ void check_returns_negative_error_code(int id)
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_modification_hook(my_id, &clear_state);
+	add_modification_hook(my_id, &set_undefined);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_split_return_callback(&match_return);
 	select_return_param_key(NEGATIVE_ERROR, &set_error_code);

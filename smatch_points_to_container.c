@@ -22,11 +22,6 @@
 
 static int my_id;
 
-static void undef(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static char *handle_container_of_assign(struct expression *expr, struct expression **ptr)
 {
 	struct expression *right, *orig;
@@ -143,6 +138,6 @@ void register_points_to_container(int id)
 	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK_AFTER);
 	add_return_string_hook(return_str_hook);
-	add_modification_hook(my_id, &undef);
+	add_modification_hook(my_id, &set_undefined);
 }
 

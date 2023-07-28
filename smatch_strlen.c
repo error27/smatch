@@ -79,11 +79,6 @@ static void set_strlen_undefined(struct sm_state *sm, struct expression *mod_exp
 	set_state(sm->owner, sm->name, sm->sym, unknown_strlen());
 }
 
-static void set_strlen_equiv_undefined(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(sm->owner, sm->name, sm->sym, &undefined);
-}
-
 static void match_string_assignment(struct expression *expr)
 {
 	struct range_list *rl;
@@ -436,6 +431,6 @@ void register_strlen_equiv(int id)
 	add_function_assign_hook("strlen", &match_strlen, NULL);
 	add_function_assign_hook("__builtin_strlen", &match_strlen, NULL);
 	add_function_assign_hook("__fortify_strlen", &match_strlen, NULL);
-	add_modification_hook(my_equiv_id, &set_strlen_equiv_undefined);
+	add_modification_hook(my_equiv_id, &set_undefined);
 }
 

@@ -62,12 +62,6 @@ char *ssa_name(const char *name)
 	return ret;
 }
 
-static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
-{
-	/* this should be called early before any checks have run */
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static struct smatch_state *alloc_ssa_new(const char *name)
 {
 	struct smatch_state *state;

@@ -23,11 +23,6 @@ static int my_id;
 
 STATE(get_irq);
 
-static void clear_state(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static void match_platform_get_irq(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
 	set_state(my_id, name, sym, &get_irq);
@@ -99,6 +94,6 @@ void check_platform_get_irq_return(int id)
 	add_function_param_key_hook_late("platform_get_irq_optional", &match_platform_get_irq, -1, "$", NULL);
 	add_function_param_key_hook_late("platform_get_irq_byname", &match_platform_get_irq, -1, "$", NULL);
 	add_function_param_key_hook_late("platform_get_irq_byname_optional", &match_platform_get_irq, -1, "$", NULL);
-	add_modification_hook(my_id, &clear_state);
+	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_condition, CONDITION_HOOK);
 }

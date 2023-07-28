@@ -22,11 +22,6 @@ static int my_id;
 
 STATE(timed_out);
 
-static void clear(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static void match_while_count_down(struct expression *expr)
 {
 	struct statement *stmt = __cur_stmt;
@@ -59,5 +54,5 @@ void check_postop_timeout(int id)
 	my_id = id;
 	add_hook(&match_while_count_down, CONDITION_HOOK);
 	add_hook(&match_test, CONDITION_HOOK);
-	add_modification_hook(my_id, &clear);
+	add_modification_hook(my_id, &set_undefined);
 }

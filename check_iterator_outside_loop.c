@@ -23,11 +23,6 @@ static int my_id;
 
 STATE(iterator);
 
-static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &undefined);
-}
-
 static struct expression *get_iterator(struct statement *stmt)
 {
 	struct expression *expr;
@@ -37,7 +32,6 @@ static struct expression *get_iterator(struct statement *stmt)
 	    !stmt->iterator_pre_statement ||
 	    stmt->iterator_pre_statement->type != STMT_EXPRESSION)
 		return NULL;
-
 
 	expr = strip_expr(stmt->iterator_pre_statement->expression);
 	if (!expr || expr->type != EXPR_ASSIGNMENT)
@@ -122,6 +116,6 @@ void check_iterator_outside_loop(int id)
 		return;
 
 	add_hook(match_loop, AFTER_LOOP_NO_BREAKS);
-	add_modification_hook(my_id, &ok_to_use);
+	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_dereference, DEREF_HOOK);
 }

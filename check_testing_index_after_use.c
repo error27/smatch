@@ -30,11 +30,6 @@
  */
 static int my_used_id;
 
-static void delete(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_used_id, sm->name, sm->sym, &undefined);
-}
-
 static void array_check(struct expression *expr)
 {
 	struct expression *array_expr;
@@ -111,5 +106,5 @@ void check_testing_index_after_use(int id)
 	set_dynamic_states(my_used_id);
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&match_condition, CONDITION_HOOK);
-	add_modification_hook(my_used_id, &delete);
+	add_modification_hook(my_used_id, &set_undefined);
 }

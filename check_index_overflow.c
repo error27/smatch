@@ -394,12 +394,6 @@ static void match_condition(struct expression *expr)
 	set_true_false_states_expr(loop_id, expr->left, NULL, &loop_end);
 }
 
-static void set_undefined(struct sm_state *sm, struct expression *mod_expr)
-{
-	if (sm->state == &loop_end)
-		set_state(loop_id, sm->name, sm->sym, &undefined);
-}
-
 void check_index_overflow_loop_marker(int id)
 {
 	loop_id = id;
