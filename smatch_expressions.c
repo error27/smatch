@@ -366,6 +366,9 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	size_t len;
 	bool star;
 
+	if (strcmp(key, "$") == 0)
+		return arg;
+
 	if (strcmp(key, "*$") == 0) {
 		if (arg->type == EXPR_PREOP &&
 		    arg->op == '&')

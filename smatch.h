@@ -242,8 +242,8 @@ struct range_list *get_range_implications(const char *fn);
 void select_return_states_hook(int type, return_implies_hook *callback);
 void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
-void add_function_param_hook(const char *look_for, expr_func *call_back,
-			     int param, void *info);
+void add_param_key_expr_hook(const char *look_for, expr_func *call_back,
+			     int param, const char *key, void *info);
 void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
 				 int param, const char *key, void *info);
 void add_function_param_key_hook_early(const char *look_for, param_key_hook *call_back,
