@@ -475,11 +475,6 @@ static void match_check_missed(struct symbol *sym)
 	} END_FOR_EACH_SM(sm);
 }
 
-int on_atomic_dec_path(void)
-{
-	return get_state(test_id, "dec_path", NULL) == &zero_path;
-}
-
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&start_states);
