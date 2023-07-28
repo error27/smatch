@@ -480,11 +480,6 @@ int on_atomic_dec_path(void)
 	return get_state(test_id, "dec_path", NULL) == &zero_path;
 }
 
-int was_inced(const char *name, struct symbol *sym)
-{
-	return get_state(my_id, name, sym) == &inc;
-}
-
 static void match_after_func(struct symbol *sym)
 {
 	free_stree(&start_states);

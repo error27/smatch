@@ -84,6 +84,8 @@ CK(register_points_to_container)
 CK(register_allocations)
 CK(register_units)
 CK(register_goto_tracker)
+CK(check_refcount_info)
+CK(register_refcount)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)
