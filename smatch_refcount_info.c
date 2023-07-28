@@ -124,6 +124,7 @@ static struct ref_func_info func_table[] = {
 	{ "sockfd_lookup", REFCOUNT_INC, -1, "$->file->f_count.counter", &valid_ptr_min_sval, &valid_ptr_max_sval },
 //	{ "fsnotify_put_mark", REFCOUNT_DEC, 0, "$->refcnt.refs.counter" },
 
+	{ "dma_buf_put", REFCOUNT_DEC, 0, "$->file->f_count.counter" },
 };
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
@@ -335,7 +336,7 @@ static void match_asm(struct statement *stmt)
 		do_dec(expr, name, sym);
 }
 
-void check_refcount_info(int id)
+void register_refcount_info(int id)
 {
 	struct ref_func_info *info;
 	param_key_hook *cb;

@@ -331,6 +331,7 @@ SMATCH_OBJS += smatch_ranges.o
 SMATCH_OBJS += smatch_real_absolute.o
 SMATCH_OBJS += smatch_recurse.o
 SMATCH_OBJS += smatch_refcount.o
+SMATCH_OBJS += smatch_refcount_info.o
 SMATCH_OBJS += smatch_returns.o
 SMATCH_OBJS += smatch_return_to_param.o
 SMATCH_OBJS += smatch_ssa.o
