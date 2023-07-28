@@ -1558,6 +1558,8 @@ int is_unconstant_macro(struct expression *expr);
 void add_state_assigned_hook(int owner, sm_hook *call_back);
 void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
 
+/* check_returns_negative_error_code.c */
+bool holds_kernel_error_codes(struct expression *expr);
 bool possible_err_ptr(struct expression *expr);
 bool has_devm_cleanup(void);
 void add_set_current_state_hook(string_hook *hook);
