@@ -35,7 +35,7 @@ struct state_param {
 };
 
 static struct state_param func_table[] = {
-	{ "prepare_to_wait_event", 0, 2, "$"},
+	{ "prepare_to_wait_event", 0, 2, "$", &int_zero, &int_zero},
 	{ "finish_wait", TASK_RUNNING },
 };
 
@@ -145,7 +145,9 @@ void register_kernel_task_state_info(int id)
 		else if (info->type == TASK_NOT_RUNNING)
 			add_function_hook(info->name, &match_not_running, info);
 		else
-			add_param_key_expr_hook(info->name, &do_set_current_state,
+			return_implies_param_key_expr(info->name,
+						*info->implies_start, *info->implies_end,
+						&do_set_current_state,
 						info->param, info->key, info);
 	}
 }

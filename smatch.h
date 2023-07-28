@@ -256,6 +256,9 @@ void return_implies_param_key(const char *look_for, sval_t start, sval_t end,
 void return_implies_param_key_exact(const char *look_for, sval_t start, sval_t end,
 				    param_key_hook *call_back,
 				    int param, const char *key, void *info);
+void return_implies_param_key_expr(const char *look_for, sval_t start, sval_t end,
+			      expr_func *call_back,
+			      int param, const char *key, void *info);
 void select_return_param_key(int type, param_key_hook *callback);
 bool get_implied_return(struct expression *expr, struct range_list **rl);
 void allocate_hook_memory(void);

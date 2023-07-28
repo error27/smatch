@@ -41,6 +41,7 @@
  *
  * Just for some return ranges:
  *     return_implies_param_key()
+ *     return_implies_param_key_expr()
  *     return_implies_param_key_exact()
  *     return_implies_state()
  *     select_return_param_key()  (It's weird that this is not in smatch_db.c)
@@ -363,6 +364,18 @@ static void param_key_implies_function(const char *fn, struct expression *call_e
 	db_helper(assign_expr ?: call_expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
 }
 
+static void param_key_expr_implies_function(const char *fn, struct expression *call_expr,
+					    struct expression *assign_expr, void *data)
+{
+	struct param_key_data *pkd = data;
+	struct expression *arg;
+
+	arg = gen_expr_from_param_key(assign_expr ?: call_expr, pkd->param, pkd->key);
+	if (!arg)
+		return;
+	pkd->expr_fn(arg);
+}
+
 static struct param_key_data *alloc_pkd(param_key_hook *call_back, int param, const char *key, void *info)
 {
 	struct param_key_data *pkd;
@@ -372,6 +385,16 @@ static struct param_key_data *alloc_pkd(param_key_hook *call_back, int param, co
 	pkd->param = param;
 	pkd->key = alloc_string(key);
 	pkd->info = info;
+
+	return pkd;
+}
+
+static struct param_key_data *alloc_pked(expr_func *call_back, int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pkd(NULL, param, key, info);
+	pkd->expr_fn = call_back;
 
 	return pkd;
 }
@@ -407,8 +430,7 @@ void add_param_key_expr_hook(const char *look_for, expr_func *call_back,
 {
 	struct param_key_data *pkd;
 
-	pkd = alloc_pkd(NULL, param, key, info);
-	pkd->expr_fn = call_back;
+	pkd = alloc_pked(call_back, param, key, info);
 
 	if (param == -1)
 		add_function_assign_hook(look_for, &param_key_expr_function, pkd);
@@ -443,6 +465,16 @@ void return_implies_param_key_exact(const char *look_for, sval_t start, sval_t e
 
 	pkd = alloc_pkd(call_back, param, key, info);
 	return_implies_exact(look_for, start, end, &param_key_implies_function, pkd);
+}
+
+void return_implies_param_key_expr(const char *look_for, sval_t start, sval_t end,
+				   expr_func *call_back,
+				   int param, const char *key, void *info)
+{
+	struct param_key_data *pkd;
+
+	pkd = alloc_pked(call_back, param, key, info);
+	return_implies_state_sval(look_for, start, end, &param_key_expr_implies_function, pkd);
 }
 
 void add_macro_assign_hook(const char *look_for, func_hook *call_back,
