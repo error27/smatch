@@ -966,6 +966,8 @@ enum info_type {
 	ERR_PTR		= 1060,
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
+	TASK_RUNNING	= 2063,
+	TASK_NOT_RUNNING = 2064,
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	HOST_DATA	= 7016,
 	HOST_DATA_SET	= 7017,
@@ -1557,6 +1559,8 @@ void add_state_assigned_hook(int owner, sm_hook *call_back);
 void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
 
 bool possible_err_ptr(struct expression *expr);
+void add_set_current_state_hook(string_hook *hook);
+bool task_not_running(void);
 
 static inline bool type_is_ptr(struct symbol *type)
 {

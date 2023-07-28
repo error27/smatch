@@ -94,6 +94,8 @@ CK(register_points_to_host_data)
 CK(register_kernel_netdev_priv)
 CK(register_kernel_err_ptr)
 CK(register_kernel_has_devm_cleanup)
+CK(register_kernel_task_state)
+CK(register_kernel_task_state_info)
 
 CK(check_debug)
 
