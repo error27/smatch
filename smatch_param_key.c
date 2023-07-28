@@ -820,7 +820,7 @@ struct expression *get_function_param(struct expression *expr, int param)
 
 char *get_name_sym_from_param_key(struct expression *expr, int param, const char *key, struct symbol **sym)
 {
-	struct expression *call, *arg;
+	struct expression *arg;
 	char *name;
 
 	if (sym)
