@@ -790,16 +790,12 @@ struct symbol *get_param_sym_from_num(int num)
 	return NULL;
 }
 
-char *get_name_sym_from_param_key(struct expression *expr, int param, const char *key, struct symbol **sym)
+struct expression *get_function_param(struct expression *expr, int param)
 {
-	struct expression *call, *arg;
-	char *name;
-
-	if (sym)
-		*sym = NULL;
+	struct expression *call;
 
 	if (!expr) {
-		sm_msg("internal: null call_expr.  param=%d key='%s'", param, key);
+		sm_msg("internal: null call_expr.  param=%d", param);
 		return NULL;
 	}
 
@@ -810,23 +806,36 @@ char *get_name_sym_from_param_key(struct expression *expr, int param, const char
 	if (call->type != EXPR_CALL)
 		return NULL;
 
-	if (param == -1 &&
-	    expr->type == EXPR_ASSIGNMENT &&
-	    expr->op == '=') {
-		name = get_variable_from_key(expr->left, key, sym);
-		if (!name || (sym && !*sym))
-			goto free;
-	} else if (param >= 0) {
-		arg = get_argument_from_call_expr(call->args, param);
-		if (!arg)
-			return NULL;
+	if (param < -1)
+		return NULL;
 
-		name = get_variable_from_key(arg, key, sym);
-		if (!name || (sym && !*sym))
-			goto free;
-	} else {
-		name = alloc_string(key);
+	if (param == -1) {
+		if (expr->type == EXPR_ASSIGNMENT && expr->op == '=')
+			return expr->left;
+		return NULL;
 	}
+
+	return get_argument_from_call_expr(call->args, param);
+}
+
+char *get_name_sym_from_param_key(struct expression *expr, int param, const char *key, struct symbol **sym)
+{
+	struct expression *call, *arg;
+	char *name;
+
+	if (sym)
+		*sym = NULL;
+
+	if (param == -2) // Really?  Is this sane?
+		return alloc_string(key);
+
+	arg = get_function_param(expr, param);
+	if (!arg)
+		return NULL;
+
+	name = get_variable_from_key(arg, key, sym);
+	if (!name || (sym && !*sym))
+		goto free;
 
 	return name;
 free:

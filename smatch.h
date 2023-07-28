@@ -242,6 +242,8 @@ struct range_list *get_range_implications(const char *fn);
 void select_return_states_hook(int type, return_implies_hook *callback);
 void select_return_states_before(void (*fn)(void));
 void select_return_states_after(void (*fn)(void));
+void add_function_param_hook(const char *look_for, expr_func *call_back,
+			     int param, void *info);
 void add_function_param_key_hook(const char *look_for, param_key_hook *call_back,
 				 int param, const char *key, void *info);
 void add_function_param_key_hook_early(const char *look_for, param_key_hook *call_back,
@@ -1038,6 +1040,7 @@ bool split_param_key(const char *value, int *param, char *key, int len);
 bool get_implied_rl_from_call_str(struct expression *expr, const char *data, struct range_list **rl);
 char *get_chunk_from_key(struct expression *arg, char *key, struct symbol **sym, struct var_sym_list **vsl);
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym);
+struct expression *get_function_param(struct expression *expr, int param);
 char *get_name_sym_from_param_key(struct expression *expr, int param, const char *key, struct symbol **sym);
 char *get_param_name_var_sym(const char *name, struct symbol *sym);
 char *get_param_name(struct sm_state *sm);

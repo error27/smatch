@@ -35,6 +35,7 @@
  *     add_function_param_key_hook_early()
  *     add_function_param_key_hook()
  *     add_function_param_key_hook_late()
+ *     add_function_param_hook()
  *     add_function_hook_early()
  *     add_function_hook()
  *
@@ -98,6 +99,12 @@ struct param_key_data {
 	param_key_hook *call_back;
 	int param;
 	const char *key;
+	void *info;
+};
+
+struct param_data {
+	expr_func *call_back;
+	int param;
 	void *info;
 };
 
@@ -332,6 +339,21 @@ static void param_key_function(const char *fn, struct expression *expr, void *da
 	db_helper(expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
 }
 
+static void param_function(const char *fn, struct expression *expr, void *data)
+{
+	struct param_data *pkd = data;
+	struct expression *parent, *arg;
+
+	parent = get_parent_assignment(expr);
+	if (parent)
+		expr = parent;
+
+	arg = get_function_param(expr, pkd->param);
+	if (!arg)
+		return;
+	pkd->call_back(arg);
+}
+
 static void param_key_implies_function(const char *fn, struct expression *call_expr,
 				       struct expression *assign_expr, void *data)
 {
@@ -377,6 +399,22 @@ void add_function_param_key_hook(const char *look_for, param_key_hook *call_back
 		add_function_assign_hook(look_for, &param_key_function, pkd);
 	else
 		add_function_hook(look_for, &param_key_function, pkd);
+}
+
+void add_function_param_hook(const char *look_for, expr_func *call_back,
+			     int param, void *info)
+{
+	struct param_data *pkd;
+
+	pkd = malloc(sizeof(*pkd));
+	pkd->call_back = call_back;
+	pkd->param = param;
+	pkd->info = info;
+
+	if (param == -1)
+		add_function_assign_hook(look_for, &param_function, pkd);
+	else
+		add_function_hook(look_for, &param_function, pkd);
 }
 
 void add_function_param_key_hook_late(const char *look_for, param_key_hook *call_back,
