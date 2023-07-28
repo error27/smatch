@@ -1559,6 +1559,7 @@ void add_state_assigned_hook(int owner, sm_hook *call_back);
 void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
 
 bool possible_err_ptr(struct expression *expr);
+bool has_devm_cleanup(void);
 void add_set_current_state_hook(string_hook *hook);
 bool task_not_running(void);
 
