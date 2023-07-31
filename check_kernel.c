@@ -134,9 +134,6 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 		rl = alloc_rl(valid_ptr_min_sval, valid_ptr_max_sval);
 	}
 	rl = cast_rl(get_type(arg), rl);
-	/* These are implied.  But implications don't work for empty states. */
-	if (pre_state && rl)
-		return;
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
@@ -154,14 +151,6 @@ static void match_err(const char *fn, struct expression *call_expr,
 		rl = alloc_rl(ptr_err_min, ptr_err_max);
 	rl = rl_intersection(rl, alloc_rl(ptr_err_min, ptr_err_max));
 	rl = cast_rl(get_type(arg), rl);
-	if (pre_state && rl) {
-		/*
-		 * Ideally this would all be handled by smatch_implied.c
-		 * but it doesn't work very well for impossible paths.
-		 *
-		 */
-		return;
-	}
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
