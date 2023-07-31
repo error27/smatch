@@ -179,6 +179,8 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (!estate_rl(tmp->state))
 			continue;
+		if (estate_type(tmp->state) == &llong_ctype)
+			continue;
 		if (is_non_zero_int(estate_rl(tmp->state)))
 			continue;
 		if (has_distinct_zero(estate_rl(tmp->state))) {
