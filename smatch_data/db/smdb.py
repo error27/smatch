@@ -516,7 +516,7 @@ def print_return_implies(func):
 
 def print_type_size(struct_type, member):
     cur = con.cursor()
-    cur.execute("select * from type_size where type like '(struct %s)->%s';" %(struct_type, member))
+    cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
     print("type | size")
     for txt in cur:
         print("%-15s | %s" %(txt[0], txt[1]))
@@ -662,7 +662,11 @@ def print_preempt_tree(func):
 
 def function_type_value(struct_type, member):
     cur = con.cursor()
-    cur.execute("select * from function_type_value where type like '(struct %s)->%s';" %(struct_type, member))
+    if struct_type == "%":
+        cur.execute("select * from function_type_value where type like '(struct %s)->%s';" %(struct_type, member))
+    else:
+        cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
+
     for txt in cur:
         print("%-30s | %-30s | %s | %s" %(hash_to_string(txt[0]), txt[1], txt[2], txt[3]))
 
