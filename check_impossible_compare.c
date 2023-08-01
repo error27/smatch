@@ -104,8 +104,11 @@ static bool is_allowed_impossible_limit(struct expression *expr)
 		return false;
 
 	macro = get_macro_name(expr->pos);
-	if (!macro)
-		return false;
+	if (!macro) {
+		macro = pos_ident(expr->pos);
+		if (!macro)
+			return false;
+	}
 	i = -1;
 	while (allowed_macros[++i]) {
 		if (strcmp(macro, allowed_macros[i]) == 0)
