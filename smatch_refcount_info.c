@@ -122,6 +122,7 @@ static struct ref_func_info func_table[] = {
 
 	{ "fget", REFCOUNT_INC, -1, "$->f_count.counter", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "sockfd_lookup", REFCOUNT_INC, -1, "$->file->f_count.counter", &valid_ptr_min_sval, &valid_ptr_max_sval },
+	{ "skb_get", REFCOUNT_INC, 0, "$->users.refs.counter", },
 //	{ "fsnotify_put_mark", REFCOUNT_DEC, 0, "$->refcnt.refs.counter" },
 
 	{ "dma_buf_put", REFCOUNT_DEC, 0, "$->file->f_count.counter" },
@@ -364,7 +365,7 @@ void register_refcount_info(int id)
 					*info->implies_start, *info->implies_end,
 					cb, info->param, info->key, info);
 		} else {
-			add_function_param_key_hook(info->name, cb,
+			add_function_param_key_hook_late(info->name, cb,
 					info->param, info->key, info);
 		}
 	}
