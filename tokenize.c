@@ -941,7 +941,7 @@ static int get_one_identifier(int c, stream_t *stream)
 		len++;
 	};
 	if (cclass[next + 1] & Quote) {
-		if (len == 1 && buf[0] == 'L') {
+		if (len == 1 && (buf[0] == 'L' || buf[0] == 'u')) {
 			if (next == '\'')
 				return eat_string(nextchar(stream), stream,
 							TOKEN_WIDE_CHAR);
