@@ -52,12 +52,14 @@ static void call_deref_hooks(struct expression *expr)
 static void match_dereference(struct expression *expr)
 {
 	struct expression *p, *tmp;
+	struct symbol *type;
 
 	if (expr->type != EXPR_PREOP ||
 	    expr->op != '*')
 		return;
 	p = strip_expr(expr->unop);
-	if (!is_pointer(p))
+	type = get_type(p);
+	if (!type || type->type != SYM_PTR)
 		return;
 	call_deref_hooks(p);
 
@@ -81,18 +83,28 @@ static void match_dereference(struct expression *expr)
 	if (p->type != EXPR_PREOP || p->op != '*')
 		return;
 	p = strip_expr(p->unop);
-	if (!is_pointer(p))
+	type = get_type(p);
+	if (!type || type->type != SYM_PTR)
 		return;
 	call_deref_hooks(p);
 }
 
 static void match_pointer_as_array(struct expression *expr)
 {
+	struct expression *array;
+	struct symbol *type;
+
 	if (!is_array(expr))
 		return;
 	if (getting_address(expr))
 		return;
-	call_deref_hooks(get_array_base(expr));
+
+	array = get_array_base(expr);
+	type = get_type(array);
+	if (!type || type->type != SYM_PTR)
+		return;
+
+	call_deref_hooks(array);
 }
 
 static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
