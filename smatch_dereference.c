@@ -103,15 +103,9 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 	call_deref_hooks(deref);
 }
 
-static void param_deref(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void param_deref(struct expression *expr)
 {
-	struct expression *deref;
-
-	deref = gen_expression_from_name_sym(name, sym);
-	if (!deref)
-		return;
-
-	call_deref_hooks(deref);
+	call_deref_hooks(expr);
 }
 
 void register_dereferences(int id)
@@ -127,7 +121,7 @@ void register_dereferences(int id)
 
 	for (i = 0; i < ARRAY_SIZE(fn_deref_table); i++) {
 		info = &fn_deref_table[i];
-		add_function_param_key_hook(info->name, &param_deref, info->param, info->key, info);
+		add_param_key_expr_hook(info->name, &param_deref, info->param, info->key, info);
 	}
 }
 
