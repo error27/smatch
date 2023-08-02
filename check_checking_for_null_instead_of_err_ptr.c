@@ -26,30 +26,38 @@ static const char *untrusted_fn_ptrs[] = {
 	"(struct target_core_fabric_ops)->fabric_make_tpg",
 	"(struct configfs_group_operations)->make_item",
 	"(cgroup_subsys_state)->css_alloc",
+	/*
+	 * debugfs stuff should not be checked but checking for NULL is harmless
+	 * and some people see the error message and convert it to an IS_ERR()
+	 * check which is buggy.  So these warnings introduce a risk.
+	 *
+	 */
+	"debugfs_create_dir",
+	"debugfs_create_file",
 };
 
 static bool from_untrusted_fn_ptr(struct expression *expr)
 {
 	struct expression *prev;
-	char *member_name;
 	bool ret = false;
+	char *fn;
 	int i;
 
 	prev = get_assigned_expr(expr);
 	if (!prev || prev->type != EXPR_CALL)
 		return false;
 
-	member_name = get_member_name(prev->fn);
-	if (!member_name)
+	fn = get_fnptr_name(prev->fn);
+	if (!fn)
 		return false;
 
 	for (i = 0; i < ARRAY_SIZE(untrusted_fn_ptrs); i++) {
-		if (strcmp(member_name, untrusted_fn_ptrs[i]) == 0) {
+		if (strcmp(fn, untrusted_fn_ptrs[i]) == 0) {
 			ret = true;
 			break;
 		}
 	}
-	free_string(member_name);
+	free_string(fn);
 	return ret;
 }
 
