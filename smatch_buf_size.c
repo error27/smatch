@@ -898,6 +898,31 @@ static void match_page(const char *fn, struct expression *expr, void *_unused)
 	store_alloc(expr->left, alloc_rl(page_size, page_size));
 }
 
+static void match_bitmap_alloc(const char *fn, struct expression *expr, void *_size_arg)
+{
+	int size_arg = PTR_INT(_size_arg);
+	struct expression *right;
+	struct expression *arg;
+	struct range_list *rl;
+	sval_t int_8 = {
+		.type = &int_ctype,
+		.value = 8,
+	};
+
+	right = strip_expr(expr->right);
+	arg = get_argument_from_call_expr(right->args, size_arg);
+	get_absolute_rl(arg, &rl);
+	if (rl_max(rl).uvalue <= SHRT_MAX && rl_max(rl).uvalue % 8) {
+		sval_t max = rl_max(rl);
+		/* round up */
+		max.uvalue += 7;
+		rl = alloc_rl(rl_min(rl), max);
+	}
+	rl = rl_binop(rl, '/', alloc_rl(int_8, int_8));
+	rl = cast_rl(&ulong_ctype, rl);
+	store_alloc(expr->left, rl);
+}
+
 static void match_strndup(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *fn_expr;
@@ -1094,6 +1119,11 @@ void register_buf_size(int id)
 		add_allocation_function("__get_free_pages", &match_alloc_pages, 1);
 		add_allocation_function("dma_alloc_contiguous", &match_alloc, 1);
 		add_allocation_function("dma_alloc_coherent", &match_alloc, 1);
+		add_allocation_function("bitmap_alloc", &match_bitmap_alloc, 0);
+		add_allocation_function("bitmap_alloc_node", &match_bitmap_alloc, 0);
+		add_allocation_function("bitmap_zalloc", &match_bitmap_alloc, 0);
+		add_allocation_function("devm_bitmap_alloc", &match_bitmap_alloc, 1);
+		add_allocation_function("devm_bitmap_zalloc", &match_bitmap_alloc, 1);
 	}
 
 	add_allocation_function("strndup", match_strndup, 0);
