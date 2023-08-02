@@ -29,6 +29,9 @@ struct deref_info {
 };
 static struct deref_info fn_deref_table[] = {
 	{ "nla_data", 0, "$" },
+	{ "strlen", 0, "$" },
+	{ "__builtin_strlen", 0, "$" },
+	{ "__fortify_strlen", 0, "$" },
 };
 
 void add_dereference_hook(expr_func *fn)
