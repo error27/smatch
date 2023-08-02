@@ -207,16 +207,45 @@ static void match_clear_cache(struct symbol *sym)
 	cached_sym_rl = NULL;
 }
 
-static struct range_list *size_from_db_type(struct expression *expr)
+static char *get_stored_buffer_name(struct expression *buffer, bool *add_static)
 {
-	int this_file_only = 0;
+	struct expression *array;
+	char buf[64];
 	char *name;
 
-	name = get_member_name(expr);
-	if (!name && is_static(expr)) {
-		name = expr_to_var(expr);
-		this_file_only = 1;
+	*add_static = false;
+
+	name = get_member_name(buffer);
+	if (name)
+		return name;
+
+	if (is_static(buffer)) {
+		name = expr_to_var(buffer);
+		if (!name)
+			return NULL;
+		*add_static = 1;
+		return name;
 	}
+
+	array = get_array_base(buffer);
+	if (array) {
+		name = get_member_name(array);
+		if (!name)
+			return NULL;
+		snprintf(buf, sizeof(buf), "%s[]", name);
+		free_string(name);
+		return alloc_string(buf);
+	}
+
+	return NULL;
+}
+
+static struct range_list *size_from_db_type(struct expression *expr)
+{
+	bool this_file_only;
+	char *name;
+
+	name = get_stored_buffer_name(expr, &this_file_only);
 	if (!name)
 		return NULL;
 
@@ -554,6 +583,21 @@ static struct range_list *alloc_int_rl(int value)
 	return alloc_rl(sval, sval);
 }
 
+struct range_list *filter_size_rl(struct range_list *rl)
+{
+	sval_t minus_one = {
+		.type = &int_ctype,
+		{ .value = -1 },
+	};
+
+	sval_t zero = {
+		.type = &int_ctype,
+		{ .value = 0 },
+	};
+
+	return remove_range(rl, minus_one, zero);
+}
+
 struct range_list *get_array_size_bytes_rl(struct expression *expr)
 {
 	struct range_list *ret = NULL;
@@ -622,6 +666,8 @@ struct range_list *get_array_size_bytes_rl(struct expression *expr)
 		return alloc_int_rl(size);
 
 	ret = size_from_db(expr);
+	return filter_size_rl(ret);
+
 	if (rl_to_sval(ret, &sval) && sval.value == -1)
 		return NULL;
 	if (ret)
@@ -705,14 +751,13 @@ static struct expression *strip_ampersands(struct expression *expr)
 
 static void info_record_alloction(struct expression *buffer, struct range_list *rl)
 {
+	bool add_static;
 	char *name;
 
 	if (!option_info)
 		return;
 
-	name = get_member_name(buffer);
-	if (!name && is_static(buffer))
-		name = expr_to_var(buffer);
+	name = get_stored_buffer_name(buffer, &add_static);
 	if (!name)
 		return;
 	if (rl && !is_whole_rl(rl))
@@ -744,8 +789,11 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	type = get_real_base_type(type);
 	if (!type)
 		return;
+// Why not store the size for void pointers?
 	if (type == &void_ctype)
 		return;
+// Because of 4 files that produce 30 warnings like this:
+// arch/x86/crypto/des3_ede_glue.c:145 __cbc_encrypt() warn: potential memory corrupting cast 8 vs 1 bytes
 	if (type->type != SYM_BASETYPE && type->type != SYM_PTR)
 		return;
 
@@ -777,8 +825,9 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
 
-	if (!is_pointer(left))
+	if (!is_pointer(left) && !get_state_expr(my_size_id, expr))
 		return;
+
 	/* char buf[24] = "str"; */
 	if (is_array_base(left))
 		return;
@@ -818,7 +867,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
 	get_absolute_rl(arg, &rl);
-	rl = cast_rl(&int_ctype, rl);
+	rl = cast_rl(&ulong_ctype, rl);
 	store_alloc(expr->left, rl);
 }
 
