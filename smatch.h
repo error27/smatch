@@ -604,6 +604,7 @@ int expr_equiv(struct expression *one, struct expression *two);
 void push_int(struct int_stack **stack, int num);
 int pop_int(struct int_stack **stack);
 bool macro_to_ul(const char *macro, unsigned long *val);
+bool has_cleanup(struct expression *expr);
 
 /* smatch_type.c */
 struct symbol *get_real_base_type(struct symbol *sym);

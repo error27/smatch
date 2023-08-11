@@ -126,6 +126,8 @@ static void match_alloc(const char *fn, struct expression *expr, void *unused)
 		return;
 	if (is_param(expr->left))
 		return;
+	if (has_cleanup(expr->left))
+		return;
 	if (expr->left->type != EXPR_SYMBOL)
 		return;
 	set_state_expr(my_id, expr->left, &allocated);

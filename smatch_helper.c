@@ -1474,3 +1474,12 @@ int success_fail_return(struct range_list *rl)
 
 	return RET_UNKNOWN;
 }
+
+bool has_cleanup(struct expression *expr)
+{
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_SYMBOL)
+		return false;
+
+	return !!expr->symbol->cleanup;
+}
