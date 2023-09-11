@@ -1154,6 +1154,21 @@ int is_last_stmt(struct statement *cur_stmt)
 	return 0;
 }
 
+static bool is_function_scope(struct statement *stmt)
+{
+	struct symbol *base_type;
+
+	if (!cur_func_sym)
+		return false;
+
+	base_type = get_base_type(cur_func_sym);
+	if (base_type->stmt == stmt ||
+	    base_type->inline_stmt == stmt)
+		return true;
+
+	return false;
+}
+
 static void handle_backward_goto(struct statement *goto_stmt)
 {
 	const char *goto_name, *label_name;
@@ -1269,29 +1284,10 @@ static void split_compound(struct statement *stmt)
 
 	/*
 	 * For function scope, then delay calling the scope hooks until the
-	 * end of function hooks can run.  I'm not positive this is the right
-	 * thing...
+	 * end of function hooks can run.
 	 */
-	if (!is_last_stmt(cur))
+	if (!is_function_scope(stmt))
 		__call_scope_hooks();
-}
-
-/*
- * This is a hack, work around for detecting empty functions.
- */
-static int need_delayed_scope_hooks(void)
-{
-	struct symbol *fn = get_base_type(cur_func_sym);
-	struct statement *stmt;
-
-	if (!fn)
-		return 0;
-	stmt = fn->stmt;
-	if (!stmt)
-		stmt = fn->inline_stmt;
-	if (stmt && stmt->type == STMT_COMPOUND)
-		return 1;
-	return 0;
 }
 
 void __split_label_stmt(struct statement *stmt)
@@ -1991,6 +1987,12 @@ static void start_function_definition(struct symbol *sym)
 
 }
 
+static void parse_fn_statements(struct symbol *base)
+{
+	__split_stmt(base->stmt);
+	__split_stmt(base->inline_stmt);
+}
+
 void add_function_data(unsigned long *fn_data)
 {
 	__add_ptr_list(&fn_data_list, fn_data);
@@ -2048,16 +2050,15 @@ static void split_function(struct symbol *sym)
 		loop_num = 0;
 		final_pass = 0;
 		start_function_definition(sym);
-		__split_stmt(base_type->stmt);
-		__split_stmt(base_type->inline_stmt);
+		parse_fn_statements(base_type);
+		__call_scope_hooks();
 		nullify_path();
 	}
 	__unnullify_path();
 	loop_num = 0;
 	final_pass = 1;
 	start_function_definition(sym);
-	__split_stmt(base_type->stmt);
-	__split_stmt(base_type->inline_stmt);
+	parse_fn_statements(base_type);
 	if (!__path_is_null() &&
 	    cur_func_return_type() == &void_ctype &&
 	    !__bail_on_rest_of_function) {
@@ -2065,8 +2066,7 @@ static void split_function(struct symbol *sym)
 		nullify_path();
 	}
 	__pass_to_client(sym, END_FUNC_HOOK);
-	if (need_delayed_scope_hooks())
-		__call_scope_hooks();
+	__call_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
 
@@ -2184,9 +2184,9 @@ void parse_inline(struct expression *call)
 	loop_num = 0;
 	loop_count = 0;
 	start_function_definition(call->fn->symbol);
-	__split_stmt(base_type->stmt);
-	__split_stmt(base_type->inline_stmt);
+	parse_fn_statements(base_type);
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
+	__call_scope_hooks();
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
 
