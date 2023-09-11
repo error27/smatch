@@ -1918,6 +1918,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 	saved = ctx.ctype;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
+		ctx.cleanup = NULL;
 		ctx.ident = &decl->ident;
 
 		token = declarator(token, &ctx);
@@ -3117,6 +3118,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		ident = NULL;
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		ctx.ctype = saved;
+		ctx.cleanup = NULL;
 		token = handle_attributes(token, &ctx);
 		token = declarator(token, &ctx);
 		token = handle_asm_name(token, &ctx);
