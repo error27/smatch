@@ -857,6 +857,8 @@ static void handle_pre_loop(struct statement *stmt)
 	struct stree *stree = NULL;
 	struct sm_state *sm = NULL;
 
+	__push_scope_hooks();
+
 	loop_name = get_loop_name(loop_num);
 	loop_num++;
 
@@ -928,6 +930,8 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_breaks();
 	}
 	loop_count--;
+
+	__call_scope_hooks();
 }
 
 /*
