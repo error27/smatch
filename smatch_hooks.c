@@ -248,9 +248,9 @@ static struct scope_hook_list *pop_scope_hook_list(struct scope_hook_stack **sta
 	return hook_list;
 }
 
-static void push_scope_hook_list(struct scope_hook_stack **stack, struct scope_hook_list *l)
+static void push_scope_hook_list(struct scope_hook_stack **stack, struct scope_hook_list *list)
 {
-	add_ptr_list(stack, l);
+	add_ptr_list(stack, list);
 }
 
 void add_scope_hook(scope_hook *fn, void *data)
