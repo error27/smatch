@@ -94,6 +94,7 @@ ALLOCATOR(scope_container, "scope hook functions");
 DECLARE_PTR_LIST(scope_hook_list, struct scope_container);
 DECLARE_PTR_LIST(scope_hook_stack, struct scope_hook_list);
 static struct scope_hook_stack *scope_hooks;
+int my_id;
 
 extern int __cur_check_id;
 void add_hook(void *func, enum hook_type type)
@@ -310,6 +311,12 @@ void allocate_hook_memory(void)
 {
 	pre_merge_hooks = malloc(num_checks * sizeof(*pre_merge_hooks));
 	memset(pre_merge_hooks, 0, num_checks * sizeof(*pre_merge_hooks));
+}
+
+void register_hooks(int id)
+{
+	add_function_data((unsigned long *)&scope_hooks);
+	my_id = id;
 }
 
 void call_void_fns(struct void_fn_list *list)
