@@ -127,7 +127,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 
 	sql_insert_return_states(return_id, return_ranges,
 			(state == &add) ? PREEMPT_ADD : PREEMPT_SUB,
-			-1, "", "");
+			-2, "", "");
 }
 
 static void preempt_count_add(const char *fn, struct expression *expr, void *_index)
