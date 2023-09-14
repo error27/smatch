@@ -326,6 +326,8 @@ static struct symbol *get_type_helper(struct expression *expr)
 		break;
 	case EXPR_GENERIC:
 		return get_type_helper(strip_Generic(expr));
+	case EXPR_COMMA:
+		return get_type_helper(expr->right);
 	default:
 		return NULL;
 	}

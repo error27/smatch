@@ -703,6 +703,10 @@ int __handle_select_assigns(struct expression *expr)
 
 		snprintf(buf, sizeof(buf), "fake_cond_%p", expr);
 		fake_condition = create_fake_assign(buf, get_type(right->conditional), right->conditional);
+		if (!fake_condition) {
+			sm_perror("cannot parse condition");
+			return 0;
+		}
 		expr_set_parent_expr(fake_condition, right);
 		__save_pre_cond_states();
 		__split_whole_condition(fake_condition);
