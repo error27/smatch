@@ -80,6 +80,7 @@ static struct user_fn_info func_table[] = {
 	{ "wilc_wlan_rxq_remove", USER_PTR_SET, -1, "$->buffer" },
 	{ "cfg80211_find_vendor_ie", USER_PTR_SET, -1, "$" },
 
+	{ "xdr_copy_to_scratch", USER_PTR_SET, -1, "$" },
 	{ "xdr_inline_decode", USER_PTR_SET, -1, "$" },
 	{ "ntfs_read_run_nb", USER_PTR_SET, 3, "$" },
 	{ "ntfs_read_bh", USER_PTR_SET, 3, "(0<~$0)" },
