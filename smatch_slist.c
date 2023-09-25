@@ -575,6 +575,7 @@ void set_state_stree_perm(struct stree **stree, int owner, const char *name,
 
 	sm = malloc(sizeof(*sm) + strlen(name) + 1);
 	memset(sm, 0, sizeof(*sm));
+	sm->line = get_lineno();
 	sm->owner = owner;
 	sm->name = (char *)(sm + 1);
 	strcpy((char *)sm->name, name);
