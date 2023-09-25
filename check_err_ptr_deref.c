@@ -25,6 +25,7 @@ static const char *safe_fns[] = {
 	"exynos_drm_crtc_get_by_type",
 	"mdp5_crtc_get_mixer",
 	"mdp5_crtc_get_pipeline",
+	"mlx5_eswitch_get_vport",
 	"mtk_vdec_h264_get_ctrl_ptr",
 	"nand_get_sdr_timings",
 	"tc358746_get_format_by_code",
