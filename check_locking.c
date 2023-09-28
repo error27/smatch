@@ -391,6 +391,7 @@ static struct lock_info lock_table[] = {
 	{"modeset_lock",			  LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"drm_ modeset_lock",			  LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"drm_modeset_lock_single_interruptible", LOCK,   mutex, 0, "$", &int_zero, &int_zero},
+	{"drm_exec_unlock_obj",			  UNLOCK, mutex, 1, "$->resv" },
 	{"modeset_unlock",			  UNLOCK, mutex, 0, "$"},
 //	{"nvkm_i2c_aux_acquire",		  LOCK,   mutex, 
 	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 0, "$->base.resv", &int_zero, &int_zero},
@@ -448,6 +449,11 @@ static struct lock_info lock_table[] = {
 	{ "deactivate_locked_super", UNLOCK, spin_lock, 0, "&$->s_umount"},
 	{ "ext4_lock_group", LOCK,	spin_lock, 0, "$"},
 	{ "ext4_unlock_group", UNLOCK,	spin_lock, 0, "$"},
+
+	{"__pte_offset_map_lock", LOCK, spin_lock, 3, "*$", &valid_ptr_min_sval, &valid_ptr_max_sval},
+	{"pte_offset_map_lock", LOCK, spin_lock, 3, "*$", &valid_ptr_min_sval, &valid_ptr_max_sval},
+
+	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
 
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "$"},
 
