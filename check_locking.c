@@ -449,6 +449,8 @@ static struct lock_info lock_table[] = {
 	{ "ext4_lock_group", LOCK,	spin_lock, 0, "$"},
 	{ "ext4_unlock_group", UNLOCK,	spin_lock, 0, "$"},
 
+	{"class_mutex_destructor", UNLOCK, mutex, 0, "$"},
+
 	{},
 };
 
