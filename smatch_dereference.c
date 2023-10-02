@@ -49,6 +49,34 @@ static void call_deref_hooks(struct expression *expr)
 	call_expr_fns(deref_hooks, expr);
 }
 
+static bool is_array_pointer_math(struct expression *expr)
+{
+	struct expression *p, *parent;
+	struct symbol *type;
+
+	/* Ignore "&array[0]".  Fixme: wouldn't the & mean it was already ignored? */
+	p = strip_expr(expr->unop);
+	type = get_type(p);
+	if (!type || type->type != SYM_PTR)
+		return true;
+
+	/* Ignore "p->array".  Here p is not actually dereferenced.  */
+	parent = expr_get_parent_expr(expr);
+	if (!parent)
+		return false;
+
+	type = get_type(parent);
+	if (!type || type->type != SYM_ARRAY)
+		return false;
+	while ((parent = expr_get_parent_expr(parent))) {
+		if (parent->type == EXPR_PREOP &&
+		    parent->op == '*')
+			return false;
+	}
+
+	return true;
+}
+
 static void match_dereference(struct expression *expr)
 {
 	struct expression *p, *tmp;
@@ -57,10 +85,11 @@ static void match_dereference(struct expression *expr)
 	if (expr->type != EXPR_PREOP ||
 	    expr->op != '*')
 		return;
-	p = strip_expr(expr->unop);
-	type = get_type(p);
-	if (!type || type->type != SYM_PTR)
+
+	if (is_array_pointer_math(expr))
 		return;
+
+	p = strip_expr(expr->unop);
 	call_deref_hooks(p);
 
 	tmp = get_assigned_expr(p);
