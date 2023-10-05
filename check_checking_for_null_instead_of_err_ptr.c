@@ -94,7 +94,7 @@ static void match_condition2(struct expression *expr)
 	FOR_EACH_PTR(rl, drange) {
 		if (sval_cmp(drange->min, drange->max) != 0)
 			continue;
-		if (drange->min.value >= -4095 && drange->min.value < 0)
+		if (sval_cmp(drange->min, valid_ptr_max_sval) > 0)
 			goto warn;
 	} END_FOR_EACH_PTR(drange);
 

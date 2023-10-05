@@ -32,7 +32,7 @@ bool is_err_ptr(sval_t sval)
 		return false;
 	if (!type_is_ptr(sval.type))
 		return false;
-	if (sval.uvalue < -4095ULL)
+	if (sval_cmp(sval, valid_ptr_max_sval) <= 0)
 		return false;
 	return true;
 }
@@ -91,9 +91,17 @@ bool rl_is_zero(struct range_list *rl)
 	return false;
 }
 
+long long sign_extend_err_ptr(long long value)
+{
+	if (sval_type_max(&ulong_ctype).value == UINT_MAX)
+		return (int)value;
+	return value;
+}
+
 static char *get_err_pointer_str(struct data_range *drange)
 {
 	static char buf[20];
+	long long min, max;
 
 	/*
 	 * The kernel has error pointers where you do essentially:
@@ -107,10 +115,14 @@ static char *get_err_pointer_str(struct data_range *drange)
 	if (!is_err_ptr(drange->min))
 		return NULL;
 
+	min = drange->min.value;
+	max = drange->max.value;
+
 	if (drange->min.value == drange->max.value)
-		snprintf(buf, sizeof(buf), "(%lld)", drange->min.value);
+		snprintf(buf, sizeof(buf), "(%lld)", sign_extend_err_ptr(min));
 	else
-		snprintf(buf, sizeof(buf), "(%lld)-(%lld)", drange->min.value, drange->max.value);
+		snprintf(buf, sizeof(buf), "(%lld)-(%lld)",
+			 sign_extend_err_ptr(min), sign_extend_err_ptr(max));
 	return buf;
 }
 
@@ -545,6 +557,10 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 	} else if (start[0] == '[') {
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
+	} else if (type_is_ptr(type)) {
+		ret = sval_type_val(type, strtoll(start, (char **)&c, 0));
+		if (sval_type_max(&ulong_ctype).value == UINT_MAX)
+			ret.uvalue &= UINT_MAX;
 	} else if (type_positive_bits(type) == 64) {
 		ret = sval_type_val(type, strtoull(start, (char **)&c, 0));
 	} else {

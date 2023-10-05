@@ -849,8 +849,9 @@ const char *sval_to_str_or_err_ptr(sval_t sval)
 	    !is_ptr_type(sval.type))
 		return sval_to_str(sval);
 
-	if (!sval_is_fp(sval) && sval.uvalue >= -4905ULL) {
-		snprintf(buf, sizeof(buf), "(%lld)", sval.value);
+	if (!sval_is_fp(sval) &&
+	    sval_cmp(sval, valid_ptr_max_sval) > 0) {
+		snprintf(buf, sizeof(buf), "(%lld)", sign_extend_err_ptr(sval.value));
 		return alloc_sname(buf);
 	}
 

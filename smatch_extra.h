@@ -77,6 +77,7 @@ int possibly_false_rl_LR(int comparison, struct range_list *a, struct range_list
 int rl_has_sval(struct range_list *rl, sval_t sval);
 int ranges_equiv(struct data_range *one, struct data_range *two);
 
+long long sign_extend_err_ptr(long long value);
 bool is_err_ptr(sval_t sval);
 bool is_err_or_null(struct range_list *rl);
 bool is_noderef_ptr_rl(struct range_list *rl);
