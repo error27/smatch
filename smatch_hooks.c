@@ -289,6 +289,18 @@ void __call_scope_hooks(void)
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 }
 
+void __call_all_scope_hooks(void)
+{
+	struct scope_hook_list *tmp_scope;
+	struct scope_container *tmp;
+
+	FOR_EACH_PTR_REVERSE(scope_hooks, tmp_scope) {
+		FOR_EACH_PTR_REVERSE(tmp_scope, tmp) {
+			((scope_hook *)tmp->fn)(tmp->data);
+		} END_FOR_EACH_PTR_REVERSE(tmp);
+	} END_FOR_EACH_PTR_REVERSE(tmp_scope);
+}
+
 void add_array_initialized_hook(void (*hook)(struct expression *array, int nr))
 {
 	struct hook_container *container = __alloc_hook_container(0);

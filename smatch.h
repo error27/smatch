@@ -897,6 +897,7 @@ struct smatch_state *__client_unmatched_state_function(struct sm_state *sm);
 void call_pre_merge_hook(struct sm_state *cur, struct sm_state *other);
 void __push_scope_hooks(void);
 void __call_scope_hooks(void);
+void __call_all_scope_hooks(void);
 void add_array_initialized_hook(void (*hook)(struct expression *array, int nr));
 void __call_array_initialized_hooks(struct expression *array, int nr);
 
