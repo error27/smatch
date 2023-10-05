@@ -1658,8 +1658,6 @@ static void call_cleanup_fn(void *_sym)
 	struct expression *call, *arg;
 	struct expression_list *args = NULL;
 
-	if (!sym->cleanup)
-		return;
 
 	arg = symbol_expression(sym);
 	arg = preop_expression(arg, '&');
@@ -1671,6 +1669,8 @@ static void call_cleanup_fn(void *_sym)
 
 static void add_cleanup_hook(struct symbol *sym)
 {
+	if (!sym->cleanup)
+		return;
 	add_scope_hook(&call_cleanup_fn, sym);
 }
 
