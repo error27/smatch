@@ -351,6 +351,22 @@ static int handle_postop_assigns(struct expression *expr)
 	return 1;
 }
 
+static bool parent_is_dereference(struct expression *expr)
+{
+	struct expression *parent;
+
+	parent = expr;
+	while ((parent = expr_get_parent_expr(parent))) {
+		if (parent->type == EXPR_DEREF)
+			return true;
+		if (parent->type == EXPR_PREOP &&
+		    parent->op == '*')
+			return true;
+	}
+
+	return false;
+}
+
 static int prev_expression_is_getting_address(struct expression *expr)
 {
 	struct expression *parent;
@@ -360,8 +376,11 @@ static int prev_expression_is_getting_address(struct expression *expr)
 
 		if (!parent)
 			return 0;
-		if (parent->type == EXPR_PREOP && parent->op == '&')
-			return 1;
+		if (parent->type == EXPR_PREOP && parent->op == '&') {
+			if (parent_is_dereference(parent))
+				return false;
+			return true;
+		}
 		if (parent->type == EXPR_PREOP && parent->op == '(')
 			goto next;
 		if (parent->type == EXPR_DEREF && parent->op == '.')
