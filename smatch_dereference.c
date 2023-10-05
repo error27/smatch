@@ -136,6 +136,24 @@ static void match_pointer_as_array(struct expression *expr)
 	call_deref_hooks(array);
 }
 
+static void dereference_inner_pointer(struct expression *expr)
+{
+	if (expr->type != EXPR_PREOP ||
+	    expr->op != '&')
+		return;
+	expr = strip_expr(expr->unop);
+	if (!expr || expr->type != EXPR_DEREF)
+		return;
+	expr = strip_expr(expr->unop);
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '*')
+		return;
+	expr = strip_expr(expr->unop);
+	if (!expr)
+		return;
+
+	call_deref_hooks(expr);
+}
+
 static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
 {
 	struct expression *deref;
@@ -145,6 +163,14 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 		return;
 
 	call_deref_hooks(deref);
+
+	/*
+	 * Generally, this stuff should be handled by smatch_flow.c but
+	 * smatch_flow.c doesn't have the PARAM_DEREFERENCED information so
+	 * we go one level down to mark it as dereferenced.
+	 *
+	 */
+	dereference_inner_pointer(deref);
 }
 
 static void param_deref(struct expression *expr)
