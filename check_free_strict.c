@@ -86,12 +86,12 @@ void add_free_hook(name_sym_hook *hook)
 	add_ptr_list(&free_hooks, hook);
 }
 
-static void call_free_call_backs_name_sym(struct expression *expr, const char *name, struct symbol *sym)
+static void call_free_call_backs_name_sym(const char *name, struct symbol *sym)
 {
+	struct expression *expr;
 	name_sym_hook *hook;
 
-	if (!expr)
-		expr = gen_expression_from_name_sym(name, sym);
+	expr = gen_expression_from_name_sym(name, sym);
 
 	FOR_EACH_PTR(free_hooks, hook) {
 		hook(expr, name, sym);
@@ -471,7 +471,7 @@ static void match_free(struct expression *expr, const char *name, struct symbol 
 		sm_error("double free of '%s'", name);
 
 	track_freed_param(arg, &freed);
-	call_free_call_backs_name_sym(expr, name, sym);
+	call_free_call_backs_name_sym(name, sym);
 	set_state_expr(my_id, arg, &freed);
 }
 
@@ -544,7 +544,7 @@ static void set_param_helper(struct expression *expr, int param,
 
 	track_freed_param_var_sym(name, sym, state);
 	if (state == &freed)
-		call_free_call_backs_name_sym(NULL, name, sym);
+		call_free_call_backs_name_sym(name, sym);
 	set_state(my_id, name, sym, state);
 free:
 	free_string(name);
