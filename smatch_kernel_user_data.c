@@ -32,7 +32,6 @@ static int my_call_id;
 static struct expression *ignore_clear;
 
 STATE(called);
-static unsigned long func_gets_user_data;
 
 struct user_fn_info {
 	const char *name;
@@ -352,8 +351,6 @@ static void match_sscanf(const char *fn, struct expression *expr, void *unused)
 	struct expression *str, *format, *arg;
 	int i;
 
-	func_gets_user_data = true;
-
 	str = get_argument_from_call_expr(expr->args, 0);
 	if (is_dev_attr_name(str))
 		return;
@@ -513,10 +510,8 @@ static void match_assign(struct expression *expr)
 	if (faked &&
 	    faked->type == EXPR_ASSIGNMENT &&
 	    points_to_user_data(faked->right)) {
-		if (is_skb_data(faked->right)) {
-			func_gets_user_data = true;
+		if (is_skb_data(faked->right))
 			is_new = true;
-		}
 		rl = alloc_whole_rl(left_type);
 		goto set;
 	}
@@ -1237,10 +1232,8 @@ void mark_as_user_data(struct expression *expr, bool isnew)
 	struct smatch_state *state;
 
 	state = alloc_estate_whole(get_type(expr));
-	if (isnew) {
-		func_gets_user_data = true;
+	if (isnew)
 		estate_set_new(state);
-	}
 	set_state_expr(my_id, expr, state);
 }
 
@@ -1306,8 +1299,6 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 {
 	struct expression *arg;
 
-	func_gets_user_data = true;
-
 	if (param == -1) {
 		if (expr->type != EXPR_ASSIGNMENT) {
 			store_user_data_return(expr, key, value, NEW);
@@ -1333,7 +1324,6 @@ static void set_param_key_user_data(struct expression *expr, const char *name,
 {
 	struct expression *arg;
 
-	func_gets_user_data = true;
 	arg = gen_expression_from_name_sym(name, sym);
 	set_state_expr(my_id, arg, new_state(get_type(arg)));
 }
@@ -1363,8 +1353,6 @@ void register_kernel_user_data(int id)
 		return;
 
 	set_dynamic_states(my_id);
-
-	add_function_data(&func_gets_user_data);
 
 	add_unmatched_state_hook(my_id, &empty_state);
 	add_extra_nomod_hook(&extra_nomod_hook);
