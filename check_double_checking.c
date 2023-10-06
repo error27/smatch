@@ -114,6 +114,7 @@ static void match_condition(struct expression *expr)
 {
 	struct expression *old_condition;
 	struct smatch_state *state;
+	struct symbol *sym;
 	char *name;
 
 	if (__in_fake_parameter_assign)
@@ -147,8 +148,45 @@ static void match_condition(struct expression *expr)
 	if (inside_loop() && !in_same_block(old_condition, expr))
 		return;
 
-	name = expr_to_str(expr);
+	name = expr_to_str_sym(expr, &sym);
+	state = get_state(my_id, name, sym);
+	if (state != &true_state && state != &false_state)
+		goto free;
+
 	sm_warning("duplicate check '%s' (previous on line %d)", name, old_condition->pos.line);
+free:
+	free_string(name);
+}
+
+static bool has_array(struct expression *expr)
+{
+	if (!expr)
+		return false;
+
+	if (is_array(expr))
+		return true;
+	if (expr->type == EXPR_COMPARE)
+		return is_array(expr->left);
+	return false;
+}
+
+static void match_condition_store(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	if (has_array(expr))
+		return;
+
+	name = expr_to_str_sym(expr, &sym);
+	if (!name)
+		return;
+
+	if (sym && sym->ctype.modifiers & MOD_TOPLEVEL)
+		goto free;
+
+	set_true_false_states(my_id, name, sym, &true_state, &false_state);
+free:
 	free_string(name);
 }
 
@@ -162,4 +200,5 @@ void check_double_checking(int id)
 	turn_off_implications(my_id);
 
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_condition_store, CONDITION_HOOK);
 }
