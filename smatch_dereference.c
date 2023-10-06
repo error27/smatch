@@ -32,6 +32,7 @@ static struct deref_info fn_deref_table[] = {
 	{ "strlen", 0, "$" },
 	{ "__builtin_strlen", 0, "$" },
 	{ "__fortify_strlen", 0, "$" },
+	{ "spinlock_check", 0, "$" },
 };
 
 void add_dereference_hook(expr_func *fn)
