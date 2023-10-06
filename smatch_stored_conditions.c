@@ -137,6 +137,33 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
 
+static void match_untracked(struct expression *call, int param)
+{
+	struct expression *arg;
+	struct sm_state *sm;
+	struct symbol *sym;
+
+	/*
+	 * NOTE: I wrote this patch because of a misunderstanding.  The
+	 * untracked parameter wasn't a stored condition, it was something
+	 * in smatch_extra and then we get the stored implication via an
+	 * implication later...  Ugh.  That explanation is too complicated.
+	 * I should just delete this code, but it feels more correct than
+	 * the original code.  Plus it was a lot of work to write it.
+	 *
+	 */
+
+	arg = get_argument_from_call_expr(call->args, param);
+	sym = expr_to_sym(arg);
+	if (!sym)
+		return;
+
+	FOR_EACH_MY_SM(link_id, __get_cur_stree(), sm) {
+		if (sm->sym == sym)
+			match_link_modify(sm, NULL);
+	} END_FOR_EACH_SM(sm);
+}
+
 static struct smatch_state *alloc_state(struct expression *expr, int is_true)
 {
 	struct smatch_state *state;
@@ -251,6 +278,7 @@ void register_stored_conditions_links(int id)
 	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);
 	add_modification_hook(link_id, &match_link_modify);
+	add_untracked_param_hook(&match_untracked);
 }
 
 #define RECURSE_LIMIT 50
