@@ -159,5 +159,7 @@ void check_double_checking(int id)
 	if (!option_spammy)
 		return;
 
+	turn_off_implications(my_id);
+
 	add_hook(&match_condition, CONDITION_HOOK);
 }

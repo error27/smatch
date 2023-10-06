@@ -62,6 +62,7 @@
 #include "smatch_extra.h"
 
 char *implied_debug_msg;
+static char *ignore_implications;
 
 bool implications_off;
 
@@ -73,6 +74,18 @@ bool implied_debug;
 bool debug_implied(void)
 {
 	return option_debug || implied_debug || full_debug;
+}
+
+void turn_off_implications(int id)
+{
+	ignore_implications[id] = true;
+}
+
+static bool implications_turned_off(int owner)
+{
+	if (owner >= 0 && owner < num_checks)
+		return ignore_implications[owner];
+	return false;
 }
 
 /*
@@ -996,11 +1009,15 @@ static void set_implied_states(struct expression *expr)
 	}
 
 	FOR_EACH_SM(saved_implied_true, sm) {
+		if (implications_turned_off(sm->owner))
+			continue;
 		__set_true_false_sm(sm, NULL);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&saved_implied_true);
 
 	FOR_EACH_SM(saved_implied_false, sm) {
+		if (implications_turned_off(sm->owner))
+			continue;
 		__set_true_false_sm(NULL, sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&saved_implied_false);
@@ -1074,6 +1091,9 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 
 		if (implied_debug)
 			sm_msg("param_implication: param='%s' limit='%s' sm='%s'", name, show_rl(limit), show_sm(tmp));
+
+		if (implications_turned_off(tmp->owner))
+			continue;
 
 		/*
 		 * What we're trying to do here is preserve the sm state so that
@@ -1254,6 +1274,9 @@ void __comparison_match_condition(struct expression *expr);
 void __stored_condition(struct expression *expr);
 void register_implications(int id)
 {
+	ignore_implications = malloc(num_checks);
+	memset(ignore_implications, 0, num_checks);
+
 	add_hook(&save_implications_hook, CONDITION_HOOK);
 	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
