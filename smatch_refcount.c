@@ -36,7 +36,9 @@ static void match_dec(struct expression *expr, const char *name, struct symbol *
 
 int was_inced(const char *name, struct symbol *sym)
 {
-	return get_state(my_id, name, sym) == &inc;
+	if (has_possible_state(my_id, name, sym, &inc))
+		return true;
+	return false;
 }
 
 void register_refcount(int id)
