@@ -74,6 +74,7 @@ static struct token *parse_range_statement(struct token *token, struct statement
 static struct token *parse_asm_statement(struct token *token, struct statement *stmt);
 static struct token *toplevel_asm_declaration(struct token *token, struct symbol_list **list);
 static struct token *parse_static_assert(struct token *token, struct symbol_list **unused);
+static struct token *ignore_seg_gs(struct token *token, struct symbol_list **unused);
 
 typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
@@ -354,6 +355,10 @@ static struct symbol_op static_assert_op = {
 	.toplevel = parse_static_assert,
 };
 
+static struct symbol_op seg_gs = {
+	.toplevel = ignore_seg_gs,
+};
+
 static struct symbol_op packed_op = {
 	.attribute = attribute_packed,
 };
@@ -521,6 +526,9 @@ static struct init_keyword {
 	N("_Float64x",		&spec_op,	.type = &float64x_ctype),
 	N("_Float128",		&spec_op,	.type = &float128_ctype),
 	N("__float128",		&spec_op,	.type = &float128_ctype),
+
+	N("__seg_gs",		&seg_gs),
+
 }, keywords[] = {
 	/* Statements */
 	N("if",			&if_op),
@@ -2128,6 +2136,11 @@ static struct token *parse_static_assert(struct token *token, struct symbol_list
 	}
 
 	return token;
+}
+
+static struct token *ignore_seg_gs(struct token *token, struct symbol_list **unused)
+{
+	return token->next;
 }
 
 /* Make a statement out of an expression */
