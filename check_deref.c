@@ -182,10 +182,8 @@ static void match_declarations(struct symbol *sym)
 	if (!sym->ident)
 		return;
 	name = sym->ident->name;
-	if (!sym->initializer) {
+	if (!sym->initializer)
 		set_state(my_id, name, sym, &uninitialized);
-		scoped_state(my_id, name, sym);
-	}
 }
 
 static void match_assign(struct expression *expr)

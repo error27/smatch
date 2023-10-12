@@ -1003,20 +1003,6 @@ void clear_strip_cache(void)
 	memset(strip_set_parent_cache, 0, sizeof(strip_set_parent_cache));
 }
 
-static void delete_state_tracker(struct tracker *t)
-{
-	__delete_state(t->owner, t->name, t->sym);
-	__free_tracker(t);
-}
-
-void scoped_state(int my_id, const char *name, struct symbol *sym)
-{
-	struct tracker *t;
-
-	t = alloc_tracker(my_id, name, sym);
-	add_scope_hook((scope_hook *)&delete_state_tracker, t);
-}
-
 int is_error_return(struct expression *expr)
 {
 	struct symbol *cur_func = cur_func_sym;
