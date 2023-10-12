@@ -1395,9 +1395,9 @@ void __split_stmt(struct statement *stmt)
 		expr_set_parent_stmt(stmt->ret_value, stmt);
 
 		split_ret_value(stmt->ret_value);
-		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		__process_post_op_stack();
 		__call_all_scope_hooks();
+		__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
 		break;
 	case STMT_EXPRESSION:
@@ -2086,6 +2086,7 @@ static void split_function(struct symbol *sym)
 	if (!__path_is_null() &&
 	    cur_func_return_type() == &void_ctype &&
 	    !__bail_on_rest_of_function) {
+		__call_all_scope_hooks();
 		__pass_to_client(NULL, RETURN_HOOK);
 		nullify_path();
 	}
