@@ -1014,6 +1014,8 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param >= 0) {
 		if (strcmp(printed_name, "$") == 0)
 			return;
+		if (!param_was_set_var_sym(sm->name, sm->sym))
+			return;
 		if (!estate_assigned(sm->state) &&
 		    !estate_new(sm->state))
 			return;
