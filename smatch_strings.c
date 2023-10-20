@@ -88,12 +88,18 @@ struct state_list *get_strings(struct expression *expr)
 		struct state_list *true_strings = NULL;
 		struct state_list *false_strings = NULL;
 
-		if (known_condition_true(expr->conditional))
-			return get_strings(expr->cond_true);
+		if (known_condition_true(expr->conditional)) {
+			if (expr->cond_true)
+				return get_strings(expr->cond_true);
+			return get_strings(expr->conditional);
+		}
 		if (known_condition_false(expr->conditional))
 			return get_strings(expr->cond_false);
 
-		true_strings = get_strings(expr->cond_true);
+		if (expr->cond_true)
+			true_strings = get_strings(expr->cond_true);
+		else
+			true_strings = get_strings(expr->conditional);
 		false_strings = get_strings(expr->cond_false);
 		concat_ptr_list((struct ptr_list *)true_strings, (struct ptr_list **)&false_strings);
 		free_slist(&true_strings);
