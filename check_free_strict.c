@@ -36,6 +36,7 @@ STATE(maybe_freed);
 STATE(ok);
 
 static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data);
+static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, void *data);
 
 struct func_info {
 	const char *name;
@@ -77,6 +78,8 @@ static struct func_info func_table[] = {
 	{ "kobject_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "kref_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
+
+	{ "__skb_pad", PARAM_FREED, 0, "$", NULL, NULL, &match___skb_pad },
 };
 
 static struct name_sym_fn_list *free_hooks;
@@ -495,6 +498,29 @@ static void match_kobject_put(struct expression *expr, const char *name, struct 
 	arg = strip_expr(arg->unop);
 	track_freed_param(arg, &maybe_freed);
 	set_state_expr(my_id, arg, &maybe_freed);
+}
+
+static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, void *data)
+{
+	struct expression *arg, *skb;
+	struct smatch_state *state;
+	sval_t sval;
+
+	while (expr && expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (!expr || expr->type != EXPR_CALL)
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, 2);
+	if (expr_is_zero(arg))
+		return;
+	state = &maybe_freed;
+	if (get_implied_value(arg, &sval) && sval.value != 0)
+		state = &freed;
+
+	skb = get_argument_from_call_expr(expr->args, 0);
+	track_freed_param(skb, state);
+	set_state_expr(my_id, skb, state);
 }
 
 struct string_list *handled;
