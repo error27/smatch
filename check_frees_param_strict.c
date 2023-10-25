@@ -85,19 +85,37 @@ void track_freed_param_var_sym(const char *name, struct symbol *sym,
 	set_state(my_id, name, sym, state);
 }
 
+static int get_freed_type(struct sm_state *sm)
+{
+	struct sm_state *tmp;
+
+	if (strcmp(sm->state->name, "freed") == 0)
+		return PARAM_FREED;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		if (strcmp(tmp->state->name, "freed") == 0)
+			return MAYBE_FREED;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
 static void return_freed_callback(int return_id, char *return_ranges,
 				 struct expression *returned_expr,
 				 int param,
 				 const char *printed_name,
 				 struct sm_state *sm)
 {
-	if (strcmp(sm->state->name, "freed") != 0)
+	int type;
+
+	type = get_freed_type(sm);
+	if (!type)
 		return;
 
 	if (on_atomic_dec_path())
 		return;
 
-	sql_insert_return_states(return_id, return_ranges, PARAM_FREED,
+	sql_insert_return_states(return_id, return_ranges, type,
 				 param, printed_name, "");
 }
 
