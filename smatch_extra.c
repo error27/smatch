@@ -1136,6 +1136,11 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	if (expr_equiv(left, right))
 		return;
 
+	left_type = get_type(left);
+	right_type = get_type(right);
+	if (left_type && left_type->type == SYM_ARRAY)
+		return;
+
 	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
@@ -1144,9 +1149,6 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 			do_array_assign(left, '=', right);
 		return;
 	}
-
-	left_type = get_type(left);
-	right_type = get_type(right);
 
 	right_name = expr_to_var_sym(right, &right_sym);
 
