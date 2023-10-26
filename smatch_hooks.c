@@ -259,8 +259,6 @@ void add_scope_hook(scope_hook *fn, void *data)
 	struct scope_hook_list *hook_list;
 	struct scope_container *new;
 
-	if (!scope_hooks)
-		return;
 	hook_list = pop_scope_hook_list(&scope_hooks);
 	new = __alloc_scope_container(0);
 	new->fn = fn;
@@ -279,8 +277,6 @@ void __call_scope_hooks(void)
 	struct scope_hook_list *hook_list;
 	struct scope_container *tmp;
 
-	if (!scope_hooks)
-		return;
 
 	hook_list = pop_scope_hook_list(&scope_hooks);
 	FOR_EACH_PTR_REVERSE(hook_list, tmp) {
