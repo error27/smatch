@@ -79,7 +79,7 @@ static struct func_info func_table[] = {
 	{ "kref_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 
-	{ "__skb_pad", PARAM_FREED, 0, "$", NULL, NULL, &match___skb_pad },
+	{ "__skb_pad", PARAM_FREED, 0, "$", &err_min, &err_max, &match___skb_pad },
 };
 
 static struct name_sym_fn_list *free_hooks;
