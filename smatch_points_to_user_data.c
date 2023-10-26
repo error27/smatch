@@ -260,6 +260,13 @@ void set_array_user_ptr(struct expression *expr, bool is_new)
 {
 	struct expression *tmp;
 
+	/*
+	 * If you have:
+	 *         p = buf;
+	 *         copy_from_user(p, src, 100);
+	 * At the end, both "p" and "buf" point to user data.
+	 *
+	 */
 	tmp = get_assigned_expr(expr);
 	if (tmp)
 		set_state_expr(my_id, tmp, is_new ? &user_data_set : &user_data);
