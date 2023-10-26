@@ -141,7 +141,6 @@ static char *ptr_prefix(struct symbol *sym)
 {
 	static char buf[128];
 
-
 	if (is_local_symbol(sym))
 		snprintf(buf, sizeof(buf), "%s ptr", get_function());
 	else if (sym && toplevel(sym->scope))
@@ -232,6 +231,21 @@ char *get_fnptr_name(struct expression *expr)
 	return expr_to_var(expr);
 }
 
+static int get_arg_count(struct expression *fn)
+{
+	struct symbol *fn_type;
+
+	fn_type = get_type(fn);
+	if (!fn_type)
+		return INT_MAX;
+	if (fn_type->type == SYM_PTR)
+		fn_type = get_real_base_type(fn_type);
+	if (fn_type->type != SYM_FN)
+		return INT_MAX;
+
+	return ptr_list_size((struct ptr_list *)fn_type->arguments);
+}
+
 static void match_passes_function_pointer(struct expression *expr)
 {
 	struct expression *arg, *tmp;
@@ -239,12 +253,16 @@ static void match_passes_function_pointer(struct expression *expr)
 	char *called_name;
 	char *fn_name;
 	char ptr_name[256];
-	int i;
+	int cnt, i;
 
+	cnt = get_arg_count(expr->fn);
 
 	i = -1;
 	FOR_EACH_PTR(expr->args, arg) {
 		i++;
+
+		if (i >= cnt)
+			return;
 
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
@@ -269,7 +287,6 @@ free:
 		free_string(fn_name);
 		free_string(called_name);
 	} END_FOR_EACH_PTR(arg);
-
 }
 
 static int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
