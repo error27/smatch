@@ -754,9 +754,6 @@ static void info_record_alloction(struct expression *buffer, struct range_list *
 	bool add_static;
 	char *name;
 
-	if (!option_info)
-		return;
-
 	name = get_stored_buffer_name(buffer, &add_static);
 	if (!name)
 		return;
@@ -784,7 +781,8 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	type = get_type(expr);
 	if (!type)
 		return;
-	if (type->type != SYM_PTR)
+	if (type->type != SYM_PTR &&
+	    type->type != SYM_ARRAY)
 		return;
 	type = get_real_base_type(type);
 	if (!type)
@@ -794,7 +792,9 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 		return;
 // Because of 4 files that produce 30 warnings like this:
 // arch/x86/crypto/des3_ede_glue.c:145 __cbc_encrypt() warn: potential memory corrupting cast 8 vs 1 bytes
-	if (type->type != SYM_BASETYPE && type->type != SYM_PTR)
+	if (type->type != SYM_BASETYPE &&
+	    type->type != SYM_PTR &&
+	    type->type != SYM_ARRAY)
 		return;
 
 	info_record_alloction(expr, rl);
@@ -857,18 +857,68 @@ store:
 	store_alloc(left, rl);
 }
 
+static struct expression *get_variable_struct_member(struct expression *expr)
+{
+	struct symbol *type, *last_member;
+	sval_t sval;
+
+	/*
+	 * This is a hack.  It should look at how the size is calculated instead
+	 * of just assuming that it's the last element.  However, ugly hacks are
+	 * easier to write.
+	 */
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return NULL;
+	last_member = last_ptr_list((struct ptr_list *)type->symbol_list);
+	if (!last_member || !last_member->ident)
+		return NULL;
+	type = get_real_base_type(last_member);
+	if (!type || type->type != SYM_ARRAY)
+		return NULL;
+	/* Is non-zero array size */
+	if (type->array_size) {
+		if (!get_implied_value(type->array_size, &sval) ||
+		    sval.value != 0)
+			return NULL;
+	}
+
+	return member_expression(expr, '*', last_member->ident);
+}
+
+static void match_struct_size_helper(struct expression *pointer, struct range_list *rl)
+{
+	struct range_list *buf_size;
+	struct expression *member;
+	sval_t sval = { .type = &ulong_ctype };
+
+	member = get_variable_struct_member(pointer);
+	if (!member)
+		return;
+	sval.value = bytes_per_element(pointer);
+	if (!sval.value)
+		return;
+	buf_size = rl_binop(rl, '-', alloc_rl(sval, sval));
+	store_alloc(member, buf_size);
+}
+
 static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
 {
 	int size_arg = PTR_INT(_size_arg);
-	struct expression *right;
-	struct expression *arg;
+	struct expression *pointer, *right, *arg;
 	struct range_list *rl;
 
+	pointer = strip_expr(expr->left);
 	right = strip_expr(expr->right);
 	arg = get_argument_from_call_expr(right->args, size_arg);
 	get_absolute_rl(arg, &rl);
 	rl = cast_rl(&ulong_ctype, rl);
-	store_alloc(expr->left, rl);
+	store_alloc(pointer, rl);
+	match_struct_size_helper(pointer, rl);
 }
 
 static void match_calloc(const char *fn, struct expression *expr, void *_param)
