@@ -405,7 +405,7 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 static void match_strlen(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	struct range_list *rl;
+	struct range_list *rl = NULL;
 	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
