@@ -1088,6 +1088,8 @@ char *get_member_name(struct expression *expr)
 	sym = get_type(expr->deref);
 	if (!sym)
 		return NULL;
+	if (sym->type == SYM_PTR)
+		sym = get_real_base_type(sym);
 	if (sym->type == SYM_UNION) {
 		snprintf(buf, sizeof(buf), "(union %s)->%s",
 			 sym->ident ? sym->ident->name : "anonymous",
