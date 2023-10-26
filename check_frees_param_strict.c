@@ -46,13 +46,8 @@ static void set_ignore(struct sm_state *sm, struct expression *mod_expr)
 
 void track_freed_param(struct expression *expr, struct smatch_state *state)
 {
-	struct expression *tmp;
 	const char *key;
 	int param;
-
-	tmp = get_assigned_expr(expr);
-	if (tmp)
-		expr = tmp;
 
 	param = get_param_key_from_expr(expr, NULL, &key);
 	if (param < 0)
