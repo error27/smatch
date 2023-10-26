@@ -76,7 +76,6 @@ static struct func_info func_table[] = {
 	{ "qdisc_enqueue", PARAM_FREED, 0, "$" },
 
 	{ "kobject_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
-	{ "kref_put", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 
 	{ "__skb_pad", PARAM_FREED, 0, "$", &err_min, &err_max, &match___skb_pad },
