@@ -58,7 +58,7 @@ static bool is_power_of_two(struct expression *expr)
 	return false;
 }
 
-static void match_ida_alloc(const char *fn, struct expression *expr, void *_arg_nr)
+static void match_ida_alloc_max(const char *fn, struct expression *expr, void *_arg_nr)
 {
 	int arg_nr = PTR_INT(_arg_nr);
 	struct expression *arg_expr;
@@ -71,6 +71,28 @@ static void match_ida_alloc(const char *fn, struct expression *expr, void *_arg_
 			 fn);
 }
 
+static void match_ida_alloc_range(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg_expr1, *arg_expr2;
+
+	sval_t sval;
+
+	arg_expr1 = get_argument_from_call_expr(expr->args, 1);
+	arg_expr1 = strip_expr(arg_expr1);
+	arg_expr2 = get_argument_from_call_expr(expr->args, 2);
+	arg_expr2 = strip_expr(arg_expr2);
+
+	if (!get_implied_value(arg_expr1, &sval))
+		return;
+
+	if (sval.uvalue == 1)
+		return;
+
+	if (is_power_of_two(arg_expr2))
+		sm_error("Calling %s() with a 'max' argument which is a power of 2. -1 missing?",
+			  fn);
+}
+
 void check_ida_alloc(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -78,6 +100,6 @@ void check_ida_alloc(int id)
 
 	my_id = id;
 
-	add_function_hook("ida_alloc_max", &match_ida_alloc, INT_PTR(1));
-	add_function_hook("ida_alloc_range", &match_ida_alloc, INT_PTR(2));
+	add_function_hook("ida_alloc_max", &match_ida_alloc_max, INT_PTR(1));
+	add_function_hook("ida_alloc_range", &match_ida_alloc_range, NULL);
 }
