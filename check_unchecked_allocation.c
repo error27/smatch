@@ -95,12 +95,12 @@ static const char *get_allocation_fn_name(const char *name, struct symbol *sym)
 	return "<unknown>";
 }
 
-static void check_dereference_name_sym(char *name, struct symbol *sym)
+static void deref_hook(struct expression *expr)
 {
 	struct sm_state *sm;
 	const char *fn_name;
 
-	sm = get_sm_state(my_id, name, sym);
+	sm = get_sm_state_expr(my_id, expr);
 	if (!sm)
 		return;
 	if (is_ignored(my_id, sm->name, sm->sym))
@@ -112,50 +112,9 @@ static void check_dereference_name_sym(char *name, struct symbol *sym)
 	if (!slist_has_state(sm->possible, &null))
 		return;
 
-	sm_msg("%s: sm='%s'", __func__, show_sm(sm));
-	fn_name = get_allocation_fn_name(name, sym);
+	fn_name = get_allocation_fn_name(sm->name, sm->sym);
 	sm_error("potential null dereference '%s'.  (%s returns null)",
 		 sm->name, fn_name);
-}
-
-static void check_dereference(struct expression *expr)
-{
-	char *name;
-	struct symbol *sym;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name)
-		return;
-	check_dereference_name_sym(name, sym);
-	free_string(name);
-}
-
-static void match_dereferences(struct expression *expr)
-{
-	if (expr->type != EXPR_PREOP)
-		return;
-	check_dereference(expr->unop);
-}
-
-static void match_pointer_as_array(struct expression *expr)
-{
-	if (!is_array(expr))
-		return;
-	check_dereference(get_array_base(expr));
-}
-
-static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
-{
-	struct symbol *sym;
-	char *name;
-
-	name = get_variable_from_key(arg, key, &sym);
-	if (!name || !sym)
-		goto free;
-
-	check_dereference_name_sym(name, sym);
-free:
-	free_string(name);
 }
 
 static int called_with_no_fail(struct expression *call, int param)
@@ -224,8 +183,6 @@ void check_unchecked_allocation(int id)
 
 	add_modification_hook(my_id, &set_undefined);
 	add_pre_merge_hook(my_id, &pre_merge_hook);
-	add_hook(&match_dereferences, DEREF_HOOK);
-	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
+	add_dereference_hook(deref_hook);
 	register_allocation_funcs();
 }
