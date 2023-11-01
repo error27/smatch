@@ -416,30 +416,6 @@ static void match_return(struct expression *expr)
 	free_string(name);
 }
 
-static int counter_was_inced_name_sym(const char *name, struct symbol *sym, const char *counter_str)
-{
-	char buf[256];
-
-	snprintf(buf, sizeof(buf), "%s%s", name, counter_str);
-	return was_inced(buf, sym);
-}
-
-static int counter_was_inced(struct expression *expr, const char *counter_str)
-{
-	char *name;
-	struct symbol *sym;
-	int ret = 0;
-
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	ret = counter_was_inced_name_sym(name, sym, counter_str);
-free:
-	free_string(name);
-	return ret;
-}
-
 static bool is_ptr_to(struct expression *expr, const char *type)
 {
 	struct symbol *sym;
@@ -464,10 +440,10 @@ static void match_free(struct expression *expr, const char *name, struct symbol 
 	if (!arg)
 		return;
 	if (is_ptr_to(arg, "sk_buff") &&
-	    counter_was_inced(arg, "->users.refs.counter"))
+	    refcount_was_inced(arg, "->users.refs.counter"))
 		return;
 	if (is_ptr_to(arg, "buffer_head") &&
-	    counter_was_inced(arg, "->b_count.counter"))
+	    refcount_was_inced(arg, "->b_count.counter"))
 		return;
 	if (is_freed(arg))
 		sm_error("double free of '%s'", name);
@@ -556,7 +532,7 @@ static void set_param_helper(struct expression *expr, int param,
 		goto free;
 
 	/* skbs are not free if we called skb_get(). */
-	if (counter_was_inced_name_sym(name, sym, "->users.refs.counter"))
+	if (refcount_was_inced_name_sym(name, sym, "->users.refs.counter"))
 		goto free;
 
 	if (state == &freed && !is_impossible_path()) {

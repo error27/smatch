@@ -1474,6 +1474,8 @@ struct stree *get_all_return_states(void);
 struct stree_stack *get_all_return_strees(void);
 int on_atomic_dec_path(void);
 int was_inced(const char *name, struct symbol *sym);
+int refcount_was_inced_name_sym(const char *name, struct symbol *sym, const char *counter_str);
+int refcount_was_inced(struct expression *expr, const char *counter_str);
 void set_refcount_inc(char *name, struct symbol *sym);
 void set_refcount_dec(char *name, struct symbol *sym);
 void add_refcount_init_hook(name_sym_hook *hook);

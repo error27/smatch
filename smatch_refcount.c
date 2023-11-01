@@ -41,6 +41,30 @@ int was_inced(const char *name, struct symbol *sym)
 	return false;
 }
 
+int refcount_was_inced_name_sym(const char *name, struct symbol *sym, const char *counter_str)
+{
+	char buf[256];
+
+	snprintf(buf, sizeof(buf), "%s%s", name, counter_str);
+	return was_inced(buf, sym);
+}
+
+int refcount_was_inced(struct expression *expr, const char *counter_str)
+{
+	char *name;
+	struct symbol *sym;
+	int ret = 0;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	ret = refcount_was_inced_name_sym(name, sym, counter_str);
+free:
+	free_string(name);
+	return ret;
+}
+
 void register_refcount(int id)
 {
 	my_id = id;
