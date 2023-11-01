@@ -101,6 +101,7 @@ CK(register_kernel_err_ptr)
 CK(register_kernel_has_devm_cleanup)
 CK(register_kernel_task_state)
 CK(register_kernel_task_state_info)
+CK(register_kernel_kref_put)
 
 CK(check_debug)
 
