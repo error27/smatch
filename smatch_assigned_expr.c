@@ -16,7 +16,7 @@
  */
 
 /*
- * This is not a check.  It just saves an struct expression pointer 
+ * This is not a check.  It just saves an struct expression pointer
  * whenever something is assigned.  This can be used later on by other scripts.
  */
 
@@ -195,6 +195,7 @@ free:
 void register_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
+	add_function_data((unsigned long *)&skip_mod);
 	set_dynamic_states(check_assigned_expr_id);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook_late(my_id, &undef);
