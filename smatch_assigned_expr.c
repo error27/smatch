@@ -141,6 +141,8 @@ static void match_assignment(struct expression *expr)
 		goto free;
 
 	skip_mod = expr;
+	if (get_unfaked_call())
+		skip_mod = get_unfaked_call();
 	set_state(my_id, left_name, left_sym, state);
 
 	right_name = expr_to_var_sym(right, &right_sym);
