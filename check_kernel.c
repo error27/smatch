@@ -221,23 +221,97 @@ static int match_next_bit(struct expression *call, void *unused, struct range_li
 	return 1;
 }
 
+static struct expression *cast_to_ul(struct expression *expr)
+{
+	struct symbol *type;
+
+	type = get_type(expr);
+	if (!type)
+		return NULL;
+	if (type_positive_bits(type) > type_positive_bits(&ulong_ctype))
+		return NULL;
+	if (type_positive_bits(type) == type_positive_bits(&ulong_ctype))
+		return expr;
+
+	return cast_expression(expr, &ulong_ctype);
+}
+
+static struct range_list *do_size_op(struct range_list *left, int op, struct range_list *right)
+{
+	sval_t a_min, b_min, res_min;
+
+	/* no overflows */
+	if (!sval_binop_overflows(rl_max(left), op, rl_max(right)))
+		return rl_binop(left, op, right);
+
+	/* only overflows */
+	if (sval_binop_overflows(rl_min(left), op, rl_min(right)))
+		return alloc_rl(sval_type_max(&ulong_ctype),
+				sval_type_max(&ulong_ctype));
+
+	a_min = rl_min(left);
+	b_min = rl_min(right);
+	res_min = sval_binop(a_min, op, b_min);
+
+	return alloc_rl(res_min, sval_type_max(&ulong_ctype));
+}
+
+static bool match_size_op(struct expression *call, int op, struct range_list **rl)
+{
+	struct expression *a, *b;
+	struct range_list *a_rl, *b_rl;
+
+	a = get_argument_from_call_expr(call->args, 0);
+	b = get_argument_from_call_expr(call->args, 1);
+	a = cast_to_ul(a);
+	b = cast_to_ul(b);
+
+	get_absolute_rl(a, &a_rl);
+	get_absolute_rl(b, &b_rl);
+
+	*rl = do_size_op(a_rl, op, b_rl);
+
+	return true;
+}
+
+static int match_size_add(struct expression *call, void *unused, struct range_list **rl)
+{
+	return match_size_op(call, '+', rl);
+}
+
+static int match_size_mul(struct expression *call, void *unused, struct range_list **rl)
+{
+	return match_size_op(call, '*', rl);
+}
+
+static int match_ab_c_size(struct expression *call, void *unused, struct range_list **rl)
+{
+	struct expression *a, *b, *c;
+	struct range_list *a_rl, *b_rl, *c_rl, *ret;
+
+	a = get_argument_from_call_expr(call->args, 0);
+	b = get_argument_from_call_expr(call->args, 1);
+	c = get_argument_from_call_expr(call->args, 2);
+
+	a = cast_to_ul(a);
+	b = cast_to_ul(b);
+	c = cast_to_ul(c);
+
+	get_absolute_rl(a, &a_rl);
+	get_absolute_rl(b, &b_rl);
+	get_absolute_rl(c, &c_rl);
+
+	ret = do_size_op(a_rl, '*', b_rl);
+	ret = do_size_op(ret, '+', c_rl);
+
+	*rl = ret;
+
+	return true;
+}
+
 static int match_array_size(struct expression *call, void *unused, struct range_list **rl)
 {
-	struct expression *size;
-	struct expression *count;
-	struct expression *mult;
-	struct range_list *ret;
-
-	size = get_argument_from_call_expr(call->args, 0);
-	count = get_argument_from_call_expr(call->args, 1);
-	mult = binop_expression(size, '*', count);
-
-	if (get_implied_rl(mult, &ret)) {
-		*rl = ret;
-		return 1;
-	}
-
-	return 0;
+	return match_size_mul(call, NULL, rl);
 }
 
 static int match_ffs(struct expression *call, void *unused, struct range_list **rl)
@@ -737,6 +811,9 @@ void check_kernel(int id)
 	add_implied_return_hook("find_first_bit", &match_next_bit, NULL);
 	add_implied_return_hook("find_first_zero_bit", &match_next_bit, NULL);
 
+	add_implied_return_hook("size_add", &match_size_add, NULL);
+	add_implied_return_hook("size_mul", &match_size_mul, NULL);
+	add_implied_return_hook("__ab_c_size", &match_ab_c_size, NULL);
 	add_implied_return_hook("array_size", &match_array_size, NULL);
 
 	add_implied_return_hook("__ffs", &match_ffs, NULL);
