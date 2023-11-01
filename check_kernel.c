@@ -497,6 +497,43 @@ static void match_kref_put(const char *fn, struct expression *call_expr,
 	add_fake_call_after_return(fake_call);
 }
 
+static void match_put_device(const char *name, struct expression *expr,
+			     void *unused)
+{
+	static int refcount_id;
+	struct expression *data, *fn, *fake_call;
+	struct expression_list *args = NULL;
+	struct smatch_state *state;
+	char *ref, *release;
+	struct symbol *sym;
+
+	if (!refcount_id)
+		refcount_id = id_from_name("check_refcount_info");
+
+	if (expr->type != EXPR_CALL)
+		return;
+
+	data = get_argument_from_call_expr(expr->args, 0);
+
+	ref = get_name_sym_from_param_key(expr, 0, "$->kobj.kref.refcount.refs.counter", &sym);
+	if (!ref)
+		return;
+	state = get_state(refcount_id, ref, sym);
+	if (state && strcmp(state->name, "inc") == 0)
+		return;
+
+	release = get_name_sym_from_param_key(expr, 0, "$->release", NULL);
+	fn = get_assigned_expr_name_sym(release, sym);
+	if (!fn)
+		return;
+	if (fn->type == EXPR_PREOP && fn->op == '&')
+		fn = strip_expr(fn->unop);
+
+	add_ptr_list(&args, data);
+	fake_call = call_expression(fn, args);
+	__split_expr(fake_call);
+}
+
 static void match_kernel_param(struct symbol *sym)
 {
 	struct expression *var;
@@ -714,6 +751,7 @@ void check_kernel(int id)
 	add_function_hook("__read_once_size_nocheck", &match__read_once_size, NULL);
 
 	add_function_hook("closure_call", &match_closure_call, NULL);
+	add_function_hook("put_device", &match_put_device, NULL);
 	return_implies_state_sval("kref_put", int_one, int_one, &match_kref_put, NULL);
 
 	add_once_through_hook(&match_with_intel_runtime);
