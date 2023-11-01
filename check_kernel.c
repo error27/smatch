@@ -608,6 +608,34 @@ static void match_put_device(const char *name, struct expression *expr,
 	__split_expr(fake_call);
 }
 
+static void fix_msecs_to_jiffies(struct expression *expr)
+{
+	struct expression *arg;
+	sval_t sval, ret;
+	unsigned long HZ;
+
+	if (is_fake_var_assign(expr) ||
+	    expr->op != '=' ||
+	    expr->right->type != EXPR_CALL)
+		return;
+	if (!get_function() || strcmp(get_function(), "msecs_to_jiffies") != 0)
+		return;
+	if (!__cur_stmt || __cur_stmt->type != STMT_RETURN)
+		return;
+
+	arg = get_argument_from_call_expr(expr->right->args, 0);
+	if (!get_implied_value(arg, &sval))
+		return;
+
+	if (!macro_to_ul("HZ", &HZ))
+		HZ = 100;
+
+	ret.type = &ulong_ctype;
+	ret.value = (sval.value + (1000 / HZ) - 1) / (1000 / HZ);
+
+	set_extra_expr_mod(expr->left, alloc_estate_sval(ret));
+}
+
 static void match_kernel_param(struct symbol *sym)
 {
 	struct expression *var;
@@ -833,6 +861,7 @@ void check_kernel(int id)
 
 	add_once_through_hook(&match_with_intel_runtime);
 
+	add_hook(fix_msecs_to_jiffies, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&match_kernel_param, BASE_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 
