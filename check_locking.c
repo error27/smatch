@@ -78,6 +78,8 @@ struct lock_info {
 	func_hook *call_back;
 };
 
+void match_class_mutex_destructor(const char *fn, struct expression *expr, void *data);
+
 static struct lock_info lock_table[] = {
 	{"spin_lock",                  LOCK,   spin_lock, 0, "$"},
 	{"spin_unlock",                UNLOCK, spin_lock, 0, "$"},
@@ -457,7 +459,7 @@ static struct lock_info lock_table[] = {
 
 	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
 
-	{"class_mutex_destructor", UNLOCK, mutex, 0, "$"},
+	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
 
 	{},
 };
@@ -500,6 +502,23 @@ static void reset(struct sm_state *sm, struct expression *mod_expr)
 		return;
 
 	set_state(my_id, sm->name, sm->sym, &start_state);
+}
+
+void match_class_mutex_destructor(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *arg, *lock;
+
+	if (!expr || expr->type != EXPR_CALL)
+		return;
+	arg = get_argument_from_call_expr(expr->args, 0);
+	arg = strip_expr(arg);
+	if (!arg || arg->type != EXPR_PREOP || arg->op != '&')
+		return;
+	arg = strip_expr(arg->unop);
+	lock = get_assigned_expr(arg);
+	if (!lock)
+		return;
+	set_state_expr(my_id, lock, &unlocked);
 }
 
 static struct smatch_state *get_start_state(struct sm_state *sm)
