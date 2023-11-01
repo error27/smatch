@@ -811,7 +811,8 @@ static bool match_with_intel_runtime(struct statement *stmt)
 	macro = get_macro_name(stmt->pos);
 	if (!macro)
 		return false;
-	if (strncmp(macro, "with_intel_runtime", 18) == 0)
+	if (strncmp(macro, "with_intel_runtime", 18) == 0 ||
+	    strncmp(macro, "with_intel_display", 18) == 0)
 		return true;
 	return false;
 }
