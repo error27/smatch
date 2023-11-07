@@ -19,11 +19,32 @@
 
 static int my_id;
 
+static bool is_false_positive(struct expression *expr)
+{
+	char *macro;
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+
+	if (strcmp(macro, "btree_err_on") == 0)
+		return true;
+	if (strcmp(macro, "btree_err") == 0)
+		return true;
+
+	return false;
+}
+
 static void check_constant(struct expression *expr)
 {
 	sval_t val;
 
 	if (!get_value(expr->right, &val))
+		return;
+	if (is_false_positive(expr))
 		return;
 	sm_warning("was '== %s' instead of '='", sval_to_str(val));
 }
