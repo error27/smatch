@@ -807,7 +807,6 @@ void check_kernel(int id)
 
 	add_function_hook("closure_call", &match_closure_call, NULL);
 	add_function_hook("put_device", &match_put_device, NULL);
-	return_implies_state_sval("kref_put", int_one, int_one, &match_kref_put, NULL);
 
 	add_once_through_hook(&match_with_intel_runtime);
 
