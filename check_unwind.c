@@ -96,7 +96,7 @@ static struct ref_func_info func_table[] = {
 	{ "ieee80211_alloc_hw", ALLOC,  -1, "$", &valid_ptr_min_sval, &valid_ptr_max_sval },
 	{ "ieee80211_free_hw",  RELEASE, 0, "$" },
 
-	{ "request_firmware", ALLOC,	0, "$", &int_zero, &int_zero },
+	{ "request_firmware", ALLOC,	0, "*$", &int_zero, &int_zero },
 	{ "release_firmware",  RELEASE, 0, "$" },
 };
 
