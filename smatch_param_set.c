@@ -303,7 +303,7 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 		}
 
 		math_str = get_value_in_terms_of_parameter_math_var_sym(sm->name, sm->sym);
-		if (math_str) {
+		if (math_str && strcmp(show_rl(rl), math_str) != 0) {
 			snprintf(buf, sizeof(buf), "%s[%s]", show_rl(rl), math_str);
 			insert_string(&set_list, (char *)sm->name);
 			sql_insert_return_states(return_id, return_ranges,
