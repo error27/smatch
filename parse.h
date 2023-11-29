@@ -150,6 +150,8 @@ static inline void stmt_set_parent_stmt(struct statement *stmt, struct statement
 
 static inline struct statement *stmt_get_parent_stmt(struct statement *stmt)
 {
+	if (!stmt)
+		return NULL;
 	return stmt->parent;
 }
 struct token *expect(struct token *, int, const char *);
