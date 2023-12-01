@@ -2210,6 +2210,13 @@ void parse_inline(struct expression *call)
 	loop_count = 0;
 	start_function_definition(call->fn->symbol);
 	parse_fn_statements(base_type);
+	if (!__path_is_null() &&
+	    cur_func_return_type() == &void_ctype &&
+	    !__bail_on_rest_of_function) {
+		__call_all_scope_hooks();
+		__pass_to_client(NULL, RETURN_HOOK);
+		nullify_path();
+	}
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 	__call_scope_hooks();
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
