@@ -86,6 +86,8 @@ static bool is_ignored_type(char *name)
 		return true;
 	if (strncmp(name, "(struct fs_parse_result)", 24) == 0)
 		return true;
+	if (strncmp(name, "(struct pt_regs)", 16) == 0)
+		return true;
 	return false;
 }
 
