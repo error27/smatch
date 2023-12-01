@@ -2091,7 +2091,7 @@ static void split_function(struct symbol *sym)
 		nullify_path();
 	}
 	__pass_to_client(sym, END_FUNC_HOOK);
-	__call_scope_hooks();
+	__free_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
 
@@ -2218,7 +2218,7 @@ void parse_inline(struct expression *call)
 		nullify_path();
 	}
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
-	__call_scope_hooks();
+	__free_scope_hooks();
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
 

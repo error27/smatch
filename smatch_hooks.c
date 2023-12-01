@@ -277,10 +277,20 @@ void __call_scope_hooks(void)
 	struct scope_hook_list *hook_list;
 	struct scope_container *tmp;
 
-
 	hook_list = pop_scope_hook_list(&scope_hooks);
 	FOR_EACH_PTR_REVERSE(hook_list, tmp) {
 		((scope_hook *)tmp->fn)(tmp->data);
+		__free_scope_container(tmp);
+	} END_FOR_EACH_PTR_REVERSE(tmp);
+}
+
+void __free_scope_hooks(void)
+{
+	struct scope_hook_list *hook_list;
+	struct scope_container *tmp;
+
+	hook_list = pop_scope_hook_list(&scope_hooks);
+	FOR_EACH_PTR_REVERSE(hook_list, tmp) {
 		__free_scope_container(tmp);
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 }
