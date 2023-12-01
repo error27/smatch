@@ -169,7 +169,6 @@ static bool is_BITS_PER_LONG(struct expression *expr)
 static struct smatch_state *binop_helper(struct expression *left, int op, struct expression *right)
 {
 	struct smatch_state *left_state, *right_state;
-	sval_t val;
 
 	switch(op) {
 	case '-':
@@ -187,20 +186,11 @@ static struct smatch_state *binop_helper(struct expression *left, int op, struct
 		/* FIXME: A multiply is almost always bytes but it can be bits. */
 		if (is_PAGE_SIZE(right))
 			return &unit_byte;
-		if (!get_implied_value(right, &val))
-			return NULL;
-		/* 4096 is almost always a unit_page -> bytes converstion */
-		if (val.value == 4096)
-			return &unit_byte;
 		return NULL;
 	case '/':
 		if (is_BITS_PER_LONG(right))
 			return &unit_long;
 		if (is_PAGE_SIZE(right))
-			return &unit_page;
-		if (!get_implied_value(right, &val))
-			return NULL;
-		if (val.value == 4096)
 			return &unit_page;
 		return NULL;
 	case SPECIAL_LEFTSHIFT:
