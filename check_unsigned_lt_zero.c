@@ -89,7 +89,9 @@ static bool is_allowed_zero(struct expression *expr)
 	macro = get_macro_name(expr->pos);
 	if (!macro)
 		return false;
-	if (strcmp(macro, "ARRAY_SIZE") == 0)
+	if (strcmp(macro, "ARRAY_SIZE") == 0 ||
+	    strcmp(macro, "DPMCP_MIN_VER_MINOR") == 0 ||
+	    strcmp(macro, "KASAN_SHADOW_OFFSET") == 0)
 		return true;
 	return false;
 }
