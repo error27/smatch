@@ -25,7 +25,12 @@ STATE(err_ptr);
 
 bool possible_err_ptr(struct expression *expr)
 {
+	struct smatch_state *state;
 	struct range_list *rl;
+
+	state = get_state_expr(SMATCH_EXTRA, expr);
+	if (state && estate_is_empty(state))
+		return false;
 
 	get_absolute_rl(expr, &rl);
 	if (!rl_intersection(rl, alloc_rl(ptr_err_min, ptr_err_max)))
