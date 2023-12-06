@@ -62,6 +62,20 @@ int array_bytes(struct symbol *type)
 	return bits_to_bytes(type->bit_size);
 }
 
+bool is_long(struct symbol *type)
+{
+	if (type == &ulong_ctype || type == &long_ctype)
+		return true;
+	return false;
+}
+
+bool is_int(struct symbol *type)
+{
+	if (type == &uint_ctype || type == &int_ctype)
+		return true;
+	return false;
+}
+
 static struct symbol *get_binop_type(struct expression *expr)
 {
 	struct symbol *left, *right;
@@ -112,6 +126,10 @@ static struct symbol *get_binop_type(struct expression *expr)
 
 	if (type_positive_bits(left) > type_positive_bits(right))
 		return left;
+	if (is_long(left) && is_int(right))
+		return left;
+	if (is_long(right) && is_int(left))
+		return right;
 	return right;
 }
 
