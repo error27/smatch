@@ -22,7 +22,6 @@ int test(int n)
 /*
  * check-name: attr-cleanup
  * check-command: sparse -Wunknown-attribute $file
- * check-known-to-fail
  *
  * check-error-start
 parsing/attr-cleanup.c:10:17: error: argument is not an identifier

@@ -107,6 +107,7 @@ struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
 	struct symbol_op *mode;
+	struct expression *cleanup;
 	unsigned long f_modifiers;		// function attributes
 	unsigned long storage_class;
 	unsigned char prefer_abstract;
@@ -204,6 +205,7 @@ struct symbol {
 			struct statement *inline_stmt;
 			struct symbol_list *inline_symbol_list;
 			struct expression *initializer;
+			struct expression *cleanup;
 			struct entrypoint *ep;
 			struct symbol *definition;
 		};
