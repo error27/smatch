@@ -96,6 +96,11 @@ insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 104,  2, '*\$', '0-1000000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 103, 3,  '\$', '0-1000000000');
 insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
+update caller_info set value = '1-4096' where caller='sysfs_kf_bin_read' and function = '(struct bin_attribute)->read' and parameter = 5 and (type = 1001 or type = 8017 or type = 7016);
+update caller_info set value = '1-4096' where caller='sysfs_kf_bin_write' and function = '(struct bin_attribute)->write' and parameter = 5 and (type = 1001 or type = 8017 or type = 7016);
+update caller_info set value = '0-4095' where caller='sysfs_kf_bin_read' and function = '(struct bin_attribute)->read' and parameter = 4 and (type = 1001 or type = 8017 or type = 7016);
+update caller_info set value = '0-4095' where caller='sysfs_kf_bin_write' and function = '(struct bin_attribute)->write' and parameter = 4 and (type = 1001 or type = 8017 or type = 7016);
+
 
 delete from return_states where function = 'is_kernel_rodata';
 insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 0,   -1,  '', '');
