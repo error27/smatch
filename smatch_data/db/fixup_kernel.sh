@@ -79,6 +79,8 @@ delete from caller_info where function = 'param_array param 7' and type = 9018;
 delete from caller_info where function = 'snd_ctl_notify_one' and type = 8017;
 #temporary.  Just to fix recursion
 delete from caller_info where caller = 'ecryptfs_mkdir' and type = 8017;
+delete from caller_info where caller = 'rpm_suspend' and type = 8017;
+delete from return_states where function = 'rpm_resume' and type = 8017;
 
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
 insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');
