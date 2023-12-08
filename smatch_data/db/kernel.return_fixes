@@ -100,3 +100,4 @@ class_raw_spinlock_irqsave_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
 class_spinlock_irqsave_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
 class_raw_spinlock_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
 class_rcu_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
+platform_get_irq_byname 0-s32max 1-s32max
