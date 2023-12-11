@@ -1,2 +1,3 @@
+acpi_dev_hid_uid_match
 TRACE_EVENT
 WARN_ON_ONCE
