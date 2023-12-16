@@ -83,6 +83,7 @@ static attr_t
 	attribute_function,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
+	attribute_cleanup,
 	attribute_designated_init,
 	attribute_transparent_union, ignore_attribute,
 	attribute_mode, attribute_force;
@@ -361,6 +362,10 @@ static struct symbol_op aligned_op = {
 	.attribute = attribute_aligned,
 };
 
+static struct symbol_op cleanup_op = {
+	.attribute = attribute_cleanup,
+};
+
 static struct symbol_op attr_mod_op = {
 	.attribute = attribute_modifier,
 };
@@ -537,6 +542,7 @@ static struct init_keyword {
 	/* Attributes */
 	D("packed",		&packed_op),
 	D("aligned",		&aligned_op),
+	D("cleanup",		&cleanup_op),
 	D("nocast",		&attr_mod_op,		.mods = MOD_NOCAST),
 	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
 	D("safe",		&attr_mod_op,		.mods = MOD_SAFE),
@@ -1111,6 +1117,26 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 		return token;
 	} else if (alignment > ctx->ctype.alignment)
 		ctx->ctype.alignment = alignment;
+	return token;
+}
+
+static struct token *attribute_cleanup(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	struct expression *expr = NULL;
+
+	if (match_op(token, '(')) {
+		token = token->next;
+		if (match_op(token, ')'))
+			sparse_error(token->pos, "an argument is expected for attribute 'cleanup'");
+		else if (token_type(token) != TOKEN_IDENT)
+			sparse_error(token->pos, "argument is not an identifier");
+		token = primary_expression(token, &expr);
+		if (expr && expr->type == EXPR_SYMBOL)
+			ctx->cleanup = expr;
+		return expect(token, ')', "after attribute's argument'");
+	}
+
+	sparse_error(token->pos, "an argument is expected for attribute 'cleanup'");
 	return token;
 }
 
@@ -1899,6 +1925,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 	saved = ctx.ctype;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
+		ctx.cleanup = NULL;
 		ctx.ident = &decl->ident;
 
 		token = declarator(token, &ctx);
@@ -1910,6 +1937,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
+		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		add_symbol(list, decl);
 		if (!match_op(token, ','))
@@ -2924,6 +2952,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	decl->ctype = ctx.ctype;
 	decl->ctype.modifiers |= mod;
+	decl->cleanup = ctx.cleanup;
 	decl->endpos = token->pos;
 
 	/* Just a type declaration? */
@@ -3041,6 +3070,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		ident = NULL;
 		decl = alloc_symbol(token->pos, SYM_NODE);
 		ctx.ctype = saved;
+		ctx.cleanup = NULL;
 		token = handle_attributes(token, &ctx);
 		token = declarator(token, &ctx);
 		token = handle_asm_name(token, &ctx);
@@ -3048,6 +3078,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		apply_modifiers(token->pos, &ctx);
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
+		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		if (!ident) {
 			sparse_error(token->pos, "expected identifier name in type definition");
