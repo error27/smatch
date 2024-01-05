@@ -47,6 +47,8 @@ void register_kernel_has_devm_cleanup(int id)
 	add_function_hook("__devm_add_action_or_reset", &ignore_path, NULL);
 	add_function_hook("drmm_add_action", &ignore_path, NULL);
 	add_function_hook("__drmm_add_action", &ignore_path, NULL);
+	add_function_hook("drmm_add_action_or_reset", &ignore_path, NULL);
+	add_function_hook("__drmm_add_action_or_reset", &ignore_path, NULL);
 	add_function_hook("pcim_enable_device", &ignore_path, NULL);
 	add_function_hook("pci_enable_device", &ignore_path, NULL);
 	add_function_hook("put_device", &ignore_path, NULL);
