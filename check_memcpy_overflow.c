@@ -375,8 +375,14 @@ void check_memcpy_overflow(int id)
 {
 	register_funcs_from_file();
 	register_ignored_structs_from_file();
+	add_function_hook("__memcpy", &match_limited, &b0_l2);
+	add_function_hook("__memcpy", &match_limited, &b1_l2);
+	add_function_hook("__builtin_memcpy", &match_limited, &b0_l2);
+	add_function_hook("__builtin_memcpy", &match_limited, &b1_l2);
 	add_function_hook("memcmp", &match_limited, &b0_l2);
 	add_function_hook("memcmp", &match_limited, &b1_l2);
+	add_function_hook("__builtin_memcmp", &match_limited, &b0_l2);
+	add_function_hook("__builtin_memcmp", &match_limited, &b1_l2);
 	if (option_project == PROJ_KERNEL) {
 		add_function_hook("copy_to_user", &match_limited, &b1_l2);
 		add_function_hook("_copy_to_user", &match_limited, &b1_l2);
@@ -384,5 +390,10 @@ void check_memcpy_overflow(int id)
 		add_function_hook("copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("_copy_from_user", &match_limited, &b0_l2);
 		add_function_hook("__copy_from_user", &match_limited, &b0_l2);
+		add_function_hook("hex2bin", &match_limited, &b0_l2);
+		add_function_hook("hex2bin", &match_limited, &b1_l2);
+		add_function_hook("crc32_le_generic", &match_limited, &b1_l2);
+		add_function_hook("crc32_le", &match_limited, &b1_l2);
+		add_function_hook("__crc32c_le", &match_limited, &b1_l2);
 	}
 }
