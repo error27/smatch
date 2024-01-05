@@ -169,6 +169,8 @@ void check_refcount_inconsistent_returns(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	preserve_out_of_scope(id);
+
 	add_refcount_init_hook(&match_inc);
 	add_refcount_inc_hook(&match_inc);
 	add_refcount_dec_hook(&match_dec);

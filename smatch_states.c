@@ -65,6 +65,7 @@ static struct stree_stack *continue_stack;
 static struct named_stree_stack *goto_stack;
 
 static struct ptr_list *backup;
+static bool *keep_out_of_scope;
 
 int option_debug;
 
@@ -148,6 +149,9 @@ void allocate_tracker_array(int num_checks)
 {
 	tracker_hooks = malloc(num_checks * sizeof(void *));
 	memset(tracker_hooks, 0, num_checks * sizeof(void *));
+
+	keep_out_of_scope = malloc(num_checks * sizeof(*keep_out_of_scope));
+	memset(keep_out_of_scope, 0, num_checks * sizeof(*keep_out_of_scope));
 }
 
 bool debug_on(const char *check_name, const char *var)
@@ -485,13 +489,18 @@ void __delete_state(int owner, const char *name, struct symbol *sym)
 	}
 }
 
+void preserve_out_of_scope(int owner)
+{
+	keep_out_of_scope[owner] = true;
+}
+
 static void delete_all_states_stree_sym(struct stree **stree, struct symbol *sym)
 {
 	struct state_list *slist = NULL;
 	struct sm_state *sm;
 
 	FOR_EACH_SM(*stree, sm) {
-		if (sm->sym == sym)
+		if (sm->sym == sym && !keep_out_of_scope[sm->owner])
 			add_ptr_list(&slist, sm);
 	} END_FOR_EACH_SM(sm);
 

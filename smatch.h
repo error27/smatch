@@ -452,6 +452,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym,
 	       struct smatch_state *state);
 struct sm_state *set_state_expr(int owner, struct expression *expr,
 		struct smatch_state *state);
+void preserve_out_of_scope(int owner);
 void __delete_state(int owner, const char *name, struct symbol *sym);
 void __delete_all_states_sym(struct symbol *sym);
 void set_true_false_states(int owner, const char *name, struct symbol *sym,
