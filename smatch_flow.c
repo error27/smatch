@@ -1332,6 +1332,32 @@ static void find_asm_gotos(struct statement *stmt)
 	} END_FOR_EACH_PTR(sym);
 }
 
+static void split_if_statement(struct statement *stmt)
+{
+	stmt_set_parent_stmt(stmt->if_true, stmt);
+	stmt_set_parent_stmt(stmt->if_false, stmt);
+	expr_set_parent_stmt(stmt->if_conditional, stmt);
+
+	if (known_condition_true(stmt->if_conditional)) {
+		__split_stmt(stmt->if_true);
+		return;
+	}
+	if (known_condition_false(stmt->if_conditional)) {
+		__split_stmt(stmt->if_false);
+		return;
+	}
+	__split_whole_condition(stmt->if_conditional);
+	__split_stmt(stmt->if_true);
+	if (empty_statement(stmt->if_true) &&
+		last_stmt_on_same_line() &&
+		!get_macro_name(stmt->if_true->pos))
+		sm_warning("if();");
+	__push_true_states();
+	__use_false_states();
+	__split_stmt(stmt->if_false);
+	__merge_true_states();
+}
+
 static bool already_parsed_call(struct expression *call)
 {
 	struct expression *expr;
@@ -1410,28 +1436,7 @@ void __split_stmt(struct statement *stmt)
 		split_compound(stmt);
 		break;
 	case STMT_IF:
-		stmt_set_parent_stmt(stmt->if_true, stmt);
-		stmt_set_parent_stmt(stmt->if_false, stmt);
-		expr_set_parent_stmt(stmt->if_conditional, stmt);
-
-		if (known_condition_true(stmt->if_conditional)) {
-			__split_stmt(stmt->if_true);
-			break;
-		}
-		if (known_condition_false(stmt->if_conditional)) {
-			__split_stmt(stmt->if_false);
-			break;
-		}
-		__split_whole_condition(stmt->if_conditional);
-		__split_stmt(stmt->if_true);
-		if (empty_statement(stmt->if_true) &&
-			last_stmt_on_same_line() &&
-			!get_macro_name(stmt->if_true->pos))
-			sm_warning("if();");
-		__push_true_states();
-		__use_false_states();
-		__split_stmt(stmt->if_false);
-		__merge_true_states();
+		split_if_statement(stmt);
 		break;
 	case STMT_ITERATOR:
 		stmt_set_parent_stmt(stmt->iterator_pre_statement, stmt);
