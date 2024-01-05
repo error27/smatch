@@ -28,6 +28,7 @@ GLOBAL_STATE(unit_page);
 GLOBAL_STATE(unit_msec);
 GLOBAL_STATE(unit_ns);
 GLOBAL_STATE(unit_jiffy);
+GLOBAL_STATE(unit_pixel);
 
 struct type_info {
 	const char *name;
@@ -40,6 +41,17 @@ struct type_info {
 static struct type_info func_table[] = {
 	{ "unit_msecs_to_jiffies_timeout", UNITS, -1, "$", "unit_jiffy" },
 	{ "round_jiffies_up_relative", UNITS, -1, "$", "unit_jiffy" },
+};
+
+struct name_unit {
+	const char *name;
+	struct smatch_state *unit;
+};
+
+static struct name_unit member_table[] = {
+	{ "(struct vm_area_struct)->vm_pgoff", &unit_page },
+	{ "(struct console_font)->width", &unit_pixel },
+	{ "(struct console_font)->height", &unit_pixel },
 };
 
 static struct smatch_state *str_to_units(const char *str)
@@ -247,12 +259,17 @@ static struct smatch_state *get_units_from_type(struct expression *expr)
 	char *member;
 	char *units = NULL;
 	struct smatch_state *ret = NULL;
+	int i;
 
 	member = get_member_name(expr);
 	if (!member)
 		return NULL;
-	if (strcmp(member, "(struct vm_area_struct)->vm_pgoff") == 0)
-		return &unit_page;
+
+	for (i = 0; i < ARRAY_SIZE(member_table); i++) {
+		if (strcmp(member, member_table[i].name) == 0)
+			return member_table[i].unit;
+	}
+
 	cache_sql(&db_units, &units, "select value from type_info where type = %d and key = '%s';",
 		  UNITS, member);
 	run_sql(&db_units, &units, "select value from type_info where type = %d and key = '%s';",
