@@ -91,7 +91,9 @@ static bool is_allowed_zero(struct expression *expr)
 		return false;
 	if (strcmp(macro, "ARRAY_SIZE") == 0 ||
 	    strcmp(macro, "DPMCP_MIN_VER_MINOR") == 0 ||
-	    strcmp(macro, "KASAN_SHADOW_OFFSET") == 0)
+	    strcmp(macro, "KASAN_SHADOW_OFFSET") == 0 ||
+	    strcmp(macro, "NF_CT_HELPER_BUILD_BUG_ON") == 0 ||
+	    strcmp(macro, "TEST_ONE_SHIFT") == 0)
 		return true;
 	return false;
 }
