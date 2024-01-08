@@ -313,7 +313,8 @@ static int __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 	case EXPR_ASSIGNMENT:
 	case EXPR_COMPARE:
 	case EXPR_LOGICAL:
-	case EXPR_BINOP: {
+	case EXPR_BINOP:
+	case EXPR_COMMA: {
 		struct expression *array_expr;
 
 		*complicated = 1;
@@ -323,7 +324,9 @@ static int __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			off += append(buf, off, len, "[");
 		} else {
 			off += __get_variable_from_expr(sym_ptr, buf, expr->left, off, len, complicated);
-			off += append(buf, off, len, " %s ", show_special(expr->op));
+			off += append(buf, off, len, "%s%s ",
+				      (expr->type == EXPR_COMMA) ? "" : " ",
+				      show_special(expr->op));
 		}
 		off += __get_variable_from_expr(NULL, buf, expr->right, off, len, complicated);
 		if (array_expr)
