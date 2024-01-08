@@ -26,6 +26,9 @@ static void match_kobject_function(struct expression *expr, const char *name,
 {
 	struct sm_state *sm, *tmp;
 
+	if (db_incomplete())
+		return;
+
 	sm = get_sm_state(SMATCH_EXTRA, name, sym);
 	if (!sm)
 		return;
