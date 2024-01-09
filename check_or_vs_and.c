@@ -32,8 +32,14 @@ static int does_inc_dec(struct expression *expr)
 
 static int expr_equiv_no_inc_dec(struct expression *one, struct expression *two)
 {
+	sval_t dummy;
+
 	if (does_inc_dec(one) || does_inc_dec(two))
 		return 0;
+	if (get_value(one, &dummy) &&
+	    get_value(two, &dummy))
+		return 0;
+
 	return expr_equiv(one, two);
 }
 
