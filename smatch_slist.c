@@ -87,6 +87,43 @@ void __print_stree(struct stree *stree)
 	option_debug--;
 }
 
+void __diff_stree(struct stree *old, struct stree *new)
+{
+	AvlIter old_iter;
+	AvlIter new_iter;
+
+	avl_iter_begin(&old_iter, old, FORWARD);
+	avl_iter_begin(&new_iter, new, FORWARD);
+
+	for (;;) {
+		if (!old_iter.sm && !new_iter.sm)
+			return;
+		if (cmp_tracker(old_iter.sm, new_iter.sm) < 0) {
+			sm_msg(" OLD: %s", show_sm(old_iter.sm));
+			sm_msg(" NEW: <none>");
+			avl_iter_next(&old_iter);
+			continue;
+		}
+
+		if (cmp_tracker(old_iter.sm, new_iter.sm) > 0) {
+			sm_msg(" OLD: <none>");
+			sm_msg(" NEW: %s", show_sm(new_iter.sm));
+			avl_iter_next(&new_iter);
+			continue;
+		}
+
+		if (old_iter.sm == new_iter.sm) {
+			sm_msg("SAME: %s", show_sm(old_iter.sm));
+		} else {
+			sm_msg(" OLD: %s", show_sm(old_iter.sm));
+			sm_msg(" NEW: %s", show_sm(new_iter.sm));
+		}
+
+		avl_iter_next(&old_iter);
+		avl_iter_next(&new_iter);
+	}
+}
+
 /* NULL states go at the end to simplify merge_slist */
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b)
 {

@@ -20,6 +20,7 @@ extern int sm_state_counter;
 
 const char *show_sm(struct sm_state *sm);
 void __print_stree(struct stree *stree);
+void __diff_stree(struct stree *old, struct stree *new);
 void add_history(struct sm_state *sm);
 int cmp_tracker(const struct sm_state *a, const struct sm_state *b);
 char *alloc_sname(const char *str);
