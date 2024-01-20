@@ -29,6 +29,8 @@ static LLVMTypeRef symbol_type(struct symbol *sym);
 
 static LLVMTypeRef func_return_type(struct symbol *sym)
 {
+	if (sym->type == SYM_NODE)
+		sym = sym->ctype.base_type;
 	return symbol_type(sym->ctype.base_type);
 }
 
