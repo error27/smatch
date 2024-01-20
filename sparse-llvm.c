@@ -294,13 +294,14 @@ static LLVMValueRef get_sym_value(LLVMModuleRef module, struct symbol *sym)
 		switch (expr->type) {
 		case EXPR_STRING: {
 			const char *s = expr->string->data;
+			size_t len = expr->string->length;
 			LLVMValueRef indices[] = { LLVMConstInt(LLVMInt64Type(), 0, 0), LLVMConstInt(LLVMInt64Type(), 0, 0) };
 			LLVMValueRef data;
 
-			data = LLVMAddGlobal(module, LLVMArrayType(LLVMInt8Type(), strlen(s) + 1), ".str");
+			data = LLVMAddGlobal(module, LLVMArrayType(LLVMInt8Type(), len), ".str");
 			LLVMSetLinkage(data, LLVMPrivateLinkage);
 			LLVMSetGlobalConstant(data, 1);
-			LLVMSetInitializer(data, LLVMConstString(strdup(s), strlen(s) + 1, true));
+			LLVMSetInitializer(data, LLVMConstString(s, len, true));
 
 			result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
 			return result;
@@ -1212,8 +1213,9 @@ static LLVMValueRef output_data(LLVMModuleRef module, struct symbol *sym)
 		}
 		case EXPR_STRING: {
 			const char *s = initializer->string->data;
+			size_t len = initializer->string->length;
 
-			initial_value = LLVMConstString(strdup(s), strlen(s) + 1, true);
+			initial_value = LLVMConstString(s, len, true);
 			break;
 		}
 		default:
