@@ -11,17 +11,9 @@ int foo(const char *fmt, int a, long l, int *p)
 /*
  * check-name: call-variadic
  * check-command: sparse-llvm-dis -m64 $file
+ * check-output-ignore
+ * check-output-contains: , ...) @print(\\(i8\\*\\|ptr\\) %ARG1., i32 120, i32 %ARG2., i32 8, i64 %ARG3., i64 0, \\(i32\\*\\|ptr\\) %ARG4., \\(i8\\*\\|ptr\\) null)
+ * check-output-contains: define i32 @foo(
+ * check-output-contains: declare i32 @print(
  *
- * check-output-start
-; ModuleID = '<stdin>'
-source_filename = "sparse"
-
-define i32 @foo(i8* %ARG1., i32 %ARG2., i64 %ARG3., i32* %ARG4.) {
-L0:
-  %R5. = call i32 (i8*, ...) @print(i8* %ARG1., i32 120, i32 %ARG2., i32 8, i64 %ARG3., i64 0, i32* %ARG4., i8* null)
-  ret i32 %R5.
-}
-
-declare i32 @print(i8*, ...)
- * check-output-end
  */

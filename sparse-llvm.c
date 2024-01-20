@@ -34,6 +34,18 @@ static LLVMTypeRef func_return_type(struct symbol *sym)
 	return symbol_type(sym->ctype.base_type);
 }
 
+// A call can be done either with a SYM_FN or a SYM_PTR (pointing to a SYM_FN).
+// Return the type corresponding to the SYM_FN.
+static LLVMTypeRef func_full_type(struct symbol *type)
+{
+	if (type->type == SYM_NODE) {
+		struct symbol *btype = type->ctype.base_type;
+		if (btype->type == SYM_PTR)
+			type = btype->ctype.base_type;
+	}
+	return symbol_type(type);
+}
+
 static LLVMTypeRef sym_func_type(struct symbol *sym)
 {
 	int n_arg = symbol_list_size(sym->arguments);
@@ -305,7 +317,11 @@ static LLVMValueRef get_sym_value(LLVMModuleRef module, struct symbol *sym)
 			LLVMSetGlobalConstant(data, 1);
 			LLVMSetInitializer(data, LLVMConstString(s, len, true));
 
+#if LLVM_VERSION_MAJOR > 14
+			result = LLVMConstGEP2(LLVMTypeOf(data), data, indices, ARRAY_SIZE(indices));
+#else
 			result = LLVMConstGEP(data, indices, ARRAY_SIZE(indices));
+#endif
 			return result;
 		}
 		default:
@@ -488,7 +504,11 @@ static LLVMValueRef calc_gep(LLVMBuilderRef builder, LLVMValueRef base, LLVMValu
 	/* convert base to char* type */
 	base = LLVMBuildPointerCast(builder, base, bytep, name);
 	/* addr = base + off */
+#if LLVM_VERSION_MAJOR > 14
+	addr = LLVMBuildInBoundsGEP2(builder, LLVMTypeOf(base),  base, &off, 1, name);
+#else
 	addr = LLVMBuildInBoundsGEP(builder, base, &off, 1, name);
+#endif
 	/* convert back to the actual pointer type */
 	addr = LLVMBuildPointerCast(builder, addr, type, name);
 	return addr;
@@ -714,7 +734,11 @@ static void output_op_load(struct function *fn, struct instruction *insn)
 
 	/* perform load */
 	pseudo_name(insn->target, name);
+#if LLVM_VERSION_MAJOR > 14
+	target = LLVMBuildLoad2(fn->builder, symbol_type(insn->type), addr, name);
+#else
 	target = LLVMBuildLoad(fn->builder, addr, name);
+#endif
 
 	insn->target->priv = target;
 }
@@ -800,6 +824,7 @@ static void output_op_switch(struct function *fn, struct instruction *insn)
 static void output_op_call(struct function *fn, struct instruction *insn)
 {
 	LLVMValueRef target, func;
+	struct symbol *fntype;
 	struct symbol *ctype;
 	int n_arg = 0, i;
 	struct pseudo *arg;
@@ -815,14 +840,20 @@ static void output_op_call(struct function *fn, struct instruction *insn)
 	else
 		func = pseudo_to_value(fn, ctype, insn->func);
 	i = 0;
+	fntype = ctype;			// first symbol in the list is the function 'true' type
 	FOR_EACH_PTR(insn->arguments, arg) {
-		NEXT_PTR_LIST(ctype);
+		NEXT_PTR_LIST(ctype);	// the remaining ones are the arguments' type
 		args[i++] = pseudo_to_rvalue(fn, ctype, arg);
 	} END_FOR_EACH_PTR(arg);
 	FINISH_PTR_LIST(ctype);
 
 	pseudo_name(insn->target, name);
+#if LLVM_VERSION_MAJOR > 14
+	target = LLVMBuildCall2(fn->builder, func_full_type(fntype), func, args, n_arg, name);
+#else
+	(void) fntype;
 	target = LLVMBuildCall(fn->builder, func, args, n_arg, name);
+#endif
 
 	insn->target->priv = target;
 }
