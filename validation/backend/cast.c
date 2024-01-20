@@ -6,10 +6,12 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef long long longlong;
 typedef unsigned long long ulonglong;
+typedef void *vptr;
+typedef int *iptr;
 
 #define DEFINE_CAST(from, to)			\
 	static to from##2##to(from x) {		\
-		return x;			\
+		return (to)x;			\
 	}
 
 #define DEFINE_CASTS(from)			\
@@ -42,6 +44,13 @@ DEFINE_CASTS(longlong)
 DEFINE_CASTS(ulonglong)
 DEFINE_CASTS(float)
 DEFINE_CASTS(double)
+
+DEFINE_CAST(long, vptr)
+DEFINE_CAST(long, iptr)
+DEFINE_CAST(vptr, long)
+DEFINE_CAST(iptr, long)
+DEFINE_CAST(int, vptr)
+DEFINE_CAST(vptr, int)
 
 /*
  * check-name: Cast code generation
