@@ -981,6 +981,8 @@ enum info_type {
 	ERR_PTR		= 1060,
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
+	FD_INSTALL	= 2058,
+	FGET		= 3059,
 	TASK_RUNNING	= 2063,
 	TASK_NOT_RUNNING = 2064,
 	/* put random temporary stuff in the 7000-7999 range for testing */
