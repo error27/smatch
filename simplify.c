@@ -1818,10 +1818,12 @@ static int simplify_associative_binop(struct instruction *insn)
 		insn->src2 = eval_op(insn->opcode, insn->size, insn->src2, def->src2);
 		return replace_pseudo(insn, &insn->src1, def->src1);
 	}
-	if (!one_use(def->target))
-		return 0;
-	switch_pseudo(def, &def->src1, insn, &insn->src2);
-	return REPEAT_CSE;
+
+	if (!canonical_order(def->src1, insn->src2) && can_move_to(insn->src2, def)) {
+		// (x # y) # z -> (z # y) # x  when x ≻ z
+		return switch_pseudo(def, &def->src1, insn, &insn->src2);
+	}
+	return 0;
 }
 
 static int simplify_add_one_side(struct instruction *insn, pseudo_t *p1, pseudo_t *p2)

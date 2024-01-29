@@ -22,7 +22,7 @@ static void predefine_xtensa(const struct target *self)
 const struct target target_xtensa = {
 	.mach = MACH_XTENSA,
 	.bitness = ARCH_LP32,
-	.big_endian = true,
+	.big_endian = false,
 
 	.bits_in_longdouble = 64,
 

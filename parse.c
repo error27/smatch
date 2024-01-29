@@ -80,11 +80,11 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
 
 static attr_t
-	attribute_packed, attribute_aligned, attribute_cleanup,
-	attribute_modifier,
+	attribute_packed, attribute_aligned, attribute_modifier,
 	attribute_function,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
+	attribute_cleanup,
 	attribute_designated_init,
 	attribute_transparent_union, ignore_attribute,
 	attribute_mode, attribute_force;
@@ -551,7 +551,7 @@ static struct init_keyword {
 	/* Attributes */
 	D("packed",		&packed_op),
 	D("aligned",		&aligned_op),
-	D("__cleanup__",	&cleanup_op),
+	D("cleanup",		&cleanup_op),
 	D("nocast",		&attr_mod_op,		.mods = MOD_NOCAST),
 	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
 	D("safe",		&attr_mod_op,		.mods = MOD_SAFE),
@@ -1134,10 +1134,18 @@ static struct token *attribute_cleanup(struct token *token, struct symbol *attr,
 	struct expression *expr = NULL;
 
 	if (match_op(token, '(')) {
-		token = parens_expression(token, &expr, "in attribute");
+		token = token->next;
+		if (match_op(token, ')'))
+			sparse_error(token->pos, "an argument is expected for attribute 'cleanup'");
+		else if (token_type(token) != TOKEN_IDENT)
+			sparse_error(token->pos, "argument is not an identifier");
+		token = primary_expression(token, &expr);
 		if (expr && expr->type == EXPR_SYMBOL)
 			ctx->cleanup = expr;
+		return expect(token, ')', "after attribute's argument'");
 	}
+
+	sparse_error(token->pos, "an argument is expected for attribute 'cleanup'");
 	return token;
 }
 
