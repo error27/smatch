@@ -863,7 +863,8 @@ struct stree *__pop_cond_false_stack(void)
 /*
  * This combines the pre cond states with either the true or false states.
  * For example:
- * a = kmalloc() ; if (a !! foo(a)
+ * 	a = kmalloc();
+ *	if (a || foo(a)) {
  * In the pre state a is possibly null.  In the true state it is non null.
  * In the false state it is null.  Combine the pre and the false to get
  * that when we call 'foo', 'a' is null.
