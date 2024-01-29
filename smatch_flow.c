@@ -851,8 +851,6 @@ static bool call_once_through_hooks(struct statement *stmt)
 {
 	bool_stmt_func *fn;
 
-	if (implied_condition_true(stmt->iterator_pre_condition))
-		return true;
 	if (option_assume_loops)
 		return true;
 
@@ -887,8 +885,6 @@ static void handle_pre_loop(struct statement *stmt)
 		__prev_stmt = stmt->iterator_pre_statement;
 	}
 
-	once_through = call_once_through_hooks(stmt);
-
 	loop_count++;
 	__push_continues();
 	__push_breaks();
@@ -897,8 +893,12 @@ static void handle_pre_loop(struct statement *stmt)
 
 	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 	__in_pre_condition++;
+	__set_confidence_implied();
+	__split_whole_condition_tf(stmt->iterator_pre_condition, &once_through);
+	__unset_confidence();
+	if (once_through != true)
+		once_through = call_once_through_hooks(stmt);
 	__pass_to_client(stmt, PRELOOP_HOOK);
-	__split_whole_condition(stmt->iterator_pre_condition);
 	__in_pre_condition--;
 	FOR_EACH_SM(stree, sm) {
 		set_state(sm->owner, sm->name, sm->sym, sm->state);
@@ -936,7 +936,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__in_pre_condition--;
 		nullify_path();
 		__merge_false_states();
-		if (once_through)
+		if (once_through == true)
 			__discard_false_states();
 		else
 			__merge_false_states();
@@ -1334,24 +1334,29 @@ static void find_asm_gotos(struct statement *stmt)
 
 static void split_if_statement(struct statement *stmt)
 {
+	int known_tf;
+
 	stmt_set_parent_stmt(stmt->if_true, stmt);
 	stmt_set_parent_stmt(stmt->if_false, stmt);
 	expr_set_parent_stmt(stmt->if_conditional, stmt);
 
-	if (known_condition_true(stmt->if_conditional)) {
-		__split_stmt(stmt->if_true);
-		return;
-	}
-	if (known_condition_false(stmt->if_conditional)) {
-		__split_stmt(stmt->if_false);
-		return;
-	}
-	__split_whole_condition(stmt->if_conditional);
-	__split_stmt(stmt->if_true);
 	if (empty_statement(stmt->if_true) &&
 		last_stmt_on_same_line() &&
 		!get_macro_name(stmt->if_true->pos))
 		sm_warning("if();");
+
+	__split_whole_condition_tf(stmt->if_conditional, &known_tf);
+	if (known_tf == true) {
+		__split_stmt(stmt->if_true);
+		__discard_false_states();
+		return;
+	} else if (known_tf == false) {
+		__use_false_states();
+		__split_stmt(stmt->if_false);
+		return;
+	}
+
+	__split_stmt(stmt->if_true);
 	__push_true_states();
 	__use_false_states();
 	__split_stmt(stmt->if_false);

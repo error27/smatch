@@ -742,6 +742,9 @@ void create_recursive_fake_assignments(struct expression *expr,
 int is_no_inline_function(const char *function);
 
 /* smatch_conditions */
+void __set_confidence_implied(void);
+void __unset_confidence();
+void __split_whole_condition_tf(struct expression *expr, int *known_tf);
 void __split_whole_condition(struct expression *expr);
 void __handle_logic(struct expression *expr);
 int is_condition(struct expression *expr);

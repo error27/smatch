@@ -63,7 +63,14 @@ extern int __expr_stmt_count;
 
 struct expression_list *big_condition_stack;
 
-static void split_conditions(struct expression *expr);
+static void split_conditions(struct expression *expr, int *known_tf);
+
+static int negate_tf(int known_tf)
+{
+	if (known_tf == -1)
+		return -1;
+	return !known_tf;
+}
 
 static int is_logical_and(struct expression *expr)
 {
@@ -72,7 +79,7 @@ static int is_logical_and(struct expression *expr)
 	return 0;
 }
 
-static int handle_zero_comparisons(struct expression *expr)
+static int handle_zero_comparisons(struct expression *expr, int *known_tf)
 {
 	struct expression *tmp = NULL;
 	struct expression *zero;
@@ -94,13 +101,14 @@ static int handle_zero_comparisons(struct expression *expr)
 
 	// "if (foo != 0)" is the same as "if (foo)"
 	if (expr->op == SPECIAL_NOTEQUAL) {
-		split_conditions(tmp);
+		split_conditions(tmp, known_tf);
 		return 1;
 	}
 
 	// "if (foo == 0)" is the same as "if (!foo)"
 	if (expr->op == SPECIAL_EQUAL) {
-		split_conditions(tmp);
+		split_conditions(tmp, known_tf);
+		*known_tf = negate_tf(*known_tf);
 		__negate_cond_stacks();
 		return 1;
 	}
@@ -112,10 +120,11 @@ static int handle_zero_comparisons(struct expression *expr)
  * This function is for handling calls to likely/unlikely
  */
 
-static int ignore_builtin_expect(struct expression *expr)
+static int ignore_builtin_expect(struct expression *expr, int *known_tf)
 {
+	// TODO: move this into the caller
 	if (sym_name_is("__builtin_expect", expr->fn)) {
-		split_conditions(first_ptr_list((struct ptr_list *) expr->args));
+		split_conditions(first_ptr_list((struct ptr_list *) expr->args), known_tf);
 		return 1;
 	}
 	return 0;
@@ -125,7 +134,7 @@ static int ignore_builtin_expect(struct expression *expr)
  * handle_compound_stmt() is for: foo = ({blah; blah; blah; 1})
  */
 
-static void handle_compound_stmt(struct statement *stmt)
+static void handle_compound_stmt(struct statement *stmt, int *known_tf)
 {
 	struct expression *expr = NULL;
 	struct statement *last;
@@ -150,28 +159,31 @@ static void handle_compound_stmt(struct statement *stmt)
 	} END_FOR_EACH_PTR(s);
 	if (last && last->type == STMT_LABEL)
 		__split_label_stmt(last);
-	split_conditions(expr);
+	split_conditions(expr, known_tf);
 }
 
-static int handle_preop(struct expression *expr)
+static int handle_preop(struct expression *expr, int *known_tf)
 {
 	struct statement *stmt;
 
 	if (expr->op == '!') {
-		split_conditions(expr->unop);
+		split_conditions(expr->unop, known_tf);
+		*known_tf = negate_tf(*known_tf);
 		__negate_cond_stacks();
 		return 1;
 	}
 	stmt = get_expression_statement(expr);
 	if (stmt) {
-		handle_compound_stmt(stmt);
+		handle_compound_stmt(stmt, known_tf);
 		return 1;
 	}
 	return 0;
 }
 
-static void handle_logical(struct expression *expr)
+static void handle_logical(struct expression *expr, int *known_tf)
 {
+	int left_tf = -1, right_tf = -1;
+
 	/*
 	 * If we come to an "and" expr then:
 	 * We split the left side.
@@ -187,7 +199,7 @@ static void handle_logical(struct expression *expr)
 	 * We save all the states that are the same on both sides.
 	 */
 
-	split_conditions(expr->left);
+	split_conditions(expr->left, &left_tf);
 
 	if (is_logical_and(expr))
 		__use_cond_true_states();
@@ -197,7 +209,7 @@ static void handle_logical(struct expression *expr)
 	__push_cond_stacks();
 
 	__save_pre_cond_states();
-	split_conditions(expr->right);
+	split_conditions(expr->right, &right_tf);
 	__discard_pre_cond_states();
 
 	if (is_logical_and(expr))
@@ -206,6 +218,18 @@ static void handle_logical(struct expression *expr)
 		__or_cond_states();
 
 	__use_cond_true_states();
+
+	if (is_logical_and(expr)) {
+		if (left_tf == true && right_tf == true)
+			*known_tf = true;
+		if (left_tf == false || right_tf == false)
+			*known_tf = false;
+	} else {
+		if (left_tf == true || right_tf == true)
+			*known_tf = true;
+		if (left_tf == false && right_tf == false)
+			*known_tf = false;
+	}
 }
 
 static struct stree *combine_strees(struct stree *orig, struct stree *fake, struct stree *new)
@@ -231,7 +255,7 @@ static struct stree *combine_strees(struct stree *orig, struct stree *fake, stru
  * to the clients more than once.
  */
 
-static void handle_select(struct expression *expr)
+static void handle_select(struct expression *expr, int *known_tf)
 {
 	struct stree *a_T = NULL;
 	struct stree *a_F = NULL;
@@ -243,6 +267,7 @@ static void handle_select(struct expression *expr)
 	struct stree *a_F_c_fake = NULL;
 	struct stree *tmp;
 	struct sm_state *sm;
+	int cond_tf = -1, true_tf = -1, false_tf = -1;
 
 	/*
 	 * Imagine we have this:  if (a ? b : c) { ...
@@ -274,7 +299,7 @@ static void handle_select(struct expression *expr)
 
 	__save_pre_cond_states();
 
-	split_conditions(expr->conditional);
+	split_conditions(expr->conditional, &cond_tf);
 
 	a_T = __copy_cond_true_states();
 	a_F = __copy_cond_false_states();
@@ -283,7 +308,7 @@ static void handle_select(struct expression *expr)
 
 	__push_cond_stacks();
 	__push_fake_cur_stree();
-	split_conditions(expr->cond_true);
+	split_conditions(expr->cond_true, &true_tf);
 	__process_post_op_stack();
 	a_T_b_fake = __pop_fake_cur_stree();
 	a_T_b_T = combine_strees(a_T, a_T_b_fake, __pop_cond_true_stack());
@@ -293,7 +318,7 @@ static void handle_select(struct expression *expr)
 
 	__push_cond_stacks();
 	__push_fake_cur_stree();
-	split_conditions(expr->cond_false);
+	split_conditions(expr->cond_false, &false_tf);
 	a_F_c_fake = __pop_fake_cur_stree();
 	a_F_c_T = combine_strees(a_F, a_F_c_fake, __pop_cond_true_stack());
 	a_F_c_F = combine_strees(a_F, a_F_c_fake, __pop_cond_false_stack());
@@ -352,12 +377,17 @@ static void handle_select(struct expression *expr)
 	free_stree(&a_T_b_F);
 	free_stree(&a_T);
 	free_stree(&a_F);
+
+	if (cond_tf == true && true_tf == true)
+		*known_tf = true;
+	if (cond_tf == false && false_tf == false)
+		*known_tf = false;
 }
 
-static void handle_comma(struct expression *expr)
+static void handle_comma(struct expression *expr, int *known_tf)
 {
 	__split_expr(expr->left);
-	split_conditions(expr->right);
+	split_conditions(expr->right, known_tf);
 }
 
 static int make_op_unsigned(int op)
@@ -384,7 +414,7 @@ static void hackup_unsigned_compares(struct expression *expr)
 		expr->op = make_op_unsigned(expr->op);
 }
 
-static bool handle_expr_statement_conditions(struct expression *expr)
+static bool handle_expr_statement_conditions(struct expression *expr, int *known_tf)
 {
 	struct statement *last_stmt, *stmt;
 	struct expression *last_expr;
@@ -420,7 +450,7 @@ static bool handle_expr_statement_conditions(struct expression *expr)
 		if (stmt == last_stmt) {
 			if (stmt->type == STMT_LABEL)
 				__split_label_stmt(stmt);
-			split_conditions(last_expr);
+			split_conditions(last_expr, known_tf);
 			goto done;
 		}
 		__split_stmt(stmt);
@@ -441,12 +471,23 @@ static void do_condition(struct expression *expr)
 	__fold_in_set_states();
 }
 
-static void split_conditions(struct expression *expr)
+static int confidence_implied;
+void __set_confidence_implied(void)
+{
+	confidence_implied++;
+}
+
+void __unset_confidence(void)
+{
+	confidence_implied--;
+}
+
+static void split_conditions(struct expression *expr, int *known_tf)
 {
 	if (option_debug) {
 		char *cond = expr_to_str(expr);
 
-		sm_msg("%d in split_conditions (%s)", get_lineno(), cond);
+		sm_msg("%d in split_conditions(%s)", get_lineno(), cond);
 		free_string(cond);
 	}
 
@@ -456,7 +497,7 @@ static void split_conditions(struct expression *expr)
 		return;
 	}
 
-	if (handle_expr_statement_conditions(expr))
+	if (handle_expr_statement_conditions(expr, known_tf))
 		return;
 
 	/*
@@ -474,7 +515,7 @@ static void split_conditions(struct expression *expr)
 	if (expr->type == EXPR_BINOP && expr->op == '|') {
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
-		handle_logical(expr);
+		handle_logical(expr, known_tf);
 		return;
 	}
 
@@ -483,22 +524,22 @@ static void split_conditions(struct expression *expr)
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
 		__pass_to_client(expr, LOGIC_HOOK);
-		handle_logical(expr);
+		handle_logical(expr, known_tf);
 		return;
 	case EXPR_COMPARE:
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
 		hackup_unsigned_compares(expr);
-		if (handle_zero_comparisons(expr))
+		if (handle_zero_comparisons(expr, known_tf))
 			return;
 		break;
 	case EXPR_CALL:
-		if (ignore_builtin_expect(expr))
+		if (ignore_builtin_expect(expr, known_tf))
 			return;
 		break;
 	case EXPR_PREOP:
 		expr_set_parent_expr(expr->unop, expr);
-		if (handle_preop(expr))
+		if (handle_preop(expr, known_tf))
 			return;
 		break;
 	case EXPR_CONDITIONAL:
@@ -506,12 +547,12 @@ static void split_conditions(struct expression *expr)
 		expr_set_parent_expr(expr->conditional, expr);
 		expr_set_parent_expr(expr->cond_true, expr);
 		expr_set_parent_expr(expr->cond_false, expr);
-		handle_select(expr);
+		handle_select(expr, known_tf);
 		return;
 	case EXPR_COMMA:
 		expr_set_parent_expr(expr->left, expr);
 		expr_set_parent_expr(expr->right, expr);
-		handle_comma(expr);
+		handle_comma(expr, known_tf);
 		return;
 	}
 
@@ -540,6 +581,22 @@ static void split_conditions(struct expression *expr)
 	} else if (expr->type == EXPR_POSTOP) {
 		__split_expr(expr);
 	}
+	if (*known_tf != -1)
+		sm_perror("overwriting known tf.  expr='%s' tf=%d",
+		          expr_to_str(expr), *known_tf);
+
+	if (confidence_implied) {
+		if (implied_condition_true(expr))
+			*known_tf = true;
+		if (implied_condition_false(expr))
+			*known_tf = false;
+	} else {
+		if (known_condition_true(expr))
+			*known_tf = true;
+		else if (known_condition_false(expr))
+			*known_tf = false;
+	}
+
 	__push_fake_cur_stree();
 	__process_post_op_stack();
 	__fold_in_set_states();
@@ -548,23 +605,35 @@ static void split_conditions(struct expression *expr)
 }
 
 static int inside_condition;
-void __split_whole_condition(struct expression *expr)
+void __split_whole_condition_tf(struct expression *expr, int *known_tf)
 {
+
+	*known_tf = -1;
 	inside_condition++;
+
 	__save_pre_cond_states();
 	__push_cond_stacks();
 	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, expr);
-	split_conditions(expr);
+	split_conditions(expr, known_tf);
 	__use_cond_states();
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
 	inside_condition--;
 }
 
+void __split_whole_condition(struct expression *expr)
+{
+	int known_tf;
+
+	__split_whole_condition_tf(expr, &known_tf);
+}
+
 void __handle_logic(struct expression *expr)
 {
+	int known_tf = -1;
+
 	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
@@ -572,7 +641,7 @@ void __handle_logic(struct expression *expr)
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, expr);
 	if (expr)
-		split_conditions(expr);
+		split_conditions(expr, &known_tf);
 	__use_cond_states();
 	__pass_to_client(expr, WHOLE_CONDITION_HOOK);
 	pop_expression(&big_expression_stack);
@@ -603,6 +672,7 @@ int __handle_condition_assigns(struct expression *expr)
 	struct expression *right;
 	struct stree *true_stree, *false_stree, *fake_stree;
 	struct sm_state *sm;
+	int known_tf = -1;
 
 	if (expr->op != '=')
 		return 0;
@@ -616,7 +686,7 @@ int __handle_condition_assigns(struct expression *expr)
 	/* it's a hack, but it's sometimes handy to have this stuff
 	   on the big_expression_stack.  */
 	push_expression(&big_expression_stack, right);
-	split_conditions(right);
+	split_conditions(right, &known_tf);
 	true_stree = __get_true_states();
 	false_stree = __get_false_states();
 	__use_cond_states();
