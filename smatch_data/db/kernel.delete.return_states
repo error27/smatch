@@ -8,3 +8,7 @@ __irq_domain_activate_irq 1-s32max
 construct_key_and_link 0
 __i2c_mux_smbus_xfer 1-s32max
 i2c_mux_smbus_xfer 1-s32max
+scmi_raw_message_dequeue 0
+__hci_cmd_sync_sk 0
+regmap_read (-22)
+regmap_read (-4095)-(-1)
