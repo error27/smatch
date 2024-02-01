@@ -677,10 +677,10 @@ void __split_expr(struct expression *expr)
 	case EXPR_PREOP:
 		expr_set_parent_expr(expr->unop, expr);
 
+		__split_expr(expr->unop);
 		if (expr->op == '*' &&
 		    !prev_expression_is_getting_address(expr))
 			__pass_to_client(expr, DEREF_HOOK);
-		__split_expr(expr->unop);
 		__pass_to_client(expr, OP_HOOK);
 		break;
 	case EXPR_POSTOP:
@@ -728,8 +728,8 @@ void __split_expr(struct expression *expr)
 	case EXPR_DEREF:
 		expr_set_parent_expr(expr->deref, expr);
 
-		__pass_to_client(expr, DEREF_HOOK);
 		__split_expr(expr->deref);
+		__pass_to_client(expr, DEREF_HOOK);
 		break;
 	case EXPR_SLICE:
 		expr_set_parent_expr(expr->base, expr);
@@ -1668,7 +1668,6 @@ static void call_cleanup_fn(void *_sym)
 	struct symbol *sym = _sym;
 	struct expression *call, *arg;
 	struct expression_list *args = NULL;
-
 
 	arg = symbol_expression(sym);
 	arg = preop_expression(arg, '&');
