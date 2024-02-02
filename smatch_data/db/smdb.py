@@ -24,6 +24,7 @@ def usage():
     print("call_tree <function> - show the call tree")
     print("where <struct_type> <member> - where a struct member is set")
     print("type_size <struct_type> <member> - how a struct member is allocated")
+    print("type_info <struct_type> <member> - stuff from type_info")
     print("data_info <struct_type> <member> - information about a given data type")
     print("function_ptr <function> - which function pointers point to this")
     print("trace_param <function> <param> - trace where a parameter came from")
@@ -527,6 +528,12 @@ def print_type_size(struct_type, member):
     for txt in cur:
         print("%-15s | %-15s | %-15s | %s" %(hash_to_string(txt[0]), txt[1], txt[2], txt[3]))
 
+def print_type_info(struct_type, member):
+    cur = con.cursor()
+    cur.execute("select * from type_info where key = '(struct %s)->%s';" %(struct_type, member))
+    for txt in cur:
+        print("%-15s | %-15s | %s | %s" %(hash_to_string(txt[0]), type_to_str(txt[1]), txt[2], txt[3]))
+
 def print_data_info(struct_type, member):
     cur = con.cursor()
     cur.execute("select * from data_info where data like '(struct %s)->%s';" %(struct_type, member))
@@ -864,6 +871,10 @@ elif sys.argv[1] == "type_size" or sys.argv[1] == "buf_size":
     struct_type = sys.argv[2]
     member = sys.argv[3]
     print_type_size(struct_type, member)
+elif sys.argv[1] == "type_info":
+    struct_type = sys.argv[2]
+    member = sys.argv[3]
+    print_type_info(struct_type, member)
 elif sys.argv[1] == "data_info":
     struct_type = sys.argv[2]
     member = sys.argv[3]
