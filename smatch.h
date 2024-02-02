@@ -983,6 +983,7 @@ enum info_type {
 	PREEMPT_SUB	= 2055,
 	FD_INSTALL	= 2058,
 	FGET		= 3059,
+	IRQ_CONTEXT	= 2062,
 	TASK_RUNNING	= 2063,
 	TASK_NOT_RUNNING = 2064,
 	/* put random temporary stuff in the 7000-7999 range for testing */
@@ -1275,6 +1276,8 @@ bool function_decrements_preempt(void);
 void add_sleep_callback(expr_func *fn);
 unsigned long GFP_DIRECT_RECLAIM(void);
 unsigned long GFP_ATOMIC(void);
+bool in_irq_context(void);
+void clear_irq_context(void);
 
 /* check_assigned_expr.c */
 extern int check_assigned_expr_id;

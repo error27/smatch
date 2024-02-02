@@ -50,6 +50,7 @@ static void do_sleep(struct expression *expr)
 	if (!function_decrements_preempt())
 		set_state(my_id, "sleep", NULL, &sleep);
 	clear_preempt_cnt();
+	clear_irq_context();
 }
 
 static void match_sleep(const char *fn, struct expression *expr, void *unused)

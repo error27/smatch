@@ -106,6 +106,7 @@ db_types = {   0: "INTERNAL",
             2053: "DEVICE_RELEASED",
             2054: "PREEMPT_ADD",
             2055: "PREEMPT_SUB",
+            2062: "IRQ_CONTEXT",
 
             7016: "HOST_DATA",
             7017: "HOST_DATA_SET",
