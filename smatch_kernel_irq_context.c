@@ -117,6 +117,7 @@ static bool is_ignored_fn(struct expression *expr)
 	if (strcmp(fn, "bus_for_each_drv") == 0 ||
 	    strcmp(fn, "call_mmap") == 0 ||
 	    strcmp(fn, "(struct comedi_subdevice)->cancel") == 0 ||
+	    strcmp(fn, "(struct flexcop_device)->read_ibi_reg") == 0 ||
 	    strcmp(fn, "(struct spi_message)->complete") == 0 ||
 	    strcmp(fn, "(struct usb_gadget_driver)->setup") == 0 ||
 	    strcmp(fn, "(struct v4l2_subdev_core_ops)->interrupt_service_routine") == 0 ||
