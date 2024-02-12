@@ -166,6 +166,7 @@ static void set_position(struct position pos)
 	if (pos.stream == prev_stream)
 		return;
 
+	prev_stream = pos.stream;
 	filename = stream_name(pos.stream);
 
 	free(full_filename);
