@@ -95,7 +95,6 @@ wait_for_common s64min-s64max 0-s64max[<=$1]
 ww_mutex_lock (-35),(-4) (-35)
 ww_mutex_lock_interruptible (-35),(-4) (-4)
 xa_err s32min-s32max[$0\ >>\ 2] (-4095)-(-1)[$0\ >>\ 2]
-__hci_cmd_sync_sk 0-u64max[$0->req_skb] 4096-ptr_max[$0->req_skb]
 class_raw_spinlock_irqsave_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
 class_spinlock_irqsave_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
 class_raw_spinlock_lock_ptr 0-u64max[$0->lock] 4096-ptr_max[$0->lock]
