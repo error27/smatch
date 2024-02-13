@@ -38,7 +38,7 @@ static char *handle_container_of_assign(struct expression *expr, struct expressi
 		return NULL;
 
 	if (!get_value(right->right, &sval) ||
-	   sval.value < 0 || sval.value > MTAG_OFFSET_MASK)
+	    sval.value < 0 || sval.value > MTAG_OFFSET_MASK)
 		return NULL;
 
 	orig = get_assigned_expr(right->left);
