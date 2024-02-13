@@ -108,3 +108,5 @@ class_rcu_lock_ptr 0-u32max[$0->lock] 4096-ptr_max[$0->lock]
 class_spinlock_lock_ptr 0-u32max[$0->lock] 4096-ptr_max[$0->lock]
 class_device_lock_ptr 0-u32max[*$0] 4096-ptr_max[*$0]
 platform_get_irq_byname 0-s32max 1-s32max
+__kthread_create_on_node 0-u64max 4096-ptr_max
+of_graph_get_endpoint_count 0-u32max 0-s32max
