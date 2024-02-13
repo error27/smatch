@@ -11,6 +11,7 @@ __bitmap_weight 0-s32max 0-s32max[<=$1]
 __bitmap_weight s32min-s32max 0-s32max[<=$1]
 bus_for_each_dev (-4095)-1 (-4095)-1[r\ $3]
 copy_from_user 0-s32max 0-s32max[<=$2]
+copy_from_user 1-s32max 1-s32max[<=$2]
 copy_to_user 0-s32max 0-s32max[<=$2]
 debugfs_initialized 0 0-1
 devm_drm_of_get_bridge 0,4096-ptr_max 4096-ptr_max
