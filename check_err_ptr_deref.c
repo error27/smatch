@@ -62,6 +62,8 @@ static void deref_hook(struct expression *expr)
 		return;
 	if (from_safe_fn(expr))
 		return;
+	if (is_impossible_path())
+		return;
 
 	name = expr_to_str(expr);
 	sm_error("'%s' dereferencing possible ERR_PTR()", name);
