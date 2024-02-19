@@ -173,7 +173,11 @@ static bool has_array(struct expression *expr)
 static void match_condition_store(struct expression *expr)
 {
 	struct symbol *sym;
+	sval_t dummy;
 	char *name;
+
+	if (get_value(expr, &dummy))
+		return;
 
 	if (has_array(expr))
 		return;
