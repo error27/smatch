@@ -98,6 +98,7 @@ mtag_t str_to_mtag(const char *str)
 	tag = str_to_llu_hash_helper(str);
 
 	tag &= ~MTAG_OFFSET_MASK;
+	tag &= ulong_ULONG_MAX.uvalue;
 
 	return tag;
 }
