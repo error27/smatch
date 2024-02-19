@@ -84,6 +84,7 @@ static struct user_fn_info func_table[] = {
 	{ "xdr_inline_decode", USER_PTR_SET, -1, "$" },
 	{ "ntfs_read_run_nb", USER_PTR_SET, 3, "$" },
 	{ "ntfs_read_bh", USER_PTR_SET, 3, "(0<~$0)" },
+	{ "__wbuf", USER_PTR_SET, 1, "*$" },
 
 	{ "kstrtoull", USER_PTR_SET, 2, "$" },
 	{ "kstrtoll", USER_PTR_SET, 2, "$" },
