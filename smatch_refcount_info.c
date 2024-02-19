@@ -129,6 +129,9 @@ static struct ref_func_info func_table[] = {
 //	{ "fsnotify_put_mark", REFCOUNT_DEC, 0, "$->refcnt.refs.counter" },
 
 	{ "dma_buf_put", REFCOUNT_DEC, 0, "$->file->f_count.counter" },
+
+	{ "xe_device_mem_access_get", REFCOUNT_INC, 0, "$->mem_access.ref.counter", },
+	{ "xe_device_mem_access_put", REFCOUNT_DEC, 0, "$->mem_access.ref.counter", },
 };
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
