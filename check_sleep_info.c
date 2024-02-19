@@ -103,7 +103,8 @@ static bool is_strange_GFP_function(struct expression *expr)
 	if (strncmp(name, "__xa_", 5) == 0 ||
 	    strncmp(name, "xa_", 3) == 0 ||
 	    strcmp(name, "ttm_bo_swapout") == 0 ||
-	    strcmp(name, "mas_store_gfp") == 0)
+	    strcmp(name, "mas_store_gfp") == 0 ||
+	    strcmp(name, "mas_alloc_cyclic") == 0)
 		ret = true;
 
 	free_string(name);
