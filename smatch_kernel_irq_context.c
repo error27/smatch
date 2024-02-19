@@ -44,9 +44,12 @@ static int db_set_irq(void *_found, int argc, char **argv, char **azColName)
 	return 0;
 }
 
-static void match_declaration(struct symbol *sym)
+static bool is_irq_handler(void)
 {
 	int found = 0;
+
+	if (!cur_func_sym)
+		return false;
 
 	run_sql(db_set_irq, &found,
 		"select * from fn_data_link where file = 0x%llx and function = '%s' and static = %d and type = %d;",
@@ -55,7 +58,12 @@ static void match_declaration(struct symbol *sym)
 		!!(cur_func_sym->ctype.modifiers & MOD_STATIC),
 		IRQ_CONTEXT);
 
-	if (!found)
+	return found;
+}
+
+static void match_declaration(struct symbol *sym)
+{
+	if (!is_irq_handler())
 		return;
 
 	set_state(my_id, "irq_context", NULL, &true_state);
@@ -136,7 +144,7 @@ static void match_call_info(struct expression *expr)
 	if (is_ignored_fn(expr))
 		return;
 
-	sql_insert_caller_info(expr, IRQ_CONTEXT, -1, "", "");
+	sql_insert_caller_info(expr, IRQ_CONTEXT, -1, "", is_irq_handler() ? "<- IRQ handler" : "");
 }
 
 static void select_call_info(const char *name, struct symbol *sym, char *key, char *value)
