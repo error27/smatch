@@ -973,13 +973,16 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 	struct expression *expr = db_info->expr->left;
 	struct expression *fake_assign;
 	struct smatch_state *state;
+	bool was_set = false;
 
 	if (!db_info->ret_state)
 		return;
 
 	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
-	if (!fake_a_param_assignment(db_info->expr, db_info->ret_str, state))
+	if (!fake_a_param_assignment(db_info->expr, db_info->ret_str, state)) {
 		set_extra_expr_mod(expr, state);
+		was_set = true;
+	}
 
 	while ((fake_assign = pop_expression(&db_info->fake_param_assign_stack))) {
 		struct range_list *left, *right;
@@ -1003,7 +1006,11 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 		// FIXME: add some sanity checks
 		// FIXME: preserve the sm state if possible
 		set_extra_expr_nomod(fake_assign->left, alloc_estate_rl(right));
+		was_set = true;
 	}
+
+	if (!was_set)
+		set_extra_expr_mod(expr, state);
 }
 
 static void set_other_side_state(struct db_callback_info *db_info)
