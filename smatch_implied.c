@@ -997,7 +997,7 @@ static void set_implied_states(struct expression *expr)
 	struct sm_state *sm;
 
 	if ((full_debug || implied_debug) &&
-	    (expr || saved_implied_true || saved_implied_false)) {
+	    (saved_implied_true || saved_implied_false)) {
 		char *name;
 
 		name = expr_to_str(expr);
@@ -1029,7 +1029,7 @@ static void set_extra_implied_states(struct expression *expr)
 	saved_implied_false = extra_saved_implied_false;
 	extra_saved_implied_true = NULL;
 	extra_saved_implied_false = NULL;
-	set_implied_states(NULL);
+	set_implied_states(expr);
 }
 
 void param_limit_implications(struct expression *expr, int param, char *key, char *value, struct stree **implied)
