@@ -22,3 +22,6 @@ const_test_bit
 generic___set_bit
 ___set_bit
 _test_bit
+_find_next_bit_le
+_set_bit
+generic_test_bit
