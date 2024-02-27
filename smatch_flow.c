@@ -95,6 +95,8 @@ const sval_t valid_ptr_min_sval = {
 };
 sval_t ptr_err_min = { .type = &ptr_ctype };
 sval_t ptr_err_max = { .type = &ptr_ctype };
+sval_t ptr_xa_err_min = { .type = &ptr_ctype };
+sval_t ptr_xa_err_max = { .type = &ptr_ctype };
 sval_t ulong_ULONG_MAX = { .type = &ulong_ctype };
 
 sval_t valid_ptr_max_sval = {
@@ -114,6 +116,8 @@ void alloc_ptr_constants(void)
 
 	ptr_err_min = sval_cast(&ptr_ctype, err_min);
 	ptr_err_max = sval_cast(&ptr_ctype, err_max);
+	ptr_xa_err_min = sval_cast(&ptr_ctype, xa_err_min);
+	ptr_xa_err_max = sval_cast(&ptr_ctype, xa_err_max);
 	ulong_ULONG_MAX = sval_type_max(&ulong_ctype);
 }
 

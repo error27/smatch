@@ -8,6 +8,8 @@ static const sval_t int_one  = { .type = &int_ctype, .value = 1 };
 static const sval_t int_minus_one  = { .type = &int_ctype, .value = -1 };
 static const sval_t err_min  = { .type = &int_ctype, .value = -4095 };
 static const sval_t err_max  = { .type = &int_ctype, .value = -1 };
+static const sval_t xa_err_min  = { .type = &int_ctype, .value = (((-4095) << 2) | 2) };
+static const sval_t xa_err_max  = { .type = &int_ctype, .value = (((-1) << 2) | 2) };
 static const sval_t int_max  = { .type = &int_ctype, .value = INT_MAX };
 
 static const sval_t bool_false = { .type = &bool_ctype, .value = 0 };
@@ -15,6 +17,8 @@ static const sval_t bool_true = { .type = &bool_ctype, .value = 1 };
 
 extern sval_t ptr_err_min;
 extern sval_t ptr_err_max;
+extern sval_t ptr_xa_err_min;
+extern sval_t ptr_xa_err_max;
 static const sval_t ptr_null = { .type = &ptr_ctype, .value = 0 };
 
 static const sval_t ulong_zero	= { .type = &ulong_ctype, .value = 0 };

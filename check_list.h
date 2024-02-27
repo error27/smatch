@@ -103,6 +103,7 @@ CK(register_kernel_irq_context)
 CK(register_kernel_task_state)
 CK(register_kernel_task_state_info)
 CK(register_kernel_kref_put)
+CK(register_kernel_xa_err)
 
 CK(check_debug)
 
