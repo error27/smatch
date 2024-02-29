@@ -1404,6 +1404,12 @@ bool token_to_ul(struct token *token, unsigned long *val)
 		case TOKEN_NUMBER:
 			*val = strtoul(token->number, NULL, 0);
 			return true;
+		case TOKEN_SPECIAL:
+			if (token->special == '(' || token->special == ')')
+				break;
+			return false;
+		default:
+			return false;
 		}
 		token = token->next;
 	}
