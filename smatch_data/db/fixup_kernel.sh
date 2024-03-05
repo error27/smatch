@@ -175,6 +175,8 @@ delete from return_states where function = "__write_once_size";
 
 update return_states set value = "s32min-s32max[\$1]" where function = 'atomic_set' and parameter = 0 and type = 1025;
 
+update return_states set value = '0-u64max' where function = '_kstrtoull' and parameter = 2 and type = 1025;
+
 /* other atomic stuff */
 delete from return_states where function = 'sg_common_write' and type = 8023;
 delete from return_states where function = 'schedule' and type = 8024;
