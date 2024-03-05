@@ -4,14 +4,25 @@ use strict;
 
 my $store = 0;
 my $unstore = 0;
-my $warns_file = shift;
-if ($warns_file =~ /--store/) {
-    $store = 1;
-    $warns_file = shift;
-}
-if ($warns_file =~ /--unstore/) {
-    $unstore = 1;
-    $warns_file = shift;
+my $warns_dir = "old_warnings/";
+
+my $warns_file;
+
+while (my $arg = shift) {
+    if ($arg =~ /-d/) {
+        $warns_dir = shift;
+        next;
+    }
+    if ($arg =~ /--store/) {
+        $store = 1;
+        next;
+    }
+    if ($arg =~ /--unstore/) {
+        $unstore = 1;
+        next;
+    }
+    $warns_file = $arg;
+    last;
 }
 
 my $du = `du $warns_file`;
@@ -59,22 +70,22 @@ while (<WARNS>) {
     $msg =~ s/\//./g;
 
     if ($store) {
-        unless(-e "old_warnings/" or mkdir "old_warnings/") {
-            die "Unable to create old_warnings/";
+        unless(-e "$warns_dir/" or mkdir "$warns_dir/") {
+            die "Unable to create $warns_dir";
         }
-        open(TMP, '>', "old_warnings/$file.$msg") or
-            die "Error opening: old_warnings/$file.$msg\n";
+        open(TMP, '>', "$warns_dir/$file.$msg") or
+            die "Error opening: $warns_dir/$file.$msg\n";
         close(TMP);
         next;
     }
 
     if ($unstore) {
-        unlink("old_warnings/$file.$msg") and
-            print "removed: old_warnings/$file.$msg\n";
+        unlink("$warns_dir/$file.$msg") and
+            print "removed: $warns_dir/$file.$msg\n";
         next;
     }
 
-    unless (-e "old_warnings/$file.$msg") {
+    unless (-e "$warns_dir/$file.$msg") {
         print "$orig";
     }
 }
