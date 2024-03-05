@@ -641,23 +641,28 @@ def print_call_tree(func):
     print("%s()" %(func))
     call_tree_helper(func)
 
-def get_preempt_callers(call_tree, branch, func):
+def get_type_callers(call_tree, branch, func, my_type):
     cur = con.cursor()
     ptrs = get_function_pointers(func)
     for ptr in ptrs:
-        cur.execute("select caller, value from caller_info where function = '%s' and type = 2054;" %(ptr))
+        cur.execute("select caller, function, value from caller_info where function = '%s' and type = %d;" %(ptr, my_type))
         for row in cur:
-            func = row[0]
-            if row[1] == "":
-                printed = func + "()"
-            else:
-                printed = func + "() " + row[1]
-            if not call_tree.has_func(func):
-                b = branch.add_caller(func, printed)
-                get_preempt_callers(call_tree, b, func)
+            caller = row[0]
+            func = row[1]
+            value = row[2]
+
+            printed = caller + "()"
+            if " " in func:
+                printed = printed + " <" + func + "()>"
+            if value != "":
+                printed = printed + " " + value
+
+            if not call_tree.has_func(caller):
+                b = branch.add_caller(caller, printed)
+                get_type_callers(call_tree, b, caller, my_type)
             else:
                 printed = printed + " <duplicate>"
-                branch.add_caller(func, printed)
+                branch.add_caller(caller, printed)
 
     return call_tree
 
@@ -665,7 +670,14 @@ def print_preempt_tree(func):
     global printed_funcs
     printed_funcs = []
     call_tree = CallTree(func)
-    get_preempt_callers(call_tree, call_tree, func)
+    get_type_callers(call_tree, call_tree, func, 2054)
+    print(call_tree)
+
+def print_irq_tree(func):
+    global printed_funcs
+    printed_funcs = []
+    call_tree = CallTree(func)
+    get_type_callers(call_tree, call_tree, func, 2062)
     print(call_tree)
 
 def function_type_value(struct_type, member):
@@ -885,6 +897,9 @@ elif sys.argv[1] == "call_tree":
 elif sys.argv[1] == "preempt":
     func = sys.argv[2]
     print_preempt_tree(func)
+elif sys.argv[1] == "irq":
+    func = sys.argv[2]
+    print_irq_tree(func)
 elif sys.argv[1] == "find_tagged":
     func = sys.argv[2]
     param = int(sys.argv[3])
