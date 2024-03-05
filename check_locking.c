@@ -437,6 +437,8 @@ static struct lock_info lock_table[] = {
 	{"rcu_nocb_unlock_irqrestore", RESTORE, irq, 1, "$" },
 
 	{"bch_write_bdev_super",	IGNORE_LOCK, sem, 0, "&$->sb_write_mutex"},
+	{"bcache_write_super",		IGNORE_LOCK, sem, 0, "&$->set->sb_write_mutex"},
+	{"uuid_io",			IGNORE_LOCK, sem, 0, "&$->uuid_write_mutex" },
 	{"dlfb_set_video_mode",		IGNORE_LOCK, sem, 0, "&$->urbs.limit_sem"},
 
 	{"efx_rwsem_assert_write_locked", IGNORE_LOCK, sem, 0, "&"},
@@ -450,6 +452,9 @@ static struct lock_info lock_table[] = {
 	{ "perf_event_period", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
 	{ "perf_event_enable", IGNORE_LOCK, mutex, 0, "&$->ctx->mutex"},
 
+	{ "qede_load", IGNORE_LOCK, mutex, 0, "&$->qede_lock" },
+	{ "qede_unload", IGNORE_LOCK, mutex, 0, "&$->qede_lock" },
+
 	{ "deactivate_locked_super", UNLOCK, spin_lock, 0, "&$->s_umount"},
 	{ "ext4_lock_group", LOCK,	spin_lock, 0, "$"},
 	{ "ext4_unlock_group", UNLOCK,	spin_lock, 0, "$"},
@@ -458,6 +463,9 @@ static struct lock_info lock_table[] = {
 	{"pte_offset_map_lock", LOCK, spin_lock, 3, "*$", &valid_ptr_min_sval, &valid_ptr_max_sval},
 
 	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
+
+	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
+	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
 
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
 	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
