@@ -460,6 +460,7 @@ static struct lock_info lock_table[] = {
 	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
 
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
+	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
 
 	{},
 };
@@ -508,6 +509,22 @@ void match_class_mutex_destructor(const char *fn, struct expression *expr, void 
 {
 	struct expression *arg, *lock;
 
+	/*
+	 * What happens here is that the code looks like:
+	 * class_mutex_t scope __attribute__((__cleanup__(class_mutex_destructor))) =
+	 *				class_mutex_constructor(&register_mutex);
+	 * Then here in this hook functions expr is set to
+	 * "class_mutex_destructor(&scope)".  So we need to take "&scope" and
+	 * trace it back to "&register_mutex".  I think there is a complication
+	 * as well because sometimes it's like the assignment is:
+	 *
+	 *     scope = class_mutex_constructor(&register_mutex);
+	 * but other times because we do a fake parameter assignement or
+	 * something the assignment is more direct:
+	 *     scope = &register_mutex;
+	 *
+	 */
+
 	if (!expr || expr->type != EXPR_CALL)
 		return;
 	arg = get_argument_from_call_expr(expr->args, 0);
@@ -518,6 +535,12 @@ void match_class_mutex_destructor(const char *fn, struct expression *expr, void 
 	lock = get_assigned_expr(arg);
 	if (!lock)
 		return;
+	if (lock->type == EXPR_CALL)
+		lock = get_argument_from_call_expr(lock->args, 0);
+	lock = strip_expr(lock);
+	if (!lock || lock->type != EXPR_PREOP || lock->op != '&')
+		return;
+
 	set_state_expr(my_id, lock, &unlocked);
 }
 
