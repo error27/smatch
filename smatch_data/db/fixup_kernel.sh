@@ -152,6 +152,9 @@ update return_states set return = '(-108),(-22),0' where function = '__spi_sync'
 update caller_info set value = 4096 where caller='kernfs_file_direct_read' and function='(struct kernfs_ops)->read' and type = 1002 and parameter = 1;
 /* let's pretend firewire doesn't exist */
 delete from caller_info where caller='init_fw_attribute_group' and function='(struct device_attribute)->show';
+delete from caller_info where caller='meson_ddr_perf_format_attr_visible' and function='(struct device_attribute)->show';
+delete from caller_info where caller='amdgpu_ucode_sys_visible' and function='(struct device_attribute)->show';
+
 /* and let's fake the next dev_attr_show() call entirely */
 delete from caller_info where caller='sysfs_kf_seq_show' and function='(struct sysfs_ops)->show';
 insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 0, '\$', '4096-ptr_max');
