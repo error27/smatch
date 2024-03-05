@@ -119,3 +119,8 @@ class_write_lock_irq_lock_ptr 0-u32max[$0->lock] 4096-ptr_max[$0->lock]
 platform_get_irq_byname 0-s32max 1-s32max
 __kthread_create_on_node 0-u64max 4096-ptr_max
 of_graph_get_endpoint_count 0-u32max 0-s32max
+rxrpc_kernel_send_data 1-s32max 1-s32max[<=$3]
+iov_iter_get_pages2 1-2147479551 1-2147479551[<=$2]
+iov_iter_get_pages2 1-2147479552 1-2147479552[<=$2]
+iov_iter_get_pages2 0-2147479552 0-2147479552[<=$2]
+trace_get_user s32min-s32max 0-s32max[<=$2]
