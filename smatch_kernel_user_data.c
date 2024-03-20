@@ -49,6 +49,11 @@ static struct user_fn_info func_table[] = {
 	{ "simple_strtoul", USER_DATA, -1, "$" },
 	{ "simple_strtoull", USER_DATA, -1, "$" },
 	{ "kvm_register_read", USER_DATA, -1, "$" },
+	{ "ceph_decode_8", USER_DATA, -1, "$" },
+	{ "ceph_decode_16", USER_DATA, -1, "$" },
+	{ "ceph_decode_32", USER_DATA, -1, "$" },
+	{ "ceph_decode_64", USER_DATA, -1, "$" },
+
 };
 
 static struct smatch_state *empty_state(struct sm_state *sm)
