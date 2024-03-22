@@ -1919,7 +1919,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	/* bail if it gets too complicated */
 	nr_possible = 0;
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->merged)
+		if (!is_leaf(tmp))
 			continue;
 		if (ptr_in_list(tmp, already_handled))
 			continue;
@@ -2348,7 +2348,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->merged)
+		if (!is_leaf(tmp))
 			continue;
 		if (ptr_in_list(tmp, already_handled))
 			continue;
