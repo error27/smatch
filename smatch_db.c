@@ -1727,7 +1727,10 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
-	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, "", function_signature());
+	char line_number[16];
+
+	snprintf(line_number, sizeof(line_number), "%d", get_lineno());
+	sql_insert_return_states(return_id, return_ranges, INTERNAL, -1, line_number, function_signature());
 }
 
 static bool call_return_state_hooks_conditional(struct expression *expr)
