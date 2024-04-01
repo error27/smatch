@@ -39,7 +39,7 @@ For projects other than the kernel you run Smatch with the options
 "--call-tree --info --param-mapper --spammy" and finish building the
 database by running the script:
 
-	~/progs/smatch/devel/smatch_data/db/create_db.sh
+	~/path/to/smatch_dir/smatch_data/db/create_db.sh
 
 Each time you rebuild the cross function database it becomes more accurate. I
 normally rebuild the database every morning.
@@ -47,18 +47,18 @@ normally rebuild the database every morning.
 If you are running Smatch over the whole kernel you can use the following
 command:
 
-	~/progs/smatch/devel/smatch_scripts/test_kernel.sh
+	~/path/to/smatch_dir/smatch_scripts/test_kernel.sh
 
 The test_kernel.sh script will create a .c.smatch file for every file it tests
 and a combined smatch_warns.txt file with all the warnings.
 
 If you are running Smatch just over one kernel file:
 
-	~/progs/smatch/devel/smatch_scripts/kchecker drivers/whatever/file.c
+	~/path/to/smatch_dir/smatch_scripts/kchecker drivers/whatever/file.c
 
 You can also build a directory like this:
 
-	~/progs/smatch/devel/smatch_scripts/kchecker drivers/whatever/
+	~/path/to/smatch_dir/smatch_scripts/kchecker drivers/whatever/
 
 The kchecker script prints its warnings to stdout.
 
@@ -69,8 +69,8 @@ Smatch with kernels that are normally built with cross-compilers.
 If you are building something else (which is not the Linux kernel) then use
 something like:
 
-	make CHECK="~/progs/smatch/devel/smatch --full-path" \
-		CC=~/progs/smatch/devel/smatch/cgcc | tee smatch_warns.txt
+	make CHECK="~/path/to/smatch_dir/smatch --full-path" \
+		CC=~/path/to/smatch_dir/smatch/cgcc | tee smatch_warns.txt
 
 The makefile has to let people set the CC with an environment variable for that
 to work, of course.
