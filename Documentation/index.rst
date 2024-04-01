@@ -86,6 +86,7 @@ Some interesting external documentation:
    test-suite
    doc-guide
    TODO
+   smatch
 
 .. toctree::
    :caption: Release Notes
