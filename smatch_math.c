@@ -1396,6 +1396,9 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 {
 	struct range_list *rl;
 
+	if (is_fake_call(expr))
+		return false;
+
 	if (sym_name_is("__builtin_constant_p", expr->fn))
 		return handle_builtin_constant_p(expr, implied, recurse_cnt, res_sval);
 
