@@ -659,6 +659,19 @@ static void device_node_string(const char *fmt, struct symbol *type, struct symb
 		       vaidx, type_to_str(type));
 }
 
+static void fourcc_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+{
+	if (fmt[1] != 'c') {
+		sm_error("%%p4 can only be followed by 'c'");
+		return;
+	}
+	if (fmt[2] == 'h' || fmt[2] == 'r' || fmt[2] == 'l' ||
+	    fmt[2] == 'b' || fmt[2] == 'c')
+		return;
+
+	sm_error("'%%p4c' must be followed by one of [hrlbc]");
+}
+
 static void
 pointer(const char *fmt, struct expression *arg, int vaidx)
 {
@@ -792,8 +805,7 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		/* 'x' is for an unhashed pointer */
 		break;
 	case '4':
-		if (strncmp(fmt, "4cc", 3) != 0)
-			sm_warning("unrecognized format '%%p4%c'. Was '%%p4cc' intended?", fmt[1]);
+		fourcc_string(fmt, type, basetype, vaidx);
 		break;
 	default:
 		sm_error("unrecognized %%p extension '%c', treated as normal %%p", *fmt);
