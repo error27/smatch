@@ -168,6 +168,9 @@ static void match_binop(struct expression *expr)
 	if (expr->op == SPECIAL_LEFTSHIFT)
 		return;
 
+	if (expr_is_zero(expr->left) || expr_is_zero(expr->right))
+		return;
+
 	check_expr(expr->left);
 	check_expr(expr->right);
 }
