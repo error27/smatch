@@ -442,7 +442,7 @@ static int sm_in_keep_leafs(struct sm_state *sm, const struct state_list *keep_g
 	struct sm_state *tmp, *old;
 
 	FOR_EACH_PTR(keep_gates, tmp) {
-		if (is_merged(tmp))
+		if (!is_leaf(tmp))
 			continue;
 		old = get_sm_state_stree(tmp->pool, sm->owner, sm->name, sm->sym);
 		if (!old)
@@ -1175,6 +1175,9 @@ static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 	int possibly_true = 0;
 
 	if (!gate_sm)
+		return;
+
+	if (!is_leaf(gate_sm))
 		return;
 
 	if (strcmp(gate_sm->state->name, pool_sm->state->name) == 0) {
