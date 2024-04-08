@@ -1897,8 +1897,17 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 	struct symbol *type;
 	int idx, max;
 
-	if (ptr_list_size((struct ptr_list *)expr_list) > 1000)
+	if (ptr_list_size((struct ptr_list *)expr_list) > 256) {
+		binop = array_element_expression(array, unknown_value_expression(array));
+		assign = assign_expression(binop, '=', unknown_value_expression(array));
+		/* fake_cb is probably call_global_assign_hooks() which is a
+		 * a kind of hacky short cut because it's too expensive to deal
+		 * with huge global arrays.  However, we may as well parse this
+		 * one the long way seeing as it's a one time thing.
+		 */
+		__split_expr(assign);
 		return;
+	}
 
 	max = 0;
 	idx = 0;
