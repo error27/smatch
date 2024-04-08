@@ -175,7 +175,6 @@ static void print_read_member_type(struct expression *expr)
 	// sm_msg("info: uses %s", member);
 	// prefix();
 	// printf("info: uses %s\n", member);
-	free_string(member);
 }
 
 static void print_write_member_type(struct expression *expr)
@@ -207,7 +206,6 @@ static void print_write_member_type(struct expression *expr)
 	}
 
 	add_tracker(&write_list, my_id, member, sym);
-	free_string(member);
 }
 
 static void match_condition(struct expression *expr)

@@ -111,7 +111,6 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 
 	run_sql(get_vals, &db_vals,
 		"select value from type_value where type = '%s';", member);
-	free_string(member);
 	if (!db_vals)
 		return 0;
 	type = get_type(expr);
@@ -479,23 +478,23 @@ static void match_assign_value(struct expression *expr)
 	/* if we're saying foo->mtu = bar->mtu then that doesn't add information */
 	right_member = get_member_name(expr->right);
 	if (right_member && strcmp(right_member, member) == 0)
-		goto free;
+		return;
 
 	if (is_fake_call(expr->right)) {
 		if (is_ignored_macro())
-			goto free;
+			return;
 		if (is_ignored_function())
-			goto free;
+			return;
 		if (is_uncasted_pointer_assign())
-			goto free;
+			return;
 		if (is_uncasted_fn_param_from_db())
-			goto free;
+			return;
 		if (is_container_of())
-			goto free;
+			return;
 		if (is_driver_data())
-			goto free;
+			return;
 		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
-		goto free;
+		return;
 	}
 
 	if (expr->op == '=') {
@@ -509,9 +508,6 @@ static void match_assign_value(struct expression *expr)
 		get_absolute_rl(expr->left, &rl);
 	}
 	add_type_val(member, rl);
-free:
-	free_string(right_member);
-	free_string(member);
 }
 
 /*
@@ -536,7 +532,6 @@ static void match_assign_pointer(struct expression *expr)
 	type = get_type(right);
 	rl = alloc_whole_rl(type);
 	add_type_val(member, rl);
-	free_string(member);
 }
 
 static void match_global_assign(struct expression *expr)
@@ -554,7 +549,6 @@ static void match_global_assign(struct expression *expr)
 	get_absolute_rl(expr->right, &rl);
 	rl = cast_rl(type, rl);
 	add_global_type_val(member, rl);
-	free_string(member);
 }
 
 static void unop_expr(struct expression *expr)
@@ -571,7 +565,6 @@ static void unop_expr(struct expression *expr)
 		return;
 	rl = alloc_whole_rl(get_type(expr));
 	add_type_val(member, rl);
-	free_string(member);
 }
 
 static void asm_expr(struct statement *stmt)
@@ -586,7 +579,6 @@ static void asm_expr(struct statement *stmt)
 			continue;
 		rl = alloc_whole_rl(get_type(op->expr));
 		add_type_val(member, rl);
-		free_string(member);
 	} END_FOR_EACH_PTR(op);
 }
 
@@ -632,7 +624,6 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		return;
 	call_results_to_rl(expr, type, value, &rl);
 	add_type_val(member, rl);
-	free_string(member);
 }
 
 static void match_end_func_info(struct symbol *sym)

@@ -217,7 +217,7 @@ static char *get_stored_buffer_name(struct expression *buffer, bool *add_static)
 
 	name = get_member_name(buffer);
 	if (name)
-		return name;
+		return alloc_string(name);
 
 	if (is_static(buffer)) {
 		name = expr_to_var(buffer);
@@ -233,7 +233,6 @@ static char *get_stored_buffer_name(struct expression *buffer, bool *add_static)
 		if (!name)
 			return NULL;
 		snprintf(buf, sizeof(buf), "%s[]", name);
-		free_string(name);
 		return alloc_string(buf);
 	}
 
@@ -836,13 +835,8 @@ static void match_array_assignment(struct expression *expr)
 
 	left_member = get_member_name(left);
 	right_member = get_member_name(right);
-	if (left_member && right_member && strcmp(left_member, right_member) == 0) {
-		free_string(left_member);
-		free_string(right_member);
+	if (left_member && right_member && strcmp(left_member, right_member) == 0)
 		return;
-	}
-	free_string(left_member);
-	free_string(right_member);
 
 	if (get_implied_value(right, &sval) && sval.value == 0) {
 		rl = alloc_int_rl(0);

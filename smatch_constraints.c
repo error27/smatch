@@ -206,7 +206,8 @@ char *get_constraint_str(struct expression *expr)
 	name = get_toplevel_name(expr);
 	if (name)
 		return name;
-	return get_member_name(expr);
+	name = get_member_name(expr);
+	return alloc_string(name);
 }
 
 static int save_int_callback(void *_p, int argc, char **argv, char **azColName)

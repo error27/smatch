@@ -1019,13 +1019,6 @@ struct expression *strip_expr_set_parent(struct expression *expr)
 	return call_strip_helper(expr, strip_set_parent_cache, &cache_idx, true, true);
 }
 
-void clear_strip_cache(void)
-{
-	memset(strip_cache, 0, sizeof(strip_cache));
-	memset(strip_no_cast_cache, 0, sizeof(strip_no_cast_cache));
-	memset(strip_set_parent_cache, 0, sizeof(strip_set_parent_cache));
-}
-
 int is_error_return(struct expression *expr)
 {
 	struct symbol *cur_func = cur_func_sym;
@@ -1097,10 +1090,20 @@ int get_struct_and_member(struct expression *expr, const char **type, const char
 	return 1;
 }
 
+struct member_name_cache {
+	struct expression *expr;
+	char *member;
+};
+
+static struct member_name_cache member_cache[10];
+static int idx;
+
 char *get_member_name(struct expression *expr)
 {
-	char buf[256];
+	char *member = NULL;
 	struct symbol *sym;
+	char buf[256];
+	int i;
 
 	expr = strip_expr(expr);
 	if (!expr || expr->type != EXPR_DEREF)
@@ -1108,16 +1111,22 @@ char *get_member_name(struct expression *expr)
 	if (!expr->member)
 		return NULL;
 
+	for (i = 0; i < ARRAY_SIZE(member_cache); i++) {
+		if (expr == member_cache[i].expr)
+			return member_cache[i].member;
+	}
+
 	sym = get_type(expr->deref);
 	if (!sym)
-		return NULL;
+		goto done;
 	if (sym->type == SYM_PTR)
 		sym = get_real_base_type(sym);
 	if (sym->type == SYM_UNION) {
 		snprintf(buf, sizeof(buf), "(union %s)->%s",
 			 sym->ident ? sym->ident->name : "anonymous",
 			 expr->member->name);
-		return alloc_string(buf);
+		member = buf;
+		goto done;
 	}
 	if (!sym->ident) {
 		struct expression *deref;
@@ -1133,27 +1142,27 @@ char *get_member_name(struct expression *expr)
 
 		deref = strip_parens(expr->deref);
 		if (deref->type != EXPR_DEREF || !deref->member)
-			return NULL;
+			goto done;
 		sym = get_type(deref->deref);
 		if (!sym || sym->type != SYM_STRUCT || !sym->ident)
-			return NULL;
+			goto done;
 
 		full = expr_to_str(expr);
 		if (!full)
-			return NULL;
+			goto done;
 		deref = deref->deref;
 		if (deref->type == EXPR_PREOP && deref->op == '*')
 			deref = deref->unop;
 		outer = expr_to_str(deref);
 		if (!outer) {
 			free_string(full);
-			return NULL;
+			goto done;
 		}
 		len = strlen(outer);
 		if (strncmp(outer, full, len) != 0) {
 			free_string(full);
 			free_string(outer);
-			return NULL;
+			goto done;
 		}
 		if (full[len] == '-' && full[len + 1] == '>')
 			len += 2;
@@ -1163,10 +1172,27 @@ char *get_member_name(struct expression *expr)
 		free_string(outer);
 		free_string(full);
 
-		return alloc_string(buf);
+		member = buf;
+		goto done;
 	}
 	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
-	return alloc_string(buf);
+	member = buf;
+
+done:
+	member = alloc_sname(member);
+	member_cache[idx].expr = expr;
+	member_cache[idx].member = member;
+	idx = (idx + 1) % ARRAY_SIZE(member_cache);
+
+	return member;
+}
+
+void clear_strip_cache(void)
+{
+	memset(strip_cache, 0, sizeof(strip_cache));
+	memset(strip_no_cast_cache, 0, sizeof(strip_no_cast_cache));
+	memset(strip_set_parent_cache, 0, sizeof(strip_set_parent_cache));
+	memset(member_cache, 0, sizeof(member_cache));
 }
 
 int cmp_pos(struct position pos1, struct position pos2)

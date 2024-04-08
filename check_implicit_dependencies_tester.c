@@ -105,7 +105,6 @@ static void print_member_type(struct expression *expr)
 	// sm_msg("info: uses %s", member);
 	prefix();
 	printf("info: uses %s\n", member);
-	free_string(member);
 }
 
 static void match_condition(struct expression *expr) {

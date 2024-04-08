@@ -274,7 +274,6 @@ static struct smatch_state *get_units_from_type(struct expression *expr)
 		  UNITS, member);
 	run_sql(&db_units, &units, "select value from type_info where type = %d and key = '%s';",
 		UNITS, member);
-	free_string(member);
 	if (!units)
 		return NULL;
 

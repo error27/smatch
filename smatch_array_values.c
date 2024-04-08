@@ -83,7 +83,6 @@ static char *get_member_array(struct expression *array)
 	if (!name)
 		return NULL;
 	snprintf(buf, sizeof(buf), "%s[]", name);
-	free_string(name);
 	return alloc_sname(buf);
 }
 

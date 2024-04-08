@@ -368,7 +368,6 @@ static void match_member_name(const char *fn, struct expression *expr, void *inf
 	name = expr_to_str(arg);
 	member_name = get_member_name(arg);
 	sm_msg("member name: '%s => %s'", name, member_name);
-	free_string(member_name);
 	free_string(name);
 }
 

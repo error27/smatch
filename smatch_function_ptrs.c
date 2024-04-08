@@ -102,7 +102,7 @@ static char *get_array_ptr(struct expression *expr)
 	if (array) {
 		name = get_member_name(array);
 		if (name)
-			return name;
+			return alloc_string(name);
 	}
 
 	/* FIXME:  is_array() should probably be is_array_element() */
@@ -203,7 +203,7 @@ char *get_fnptr_name(struct expression *expr)
 
 	name = get_member_name(expr);
 	if (name)
-		return name;
+		return alloc_string(name);
 
 	if (expr->type == EXPR_SYMBOL) {
 		int param;
