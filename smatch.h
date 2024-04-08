@@ -549,6 +549,7 @@ struct expression *strip_Generic(struct expression *expr);
 struct expression *strip_parens(struct expression *expr);
 struct expression *strip_expr(struct expression *expr);
 struct expression *strip_no_cast(struct expression *expr);
+struct expression *strip_expr_cast(struct expression *expr, struct expression **cast);
 struct expression *strip_expr_set_parent(struct expression *expr);
 int is_error_return(struct expression *expr);
 int getting_address(struct expression *expr);

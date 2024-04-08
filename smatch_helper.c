@@ -992,6 +992,26 @@ struct expression *strip_no_cast(struct expression *expr)
 	return call_strip_helper(expr, strip_no_cast_cache, &cache_idx, false, false);
 }
 
+struct expression *strip_expr_cast(struct expression *expr, struct expression **cast)
+{
+	struct expression *ret, *new, *last;
+
+	last = NULL;
+	*cast = NULL;
+	ret = strip_no_cast(expr);
+	while (ret && (ret->type == EXPR_CAST || ret->type == EXPR_FORCE_CAST)) {
+		new = cast_expression(ret->cast_expression, ret->cast_type);
+		new->cast_expression = NULL;
+		if (!last)
+			*cast = new;
+		else
+			last->cast_expression = new;
+		last = new;
+		ret = strip_no_cast(ret->cast_expression);
+	}
+	return ret;
+}
+
 struct expression *strip_expr_set_parent(struct expression *expr)
 {
 	static int cache_idx;

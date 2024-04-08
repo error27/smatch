@@ -843,12 +843,22 @@ static struct statement *split_then_return_last(struct statement *stmt)
 	return NULL;
 }
 
+static struct expression *add_casts(struct expression *cast, struct expression *expr)
+{
+	if (!cast)
+		return expr;
+	while (cast->cast_expression)
+		cast = cast->cast_expression;
+	cast->cast_expression = expr;
+	return cast;
+}
+
 int __handle_expr_statement_assigns(struct expression *expr)
 {
-	struct expression *right;
+	struct expression *cast, *right;
 	struct statement *stmt;
 
-	right = expr->right;
+	right = strip_expr_cast(expr->right, &cast);
 	if (right->type == EXPR_PREOP && right->op == '(')
 		right = right->unop;
 	if (right->type != EXPR_STATEMENT)
@@ -873,6 +883,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		fake_expr_stmt.statement = last_stmt;
 
 		fake_assign = assign_expression(expr->left, expr->op, &fake_expr_stmt);
+		fake_assign = add_casts(cast, fake_assign);
 		expr_set_parent_expr(fake_assign, expr);
 		__split_expr(fake_assign);
 
@@ -883,6 +894,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 
 		right = strip_no_cast(stmt->expression);
 		fake_assign = assign_expression(expr->left, expr->op, right);
+		fake_assign = add_casts(cast, fake_assign);
 		expr_set_parent_expr(fake_assign, expr);
 		__split_expr(fake_assign);
 
