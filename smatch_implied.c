@@ -1177,8 +1177,11 @@ static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 	if (!gate_sm)
 		return;
 
-	if (!is_leaf(gate_sm))
+	if (!is_leaf(gate_sm)) {
+		get_tf_stacks_from_pool(gate_sm->left, pool_sm, true_stack, false_stack);
+		get_tf_stacks_from_pool(gate_sm->right, pool_sm, true_stack, false_stack);
 		return;
+	}
 
 	if (strcmp(gate_sm->state->name, pool_sm->state->name) == 0) {
 		add_ptr_list(true_stack, pool_sm);
