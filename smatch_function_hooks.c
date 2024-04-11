@@ -985,7 +985,7 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 	}
 
 	while ((fake_assign = pop_expression(&db_info->fake_param_assign_stack))) {
-		struct range_list *left, *right;
+		struct range_list *right;
 
 		/*
 		 * Originally, I tried to do this as a assignment to record that
@@ -1000,7 +1000,6 @@ static void set_return_assign_state(struct db_callback_info *db_info)
 		 * pair.
 		 */
 
-		get_absolute_rl(fake_assign->left, &left);
 		get_absolute_rl(fake_assign->right, &right);
 		right = cast_rl(get_type(fake_assign->left), right);
 		// FIXME: add some sanity checks
