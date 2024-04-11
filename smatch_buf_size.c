@@ -1135,8 +1135,10 @@ void register_buf_size(int id)
 	if (option_project == PROJ_KERNEL) {
 		add_allocation_function("kmalloc", &match_alloc, 0);
 		add_allocation_function("kmalloc_node", &match_alloc, 0);
+		add_allocation_function("kmalloc_noprof", &match_alloc, 0);
 		add_allocation_function("kzalloc", &match_alloc, 0);
 		add_allocation_function("kzalloc_node", &match_alloc, 0);
+		add_allocation_function("kzalloc_noprof", &match_alloc, 0);
 		add_allocation_function("vmalloc", &match_alloc, 0);
 		add_allocation_function("vzalloc", &match_alloc, 0);
 		add_allocation_function("__vmalloc", &match_alloc, 0);
