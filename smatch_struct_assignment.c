@@ -396,10 +396,23 @@ done:
 	faked_expression = NULL;
 }
 
+static struct expression *zero_allocation;
+static void match_allocation(struct expression *expr,
+			     const char *name, struct symbol *sym,
+			     struct allocation_info *info)
+{
+	if (!info->zeroed)
+		return;
+
+	while (expr && expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+
+	zero_allocation = expr;
+}
+
 static int returns_zeroed_mem(struct expression *expr)
 {
 	struct expression *tmp;
-	char *fn;
 
 	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 		return 0;
@@ -413,14 +426,7 @@ static int returns_zeroed_mem(struct expression *expr)
 			return 0;
 	}
 
-	fn = expr_to_var(expr->fn);
-	if (!fn)
-		return 0;
-	if (strcmp(fn, "kcalloc") == 0)
-		return 1;
-	if (option_project == PROJ_KERNEL && strstr(fn, "zalloc"))
-		return 1;
-	return 0;
+	return expr == zero_allocation;
 }
 
 static int copy_containter_states(struct expression *left, struct expression *right, int offset)
@@ -723,6 +729,7 @@ void register_struct_assignment(int id)
 	}
 
 	add_function_hook("sscanf", &match_sscanf, NULL);
+	add_allocation_hook_early(&match_allocation);
 
 	add_hook(&unop_expr, OP_HOOK);
 	register_clears_param();

@@ -404,11 +404,6 @@ void add_function_param_key_hook_early(const char *look_for, param_key_hook *cal
 {
 	struct param_key_data *pkd;
 
-	if (param == -1) {
-		printf("pointless early hook for '%s'", look_for);
-		return;
-	}
-
 	pkd = alloc_pkd(call_back, param, key, info);
 	add_function_hook_early(look_for, &param_key_function, pkd);
 }

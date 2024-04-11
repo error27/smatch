@@ -26,6 +26,7 @@
 static int my_id;
 
 DECLARE_PTR_LIST(alloc_hook_list, alloc_hook);
+static struct alloc_hook_list *hook_funcs_early;
 static struct alloc_hook_list *hook_funcs;
 
 struct alloc_fn_info {
@@ -97,6 +98,11 @@ void add_allocation_hook(alloc_hook *hook)
 	add_ptr_list(&hook_funcs, hook);
 }
 
+void add_allocation_hook_early(alloc_hook *hook)
+{
+	add_ptr_list(&hook_funcs_early, hook);
+}
+
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
@@ -149,7 +155,7 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	}
 }
 
-static void match_alloc(struct expression *expr, const char *name, struct symbol *sym, void *_info)
+static void match_alloc_helper(struct alloc_hook_list *hooks, struct expression *expr, const char *name, struct symbol *sym, void *_info)
 {
 	struct alloc_fn_info *info = _info;
 	struct allocation_info data = { };
@@ -160,9 +166,19 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 	data.zeroed = info->zeroed;
 	load_size_data(&data, expr, info->size);
 
-	FOR_EACH_PTR(hook_funcs, fn) {
+	FOR_EACH_PTR(hooks, fn) {
 		fn(expr, name, sym, &data);
 	} END_FOR_EACH_PTR(fn);
+}
+
+static void match_alloc_early(struct expression *expr, const char *name, struct symbol *sym, void *_info)
+{
+	match_alloc_helper(hook_funcs_early, expr, name, sym, _info);
+}
+
+static void match_alloc(struct expression *expr, const char *name, struct symbol *sym, void *_info)
+{
+	match_alloc_helper(hook_funcs, expr, name, sym, _info);
 }
 
 void register_allocations(int id)
@@ -177,6 +193,7 @@ void register_allocations(int id)
 		info = alloc_fns;
 
 	while (info->name) {
+		add_function_param_key_hook_early(info->name, &match_alloc_early, -1, "$", info);
 		add_function_param_key_hook(info->name, &match_alloc, -1, "$", info);
 		info++;
 	}

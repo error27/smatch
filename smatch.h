@@ -197,6 +197,7 @@ struct allocation_info {
 	bool safe;  /* safe from overflows */
 };
 typedef void (alloc_hook)(struct expression *expr, const char *name, struct symbol *sym, struct allocation_info *info);
+void add_allocation_hook_early(alloc_hook *hook);
 void add_allocation_hook(alloc_hook *func);
 
 void add_hook(void *func, enum hook_type type);
