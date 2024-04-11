@@ -2786,6 +2786,7 @@ void register_comparison(int id)
 
 	add_split_return_callback(&print_return_comparison);
 	select_return_states_hook(PARAM_COMPARE, &db_return_comparison);
+	select_return_states_hook(COMPARE_LIMIT, &db_return_comparison);
 
 	add_hook(&match_preop, OP_HOOK);
 }
