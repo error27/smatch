@@ -1199,9 +1199,6 @@ static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 		add_ptr_list(false_stack, gate_sm);
 		return;
 	}
-
-	get_tf_stacks_from_pool(gate_sm->left, pool_sm, true_stack, false_stack);
-	get_tf_stacks_from_pool(gate_sm->right, pool_sm, true_stack, false_stack);
 }
 
 /*
