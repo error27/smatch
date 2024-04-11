@@ -46,6 +46,8 @@ static struct alloc_fn_info alloc_fns[] = {
 static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"__alloc_skb", "$0"},
 
+	{"comedi_alloc_spriv", "$1", .zeroed=true},
+
 	{"devm_kmalloc", "$1"},
 	{"devm_kzalloc", "$1", .zeroed=true},
 	{"devm_kmalloc_array", "$1 * $2"},
@@ -59,8 +61,10 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 
 	{"kmalloc", "$0"},
 	{"kmalloc_node", "$0"},
+	{"kmalloc_noprof", "$0"},
 	{"kzalloc", "$0", .zeroed=true},
 	{"kzalloc_node", "$0", .zeroed=true},
+	{"kzalloc_noprof", "$0", .zeroed=true},
 
 	{"kmalloc_array", "$0 * $1"},
 	{"kcalloc", "$0 * $1", .zeroed=true},
@@ -81,6 +85,8 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"devm_kmemdup", "$2"},
 	{"memdup_user", "$1"},
 
+	{"sk_alloc", ""},
+	{"sk_prot_alloc", ""},
 	{"sock_kmalloc", "$1"},
 
 #if 0
