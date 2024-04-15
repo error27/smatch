@@ -124,3 +124,6 @@ iov_iter_get_pages2 1-2147479551 1-2147479551[<=$2]
 iov_iter_get_pages2 1-2147479552 1-2147479552[<=$2]
 iov_iter_get_pages2 0-2147479552 0-2147479552[<=$2]
 trace_get_user s32min-s32max 0-s32max[<=$2]
+mipi_dsi_device_transfer s64min-s64max (-4095)-s32max
+timer_delete 0 0-1
+get_device 0-u64max 4096-ptr_max[$0]
