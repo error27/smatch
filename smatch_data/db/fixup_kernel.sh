@@ -263,7 +263,7 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
          | sqlite3 $db_file
 done
 
-for func in __kmalloc __kmalloc_track_caller __do_kmalloc_node __kmalloc_node_track_caller ; do
+for func in __kmalloc __kmalloc_track_caller __do_kmalloc_node __kmalloc_node_track_caller kmalloc_noprof ; do
 
     cat << EOF | sqlite3 $db_file
 delete from return_states where function = '$func';
