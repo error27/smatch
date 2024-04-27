@@ -242,8 +242,8 @@ delete from return_states where function = '__dev_printk' and type = 103;
 
 EOF
 
-for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file ) ; do
-    echo "update return_states set return = \"$i[<=\$1]\" where return = \"$i\" and function = 'clear_user';" | sqlite3 $db_file
+for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file | grep -v '\[' ) ; do
+    echo "update return_states set return = '$i[<=\$1]' where return = '$i' and function = 'clear_user';" | sqlite3 $db_file
 done
 
 echo "select distinct file, function from function_ptr where ptr='(struct rtl_hal_ops)->set_hw_reg';" \
