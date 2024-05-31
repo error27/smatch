@@ -31,7 +31,7 @@ static void match_likely(const char *fn, struct expression *expr, void *unused)
 		return;
 
 	parent = expr_get_parent_expr(expr);
-	if (!parent || parent->type != EXPR_COMPARE)
+	if (!parent)
 		return;
 	warned = expr;
 	sm_warning("check likely/unlikely parentheses");
