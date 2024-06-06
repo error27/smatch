@@ -37,7 +37,8 @@ static void get_state_hook(int owner, const char *name, struct symbol *sym)
 	    __in_fake_assign ||
 	    __in_fake_parameter_assign ||
 	    __in_function_def ||
-	    __in_unmatched_hook)
+	    __in_unmatched_hook ||
+	    __in_fake_struct_assign)
 		return;
 
 	if (!name || name[0] == '&')
