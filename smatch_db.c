@@ -579,7 +579,7 @@ char *get_static_filter(struct symbol *sym)
 	return sql_filter;
 }
 
-static int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
+int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
 {
 	int *row_count = _row_count;
 

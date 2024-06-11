@@ -2438,12 +2438,6 @@ free:
 	return ret;
 }
 
-static int param_used_callback(void *found, int argc, char **argv, char **azColName)
-{
-	*(int *)found = 1;
-	return 0;
-}
-
 static int is_kzalloc_info(struct sm_state *sm)
 {
 	sval_t sval;
@@ -2475,49 +2469,60 @@ static int is_really_long(struct sm_state *sm)
 		cnt++;
 	}
 
-	if (cnt < 3 ||
+	if (cnt < 3 &&
 	    strlen(sm->name) < 40)
 		return 0;
 	return 1;
 }
 
-static int filter_unused_param_value_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+static bool used_param_value_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	int found = 0;
+	int cnt;
 
 	/* for function pointers assume everything is used */
 	if (call->fn->type != EXPR_SYMBOL ||
 	    !call->fn->symbol) /* to handle __builtin_mul_overflow() apparently */
-		return 0;
-
-	if (call_is_leaf_fn(call)) {
-		run_sql(&param_used_callback, &found,
-			"select * from return_implies where %s and type = %d and parameter = %d and key = '%s';",
-			get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
-		return found;
-	}
+		return true;
 
 	if (strcmp(printed_name, "$") == 0 ||
 	    strcmp(printed_name, "*$") == 0)
-		return 0;
+		return true;
 
-	if (!is_kzalloc_info(sm) && !is_really_long(sm))
-		return 0;
+	if (call_is_leaf_fn(call)) {
+		run_sql(&get_row_count, &cnt,
+			"select count(*) from return_implies where %s and type = %d and parameter = %d and key = '%s';",
+			get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
+		return cnt;
+	}
 
-	run_sql(&param_used_callback, &found,
-		"select * from return_implies where %s and type = %d and parameter = %d and key = '%s';",
+	if (!is_really_long(sm))
+		return true;
+
+	/* This is basically pointless information */
+	if (strcmp(sm->state->name, "0,4096-ptr_max") == 0)
+		return false;
+
+	/*
+	 * The rest of the function deals with silencing places where variables
+	 * are set to zero.  There is a lot of that because of kzalloc()
+	 * allocations.
+	 */
+	if (!is_kzalloc_info(sm))
+		return true;
+	run_sql(&get_row_count, &cnt,
+		"select (*) from return_implies where %s and type = %d and parameter = %d and key = '%s';",
 		get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
-	if (found)
-		return 0;
+	if (cnt)
+		return true;
 
 	/* If the database is not built yet, then assume everything is used */
-	run_sql(&param_used_callback, &found,
-		"select * from return_implies where %s and type = %d;",
+	run_sql(&get_row_count, &cnt,
+		"select (*) from return_implies where %s and type = %d;",
 		get_static_filter(call->fn->symbol), PARAM_USED);
-	if (!found)
-		return 0;
+	if (!cnt)
+		return true;
 
-	return 1;
+	return false;
 }
 
 struct range_list *intersect_with_real_abs_var_sym(const char *name, struct symbol *sym, struct range_list *start)
@@ -2574,7 +2579,7 @@ static void caller_info_callback(struct expression *call, int param, char *print
 		return;
 	if (estate_is_whole(sm->state) || !estate_rl(sm->state))
 		return;
-	if (filter_unused_param_value_info(call, param, printed_name, sm))
+	if (!used_param_value_info(call, param, printed_name, sm))
 		return;
 	rl = estate_rl(sm->state);
 	rl = intersect_with_real_abs_var_sym(sm->name, sm->sym, rl);

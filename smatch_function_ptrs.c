@@ -289,17 +289,6 @@ free:
 	} END_FOR_EACH_PTR(arg);
 }
 
-static int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
-{
-	int *row_count = _row_count;
-
-	*row_count = 0;
-	if (argc != 1)
-		return 0;
-	*row_count = atoi(argv[0]);
-	return 0;
-}
-
 static int can_hold_function_ptr(struct expression *expr)
 {
 	struct symbol *type;
