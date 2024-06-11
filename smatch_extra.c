@@ -2486,19 +2486,19 @@ static int filter_unused_param_value_info(struct expression *call, int param, ch
 	int found = 0;
 
 	/* for function pointers assume everything is used */
-	if (call->fn->type != EXPR_SYMBOL)
+	if (call->fn->type != EXPR_SYMBOL ||
+	    !call->fn->symbol) /* to handle __builtin_mul_overflow() apparently */
 		return 0;
+
+	if (call_is_leaf_fn(call)) {
+		run_sql(&param_used_callback, &found,
+			"select * from return_implies where %s and type = %d and parameter = %d and key = '%s';",
+			get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
+		return found;
+	}
 
 	if (strcmp(printed_name, "$") == 0 ||
 	    strcmp(printed_name, "*$") == 0)
-		return 0;
-
-	/*
-	 * This is to handle __builtin_mul_overflow().  In an ideal world we
-	 * would only need this for invalid code.
-	 *
-	 */
-	if (!call->fn->symbol)
 		return 0;
 
 	if (!is_kzalloc_info(sm) && !is_really_long(sm))

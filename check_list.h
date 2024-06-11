@@ -89,6 +89,7 @@ CK(register_goto_tracker)
 CK(register_refcount)
 CK(register_refcount_info)
 CK(register_kernel_atomic_dec_test_path)
+CK(register_leaf_fn)
 
 CK(register_kernel_user_data)
 CK(register_kernel_user_data2)

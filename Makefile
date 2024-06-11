@@ -307,6 +307,7 @@ SMATCH_OBJS += smatch_kernel_task_state_info.o
 SMATCH_OBJS += smatch_kernel_user_data.o
 SMATCH_OBJS += smatch_kernel_host_data.o
 SMATCH_OBJS += smatch_kernel_xa_err.o
+SMATCH_OBJS += smatch_leaf_fn.o
 SMATCH_OBJS += smatch_links.o
 SMATCH_OBJS += smatch_math.o
 SMATCH_OBJS += smatch_mem_tracker.o

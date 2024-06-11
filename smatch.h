@@ -981,6 +981,7 @@ enum info_type {
 
 	NEGATIVE_ERROR	= 1057,
 	ERR_PTR		= 1060,
+	LEAF_FN		= 1068,
 	PREEMPT_ADD	= 2054,
 	PREEMPT_SUB	= 2055,
 	FD_INSTALL	= 2058,
@@ -1560,6 +1561,10 @@ bool is_array_size_units(struct expression *expr);
 /* smatch_nul_terminator.c */
 bool is_nul_terminated_var_sym(const char *name, struct symbol *sym);
 bool is_nul_terminated(struct expression *expr);
+
+/* smatch_leaf_fn.c */
+bool call_is_leaf_fn(struct expression *call);
+
 /* check_kernel.c  */
 bool is_ignored_kernel_data(const char *name);
 int get_gfp_param(struct expression *expr);
