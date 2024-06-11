@@ -722,6 +722,18 @@ struct select_caller_info_data {
 
 static int caller_info_callback(void *_data, int argc, char **argv, char **azColName);
 
+static bool too_much_caller_info_data(struct symbol *sym)
+{
+	int count = 0;
+
+	run_sql(get_row_count, &count,
+		"select count(*) from caller_info where %s;",
+		get_static_filter(sym));
+	if (count > 5000)
+		return true;
+	return false;
+}
+
 static void sql_select_caller_info(struct select_caller_info_data *data,
 	const char *cols, struct symbol *sym)
 {
@@ -738,6 +750,9 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 		"select %s from common_caller_info where %s order by call_id;",
 		cols, get_static_filter(sym));
 	if (data->results)
+		return;
+
+	if (too_much_caller_info_data(sym))
 		return;
 
 	run_sql(caller_info_callback, data,
