@@ -2510,14 +2510,14 @@ static bool used_param_value_info(struct expression *call, int param, char *prin
 	if (!is_kzalloc_info(sm))
 		return true;
 	run_sql(&get_row_count, &cnt,
-		"select (*) from return_implies where %s and type = %d and parameter = %d and key = '%s';",
+		"select count(*) from return_implies where %s and type = %d and parameter = %d and key = '%s';",
 		get_static_filter(call->fn->symbol), PARAM_USED, param, printed_name);
 	if (cnt)
 		return true;
 
 	/* If the database is not built yet, then assume everything is used */
 	run_sql(&get_row_count, &cnt,
-		"select (*) from return_implies where %s and type = %d;",
+		"select count(*) from return_implies where %s and type = %d;",
 		get_static_filter(call->fn->symbol), PARAM_USED);
 	if (!cnt)
 		return true;
