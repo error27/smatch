@@ -670,6 +670,8 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, "->algo_data->"))
 		return true;
+	if (strstr(name, "->bio->bi_private"))
+		return true;
 
 	/* ignore mutex internals */
 	if ((p = strstr(name, ".rlock.")) ||
