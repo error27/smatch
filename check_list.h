@@ -256,6 +256,7 @@ CK(check_direct_return_instead_of_goto)
 CK(check_double_fget)
 CK(check_negative_error_code_type_promoted)
 CK(check_uninitialized_kobj)
+CK(check_sentinel_ctltable)
 
 /* wine specific stuff */
 CK(check_wine_filehandles)
