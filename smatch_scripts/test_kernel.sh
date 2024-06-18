@@ -67,12 +67,15 @@ fi
 if [[ ! -z $CROSS_COMPILE ]] ; then
 	KERNEL_CROSS_COMPILE="CROSS_COMPILE=$CROSS_COMPILE"
 fi
+if [[ ! -z $O ]] ; then
+	KERNEL_O="O=$O"
+fi
 
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE clean
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O clean
 find -name \*.c.smatch -exec rm \{\} \;
 find -name \*.c.smatch.sql -exec rm \{\} \;
 find -name \*.c.smatch.caller_info -exec rm \{\} \;
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE -j${NR_CPU} $ENDIAN -k CHECK="$CMD -p=kernel --file-output --succeed $*" \
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} $ENDIAN -k CHECK="$CMD -p=kernel --file-output --succeed $*" \
 	C=1 $BUILD_PARAM $TARGET 2>&1 | tee $LOG
 BUILD_STATUS=${PIPESTATUS[0]}
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > $WLOG

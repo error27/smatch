@@ -58,10 +58,13 @@ fi
 if [[ ! -z $CROSS_COMPILE ]] ; then
 	KERNEL_CROSS_COMPILE="CROSS_COMPILE=$CROSS_COMPILE"
 fi
+if [[ ! -z $O ]] ; then
+	KERNEL_O="O=$O"
+fi
 
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE clean
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O clean
 find -name \*.c.smatch -exec rm \{\} \;
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE -j${NR_CPU} $ENDIAN -k CHECK="$CMD --file-output $*" \
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} $ENDIAN -k CHECK="$CMD --file-output $*" \
 	C=1 $TARGET 2>&1 | tee $LOG
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > $WLOG
 
