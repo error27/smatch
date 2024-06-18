@@ -1045,6 +1045,8 @@ static void match_call(struct expression *expr)
 			continue;
 		if (is_type_bytes(rl, expr, i))
 			continue;
+		if (rl_min(rl).value == -1 && rl_max(rl).value == 0)
+			continue;
 		sql_insert_caller_info(expr, BUF_SIZE, i, "$", show_rl(rl));
 	} END_FOR_EACH_PTR(arg);
 }
@@ -1053,9 +1055,13 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 {
 	sval_t sval;
 
-	if (!estate_rl(sm->state) ||
-	    (estate_get_single_value(sm->state, &sval) &&
-	     (sval.value == -1 || sval.value == 0)))
+	if (!estate_rl(sm->state))
+		return;
+	if (estate_get_single_value(sm->state, &sval) &&
+	    (sval.value == -1 || sval.value == 0))
+		return;
+	if (estate_min(sm->state).value == -1 &&
+	    estate_max(sm->state).value == 0)
 		return;
 
 	sql_insert_caller_info(call, BUF_SIZE, param, printed_name, sm->state->name);
