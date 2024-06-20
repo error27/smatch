@@ -75,6 +75,7 @@ static struct user_fn_info func_table[] = {
 	{ "ieee80211_bss_get_elem", USER_PTR_SET, -1, "$" },
 	{ "cfg80211_find_elem", USER_PTR_SET, -1, "$" },
 	{ "ieee80211_bss_get_ie", USER_PTR_SET, -1, "$" },
+	{ "nvmet_copy_from_sgl", USER_PTR_SET, 2, "$" },
 
 	{ "brcmf_fweh_dequeue_event", USER_PTR_SET, -1, "&$->emsg" },
 	{ "wilc_wlan_rxq_remove", USER_PTR_SET, -1, "$->buffer" },
