@@ -631,6 +631,10 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, ".lockdep_map."))
 		return true;
+	if (strstr(name, "->lockdep_map."))
+		return true;
+	if (strstr(name, "lock.dep_map."))
+		return true;
 
 	if (strstr(name, ".rwsem."))
 		return true;
@@ -671,6 +675,12 @@ bool is_ignored_kernel_data(const char *name)
 	if (strstr(name, "->algo_data->"))
 		return true;
 	if (strstr(name, "->bio->bi_private"))
+		return true;
+	if (strstr(name, "regmap->lock_arg"))
+		return true;
+	if (strstr(name, "->regmap->bus_context"))
+		return true;
+	if (strstr(name, "parent->parent"))
 		return true;
 
 	/* ignore mutex internals */
