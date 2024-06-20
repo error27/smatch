@@ -25,8 +25,8 @@
  * the old scripts were too messy and complicated and generated too many false
  * positives.
  *
- * This check is supposed to be simpler because it only looks for one kind of 
- * null dereference bug instead of every kind.  It also gets rid of the false 
+ * This check is supposed to be simpler because it only looks for one kind of
+ * null dereference bug instead of every kind.  It also gets rid of the false
  * positives caused by the checks that happen inside macros.
  *
  */
@@ -45,89 +45,72 @@ static void is_ok(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &ok);
 }
 
-static void check_dereference(struct expression *expr)
-{
-	struct sm_state *sm;
-	struct sm_state *tmp;
-
-	if (__in_fake_assign)
-		return;
-
-	expr = strip_expr(expr);
-
-	sm = get_sm_state_expr(my_id, expr);
-	if (!sm)
-		return;
-	if (is_ignored(my_id, sm->name, sm->sym))
-		return;
-	if (implied_not_equal(expr, 0))
-		return;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == &merged)
-			continue;
-		if (tmp->state == &ok)
-			continue;
-		if (tmp->state == &null) {
-			sm_error("we previously assumed '%s' could be null (see line %d)",
-			       tmp->name, tmp->line);
-			add_ignore(my_id, sm->name, sm->sym);
-			return;
-		}
-	} END_FOR_EACH_PTR(tmp);
-}
-
-static void check_dereference_name_sym(char *name, struct symbol *sym)
+static int get_checked_line_var_sym(char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
 	struct sm_state *tmp;
 
 	sm = get_sm_state(my_id, name, sym);
 	if (!sm)
-		return;
+		return 0;
 	if (is_ignored(my_id, sm->name, sm->sym))
-		return;
+		return 0;
 	if (implied_not_equal_name_sym(name, sym, 0))
-		return;
+		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (tmp->state == &merged)
 			continue;
 		if (tmp->state == &ok)
 			continue;
-		if (tmp->state == &null) {
-			sm_error("we previously assumed '%s' could be null (see line %d)",
-			       tmp->name, tmp->line);
-			add_ignore(my_id, sm->name, sm->sym);
-			return;
-		}
+		if (tmp->state == &null)
+			return tmp->line;
 	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
 }
 
-static void match_dereferences(struct expression *expr)
+static int get_checked_line(struct expression *expr)
 {
-	if (expr->type != EXPR_PREOP)
-		return;
-	check_dereference(expr->unop);
-}
-
-static void match_pointer_as_array(struct expression *expr)
-{
-	if (!is_array(expr))
-		return;
-	check_dereference(get_array_base(expr));
-}
-
-static void set_param_dereferenced(struct expression *call, struct expression *arg, char *key, char *unused)
-{
-	struct symbol *sym;
 	char *name;
+	struct symbol *sym;
+	int line = 0;
 
-	name = get_variable_from_key(arg, key, &sym);
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	line = get_checked_line_var_sym(name, sym);
+free:
+	free_string(name);
+	return line;
+}
+
+static void deref_hook(struct expression *expr)
+{
+	char *name;
+	struct symbol *sym;
+	struct range_list *rl;
+	int line;
+
+	if (__in_fake_assign || __in_fake_parameter_assign)
+		return;
+
+	line = get_checked_line(expr);
+	if (!line)
+		return;
+
+	get_absolute_rl(expr, &rl);
+	if (!rl_has_sval(rl, sval_type_val(rl_type(rl), 0)))
+		return;
+
+	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
 
-	check_dereference_name_sym(name, sym);
+	sm_error("we previously assumed '%s' could be null (see line %d)",
+	       name, line);
+
+	add_ignore(my_id, name, sym);
 free:
 	free_string(name);
 }
@@ -164,8 +147,6 @@ void check_check_deref(int id)
 	my_id = id;
 
 	add_modification_hook(my_id, &is_ok);
-	add_hook(&match_dereferences, DEREF_HOOK);
-	add_hook(&match_pointer_as_array, OP_HOOK);
-	select_return_implies_hook(DEREFERENCE, &set_param_dereferenced);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_dereference_hook(deref_hook);
 }
