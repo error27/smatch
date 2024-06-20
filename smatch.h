@@ -276,6 +276,7 @@ void add_all_modifications_hook(int owner, name_sym_hook *hook);
 void add_modification_hook(int owner, sm_hook *call_back);
 void add_modification_hook_late(int owner, sm_hook *call_back);
 struct smatch_state *get_modification_state(struct expression *expr);
+struct smatch_state *get_modification_state_name_sym(const char *name, struct symbol *sym);
 
 int outside_of_function(void);
 const char *get_filename(void);

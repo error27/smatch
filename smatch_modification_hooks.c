@@ -279,6 +279,11 @@ struct smatch_state *get_modification_state(struct expression *expr)
 	return get_state_expr(my_id, expr);
 }
 
+struct smatch_state *get_modification_state_name_sym(const char *name, struct symbol *sym)
+{
+	return get_state(my_id, name, sym);
+}
+
 void allocate_modification_hooks(void)
 {
 	hooks = malloc(num_checks * sizeof(*hooks));
