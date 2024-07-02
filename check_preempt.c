@@ -39,6 +39,35 @@
 
 static int my_id;
 
+static struct {
+	const char *caller;
+	const char *fn;
+} break_link_table[] = {
+	{"arm_smmu_update_ctx_desc_devices", "arm_smmu_write_ctx_desc"},
+};
+
+static bool in_break_link_table(struct expression *expr)
+{
+	char *fn;
+	int i;
+
+	if (!get_function())
+		return false;
+
+	fn = get_fnptr_name(expr->fn);
+	if (!fn)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(break_link_table); i++) {
+		if (strcmp(get_function(), break_link_table[i].caller) != 0)
+			continue;
+		if (strcmp(fn, break_link_table[i].fn) == 0)
+			return true;
+	}
+
+	return false;
+}
+
 int get_preempt_cnt(void)
 {
 	struct smatch_state *state;
@@ -126,7 +155,11 @@ static void match_call_info(struct expression *expr)
 	param = get_gfp_param(expr);
 	if (param >= 0)
 		return;
-	sql_insert_caller_info(expr, PREEMPT_ADD, -1, "", disables);
+
+	if (in_break_link_table(expr))
+		return;
+
+	sql_insert_caller_info(expr, PREEMPT_ADD, -2, "", disables);
 }
 
 static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
