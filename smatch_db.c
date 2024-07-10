@@ -1786,6 +1786,7 @@ static bool handle_forced_split(const char *return_ranges, struct expression *ex
 	struct split_data *data = NULL;
 	struct expression *compare;
 	struct range_list *rl;
+	static bool recurse;
 	char buf[64];
 	char *math;
 	sval_t sval;
@@ -1813,6 +1814,10 @@ static bool handle_forced_split(const char *return_ranges, struct expression *ex
 	if (get_implied_value(compare, &sval))
 		return false;
 
+	if (recurse)
+		return false;
+	recurse = true;
+
 	undo = assume(compare_expression(expr, SPECIAL_EQUAL, zero_expr()));
 	call_return_states_callbacks("0", expr);
 	if (undo)
@@ -1828,6 +1833,7 @@ static bool handle_forced_split(const char *return_ranges, struct expression *ex
 	call_return_states_callbacks(buf, expr);
 	if (undo)
 		end_assume();
+	recurse = false;
 
 	return true;
 }
