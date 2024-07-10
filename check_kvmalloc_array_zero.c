@@ -79,6 +79,9 @@ void check_kvmalloc_array_zero(int id)
 {
 	struct match_alloc_struct *entry = match_alloc_functions;
 
+	/* Disable this until macro_to_ul("__GFP_ZERO", &gfp) is fixed */
+	return;
+
 	if (option_project != PROJ_KERNEL)
 		return;
 
