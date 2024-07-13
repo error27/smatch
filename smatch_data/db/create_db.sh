@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if echo $1 | grep -q '^-p' ; then
     PROJ=$(echo $1 | cut -d = -f 2)
     shift
