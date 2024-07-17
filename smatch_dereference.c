@@ -137,6 +137,11 @@ static void match_pointer_as_array(struct expression *expr)
 	call_deref_hooks(array);
 }
 
+static void match_call(struct expression *expr)
+{
+	call_deref_hooks(expr->fn);
+}
+
 static void dereference_inner_pointer(struct expression *expr)
 {
 	if (expr->type != EXPR_PREOP ||
@@ -188,6 +193,7 @@ void register_dereferences(int id)
 
 	add_hook(&match_dereference, DEREF_HOOK);
 	add_hook(&match_pointer_as_array, OP_HOOK);
+	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	select_return_implies_hook_early(DEREFERENCE, &set_param_dereferenced);
 
 	for (i = 0; i < ARRAY_SIZE(fn_deref_table); i++) {
