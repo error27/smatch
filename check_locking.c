@@ -470,6 +470,11 @@ static struct lock_info lock_table[] = {
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
 	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
 
+	{"class_mvm_destructor", UNLOCK, mutex, 0, "&$->mutex"},
+
+	{"lock_cluster_or_swap_info",   LOCK,   spin_lock, 0, "&$->lock"},
+	{"unlock_cluster_or_swap_info", UNLOCK, spin_lock, 0, "&$->lock"},
+
 	{},
 };
 
