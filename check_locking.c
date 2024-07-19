@@ -1287,11 +1287,26 @@ static void match_dma_resv_lock_NULL(const char *fn, struct expression *call_exp
 	char *lock_name;
 	struct symbol *sym;
 
+	/*
+	 * If left to its own devices Smatch would say that dma_resv_lock()
+	 * locks &$->lock.  But in the lock_table we say that it locks "$".
+	 * The other thing about dma_resv_lock() is that if you pass a NULL
+	 * "ctx* pointer then it always succeeds.  Really, the correct way to
+	 * handle this is to make a cull_return call back which culls the
+	 * return path.  FIXME: do that instead.
+	 * (Instead of what this function does which is mark the lock as locked
+	 * on the failure path).
+	 *
+	 * The the second complication is that lock_to_name_sym() adds a * to
+	 * key, so it unlocks *$ instead of $.  Which is annoying.
+	 *
+	 */
 	lock = get_argument_from_call_expr(call_expr->args, 0);
 	ctx = get_argument_from_call_expr(call_expr->args, 1);
 	if (!expr_is_zero(ctx))
 		return;
 
+	lock = preop_expression(lock, '&');
 	lock_name = lock_to_name_sym(lock, &sym);
 	if (!lock_name || !sym)
 		goto free;
