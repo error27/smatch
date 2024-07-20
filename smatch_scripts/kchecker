@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 function usage {
     echo "Usage:  $0 [--sparse][--valgrind][--debug] path/to/file.c"
     exit 1

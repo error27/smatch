@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 PROJECT=kernel
 
 function usage {

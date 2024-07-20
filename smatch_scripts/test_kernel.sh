@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 NR_CPU=$(cat /proc/cpuinfo | grep ^processor | wc -l)
 TARGET="bzImage modules"
 WLOG="smatch_warns.txt"

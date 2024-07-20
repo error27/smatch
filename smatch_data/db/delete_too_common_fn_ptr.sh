@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 db_file=$1
 
 IFS="|"
