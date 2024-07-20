@@ -14,9 +14,10 @@ if [ "$db_file" == "" ] ; then
     exit
 fi
 
-test -e  ${bin_dir}/${PROJ}.return_fixes && \
-cat ${bin_dir}/${PROJ}.return_fixes | \
-while read func old new ; do
-    echo "update return_states set return = '$new' where function = '$func' and return = '$old';" | sqlite3 $db_file
-done
+if test -e  ${bin_dir}/${PROJ}.return_fixes ; then
+    cat ${bin_dir}/${PROJ}.return_fixes | \
+    while read func old new ; do
+        echo "update return_states set return = '$new' where function = '$func' and return = '$old';" | sqlite3 $db_file
+    done
+fi
 
