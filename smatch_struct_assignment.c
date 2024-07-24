@@ -414,6 +414,10 @@ static int returns_zeroed_mem(struct expression *expr)
 {
 	struct expression *tmp;
 
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
+
 	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 		return 0;
 
