@@ -27,7 +27,7 @@ static bool has_inc_state(const char *name, struct symbol *sym)
 	struct sm_state *sm, *tmp;
 
 	if (!refcount_id)
-		refcount_id = id_from_name("check_refcount_info");
+		refcount_id = id_from_name("register_refcount_info");
 
 	sm = get_sm_state(refcount_id, name, sym);
 	if (!sm)
