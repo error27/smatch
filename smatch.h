@@ -216,6 +216,8 @@ typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 typedef void (return_implies_hook)(struct expression *call_expr,
 				   int param, char *key, char *value);
 typedef int (implied_return_hook)(struct expression *call_expr, void *info, struct range_list **rl);
+typedef bool (cull_hook)(struct expression *call_expr, struct range_list *rl, void *info);
+void add_cull_hook(const char *look_for, cull_hook *call_back, void *info);
 void add_function_hook_early(const char *look_for, func_hook *call_back, void *data);
 void add_function_hook(const char *look_for, func_hook *call_back, void *data);
 void add_function_hook_late(const char *look_for, func_hook *call_back, void *info);

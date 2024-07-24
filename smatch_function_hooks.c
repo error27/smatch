@@ -54,6 +54,7 @@
  *
  * Manipulate the return range.
  *     add_implied_return_hook()
+ *     add_cull_hook()
  */
 
 #include <stdlib.h>
@@ -72,6 +73,7 @@ struct fcall_back {
 		func_hook *call_back;
 		implication_hook *ranged;
 		implied_return_hook *implied_return;
+		cull_hook *cull_hook;
 	} u;
 	void *info;
 };
@@ -92,6 +94,7 @@ enum fn_hook_type {
 	RANGED_EXACT,
 	ASSIGN_CALL,
 	IMPLIED_RETURN,
+	CULL_HOOK,
 	MACRO_ASSIGN,
 	MACRO_ASSIGN_EXTRA,
 };
@@ -278,6 +281,14 @@ void add_implied_return_hook(const char *look_for,
 	struct fcall_back *cb;
 
 	cb = alloc_fcall_back(IMPLIED_RETURN, call_back, info);
+	add_callback(func_hash, look_for, cb);
+}
+
+void add_cull_hook(const char *look_for, cull_hook *call_back, void *info)
+{
+	struct fcall_back *cb;
+
+	cb = alloc_fcall_back(CULL_HOOK, call_back, info);
 	add_callback(func_hash, look_for, cb);
 }
 
@@ -790,6 +801,31 @@ static void set_implied_states(struct db_callback_info *db_info)
 	free_stree(&db_info->implied);
 }
 
+static void call_cull_hooks(struct db_callback_info *db_info, struct range_list *rl)
+{
+	struct expression *expr = db_info->expr;
+	struct call_back_list *call_backs;
+	struct fcall_back *tmp;
+	const char *fn_name;
+
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return;
+
+	fn_name = get_fn_name(expr->fn);
+	if (!fn_name)
+		return;
+	call_backs = search_callback(func_hash, (char *)fn_name);
+
+	FOR_EACH_PTR(call_backs, tmp) {
+		if (tmp->type != CULL_HOOK)
+			continue;
+		if ((tmp->u.cull_hook)(db_info->expr, rl, tmp->info))
+			db_info->cull = 1;
+	} END_FOR_EACH_PTR(tmp);
+}
+
 static void store_return_state(struct db_callback_info *db_info, const char *ret_str, struct smatch_state *state)
 {
 	db_info->ret_str = alloc_sname(ret_str),
@@ -1252,6 +1288,7 @@ static int db_compare_callback(void *_info, int argc, char **argv, char **azColN
 	if (type == INTERNAL) {
 		set_state(-1, "unnull_path", NULL, &true_state);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
+		call_cull_hooks(db_info, ret_range);
 		store_return_state(db_info, ret_str, alloc_estate_rl(clone_rl(var_rl)));
 	}
 
@@ -1508,6 +1545,7 @@ static int db_assign_return_states_callback(void *_info, int argc, char **argv, 
 		set_state(-1, "unnull_path", NULL, &true_state);
 		__add_comparison_info(db_info->expr->left, strip_expr(db_info->expr->right), ret_str);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
+		call_cull_hooks(db_info, ret_range);
 		store_return_state(db_info, ret_str, alloc_estate_rl(ret_range));
 	}
 
@@ -1683,6 +1721,7 @@ static int db_return_states_callback(void *_info, int argc, char **argv, char **
 
 		set_state(-1, "unnull_path", NULL, &true_state);
 		call_string_hooks(return_string_hooks, db_info->expr, ret_str);
+		call_cull_hooks(db_info, ret_range);
 		state = alloc_estate_rl(ret_range);
 		store_return_state(db_info, ret_str, state);
 	}
