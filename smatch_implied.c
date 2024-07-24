@@ -120,17 +120,17 @@ static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 		printf("%s: %d: does not exist.\n", show_sm(sm), sm->line);
 	} else if (istrue) {
 		printf("'%s = %s' from %d is true. %s[stree %d]\n", sm->name, show_state(sm->state),
-			sm->line, sm->merged ? "[merged]" : "[leaf]",
+			sm->line, is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
 	} else if (isfalse) {
 		printf("'%s = %s' from %d is false. %s[stree %d]\n", sm->name, show_state(sm->state),
 			sm->line,
-			sm->merged ? "[merged]" : "[leaf]",
+			is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
 	} else {
 		printf("'%s = %s' from %d could be true or false. %s[stree %d]\n", sm->name,
 			show_state(sm->state), sm->line,
-			sm->merged ? "[merged]" : "[leaf]",
+			is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
 	}
 }
