@@ -582,22 +582,6 @@ static struct expression *remove_spinlock_check(struct expression *expr)
 	return expr;
 }
 
-static struct expression *filter_kernel_args(struct expression *arg)
-{
-	if (arg->type == EXPR_PREOP && arg->op == '&')
-		return strip_expr(arg->unop);
-	if (!is_pointer(arg))
-		return arg;
-	return deref_expression(strip_expr(arg));
-}
-
-static char *lock_to_name_sym(struct expression *expr, struct symbol **sym)
-{
-	expr = remove_spinlock_check(expr);
-	expr = filter_kernel_args(expr);
-	return expr_to_str_sym(expr, sym);
-}
-
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	return &start_state;
@@ -1280,39 +1264,22 @@ static void match_after_func(struct symbol *sym)
 	free_stree(&start_states);
 }
 
-static void match_dma_resv_lock_NULL(const char *fn, struct expression *call_expr,
-				     struct expression *assign_expr, void *_index)
+static bool cull_dma_resv_lock(struct expression *expr, struct range_list *rl, void *unused)
 {
-	struct expression *lock, *ctx;
-	char *lock_name;
-	struct symbol *sym;
+	struct expression *ctx;
 
-	/*
-	 * If left to its own devices Smatch would say that dma_resv_lock()
-	 * locks &$->lock.  But in the lock_table we say that it locks "$".
-	 * The other thing about dma_resv_lock() is that if you pass a NULL
-	 * "ctx* pointer then it always succeeds.  Really, the correct way to
-	 * handle this is to make a cull_return call back which culls the
-	 * return path.  FIXME: do that instead.
-	 * (Instead of what this function does which is mark the lock as locked
-	 * on the failure path).
-	 *
-	 * The the second complication is that lock_to_name_sym() adds a * to
-	 * key, so it unlocks *$ instead of $.  Which is annoying.
-	 *
-	 */
-	lock = get_argument_from_call_expr(call_expr->args, 0);
-	ctx = get_argument_from_call_expr(call_expr->args, 1);
+	while (expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr->type != EXPR_CALL)
+		return false;
+
+	ctx = get_argument_from_call_expr(expr->args, 1);
 	if (!expr_is_zero(ctx))
-		return;
+		return false;
 
-	lock = preop_expression(lock, '&');
-	lock_name = lock_to_name_sym(lock, &sym);
-	if (!lock_name || !sym)
-		goto free;
-	do_lock(lock_name, sym, NULL);
-free:
-	free_string(lock_name);
+	if (!possibly_true_rl(rl, SPECIAL_EQUAL, alloc_rl(int_zero, int_zero)))
+		return true;
+	return false;
 }
 
 /* print_held_locks() is used in check_call_tree.c */
@@ -1396,5 +1363,5 @@ void check_locking(int id)
 	select_caller_name_sym(set_half_locked, HALF_LOCKED);
 	select_caller_name_sym(set_unlocked, UNLOCK);
 
-	return_implies_state("dma_resv_lock", -4095, -1, &match_dma_resv_lock_NULL, 0);
+	add_cull_hook("dma_resv_lock", &cull_dma_resv_lock, NULL);
 }
