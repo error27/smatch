@@ -104,6 +104,9 @@ warn:
 	if (from_untrusted_fn_ptr(expr))
 		return;
 
+	if (get_function() && strcmp(get_function(), "IS_ERR_OR_NULL") == 0)
+		return;
+
 	name = expr_to_str(expr);
 	sm_warning("'%s' could be an error pointer", name);
 	free_string(name);
