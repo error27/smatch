@@ -1169,10 +1169,14 @@ static void match_end_func(struct symbol *sym)
 static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 				    struct sm_state *pool_sm,
 				    struct state_list **true_stack,
-				    struct state_list **false_stack)
+				    struct state_list **false_stack,
+				    int *recurse_cnt)
 {
 	struct sm_state *tmp;
 	int possibly_true = 0;
+
+	if ((*recurse_cnt)++ >= 100)
+		return;
 
 	if (!gate_sm)
 		return;
@@ -1195,8 +1199,8 @@ static void get_tf_stacks_from_pool(struct sm_state *gate_sm,
 		return;
 	}
 
-	get_tf_stacks_from_pool(gate_sm->left, pool_sm, true_stack, false_stack);
-	get_tf_stacks_from_pool(gate_sm->right, pool_sm, true_stack, false_stack);
+	get_tf_stacks_from_pool(gate_sm->left, pool_sm, true_stack, false_stack, recurse_cnt);
+	get_tf_stacks_from_pool(gate_sm->right, pool_sm, true_stack, false_stack, recurse_cnt);
 }
 
 /*
@@ -1212,11 +1216,12 @@ void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool
 	struct stree *pre_stree;
 	struct stree *implied_true;
 	struct sm_state *tmp;
+	int recurse_cnt = 0;
 
 	if (!pool_sm->pool)
 		return;
 
-	get_tf_stacks_from_pool(gate_sm, pool_sm, &true_stack, &false_stack);
+	get_tf_stacks_from_pool(gate_sm, pool_sm, &true_stack, &false_stack, &recurse_cnt);
 
 	pre_stree = clone_stree(__get_cur_stree());
 
