@@ -1053,6 +1053,7 @@ int is_error_return(struct expression *expr)
 int getting_address(struct expression *expr)
 {
 	int deref_count = 0;
+	int cnt = 0;
 
 	while ((expr = expr_get_parent_expr(expr))) {
 		if (expr->type == EXPR_PREOP && expr->op == '*') {
@@ -1063,6 +1064,8 @@ int getting_address(struct expression *expr)
 		}
 		if (expr->type == EXPR_PREOP && expr->op == '&')
 			return true;
+		if (cnt++ >= 5)
+			return false;
 	}
 	return false;
 }
