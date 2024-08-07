@@ -110,6 +110,24 @@ static bool we_jumped_into_the_middle_of_a_loop(struct statement *stmt)
 	return false;
 }
 
+static bool prev_stmt_false_if(void)
+{
+	struct statement *prev;
+
+	/* true if statements are handled in turn_off_unreachable() */
+
+	if (!__path_is_null())
+		return false;
+
+	prev = get_prev_statement();
+	if (!prev || prev->type != STMT_IF)
+		return false;
+
+	if (known_condition_false(prev->if_conditional))
+		return true;
+	return false;
+}
+
 static void unreachable_stmt(struct statement *stmt)
 {
 
@@ -127,6 +145,8 @@ static void unreachable_stmt(struct statement *stmt)
 	if (prev_line_was_endif(stmt))
 		print_unreached = 0;
 	if (we_jumped_into_the_middle_of_a_loop(stmt))
+		print_unreached = 0;
+	if (prev_stmt_false_if())
 		print_unreached = 0;
 
 	if (!print_unreached)
