@@ -37,6 +37,7 @@ int __inline_call;
 struct expression  *__inline_fn;
 
 int __smatch_lineno = 0;
+static struct position current_pos;
 
 static char *base_file;
 static const char *filename;
@@ -166,6 +167,7 @@ static void set_position(struct position pos)
 		return;
 
 	__smatch_lineno = pos.line;
+	current_pos = pos;
 
 	if (pos.stream == prev_stream)
 		return;
@@ -867,6 +869,14 @@ static bool call_once_through_hooks(struct statement *stmt)
 	return false;
 }
 
+static void do_scope_hooks(void)
+{
+	struct position orig = current_pos;
+
+	__call_scope_hooks();
+	set_position(orig);
+}
+
 /*
  * Pre Loops are while and for loops.
  */
@@ -955,7 +965,7 @@ static void handle_pre_loop(struct statement *stmt)
 	}
 	loop_count--;
 
-	__call_scope_hooks();
+	do_scope_hooks();
 }
 
 /*
@@ -1100,7 +1110,7 @@ next:
 		}
 	} END_FOR_EACH_PTR(tmp);
 out:
-	__call_scope_hooks();
+	do_scope_hooks();
 	if (!__pop_default())
 		__merge_switches(top_expression(switch_expr_stack), NULL);
 	__discard_switches();
@@ -1315,7 +1325,7 @@ static void split_compound(struct statement *stmt)
 	 * end of function hooks can run.
 	 */
 	if (!is_function_scope(stmt))
-		__call_scope_hooks();
+		do_scope_hooks();
 }
 
 void __split_label_stmt(struct statement *stmt)
@@ -1673,6 +1683,7 @@ static void call_cleanup_fn(void *_sym)
 	struct symbol *sym = _sym;
 	struct expression *call, *arg;
 	struct expression_list *args = NULL;
+	struct position orig = current_pos;
 
 	arg = symbol_expression(sym);
 	arg = preop_expression(arg, '&');
@@ -1680,6 +1691,7 @@ static void call_cleanup_fn(void *_sym)
 	call = call_expression(sym->cleanup, args);
 
 	__split_expr(call);
+	set_position(orig);
 }
 
 static void add_cleanup_hook(struct symbol *sym)
@@ -2098,7 +2110,7 @@ static void split_function(struct symbol *sym)
 		final_pass = 0;
 		start_function_definition(sym);
 		parse_fn_statements(base_type);
-		__call_scope_hooks();
+		do_scope_hooks();
 		nullify_path();
 	}
 	__unnullify_path();
