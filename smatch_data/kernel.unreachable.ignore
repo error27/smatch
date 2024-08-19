@@ -50,3 +50,5 @@ outl
 __put_user
 put_user
 damon_for_each_target
+iio_device_claim_direct_scoped
+scoped_guard
