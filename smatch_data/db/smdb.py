@@ -291,6 +291,15 @@ def hash_to_string(sha):
         hash_strings[sha] = "%x" %(sha)
     return hash_strings[sha]
 
+def string_to_hash(string):
+    if not string:
+        return 0
+    proc = subprocess.Popen(['sm_hash %s' %(string)], shell=True, stdout=subprocess.PIPE)
+    line = proc.stdout.readline()
+    if not line:
+        return 0
+    return int(line)
+
 def get_next_str(txt):
     val = ""
     parsed = 0
@@ -420,7 +429,7 @@ def merge_values(param_names, vals, cur):
 def get_param_names(filename, func):
     cur = con.cursor()
     param_names = {}
-    cur.execute("select parameter, value from parameter_name where file = '%s' and function = '%s';" %(filename, func))
+    cur.execute("select parameter, value from parameter_name where file = '%s' and function = '%s';" %(string_to_hash(filename), func))
     for txt in cur:
         parameter = int(txt[0])
         name = txt[1]
