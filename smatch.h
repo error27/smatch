@@ -1485,6 +1485,10 @@ extern int __ignore_param_used;
 /* smatch_buf_comparison.c */
 int db_var_is_array_limit(struct expression *array, const char *name, struct var_sym_list *vsl);
 
+/* smatch_simple_no_overflow */
+int is_overflow_safe_variable(struct expression *expr);
+
+/* smatch_side_effects */
 struct range_list *get_fs(void);
 
 struct stree *get_all_return_states(void);
