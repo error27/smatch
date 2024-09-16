@@ -204,8 +204,9 @@ static void match_condition(struct expression *expr)
 static void match_assign(struct expression *expr)
 {
 	struct symbol *type;
+	struct range_list *rl;
 
-	if (expr->op != '=' && !is_capped(expr->left))
+	if (expr->op != '=')
 		return;
 
 	type = get_type(expr);
@@ -218,9 +219,16 @@ static void match_assign(struct expression *expr)
 
 	if (is_capped(expr->right)) {
 		set_state_expr(my_id, expr->left, &capped);
-	} else {
-		if (get_state_expr(my_id, expr->left))
-			set_state_expr(my_id, expr->left, &uncapped);
+		return;
+	}
+
+	if (!get_state_expr(my_id, expr->left))
+		return;
+
+	if (get_implied_rl(expr->right, &rl) &&
+	    !is_whole_rl(rl)) {
+		set_state_expr(my_id, expr->left, &capped);
+		return;
 	}
 }
 
