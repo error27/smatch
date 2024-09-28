@@ -26,6 +26,7 @@
  */
 
 #include "symbol.h"
+#include "expression.h"
 
 enum statement_type {
 	STMT_NONE,
@@ -145,6 +146,8 @@ static inline void stmt_set_parent_stmt(struct statement *stmt, struct statement
 {
 	if (!stmt)
 		return;
+	if (stmt->parent)
+		return;
 	stmt->parent = parent;
 }
 
@@ -152,8 +155,31 @@ static inline struct statement *stmt_get_parent_stmt(struct statement *stmt)
 {
 	if (!stmt)
 		return NULL;
+	if ((unsigned long)stmt->parent & 0x1UL)
+		return NULL;
 	return stmt->parent;
 }
+
+static inline void stmt_set_parent_expr(struct statement *stmt, struct expression *parent)
+{
+	if (!stmt || !parent)
+		return;
+	if (stmt->parent)
+		return;
+	if (parent->smatch_flags & Fake)
+		return;
+	stmt->parent = (void *)((unsigned long)parent | 0x1UL);
+}
+
+static inline struct expression *stmt_get_parent_expr(struct statement *stmt)
+{
+	if (!stmt)
+		return NULL;
+	if (!((unsigned long)stmt->parent & 0x1UL))
+		return NULL;
+	return (void *)((unsigned long)stmt->parent & ~0x1UL);
+}
+
 struct token *expect(struct token *, int, const char *);
 
 #endif /* PARSE_H */
