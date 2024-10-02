@@ -36,7 +36,15 @@ static void match_dec(struct expression *expr, const char *name, struct symbol *
 
 int was_inced(const char *name, struct symbol *sym)
 {
-	if (has_possible_state(my_id, name, sym, &inc))
+	struct sm_state *sm;
+
+	sm = get_sm_state(my_id, name, sym);
+	if (!sm)
+		return false;
+	if (slist_has_state(sm->possible, &inc))
+		return true;
+	/* PARAM_LOST sets the state to undefined */
+	if (sm->state == &undefined)
 		return true;
 	return false;
 }
