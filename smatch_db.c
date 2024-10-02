@@ -29,7 +29,6 @@ struct sqlite3 *cache_db;
 
 int debug_db;
 
-STATE(incomplete);
 static int my_id;
 
 static int return_id;
@@ -645,6 +644,13 @@ bool is_fn_ptr(struct expression *fn)
 	return false;
 }
 
+static bool __db_incomplete;
+static void clear_incomplete(struct symbol *sym)
+{
+	if (!__inline_fn)
+		__db_incomplete = false;
+}
+
 void sql_select_return_states(const char *cols, struct expression *call,
 	int (*callback)(void*, int, char**, char**), void *info)
 {
@@ -671,7 +677,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 		get_static_filter(fn->symbol));
 	if (row_count == 0 && fn->symbol && fn->symbol->definition &&
 	    !(fn->symbol->ident && strncmp(fn->symbol->ident->name, "__smatch", 8)))
-		set_state(my_id, "db_incomplete", NULL, &incomplete);
+		__db_incomplete = true;
 	if (row_count == 0 || row_count > 3000) {
 		mark_call_params_untracked(call);
 		return;
@@ -683,7 +689,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 bool db_incomplete(void)
 {
-	return !!get_state(my_id, "db_incomplete", NULL);
+	return __db_incomplete;
 }
 
 #define CALL_IMPLIES 0
@@ -3124,6 +3130,7 @@ void register_definition_db_callbacks(int id)
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
 	add_hook(&match_call_implies, FUNC_DEF_HOOK);
+	add_hook(&clear_incomplete, FUNC_DEF_HOOK);
 	add_hook(&match_return_implies_early, CALL_HOOK_AFTER_INLINE);
 
 	common_funcs = load_strings_from_file(option_project_str, "common_functions");
