@@ -292,8 +292,6 @@ static void db_returns_no_overflow(struct expression *expr, int param, char *key
 	call = expr;
 	while (call->type == EXPR_ASSIGNMENT)
 		call = strip_expr(call->right);
-	if (local_debug)
-		sm_msg("%s: call='%s' param=%d key='%s", __func__, expr_to_str(call), param, key);
 	if (call->type != EXPR_CALL)
 		return;
 
@@ -304,9 +302,6 @@ static void db_returns_no_overflow(struct expression *expr, int param, char *key
 		if (!arg)
 			return;
 		name = get_variable_from_key(arg, key, &sym);
-		if (local_debug)
-			sm_msg("%s: call='%s' name='%s", __func__, expr_to_str(call), name);
-
 	}
 	if (!name || !sym)
 		goto free;
