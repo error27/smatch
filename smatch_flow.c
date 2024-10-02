@@ -1654,6 +1654,17 @@ static struct expression *fake_a_variable_assign(struct symbol *type, struct exp
 	return create_fake_assign(buf, type, expr);
 }
 
+struct expression *get_fake_return_variable(struct expression *expr)
+{
+	struct expression *tmp;
+
+	tmp = expr_get_fake_parent_expr(expr);
+	if (!tmp || tmp->type != EXPR_ASSIGNMENT)
+		return NULL;
+
+	return tmp->left;
+}
+
 static void split_args(struct expression *expr)
 {
 	struct expression *arg, *tmp;

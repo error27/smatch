@@ -695,6 +695,7 @@ extern int __fake_state_cnt;
 extern int __debug_skip;
 extern int in_fake_env;
 bool is_fake_var_assign(struct expression *expr);
+struct expression *get_fake_return_variable(struct expression *expr);
 void smatch (struct string_list *filelist);
 int inside_loop(void);
 int definitely_inside_loop(void);

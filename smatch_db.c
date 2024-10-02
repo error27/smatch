@@ -1203,22 +1203,11 @@ static void match_call_info(struct expression *call)
 	} END_FOR_EACH_PTR(cb);
 }
 
-static struct expression *get_fake_variable(struct expression *expr)
-{
-	struct expression *tmp;
-
-	tmp = expr_get_fake_parent_expr(expr);
-	if (!tmp || tmp->type != EXPR_ASSIGNMENT)
-		return NULL;
-
-	return tmp->left;
-}
-
 static struct sm_state *get_returned_sm(struct expression *expr)
 {
 	struct expression *fake;
 
-	fake = get_fake_variable(expr);
+	fake = get_fake_return_variable(expr);
 	if (fake)
 		expr = fake;
 
@@ -1238,7 +1227,7 @@ static void match_call_info_new(struct expression *call)
 		i = -1;
 		FOR_EACH_PTR(call->args, arg) {
 			i++;
-			tmp = get_fake_variable(arg);
+			tmp = get_fake_return_variable(arg);
 			if (!tmp)
 				tmp = arg;
 			__ignore_param_used++;
@@ -1679,7 +1668,7 @@ static const char *get_return_ranges_str(struct expression *expr, struct range_l
 	if (!expr)
 		return alloc_sname("");
 
-	fake = get_fake_variable(expr);
+	fake = get_fake_return_variable(expr);
 	if (fake)
 		expr = fake;
 
@@ -2255,7 +2244,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (nr_states > 2000)
 		return 0;
 
-	tmp_ret = get_fake_variable(expr);
+	tmp_ret = get_fake_return_variable(expr);
 	if (!tmp_ret)
 		tmp_ret = expr;
 	sm = get_returned_sm(tmp_ret);
@@ -2705,7 +2694,7 @@ static void print_return_info(int return_id, char *return_ranges, struct express
 	    !local_debug && !option_debug)
 		return;
 
-	tmp = get_fake_variable(expr);
+	tmp = get_fake_return_variable(expr);
 	if (tmp)
 		expr = tmp;
 	sym = expr_to_sym(expr);
