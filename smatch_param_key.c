@@ -612,6 +612,7 @@ int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,
 				      struct expression *ret_expr,
 				      const char **key)
 {
+	struct expression *fake;
 	const char *param_name;
 	struct symbol *ret_sym;
 	char *ret_str;
@@ -619,7 +620,11 @@ int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,
 	if (!ret_expr)
 		return -2;
 
-	ret_str = expr_to_str_sym(ret_expr, &ret_sym);
+	fake = get_fake_return_variable(ret_expr);
+	if (fake)
+		ret_str = expr_to_str_sym(fake, &ret_sym);
+	else
+		ret_str = expr_to_str_sym(ret_expr, &ret_sym);
 	if (ret_str && ret_sym == sym) {
 		param_name = state_name_to_param_name(name, ret_str);
 		if (param_name) {
