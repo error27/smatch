@@ -446,6 +446,53 @@ free:
 	return ret;
 }
 
+static void match_ignored(struct expression *expr)
+{
+	struct smatch_state *state = alloc_estate_whole(get_type(expr));
+
+	set_extra_expr_mod(expr, state);
+}
+
+static void register_ignored_params_from_file(void)
+{
+	char name[256];
+	struct token *token;
+	const char *func;
+	int param;
+
+	/*
+	 * Eventually I realized that we're ignoring uninitialized variables
+	 * from these functions because in practice they're always set.  I
+	 * thought about tracking them as PARAM_LOST, but that's not really
+	 * accurate, they're just set to unknown.
+	 *
+	 */
+
+	snprintf(name, 256, "%s.ignore_uninitialized_param", option_project_str);
+	name[255] = '\0';
+	token = get_tokens_file(name);
+	if (!token)
+		return;
+	if (token_type(token) != TOKEN_STREAMBEGIN)
+		return;
+	token = token->next;
+	while (token_type(token) != TOKEN_STREAMEND) {
+		if (token_type(token) != TOKEN_IDENT)
+			return;
+		func = show_ident(token->ident);
+
+		token = token->next;
+		if (token_type(token) != TOKEN_NUMBER)
+			return;
+		param = atoi(token->number);
+
+		add_param_key_expr_hook(func, match_ignored, param, "*$", NULL);
+
+		token = token->next;
+	}
+	clear_token_alloc();
+}
+
 void register_param_set(int id)
 {
 	my_id = id;
@@ -456,5 +503,6 @@ void register_param_set(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_estates);
 	add_split_return_callback(&print_return_value_param);
+	register_ignored_params_from_file();
 }
 
