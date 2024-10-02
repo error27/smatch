@@ -365,6 +365,12 @@ void register_simple_no_overflow(int id)
 	return_implies_param_key("kmalloc_array", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
 	return_implies_param_key("kmalloc_array_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
 	return_implies_param_key("kmalloc_array_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
+	return_implies_param_key("kvmalloc_array", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
+	return_implies_param_key("kvmalloc_array", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
+	return_implies_param_key("kvmalloc_array_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
+	return_implies_param_key("kvmalloc_array_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
+	return_implies_param_key("kvmalloc_array_node_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
+	return_implies_param_key("kvmalloc_array_node_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
 
 	select_return_states_hook(NO_OVERFLOW_SIMPLE, &db_returns_no_overflow);
 	select_caller_info_hook(set_param_no_overflow, NO_OVERFLOW_SIMPLE);
