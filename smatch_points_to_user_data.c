@@ -295,6 +295,34 @@ static void match_assign(struct expression *expr)
 		set_state_expr(my_id, expr->left, &undefined);
 }
 
+static void match_value_assign(struct expression *expr)
+{
+	struct expression *left = expr->left;
+	struct range_list *rl;
+
+	/*
+	 * If we have a pointer p which points to user data and we set "*p = 0"
+	 * then that means p no longer points to user data.
+	 *
+	 */
+
+	if (expr->op != '=')
+		return;
+
+	if (left->type != EXPR_PREOP ||
+	    left->op != '*')
+		return;
+
+	left = strip_expr(left->unop);
+	if (!get_state_expr(my_id, left))
+		return;
+
+	if (get_user_rl(expr->right, &rl))
+		return;
+
+	set_state_expr(my_id, left, &undefined);
+}
+
 static void match_memcpy(const char *fn, struct expression *expr, void *_unused)
 {
 	struct expression *dest, *src;
@@ -434,6 +462,7 @@ void register_points_to_user_data(int id)
 		return;
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_value_assign, ASSIGNMENT_HOOK);
 
 	add_function_hook("memcpy", &match_memcpy, NULL);
 	add_function_hook("__memcpy", &match_memcpy, NULL);
