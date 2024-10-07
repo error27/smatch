@@ -651,9 +651,12 @@ void __handle_logic(struct expression *expr)
 
 int is_condition(struct expression *expr)
 {
+	sval_t dummy;
 
 	expr = strip_expr(expr);
 	if (!expr)
+		return 0;
+	if (get_value(expr, &dummy))
 		return 0;
 
 	switch (expr->type) {
