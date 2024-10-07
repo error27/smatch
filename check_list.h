@@ -106,6 +106,8 @@ CK(register_kernel_task_state)
 CK(register_kernel_task_state_info)
 CK(register_kernel_kref_put)
 CK(register_kernel_xa_err)
+CK(register_locking)
+CK(register_locking_info)
 
 CK(check_debug)
 

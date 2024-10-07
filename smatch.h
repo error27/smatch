@@ -1011,6 +1011,14 @@ enum info_type {
 	KNOWN_LOCKED	= 9024,
 	KNOWN_UNLOCKED 	= 9025,
 	IGNORE_LOCK	= 9026,
+	LOCK2		= 9030,
+	UNLOCK2		= 9031,
+	HALF_LOCKED2	= 9032,
+	RESTORE2	= 9033,
+	TYPE_LOCKED	= 9034,
+	TYPE_UNLOCKED	= 9035,
+	CLEAR_LOCK	= 9036,
+	DESTROY_LOCK	= 9037,
 	SET_FS		= 8022,
 	ATOMIC_INC	= 8023,
 	ATOMIC_DEC	= 8024,
@@ -1274,7 +1282,43 @@ bool points_to_host_data(struct expression *expr);
 void set_points_to_host_data(struct expression *expr, bool is_new);
 bool is_fn_points_to_host_data(const char *fn);
 /* check_locking.c */
+enum lock_type {
+	spin_lock,
+	read_lock,
+	write_lock,
+	mutex,
+	bottom_half,
+	lock_irq,
+	lock_sem,
+	prepare_lock,
+	enable_lock,
+	lock_rcu,
+	lock_rcu_read,
+};
+
+struct lock_info {
+	const char *function;
+	int action;
+	enum lock_type type;
+	int arg;
+	const char *key;
+	const sval_t *implies_start, *implies_end;
+	func_hook *call_back;
+};
+
+typedef void (locking_hook)(struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym);
+DECLARE_PTR_LIST(locking_hook_list, locking_hook);
+
+extern int locking_id;
 void print_held_locks();
+struct smatch_state *get_lock_state(const char *name, struct symbol *sym);
+void add_lock_hook(locking_hook *hook);
+void add_unlock_hook(locking_hook *hook);
+void add_restore_hook(locking_hook *hook);
+void add_clear_hook(locking_hook *hook);
+void add_destroy_hook(locking_hook *hook);
+struct expression *get_locking_call(void);
+
 /* preempt */
 void __preempt_add(void);
 void __preempt_sub(void);

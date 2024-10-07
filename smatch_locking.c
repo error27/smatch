@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2009 Dan Carpenter.
  * Copyright (C) 2019 Oracle.
+ * Copyright 2024 Linaro Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,42 +25,22 @@
 
 static int my_id;
 
-STATE(locked);
-STATE(half_locked);
-STATE(start_state);
-STATE(unlocked);
-STATE(impossible);
+STATE(lock);
+STATE(unlock);
 STATE(restore);
-STATE(ignore);
+STATE(fail);
+STATE(destroy);
+
+#define RETURN_VAL -1
+#define NO_ARG -2
+#define FAIL -3
+
+static void match_class_destructor(const char *fn, struct expression *expr, void *data);
 
 #define irq lock_irq
 #define sem lock_sem
 #define rcu lock_rcu
 #define rcu_read lock_rcu_read
-
-const char *get_lock_name(enum lock_type type)
-{
-	static const char *names[] = {
-		[spin_lock] = "spin_lock",
-		[read_lock] = "read_lock",
-		[write_lock] = "write_lock",
-		[mutex] = "mutex",
-		[bottom_half] = "bottom_half",
-		[irq] = "irq",
-		[sem] = "sem",
-		[prepare_lock] = "prepare_lock",
-		[enable_lock] = "enable_lock",
-		[rcu] = "rcu",
-		[rcu_read] = "rcu_read",
-	};
-
-	return names[type];
-}
-
-#define RETURN_VAL -1
-#define NO_ARG -2
-
-void match_class_mutex_destructor(const char *fn, struct expression *expr, void *data);
 
 static struct lock_info lock_table[] = {
 	{"spin_lock",                  LOCK,   spin_lock, 0, "$"},
@@ -120,6 +101,19 @@ static struct lock_info lock_table[] = {
 	{"_spin_trylock_bh",           LOCK,   spin_lock, 0, "$", &int_one, &int_one},
 	{"__spin_trylock_bh",          LOCK,   spin_lock, 0, "$", &int_one, &int_one},
 	{"__raw_spin_trylock",         LOCK,   spin_lock, 0, "$", &int_one, &int_one},
+
+	{"spin_trylock",               FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"_spin_trylock",              FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"__spin_trylock",             FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"raw_spin_trylock",           FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"_raw_spin_trylock",          FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"spin_trylock_irq",           FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"spin_trylock_irqsave",       FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"spin_trylock_bh",            FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"_spin_trylock_bh",           FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"__spin_trylock_bh",          FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"__raw_spin_trylock",         FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+
 	{"_atomic_dec_and_lock",       LOCK,   spin_lock, 1, "$", &int_one, &int_one},
 
 	{"read_lock",                 LOCK,   read_lock, 0, "$"},
@@ -243,7 +237,7 @@ static struct lock_info lock_table[] = {
 
 	{"mutex_lock",                      LOCK,   mutex, 0, "$"},
 	{"mutex_unlock",                    UNLOCK, mutex, 0, "$"},
-	{"mutex_destroy",                   RESTORE, mutex, 0, "$"},
+	{"mutex_destroy",                   DESTROY_LOCK, mutex, 0, "$"},
 	{"mutex_lock_nested",               LOCK,   mutex, 0, "$"},
 	{"mutex_lock_io",                   LOCK,   mutex, 0, "$"},
 	{"mutex_lock_io_nested",            LOCK,   mutex, 0, "$"},
@@ -254,6 +248,7 @@ static struct lock_info lock_table[] = {
 	{"mutex_lock_killable_nested",      LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 
 	{"mutex_trylock",                   LOCK,   mutex, 0, "$", &int_one, &int_one},
+	{"mutex_trylock",                   FAIL,   mutex, 0, "$", &int_zero, &int_zero},
 
 	{"ww_mutex_lock",		LOCK,   mutex, 0, "$"},
 	{"__ww_mutex_lock",		LOCK,   mutex, 0, "$"},
@@ -403,6 +398,9 @@ static struct lock_info lock_table[] = {
 	{"rcu_read_unlock_sched",         UNLOCK, rcu_read, NO_ARG, "rcu_read"},
 	{"rcu_read_unlock_sched_notrace", UNLOCK, rcu_read, NO_ARG, "rcu_read"},
 
+	{"rtnl_lock",			LOCK,   mutex, NO_ARG, "rtnl_lock"},
+	{"rtnl_unlock",			UNLOCK, mutex, NO_ARG, "rtnl_lock"},
+
 	{"gfs2_trans_begin", LOCK, sem, 0, "&$->sd_log_flush_lock", &int_zero, &int_zero},
 
 	{"lock_sock",        LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
@@ -448,60 +446,260 @@ static struct lock_info lock_table[] = {
 	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
 	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
 
-	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
-	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_mutex_destructor},
+	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_rwsem_read_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_spinlock_constructor", LOCK, spin_lock, 0, "$"},
+	{"class_spinlock_destructor", UNLOCK, spin_lock, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_spinlock_irq_constructor", LOCK, spin_lock, 0, "$"},
+	{"class_spinlock_irq_constructor", LOCK, irq, -2, "irq"},
+	{"class_spinlock_irq_destructor", UNLOCK, spin_lock, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_spinlock_irq_destructor", UNLOCK, irq, -2, "irq"},
 
 	{"class_mvm_destructor", UNLOCK, mutex, 0, "&$->mutex"},
 
 	{"lock_cluster_or_swap_info",   LOCK,   spin_lock, 0, "&$->lock"},
 	{"unlock_cluster_or_swap_info", UNLOCK, spin_lock, 0, "&$->lock"},
 
+	{"bch2_trans_relock_fail",	LOCK,   mutex, 0, "$" },
+	{"bch2_trans_relock",	LOCK,   mutex, 0, "$" },
+	{"__bch2_trans_relock",	LOCK,   mutex, 0, "$" },
+	{"__bch2_trans_mutex_lock",	LOCK,   mutex, 0, "$" },
+	{"bch2_trans_relock_notrace",	LOCK,   mutex, 0, "$" },
+	{"bch2_trans_unlock",	UNLOCK, mutex, 0, "$" },
+	{"__bch2_trans_unlock",	UNLOCK, mutex, 0, "$" },
+	{"bch2_trans_unlock_noassert",	UNLOCK,   mutex, 0, "$" },
+
+	{"xen_mc_batch", LOCK, irq, -2, "irq"},
+	{"xen_mc_issue", UNLOCK, irq, -2, "irq"},
+
+	{"blkg_conf_exit", CLEAR_LOCK,   irq, -2, "irq" },
+	{"__console_flush_and_unlock", UNLOCK, sem, -2, "&console_sem"},
+
+	{"ipmi_ssif_lock_cond", LOCK, irq, -1, "*$"},
+	{"ipmi_ssif_lock_cond", LOCK, spin_lock, 0, "&$->lock"},
+
 	{},
 };
 
-struct macro_info {
-	const char *macro;
-	int action;
-	int param;
-};
+static struct locking_hook_list *lock_hooks, *unlock_hooks, *restore_hooks, *clear_hooks, *destroy_hooks;
 
-static struct macro_info macro_table[] = {
-	{"genpd_lock",               LOCK,   0},
-	{"genpd_lock_nested",        LOCK,   0},
-	{"genpd_lock_interruptible", LOCK,   0},
-	{"genpd_unlock",             UNLOCK, 0},
-};
+void add_lock_hook(locking_hook *hook)
+{
+	add_ptr_list(&lock_hooks, hook);
+}
 
-static const char *false_positives[][2] = {
-	{"fs/jffs2/", "->alloc_sem"},
-	{"fs/xfs/", "->b_sema"},
-	{"mm/", "pvmw->ptl"},
-	{"drivers/gpu/drm/i915/", "->base.resv"},
-};
+void add_unlock_hook(locking_hook *hook)
+{
+	add_ptr_list(&unlock_hooks, hook);
+}
+
+void add_restore_hook(locking_hook *hook)
+{
+	add_ptr_list(&restore_hooks, hook);
+}
+
+void add_clear_hook(locking_hook *hook)
+{
+	add_ptr_list(&restore_hooks, hook);
+}
+
+void add_destroy_hook(locking_hook *hook)
+{
+	add_ptr_list(&restore_hooks, hook);
+}
+
+static struct expression *locking_call;
+struct expression *get_locking_call(void)
+{
+	return locking_call;
+}
+
+static void call_locking_hooks(struct locking_hook_list *list, struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	locking_hook *hook;
+
+	locking_call = call;
+	FOR_EACH_PTR(list, hook) {
+		(hook)(info, expr, name, sym);
+	} END_FOR_EACH_PTR(hook);
+	locking_call = NULL;
+}
+
+static struct smatch_state *get_opposite(struct smatch_state *state)
+{
+	if (state == &lock)
+		return &unlock;
+	if (state == &unlock || state == &restore)
+		return &lock;
+	if (state == &fail)
+		return &unlock;
+	return NULL;
+}
 
 static struct stree *start_states;
 
-static struct tracker_list *locks;
-
-static struct expression *ignored_reset;
-static void reset(struct sm_state *sm, struct expression *mod_expr)
+static void set_start_state(const char *name, struct symbol *sym, struct smatch_state *start)
 {
-	struct expression *faked;
+	struct smatch_state *orig;
 
-	if (mod_expr && mod_expr->type == EXPR_ASSIGNMENT &&
-	    mod_expr->left == ignored_reset)
-		return;
-	faked = get_faked_expression();
-	if (faked && faked->type == EXPR_ASSIGNMENT &&
-	    faked->left == ignored_reset)
+	/*
+	 * The smatch_locking_info.c module records if a lock is held or not.
+	 * This module only records transitions so we can insert transitions
+	 * into the return_states table.
+	 *
+	 * I didn't want to record startstates, I wanted this to work like
+	 * preempt where we only look at simple functions and say that they
+	 * enable preempt or not.  Everything complicated would be hand edited.
+	 * With preempt I have deliberately chosen to miss some bugs rather than
+	 * generating a lot of false positives.  So far as I can see the preempt
+	 * code works really well and I'm happy with it.
+	 *
+	 * However that approach doesn't work for locking.
+	 *
+	 * The problem is that for locking we have functions that take a lock,
+	 * drop it, then take it again and actually we need to track that.  For
+	 * preempt if we ignore it, fine, we will miss some bugs.  For preempt,
+	 * Smatch only prints a warning about sleeping with preempt disabled.
+	 * But for locking we warn about double locking, double unlocking,
+	 * returning with inconsistently held locks, calling a function without
+	 * holding a lock or calling a function while holding a lock.  There is
+	 * a higher level of precision required.
+	 *
+	 * This module only records changes.  The common case is that we take a
+	 * lock and then drop it.  There is no transition.  We started unlocked
+	 * and ended unlocked.
+	 *
+	 * A tricker case might be code that does:
+	 *
+	 * void frob(bool lock)
+	 * {
+	 *	if (lock)
+	 *		unlock();
+	 *	else
+	 *		my_unlock();
+	 * }
+	 *
+	 * In that situation we don't want to record anything in the database.
+	 * It's too complicated.
+	 *
+	 * This function works completely differently from how check_locks.c
+	 * did it, but I think check_locks.c looks buggy.  I think the old code
+	 * was basically working but it was just layer upon layer of hacks and
+	 * special cases.  It also had the &start_state thing which was weird
+	 * and seems unnecessary?
+	 *
+	 * Anyway, we'll see how well this cleaner approach works in practice.
+	 * So far my first theory of doing this like preempt does was wrong so
+	 * it wouldn't be the first time I was wrong.
+	 *
+	 */
+
+	if (!name || !start)
 		return;
 
-	set_state(my_id, sm->name, sm->sym, &start_state);
+	if (get_state(my_id, name, sym))
+		return;
+
+	orig = get_state_stree(start_states, my_id, name, sym);
+	if (!orig)
+		set_state_stree(&start_states, my_id, name, sym, start);
+	else if (orig != start)
+		set_state_stree(&start_states, my_id, name, sym, &undefined);
 }
 
-void match_class_mutex_destructor(const char *fn, struct expression *expr, void *data)
+static struct smatch_state *get_start_state(struct sm_state *sm)
+{
+	struct smatch_state *orig;
+
+	if (!sm)
+		return NULL;
+
+	orig = get_state_stree(start_states, my_id, sm->name, sm->sym);
+	if (orig)
+		return orig;
+	return NULL;
+}
+
+static void match_after_func(struct symbol *sym)
+{
+	free_stree(&start_states);
+}
+
+static void update_state(struct expression *expr, const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	struct smatch_state *opposite = get_opposite(state);
+	struct smatch_state *orig;
+	char *param_name;
+	struct symbol *param_sym;
+
+	/* should this be done in db_param_locked_unlocked()? */
+	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
+	if (param_name && param_sym && get_param_num_from_sym(param_sym) >= 0) {
+		name = param_name;
+		sym = param_sym;
+	}
+
+	set_start_state(name, sym, opposite);
+
+	if (state == &undefined || state == &destroy) {
+		set_state(my_id, name, sym, state);
+		return;
+	}
+
+	orig = get_state(my_id, name, sym);
+	if (orig == &fail && state == &lock) {
+		set_state(my_id, name, sym, &lock);
+		return;
+	}
+	if (orig && orig != opposite) {
+		set_state(my_id, name, sym, &undefined);
+		return;
+	}
+
+	set_state(my_id, name, sym, state);
+}
+
+static void do_lock(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	call_locking_hooks(lock_hooks, call, info, expr, name, sym);
+	update_state(expr, name, sym, &lock);
+}
+
+static void do_unlock(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	call_locking_hooks(unlock_hooks, call, info, expr, name, sym);
+	update_state(expr, name, sym, &unlock);
+}
+
+static void do_restore(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	call_locking_hooks(restore_hooks, call, info, expr, name, sym);
+	update_state(expr, name, sym, &restore);
+}
+
+static void do_clear(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	call_locking_hooks(clear_hooks, call, info, expr, name, sym);
+	update_state(expr, name, sym, &undefined);
+}
+
+static void do_destroy(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	call_locking_hooks(destroy_hooks, call, info, expr, name, sym);
+	update_state(expr, name, sym, &destroy);
+}
+
+static void do_fail(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
+{
+	update_state(expr, name, sym, &fail);
+}
+
+static void match_class_destructor(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg, *lock;
+	struct symbol *sym;
+	char *name;
 
 	/*
 	 * What happens here is that the code looks like:
@@ -519,6 +717,9 @@ void match_class_mutex_destructor(const char *fn, struct expression *expr, void 
 	 *
 	 */
 
+	if (local_debug)
+		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
+
 	if (!expr || expr->type != EXPR_CALL)
 		return;
 	arg = get_argument_from_call_expr(expr->args, 0);
@@ -535,20 +736,11 @@ void match_class_mutex_destructor(const char *fn, struct expression *expr, void 
 	if (!lock || lock->type != EXPR_PREOP || lock->op != '&')
 		return;
 
-	set_state_expr(my_id, lock, &unlocked);
-}
-
-static struct smatch_state *get_start_state(struct sm_state *sm)
-{
-	struct smatch_state *orig;
-
-	if (!sm)
-		return NULL;
-
-	orig = get_state_stree(start_states, my_id, sm->name, sm->sym);
-	if (orig)
-		return orig;
-	return NULL;
+	name = expr_to_str_sym(lock, &sym);
+	if (local_debug)
+		sm_msg("%s: expr='%s' name='%s'", __func__, expr_to_str(expr), name);
+	do_unlock(expr, NULL, lock, name, sym);
+	free_string(name);
 }
 
 static struct expression *remove_spinlock_check(struct expression *expr)
@@ -563,401 +755,54 @@ static struct expression *remove_spinlock_check(struct expression *expr)
 	return expr;
 }
 
-static struct smatch_state *unmatched_state(struct sm_state *sm)
+static struct expression *remove_XAS_INVALID(struct expression *expr)
 {
-	return &start_state;
+	struct expression *orig = expr;
+	struct expression *deref_one, *deref_two, *ret;
+
+	if (local_debug)
+		sm_msg("%s: orig='%s'", __func__, expr_to_str(orig));
+
+	if (expr->type != EXPR_PREOP || expr->op != '&')
+		return orig;
+	expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_DEREF)
+		return orig;
+	deref_one = expr;
+	expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_PREOP || expr->op != '*')
+		return orig;
+	expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_DEREF)
+		return orig;
+	deref_two = expr;
+	expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_PREOP || expr->op != '*')
+		return orig;
+	expr = strip_expr(expr->unop);
+	if (expr->type != EXPR_CALL)
+		return orig;
+	if (!sym_name_is("XAS_INVALID", expr->fn))
+		return orig;
+
+	ret = get_argument_from_call_expr(expr->args, 0);
+	ret = preop_expression(ret, '(');
+	ret = member_expression(ret, '*', deref_two->member);
+	ret = preop_expression(ret, '(');
+	ret = member_expression(ret, '*', deref_one->member);
+	ret = preop_expression(ret, '&');
+
+	return ret;
 }
 
-static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+static bool func_in_lock_table(struct expression *expr)
 {
-	if (is_impossible_path())
-		set_state(my_id, cur->name, cur->sym, &impossible);
-}
-
-static struct smatch_state *merge_func(struct smatch_state *s1, struct smatch_state *s2)
-{
-	if (s1 == &impossible)
-		return s2;
-	if (s2 == &impossible)
-		return s1;
-	return &merged;
-}
-
-static struct sm_state *get_best_match(const char *key, int lock_unlock)
-{
-	struct sm_state *sm;
-	struct sm_state *match;
-	int cnt = 0;
-	int start_pos, state_len, key_len, chunks, i;
-
-	if (strncmp(key, "$->", 3) == 0)
-		key += 3;
-
-	key_len = strlen(key);
-	chunks = 0;
-	for (i = key_len - 1; i > 0; i--) {
-		if (key[i] == '>' || key[i] == '.')
-			chunks++;
-		if (chunks == 2) {
-			key += (i + 1);
-			key_len = strlen(key);
-			break;
-		}
-	}
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (((lock_unlock == UNLOCK || lock_unlock == RESTORE) &&
-		     sm->state != &locked) ||
-		    (lock_unlock == LOCK && sm->state != &unlocked))
-			continue;
-		state_len = strlen(sm->name);
-		if (state_len < key_len)
-			continue;
-		start_pos = state_len - key_len;
-		if ((start_pos == 0 || !isalnum(sm->name[start_pos - 1])) &&
-		    strcmp(sm->name + start_pos, key) == 0) {
-			cnt++;
-			match = sm;
-		}
-	} END_FOR_EACH_SM(sm);
-
-	if (cnt == 1)
-		return match;
-	return NULL;
-}
-
-static char *use_best_match(const char *key, int lock_unlock, struct symbol **sym)
-{
-	struct sm_state *match;
-
-	match = get_best_match(key, lock_unlock);
-	if (!match) {
-		*sym = NULL;
-		return alloc_string(key);
-	}
-	*sym = match->sym;
-	return alloc_string(match->name);
-}
-
-static void set_start_state(const char *name, struct symbol *sym, struct smatch_state *start)
-{
-	struct smatch_state *orig;
-
-	orig = get_state_stree(start_states, my_id, name, sym);
-	if (!orig)
-		set_state_stree(&start_states, my_id, name, sym, start);
-	else if (orig != start)
-		set_state_stree(&start_states, my_id, name, sym, &undefined);
-}
-
-static bool common_false_positive(const char *name)
-{
-	const char *path, *lname;
-	int i, len_total, len_path, len_name, skip;
-
-	if (!get_filename())
-		return false;
-
-	len_total = strlen(name);
-	for (i = 0; i < ARRAY_SIZE(false_positives); i++) {
-		path = false_positives[i][0];
-		lname = false_positives[i][1];
-
-		len_path = strlen(path);
-		len_name = strlen(lname);
-
-		if (len_name > len_total)
-			continue;
-		skip = len_total - len_name;
-
-		if (strncmp(get_filename(), path, len_path) == 0 &&
-		    strcmp(name + skip, lname) == 0)
-			return true;
-	}
-
-	return false;
-}
-
-static bool sm_in_start_states(struct sm_state *sm)
-{
-	if (!sm || !cur_func_sym)
-		return false;
-	if (sm->line == cur_func_sym->pos.line)
-		return true;
-	return false;
-}
-
-static void warn_on_double(struct sm_state *sm, struct smatch_state *state)
-{
-	struct sm_state *tmp;
-
-	if (!sm)
-		return;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == state)
-			goto found;
-	} END_FOR_EACH_PTR(tmp);
-
-	return;
-found:
-	// FIXME: called with read_lock held
-	// drivers/scsi/aic7xxx/aic7xxx_osm.c:1591 ahc_linux_isr() error: double locked 'flags' (orig line 1584)
-	if (strcmp(sm->name, "bottom_half") == 0)
-		return;
-	if (strstr(sm->name, "rcu"))
-		return;
-	if (strstr(sm->name, "timeline->mutex"))
-		return;
-	if (common_false_positive(sm->name))
-		return;
-
-	if (state == &locked && sm_in_start_states(tmp)) {
-//		sm_warning("called with lock held.  '%s'", sm->name);
-	} else {
-//		sm_msg("error: double %s '%s' (orig line %u)",
-//		       state->name, sm->name, tmp->line);
-	}
-}
-
-static bool handle_macro_lock_unlock(void)
-{
-	struct expression *expr, *arg;
-	struct macro_info *info;
-	struct sm_state *sm;
 	struct symbol *sym;
-	const char *macro;
-	char *name;
-	bool ret = false;
 	int i;
 
-	expr = last_ptr_list((struct ptr_list *)big_expression_stack);
-	while (expr && expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (!expr || expr->type != EXPR_CALL)
+	if (expr->type != EXPR_SYMBOL)
 		return false;
-
-	macro = get_macro_name(expr->pos);
-	if (!macro)
-		return false;
-
-	for (i = 0; i < ARRAY_SIZE(macro_table); i++) {
-		info = &macro_table[i];
-
-		if (strcmp(macro, info->macro) != 0)
-			continue;
-		arg = get_argument_from_call_expr(expr->args, info->param);
-		name = expr_to_str_sym(arg, &sym);
-		if (!name || !sym)
-			goto free;
-		sm = get_sm_state(my_id, name, sym);
-
-		if (info->action == LOCK) {
-			if (!get_start_state(sm))
-				set_start_state(name, sym, &unlocked);
-			if (sm && sm->line != expr->pos.line)
-				warn_on_double(sm, &locked);
-			set_state(my_id, name, sym, &locked);
-		} else {
-			if (!get_start_state(sm))
-				set_start_state(name, sym, &locked);
-			if (sm && sm->line != expr->pos.line)
-				warn_on_double(sm, &unlocked);
-			set_state(my_id, name, sym, &unlocked);
-		}
-		ret = true;
-free:
-		free_string(name);
-		return ret;
-	}
-	return false;
-}
-
-static bool is_local_IRQ_save(const char *name, struct symbol *sym, struct lock_info *info)
-{
-	if (name && strcmp(name, "flags") == 0)
-		return true;
-	if (!sym)
-		return false;
-	if (!sym->ident || strcmp(sym->ident->name, name) != 0)
-		return false;
-	if (!info)
-		return false;
-	return strstr(info->function, "irq") && strstr(info->function, "save");
-}
-
-static void do_lock(const char *name, struct symbol *sym, struct lock_info *info)
-{
-	struct sm_state *sm;
-	bool delete_null = false;
-
-	if (!info && handle_macro_lock_unlock())
-		return;
-
-	add_tracker(&locks, my_id, name, sym);
-
-	sm = get_sm_state(my_id, name, sym);
-	if (!get_start_state(sm))
-		set_start_state(name, sym, &unlocked);
-	if (!sm && !is_local_IRQ_save(name, sym, info) && !sym) {
-		sm = get_best_match(name, LOCK);
-		if (sm) {
-			name = sm->name;
-			if (sm->sym)
-				sym = sm->sym;
-			else
-				delete_null = true;
-		}
-	}
-	warn_on_double(sm, &locked);
-	if (delete_null)
-		set_state(my_id, name, NULL, &ignore);
-
-	set_state(my_id, name, sym, &locked);
-}
-
-static void do_unlock(const char *name, struct symbol *sym, struct lock_info *info)
-{
-	struct sm_state *sm;
-	bool delete_null = false;
-
-	if (__path_is_null())
-		return;
-
-	if (!info && handle_macro_lock_unlock())
-		return;
-
-	add_tracker(&locks, my_id, name, sym);
-	sm = get_sm_state(my_id, name, sym);
-	if (!sm && !info && !is_local_IRQ_save(name, sym, info)) {
-		sm = get_best_match(name, UNLOCK);
-		if (sm) {
-			name = sm->name;
-			if (sm->sym)
-				sym = sm->sym;
-			else
-				delete_null = true;
-		}
-	}
-	if (!get_start_state(sm))
-		set_start_state(name, sym, &locked);
-	warn_on_double(sm, &unlocked);
-	if (delete_null)
-		set_state(my_id, name, NULL, &ignore);
-	set_state(my_id, name, sym, &unlocked);
-}
-
-static void do_restore(const char *name, struct symbol *sym, struct lock_info *info)
-{
-	struct sm_state *sm;
-
-	if (__path_is_null())
-		return;
-
-	sm = get_sm_state(my_id, name, sym);
-	if (!get_start_state(sm))
-		set_start_state(name, sym, &locked);
-
-	add_tracker(&locks, my_id, name, sym);
-	set_state(my_id, name, sym, &restore);
-}
-
-static int get_db_type(struct sm_state *sm)
-{
-	/*
-	 * Bottom half is complicated because it's nestable.
-	 * Say it's merged at the start and we lock and unlock then
-	 * it should go back to merged.
-	 */
-	if (sm->state == get_start_state(sm)) {
-		if (sm->state == &locked)
-			return KNOWN_LOCKED;
-		if (sm->state == &unlocked)
-			return KNOWN_UNLOCKED;
-	}
-
-	if (sm->state == &locked)
-		return LOCK;
-	if (sm->state == &unlocked)
-		return UNLOCK;
-	if (sm->state == &restore)
-		return RESTORE;
-	return LOCK;
-}
-
-static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
-{
-	struct smatch_state *start;
-	struct sm_state *sm;
-	const char *param_name;
-	int param;
-
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state != &locked &&
-		    sm->state != &unlocked &&
-		    sm->state != &restore)
-			continue;
-		if (sm->name[0] == '$')
-			continue;
-
-		/*
-		 * If the state is locked at the end, that doesn't mean
-		 * anything.  It could be been locked at the start.  Or
-		 * it could be &merged at the start but its locked now
-		 * because of implications and not because we set the
-		 * state.
-		 *
-		 * This is slightly a hack, but when we change the state, we
-		 * call set_start_state() so if get_start_state() returns NULL
-		 * that means we haven't manually the locked state.
-		 */
-		start = get_start_state(sm);
-		if (sm->state == &restore) {
-			if (start != &locked)
-				continue;
-		} else if (!start || sm->state == start)
-			continue; /* !start means it was passed in */
-
-		param = get_param_key_from_sm(sm, expr, &param_name);
-		sql_insert_return_states(return_id, return_ranges,
-					 get_db_type(sm),
-					 param, param_name, "");
-	} END_FOR_EACH_SM(sm);
-}
-
-static int sm_both_locked_and_unlocked(struct sm_state *sm)
-{
-	int is_locked = 0;
-	int is_unlocked = 0;
-	struct sm_state *tmp;
-
-	if (sm->state != &merged)
-		return 0;
-
-	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == &locked)
-			is_locked = 1;
-		if (tmp->state == &unlocked)
-			is_unlocked = 1;
-	} END_FOR_EACH_PTR(tmp);
-
-	return is_locked && is_unlocked;
-}
-
-
-static bool is_EINTR(struct range_list *rl)
-{
-	sval_t sval;
-
-	if (!rl_to_sval(rl, &sval))
-		return false;
-	return sval.value == -4;
-}
-
-static bool sym_in_lock_table(struct symbol *sym)
-{
-	int i;
-
+	sym = expr->symbol;
 	if (!sym || !sym->ident)
 		return false;
 
@@ -968,108 +813,30 @@ static bool sym_in_lock_table(struct symbol *sym)
 	return false;
 }
 
-static bool func_in_lock_table(struct expression *expr)
+static struct expression *ignored_modify;
+static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 {
-	if (expr->type != EXPR_SYMBOL)
-		return false;
-	return sym_in_lock_table(expr->symbol);
-}
+	struct expression *faked;
 
-#define NUM_BUCKETS (RET_UNKNOWN + 1)
-
-static void check_lock(char *name, struct symbol *sym)
-{
-	struct range_list *locked_lines = NULL;
-	struct range_list *unlocked_lines = NULL;
-	int locked_buckets[NUM_BUCKETS] = {};
-	int unlocked_buckets[NUM_BUCKETS] = {};
-	struct stree *stree, *orig;
-	struct sm_state *return_sm;
-	struct sm_state *sm;
-	sval_t line = sval_type_val(&int_ctype, 0);
-	int bucket;
-	int i;
-
-	if (sym_in_lock_table(cur_func_sym))
+	if (mod_expr && mod_expr->type == EXPR_ASSIGNMENT &&
+	    mod_expr->left == ignored_modify)
+		return;
+	faked = get_faked_expression();
+	if (faked && faked->type == EXPR_ASSIGNMENT &&
+	    faked->left == ignored_modify)
 		return;
 
-	FOR_EACH_PTR(get_all_return_strees(), stree) {
-		orig = __swap_cur_stree(stree);
-
-		if (is_impossible_path())
-			goto swap_stree;
-
-		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
-		if (!return_sm)
-			goto swap_stree;
-		line.value = return_sm->line;
-
-		sm = get_sm_state(my_id, name, sym);
-		if (!sm)
-			goto swap_stree;
-
-		if (parent_is_gone_var_sym(sm->name, sm->sym))
-			goto swap_stree;
-
-		if (sm->state != &locked &&
-		    sm->state != &unlocked &&
-		    sm->state != &restore)
-			goto swap_stree;
-
-		if ((sm->state == &unlocked || sm->state == &restore) &&
-		    is_EINTR(estate_rl(return_sm->state)))
-			goto swap_stree;
-
-		bucket = success_fail_return(estate_rl(return_sm->state));
-		if (sm->state == &locked) {
-			add_range(&locked_lines, line, line);
-			locked_buckets[bucket] = true;
-		}
-		if (sm->state == &unlocked || sm->state == &restore) {
-			add_range(&unlocked_lines, line, line);
-			unlocked_buckets[bucket] = true;
-		}
-swap_stree:
-		__swap_cur_stree(orig);
-	} END_FOR_EACH_PTR(stree);
-
-
-	if (!locked_lines || !unlocked_lines)
-		return;
-
-	for (i = 0; i < NUM_BUCKETS; i++) {
-		if (locked_buckets[i] && unlocked_buckets[i])
-			goto complain;
-	}
-
-	if (locked_buckets[RET_FAIL])
-		goto complain;
-
-	return;
-
-complain:
-	if (common_false_positive(name))
-		return;
-
-	sm_msg("warn: inconsistent returns '%s'.", name);
-	sm_printf("  Locked on  : %s\n", show_rl(locked_lines));
-	sm_printf("  Unlocked on: %s\n", show_rl(unlocked_lines));
-}
-
-static void match_func_end(struct symbol *sym)
-{
-	struct tracker *tracker;
-
-	FOR_EACH_PTR(locks, tracker) {
-		check_lock(tracker->name, tracker->sym);
-	} END_FOR_EACH_PTR(tracker);
+	do_clear(NULL, NULL, NULL, sm->name, sm->sym);
 }
 
 static void db_param_locked_unlocked(struct expression *expr, int param, const char *key, int lock_unlock, struct lock_info *info)
 {
-	struct expression *call, *arg;
-	char *name;
-	struct symbol *sym;
+	struct expression *call, *arg, *lock = NULL;
+	const char *name = NULL;
+	struct symbol *sym = NULL;
+
+	if (local_debug)
+		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
 
 	if (info && info->action == IGNORE_LOCK)
 		return;
@@ -1084,39 +851,50 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 		return;
 
 	if (param == -2) {
-		if (!info)
-			name = use_best_match(key, lock_unlock, &sym);
-		else {
-			name = alloc_string(info->key);
-			sym = NULL;
-		}
+		if (info)
+			name = info->key;
+		else
+			name = key;
 	} else if (param == -1) {
-		if (expr->type != EXPR_ASSIGNMENT)
-			return;
-		ignored_reset = expr->left;
-
+		ignored_modify = expr->left;
+		// Oct 3, 2024: Ugh... I wanted to do:
+		// lock = gen_expression_from_key(expr->left, key);
+		// But apparently that doesn't work when the key is "&$->lock"
 		name = get_variable_from_key(expr->left, key, &sym);
+		lock = gen_expression_from_name_sym(name, sym);
 	} else {
 		arg = get_argument_from_call_expr(call->args, param);
 		if (!arg)
 			return;
 
+		// FIXME: handle idpf_vport_ctrl_lock()
+
 		arg = remove_spinlock_check(arg);
+		arg = remove_XAS_INVALID(arg);
 		name = get_variable_from_key(arg, key, &sym);
+		if (!name || !sym)
+			name = key;
+		lock = gen_expression_from_name_sym(name, sym);
 	}
 
-	if (!name || !sym)
-		goto free;
+//	if (!name)
+//		sm_msg("%s: no_name expr='%s' param=%d key=%s lock='%s'", __func__, expr_to_str(expr), param, key, expr_to_str(lock));
+
+	if (local_debug)
+		sm_msg("%s: expr='%s' lock='%s' key='%s' name='%s' lock_unlock=%d", __func__, expr_to_str(expr), expr_to_str(lock), key, name, lock_unlock);
 
 	if (lock_unlock == LOCK)
-		do_lock(name, sym, info);
+		do_lock(call, info, lock, name, sym);
 	else if (lock_unlock == UNLOCK)
-		do_unlock(name, sym, info);
+		do_unlock(call, info, lock, name, sym);
 	else if (lock_unlock == RESTORE)
-		do_restore(name, sym, info);
-
-free:
-	free_string(name);
+		do_restore(call, info, lock, name, sym);
+	else if (lock_unlock == CLEAR_LOCK)
+		do_clear(call, info, lock, name, sym);
+	else if (lock_unlock == DESTROY_LOCK)
+		do_destroy(call, info, lock, name, sym);
+	else if (lock_unlock == FAIL)
+		do_fail(call, info, lock, name, sym);
 }
 
 static void db_param_locked(struct expression *expr, int param, char *key, char *value)
@@ -1134,10 +912,18 @@ static void db_param_restore(struct expression *expr, int param, char *key, char
 	db_param_locked_unlocked(expr, param, key, RESTORE, NULL);
 }
 
+static void db_param_destroy(struct expression *expr, int param, char *key, char *value)
+{
+	db_param_locked_unlocked(expr, param, key, DESTROY_LOCK, NULL);
+}
+
 static void match_lock_unlock(const char *fn, struct expression *expr, void *data)
 {
 	struct lock_info *info = data;
 	struct expression *parent;
+
+	if (local_debug)
+		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
 
 	if (info->arg == -1) {
 		parent = expr_get_parent_expr(expr);
@@ -1159,90 +945,57 @@ static void match_lock_held(const char *fn, struct expression *call_expr,
 	db_param_locked_unlocked(assign_expr ?: call_expr, info->arg, info->key, info->action, info);
 }
 
-static void match_assign(struct expression *expr)
+static int get_db_type(struct sm_state *sm)
 {
-	struct smatch_state *state;
+	if (sm->state == &lock)
+		return LOCK2;
+	if (sm->state == &unlock)
+		return UNLOCK2;
+	if (sm->state == &restore)
+		return RESTORE2;
+	if (sm->state == &destroy)
+		return DESTROY_LOCK;
 
-	/* This is only for the DB */
-	if (is_fake_var_assign(expr))
-		return;
-	state = get_state_expr(my_id, expr->right);
-	if (!state)
-		return;
-	set_state_expr(my_id, expr->left, state);
+	return -1;
 }
 
-static struct stree *printed;
-static void call_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+static bool is_clean_transition(struct sm_state *sm)
 {
-	int locked_type = 0;
+	struct smatch_state *start;
 
-	if (sm->state == &locked)
-		locked_type = LOCK;
-	else if (sm->state == &unlocked)
-		locked_type = UNLOCK;
-	else if (slist_has_state(sm->possible, &locked) ||
-		 slist_has_state(sm->possible, &half_locked))
-		locked_type = HALF_LOCKED;
-	else
-		return;
+	if (sm->state == &destroy)
+		return true;
 
-	avl_insert(&printed, sm);
-	sql_insert_caller_info(call, locked_type, param, printed_name, "");
+	start = get_start_state(sm);
+	if (!start)
+		return false;
+	if (start == get_opposite(sm->state))
+		return true;
+	return false;
 }
 
-static void match_call_info(struct expression *expr)
+static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
+	const char *param_name;
 	struct sm_state *sm;
-	const char *name;
-	int locked_type;
+	int param, type;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state == &locked)
-			locked_type = LOCK;
-		else if (sm->state == &half_locked ||
-			 slist_has_state(sm->possible, &locked))
-			locked_type = HALF_LOCKED;
-		else
+		type = get_db_type(sm);
+		if (local_debug)
+			sm_msg("%s: type=%d sm='%s'", __func__, type, show_sm(sm));
+		if (type == -1)
 			continue;
 
-		if (avl_lookup(printed, sm))
+		if (!is_clean_transition(sm))
 			continue;
 
-		if (strcmp(sm->name, "bottom_half") == 0)
-			name = "bh";
-		else if (strcmp(sm->name, "rcu_read") == 0)
-			name = "rcu_read_lock";
-		else
-			name = sm->name;
-
-		if (strncmp(name, "__fake_param", 12) == 0 ||
-		    strchr(name, '$'))
-			continue;
-
-		sql_insert_caller_info(expr, locked_type, -2, name, "");
+		param = get_param_key_from_sm(sm, expr, &param_name);
+		if (local_debug)
+			sm_msg("%s: insert %s %d %d '%s'", __func__, return_ranges, type, param, param_name);
+		sql_insert_return_states(return_id, return_ranges, type,
+					 param, param_name, "");
 	} END_FOR_EACH_SM(sm);
-	free_stree(&printed);
-}
-
-static void set_locked(const char *name, struct symbol *sym, char *value)
-{
-	set_state(my_id, name, sym, &locked);
-}
-
-static void set_half_locked(const char *name, struct symbol *sym, char *value)
-{
-	set_state(my_id, name, sym, &half_locked);
-}
-
-static void set_unlocked(const char *name, struct symbol *sym, char *value)
-{
-	set_state(my_id, name, sym, &unlocked);
-}
-
-static void match_after_func(struct symbol *sym)
-{
-	free_stree(&start_states);
 }
 
 static bool cull_dma_resv_lock(struct expression *expr, struct range_list *rl, void *unused)
@@ -1261,23 +1014,6 @@ static bool cull_dma_resv_lock(struct expression *expr, struct range_list *rl, v
 	if (!possibly_true_rl(rl, SPECIAL_EQUAL, alloc_rl(int_zero, int_zero)))
 		return true;
 	return false;
-}
-
-/* print_held_locks() is used in check_call_tree.c */
-void print_held_locks(void)
-{
-	struct stree *stree;
-	struct sm_state *sm;
-	int i = 0;
-
-	stree = __get_cur_stree();
-	FOR_EACH_MY_SM(my_id, stree, sm) {
-		if (sm->state != &locked)
-			continue;
-		if (i++)
-			sm_printf(" ");
-		sm_printf("'%s'", sm->name);
-	} END_FOR_EACH_SM(sm);
 }
 
 static void load_table(struct lock_info *lock_table)
@@ -1308,41 +1044,27 @@ static bool is_smp_config(void)
 	return !!lookup_symbol(id, NS_MACRO);
 }
 
-void check_locking(int id)
+void register_locking(int id)
 {
 	my_id = id;
 
 	if (option_project != PROJ_KERNEL)
 		return;
-
 	if (!is_smp_config())
 		return;
 
-	load_table(lock_table);
-
-	set_dynamic_states(my_id);
-	add_unmatched_state_hook(my_id, &unmatched_state);
-	add_pre_merge_hook(my_id, &pre_merge_hook);
-	add_merge_hook(my_id, &merge_func);
-	add_modification_hook(my_id, &reset);
-
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_func_end, END_FUNC_HOOK);
-
-	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 	add_function_data((unsigned long *)&start_states);
+	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
-	add_caller_info_callback(my_id, call_info_callback);
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
+	load_table(lock_table);
+	set_dynamic_states(my_id);
+	add_modification_hook(my_id, &clear_state);
 
+	select_return_states_hook(LOCK2, &db_param_locked);
+	select_return_states_hook(UNLOCK2, &db_param_unlocked);
+	select_return_states_hook(RESTORE2, &db_param_restore);
+	select_return_states_hook(DESTROY_LOCK, &db_param_destroy);
 	add_split_return_callback(match_return_info);
-	select_return_states_hook(LOCK, &db_param_locked);
-	select_return_states_hook(UNLOCK, &db_param_unlocked);
-	select_return_states_hook(RESTORE, &db_param_restore);
-
-	select_caller_name_sym(set_locked, LOCK);
-	select_caller_name_sym(set_half_locked, HALF_LOCKED);
-	select_caller_name_sym(set_unlocked, UNLOCK);
 
 	add_cull_hook("dma_resv_lock", &cull_dma_resv_lock, NULL);
 }
