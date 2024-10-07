@@ -61,6 +61,20 @@ static bool from_untrusted_fn_ptr(struct expression *expr)
 	return ret;
 }
 
+static bool in_special_macro(struct expression *expr)
+{
+	const char *macro;
+
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		return false;
+	if (strcmp(macro, "with_intel_display_power") == 0)
+		return true;
+	if (strcmp(macro, "with_intel_pps_lock") == 0)
+		return true;
+	return false;
+}
+
 static void match_condition(struct expression *expr)
 {
 	char *name;
@@ -73,7 +87,8 @@ static void match_condition(struct expression *expr)
 
 	if (implied_not_equal(expr, 0) &&
 	    possible_err_ptr(expr) &&
-	    !from_untrusted_fn_ptr(expr)) {
+	    !from_untrusted_fn_ptr(expr) &&
+	    !in_special_macro(expr)) {
 		name = expr_to_str(expr);
 		sm_msg("warn: '%s' is an error pointer or valid", name);
 		free_string(name);
@@ -105,6 +120,9 @@ warn:
 		return;
 
 	if (get_function() && strcmp(get_function(), "IS_ERR_OR_NULL") == 0)
+		return;
+
+	if (in_special_macro(expr))
 		return;
 
 	name = expr_to_str(expr);
