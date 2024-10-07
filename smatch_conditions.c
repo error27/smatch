@@ -683,28 +683,26 @@ int __handle_condition_assigns(struct expression *expr)
 	if (!is_condition(expr->right))
 		return 0;
 
-	inside_condition++;
 	__save_pre_cond_states();
 	__push_cond_stacks();
-	/* it's a hack, but it's sometimes handy to have this stuff
-	   on the big_expression_stack.  */
+	inside_condition++;
 	push_expression(&big_expression_stack, right);
+	__pass_to_client(right, WHOLE_CONDITION_HOOK);
+	pop_expression(&big_expression_stack);
 	split_conditions(right, &known_tf);
+	inside_condition--;
+
 	true_stree = __get_true_states();
 	false_stree = __get_false_states();
 	__use_cond_states();
 	__push_fake_cur_stree();
 	set_extra_expr_mod(expr->left, alloc_estate_sval(sval_type_val(get_type(expr->left), 1)));
-	__pass_to_client(right, WHOLE_CONDITION_HOOK);
 
 	fake_stree = __pop_fake_cur_stree();
 	FOR_EACH_SM(fake_stree, sm) {
 		overwrite_sm_state_stree(&true_stree, sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&fake_stree);
-
-	pop_expression(&big_expression_stack);
-	inside_condition--;
 
 	__push_true_states();
 
