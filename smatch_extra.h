@@ -247,6 +247,7 @@ void expr_set_parent_expr(struct expression *expr, struct expression *parent);
 void expr_set_parent_stmt(struct expression *expr, struct statement *parent);
 struct expression *expr_get_parent_expr(struct expression *expr);
 struct expression *expr_get_fake_parent_expr(struct expression *expr);
+struct expression *expr_get_fake_or_real_parent_expr(struct expression *expr);
 struct statement *expr_get_parent_stmt(struct expression *expr);
 struct statement *get_parent_stmt(struct expression *expr);
 
