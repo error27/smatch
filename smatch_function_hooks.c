@@ -1621,6 +1621,9 @@ static void match_assign_call(struct expression *expr)
 	int handled = 0;
 	struct range_list *rl;
 
+	if (__in_fake_parameter_assign)
+		return;
+
 	if (expr->op != '=')
 		return;
 
