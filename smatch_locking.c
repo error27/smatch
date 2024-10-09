@@ -501,12 +501,12 @@ void add_restore_hook(locking_hook *hook)
 
 void add_clear_hook(locking_hook *hook)
 {
-	add_ptr_list(&restore_hooks, hook);
+	add_ptr_list(&clear_hooks, hook);
 }
 
 void add_destroy_hook(locking_hook *hook)
 {
-	add_ptr_list(&restore_hooks, hook);
+	add_ptr_list(&destroy_hooks, hook);
 }
 
 static struct expression *locking_call;
