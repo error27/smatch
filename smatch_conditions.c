@@ -673,7 +673,7 @@ int is_condition(struct expression *expr)
 int __handle_condition_assigns(struct expression *expr)
 {
 	struct expression *right;
-	struct stree *true_stree, *false_stree, *fake_stree;
+	struct stree *pre_stree, *true_stree, *false_stree, *fake_stree, *orig;
 	struct sm_state *sm;
 	int known_tf = -1;
 
@@ -683,6 +683,27 @@ int __handle_condition_assigns(struct expression *expr)
 	if (!is_condition(expr->right))
 		return 0;
 
+	/*
+	 * This function handles boolean condition assignments such as:
+	 * "equal = (a == b);"
+	 *
+	 * I'm not sure I love the way it's written.  It should be possible
+	 * to just parse this much more like a normal if statement instead
+	 * of doing complicated stree manipulation.  But here is the
+	 * explanation:
+	 *
+	 * We parse the condition part.  Then we get the true states and false
+	 * states.  Then we set extra state for each.  Then we merge the strees
+	 * and we us __set_sm() to overwrite the cur_stree with the merged
+	 * states.  Then we parse the assignment statement.  Parsing the
+	 * assignment statement does not overwrite the state in smatch_extra
+	 * because smatch_extra handles condition assignments as a special
+	 * case.
+	 *
+	 */
+
+	/* parse the condition */
+	pre_stree = clone_stree(__get_cur_stree());
 	__save_pre_cond_states();
 	__push_cond_stacks();
 	inside_condition++;
@@ -694,34 +715,53 @@ int __handle_condition_assigns(struct expression *expr)
 
 	true_stree = __get_true_states();
 	false_stree = __get_false_states();
+
+	/*
+	 * This is a pretty complicated way to set the extra state in the
+	 * &true_stree.  There are some other modules which hook into the
+	 * extra_mod hooks so those get set as well.
+	 *
+	 */
 	__use_cond_states();
 	__push_fake_cur_stree();
 	set_extra_expr_mod(expr->left, alloc_estate_sval(sval_type_val(get_type(expr->left), 1)));
-
 	fake_stree = __pop_fake_cur_stree();
 	FOR_EACH_SM(fake_stree, sm) {
 		overwrite_sm_state_stree(&true_stree, sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&fake_stree);
-
 	__push_true_states();
 
+	/* Set the false state in &false_stree. */
 	__use_false_states();
 	__push_fake_cur_stree();
 	set_extra_expr_mod(expr->left, alloc_estate_sval(sval_type_val(get_type(expr->left), 0)));
-
 	fake_stree = __pop_fake_cur_stree();
 	FOR_EACH_SM(fake_stree, sm) {
 		overwrite_sm_state_stree(&false_stree, sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&fake_stree);
-
 	__merge_true_states();
+
+	/*
+	 * Do the merge, based on the pre_stree and not on the
+	 * __merge_true_states() stree.  The other important thing to note is
+	 * that after merge_fake_stree() &true_stree is a merged stree with
+	 * both true and false; not just the true states.
+	 *
+	 */
+	orig = __swap_cur_stree(pre_stree);
 	merge_fake_stree(&true_stree, false_stree);
-	free_stree(&false_stree);
+	pre_stree = __swap_cur_stree(orig);
+	free_stree(&pre_stree);
+
+	/* Overwrite cur_stree with the merged states. */
 	FOR_EACH_SM(true_stree, sm) {
 		__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
+
+	free_stree(&true_stree);
+	free_stree(&false_stree);
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK);
 
