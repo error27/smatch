@@ -406,9 +406,9 @@ static struct lock_info lock_table[] = {
 	{"lock_sock",        LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
 	{"lock_sock_nested", LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
 	{"lock_sock_fast",   LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
-	{"__lock_sock",      LOCK,   spin_lock, 0, "&$->sk_lock.slock"},
+	{"__lock_sock",      LOCK,   spin_lock, 0, "$"},
 	{"release_sock",     UNLOCK, spin_lock, 0, "&$->sk_lock.slock"},
-	{"__release_sock",   UNLOCK, spin_lock, 0, "&$->sk_lock.slock"},
+	{"__release_sock",   UNLOCK, spin_lock, 0, "$"},
 
 	{"lock_task_sighand", LOCK,  spin_lock, 0, "&$->sighand->siglock", &valid_ptr_min_sval, &valid_ptr_max_sval},
 
