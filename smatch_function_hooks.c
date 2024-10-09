@@ -319,13 +319,9 @@ static struct expression *get_parent_assignment(struct expression *expr)
 	if (expr->type == EXPR_ASSIGNMENT)
 		return NULL;
 
-	parent = expr_get_fake_parent_expr(expr);
-	if (parent && parent->type == EXPR_ASSIGNMENT)
-		return parent;
-
 	parent = expr;
 	while (true) {
-		parent = expr_get_parent_expr(parent);
+		parent = expr_get_fake_or_real_parent_expr(parent);
 		if (!parent || ++cnt >= 5)
 			break;
 		if (parent->type == EXPR_CAST)
@@ -1771,10 +1767,13 @@ static void db_return_states(struct expression *expr)
 
 static void db_return_states_call(struct expression *expr)
 {
+	struct expression *parent;
+
 	if (unreachable())
 		return;
 
-	if (is_assigned_call(expr) || is_fake_assigned_call(expr))
+	parent = get_parent_assignment(expr);
+	if (parent && parent->op == '=')
 		return;
 	if (is_condition_call(expr))
 		return;

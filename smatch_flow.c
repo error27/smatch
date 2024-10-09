@@ -498,13 +498,12 @@ int is_condition_call(struct expression *expr)
 
 static struct expression *expr_get_parent_no_parens(struct expression *expr)
 {
-	do {
-		expr = expr_get_parent_expr(expr);
-	} while (expr &&
-		 expr->type == EXPR_PREOP &&
-		 expr->op == '(');
+	struct expression *parent;
 
-	return expr;
+	parent = expr_get_fake_or_real_parent_expr(expr);
+	while (parent && parent->type == EXPR_PREOP && parent->op == '(')
+		parent = expr_get_fake_or_real_parent_expr(parent);
+	return parent;
 }
 
 static bool gen_fake_function_assign(struct expression *expr)
