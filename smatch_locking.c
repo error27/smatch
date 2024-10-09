@@ -1039,6 +1039,7 @@ void register_locking(int id)
 		return;
 
 	add_function_data((unsigned long *)&start_states);
+	add_function_data((unsigned long *)&ignored_modify);
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
 	load_table(lock_table);
