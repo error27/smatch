@@ -717,9 +717,6 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 	 *
 	 */
 
-	if (local_debug)
-		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
-
 	if (!expr || expr->type != EXPR_CALL)
 		return;
 	arg = get_argument_from_call_expr(expr->args, 0);
@@ -737,8 +734,6 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 		return;
 
 	name = expr_to_str_sym(lock, &sym);
-	if (local_debug)
-		sm_msg("%s: expr='%s' name='%s'", __func__, expr_to_str(expr), name);
 	do_unlock(expr, NULL, lock, name, sym);
 	free_string(name);
 }
@@ -759,9 +754,6 @@ static struct expression *remove_XAS_INVALID(struct expression *expr)
 {
 	struct expression *orig = expr;
 	struct expression *deref_one, *deref_two, *ret;
-
-	if (local_debug)
-		sm_msg("%s: orig='%s'", __func__, expr_to_str(orig));
 
 	if (expr->type != EXPR_PREOP || expr->op != '&')
 		return orig;
@@ -834,9 +826,6 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 	struct expression *call, *arg, *lock = NULL;
 	const char *name = NULL;
 	struct symbol *sym = NULL;
-
-	if (local_debug)
-		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
 
 	if (info && info->action == IGNORE_LOCK)
 		return;
@@ -922,9 +911,6 @@ static void match_lock_unlock(const char *fn, struct expression *expr, void *dat
 	struct lock_info *info = data;
 	struct expression *parent;
 
-	if (local_debug)
-		sm_msg("%s: expr='%s'", __func__, expr_to_str(expr));
-
 	if (info->arg == -1) {
 		parent = expr_get_parent_expr(expr);
 		while (parent && parent->type != EXPR_ASSIGNMENT)
@@ -990,9 +976,8 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 		if (!is_clean_transition(sm))
 			continue;
 
+
 		param = get_param_key_from_sm(sm, expr, &param_name);
-		if (local_debug)
-			sm_msg("%s: insert %s %d %d '%s'", __func__, return_ranges, type, param, param_name);
 		sql_insert_return_states(return_id, return_ranges, type,
 					 param, param_name, "");
 	} END_FOR_EACH_SM(sm);
