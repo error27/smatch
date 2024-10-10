@@ -914,43 +914,24 @@ static bool handle_comparison_rl(struct expression *expr, int implied, int *recu
 	return true;
 }
 
-static bool handle_logical_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+static bool handle_logical_OR(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	sval_t left, right;
-	int left_known = 0;
-	int right_known = 0;
+	struct range_list *left = NULL;
+	struct range_list *right = NULL;
 
-	if (implied == RL_EXACT) {
-		if (get_value(expr->left, &left))
-			left_known = 1;
-		if (get_value(expr->right, &right))
-			right_known = 1;
-	} else {
-		if (get_implied_value_internal(expr->left, recurse_cnt, &left))
-			left_known = 1;
-		if (get_implied_value_internal(expr->right, recurse_cnt, &right))
-			right_known = 1;
+	get_rl_internal(expr->left, implied, recurse_cnt, &left);
+	get_rl_internal(expr->right, implied, recurse_cnt, &right);
+
+	if (left && rl_is_zero(left) &&
+	    right && rl_is_zero(right)) {
+		*res_sval = zero;
+		return true;
 	}
 
-	switch (expr->op) {
-	case SPECIAL_LOGICAL_OR:
-		if (left_known && left.value)
-			goto one;
-		if (right_known && right.value)
-			goto one;
-		if (left_known && right_known)
-			goto zero;
-		break;
-	case SPECIAL_LOGICAL_AND:
-		if (left_known && left.value == 0)
-			goto zero;
-		if (right_known && right.value == 0)
-			goto zero;
-		if (left_known && right_known)
-			goto one;
-		break;
-	default:
-		return false;
+	if ((left && !rl_has_sval(left, int_zero)) ||
+	    (right && !rl_has_sval(right, int_zero))) {
+		*res_sval = one;
+		return true;
 	}
 
 	if (implied == RL_EXACT)
@@ -958,13 +939,54 @@ static bool handle_logical_rl(struct expression *expr, int implied, int *recurse
 
 	*res = alloc_rl(zero, one);
 	return true;
+}
 
-zero:
-	*res_sval = zero;
+static bool handle_logical_AND(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+{
+	struct range_list *left = NULL;
+	struct range_list *right = NULL;
+
+	get_rl_internal(expr->left, implied, recurse_cnt, &left);
+	get_rl_internal(expr->right, implied, recurse_cnt, &right);
+
+	if (local_debug && implied == RL_IMPLIED)
+		sm_msg("%s: left='%s' left_rl='%s' right='%s' right_rl='%s'",
+		       __func__,
+		       expr_to_str(expr->left), show_rl(left),
+		       expr_to_str(expr->right), show_rl(right));
+
+
+	if ((left && rl_is_zero(left)) ||
+	    (right && rl_is_zero(right))) {
+		*res_sval = zero;
+		return true;
+	}
+
+	if (left && right &&
+	    !rl_has_sval(left, int_zero) &&
+	    !rl_has_sval(right, int_zero)) {
+		*res_sval = one;
+		return true;
+	}
+
+	if (implied == RL_EXACT)
+		return false;
+
+	*res = alloc_rl(zero, one);
 	return true;
-one:
-	*res_sval = one;
-	return true;
+}
+
+static bool handle_logical_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+{
+	switch (expr->op) {
+	case SPECIAL_LOGICAL_OR:
+		return handle_logical_OR(expr, implied, recurse_cnt, res, res_sval);
+	case SPECIAL_LOGICAL_AND:
+		return handle_logical_AND(expr, implied, recurse_cnt, res, res_sval);
+	}
+	sm_perror("impossible logical.  Not && nor ||.");
+	return false;
+
 }
 
 static bool handle_conditional_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
