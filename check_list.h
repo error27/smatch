@@ -108,6 +108,7 @@ CK(register_kernel_kref_put)
 CK(register_kernel_xa_err)
 CK(register_locking)
 CK(register_locking_info)
+CK(register_locking_type)
 
 CK(check_debug)
 

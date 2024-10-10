@@ -1015,8 +1015,10 @@ enum info_type {
 	UNLOCK2		= 9031,
 	HALF_LOCKED2	= 9032,
 	RESTORE2	= 9033,
-	TYPE_LOCKED	= 9034,
-	TYPE_UNLOCKED	= 9035,
+	TYPE_LOCK	= 9034,
+	TYPE_UNLOCK	= 9035,
+	TYPE_LOCK2	= 9038,
+	TYPE_UNLOCK2	= 9039,
 	CLEAR_LOCK	= 9036,
 	DESTROY_LOCK	= 9037,
 	SET_FS		= 8022,
@@ -1318,6 +1320,7 @@ void add_restore_hook(locking_hook *hook);
 void add_clear_hook(locking_hook *hook);
 void add_destroy_hook(locking_hook *hook);
 struct expression *get_locking_call(void);
+bool locking_type_is_start_state(void);
 
 /* preempt */
 void __preempt_add(void);
