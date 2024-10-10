@@ -1603,6 +1603,9 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 		if (expr->type == EXPR_VALUE)
 			sval = sval_from_val(expr, expr->value);
 		break;
+	case EXPR_COMMA:
+		get_rl_sval(expr->right, implied, recurse_cnt, &rl, &sval);
+		break;
 	default:
 		handle_variable(expr, implied, recurse_cnt, &rl, &sval);
 	}
