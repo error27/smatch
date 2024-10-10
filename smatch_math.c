@@ -2090,4 +2090,7 @@ int implied_condition_false(struct expression *expr)
 	return 0;
 }
 
-
+void register_math(int id)
+{
+	add_function_data((unsigned long *)&custom_handle_variable);
+}
