@@ -482,6 +482,9 @@ static struct lock_info lock_table[] = {
 	{"ipmi_ssif_lock_cond", LOCK, irq, -1, "*$"},
 	{"ipmi_ssif_lock_cond", LOCK, spin_lock, 0, "&$->lock"},
 
+	{"follow_pfnmap_start", LOCK, spin_lock, 0, "&$->lock", &int_zero, &int_zero},
+	{"follow_pfnmap_end", UNLOCK, spin_lock, 0, "&$->lock"},
+
 	{},
 };
 
