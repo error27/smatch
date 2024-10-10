@@ -990,6 +990,18 @@ static bool is_clean_transition(struct sm_state *sm)
 	return false;
 }
 
+static bool is_irq_save(struct sm_state *sm)
+{
+	// FIXME: The *flags parameter is set and it's locked...
+	// Basing this off the name is such a terrible thing and I feel
+	// bad, but I'm in a rush.  Sorry!
+	if (sm->state != &lock)
+		return false;
+	if (!strstr(sm->name, "flags"))
+		return false;
+	return true;
+}
+
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
 {
 	const char *param_name;
@@ -1010,7 +1022,9 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 			continue;
 
 		param = get_param_key_from_sm(sm, expr, &param_name);
-		if (param >= 0 && param_was_set_var_sym(sm->name, sm->sym))
+		if (!is_irq_save(sm) &&
+		    param >= 0 &&
+		    param_was_set_var_sym(sm->name, sm->sym))
 			continue;
 
 		sql_insert_return_states(return_id, return_ranges, type,
