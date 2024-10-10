@@ -515,6 +515,34 @@ struct expression *get_locking_call(void)
 	return locking_call;
 }
 
+bool is_locking_primitive(const char *name)
+{
+	int i;
+
+	for (i = 0; lock_table[i].function != NULL; i++) {
+		if (strcmp(lock_table[i].function, name) == 0)
+			return true;
+	}
+	return false;
+}
+
+bool is_locking_primitive_sym(struct symbol *sym)
+{
+	if (!sym || !sym->ident)
+		return false;
+
+	return is_locking_primitive(sym->ident->name);
+}
+
+bool is_locking_primitive_expr(struct expression *expr)
+{
+	if (!expr ||
+	    expr->type != EXPR_SYMBOL)
+		return false;
+
+	return is_locking_primitive_sym(expr->symbol);
+}
+
 static void call_locking_hooks(struct locking_hook_list *list, struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	locking_hook *hook;
@@ -787,24 +815,6 @@ static struct expression *remove_XAS_INVALID(struct expression *expr)
 	return ret;
 }
 
-static bool func_in_lock_table(struct expression *expr)
-{
-	struct symbol *sym;
-	int i;
-
-	if (expr->type != EXPR_SYMBOL)
-		return false;
-	sym = expr->symbol;
-	if (!sym || !sym->ident)
-		return false;
-
-	for (i = 0; lock_table[i].function != NULL; i++) {
-		if (strcmp(lock_table[i].function, sym->ident->name) == 0)
-			return true;
-	}
-	return false;
-}
-
 static struct expression *ignored_modify;
 static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 {
@@ -836,7 +846,7 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 	if (call->type != EXPR_CALL)
 		return;
 
-	if (!info && func_in_lock_table(call->fn))
+	if (!info && is_locking_primitive_expr(call->fn))
 		return;
 
 	if (param == -2) {

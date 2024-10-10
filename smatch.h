@@ -1320,6 +1320,9 @@ void add_restore_hook(locking_hook *hook);
 void add_clear_hook(locking_hook *hook);
 void add_destroy_hook(locking_hook *hook);
 struct expression *get_locking_call(void);
+bool is_locking_primitive(const char *name);
+bool is_locking_primitive_sym(struct symbol *sym);
+bool is_locking_primitive_expr(struct expression *expr);
 bool locking_type_is_start_state(void);
 
 /* preempt */
