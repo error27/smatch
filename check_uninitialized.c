@@ -472,10 +472,8 @@ static void register_ignored_params_from_file(void)
 	char name[256];
 	struct token *token;
 	const char *func;
-	char prev_func[256];
 	int param;
 
-	memset(prev_func, 0, sizeof(prev_func));
 	snprintf(name, 256, "%s.ignore_uninitialized_param", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
