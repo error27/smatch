@@ -232,6 +232,8 @@ sval_t estate_max(struct smatch_state *state)
 
 struct symbol *estate_type(struct smatch_state *state)
 {
+	if (!state)
+		return NULL;
 	return rl_max(estate_rl(state)).type;
 }
 
