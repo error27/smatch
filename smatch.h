@@ -1207,6 +1207,7 @@ struct string_list *load_strings_from_file(const char *project, const char *file
 /* smatch.c */
 extern char *option_debug_check;
 extern char *option_debug_var;
+extern char *option_state_cnt;
 extern char *option_process_function;
 extern char *option_project_str;
 extern char *bin_dir;

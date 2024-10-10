@@ -43,6 +43,7 @@ static inline void __smatch_compare(long long one, long long two){}
 static inline void __smatch_debug_on(void){}
 static inline void __smatch_debug_check(const char *check_name){}
 static inline void __smatch_debug_var(const char *var_name){}
+static inline void __smatch_debug_state_cnt(void){}
 static inline void __smatch_debug_off(void){}
 
 static inline void __smatch_local_debug_on(void){}

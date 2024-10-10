@@ -30,6 +30,8 @@ void show_sm_state_alloc(void);
 int local_debug;
 static int my_id;
 char *trace_variable;
+static int cur_state_cnt;
+static bool print_state_cnt;
 
 static void match_all_values(const char *fn, struct expression *expr, void *info)
 {
@@ -543,6 +545,8 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 	option_debug_check = NULL;
 	option_debug_var = NULL;
 	option_debug = 0;
+	cur_state_cnt = 0;
+	print_state_cnt = false;
 }
 
 static void match_start_skip(const char *fn, struct expression *expr, void *info)
@@ -847,6 +851,32 @@ static void match_timer_stop(const char *fn, struct expression *expr, void *info
 	gettimeofday(&debug_timer, NULL);
 }
 
+static void match_debug_state_cnt(const char *fn, struct expression *expr, void *info)
+{
+	struct stree *stree = __get_cur_stree();
+
+	if (stree)
+		cur_state_cnt = stree->count;
+	print_state_cnt = true;
+}
+
+static void print_state_count(struct statement *stmt)
+{
+	struct stree *stree = __get_cur_stree();
+	int new_cnt;
+
+	if (!print_state_cnt &&
+	    (!option_state_cnt || !get_function() || strcmp(get_function(), option_state_cnt) != 0))
+		return;
+	new_cnt = 0;
+	if (stree)
+		new_cnt = stree->count;
+	if (cur_state_cnt && new_cnt > cur_state_cnt)
+		sm_msg("new states = '%d' total=%d", new_cnt - cur_state_cnt, new_cnt);
+	if (new_cnt > cur_state_cnt)
+		cur_state_cnt = new_cnt;
+}
+
 static void match_expr(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg, *str, *new;
@@ -869,9 +899,15 @@ static void match_expr(const char *fn, struct expression *expr, void *info)
 	free_string(new_name);
 	free_string(name);
 }
+
 static void match_state_count(const char *fn, struct expression *expr, void *info)
 {
-	sm_msg("state_count = %d\n", sm_state_counter);
+	struct stree *stree = __get_cur_stree();
+	int count = 0;
+
+	if (stree)
+		count = stree->count;
+	sm_msg("state_count = %d\n", count);
 }
 
 static void match_mem(const char *fn, struct expression *expr, void *info)
@@ -983,6 +1019,9 @@ void check_debug(int id)
 	add_function_hook("__smatch_param_key", &match_param_key, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
 	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);
+
+	add_function_hook("__smatch_debug_state_cnt", &match_debug_state_cnt, NULL);
+	add_hook(print_state_count, STMT_HOOK_AFTER);
 
 	add_hook(free_old_stree, AFTER_FUNC_HOOK);
 	add_hook(trace_var, STMT_HOOK_AFTER);

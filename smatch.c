@@ -24,6 +24,7 @@
 
 char *option_debug_check;
 char *option_debug_var;
+char *option_state_cnt;
 char *option_process_function;
 char *option_project_str = (char *)"smatch_generic";
 static char *option_db_file = (char *)"smatch_db.sqlite";
@@ -216,6 +217,11 @@ void parse_args(int *argcp, char ***argvp)
 		}
 		if (!found && !strncmp((*argvp)[1], "--debug=", 8)) {
 			option_debug_check = (*argvp)[1] + 8;
+			(*argvp)[1] = (*argvp)[0];
+			found = 1;
+		}
+		if (!found && !strncmp((*argvp)[1], "--state-cnt=", 12)) {
+			option_state_cnt = (*argvp)[1] + 12;
 			(*argvp)[1] = (*argvp)[0];
 			found = 1;
 		}
