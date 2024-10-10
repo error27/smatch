@@ -574,6 +574,8 @@ struct smatch_state *get_state_stree(struct stree *stree,
 {
 	struct sm_state *sm;
 
+	if (!name)
+		return NULL;
 	sm = get_sm_state_stree(stree, owner, name, sym);
 	if (sm)
 		return sm->state;
