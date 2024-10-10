@@ -113,6 +113,9 @@ static struct lock_info lock_table[] = {
 	{"_spin_trylock_bh",           FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
 	{"__spin_trylock_bh",          FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
 	{"__raw_spin_trylock",         FAIL,   spin_lock, 0, "$", &int_zero, &int_zero},
+	{"spin_trylock_irq",           FAIL,   spin_lock, NO_ARG, "irq", &int_zero, &int_zero},
+	{"spin_trylock_irqsave",       FAIL,   spin_lock, 1, "$", &int_zero, &int_zero},
+
 
 	{"_atomic_dec_and_lock",       LOCK,   spin_lock, 1, "$", &int_one, &int_one},
 
