@@ -1306,6 +1306,29 @@ static void returns_param_user_data(struct expression *expr, int param, char *ke
 	set_to_user_data(arg, key, value, OLD);
 }
 
+static void return_expr_user_data(const char *fn, struct expression *expr, void *unused)
+{
+	struct smatch_state *state;
+	struct expression *call;
+
+	if (expr->type != EXPR_ASSIGNMENT)
+		return;
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return;
+
+	if (!we_pass_user_data(call))
+		return;
+
+	state = alloc_estate_whole(get_type(expr->left));
+	estate_set_new(state);
+
+	set_state_expr(my_id, expr->left, state);
+}
+
 static void returns_param_user_data_set(struct expression *expr, int param, char *key, char *value)
 {
 	struct expression *arg;
@@ -1383,6 +1406,11 @@ void register_kernel_user_data(int id)
 	select_caller_info_hook(set_param_user_data, USER_DATA);
 	select_return_states_hook(USER_DATA, &returns_param_user_data);
 	select_return_states_hook(USER_DATA_SET, &returns_param_user_data_set);
+
+	/* We does __builtin_bswapXX not work? */
+	add_function_assign_hook("__swab64p", &return_expr_user_data, NULL);
+	add_function_assign_hook("__swab32p", &return_expr_user_data, NULL);
+	add_function_assign_hook("__swab16p", &return_expr_user_data, NULL);
 
 	select_return_param_key(CAPPED_DATA, &match_capped);
 	add_function_param_key_hook_late("memcpy", &match_capped, 2, "$", NULL);
