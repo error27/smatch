@@ -1853,10 +1853,21 @@ static void call_return_states_callbacks(const char *return_ranges, struct expre
 
 static void call_return_state_hooks_compare(struct expression *expr)
 {
+	struct expression *fake;
 	char *return_ranges;
 	int final_pass_orig = final_pass;
 	sval_t sval = { .type = &int_ctype };
 	sval_t ret;
+
+	// FIXME:
+	// I really wanted to move this into and always split based on the
+	// faked assignment but that didn't work correctly and I haven't
+	// debugged it yet.  So do this less ambitious thing instead
+	if (expr->type == EXPR_CALL) {
+		fake = get_fake_return_variable(expr);
+	        if (fake)
+	                expr = fake;
+	}
 
 	if (!get_implied_value(expr, &ret))
 		ret.value = -1;
