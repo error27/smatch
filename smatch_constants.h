@@ -11,6 +11,7 @@ static const sval_t err_max  = { .type = &int_ctype, .value = -1 };
 static const sval_t xa_err_min  = { .type = &int_ctype, .value = (((-4095) << 2) | 2) };
 static const sval_t xa_err_max  = { .type = &int_ctype, .value = (((-1) << 2) | 2) };
 static const sval_t int_max  = { .type = &int_ctype, .value = INT_MAX };
+static const sval_t uint_max  = { .type = &uint_ctype, .value = UINT_MAX };
 
 static const sval_t bool_false = { .type = &bool_ctype, .value = 0 };
 static const sval_t bool_true = { .type = &bool_ctype, .value = 1 };
