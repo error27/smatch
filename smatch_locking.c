@@ -1009,8 +1009,10 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 		if (!is_clean_transition(sm))
 			continue;
 
-
 		param = get_param_key_from_sm(sm, expr, &param_name);
+		if (param >= 0 && param_was_set_var_sym(sm->name, sm->sym))
+			continue;
+
 		sql_insert_return_states(return_id, return_ranges, type,
 					 param, param_name, "");
 	} END_FOR_EACH_SM(sm);
