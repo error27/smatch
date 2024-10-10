@@ -931,6 +931,36 @@ static void match_lock_held(const char *fn, struct expression *call_expr,
 	db_param_locked_unlocked(assign_expr ?: call_expr, info->arg, info->key, info->action, info);
 }
 
+static bool is_mismatched_lock(void)
+{
+	struct smatch_state *one = NULL;
+	struct smatch_state *two = NULL;
+	struct sm_state *sm;
+	int cnt;
+
+	cnt = 0;
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		++cnt;
+		if (cnt == 1)
+			one = sm->state;
+		else if (cnt == 2)
+			two = sm->state;
+		else
+			return false;
+	} END_FOR_EACH_SM(sm);
+
+	if (cnt != 2)
+		return false;
+
+	/* If we have two states and the are opposites and the
+	 * smatch_locking_type.c module has one states which matches the
+	 * start state, then we are mismatched.
+	 */
+	if (one != get_opposite(two))
+		return false;
+	return locking_type_is_start_state();
+}
+
 static int get_db_type(struct sm_state *sm)
 {
 	if (sm->state == &lock)
@@ -965,6 +995,9 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	const char *param_name;
 	struct sm_state *sm;
 	int param, type;
+
+	if (is_mismatched_lock())
+		return;
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		type = get_db_type(sm);
