@@ -1056,6 +1056,7 @@ void db_ignore_states(int id);
 typedef bool (delete_hook)(struct expression *expr);
 void add_delete_return_hook(delete_hook *hook);
 int get_row_count(void *_row_count, int argc, char **argv, char **azColName);
+struct string_list *get_caller_ptrs(struct symbol *sym);
 void select_caller_info_hook(void (*callback)(const char *name, struct symbol *sym, char *key, char *value), int type);
 void select_caller_name_sym(void (*fn)(const char *name, struct symbol *sym, char *value), int type);
 void add_member_info_callback(int owner, void (*callback)(struct expression *call, int param, char *printed_name, struct sm_state *sm));

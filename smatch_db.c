@@ -589,6 +589,40 @@ int get_row_count(void *_row_count, int argc, char **argv, char **azColName)
 	return 0;
 }
 
+static int save_string(void *_list, int argc, char **argv, char **azColName)
+{
+	struct string_list **list = _list;
+
+	if (argc != 1)
+		return 0;
+
+	insert_string(list, alloc_string(argv[0]));
+	return 0;
+}
+
+struct string_list *get_caller_ptrs(struct symbol *sym)
+{
+	struct string_list *list = NULL;
+	const char *file_filter = "";
+	char buf[256];
+
+	if (!sym || !sym->ident)
+		return NULL;
+
+	if (is_local(sym)) {
+		snprintf(buf, sizeof(buf),
+			 "file = 0x%llx and ",
+			 get_base_file_id());
+		file_filter = buf;
+	}
+
+	run_sql(save_string, &list,
+		"select distinct(ptr) from function_ptr where %s function = '%s';",
+		file_filter, sym->ident->name);
+
+	return list;
+}
+
 static void sql_select_return_states_pointer(const char *cols,
 	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
 {
