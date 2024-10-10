@@ -285,8 +285,12 @@ def hash_to_string(sha):
 
     cur = con.cursor()
     cur.execute("select value from hash_string where hash = '%d';" %(sha))
+    found = 0;
     for txt in cur:
+        found = 1
         hash_strings[sha] = txt[0]
+    if not found:
+        return "unknown"
     if not sha in hash_strings:
         hash_strings[sha] = "%x" %(sha)
     return hash_strings[sha]
