@@ -84,7 +84,7 @@ DECLARE_PTR_LIST(call_back_list, struct fcall_back);
 DEFINE_FUNCTION_HASHTABLE_STATIC(callback, struct fcall_back, struct call_back_list);
 static struct hashtable *func_hash;
 
-int __in_fake_parameter_assign;
+unsigned long __in_fake_parameter_assign;
 
 enum fn_hook_type {
 	REGULAR_CALL_EARLY,
@@ -1868,6 +1868,7 @@ void register_function_hooks_early(int id)
 void register_function_hooks(int id)
 {
 	add_function_data((unsigned long *)&fake_calls);
+	add_function_data((unsigned long *)&__in_fake_parameter_assign);
 	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);

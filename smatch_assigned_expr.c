@@ -30,6 +30,19 @@ static int link_id;
 
 static struct expression *skip_mod;
 
+static struct smatch_state *merge_expr(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct expression *one, *two;
+
+	one = s1->data;
+	two = s2->data;
+	if (!one || !two)
+		return &merged;
+	if (expr_equiv(one, two))
+		return s1;
+	return &merged;
+}
+
 static void undef(struct sm_state *sm, struct expression *mod_expr)
 {
 	if (mod_expr == skip_mod)
@@ -90,10 +103,11 @@ struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct s
 	return expr;
 }
 
+static struct expression *ignored_expr;
 static void match_assignment(struct expression *expr)
 {
-	static struct expression *ignored_expr, *right;
 	struct symbol *left_sym, *right_sym;
+	static struct expression *right;
 	struct smatch_state *state;
 	char *left_name = NULL;
 	char *right_name = NULL;
@@ -119,11 +133,10 @@ static void match_assignment(struct expression *expr)
 			return;
 	}
 
-	if (expr->left == ignored_expr)
+	if (ignored_expr == expr)
 		return;
-	ignored_expr = NULL;
 	if (__in_fake_parameter_assign)
-		ignored_expr = expr->left;
+		ignored_expr = get_unfaked_call();
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
@@ -205,6 +218,8 @@ void register_assigned_expr(int id)
 void register_assigned_expr_links(int id)
 {
 	link_id = id;
+	add_merge_hook(my_id, &merge_expr);
+	add_function_data((unsigned long *)&ignored_expr);
 	set_dynamic_states(link_id);
 	db_ignore_states(link_id);
 	set_up_link_functions(my_id, link_id);
