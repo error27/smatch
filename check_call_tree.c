@@ -28,7 +28,7 @@ static void match_call(struct expression *expr)
 		return;
 	sm_prefix();
 	sm_printf("info: func_call (");
-	print_held_locks();
+//	print_held_locks();
 	sm_printf(") %s\n", fn_name);
 	free_string(fn_name);
 }
