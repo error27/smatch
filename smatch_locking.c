@@ -412,6 +412,7 @@ static struct lock_info lock_table[] = {
 	{"__lock_sock",      LOCK,   spin_lock, 0, "$"},
 	{"release_sock",     UNLOCK, spin_lock, 0, "$"},
 	{"__release_sock",   UNLOCK, spin_lock, 0, "$"},
+	{"chtls_pt_recvmsg", UNLOCK, spin_lock, 0, "$"},
 
 	{"lock_task_sighand", LOCK,  spin_lock, 0, "&$->sighand->siglock", &valid_ptr_min_sval, &valid_ptr_max_sval},
 
@@ -484,6 +485,11 @@ static struct lock_info lock_table[] = {
 
 	{"follow_pfnmap_start", LOCK, spin_lock, 0, "&$->lock", &int_zero, &int_zero},
 	{"follow_pfnmap_end", UNLOCK, spin_lock, 0, "&$->lock"},
+
+	{"hid_device_io_start", UNLOCK, sem, 0, "&$->driver_input_lock"},
+	{"hid_device_io_stop",  LOCK,   sem, 0, "&$->driver_input_lock"},
+	{"srcu_read_lock",	LOCK,	rcu, 0, "$"},
+	{"srcu_read_unlock",	UNLOCK,	rcu, 0, "$"},
 
 	{},
 };
