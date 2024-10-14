@@ -34,6 +34,7 @@ STATE(destroy);
 #define RETURN_VAL -1
 #define NO_ARG -2
 #define FAIL -3
+#define IGNORE 9999
 
 static void match_class_destructor(const char *fn, struct expression *expr, void *data);
 
@@ -491,6 +492,9 @@ static struct lock_info lock_table[] = {
 	{"srcu_read_lock",	LOCK,	rcu, 0, "$"},
 	{"srcu_read_unlock",	UNLOCK,	rcu, 0, "$"},
 
+	{"snd_gf1_mem_lock", IGNORE, mutex, 0, "&$->memory_mutex"},
+	{"emit_rpcs_query",  IGNORE, mutex, -2, ""},
+
 	{},
 };
 
@@ -932,6 +936,9 @@ static void match_lock_unlock(const char *fn, struct expression *expr, void *dat
 {
 	struct lock_info *info = data;
 	struct expression *parent;
+
+	if (info->type == IGNORE)
+		return;
 
 	if (info->arg == -1) {
 		parent = expr_get_parent_expr(expr);
