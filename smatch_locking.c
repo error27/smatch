@@ -377,7 +377,7 @@ static struct lock_info lock_table[] = {
 	{"modeset_unlock",			  UNLOCK, mutex, 0, "$"},
 //	{"nvkm_i2c_aux_acquire",		  LOCK,   mutex, 
 	{"i915_gem_object_lock_interruptible",	  LOCK,	  mutex, 0, "$->base.resv", &int_zero, &int_zero},
-	{"i915_gem_object_lock",		LOCK, mutex, 0, "$->base.resv"},
+	{"i915_gem_object_lock",		LOCK, mutex, 0, "$->base.resv", &int_zero, &int_zero},
 	{"msm_gem_lock",		LOCK, mutex, 0, "$->resv"},
 
 	{"reiserfs_write_lock_nested",	 LOCK,   mutex, 0, "$"},
@@ -1061,7 +1061,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 	} END_FOR_EACH_SM(sm);
 }
 
-static bool cull_dma_resv_lock(struct expression *expr, struct range_list *rl, void *unused)
+static bool cull_null_ctx_failures(struct expression *expr, struct range_list *rl, void *unused)
 {
 	struct expression *ctx;
 
@@ -1130,5 +1130,6 @@ void register_locking(int id)
 	select_return_states_hook(DESTROY_LOCK, &db_param_destroy);
 	add_split_return_callback(match_return_info);
 
-	add_cull_hook("dma_resv_lock", &cull_dma_resv_lock, NULL);
+	add_cull_hook("dma_resv_lock", &cull_null_ctx_failures, NULL);
+	add_cull_hook("i915_gem_object_lock", &cull_null_ctx_failures, NULL);
 }
