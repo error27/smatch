@@ -62,7 +62,7 @@ more requirements.  The user is free to do whatever he wants with the
 parse tree that got built up, and needs not worry about the library ever
 again.  There is no extra state, there are no parser callbacks, there is
 only the parse tree that is described by the header files. The action
-funtion takes a pointer to a symbol_list and does whatever it likes with it.
+function takes a pointer to a symbol_list and does whatever it likes with it.
 
 The library also contains (as an example user) a few clients that do the
 preprocessing, parsing and type evaluation and just print out the

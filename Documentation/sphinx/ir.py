@@ -24,7 +24,7 @@ import sphinx
 class IROpDirective(docutils.parsers.rst.Directive):
 
 	# use the first line of content as the argument, this allow
-	# to not have to write a blanck line after the directive
+	# to not have to write a blank line after the directive
 	final_argument_whitespace = True
 	required_argument = 0
 	#optional_arguments = 0

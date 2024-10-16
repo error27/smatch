@@ -179,7 +179,7 @@ annotation - therefore it is not necessary to use the annotation in every
 function that do_mmap calls. When using this annotation smdb.py will filter
 out functions that carry a value which has been annotated as untagged. Please
 note that due to limitations in parameter tracking some annotations will be
-ignored and not propogated all the way down the call tree.
+ignored and not propagated all the way down the call tree.
 
 Finally, the following patch is required to add annotations to the Linux
 kernel:

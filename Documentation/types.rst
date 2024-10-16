@@ -37,7 +37,7 @@ Some bits, also related to the type, are in struct symbol itself:
   attributes. It's also used internally to keep track of some states
   (MOD_ACCESS or MOD_ADDRESSABLE).
 * ``alignment`` is used for the alignment, in bytes.
-* ``contexts`` is used to store the informations associated with the
+* ``contexts`` is used to store the information associated with the
   attribute ``context()``.
 * ``as`` is used to hold the identifier of the attribute ``address_space()``.
 
