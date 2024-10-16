@@ -9,10 +9,10 @@ function usage {
     echo "Usage:  $0 [smatch options]"
     echo "Compiles the kernel with -j${NR_CPU}"
     echo " available options:"
-    echo "	--endian          : enable endianess check"
+    echo "	--endian          : enable endianness check"
     echo "	--target {TARGET} : specify build target, default: $TARGET"
     echo "	--log {FILE}      : Output compile log to file, default is: $LOG"
-    echo "	--wlog {FILE}     : Output warnigs to file, default is: $WLOG"
+    echo "	--wlog {FILE}     : Output warnings to file, default is: $WLOG"
     echo "	--help            : Show this usage"
     exit 1
 }
