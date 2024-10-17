@@ -339,7 +339,7 @@ static bool handle_container_of(struct expression *expr, int implied, int *recur
 	 * 	p = container_of(foo, struct my_struct, member);
 	 * Then if the offset is non-zero we can assume that p is a valid
 	 * pointer.  Mathematically, that's not necessarily true, but in
-	 * pratical terms if p isn't valid then we're already in deep trouble
+	 * practical terms if p isn't valid then we're already in deep trouble
 	 * to the point where printing more warnings now won't help.
 	 *
 	 * There are places were the author knows that container_of() is a

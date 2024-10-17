@@ -755,7 +755,7 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 	 * as well because sometimes it's like the assignment is:
 	 *
 	 *     scope = class_mutex_constructor(&register_mutex);
-	 * but other times because we do a fake parameter assignement or
+	 * but other times because we do a fake parameter assignment or
 	 * something the assignment is more direct:
 	 *     scope = &register_mutex;
 	 *

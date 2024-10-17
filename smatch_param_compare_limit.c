@@ -119,7 +119,7 @@ static void add_comparison_limit_var_sym(const char *left_name,
 }
 
 /*
- * This is quite a bit more limitted, less ambitious, simpler compared to
+ * This is quite a bit more limited, less ambitious, simpler compared to
  * smatch_camparison.c.
  */
 void __compare_param_limit_hook(struct expression *left_expr, struct expression *right_expr,

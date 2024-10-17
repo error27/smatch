@@ -30,7 +30,7 @@
  * implications.
  *
  * So what this module does is it ties the implications to the expression
- * pointer so that we can retreive them easily.  It's similar to Smatch stored
+ * pointer so that we can retrieve them easily.  It's similar to Smatch stored
  * implications but it doesn't save condition, it saves the pointer.
  *
  * We ignore pre loop conditions which Smatch parses twice.

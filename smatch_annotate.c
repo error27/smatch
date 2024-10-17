@@ -41,8 +41,8 @@ void register_annotate(int id)
 {
 	/*
 	 * Technically snprintf() returns the number of bytes which *would* have
-	 * been printed.  I do try caclulating that in check_snprintf().  But
-	 * it probably works better to assume the limitter is accurate.
+	 * been printed.  I do try calculating that in check_snprintf().  But
+	 * it probably works better to assume the limiter is accurate.
 	 */
 	add_implied_return_hook("snprintf", &param_caps_return, INT_PTR(1));
 

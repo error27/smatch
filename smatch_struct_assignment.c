@@ -50,7 +50,7 @@
  * p1->x->y.
  *
  * I don't have a proper solution for this problem right now.  I just copy one
- * level and don't nest.  It should handle limitted nesting but intelligently.
+ * level and don't nest.  It should handle limited nesting but intelligently.
  *
  * The other thing is that you end up with a lot of garbage assignments where
  * we record "x could be anything. x->y could be anything. x->y->z->a->b->c

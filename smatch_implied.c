@@ -90,7 +90,7 @@ static bool implications_turned_off(int owner)
 
 /*
  * tmp_range_list():
- * It messes things up to free range list allocations.  This helper fuction
+ * It messes things up to free range list allocations.  This helper function
  * lets us reuse memory instead of doing new allocations.
  */
 static struct range_list *tmp_range_list(struct symbol *type, long long num)

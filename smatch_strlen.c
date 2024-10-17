@@ -415,7 +415,7 @@ void register_strlen(int id)
 	add_function_hook("strcpy", &match_strcpy, NULL);
 	/*
 	 * I would have made strchr only apply for success returns but some
-	 * arches (arm64) impliment strchr outside the kernel so we don't know
+	 * arches (arm64) implement strchr outside the kernel so we don't know
 	 * the return values.  Having a NULL with a strlen is fine because if
 	 * someone uses the NULL then we're already in trouble.
 	 */

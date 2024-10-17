@@ -1185,7 +1185,7 @@ static void handle_for_loops(struct expression *expr, char *state_name, struct s
 		return;
 	}
 
-	/* Second time checking the condtion */
+	/* Second time checking the condition */
 	if (__prev_stmt != __cur_stmt->iterator_post_statement)
 		return;
 

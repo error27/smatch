@@ -151,7 +151,7 @@ static void match_assign(struct expression *expr)
 	if (!orig || orig->state == &undefined)
 		orig = set_state(my_id, right_name, right_sym, alloc_ssa_new(right_name));
 
-	/* This can happen in unreachable code or outside of functions I gess */
+	/* This can happen in unreachable code or outside of functions I guess */
 	if (!orig)
 		return;
 

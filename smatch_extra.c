@@ -1327,7 +1327,7 @@ static void clear_pointed_at_state(struct expression *expr)
 	struct symbol *type;
 
 	/*
-         * ALERT: This is sort of a mess.  If it's is a struct assigment like
+         * ALERT: This is sort of a mess.  If it's is a struct assignment like
 	 * "foo = bar;", then that's handled by smatch_struct_assignment.c.
 	 * the same thing for p++ where "p" is a struct.  Most modifications
 	 * are handled by the assignment hook or the db.  Smatch_extra.c doesn't
@@ -1549,7 +1549,7 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	false_state = alloc_estate_range(add_one(limit), add_one(limit));
 
 	/* Currently we just discard the false state but when two passes is
-	 * implimented correctly then it will use it.
+	 * implemented correctly then it will use it.
 	 */
 
 	set_extra_expr_true_false(left->unop, true_state, false_state);
@@ -2544,7 +2544,7 @@ struct range_list *intersect_with_real_abs_var_sym(const char *name, struct symb
 	 * with the real absolute to say that actually it's 0-8.
 	 *
 	 * We are combining it here.  But now that I think about it, this is
-	 * probably not the ideal place to combine it because it should proably
+	 * probably not the ideal place to combine it because it should probably
 	 * be done earlier.  Oh well, this is an improvement on what was there
 	 * before so I'm going to commit this code.
 	 *
