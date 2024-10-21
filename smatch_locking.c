@@ -847,6 +847,21 @@ static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 	do_clear(NULL, NULL, NULL, sm->name, sm->sym);
 }
 
+static void swap_global_names(const char **p_name, struct symbol **p_sym)
+{
+	struct symbol *sym = *p_sym;
+	char buf[64];
+
+	if (!sym)
+		return;
+	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
+		return;
+
+	snprintf(buf, sizeof(buf), "global %s", *p_name);
+	*p_name = alloc_sname(buf);
+	*p_sym = NULL;
+}
+
 static void db_param_locked_unlocked(struct expression *expr, int param, const char *key, int lock_unlock, struct lock_info *info)
 {
 	struct expression *call, *arg, *lock = NULL;
@@ -897,6 +912,8 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 
 	if (local_debug)
 		sm_msg("%s: expr='%s' lock='%s' key='%s' name='%s' lock_unlock=%d", __func__, expr_to_str(expr), expr_to_str(lock), key, name, lock_unlock);
+
+	swap_global_names(&name, &sym);
 
 	if (lock_unlock == LOCK)
 		do_lock(call, info, lock, name, sym);
