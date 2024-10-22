@@ -739,11 +739,26 @@ static void do_fail(struct expression *call, struct lock_info *info, struct expr
 	update_state(expr, name, sym, &fail);
 }
 
+static void swap_global_names(const char **p_name, struct symbol **p_sym)
+{
+	struct symbol *sym = *p_sym;
+	char buf[64];
+
+	if (!sym)
+		return;
+	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
+		return;
+
+	snprintf(buf, sizeof(buf), "global %s", *p_name);
+	*p_name = alloc_sname(buf);
+	*p_sym = NULL;
+}
+
 static void match_class_destructor(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg, *lock;
 	struct symbol *sym;
-	char *name;
+	const char *name;
 
 	/*
 	 * What happens here is that the code looks like:
@@ -778,8 +793,10 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 		return;
 
 	name = expr_to_str_sym(lock, &sym);
+
+	swap_global_names(&name, &sym);
+
 	do_unlock(expr, NULL, lock, name, sym);
-	free_string(name);
 }
 
 static struct expression *remove_spinlock_check(struct expression *expr)
@@ -847,21 +864,6 @@ static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 	do_clear(NULL, NULL, NULL, sm->name, sm->sym);
 }
 
-static void swap_global_names(const char **p_name, struct symbol **p_sym)
-{
-	struct symbol *sym = *p_sym;
-	char buf[64];
-
-	if (!sym)
-		return;
-	if (!(sym->ctype.modifiers & MOD_TOPLEVEL))
-		return;
-
-	snprintf(buf, sizeof(buf), "global %s", *p_name);
-	*p_name = alloc_sname(buf);
-	*p_sym = NULL;
-}
-
 static void db_param_locked_unlocked(struct expression *expr, int param, const char *key, int lock_unlock, struct lock_info *info)
 {
 	struct expression *call, *arg, *lock = NULL;
@@ -910,10 +912,10 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 //	if (!name)
 //		sm_msg("%s: no_name expr='%s' param=%d key=%s lock='%s'", __func__, expr_to_str(expr), param, key, expr_to_str(lock));
 
+	swap_global_names(&name, &sym);
+
 	if (local_debug)
 		sm_msg("%s: expr='%s' lock='%s' key='%s' name='%s' lock_unlock=%d", __func__, expr_to_str(expr), expr_to_str(lock), key, name, lock_unlock);
-
-	swap_global_names(&name, &sym);
 
 	if (lock_unlock == LOCK)
 		do_lock(call, info, lock, name, sym);
