@@ -497,6 +497,12 @@ static struct lock_info lock_table[] = {
 	{"snd_gf1_mem_lock", IGNORE, mutex, 0, "&$->memory_mutex"},
 	{"emit_rpcs_query",  IGNORE, mutex, -2, ""},
 
+	{"switch_tl_lock", UNLOCK, mutex, 0, "$->context->timeline->mutex"},
+	{"switch_tl_lock", LOCK, mutex, 1, "$->context->timeline->mutex"},
+
+	{"console_unlock", UNLOCK, sem, -2, "global &console_sem"},
+	{"bus_mutex_lock", LOCK, mutex, 0, "$", &int_one, &int_one},
+
 	{},
 };
 
