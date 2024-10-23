@@ -36,6 +36,7 @@ STATE(destroy);
 #define FAIL -3
 #define IGNORE 9999
 
+static void match_class_device_destructor(const char *fn, struct expression *expr, void *data);
 static void match_class_destructor(const char *fn, struct expression *expr, void *data);
 
 #define irq lock_irq
@@ -451,6 +452,7 @@ static struct lock_info lock_table[] = {
 	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
 	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
 
+	{"class_device_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_device_destructor},
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_destructor},
 	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
 	{"class_rwsem_read_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
@@ -754,11 +756,9 @@ static void swap_global_names(const char **p_name, struct symbol **p_sym)
 	*p_sym = NULL;
 }
 
-static void match_class_destructor(const char *fn, struct expression *expr, void *data)
+static struct expression *get_constructor_arg(struct expression *expr)
 {
 	struct expression *arg, *lock;
-	struct symbol *sym;
-	const char *name;
 
 	/*
 	 * What happens here is that the code looks like:
@@ -777,25 +777,57 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 	 */
 
 	if (!expr || expr->type != EXPR_CALL)
-		return;
+		return NULL;
 	arg = get_argument_from_call_expr(expr->args, 0);
 	arg = strip_expr(arg);
 	if (!arg || arg->type != EXPR_PREOP || arg->op != '&')
-		return;
+		return NULL;
 	arg = strip_expr(arg->unop);
 	lock = get_assigned_expr(arg);
 	if (!lock)
-		return;
+		return NULL;
 	if (lock->type == EXPR_CALL)
 		lock = get_argument_from_call_expr(lock->args, 0);
 	lock = strip_expr(lock);
 	if (!lock || lock->type != EXPR_PREOP || lock->op != '&')
+		return NULL;
+
+	return lock;
+}
+
+static void match_class_device_destructor(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *lock;
+	struct symbol *sym;
+	const char *name;
+	char buf[64];
+
+	lock = get_constructor_arg(expr);
+	if (!lock)
+		return;
+
+	name = expr_to_str_sym(lock, &sym);
+	snprintf(buf, sizeof(buf), "%s.mutex", name);
+	lock = gen_expression_from_name_sym(name, sym);
+	name = alloc_sname(buf);
+
+	swap_global_names(&name, &sym);
+	do_unlock(expr, NULL, lock, name, sym);
+}
+
+static void match_class_destructor(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *lock;
+	struct symbol *sym;
+	const char *name;
+
+	lock = get_constructor_arg(expr);
+	if (!lock)
 		return;
 
 	name = expr_to_str_sym(lock, &sym);
 
 	swap_global_names(&name, &sym);
-
 	do_unlock(expr, NULL, lock, name, sym);
 }
 
