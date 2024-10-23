@@ -26,12 +26,16 @@ static struct expression *warned;
 static void match_likely(const char *fn, struct expression *expr, void *unused)
 {
 	struct expression *parent;
+	char *macro;
 
 	if (expr == warned)
 		return;
 
 	parent = expr_get_parent_expr(expr);
 	if (!parent)
+		return;
+	macro = get_macro_name(expr->pos);
+	if (macro && strcmp(macro, "RB_WARN_ON") == 0)
 		return;
 	warned = expr;
 	sm_warning("check likely/unlikely parentheses");
