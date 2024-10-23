@@ -103,6 +103,31 @@ struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct s
 	return expr;
 }
 
+static struct expression *strip_useless_scope(struct expression *assign, struct expression *right)
+{
+	struct expression *orig;
+	struct token *token;
+	struct symbol *sym;
+
+	right = strip_expr(right);
+	if (!right || right->type != EXPR_SYMBOL)
+		return right;
+
+	sym = right->symbol;
+	if (!sym || !sym->scope || !sym->scope->token)
+		return right;
+	token = sym->scope->token;
+	if (token->pos.line != right->pos.line ||
+	    token->pos.pos != right->pos.pos)
+		return right;
+
+	orig = get_assigned_expr(right);
+	if (!orig)
+		return right;
+
+	return orig;
+}
+
 static struct expression *ignored_expr;
 static void match_assignment(struct expression *expr)
 {
@@ -148,6 +173,7 @@ static void match_assignment(struct expression *expr)
 
 	right = strip__builtin_choose_expr(right);
 	right = strip_Generic(right);
+	right = strip_useless_scope(expr, right);
 
 	state = alloc_state_expr(strip_expr(right));
 	if (!state)
