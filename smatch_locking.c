@@ -260,6 +260,7 @@ static struct lock_info lock_table[] = {
 	{"ww_mutex_lock_interruptible",	LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"ww_mutex_unlock",		UNLOCK, mutex, 0, "$"},
 
+	{"arch_local_irq_disable",LOCK,   irq, NO_ARG, "irq"},
 	{"raw_local_irq_disable", LOCK,   irq, NO_ARG, "irq"},
 	{"raw_local_irq_enable",  UNLOCK, irq, NO_ARG, "irq"},
 	{"spin_lock_irq",         LOCK,   irq, NO_ARG, "irq"},
