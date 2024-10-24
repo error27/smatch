@@ -831,7 +831,11 @@ static void match_class_destructor(const char *fn, struct expression *expr, void
 	if (!lock)
 		return;
 
-	name = expr_to_str_sym(lock, &sym);
+	name = expr_to_var_sym(lock, &sym);
+	if (!name) {
+		name = "$";
+		sym = NULL;
+	}
 
 	swap_global_names(&name, &sym);
 	do_unlock(expr, NULL, lock, name, sym);
