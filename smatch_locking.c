@@ -403,8 +403,7 @@ static struct lock_info lock_table[] = {
 	{"rcu_read_unlock_sched",         UNLOCK, rcu_read, NO_ARG, "rcu_read"},
 	{"rcu_read_unlock_sched_notrace", UNLOCK, rcu_read, NO_ARG, "rcu_read"},
 
-	{"rtnl_lock",			LOCK,   mutex, NO_ARG, "rtnl_lock"},
-	{"rtnl_unlock",			UNLOCK, mutex, NO_ARG, "rtnl_lock"},
+	{"rtnl_unlock",			UNLOCK, mutex, NO_ARG, "global &rtnl_mutex"},
 
 	{"gfs2_trans_begin", LOCK, sem, 0, "&$->sd_log_flush_lock", &int_zero, &int_zero},
 
