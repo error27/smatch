@@ -81,6 +81,8 @@ static void match_binop(struct expression *expr)
 
 	if (__in_builtin_overflow_func)
 		return;
+	if (db_incomplete())
+		return;
 
 	if (expr->op != '*' && expr->op != '+')
 		return;
