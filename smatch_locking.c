@@ -678,7 +678,26 @@ static void match_after_func(struct symbol *sym)
 	free_stree(&start_states);
 }
 
-static void update_state(struct expression *expr, const char *name, struct symbol *sym, struct smatch_state *state)
+static bool is_auto_cleanup_lock(struct expression *call)
+{
+	struct expression *parent;
+	struct symbol *lsym;
+
+	parent = expr_get_parent_expr(call);
+	if (!parent || parent->type != EXPR_ASSIGNMENT)
+		return false;
+	if (!parent->left)
+		return false;
+
+	if (parent->left->type != EXPR_SYMBOL)
+		return false;
+	lsym = parent->left->symbol;
+	if (!lsym || !lsym->cleanup)
+		return false;
+	return true;
+}
+
+static void update_state(struct expression *call, struct expression *expr, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct smatch_state *opposite = get_opposite(state);
 	struct smatch_state *orig;
@@ -693,6 +712,11 @@ static void update_state(struct expression *expr, const char *name, struct symbo
 	}
 
 	set_start_state(name, sym, opposite);
+
+	if (is_auto_cleanup_lock(call)) {
+		set_state(my_id, name, sym, &undefined);
+		return;
+	}
 
 	if (state == &undefined || state == &destroy) {
 		set_state(my_id, name, sym, state);
@@ -715,36 +739,36 @@ static void update_state(struct expression *expr, const char *name, struct symbo
 static void do_lock(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	call_locking_hooks(lock_hooks, call, info, expr, name, sym);
-	update_state(expr, name, sym, &lock);
+	update_state(call, expr, name, sym, &lock);
 }
 
 static void do_unlock(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	call_locking_hooks(unlock_hooks, call, info, expr, name, sym);
-	update_state(expr, name, sym, &unlock);
+	update_state(call, expr, name, sym, &unlock);
 }
 
 static void do_restore(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	call_locking_hooks(restore_hooks, call, info, expr, name, sym);
-	update_state(expr, name, sym, &restore);
+	update_state(call, expr, name, sym, &restore);
 }
 
 static void do_clear(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	call_locking_hooks(clear_hooks, call, info, expr, name, sym);
-	update_state(expr, name, sym, &undefined);
+	update_state(call, expr, name, sym, &undefined);
 }
 
 static void do_destroy(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
 	call_locking_hooks(destroy_hooks, call, info, expr, name, sym);
-	update_state(expr, name, sym, &destroy);
+	update_state(call, expr, name, sym, &destroy);
 }
 
 static void do_fail(struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
 {
-	update_state(expr, name, sym, &fail);
+	update_state(call, expr, name, sym, &fail);
 }
 
 static void swap_global_names(const char **p_name, struct symbol **p_sym)
