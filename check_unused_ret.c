@@ -73,27 +73,19 @@ static const char *kernel_ignored[] = {
 	"readw",
 };
 
-static char *get_fn_name(struct expression *expr)
+static bool ignored_function(struct expression *expr)
 {
-	if (expr->type != EXPR_CALL)
-		return NULL;
-	if (expr->fn->type != EXPR_SYMBOL)
-		return NULL;
-	return expr_to_var(expr->fn);
-}
+	const char *func;
 
-static int ignored_function(struct expression *expr)
-{
-	char *func;
-	int ret = 0;
+	if (!expr || expr->type != EXPR_CALL)
+		return false;
 
 	func = get_fn_name(expr);
 	if (!func)
-		return 0;
-	if (search_func(ignored_funcs, func))
-		ret = 1;
-	free_string(func);
-	return ret;
+		return false;
+	if (search_func(ignored_funcs, (char *)func))
+		return true;
+	return false;
 }
 
 static void match_assign_call(struct expression *expr)
@@ -124,7 +116,7 @@ static void match_assign_call(struct expression *expr)
 	assign = __alloc_assignment(0);
 	assign->assign_id = assign_id++;
 	assign->name = expr_to_var(left);
-	assign->function = get_fn_name(expr->right);
+	assign->function = alloc_sname(get_fn_name(expr->right));
 	assign->line = get_lineno();
 	add_ptr_list(&assignment_list, assign);
 }

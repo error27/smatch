@@ -184,7 +184,7 @@ static struct fcall_back *alloc_fcall_back(int type, void *call_back,
 	return cb;
 }
 
-static const char *get_fn_name(struct expression *fn)
+const char *get_fn_name(struct expression *fn)
 {
 	fn = strip_expr(fn);
 	if (!fn)

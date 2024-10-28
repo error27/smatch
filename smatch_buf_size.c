@@ -31,27 +31,18 @@ static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
 static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
 static struct hashtable *allocation_funcs;
 
-static char *get_fn_name(struct expression *expr)
+static bool is_allocation_function(struct expression *expr)
 {
-	if (expr->type != EXPR_CALL)
-		return NULL;
-	if (expr->fn->type != EXPR_SYMBOL)
-		return NULL;
-	return expr_to_var(expr->fn);
-}
+	const char *func;
 
-static int is_allocation_function(struct expression *expr)
-{
-	char *func;
-	int ret = 0;
-
-	func = get_fn_name(expr);
+	if (!expr || expr->type != EXPR_CALL)
+		return false;
+	func = get_fn_name(expr->fn);
 	if (!func)
-		return 0;
-	if (search_func(allocation_funcs, func))
-		ret = 1;
-	free_string(func);
-	return ret;
+		return false;
+	if (search_func(allocation_funcs, (char *)func))
+		return true;
+	return false;
 }
 
 static void add_allocation_function(const char *func, void *call_back, int param)
