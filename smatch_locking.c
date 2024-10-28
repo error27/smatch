@@ -36,9 +36,9 @@ STATE(destroy);
 #define FAIL -3
 #define IGNORE 9999
 
-static void match_class_device_destructor(const char *fn, struct expression *expr, void *data);
+static void match_class_generic_lock(const char *fn, struct expression *expr, void *data);
+static void match_class_generic_unlock(const char *fn, struct expression *expr, void *data);
 static void match_class_destructor(const char *fn, struct expression *expr, void *data);
-static void match_class_thermal_zone_destructor(const char *fn, struct expression *expr, void *data);
 
 #define irq lock_irq
 #define sem lock_sem
@@ -453,18 +453,19 @@ static struct lock_info lock_table[] = {
 	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
 	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
 
-	{"class_device_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_device_destructor},
-	{"class_mutex_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_destructor},
-	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
-	{"class_rwsem_read_destructor", UNLOCK, sem, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_device_destructor", UNLOCK, mutex, 0, "%s.mutex", NULL, NULL, &match_class_generic_unlock},
+	{"class_mutex_destructor", UNLOCK, mutex, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_rwsem_read_destructor", UNLOCK, sem, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_constructor", LOCK, spin_lock, 0, "$"},
-	{"class_spinlock_destructor", UNLOCK, spin_lock, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_spinlock_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_irq_constructor", LOCK, spin_lock, 0, "$"},
 	{"class_spinlock_irq_constructor", LOCK, irq, -2, "irq"},
-	{"class_spinlock_irq_destructor", UNLOCK, spin_lock, 0, "*$", NULL, NULL, &match_class_destructor},
+	{"class_spinlock_irq_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_irq_destructor", UNLOCK, irq, -2, "irq"},
-	{"class_thermal_zone_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_thermal_zone_destructor},
-	{"class_cooling_dev_destructor", UNLOCK, mutex, 0, "*$", NULL, NULL, &match_class_thermal_zone_destructor},
+	{"class_thermal_zone_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
+	{"class_thermal_zone_reverse_destructor", LOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_lock},
+	{"class_cooling_dev_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
 
 	{"class_mvm_destructor", UNLOCK, mutex, 0, "&$->mutex"},
 
@@ -837,44 +838,43 @@ static struct expression *get_constructor_arg_address(struct expression *expr)
 	return lock;
 }
 
-static void match_class_device_destructor(const char *fn, struct expression *expr, void *data)
+static void match_class_generic_destroy(const char *fn, struct expression *expr, void *data, struct smatch_state *state)
 {
-	struct expression *lock;
+	struct lock_info *info = data;
+	struct expression *arg;
 	struct symbol *sym;
 	const char *name;
 	char buf[64];
 
-	lock = get_constructor_arg_address(expr);
-	if (!lock)
+	arg = get_constructor_arg(expr);
+	if (!arg)
 		return;
 
-	name = expr_to_str_sym(lock, &sym);
-	snprintf(buf, sizeof(buf), "%s.mutex", name);
-	lock = gen_expression_from_name_sym(name, sym);
-	name = alloc_sname(buf);
+	name = expr_to_var_sym(arg, &sym);
+	if (!name) {
+		name = info->key;
+		sym = NULL;
+	} else {
+		snprintf(buf, sizeof(buf), info->key, name);
+		arg = gen_expression_from_name_sym(buf, sym);
+		name = alloc_sname(buf);
+	}
 
 	swap_global_names(&name, &sym);
-	do_unlock(expr, NULL, lock, name, sym);
+	if (state == &lock)
+		do_lock(expr, NULL, arg, name, sym);
+	else
+		do_unlock(expr, NULL, arg, name, sym);
 }
 
-static void match_class_thermal_zone_destructor(const char *fn, struct expression *expr, void *data)
+static void match_class_generic_lock(const char *fn, struct expression *expr, void *data)
 {
-	struct expression *lock;
-	struct symbol *sym;
-	const char *name;
-	char buf[64];
+	match_class_generic_destroy(fn, expr, data, &lock);
+}
 
-	lock = get_constructor_arg(expr);
-	if (!lock)
-		return;
-
-	name = expr_to_str_sym(lock, &sym);
-	snprintf(buf, sizeof(buf), "&%s->lock", name);
-	lock = gen_expression_from_name_sym(name, sym);
-	name = alloc_sname(buf);
-
-	swap_global_names(&name, &sym);
-	do_unlock(expr, NULL, lock, name, sym);
+static void match_class_generic_unlock(const char *fn, struct expression *expr, void *data)
+{
+	match_class_generic_destroy(fn, expr, data, &unlock);
 }
 
 static void match_class_destructor(const char *fn, struct expression *expr, void *data)
