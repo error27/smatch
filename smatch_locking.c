@@ -507,6 +507,14 @@ static struct lock_info lock_table[] = {
 	{"console_unlock", UNLOCK, sem, -2, "global &console_sem"},
 	{"bus_mutex_lock", LOCK, mutex, 0, "$", &int_one, &int_one},
 
+	{"(struct e1000_phy_operations)->acquire", LOCK, mutex, -2, "global &swflag_mutex", &int_zero, &int_zero},
+	{"(struct e1000_phy_operations)->release", UNLOCK, mutex, -2, "global &swflag_mutex"},
+
+	{"(struct genpd_lock_ops)->lock", LOCK, mutex, 0, "&$->mlock"},
+	{"(struct genpd_lock_ops)->lock_nested", LOCK, mutex, 0, "&$->mlock"},
+	{"(struct genpd_lock_ops)->lock_interruptible", LOCK, mutex, 0, "&$->mlock", &int_zero, &int_zero},
+	{"(struct genpd_lock_ops)->unlock", UNLOCK, mutex, 0, "&$->mlock"},
+
 	{},
 };
 
@@ -564,11 +572,7 @@ bool is_locking_primitive_sym(struct symbol *sym)
 
 bool is_locking_primitive_expr(struct expression *expr)
 {
-	if (!expr ||
-	    expr->type != EXPR_SYMBOL)
-		return false;
-
-	return is_locking_primitive_sym(expr->symbol);
+	return is_locking_primitive(get_fn_name(expr));
 }
 
 static void call_locking_hooks(struct locking_hook_list *list, struct expression *call, struct lock_info *info, struct expression *expr, const char *name, struct symbol *sym)
