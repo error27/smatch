@@ -496,14 +496,29 @@ int is_condition_call(struct expression *expr)
 	return 0;
 }
 
-static struct expression *expr_get_parent_no_parens(struct expression *expr)
+static struct expression *get_parent_assignment(struct expression *expr)
 {
 	struct expression *parent;
+	int cnt = 0;
 
-	parent = expr_get_fake_or_real_parent_expr(expr);
-	while (parent && parent->type == EXPR_PREOP && parent->op == '(')
+	if (expr->type == EXPR_ASSIGNMENT)
+		return NULL;
+
+	parent = expr;
+	while (true) {
 		parent = expr_get_fake_or_real_parent_expr(parent);
-	return parent;
+		if (!parent || ++cnt >= 5)
+			break;
+		if (parent->type == EXPR_CAST)
+			continue;
+		if (parent->type == EXPR_PREOP && parent->op == '(')
+			continue;
+		break;
+	}
+
+	if (parent && parent->type == EXPR_ASSIGNMENT)
+		return parent;
+	return NULL;
 }
 
 static bool gen_fake_function_assign(struct expression *expr)
@@ -521,7 +536,7 @@ static bool gen_fake_function_assign(struct expression *expr)
 	if (!type || type == &void_ctype)
 		return false;
 
-	parent = expr_get_parent_no_parens(expr);
+	parent = get_parent_assignment(expr);
 	if (parent && parent->type == EXPR_ASSIGNMENT)
 		return false;
 
