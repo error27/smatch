@@ -889,6 +889,69 @@ static void do_scope_hooks(void)
 	set_position(orig);
 }
 
+static const char *get_scoped_guard_label(struct statement *iterator)
+{
+	struct statement *stmt;
+
+	if (!iterator || iterator->type != STMT_IF)
+		return NULL;
+	if (!expr_is_zero(iterator->if_conditional))
+		return NULL;
+
+	stmt = iterator->if_true;
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return NULL;
+	stmt = first_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!stmt || stmt->type != STMT_LABEL)
+		return NULL;
+
+	if (!stmt->label_identifier ||
+	    stmt->label_identifier->type != SYM_LABEL ||
+	    !stmt->label_identifier->ident)
+		return NULL;
+	return stmt->label_identifier->ident->name;
+}
+
+static bool is_scoped_guard_goto(struct statement *iterator, struct statement *post_stmt)
+{
+	struct statement *goto_stmt;
+	struct expression *expr;
+	const char *label;
+	const char *goto_name;
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	label = get_scoped_guard_label(iterator);
+	if (!label)
+		return false;
+
+	if (!post_stmt || post_stmt->type != STMT_EXPRESSION)
+		return false;
+
+	expr = strip_expr(post_stmt->expression);
+	if (expr->type != EXPR_PREOP ||
+	    expr->op != '(' ||
+	    expr->unop->type != EXPR_STATEMENT)
+		return false;
+
+	goto_stmt = expr->unop->statement;
+	if (!goto_stmt || goto_stmt->type != STMT_COMPOUND)
+		return false;
+	goto_stmt = first_ptr_list((struct ptr_list *)goto_stmt->stmts);
+	if (!goto_stmt ||
+	    goto_stmt->type != STMT_GOTO ||
+	    !goto_stmt->goto_label ||
+	    goto_stmt->goto_label->type != SYM_LABEL ||
+	    !goto_stmt->goto_label->ident)
+		return false;
+	goto_name = goto_stmt->goto_label->ident->name;
+	if (!goto_name || strcmp(goto_name, label) != 0)
+		return false;
+
+	return true;
+}
+
 /*
  * Pre Loops are while and for loops.
  */
@@ -936,6 +999,19 @@ static void handle_pre_loop(struct statement *stmt)
 		extra_sm = get_sm_state(extra_sm->owner, extra_sm->name, extra_sm->sym);
 
 	__split_stmt(stmt->iterator_statement);
+	if (is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement)) {
+		__merge_continues();
+		__save_gotos(loop_name, NULL);
+		if (once_through == true)
+			__discard_false_states();
+		else
+			__merge_false_states();
+
+		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
+		__merge_breaks();
+		goto done;
+	}
+
 	if (is_forever_loop(stmt)) {
 		__merge_continues();
 		__save_gotos(loop_name, NULL);
@@ -976,6 +1052,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__merge_breaks();
 	}
+done:
 	loop_count--;
 
 	do_scope_hooks();
@@ -1218,45 +1295,6 @@ static bool is_function_scope(struct statement *stmt)
 		return true;
 
 	return false;
-}
-
-static bool was_handle_backward_goto_in_scoped_guard(struct statement *goto_stmt)
-{
-	struct statement *parent;
-	struct expression *expr;
-	const char *goto_name;
-
-	if (!goto_stmt->goto_label ||
-	    goto_stmt->goto_label->type != SYM_LABEL ||
-	    !goto_stmt->goto_label->ident)
-		return false;
-	goto_name = goto_stmt->goto_label->ident->name;
-
-	/* walk back to the label */
-	parent = stmt_get_parent_stmt(goto_stmt);
-	if (!parent || parent->type != STMT_COMPOUND)
-		return false;
-	expr = stmt_get_parent_expr(parent);
-	parent = get_parent_stmt(expr);
-	if (!parent || parent->type != STMT_EXPRESSION)
-		return false;
-	parent = stmt_get_parent_stmt(parent);
-	if (!parent || parent->type != STMT_ITERATOR)
-		return false;
-	parent = stmt_get_parent_stmt(parent);
-	if (!parent || parent->type != STMT_IF)
-		return false;
-	if (!expr_is_zero(parent->if_conditional))
-		return false;
-	if (!parent->if_true ||
-	    parent->if_true->type != STMT_LABEL ||
-	    !parent->if_true->label_identifier ||
-	    parent->if_true->label_identifier->type != SYM_LABEL ||
-	    !parent->if_true->label_identifier->ident ||
-	    strcmp(goto_name, parent->if_true->label_identifier->ident->name) != 0)
-		return false;
-
-	return true;
 }
 
 /*
