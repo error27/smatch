@@ -555,6 +555,9 @@ bool is_locking_primitive(const char *name)
 {
 	int i;
 
+	if (!name)
+		return false;
+
 	for (i = 0; lock_table[i].function != NULL; i++) {
 		if (strcmp(lock_table[i].function, name) == 0)
 			return true;
