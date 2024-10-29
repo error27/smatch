@@ -117,7 +117,7 @@ static void match_condition(struct expression *expr)
 	struct symbol *sym;
 	char *name;
 
-	if (__in_fake_parameter_assign)
+	if (__in_fake_parameter_assign || __reparsing_code)
 		return;
 
 	if (get_macro_name(expr->pos))

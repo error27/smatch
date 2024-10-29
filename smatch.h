@@ -724,6 +724,7 @@ int is_fake_assigned_call(struct expression *expr);
 void add_function_data(unsigned long *fn_data);
 int inlinable(struct expression *expr);
 extern int __inline_call;
+extern bool __reparsing_code;
 extern struct expression *__inline_fn;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;

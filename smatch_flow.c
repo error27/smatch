@@ -34,6 +34,7 @@ int __debug_skip;
 int in_fake_env;
 int final_pass;
 int __inline_call;
+bool __reparsing_code;
 struct expression  *__inline_fn;
 
 int __smatch_lineno = 0;
@@ -1219,7 +1220,61 @@ static bool is_function_scope(struct statement *stmt)
 	return false;
 }
 
-static void handle_backward_goto(struct statement *goto_stmt)
+static bool was_handle_backward_goto_in_scoped_guard(struct statement *goto_stmt)
+{
+	struct statement *parent;
+	struct expression *expr;
+	const char *goto_name;
+
+	if (!goto_stmt->goto_label ||
+	    goto_stmt->goto_label->type != SYM_LABEL ||
+	    !goto_stmt->goto_label->ident)
+		return false;
+	goto_name = goto_stmt->goto_label->ident->name;
+
+	/* walk back to the label */
+	parent = stmt_get_parent_stmt(goto_stmt);
+	if (!parent || parent->type != STMT_COMPOUND)
+		return false;
+	expr = stmt_get_parent_expr(parent);
+	parent = get_parent_stmt(expr);
+	if (!parent || parent->type != STMT_EXPRESSION)
+		return false;
+	parent = stmt_get_parent_stmt(parent);
+	if (!parent || parent->type != STMT_ITERATOR)
+		return false;
+	parent = stmt_get_parent_stmt(parent);
+	if (!parent || parent->type != STMT_IF)
+		return false;
+	if (!expr_is_zero(parent->if_conditional))
+		return false;
+	if (!parent->if_true ||
+	    parent->if_true->type != STMT_LABEL ||
+	    !parent->if_true->label_identifier ||
+	    parent->if_true->label_identifier->type != SYM_LABEL ||
+	    !parent->if_true->label_identifier->ident ||
+	    strcmp(goto_name, parent->if_true->label_identifier->ident->name) != 0)
+		return false;
+
+	return true;
+}
+
+/*
+ * Sometimes people do a little backwards goto as the last statement in a
+ * function.
+ *
+ * exit:
+ *	return ret;
+ * free:
+ *	kfree(foo);
+ *	goto exit;
+ *
+ * Smatch generally does a hacky thing where it just parses the code one
+ * time from top to bottom, but in this case we need to go backwards so that
+ * we record what "return ret;" returns.
+ *
+ */
+static void handle_backward_goto_at_end(struct statement *goto_stmt)
 {
 	const char *goto_name, *label_name;
 	struct statement *func_stmt;
@@ -1227,7 +1282,7 @@ static void handle_backward_goto(struct statement *goto_stmt)
 	struct statement *tmp;
 	int found = 0;
 
-	if (!option_info)
+	if (!is_last_stmt(goto_stmt))
 		return;
 	if (last_goto_statement_handled)
 		return;
@@ -1259,9 +1314,11 @@ static void handle_backward_goto(struct statement *goto_stmt)
 			if (strcmp(goto_name, label_name) != 0)
 				continue;
 			found = 1;
+			__reparsing_code = true;
 		}
 		__split_stmt(tmp);
 	} END_FOR_EACH_PTR(tmp);
+	__reparsing_code = false;
 }
 
 static void fake_a_return(void)
@@ -1532,9 +1589,8 @@ void __split_stmt(struct statement *stmt)
 			   stmt->goto_label->ident) {
 			__save_gotos(stmt->goto_label->ident->name, stmt->goto_label);
 		}
+		handle_backward_goto_at_end(stmt);
 		nullify_path();
-		if (is_last_stmt(stmt))
-			handle_backward_goto(stmt);
 		break;
 	case STMT_NONE:
 		break;
