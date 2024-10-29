@@ -2240,6 +2240,7 @@ void parse_inline(struct expression *call)
 
 	save_flow_state();
 
+	gettimeofday(&fn_start_time, NULL);
 	__pass_to_client(call, INLINE_FN_START);
 	final_pass = 0;  /* don't print anything */
 	__inline_fn = call;
@@ -2284,6 +2285,8 @@ void parse_inline(struct expression *call)
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
 	nullify_path();
 	free_goto_stack();
+
+	record_func_time();
 
 	restore_flow_state();
 	fn_start_time = time_backup;
