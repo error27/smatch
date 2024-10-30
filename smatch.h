@@ -413,6 +413,14 @@ static inline void print_implied_debug_msg(void)
 #define sm_error(msg...) do { sm_print_msg(2, msg); } while (0)
 #define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
 #define sm_pedantic(msg...) do { if (option_pedantic) sm_print_msg(4, msg); } while (0)
+#define sm_local(msg...) do {						\
+	if (local_debug) {						\
+		sm_prefix();						\
+		sm_printf("local debug: %s:%d ", __func__, __LINE__);	\
+		sm_printf(msg);						\
+		sm_printf("\n");					\
+	}								\
+} while (0)
 
 static inline void sm_fatal(const char *fmt, ...)
 {
