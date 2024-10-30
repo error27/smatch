@@ -670,6 +670,29 @@ static bool skip_split_off(struct expression *expr)
 	return false;
 }
 
+static bool is_no_parse_macro(struct expression *expr)
+{
+	static struct position prev_pos;
+	static bool prev_ret;
+	bool ret = false;
+	char *macro;
+
+	if (option_project != PROJ_KERNEL)
+		return false;
+
+	if (positions_eq(expr->pos, prev_pos))
+		return prev_ret;
+	macro = get_macro_name(expr->pos);
+	if (!macro)
+		goto done;
+	if (strncmp(macro, "CHECK_PACKED_FIELDS_", 20) == 0)
+		ret = true;
+done:
+	prev_ret = ret;
+	prev_pos = expr->pos;
+	return ret;
+}
+
 void __split_expr(struct expression *expr)
 {
 	if (!expr)
@@ -689,6 +712,9 @@ void __split_expr(struct expression *expr)
 	if (__in_fake_assign && expr->type != EXPR_ASSIGNMENT)
 		return;
 	if (__in_fake_assign >= 4)  /* don't allow too much nesting */
+		return;
+
+	if (is_no_parse_macro(expr))
 		return;
 
 	push_expression(&big_expression_stack, expr);
