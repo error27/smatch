@@ -342,8 +342,14 @@ static struct symbol *get_type_helper(struct expression *expr)
 	case EXPR_OFFSETOF:
 		ret = &ulong_ctype;
 		break;
-	case EXPR_GENERIC:
-		return get_type_helper(strip_Generic(expr));
+	case EXPR_GENERIC: {
+		struct expression *tmp;
+
+		tmp = strip_Generic(expr);
+		if (tmp == expr)
+			return NULL;
+		return get_type_helper(tmp);
+	}
 	case EXPR_COMMA:
 		return get_type_helper(expr->right);
 	default:
