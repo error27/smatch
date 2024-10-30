@@ -892,17 +892,26 @@ static void do_scope_hooks(void)
 static const char *get_scoped_guard_label(struct statement *iterator)
 {
 	struct statement *stmt;
+	bool found = false;
+	int cnt = 0;
 
 	if (!iterator || iterator->type != STMT_IF)
-		return NULL;
-	if (!expr_is_zero(iterator->if_conditional))
 		return NULL;
 
 	stmt = iterator->if_true;
 	if (!stmt || stmt->type != STMT_COMPOUND)
 		return NULL;
-	stmt = first_ptr_list((struct ptr_list *)stmt->stmts);
-	if (!stmt || stmt->type != STMT_LABEL)
+
+	FOR_EACH_PTR_REVERSE(stmt->stmts, stmt) {
+		if (stmt->type == STMT_LABEL) {
+			found = true;
+			break;
+		}
+		if (++cnt > 2)
+			break;
+	} END_FOR_EACH_PTR_REVERSE(stmt);
+
+	if (!found)
 		return NULL;
 
 	if (!stmt->label_identifier ||
