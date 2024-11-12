@@ -45,9 +45,9 @@ fi
 file=$1
 if [ "$file" = "" ] ; then
     if [ -e err-list ] ; then
-	file="err-list"
+        file="err-list"
     else
-	print_help
+        print_help
     fi
 fi
 
@@ -60,7 +60,7 @@ for sm_err in $TXT ; do
     line=$(echo $sm_err | cut -d ' ' -f 1 | cut -d ':' -f 2)
 
     if [ "$file" = "$skip_file" ] ; then
-	continue
+        continue
     fi
     skip_file=""
 
@@ -68,10 +68,10 @@ for sm_err in $TXT ; do
     last=$(echo $last | sed -e 's/line .*//')
 
     if [ "$NEW" = "Y" ] ; then
-	if grep -F "$last" *summary* > /dev/null ; then
-	    echo "skipping $sm_err"
-	    continue
-	fi
+        if grep -F "$last" *summary* > /dev/null ; then
+            echo "skipping $sm_err"
+            continue
+        fi
     fi
 
     set_title $sm_err
@@ -81,18 +81,18 @@ for sm_err in $TXT ; do
 
     ans="?"
     while echo $ans | grep '?' > /dev/null ; do
-	echo -n "[? for help]: "
-	read ans
-	if echo $ans | grep n > /dev/null ; then
-	    continue 2
-	fi
-	if echo $ans | grep f > /dev/null ; then
-	    skip_file=$file
-	    continue 2
-	fi
-	if echo $ans | grep '?' > /dev/null ; then
-	    cmd_help
-	fi
+        echo -n "[? for help]: "
+        read ans
+        if echo $ans | grep n > /dev/null ; then
+            continue 2
+        fi
+        if echo $ans | grep f > /dev/null ; then
+            skip_file=$file
+            continue 2
+        fi
+        if echo $ans | grep '?' > /dev/null ; then
+            cmd_help
+        fi
     done
 
     # I have this in my .vimrc
