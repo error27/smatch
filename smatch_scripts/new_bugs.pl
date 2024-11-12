@@ -67,6 +67,7 @@ while (<WARNS>) {
     $msg =~ s/[\(\)]//g;
 
     $file =~ s/\//./g;
+    $file =~ s/^\.//;
     $msg =~ s/\//./g;
 
     if ($store) {
