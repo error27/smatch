@@ -51,13 +51,17 @@ if [ "$file" = "" ] ; then
     fi
 fi
 
-TXT=$(cat $file | uniq -f 2)
-
 IFS='
 '
-for sm_err in $TXT ; do
+for sm_err in $(cat $file) ; do
     file=$(echo $sm_err | cut -d ':' -f 1)
     line=$(echo $sm_err | cut -d ' ' -f 1 | cut -d ':' -f 2)
+
+    func_plus=$(echo $sm_err | cut -d ' ' -f 2-)
+    if [ "$prev" = "$func_plus" ] ; then
+        continue
+    fi
+    prev=$func_plus
 
     if [ "$file" = "$skip_file" ] ; then
         continue
@@ -103,4 +107,3 @@ for sm_err in $TXT ; do
 
     save_thoughts
 done
-IFS=
