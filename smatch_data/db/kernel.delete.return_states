@@ -19,3 +19,5 @@ regmap_read (-22)
 regmap_read (-4095)-(-1)
 bio_alloc_bioset 0
 iov_iter_get_pages2 2147479552
+bio_split (-22)
+bio_split (-12)
