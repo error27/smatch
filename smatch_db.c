@@ -1285,6 +1285,8 @@ static int get_param(int param, char **name, struct symbol **sym)
 	i = 0;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
 		if (i == param) {
+			if (!arg->ident)
+				return false;
 			*name = arg->ident->name;
 			*sym = arg;
 			return TRUE;
