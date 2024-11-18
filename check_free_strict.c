@@ -148,14 +148,14 @@ struct smatch_state *merge_frees(struct smatch_state *s1, struct smatch_state *s
 	return &merged;
 }
 
-static int is_freed(struct expression *expr)
+static int get_freed_line(struct expression *expr)
 {
 	struct sm_state *sm;
 
 	sm = get_sm_state_expr(my_id, expr);
 	if (sm && slist_has_state(sm->possible, &freed))
-		return 1;
-	return 0;
+		return sm->line;
+	return -1;
 }
 
 bool is_freed_var_sym(const char *name, struct symbol *sym)
@@ -261,6 +261,7 @@ static void match_symbol(struct expression *expr)
 {
 	struct expression *parent;
 	char *name;
+	int line;
 
 	if (is_impossible_path())
 		return;
@@ -277,20 +278,22 @@ static void match_symbol(struct expression *expr)
 	if (parent && parent->type == EXPR_PREOP && parent->op == '&')
 		return;
 
-	if (!is_freed(expr))
+	line = get_freed_line(expr);
+	if (line < 0)
 		return;
 
 	if (is_percent_p_print(expr))
 		return;
 
 	name = expr_to_var(expr);
-	sm_warning("'%s' was already freed.", name);
+	sm_warning("'%s' was already freed. (line %d)", name, line);
 	free_string(name);
 }
 
 static void match_dereferences(struct expression *expr)
 {
 	char *name;
+	int line;
 
 	if (expr->type != EXPR_PREOP)
 		return;
@@ -301,10 +304,11 @@ static void match_dereferences(struct expression *expr)
 		return;
 
 	expr = strip_expr(expr->unop);
-	if (!is_freed(expr))
+	line = get_freed_line(expr);
+	if (line < 0)
 		return;
 	name = expr_to_var(expr);
-	sm_error("dereferencing freed memory '%s'", name);
+	sm_error("dereferencing freed memory '%s' (line %d)", name, line);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
 }
@@ -369,6 +373,7 @@ static void match_call(struct expression *expr)
 {
 	struct expression *arg;
 	char *name;
+	int line;
 	int i;
 
 	if (is_impossible_path())
@@ -381,7 +386,8 @@ static void match_call(struct expression *expr)
 		i++;
 		if (!is_pointer(arg))
 			continue;
-		if (!is_freed(arg))
+		line = get_freed_line(arg);
+		if (line < 0)
 			continue;
 		if (ignored_params[i])
 			continue;
@@ -390,9 +396,9 @@ static void match_call(struct expression *expr)
 
 		name = expr_to_var(arg);
 		if (is_free_func(expr->fn))
-			sm_error("double free of '%s'", name);
+			sm_error("double free of '%s' (line %d)", name, line);
 		else
-			sm_warning("passing freed memory '%s'", name);
+			sm_warning("passing freed memory '%s' (line %d)", name, line);
 		set_state_expr(my_id, arg, &ok);
 		free_string(name);
 	} END_FOR_EACH_PTR(arg);
@@ -401,17 +407,19 @@ static void match_call(struct expression *expr)
 static void match_return(struct expression *expr)
 {
 	char *name;
+	int line;
 
 	if (is_impossible_path())
 		return;
 
 	if (!expr)
 		return;
-	if (!is_freed(expr))
+	line = get_freed_line(expr);
+	if (line < 0)
 		return;
 
 	name = expr_to_var(expr);
-	sm_warning("returning freed memory '%s'", name);
+	sm_warning("returning freed memory '%s' (line %d)", name, line);
 	set_state_expr(my_id, expr, &ok);
 	free_string(name);
 }
@@ -432,6 +440,7 @@ static bool is_ptr_to(struct expression *expr, const char *type)
 static void match_free(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
 	struct expression *arg;
+	int line;
 
 	if (is_impossible_path())
 		return;
@@ -445,8 +454,9 @@ static void match_free(struct expression *expr, const char *name, struct symbol 
 	if (is_ptr_to(arg, "buffer_head") &&
 	    refcount_was_inced(arg, "->b_count.counter"))
 		return;
-	if (is_freed(arg))
-		sm_error("double free of '%s'", name);
+	line = get_freed_line(arg);
+	if (line >= 0)
+		sm_error("double free of '%s' (line %d)", name, line);
 
 	track_freed_param(arg, &freed);
 	call_free_call_backs_name_sym(name, sym);
