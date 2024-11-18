@@ -15,11 +15,12 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  *
  * Copyright 2019 Joyent, Inc.
+ * Copyright 2024 MNX Cloud, Inc.
  */
 
 /*
  * Heavily borrowed from check_wine.c: what we're doing here is teaching smatch
- * that cmn_err(CE_PANIC, ...) is noreturn.
+ * that cmn_err(CE_PANIC, ...) and ddi_err(DER_PANIC, ...) is noreturn.
  */
 
 #include "scope.h"
@@ -27,9 +28,10 @@
 #include "smatch_extra.h"
 
 #define	CE_PANIC (3)
+#define	DER_PANIC (7)
 
-void match_cmn_err(const char *fn, struct expression *expr,
-			void *unused)
+static void
+match_err(const char *fn, struct expression *expr, int value)
 {
 	struct expression *arg;
 	sval_t sval;
@@ -38,10 +40,19 @@ void match_cmn_err(const char *fn, struct expression *expr,
 	if (!get_implied_value(arg, &sval))
 		return;
 
-	if (sval.value == CE_PANIC)
+	if (sval.value == value)
 		nullify_path();
 }
 
+void match_cmn_err(const char *fn, struct expression *expr, void *unused)
+{
+	match_err(fn, expr, CE_PANIC);
+}
+
+void match_ddi_err(const char *fn, struct expression *expr, void *unused)
+{
+	match_err(fn, expr, DER_PANIC);
+}
 
 void check_cmn_err(int id)
 {
@@ -49,4 +60,5 @@ void check_cmn_err(int id)
 		return;
 
 	add_function_hook("cmn_err", &match_cmn_err, NULL);
+	add_function_hook("ddi_err", &match_ddi_err, NULL);
 }
