@@ -261,6 +261,7 @@ static struct lock_info lock_table[] = {
 	{"ww_mutex_unlock",		UNLOCK, mutex, 0, "$"},
 
 	{"arch_local_irq_disable",LOCK,   irq, NO_ARG, "irq"},
+	{"arch_local_irq_enable", UNLOCK, irq, NO_ARG, "irq"},
 	{"raw_local_irq_disable", LOCK,   irq, NO_ARG, "irq"},
 	{"raw_local_irq_enable",  UNLOCK, irq, NO_ARG, "irq"},
 	{"spin_lock_irq",         LOCK,   irq, NO_ARG, "irq"},
@@ -456,12 +457,22 @@ static struct lock_info lock_table[] = {
 	{"class_mutex_destructor", UNLOCK, mutex, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_rwsem_write_destructor", UNLOCK, sem, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_rwsem_read_destructor", UNLOCK, sem, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_serio_pause_rx_destructor", UNLOCK, spin_lock, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
+	{"class_serio_pause_rx_destructor", UNLOCK, irq, -2, "irq"},
 	{"class_spinlock_constructor", LOCK, spin_lock, 0, "$"},
 	{"class_spinlock_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_irq_constructor", LOCK, spin_lock, 0, "$"},
 	{"class_spinlock_irq_constructor", LOCK, irq, -2, "irq"},
 	{"class_spinlock_irq_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_irq_destructor", UNLOCK, irq, -2, "irq"},
+	{"class_spinlock_irqsave_constructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_lock},
+	{"class_spinlock_irqsave_constructor", LOCK, irq, -2, "irq"},
+	{"class_spinlock_irqsave_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_spinlock_irqsave_destructor", RESTORE, irq, -2, "irq"},
+	{"class_raw_spinlock_irqsave_constructor", LOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_lock},
+	{"class_raw_spinlock_irqsave_constructor", LOCK, irq, -2, "irq"},
+	{"class_raw_spinlock_irqsave_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_raw_spinlock_irqsave_destructor", RESTORE, irq, -2, "irq"},
 	{"class_thermal_zone_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
 	{"class_thermal_zone_reverse_destructor", LOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_lock},
 	{"class_cooling_dev_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
@@ -513,6 +524,11 @@ static struct lock_info lock_table[] = {
 	{"(struct genpd_lock_ops)->lock_nested", LOCK, mutex, 0, "&$->mlock"},
 	{"(struct genpd_lock_ops)->lock_interruptible", LOCK, mutex, 0, "&$->mlock", &int_zero, &int_zero},
 	{"(struct genpd_lock_ops)->unlock", UNLOCK, mutex, 0, "&$->mlock"},
+
+	{"(struct vb2_ops)->finish_wait", LOCK, mutex, 0, "$->lock"},
+	{"(struct vb2_ops)->wait_prepare", UNLOCK, mutex, 0, "$->lock"},
+
+	{"acpi_os_signal_semaphore", UNLOCK, sem, 0, "$"},
 
 	{},
 };
