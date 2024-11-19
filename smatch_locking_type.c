@@ -158,11 +158,21 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 
 static void db_param_locked(struct expression *expr, int param, char *key, char *value)
 {
+	while (expr && expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr && expr->type == EXPR_CALL && is_locking_primitive_expr(expr->fn))
+		return;
+
 	update_state(key, &lock);
 }
 
 static void db_param_unlocked(struct expression *expr, int param, char *key, char *value)
 {
+	while (expr && expr->type == EXPR_ASSIGNMENT)
+		expr = strip_expr(expr->right);
+	if (expr && expr->type == EXPR_CALL && is_locking_primitive_expr(expr->fn))
+		return;
+
 	update_state(key, &unlock);
 }
 
