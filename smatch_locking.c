@@ -38,7 +38,6 @@ STATE(destroy);
 
 static void match_class_generic_lock(const char *fn, struct expression *expr, void *data);
 static void match_class_generic_unlock(const char *fn, struct expression *expr, void *data);
-static void match_class_destructor(const char *fn, struct expression *expr, void *data);
 
 #define irq lock_irq
 #define sem lock_sem
@@ -833,18 +832,6 @@ static struct expression *get_constructor_arg(struct expression *expr)
 	return get_argument_from_call_expr(lock->args, 0);
 }
 
-static struct expression *get_constructor_arg_address(struct expression *expr)
-{
-	struct expression *lock;
-
-	/* Verify that it's an address. */
-	lock = get_constructor_arg(expr);
-	if (!lock || lock->type != EXPR_PREOP || lock->op != '&')
-		return NULL;
-
-	return lock;
-}
-
 static void match_class_generic_destroy(const char *fn, struct expression *expr, void *data, struct smatch_state *state)
 {
 	struct lock_info *info = data;
@@ -882,26 +869,6 @@ static void match_class_generic_lock(const char *fn, struct expression *expr, vo
 static void match_class_generic_unlock(const char *fn, struct expression *expr, void *data)
 {
 	match_class_generic_destroy(fn, expr, data, &unlock);
-}
-
-static void match_class_destructor(const char *fn, struct expression *expr, void *data)
-{
-	struct expression *lock;
-	struct symbol *sym;
-	const char *name;
-
-	lock = get_constructor_arg_address(expr);
-	if (!lock)
-		return;
-
-	name = expr_to_var_sym(lock, &sym);
-	if (!name) {
-		name = "$";
-		sym = NULL;
-	}
-
-	swap_global_names(&name, &sym);
-	do_unlock(expr, NULL, lock, name, sym);
 }
 
 static struct expression *remove_spinlock_check(struct expression *expr)
