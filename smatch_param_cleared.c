@@ -490,6 +490,7 @@ static bool all_struct_members_set(struct symbol *arg)
 {
 	struct symbol *type, *tmp;
 	char buf[80];
+	int cnt;
 
 	if (!arg || !arg->ident)
 		return false;
@@ -501,7 +502,9 @@ static bool all_struct_members_set(struct symbol *arg)
 	if (!type || type->type != SYM_STRUCT)
 		return false;
 
+	cnt = 0;
 	FOR_EACH_PTR(type->symbol_list, tmp) {
+		cnt++;
 		if (!tmp->ident)
 			return false;
 		snprintf(buf, sizeof(buf), "%s->%s", arg->ident->name, tmp->ident->name);
@@ -509,6 +512,12 @@ static bool all_struct_members_set(struct symbol *arg)
 			return false;
 	} END_FOR_EACH_PTR(tmp);
 
+	/*
+	 * The main thing is that cnt can be zero.  But why bother promoting
+	 * tiny structs?
+	 */
+	if (cnt < 5)
+		return false;
 	return true;
 }
 
