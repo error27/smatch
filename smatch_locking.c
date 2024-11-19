@@ -1014,6 +1014,7 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 
 		arg = remove_spinlock_check(arg);
 		arg = remove_XAS_INVALID(arg);
+		arg = remove_star_amper(arg);
 		name = get_variable_from_key(arg, key, &sym);
 		if (!name || !sym)
 			name = key;
