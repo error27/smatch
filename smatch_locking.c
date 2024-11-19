@@ -920,6 +920,29 @@ static struct expression *remove_XAS_INVALID(struct expression *expr)
 	return ret;
 }
 
+static struct expression *remove_star_amper(struct expression *expr)
+{
+	struct expression *orig = expr;
+	struct expression *inner;
+
+	/*
+	 * I probably should have made this function recursive.  But it's a
+	 * bit complicated because we can't create a copy an outer expression.
+	 * So right now what this function just handles the "&(*(&rnp->lock))"
+	 * from raw_spin_lock_irqsave_rcu_node().  Which is probably 90% of the
+	 * recursion that actually happens in terms of writing "&*&*&*&foo".
+	 */
+
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '&')
+		return orig;
+
+	inner = strip_expr(expr->unop);
+	if (inner == expr->unop)
+		return orig;
+	return preop_expression(inner, '&');
+}
+
 static struct expression *ignored_modify;
 static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 {
