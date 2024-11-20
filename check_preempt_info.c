@@ -104,6 +104,7 @@ static struct preempt_info func_table[] = {
 	{ "__spin_unlock_irqrestore",		PREEMPT_SUB },
 	{ "_raw_spin_unlock_irqrestore",	PREEMPT_SUB },
 	{ "__raw_spin_unlock_irqrestore",	PREEMPT_SUB },
+	{ "class_preempt_destructor",		PREEMPT_SUB },
 	{ "class_raw_spinlock_irqsave_destructor", PREEMPT_SUB },
 	{ "class_raw_spinlock_irq_destructor",	PREEMPT_SUB },
 	{ "class_spinlock_irq_constructor",	PREEMPT_SUB },
