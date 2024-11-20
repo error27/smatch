@@ -42,6 +42,8 @@ STATE(add);
 STATE(sub);
 STATE(ignore);
 
+#define PREEMPT_IGNORE -1
+
 struct preempt_info {
 	const char *name;
 	int type;
@@ -127,6 +129,8 @@ static struct preempt_info func_table[] = {
 	{ "rht_unlock",				PREEMPT_SUB },
 	{ "bit_spin_unlock",			PREEMPT_SUB },
 	{ "__bit_spin_unlock",			PREEMPT_SUB },
+
+	{ "mtk_wed_device_attach",		PREEMPT_IGNORE },
 };
 
 static void match_return_info(int return_id, char *return_ranges, struct expression *expr)
