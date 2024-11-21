@@ -533,6 +533,8 @@ static struct lock_info lock_table[] = {
 
 	{"acpi_os_signal_semaphore", UNLOCK, sem, 0, "$"},
 
+	{"schedule", IGNORE, irq, -2, "$"},
+
 	{},
 };
 
