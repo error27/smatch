@@ -460,7 +460,9 @@ static struct lock_info lock_table[] = {
 	{"class_serio_pause_rx_destructor", UNLOCK, spin_lock, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
 	{"class_serio_pause_rx_destructor", UNLOCK, irq, -2, "irq"},
 	{"class_spinlock_constructor", LOCK, spin_lock, 0, "$"},
+	{"class_raw_spinlock_constructor", LOCK, spin_lock, 0, "$"},
 	{"class_spinlock_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
+	{"class_raw_spinlock_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
 	{"class_spinlock_irq_constructor", LOCK, spin_lock, 0, "$"},
 	{"class_spinlock_irq_constructor", LOCK, irq, -2, "irq"},
 	{"class_spinlock_irq_destructor", UNLOCK, spin_lock, 0, "%s", NULL, NULL, &match_class_generic_unlock},
@@ -476,6 +478,7 @@ static struct lock_info lock_table[] = {
 	{"class_thermal_zone_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
 	{"class_thermal_zone_reverse_destructor", LOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_lock},
 	{"class_cooling_dev_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
+	{"class_mvm_destructor", UNLOCK, mutex, 0, "&%s->mutex", NULL, NULL, &match_class_generic_unlock},
 
 	{"class_mvm_destructor", UNLOCK, mutex, 0, "&$->mutex"},
 
