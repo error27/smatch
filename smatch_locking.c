@@ -449,6 +449,7 @@ static struct lock_info lock_table[] = {
 	{"pte_offset_map_lock", LOCK, spin_lock, 3, "*$", &valid_ptr_min_sval, &valid_ptr_max_sval},
 
 	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
+	{"uart_unlock_and_check_sysrq_irqrestore", RESTORE, irq, 1, "$"},
 
 	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
 	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
