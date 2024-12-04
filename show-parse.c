@@ -59,6 +59,7 @@ static void do_debug_symbol(struct symbol *sym, int indent)
 		[SYM_UNION] = "unin",
 		[SYM_ENUM] = "enum",
 		[SYM_TYPEOF] = "tpof",
+		[SYM_TYPEOF_UNQUAL] = "tpof_unqual",
 		[SYM_BITFIELD] = "bitf",
 		[SYM_LABEL] = "labl",
 		[SYM_RESTRICT] = "rstr",

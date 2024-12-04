@@ -212,6 +212,7 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 	while ((base = node->ctype.base_type) != NULL)
 		switch (base->type) {
 		case SYM_TYPEOF:
+		case SYM_TYPEOF_UNQUAL:
 			node->ctype.base_type =
 				do_expression(U_VOID, base->initializer);
 			break;

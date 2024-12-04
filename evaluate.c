@@ -358,7 +358,8 @@ static inline int classify_type(struct symbol *type, struct symbol **base)
 	};
 	if (type->type == SYM_NODE)
 		type = type->ctype.base_type;
-	if (type->type == SYM_TYPEOF) {
+	if (type->type == SYM_TYPEOF ||
+	    type->type == SYM_TYPEOF_UNQUAL) {
 		type = examine_symbol_type(type);
 		if (type->type == SYM_NODE)
 			type = type->ctype.base_type;

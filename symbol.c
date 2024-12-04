@@ -549,7 +549,7 @@ static struct symbol *examine_pointer_type(struct symbol *sym)
 	return sym;
 }
 
-static struct symbol *examine_typeof(struct symbol *sym)
+static struct symbol *examine_typeof_helper(struct symbol *sym, bool qual)
 {
 	struct symbol *base = evaluate_expression(sym->initializer);
 	unsigned long mod = 0;
@@ -558,6 +558,8 @@ static struct symbol *examine_typeof(struct symbol *sym)
 		base = &bad_ctype;
 	if (base->type == SYM_NODE) {
 		mod |= base->ctype.modifiers & MOD_TYPEOF;
+		if (!qual)
+			mod &= ~MOD_QUALIFIER;
 		base = base->ctype.base_type;
 	}
 	if (base->type == SYM_BITFIELD)
@@ -566,6 +568,16 @@ static struct symbol *examine_typeof(struct symbol *sym)
 	sym->ctype.modifiers = mod;
 	sym->ctype.base_type = base;
 	return examine_node_type(sym);
+}
+
+static struct symbol *examine_typeof(struct symbol *sym)
+{
+	return examine_typeof_helper(sym, true);
+}
+
+static struct symbol *examine_typeof_unqual(struct symbol *sym)
+{
+	return examine_typeof_helper(sym, false);
 }
 
 /*
@@ -603,6 +615,8 @@ struct symbol *examine_symbol_type(struct symbol * sym)
 		return sym;
 	case SYM_TYPEOF:
 		return examine_typeof(sym);
+	case SYM_TYPEOF_UNQUAL:
+		return examine_typeof_unqual(sym);
 	case SYM_PREPROCESSOR:
 		sparse_error(sym->pos, "ctype on preprocessor command? (%s)", show_ident(sym->ident));
 		return NULL;
@@ -636,6 +650,7 @@ const char* get_type_name(enum type type)
 	[SYM_UNION] = "union",
 	[SYM_ENUM] = "enum",
 	[SYM_TYPEOF] = "typeof",
+	[SYM_TYPEOF_UNQUAL] = "typeof_unqual",
 	[SYM_BITFIELD] = "bitfield",
 	[SYM_LABEL] = "label",
 	[SYM_RESTRICT] = "restrict",

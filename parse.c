@@ -54,7 +54,7 @@ static struct token *handle_attributes(struct token *token, struct decl_state *c
 typedef struct token *declarator_t(struct token *, struct symbol *, struct decl_state *);
 static declarator_t
 	struct_specifier, union_specifier, enum_specifier,
-	attribute_specifier, typeof_specifier,
+	attribute_specifier, typeof_specifier, typeof_unqual_specifier,
 	storage_specifier, thread_specifier;
 static declarator_t generic_qualifier;
 static declarator_t autotype_specifier;
@@ -193,6 +193,13 @@ static struct symbol_op atomic_op = {
 static struct symbol_op typeof_op = {
 	.type = KW_SPECIFIER,
 	.declarator = typeof_specifier,
+	.test = Set_Any,
+	.set = Set_S|Set_T,
+};
+
+static struct symbol_op typeof_unqual_op = {
+	.type = KW_SPECIFIER,
+	.declarator = typeof_unqual_specifier,
 	.test = Set_Any,
 	.set = Set_S|Set_T,
 };
@@ -485,6 +492,7 @@ static struct init_keyword {
 	/* Typedef ... */
 	N("typedef",		&typedef_op,	.mods = MOD_USERTYPE),
 	A("typeof",		&typeof_op),
+	A("typeof_unqual",	&typeof_unqual_op),
 	N("__auto_type",	&autotype_op),
 
 	/* Type qualifiers */
@@ -1061,7 +1069,7 @@ static struct token *enum_specifier(struct token *token, struct symbol *sym, str
 	return ret;
 }
 
-static struct token *typeof_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
+static struct token *typeof_specifier_helper(struct token *token, struct symbol *sym, struct decl_state *ctx, bool qual)
 {
 
 	if (!match_op(token, '(')) {
@@ -1074,7 +1082,7 @@ static struct token *typeof_specifier(struct token *token, struct symbol *sym, s
 		ctx->ctype.base_type = sym->ctype.base_type;
 		apply_ctype(token->pos, &ctx->ctype, &sym->ctype);
 	} else {
-		struct symbol *typeof_sym = alloc_symbol(token->pos, SYM_TYPEOF);
+		struct symbol *typeof_sym = alloc_symbol(token->pos, qual? SYM_TYPEOF : SYM_TYPEOF_UNQUAL);
 		token = parse_expression(token->next, &typeof_sym->initializer);
 
 		typeof_sym->endpos = token->pos;
@@ -1085,6 +1093,16 @@ static struct token *typeof_specifier(struct token *token, struct symbol *sym, s
 		ctx->ctype.base_type = typeof_sym;
 	}
 	return expect(token, ')', "after typeof");
+}
+
+static struct token *typeof_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
+{
+	return typeof_specifier_helper(token, sym, ctx, true);
+}
+
+static struct token *typeof_unqual_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
+{
+	return typeof_specifier_helper(token, sym, ctx, false);
 }
 
 static struct token *autotype_specifier(struct token *token, struct symbol *sym, struct decl_state *ctx)
