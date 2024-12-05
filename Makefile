@@ -487,3 +487,4 @@ $(man1dir)/% $(smatch_datadir)/%: %
 
 # GCC's dependencies
 -include $(OBJS:%.o=.%.o.d)
+-include $(SMATCH_OBJS:%.o=.%.o.d)
