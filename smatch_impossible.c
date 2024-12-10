@@ -37,9 +37,9 @@ static void handle_compare(struct expression *left, int op, struct expression *r
 	int true_impossible = 0;
 	int false_impossible = 0;
 
-	left = strip_expr(left);
+	left = strip_parens(left);
 	while (left && left->type == EXPR_ASSIGNMENT)
-		left = strip_expr(left->left);
+		left = strip_parens(left->left);
 
 	if (!possibly_true(left, op, right))
 		true_impossible = 1;
