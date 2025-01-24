@@ -33,5 +33,6 @@ sm_math1.c:16 func() y = (-57)-s32max
 sm_math1.c:19 func() z = s32min-s32max
 sm_math1.c:20 func() x = 2
 sm_math1.c:23 func() x = s32min-1
+sm_math1.c:23 func() x = s32min-0
  * check-output-end
  */
