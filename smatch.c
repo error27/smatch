@@ -352,6 +352,8 @@ int main(int argc, char **argv)
 	int i;
 	reg_func func;
 
+	/* Ignore the "-o io.o" option.  That's for the compiler. */
+	do_output = 0;
 	sm_outfd = stdout;
 	sql_outfd = stdout;
 	caller_info_fd = stdout;
