@@ -95,7 +95,7 @@ bool __print_states(const char *owner)
 	return found;
 }
 
-int unreachable(void)
+int is_unreachable(void)
 {
 	if (!cur_stree)
 		return 1;
@@ -190,7 +190,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 	call_tracker_hooks(owner, name, sym, state);
 
-	if (owner != -1 && unreachable())
+	if (owner != -1 && is_unreachable())
 		return NULL;
 
 	if (fake_cur_stree_stack)
@@ -295,7 +295,7 @@ void __set_sm(struct sm_state *sm)
 			       show_state(s));
 	}
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	if (fake_cur_stree_stack)
@@ -320,7 +320,7 @@ void __set_sm_cur_stree(struct sm_state *sm)
 				__func__, show_sm(sm), show_state(s));
 	}
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	overwrite_sm_state_stree(&cur_stree, sm);
@@ -596,7 +596,7 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 		       show_state(true_state), show_state(false_state));
 	}
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	if (!cond_false_stack || !cond_true_stack) {
@@ -635,7 +635,7 @@ void __set_true_false_sm(struct sm_state *true_sm, struct sm_state *false_sm)
 	if (!true_sm && !false_sm)
 		return;
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	owner = true_sm ? true_sm->owner : false_sm->owner;

@@ -333,7 +333,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	if (!option_info && !__inline_call)
 		return;
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	if (key && strlen(key) >= 80)

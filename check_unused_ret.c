@@ -99,7 +99,7 @@ static void match_assign_call(struct expression *expr)
 		return;
 	if (expr->op != '=')
 		return;
-	if (unreachable())
+	if (is_unreachable())
 		return;
 	if (ignored_function(expr->right))
 		return;

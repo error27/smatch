@@ -825,7 +825,7 @@ void __set_fake_cur_stree_fast(struct stree *stree);
 void __pop_fake_cur_stree_fast(void);
 void __merge_stree_into_cur(struct stree *stree);
 
-int unreachable(void);
+int is_unreachable(void);
 void __set_cur_stree_readonly(void);
 void __set_cur_stree_writable(void);
 void __set_sm(struct sm_state *sm);

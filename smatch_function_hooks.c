@@ -1415,7 +1415,7 @@ void function_comparison(struct expression *left, int comparison, struct express
 	// condition calls should be faked and then handled as assignments
 	// this code is a lazy work around
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	/* legacy cruft.  need to fix call_implies_callbacks(). */
@@ -1772,7 +1772,7 @@ static void db_return_states_call(struct expression *expr)
 {
 	struct expression *parent;
 
-	if (unreachable())
+	if (is_unreachable())
 		return;
 
 	parent = get_parent_assignment(expr);
