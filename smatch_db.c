@@ -2340,9 +2340,12 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	return 1;
 }
 
-static int is_boolean(struct expression *expr)
+static int is_boolean_return(struct expression *expr)
 {
 	struct range_list *rl;
+
+	if (cur_func_return_type() == &bool_ctype)
+		return 1;
 
 	if (!get_implied_rl(expr, &rl))
 		return 0;
@@ -2610,7 +2613,7 @@ static void call_return_state_hooks(struct expression *expr)
 
 	if (expr && (expr->type == EXPR_COMPARE ||
 		     !get_implied_value(expr, &sval)) &&
-	    (is_condition(expr) || is_boolean(expr))) {
+	    (is_condition(expr) || is_boolean_return(expr))) {
 		call_return_state_hooks_compare(expr);
 		if (debug_db)
 			sm_msg("%s: bool", __func__);
