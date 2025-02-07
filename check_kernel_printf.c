@@ -484,6 +484,17 @@ static void resource_string(const char *fmt, struct symbol *type, struct symbol 
 		sm_warning("'%%p%c' cannot be followed by '%c'", fmt[0], fmt[1]);
 }
 
+static void range_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
+{
+	assert(fmt[0] == 'r' && fmt[1] == 'a');
+	if (!is_struct_tag(basetype, "range")) {
+		sm_error("'%%p%c' expects argument of type struct range *, "
+			"but argument %d has type '%s'", fmt[0], vaidx, type_to_str(type));
+	}
+	if (isalnum(fmt[2]))
+		sm_warning("'%%p%c%c' cannot be followed by '%c'", fmt[0], fmt[1], fmt[2]);
+}
+
 static void mac_address_string(const char *fmt, struct symbol *type, struct symbol *basetype, int vaidx)
 {
 	assert(tolower(fmt[0]) == 'm');
@@ -734,8 +745,13 @@ pointer(const char *fmt, struct expression *arg, int vaidx)
 		break;
 
 	case 'R':
-	case 'r':
 		resource_string(fmt, type, basetype, vaidx);
+		break;
+	case 'r':
+		if (fmt[1] == 'a')
+			range_string(fmt, type, basetype, vaidx);
+		else
+			resource_string(fmt, type, basetype, vaidx);
 		break;
 	case 'M':
 	case 'm':
