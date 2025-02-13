@@ -417,8 +417,6 @@ static struct lock_info lock_table[] = {
 	{"__release_sock",   UNLOCK, spin_lock, 0, "$"},
 	{"chtls_pt_recvmsg", UNLOCK, spin_lock, 0, "$"},
 
-	{"lock_task_sighand", LOCK,  spin_lock, 0, "&$->sighand->siglock", &valid_ptr_min_sval, &valid_ptr_max_sval},
-
 	{"rcu_nocb_unlock_irqrestore", RESTORE, spin_lock, 0, "&$->nocb_lock"},
 	{"rcu_nocb_unlock_irqrestore", RESTORE, irq, 1, "$" },
 
