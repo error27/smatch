@@ -129,3 +129,16 @@ trace_get_user s32min-s32max 0-s32max[<=$2]
 mipi_dsi_device_transfer s64min-s64max (-4095)-s32max
 timer_delete 0 0-1
 get_device 0-u64max 4096-ptr_max[$0]
+find_first_and_bit 1-u32max 1-s32max
+dma_alloc_attrs 0-u64max 0-ptr_max
+dma_alloc_attrs 1-u64max 4096-ptr_max
+nilfs_btree_get_block s32min-(-18),(-16)-(-3),(-1),1-s32max s32min-(-18),(-16)-(-3),(-1)
+nilfs_mdt_get_block s32min-(-23),(-21)-(-18),(-16)-(-1),1-s32max s32min-(-23),(-21)-(-18),(-16)-(-1)
+nilfs_mdt_read_block s32min-(-23),(-21)-(-18),(-16)-(-1),1-s32max s32min-(-23),(-21)-(-18),(-16)-(-1)
+pcpu_alloc_noprof 0-u64max 0,4096-ptr_max
+sdio_readsb s32min-(-1),1-s32max (-4095)-(-1)
+dma_resv_wait_timeout s64min-(-1),1-s64max[==$3] 1-s64max[==$3]
+dma_resv_wait_timeout s64min-0 (-4095)-0
+bno055_get_regmask s32min-(-1),1-s32max (-4095)-(-1)
+i_size_read s64min-s64max 0-s64max
+ad_sigma_delta_single_conversion s32min-(-1),1-s32max (-4095)-(-1)
