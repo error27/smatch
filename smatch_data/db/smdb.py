@@ -577,7 +577,6 @@ def print_functions(struct, member):
         cur.execute("select * from function_ptr where ptr = '%s';" %(member))
     else:
         cur.execute("select * from function_ptr where ptr like '%%->%s';" %(member))
-    print("File | Pointer | Function | Static")
     for txt in cur:
         print("%-15s | %-15s | %-15s | %s" %(hash_to_string(txt[0]), txt[2], txt[1], txt[3]))
 
