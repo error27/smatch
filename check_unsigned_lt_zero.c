@@ -129,6 +129,15 @@ static bool has_upper_bound(struct expression *var, struct expression *expr)
 	return false;
 }
 
+static bool is_special_x(struct expression *expr)
+{
+	if (option_project != PROJ_KERNEL)
+		return false;
+	if (sym_name_is("_x", expr))
+		return true;
+	return false;
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct expression *left, *right;
@@ -155,6 +164,9 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (has_upper_bound(left, expr))
+		return;
+
+	if (is_special_x(left))
 		return;
 
 	name = expr_to_str(left);
