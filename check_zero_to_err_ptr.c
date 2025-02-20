@@ -153,6 +153,24 @@ static int has_distinct_zero(struct range_list *rl)
 	return 0;
 }
 
+static bool has_distinct_positive(struct range_list *rl)
+{
+	sval_t max;
+
+	/*
+	 * Initializially, I imagined only looking at the last range in
+	 * the range list.  Return true if it points to a single value
+	 * and then it's greater than zero.  But actually that doesn't
+	 * totally work because one bug was range 4-5.  And also there
+	 * is no need to make it so complicated.
+	 *
+	 */
+	max = rl_max(rl);
+	if (max.value > 0 && !sval_is_a_max(max))
+		return true;
+	return false;
+}
+
 static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
@@ -177,6 +195,8 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 		return;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
+		sval_t sval;
+
 		if (!estate_rl(tmp->state))
 			continue;
 		if (estate_type(tmp->state) == &llong_ctype)
@@ -187,6 +207,17 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 			sm_warning("passing zero to '%s'", fn);
 			return;
 		}
+
+		if (has_distinct_positive(estate_rl(tmp->state))) {
+			sm_warning("passing positive error code '%s' to '%s'", tmp->state->name, fn);
+			return;
+		}
+
+		if (estate_get_single_value(tmp->state, &sval) && sval.value < -4096) {
+			sm_warning("passing invalid error code %lld to '%s'", sval.value, fn);
+			return;
+		}
+
 		if (strcmp(fn, "PTR_ERR") != 0)
 			continue;
 		if (is_valid_ptr(estate_min(tmp->state)) &&
