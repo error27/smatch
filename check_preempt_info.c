@@ -129,6 +129,7 @@ static struct preempt_info func_table[] = {
 	{ "rht_unlock",				PREEMPT_SUB },
 	{ "bit_spin_unlock",			PREEMPT_SUB },
 	{ "__bit_spin_unlock",			PREEMPT_SUB },
+	{ "class_serio_pause_rx_destructor",	PREEMPT_SUB },
 
 	{ "mtk_wed_device_attach",		PREEMPT_IGNORE },
 };
