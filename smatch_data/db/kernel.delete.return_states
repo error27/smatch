@@ -22,3 +22,5 @@ iov_iter_get_pages2 2147479552
 bio_split (-22)
 bio_split (-12)
 acpi_fwnode_property_read_int_array 1
+intel_pasid_setup_sm_context 1
+walk_system_ram_res 1
