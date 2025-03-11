@@ -37,6 +37,8 @@ static void deref_hook(struct expression *expr)
 	estate = get_state_expr(SMATCH_EXTRA, expr);
 	if (estate_is_empty(estate))
 		return;
+	if (is_impossible_path())
+		return;
 
 	name = expr_to_str(expr);
 	sm_msg("warn: '%s' can also be NULL", name);
