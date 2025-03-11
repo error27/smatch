@@ -23,6 +23,24 @@ static int my_id;
 
 STATE(null);
 
+static bool is_assigned_function(struct expression *expr)
+{
+	struct expression *assigned;
+	struct sm_state *sm, *tmp;
+
+	sm = get_assigned_sm(expr);
+	if (!sm)
+		return false;
+	FOR_EACH_PTR(sm->possible, tmp) {
+		assigned = tmp->state->data;
+		if (!assigned)
+			continue;
+		if (assigned->type != EXPR_CALL)
+			return false;
+	} END_FOR_EACH_PTR(tmp);
+	return true;
+}
+
 static void deref_hook(struct expression *expr)
 {
 	struct smatch_state *estate;
@@ -38,6 +56,10 @@ static void deref_hook(struct expression *expr)
 	if (estate_is_empty(estate))
 		return;
 	if (is_impossible_path())
+		return;
+
+	if (!option_spammy &&
+	    !is_assigned_function(expr))
 		return;
 
 	name = expr_to_str(expr);
