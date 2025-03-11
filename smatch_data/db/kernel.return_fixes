@@ -142,3 +142,5 @@ dma_resv_wait_timeout s64min-0 (-4095)-0
 bno055_get_regmask s32min-(-1),1-s32max (-4095)-(-1)
 i_size_read s64min-s64max 0-s64max
 ad_sigma_delta_single_conversion s32min-(-1),1-s32max (-4095)-(-1)
+keyring_search_rcu 0,8191-9223372036854775807,(-4095)-(-1) 4096-ptr_max,(-4095)-(-1)
+key_ref_to_ptr 0,2-ptr_max 4096-ptr_max
