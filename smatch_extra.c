@@ -2720,6 +2720,19 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	name = get_chunk_from_key(arg, key, &sym, &vsl);
 	if (!name)
 		return;
+
+	/*
+	 * TODO: This isn't ideal.  The problem is we know "foo" is non-NULL but
+	 * then PARAM_LIMIT sets "&foo->bar" to 0,4096-ptr_max.  That's
+	 * reverse knowledge.  It's better to ignore it.  But it would be
+	 * better to have special handling for the case where the offset is
+	 * zero.  In that case, when we're setting "&foo->bar" it to
+	 * non-NULL it will update the state of "foo".  It never makes sense to
+	 * update the address.
+	 */
+	if (name[0] == '&')
+		return;
+
 	if (op != PARAM_LIMIT && !sym)
 		goto free;
 
