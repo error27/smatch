@@ -207,6 +207,9 @@ static void match_return(struct expression *expr)
 	if (!is_freed(expr))
 		return;
 
+	if (type_bits(cur_func_return_type()) == 1)
+		return;
+
 	name = expr_to_var(expr);
 	sm_warning("returning freed memory '%s'", name);
 	set_state_expr(my_id, expr, &ok);
