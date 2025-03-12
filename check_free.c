@@ -82,20 +82,16 @@ static void match_symbol(struct expression *expr)
 	free_string(name);
 }
 
-static void match_dereferences(struct expression *expr)
+static void deref_hook(struct expression *expr)
 {
 	char *name;
 
 	if (__in_fake_parameter_assign)
 		return;
 
-	if (expr->type != EXPR_PREOP)
-		return;
-
 	if (is_impossible_path())
 		return;
 
-	expr = strip_expr(expr->unop);
 	if (!is_freed(expr))
 		return;
 	name = expr_to_var(expr);
@@ -308,7 +304,7 @@ void check_free(int id)
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
-	add_hook(&match_dereferences, DEREF_HOOK);
+	add_dereference_hook(deref_hook);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 
