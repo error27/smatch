@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 Dan Carpenter.
+ * Copyright (C) 2018 Oracle.
  * Copyright 2023 Linaro Ltd.
  *
  * This program is free software; you can redistribute it and/or
@@ -18,6 +19,7 @@
 
 #include "smatch.h"
 #include "smatch_extra.h"
+#include "smatch_slist.h"
 
 static int my_id;
 
@@ -65,12 +67,18 @@ static bool is_upper(struct expression *var, struct expression *cond)
 
 static bool is_if_else_clamp_stmt(struct expression *var, struct expression *expr)
 {
-	struct statement *stmt, *else_cond;
+	struct statement *parent, *stmt, *else_cond;
 
 	stmt = expr_get_parent_stmt(expr);
 	if (!stmt || stmt->type != STMT_IF)
 		return false;
 	if (is_upper(var, stmt->if_conditional))
+		return true;
+
+	parent = stmt_get_parent_stmt(stmt);
+	if (parent && parent->type == STMT_IF &&
+	    parent->if_false == stmt &&
+	    is_upper(var, parent->if_conditional))
 		return true;
 
 	else_cond = stmt->if_false;
@@ -174,9 +182,94 @@ static void match_condition(struct expression *expr)
 	free_string(name);
 }
 
+static int was_signed(struct expression *expr)
+{
+	struct expression *orig;
+	struct range_list *rl;
+
+	orig = get_assigned_expr(expr);
+	if (!orig)
+		return 0;
+	if (!expr_signed(orig))
+		return 0;
+
+	get_absolute_rl(orig, &rl);
+	return sval_is_negative(rl_min(rl));
+}
+
+static struct symbol *get_signed_type(struct symbol *type)
+{
+	switch (type_bits(type)) {
+	case 8:
+		return &char_ctype;
+	case 16:
+		return &ushort_ctype;
+	case 32:
+		return &int_ctype;
+	case 64:
+		return &llong_ctype;
+	}
+	return NULL;
+}
+
+static int has_individual_negatives(struct sm_state *sm)
+{
+	struct symbol *signed_type;
+	struct sm_state *tmp;
+	struct range_list *rl;
+
+	signed_type = get_signed_type(estate_type(sm->state));
+	if (!signed_type)
+		return 0;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		rl = cast_rl(signed_type, estate_rl(tmp->state));
+		if (sval_is_negative(rl_min(rl)) &&
+		    sval_is_negative(rl_max(rl)))
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
+
+static void match_condition_lte(struct expression *expr)
+{
+	struct symbol *type;
+	struct sm_state *sm;
+	char *name;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+	if (expr->op != SPECIAL_UNSIGNED_LTE &&
+	    expr->op != SPECIAL_LTE)
+		return;
+	if (!expr_is_zero(expr->right))
+		return;
+
+	type = get_type(expr->left);
+	if (!type || !type_unsigned(type))
+		return;
+
+	sm = get_extra_sm_state(expr->left);
+	if (!sm)
+		return;
+
+	if (!was_signed(expr->left) &&
+	    !has_individual_negatives(sm))
+		return;
+
+	if (has_upper_bound(expr->left, expr))
+		return;
+
+	name = expr_to_str(expr->left);
+	sm_msg("warn: '%s' unsigned <= 0", name);
+	free_string(name);
+}
+
 void check_unsigned_lt_zero(int id)
 {
 	my_id = id;
 
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_condition_lte, CONDITION_HOOK);
 }
