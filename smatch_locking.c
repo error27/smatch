@@ -118,6 +118,16 @@ static struct lock_info lock_table[] = {
 	{"spin_trylock_irq",           FAIL,   spin_lock, NO_ARG, "irq", &int_zero, &int_zero},
 	{"spin_trylock_irqsave",       FAIL,   spin_lock, 1, "$", &int_zero, &int_zero},
 
+	{"raw_spin_rq_lock",              LOCK,   spin_lock, 0,  "$" },
+	{"raw_spin_rq_lock",              UNLOCK, spin_lock, 0,  "$" },
+	{"raw_spin_rq_lock_irq",          LOCK,   spin_lock, 0,  "$" },
+	{"raw_spin_rq_unlock_irq",        UNLOCK, spin_lock, 0,  "$" },
+	{"raw_spin_rq_lock_irq",          LOCK,   irq,       NO_ARG, "irq"},
+	{"raw_spin_rq_unlock_irq",        UNLOCK, irq,       NO_ARG, "irq"},
+	{"_raw_spin_rq_lock_irqsave",     LOCK,   spin_lock, 0,  "$" },
+	{"raw_spin_rq_unlock_irqrestore", UNLOCK, spin_lock, 0,  "$" },
+	{"_raw_spin_rq_lock_irqsave",     LOCK,   irq,       -1, "$" },
+	{"raw_spin_rq_unlock_irqrestore", UNLOCK, irq,       1,  "$" },
 
 	{"_atomic_dec_and_lock",       LOCK,   spin_lock, 1, "$", &int_one, &int_one},
 
@@ -126,6 +136,7 @@ static struct lock_info lock_table[] = {
 	{"down_read_nested",          LOCK,   read_lock, 0, "$"},
 	{"down_read_trylock",         LOCK,   read_lock, 0, "$", &int_one, &int_one},
 	{"down_read_killable",        LOCK,   read_lock, 0, "$", &int_zero, &int_zero},
+	{"down_read_interruptible",   LOCK,   read_lock, 0, "$", &int_zero, &int_zero},
 	{"up_read",                   UNLOCK, read_lock, 0, "$"},
 	{"read_unlock",               UNLOCK, read_lock, 0, "$"},
 	{"_read_lock",                LOCK,   read_lock, 0, "$"},
@@ -233,12 +244,13 @@ static struct lock_info lock_table[] = {
 	{"down_write_killable",       LOCK,   write_lock, 0, "$", &int_zero, &int_zero},
 
 	{"down",               LOCK,   sem, 0, "$"},
+	{"__down",             LOCK,   sem, 0, "$"},
 	{"up",                 UNLOCK, sem, 0, "$"},
 	{"down_trylock",       LOCK,   sem, 0, "$", &int_zero, &int_zero},
 	{"down_timeout",       LOCK,   sem, 0, "$", &int_zero, &int_zero},
 	{"down_interruptible", LOCK,   sem, 0, "$", &int_zero, &int_zero},
 	{"down_killable",      LOCK,   sem, 0, "$", &int_zero, &int_zero},
-
+	{"___down_common",     LOCK,   sem, 0, "$", &int_zero, &int_zero},
 
 	{"mutex_lock",                      LOCK,   mutex, 0, "$"},
 	{"mutex_unlock",                    UNLOCK, mutex, 0, "$"},
