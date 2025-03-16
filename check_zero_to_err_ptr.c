@@ -156,6 +156,7 @@ static int has_distinct_zero(struct range_list *rl)
 static bool has_distinct_positive(struct range_list *rl)
 {
 	sval_t max;
+	long long max_value;
 
 	/*
 	 * Initializially, I imagined only looking at the last range in
@@ -165,8 +166,18 @@ static bool has_distinct_positive(struct range_list *rl)
 	 * is no need to make it so complicated.
 	 *
 	 */
+
+	if (!rl)
+		return false;
+
 	max = rl_max(rl);
-	if (max.value > 0 && !sval_is_a_max(max))
+	/* extent the sign bit when compiling with -m32 */
+	max_value = max.value;
+	if (type_is_ptr(rl_type(rl)) &&
+	    type_bits(rl_type(rl)) == 32 &&
+	    sizeof(void *) == 8)
+		max_value = (int)max_value;
+	if (max_value > 0 && !sval_is_a_max(max))
 		return true;
 	return false;
 }
