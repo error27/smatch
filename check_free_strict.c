@@ -35,6 +35,8 @@ STATE(freed);
 STATE(maybe_freed);
 STATE(ok);
 
+#define IGNORE 100000
+
 static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data);
 static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, void *data);
 
@@ -79,6 +81,8 @@ static struct func_info func_table[] = {
 	{ "put_device", PARAM_FREED, 0, "$", NULL, NULL, &match_kobject_put },
 
 	{ "__skb_pad", PARAM_FREED, 0, "$", &err_min, &err_max, &match___skb_pad },
+
+	{ "skb_unshare", IGNORE, 0, "$" },
 };
 
 static struct name_sym_fn_list *free_hooks;
@@ -440,10 +444,14 @@ static bool is_ptr_to(struct expression *expr, const char *type)
 
 static void match_free(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
+	struct func_info *info = data;
 	struct expression *arg;
 	int line;
 
 	if (is_impossible_path())
+		return;
+
+	if (info && info->type == IGNORE)
 		return;
 
 	arg = gen_expression_from_name_sym(name, sym);
