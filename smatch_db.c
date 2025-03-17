@@ -1783,14 +1783,27 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 {
 	int final_pass_orig = final_pass;
 	static int recurse;
+	sval_t sval;
 
-	if (recurse >= 2)
+	if (recurse >= 3)
 		return false;
 	if (!expr ||
 	    (expr->type != EXPR_CONDITIONAL && expr->type != EXPR_SELECT))
 		return false;
 
 	recurse++;
+
+	if (get_implied_value(expr->conditional, &sval) && sval.value == 0) {
+		call_return_state_hooks(expr->cond_false);
+		recurse--;
+		return true;
+
+	}
+	if (implied_not_equal(expr->conditional, 0)) {
+		call_return_state_hooks(expr->cond_true ?: expr->conditional);
+		recurse--;
+		return true;
+	}
 
 	__push_fake_cur_stree();
 
