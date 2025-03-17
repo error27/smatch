@@ -290,23 +290,21 @@ static void match_symbol(struct expression *expr)
 	free_string(name);
 }
 
-static void match_dereferences(struct expression *expr)
+static void deref_hook(struct expression *expr)
 {
 	char *name;
 	int line;
 
-	if (expr->type != EXPR_PREOP)
+	if (__in_fake_parameter_assign)
 		return;
 
 	if (is_impossible_path())
 		return;
-	if (__in_fake_parameter_assign)
-		return;
 
-	expr = strip_expr(expr->unop);
 	line = get_freed_line(expr);
 	if (line < 0)
 		return;
+
 	name = expr_to_var(expr);
 	sm_error("dereferencing freed memory '%s' (line %d)", name, line);
 	set_state_expr(my_id, expr, &ok);
@@ -688,7 +686,7 @@ void check_free_strict(int id)
 
 	if (option_spammy)
 		add_hook(&match_symbol, SYM_HOOK);
-	add_hook(&match_dereferences, DEREF_HOOK);
+	add_dereference_hook(deref_hook);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&match_return, RETURN_HOOK);
 
