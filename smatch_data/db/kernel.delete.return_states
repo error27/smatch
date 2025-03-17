@@ -1,3 +1,4 @@
+btrfs_replace_file_extents 1
 copy_from_user 1-u64max
 copy_from_user 1-u64max[==$2]
 copy_from_user 2147483648-u64max[==$2]
