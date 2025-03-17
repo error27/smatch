@@ -549,6 +549,8 @@ static void set_param_helper(struct expression *expr, int param,
 		goto free;
 	if (refcount_was_inced_name_sym(name, sym, "->ref.refcount.refs.counter"))
 		goto free;
+	if (refcount_was_inced_name_sym(name, sym, "->kref.refcount.refs.counter"))
+		goto free;
 
 	if (state == &freed && !is_impossible_path()) {
 		sm = get_sm_state(my_id, name, sym);
