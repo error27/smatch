@@ -281,7 +281,8 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 			return NULL;
 		if (arg != expr) {
 			arg = expr;
-			*sym = expr_to_sym(expr);
+			if (sym)
+				*sym = expr_to_sym(expr);
 		}
 		key = new_key;
 	}
@@ -295,7 +296,8 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 			return NULL;
 		if (arg != expr) {
 			arg = expr;
-			*sym = expr_to_sym(expr);
+			if (sym)
+				*sym = expr_to_sym(expr);
 		}
 		key = new_key;
 	}
