@@ -563,6 +563,9 @@ char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct exp
 	struct var_sym *var_sym;
 	int param;
 
+	if (!name)
+		return NULL;
+
 	*sym_p = NULL;
 
 	// FIXME was modified...
