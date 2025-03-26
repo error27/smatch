@@ -2579,7 +2579,7 @@ struct expression *strip_expr_statement(struct expression *expr)
 		return orig;
 
 	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (!last_stmt || last_stmt->type == STMT_LABEL)
+	if (last_stmt && last_stmt->type == STMT_LABEL)
 		last_stmt = last_stmt->label_statement;
 	if (!last_stmt || last_stmt->type != STMT_EXPRESSION)
 		return orig;
