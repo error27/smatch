@@ -25,3 +25,5 @@ bio_split (-12)
 acpi_fwnode_property_read_int_array 1
 intel_pasid_setup_sm_context 1
 walk_system_ram_res 1
+nouveau_connector_create 0
+ubi_find_or_add_av 0
