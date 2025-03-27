@@ -2563,29 +2563,6 @@ impossible:
 	return false;
 }
 
-struct expression *strip_expr_statement(struct expression *expr)
-{
-	struct expression *orig = expr;
-	struct statement *stmt, *last_stmt;
-
-	if (!expr)
-		return NULL;
-	if (expr->type == EXPR_PREOP && expr->op == '(')
-		expr = expr->unop;
-	if (expr->type != EXPR_STATEMENT)
-		return orig;
-	stmt = expr->statement;
-	if (!stmt || stmt->type != STMT_COMPOUND)
-		return orig;
-
-	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
-	if (last_stmt && last_stmt->type == STMT_LABEL)
-		last_stmt = last_stmt->label_statement;
-	if (!last_stmt || last_stmt->type != STMT_EXPRESSION)
-		return orig;
-	return strip_expr(last_stmt->expression);
-}
-
 static bool is_kernel_error_path(struct expression *expr)
 {
 	struct range_list *rl;
