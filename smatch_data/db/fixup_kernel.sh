@@ -266,18 +266,16 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
 done
 
 for func in __kmalloc __kmalloc_track_caller __do_kmalloc_node __kmalloc_node_track_caller kmalloc_noprof ; do
-
     cat << EOF | sqlite3 $db_file
 delete from return_states where function = '$func';
-insert into return_states values ('faked', '$func', 0, 1, '16', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '$func', 0, 1, '16', 0, 103,   0, '\$', '0');
-insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0, 103,  0, '\$', '1-4000000');
-insert into return_states values ('faked', '$func', 0, 2, '4096-ptr_max', 0, 1037,  -1, '', 400);
-insert into return_states values ('faked', '$func', 0, 3, '0', 0,    0,  -1, '', '');
-insert into return_states values ('faked', '$func', 0, 3, '0', 0,    103,  0, '\$', '1-long_max');
+insert into return_states values (0, '$func', 0, 1, '16', 0,    0,  -1, '', '');
+insert into return_states values (0, '$func', 0, 1, '16', 0, 103,   0, '\$', '0');
+insert into return_states values (0, '$func', 0, 2, '4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values (0, '$func', 0, 2, '4096-ptr_max', 0, 103,  0, '\$', '1-4000000');
+insert into return_states values (0, '$func', 0, 2, '4096-ptr_max', 0, 1037,  -1, '', 400);
+insert into return_states values (0, '$func', 0, 3, '0', 0,    0,  -1, '', '');
+insert into return_states values (0, '$func', 0, 3, '0', 0,    103,  0, '\$', '1-long_max');
 EOF
-
 done
 
 # it's easiest to pretend that invalid kobjects don't exist
