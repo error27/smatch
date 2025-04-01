@@ -622,6 +622,9 @@ int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,
 	struct symbol *ret_sym;
 	char *ret_str;
 
+	if (key)
+		*key = NULL;
+
 	if (!ret_expr)
 		return -2;
 
@@ -649,6 +652,7 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 			       const char **key)
 {
 	const char *param_name;
+	const char *ret_key;
 	char *other_name;
 	struct symbol *other_sym;
 	int param;
@@ -667,9 +671,12 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 		}
 	}
 
-	param = get_return_param_key_from_var_sym(name, sym, ret_expr, key);
-	if (param == -1)
+	/* Matches the return expression.  Shouldn't this come first? */
+	param = get_return_param_key_from_var_sym(name, sym, ret_expr, &ret_key);
+	if (param == -1) {
+		*key = ret_key;
 		return param;
+	}
 
 	other_name = get_param_var_sym_var_sym(name, sym, ret_expr, &other_sym);
 	if (!other_name || !other_sym)
