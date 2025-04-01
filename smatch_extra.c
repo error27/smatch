@@ -2599,12 +2599,12 @@ static void caller_info_callback(struct expression *call, int param, char *print
 static void returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct symbol *returned_sym;
+	const char *name_buf;
 	char *returned_name;
 	struct sm_state *sm;
 	char *compare_str;
-	char name_buf[256];
 	char val_buf[256];
-	int len;
+	int param;
 
 	// FIXME handle *$
 
@@ -2616,19 +2616,16 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	returned_name = expr_to_var_sym(expr, &returned_sym);
 	if (!returned_name || !returned_sym)
 		goto free;
-	len = strlen(returned_name);
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (!estate_rl(sm->state))
 			continue;
-		if (returned_sym != sm->sym)
-			continue;
-		if (strncmp(returned_name, sm->name, len) != 0)
-			continue;
-		if (sm->name[len] != '-')
-			continue;
 
-		snprintf(name_buf, sizeof(name_buf), "$%s", sm->name + len);
+		param = get_return_param_key_from_var_sym(sm->name, sm->sym, expr, &name_buf);
+		if (param != -1 || !name_buf)
+			continue;
+		if (!strchr(name_buf, '-'))
+			continue;
 
 		compare_str = name_sym_to_param_comparison(sm->name, sm->sym);
 		if (!compare_str && estate_is_whole(sm->state))
