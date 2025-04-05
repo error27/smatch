@@ -110,6 +110,8 @@ static void match_binop(struct expression *expr)
 
 static void match_mask(struct expression *expr)
 {
+	char *mask, *shift;
+
 	if (expr->op != '&')
 		return;
 	if (expr->right->type != EXPR_BINOP)
@@ -117,7 +119,14 @@ static void match_mask(struct expression *expr)
 	if (expr->right->op != SPECIAL_RIGHTSHIFT)
 		return;
 
-	sm_warning("shift has higher precedence than mask");
+	if (get_macro_name(expr->pos))
+		return;
+
+	mask = expr_to_str(expr->left);
+	shift = expr_to_str(expr->right);
+	sm_msg("warn: shift has higher precedence than mask '%s' & '%s'", mask, shift);
+	free_string(shift);
+	free_string(mask);
 }
 
 static void match_mask_compare(struct expression *expr)
