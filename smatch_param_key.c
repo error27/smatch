@@ -889,6 +889,64 @@ static char *handle_container_of_assign(struct expression *expr, struct symbol *
 	return alloc_string(buf);
 }
 
+static char *handle_container_of_const_assign(struct expression *expr, struct symbol **sym)
+{
+	struct expression *right, *orig;
+	struct statement *stmt, *last;
+	struct symbol *type;
+	sval_t sval = int_minus_one;
+	int param;
+	char buf[64];
+
+	/* Huh...  I thought we could just re-use handle_container_of_assign()
+	 * but I guess there is some fakery going on, so
+	 * handle_container_of_assign() has a simpler expression to deal with.
+	 */
+
+	type = get_type(expr->left);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+
+	right = strip_parens(expr->right);
+	if (!right || right->type != EXPR_GENERIC || !right->def)
+		return NULL;
+
+	right = strip_expr(strip_Generic(right));
+	if (right->type != EXPR_PREOP || right->op != '(')
+		return NULL;
+	right = strip_expr(right->unop);
+	if (right->type != EXPR_STATEMENT)
+		return NULL;
+
+	stmt = right->statement;
+	if (stmt->type != STMT_COMPOUND)
+		return NULL;
+
+	last = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!last || last->type != STMT_EXPRESSION)
+		return false;
+	right = strip_expr(last->expression);
+	if (right->type != EXPR_BINOP || right->op != '-')
+		return NULL;
+
+	if (!get_value(right->right, &sval) ||
+	   sval.value < 0 || sval.value > MTAG_OFFSET_MASK)
+		return NULL;
+
+	orig = get_assigned_expr(right->left);
+	if (!orig)
+		return NULL;
+	if (orig->type != EXPR_SYMBOL)
+		return NULL;
+	param = get_param_num_from_sym(orig->symbol);
+	if (param < 0)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "(%lld<~$%d)", sval.value, param);
+	*sym = orig->symbol;
+	return alloc_string(buf);
+}
+
 static char *handle_netdev_priv_assign(struct expression *expr, struct symbol **sym)
 {
 	struct expression *right, *arg;
@@ -943,6 +1001,10 @@ static void match_assign(struct expression *expr)
 		return;
 
 	param_name = get_param_name_sym(expr->right, &param_sym);
+	if (param_name && param_sym)
+		goto set_state;
+
+	param_name = handle_container_of_const_assign(expr, &param_sym);
 	if (param_name && param_sym)
 		goto set_state;
 
