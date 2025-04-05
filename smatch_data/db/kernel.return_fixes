@@ -146,3 +146,5 @@ keyring_search_rcu 0,8191-9223372036854775807,(-4095)-(-1) 4096-ptr_max,(-4095)-
 key_ref_to_ptr 0,2-ptr_max 4096-ptr_max
 iommu_attach_handle_get 0,4-9223372036854775807 4096-ptr_max
 cifs_sb_master_tlink 0-u64max[$0->master_tlink] 4096-ptr_max[$0->master_tlink]
+afs_yfsvl_get_cell_name 0-u64max 4096-ptr_max
+process_lvol 0 4096-ptr_max
