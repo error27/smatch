@@ -16,6 +16,7 @@
  */
 
 #include "smatch.h"
+#include "smatch_extra.h"
 
 static int my_id;
 
@@ -34,6 +35,7 @@ static bool in_ignored_macro(struct expression *expr)
 static void match_stmt(struct statement *stmt)
 {
 	struct expression *expr;
+	char *str;
 
 	if (stmt->type != STMT_EXPRESSION)
 		return;
@@ -55,13 +57,18 @@ static void match_stmt(struct statement *stmt)
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_COMMA:
+	case EXPR_LOGICAL:
+	case EXPR_GENERIC:
 		return;
 	}
 	if (in_expression_statement())
 		return;
 	if (in_ignored_macro(expr))
 		return;
-	sm_warning("statement has no effect %d", expr->type);
+
+	str = expr_to_str(expr);
+	sm_warning("statement has no effect '%s'", str);
+	free_string(str);
 }
 
 void check_no_effect(int id)
