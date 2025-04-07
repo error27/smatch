@@ -773,7 +773,8 @@ static bool match_with_intel_runtime(struct statement *stmt)
 	if (!macro)
 		return false;
 	if (strncmp(macro, "with_intel_runtime", 18) == 0 ||
-	    strncmp(macro, "with_intel_display", 18) == 0)
+	    strncmp(macro, "with_intel_display", 18) == 0 ||
+	    strcmp(macro, "drm_exec_until_all_locked") == 0)
 		return true;
 	return false;
 }
