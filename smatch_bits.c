@@ -391,10 +391,8 @@ static void match_condition(struct expression *expr)
 	true_info = *orig;
 	false_info = *orig;
 
-	if (right.uvalue == 0 || is_single_bit(right))
-		true_info.set &= right.uvalue;
-
-	true_info.possible &= right.uvalue;
+	if (is_single_bit(right) && (orig->possible & right.uvalue))
+		true_info.set |= right.uvalue;
 	false_info.possible &= ~right.uvalue;
 
 	set_true_false_states_expr(my_id, expr->left,
