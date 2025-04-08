@@ -27,7 +27,9 @@
 static int my_id;
 
 ALLOCATOR(bit_info, "bit data");
-struct bit_info *alloc_bit_info(unsigned long long set, unsigned long long possible)
+
+struct bit_info *alloc_bit_info(unsigned long long set,
+			        unsigned long long possible)
 {
 	struct bit_info *bit_info = __alloc_bit_info(0);
 
@@ -43,12 +45,15 @@ void set_bits_modified_expr(struct expression *expr, struct smatch_state *state)
 	set_state_expr(my_id, expr, state);
 }
 
-void set_bits_modified_expr_sym(const char *name, struct symbol *sym, struct smatch_state *state)
+void set_bits_modified_expr_sym(const char *name, struct symbol *sym,
+			        struct smatch_state *state)
 {
 	__set_param_modified_helper_sym(name, sym, state);
 	set_state(my_id, name, sym, state);
 }
-struct smatch_state *alloc_bstate(unsigned long long set, unsigned long long possible)
+
+struct smatch_state *alloc_bstate(unsigned long long set,
+				  unsigned long long possible)
 {
 	struct smatch_state *state;
 	char buf[64];
@@ -170,7 +175,8 @@ int binfo_equiv(struct bit_info *one, struct bit_info *two)
 	return 0;
 }
 
-struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch_state *two_state)
+struct smatch_state *merge_bstates(struct smatch_state *one_state,
+				   struct smatch_state *two_state)
 {
 	struct bit_info *one, *two;
 
@@ -192,7 +198,8 @@ struct smatch_state *merge_bstates(struct smatch_state *one_state, struct smatch
  * set bits, which is the opposite of what merge_bstates() does.
  *
  */
-static struct bit_info *combine_bit_info(struct bit_info *one, struct bit_info *two)
+static struct bit_info *combine_bit_info(struct bit_info *one,
+					 struct bit_info *two)
 {
 	struct bit_info *ret = __alloc_bit_info(0);
 
@@ -207,7 +214,8 @@ static struct bit_info *combine_bit_info(struct bit_info *one, struct bit_info *
 	return ret;
 }
 
-static struct bit_info *binfo_AND(struct bit_info *left, struct bit_info *right)
+static struct bit_info *binfo_AND(struct bit_info *left,
+				  struct bit_info *right)
 {
 	unsigned long long set = 0;
 	unsigned long long possible = -1ULL;
