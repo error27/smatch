@@ -50,9 +50,7 @@ static bool implied_power_of_two(struct expression *expr)
 
 	if (!get_implied_value(expr, &sval))
 		return false;
-	if (!(sval.uvalue & (sval.uvalue - 1)))
-		return true;
-	return false;
+	return sval_is_power_of_two(sval);
 }
 
 bool is_power_of_two(struct expression *expr)
