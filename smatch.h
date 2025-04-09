@@ -1666,6 +1666,9 @@ bool has_devm_cleanup(void);
 void add_set_current_state_hook(string_hook *hook);
 bool task_not_running(void);
 
+/* smatch_power_of_two.c */
+bool sval_is_power_of_two(sval_t sval);
+
 static inline bool type_is_ptr(struct symbol *type)
 {
 	return type &&

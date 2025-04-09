@@ -303,19 +303,6 @@ struct bit_info *get_bit_info(struct expression *expr)
 	return combine_bit_info(extra_info, bit_info);
 }
 
-static int is_single_bit(sval_t sval)
-{
-	int i;
-	int count = 0;
-
-	for (i = 0; i < 64; i++) {
-		if (sval.uvalue & 1ULL << i &&
-		    count++)
-			return 0;
-	}
-	if (count == 1)
-		return 1;
-	return 0;
 }
 
 static void match_compare(struct expression *expr)
@@ -391,7 +378,7 @@ static void match_condition(struct expression *expr)
 	true_info = *orig;
 	false_info = *orig;
 
-	if (is_single_bit(right) && (orig->possible & right.uvalue))
+	if (sval_is_power_of_two(right) && (orig->possible & right.uvalue))
 		true_info.set |= right.uvalue;
 	false_info.possible &= ~right.uvalue;
 

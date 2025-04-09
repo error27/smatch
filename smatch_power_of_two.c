@@ -39,6 +39,11 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	return &undefined;
 }
 
+bool sval_is_power_of_two(sval_t sval)
+{
+	return sval.uvalue && !(sval.uvalue & (sval.uvalue - 1));
+}
+
 static bool implied_power_of_two(struct expression *expr)
 {
 	sval_t sval;
