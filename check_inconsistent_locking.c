@@ -54,6 +54,69 @@ static bool is_EINTR(struct range_list *rl)
 	return sval.value == -4;
 }
 
+static void check_lock_bool(const char *name, struct symbol *sym)
+{
+	struct range_list *locked_true = NULL, *locked_false = NULL;
+	struct range_list *unlocked_true = NULL, *unlocked_false = NULL;
+	struct stree *stree, *orig;
+	struct sm_state *return_sm;
+	struct sm_state *sm;
+	sval_t line = sval_type_val(&int_ctype, 0);
+	sval_t sval;
+
+	FOR_EACH_PTR(get_all_return_strees(), stree) {
+		orig = __swap_cur_stree(stree);
+
+		if (is_impossible_path())
+			goto swap_stree;
+
+		return_sm = get_sm_state(RETURN_ID, "return_ranges", NULL);
+		if (!return_sm)
+			goto swap_stree;
+		line.value = return_sm->line;
+
+		sm = get_sm_state(my_id, name, sym);
+		if (!sm)
+			goto swap_stree;
+
+		if (parent_is_gone_var_sym(sm->name, sm->sym))
+			goto swap_stree;
+
+		if (sm->state != &locked && sm->state != &unlocked)
+			goto swap_stree;
+
+		if (sm->state == &unlocked && is_EINTR(estate_rl(return_sm->state)))
+			goto swap_stree;
+
+		if (estate_get_single_value(return_sm->state, &sval)) {
+			if (sm->state == &locked) {
+				if (sval.value)
+					add_range(&locked_true, line, line);
+				else
+					add_range(&locked_false, line, line);
+			} else {
+				if (sval.value)
+					add_range(&unlocked_true, line, line);
+				else
+					add_range(&unlocked_false, line, line);
+			}
+		}
+swap_stree:
+		__swap_cur_stree(orig);
+	} END_FOR_EACH_PTR(stree);
+
+	if (locked_true && unlocked_true) {
+		sm_warning("inconsistent returns '%s'.", name);
+		sm_printf("  Locked on  : %s\n", show_rl(locked_true));
+		sm_printf("  Unlocked on: %s\n", show_rl(unlocked_true));
+	}
+	if (locked_false && unlocked_false) {
+		sm_warning("inconsistent returns '%s'.", name);
+		sm_printf("  Locked on  : %s\n", show_rl(locked_false));
+		sm_printf("  Unlocked on: %s\n", show_rl(unlocked_false));
+	}
+}
+
 #define NUM_BUCKETS (RET_UNKNOWN + 1)
 static void check_lock(const char *name, struct symbol *sym)
 {
@@ -73,6 +136,11 @@ static void check_lock(const char *name, struct symbol *sym)
 
 	if (strchr(name, '$'))
 		return;
+
+	if (cur_func_return_type() == &bool_ctype) {
+		check_lock_bool(name, sym);
+		return;
+	}
 
 	FOR_EACH_PTR(get_all_return_strees(), stree) {
 		orig = __swap_cur_stree(stree);
