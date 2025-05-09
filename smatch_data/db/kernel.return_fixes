@@ -129,6 +129,7 @@ trace_get_user s32min-s32max 0-s32max[<=$2]
 mipi_dsi_device_transfer s64min-s64max (-4095)-s32max
 timer_delete 0 0-1
 get_device 0-u64max 4096-ptr_max[$0]
+get_device 0-u32max 4096-ptr_max[$0]
 find_first_and_bit 1-u32max 1-s32max
 dma_alloc_attrs 0-u64max 0-ptr_max
 dma_alloc_attrs 1-u64max 4096-ptr_max
