@@ -303,8 +303,6 @@ struct bit_info *get_bit_info(struct expression *expr)
 	return combine_bit_info(extra_info, bit_info);
 }
 
-}
-
 static void match_compare(struct expression *expr)
 {
 	sval_t val;
