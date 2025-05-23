@@ -37,6 +37,8 @@ static void match_likely(const char *fn, struct expression *expr, void *unused)
 	macro = get_macro_name(expr->pos);
 	if (macro && strcmp(macro, "RB_WARN_ON") == 0)
 		return;
+	if (macro && strcmp(macro, "verifier_bug") == 0)
+		return;
 	warned = expr;
 	sm_warning("check likely/unlikely parentheses");
 }
