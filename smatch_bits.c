@@ -85,17 +85,17 @@ struct bit_info *rl_to_binfo(struct range_list *rl)
 	return ret;
 }
 
-static int is_unknown_binfo(struct symbol *type, struct bit_info *binfo)
+static bool is_unknown_binfo(struct symbol *type, struct bit_info *binfo)
 {
 	if (!type)
 		type = &ullong_ctype;
 
 	if (binfo->set != 0)
-		return 0;
+		return false;
 	if (binfo->possible < (-1ULL >> (64 - type_bits(type))))
-		return 0;
+		return false;
 
-	return 1;
+	return true;
 }
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
