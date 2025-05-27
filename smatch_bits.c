@@ -66,6 +66,26 @@ struct smatch_state *alloc_bstate(unsigned long long set,
 	return state;
 }
 
+static unsigned long long get_type_possible(struct symbol *type)
+{
+	if (!type)
+		type = &ullong_ctype;
+
+	if (type_bits(type) == 64)
+		return -1ULL;
+
+	return (1ULL << type_bits(type)) - 1;
+}
+
+static struct bit_info *alloc_unknown_binfo(struct symbol *type)
+{
+	struct bit_info *ret;
+
+	ret = __alloc_bit_info(0);
+	ret->possible = get_type_possible(type);
+	return ret;
+}
+
 struct bit_info *rl_to_binfo(struct range_list *rl)
 {
 	struct bit_info *ret = __alloc_bit_info(0);
@@ -253,15 +273,51 @@ static struct bit_info *binfo_OR(struct bit_info *left, struct bit_info *right)
 	return alloc_bit_info(set, possible);
 }
 
-static unsigned long long get_type_possible(struct symbol *type)
+static struct bit_info *binfo_LEFTSHIFT(struct expression *left, struct expression *right)
 {
+	struct bit_info *bit_info;
+	struct symbol *type;
+	unsigned long long set;
+	unsigned long long possible;
+	sval_t sval;
+
+	type = get_type(left);
 	if (!type)
-		type = &ullong_ctype;
+		return NULL;
 
-	if (type_bits(type) == 64)
-		return -1ULL;
+	bit_info = get_bit_info(left);
+	if (!bit_info)
+		bit_info = alloc_unknown_binfo(type);
 
-	return (1ULL << type_bits(type)) - 1;
+	if (!get_implied_value(right, &sval))
+		return NULL;
+
+	set = bit_info->set << sval.uvalue;
+	possible = bit_info->possible << sval.uvalue;
+
+	set &= get_type_possible(type); 
+	possible &= get_type_possible(type);
+
+	return alloc_bit_info(set, possible);
+}
+
+static struct bit_info *handle_binop(struct expression *expr)
+{
+	if (expr->type != EXPR_BINOP)
+		return NULL;
+
+	switch (expr->op) {
+	case '&':
+		return binfo_AND(get_bit_info(expr->left),
+				 get_bit_info(expr->right));
+	case '|':
+		return binfo_OR(get_bit_info(expr->left),
+				get_bit_info(expr->right));
+	case SPECIAL_LEFTSHIFT:
+		return binfo_LEFTSHIFT(expr->left, expr->right);
+	}
+
+	return NULL;
 }
 
 struct bit_info *get_bit_info(struct expression *expr)
@@ -278,14 +334,9 @@ struct bit_info *get_bit_info(struct expression *expr)
 	if (get_implied_value(expr, &known))
 		return alloc_bit_info(known.value, known.value);
 
-	if (expr->type == EXPR_BINOP) {
-		if (expr->op == '&')
-			return binfo_AND(get_bit_info(expr->left),
-					 get_bit_info(expr->right));
-		if (expr->op == '|')
-			return binfo_OR(get_bit_info(expr->left),
-					get_bit_info(expr->right));
-	}
+	bit_info = handle_binop(expr);
+	if (bit_info)
+		return bit_info;
 
 	unknown_bit_info.possible = get_type_possible(get_type(expr));
 
