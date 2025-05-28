@@ -110,10 +110,9 @@ static void match_return_call(struct expression *ret_value)
 		return;
 
 	rl = db_return_vals_from_str(get_function());
-	if (!rl)
+	if (rl && !sval_is_negative(rl_min(rl)))
 		return;
-
-	if (!sval_is_negative(rl_min(rl)))
+	if (type_unsigned(cur_func_return_type()))
 		return;
 	sm_warning("maybe return -EFAULT instead of the bytes remaining?");
 }
