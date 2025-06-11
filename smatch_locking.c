@@ -263,8 +263,10 @@ static struct lock_info lock_table[] = {
 	{"mutex_lock_interruptible_nested", LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"mutex_lock_killable",             LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 	{"mutex_lock_killable_nested",      LOCK,   mutex, 0, "$", &int_zero, &int_zero},
+	{"_mutex_lock_killable",            LOCK,   mutex, 0, "$", &int_zero, &int_zero},
 
 	{"mutex_trylock",                   LOCK,   mutex, 0, "$", &int_one, &int_one},
+	{"_mutex_trylock_nest_lock",        LOCK,   mutex, 0, "$", &int_one, &int_one},
 	{"mutex_trylock",                   FAIL,   mutex, 0, "$", &int_zero, &int_zero},
 
 	{"ww_mutex_lock",		LOCK,   mutex, 0, "$"},
