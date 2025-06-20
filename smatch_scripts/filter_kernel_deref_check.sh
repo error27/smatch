@@ -2,7 +2,7 @@
 
 file=$1
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 <file with smatch messages>"
+    echo "Usage:  $(basename $0) <file with smatch messages>"
     exit 1
 fi
 
