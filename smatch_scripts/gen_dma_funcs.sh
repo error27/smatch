@@ -4,7 +4,7 @@ file=$1
 project=$(echo "$2" | cut -d = -f 2)
 
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 <file with smatch messages> -p=<project>"
+    echo "Usage:  $(basename $0) <file with smatch messages> -p=<project>"
     exit 1
 fi
 
