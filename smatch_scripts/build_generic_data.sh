@@ -3,7 +3,7 @@
 # This is a generic script to parse --info output.  For the kernel, don't use
 # this script, use build_kernel_data.sh instead.
 
-NR_CPU=$(cat /proc/cpuinfo | grep ^processor | wc -l)
+NR_CPU=$(nproc)
 SCRIPT_DIR=$(dirname $0)
 DATA_DIR=smatch_data
 PROJECT=smatch_generic
