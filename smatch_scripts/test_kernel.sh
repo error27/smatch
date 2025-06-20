@@ -2,13 +2,13 @@
 
 set -e
 
-NR_CPU=$(cat /proc/cpuinfo | grep ^processor | wc -l)
+NR_CPU=$(nproc)
 TARGET="bzImage modules"
 WLOG="smatch_warns.txt"
 LOG="smatch_compile.warns"
 function usage {
     echo
-    echo "Usage:  $0 [smatch options]"
+    echo "Usage: $(basename $0) [smatch options]"
     echo "Compiles the kernel with -j${NR_CPU}"
     echo " available options:"
     echo "	--endian          : enable endianness check"

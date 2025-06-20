@@ -24,7 +24,7 @@ done
 
 file=$1
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 [-C <lines>] [-b] [-k] <file with smatch messages>"
+    echo "Usage:  $(basename $0) [-C <lines>] [-b] [-k] <file with smatch messages>"
     echo "  -C <lines>:  Print <lines> of context"
     echo "  -b        :  Ignore unreachable break statements"
     echo "  -k        :  Ignore some kernel defines"

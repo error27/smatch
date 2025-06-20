@@ -15,7 +15,7 @@ done
 file=$1
 [ "$file" = "" ] && [ -e err-list ] && file=err-list
 if [[ "$file" = "" ]] ; then
-    echo "Usage:  $0 [-C <lines>] [-b] [-k] <file with smatch messages>"
+    echo "Usage:  $(basename $0) [-C <lines>] [-b] [-k] <file with smatch messages>"
     echo "  -C <lines>:  Print <lines> of context"
     exit 1
 fi

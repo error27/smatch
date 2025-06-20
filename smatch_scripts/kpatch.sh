@@ -4,7 +4,7 @@ TMP_DIR=/tmp
 
 help()
 {
-    echo "Usage: $0 [--no-compile|--amend] <filename>"
+    echo "Usage: $(basename $0) [--no-compile|--amend] <filename>"
     echo "You must be at the base of the kernel tree to run this."
     exit 1
 }

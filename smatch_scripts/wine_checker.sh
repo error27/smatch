@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage {
-    echo "Usage:  $0 [--sparse][--valgrind][--debug] path/to/file.c"
+    echo "Usage:  $(basename $0) [--sparse][--valgrind][--debug] path/to/file.c"
     exit 1
 }
 
@@ -14,7 +14,7 @@ else
     echo "Smatch binary not found."
     exit 1
 fi
-    
+
 POST=""
 WINE_ARGS="-p=wine --full-path -D__i386__"
 

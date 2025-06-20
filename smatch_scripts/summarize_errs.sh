@@ -2,7 +2,7 @@
 
 print_help()
 {
-    echo "usage: $0 <warning file>"
+    echo "usage: $(basename $0) <warning file>"
     exit 1;
 }
 

@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "usage:  $0 <patch file>"
+    echo "usage:  $(basename $0) <patch file>"
     exit 1
 }
 
@@ -84,7 +84,7 @@ for file in $files ; do
 	echo '!!                            !!'
 	echo '!!#$%@$%@^@#$^@#%@$%@$%@#%$@#%!!'
 
-	diff -u $before $after 
+	diff -u $before $after
     fi
     rm -f $before $after $tmpfile
 done
