@@ -221,8 +221,12 @@ static int member_uninitialized(char *name, struct symbol *outer, struct symbol 
 	struct symbol *base;
 	struct sm_state *sm;
 
+	if (!member->ident)
+		return FALSE;
 	base = get_base_type(member);
-	if (!base || base->type != SYM_BASETYPE || !member->ident)
+	if (!base)
+		return FALSE;
+	if (base->type != SYM_BASETYPE && base->type != SYM_BITFIELD)
 		return FALSE;
 
 	if (pointer)
