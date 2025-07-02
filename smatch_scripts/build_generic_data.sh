@@ -62,7 +62,7 @@ if [[ ! -z $O ]] ; then
 	KERNEL_O="O=$O"
 fi
 
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} CHECK="$BIN_DIR/smatch --call-tree --info --spammy --file-output" $TARGET
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} CC=$BIN_DIR/cgcc CHECK="$BIN_DIR/smatch --call-tree --info --spammy --file-output" $TARGET
 
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > smatch_warns.txt
 
