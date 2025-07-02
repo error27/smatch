@@ -156,6 +156,7 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	if (!arg2)
 		return;
 
+	data->total_size = binop_expression(arg1, op, arg2);
 	if (op == '*') {
 		data->nr_elems = arg1;
 		data->elem_size = arg2;
