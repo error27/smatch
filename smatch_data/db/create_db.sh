@@ -47,7 +47,8 @@ ${bin_dir}/build_late_index.sh $db_file
 
 ${bin_dir}/fixup_all.sh $db_file
 if [ "$PROJ" != "" ] ; then
-    ${bin_dir}/fixup_${PROJ}.sh $db_file
+    # Run the fixup script only if it exists and is executable
+    test -x ${bin_dir}/fixup_${PROJ}.sh && ${bin_dir}/fixup_${PROJ}.sh $db_file
 fi
 
 ${bin_dir}/copy_function_pointers.pl $db_file
