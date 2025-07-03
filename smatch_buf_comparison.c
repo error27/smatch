@@ -161,6 +161,65 @@ static void db_save_type_links(struct expression *array, int type_limit, struct 
 	sql_insert_data_info(size, type_limit, array_name);
 }
 
+struct expression *get_kmalloc_pointer(struct expression *pointer)
+{
+	struct expression *parent;
+	struct statement *stmt;
+
+	/* Imagine we're allocating an array:
+	 *
+	 * p = kmalloc(sizeof(struct foo) * nr, GFP_KERNEL);
+	 *
+	 * Then the idea is that we could say that "nr" is the number of
+	 * elements that we're allocating.  But I wanted to check that
+	 * sizeof(struct foo) actually matched the "p".  In other words the
+	 * pointer that we were allocating matched the sizeof().
+	 *
+	 * But then the kernel has changed kmalloc() into a macro that basically
+	 * changes your allocation into:
+	 *
+	 * p = ({ void *_res; _res = kmalloc(); _res});
+	 *
+	 * It does a bunch of other magic things to track the allocation as
+	 * well.  But in terms of what Smatch cares about, that's what it does.
+	 * The thing thing is that now the "pointer" is a "void *_res" instead
+	 * of "p" which we want.  This function finds "p".
+	 */
+
+	pointer = strip_expr(pointer);
+
+	if (option_project != PROJ_KERNEL ||
+	    !sym_name_is("_res", pointer))
+		return pointer;
+
+	stmt = get_parent_stmt(pointer);
+	while (stmt && stmt->type != STMT_COMPOUND)
+		stmt = stmt_get_parent_stmt(stmt);
+	stmt = stmt_get_parent_stmt(stmt);
+	if (!stmt)
+		return pointer;
+	if (stmt->type == STMT_IF) {
+		while (stmt && stmt->type != STMT_COMPOUND) {
+			sm_local("stmt=%d", stmt ? stmt->type : -1);
+			stmt = stmt_get_parent_stmt(stmt);
+		}
+	}
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return pointer;
+
+	parent = stmt_get_parent_expr(stmt);
+	if (!parent || parent->type != EXPR_STATEMENT)
+		return pointer;
+	parent = expr_get_parent_expr(parent);
+	if (!parent || parent->type != EXPR_PREOP || parent->op != '(')
+		return pointer;
+	parent = expr_get_parent_expr(parent);
+	if (!parent || parent->type != EXPR_ASSIGNMENT)
+		return pointer;
+
+	return parent->left;
+}
+
 static void match_alloc_helper(struct expression *pointer, struct expression *size, struct expression *mod_expr)
 {
 	struct smatch_state *state;
@@ -169,7 +228,7 @@ static void match_alloc_helper(struct expression *pointer, struct expression *si
 	int limit_type = BYTE_COUNT;
 	sval_t sval;
 
-	pointer = strip_expr(pointer);
+	pointer = get_kmalloc_pointer(pointer);
 	size = strip_expr(size);
 	if (!size || !pointer)
 		return;

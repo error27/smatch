@@ -1512,6 +1512,7 @@ struct smatch_state *merge_link_states(struct smatch_state *s1, struct smatch_st
 void store_link(int link_id, const char *name, struct symbol *sym, const char *link_name, struct symbol *link_sym);
 
 /* check_buf_comparison */
+struct expression *get_kmalloc_pointer(struct expression *pointer);
 const char *limit_type_str(unsigned int limit_type);
 struct expression *get_size_variable(struct expression *buf, int *limit_type);
 struct expression *get_array_variable(struct expression *size);
