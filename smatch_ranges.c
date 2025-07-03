@@ -1346,10 +1346,9 @@ int possibly_true(struct expression *left, int comparison, struct expression *ri
 		return 1;
 	if (comparison == IMPOSSIBLE_COMPARISON)
 		return 0;
-	if (!get_implied_rl(left, &rl_left))
-		return 1;
-	if (!get_implied_rl(right, &rl_right))
-		return 1;
+
+	get_absolute_rl(left, &rl_left);
+	get_absolute_rl(right, &rl_right);
 
 	type = rl_type(rl_left);
 	if (type_positive_bits(type) < type_positive_bits(rl_type(rl_right)))
@@ -1375,10 +1374,8 @@ int possibly_false(struct expression *left, int comparison, struct expression *r
 	struct data_range *tmp_left, *tmp_right;
 	struct symbol *type;
 
-	if (!get_implied_rl(left, &rl_left))
-		return 1;
-	if (!get_implied_rl(right, &rl_right))
-		return 1;
+	get_absolute_rl(left, &rl_left);
+	get_absolute_rl(right, &rl_right);
 
 	type = rl_type(rl_left);
 	if (type_positive_bits(type) < type_positive_bits(rl_type(rl_right)))
