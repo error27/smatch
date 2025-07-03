@@ -33,6 +33,7 @@ static struct deref_info fn_deref_table[] = {
 	{ "__builtin_strlen", 0, "$" },
 	{ "__fortify_strlen", 0, "$" },
 	{ "spinlock_check", 0, "$" },
+	{ "devm_platform_ioremap_resource_byname", 1, "$" },
 };
 
 void add_dereference_hook(expr_func *fn)
