@@ -2682,6 +2682,21 @@ static void db_param_limit_binops(struct expression *arg, char *key, struct rang
 	set_extra_expr_nomod(arg->left, alloc_estate_rl(left_rl));
 }
 
+static bool value_has_hard_max(const char *value)
+{
+	const char *p;
+
+	p = strchr(value, '[');
+	if (!p)
+		return false;
+	while (*p != ']' && *p != '\0') {
+		if (*p == 'h')
+			return true;
+		p++;
+	}
+	return false;
+}
+
 static void db_param_limit_filter(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct smatch_state *state;
@@ -2753,7 +2768,8 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	other_name = get_other_name_sym(name, sym, &other_sym);
 
 	state = alloc_estate_rl(new);
-	if (sm && estate_has_hard_max(sm->state))
+	if ((sm && estate_has_hard_max(sm->state)) ||
+	    value_has_hard_max(value))
 		estate_set_hard_max(state);
 
 	if (op == PARAM_LIMIT) {
