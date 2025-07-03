@@ -359,6 +359,8 @@ void register_simple_no_overflow(int id)
 	add_split_return_callback(&returned_data);
 	return_implies_param_key("__builtin_mul_overflow", int_zero, int_zero, &match_safe, 0, "$", NULL);
 	return_implies_param_key("__builtin_mul_overflow", int_zero, int_zero, &match_safe, 1, "$", NULL);
+	return_implies_param_key("__builtin_add_overflow", int_zero, int_zero, &match_safe, 0, "$", NULL);
+	return_implies_param_key("__builtin_add_overflow", int_zero, int_zero, &match_safe, 1, "$", NULL);
 	return_implies_param_key("kcalloc", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
 	return_implies_param_key("kcalloc", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
 	return_implies_param_key("kmalloc_array", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
