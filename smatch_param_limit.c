@@ -172,6 +172,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 	struct range_list *rl;
 	const char *orig_name, *key;
 	struct symbol *sym;
+	char buf[64];
 	int param;
 
 	FOR_EACH_MY_SM(SMATCH_EXTRA, __get_cur_stree(), tmp) {
@@ -209,8 +210,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (is_boring_pointer_info(key, rl))
 			continue;
 
+		snprintf(buf, sizeof(buf), "%s%s", show_rl(rl), estate_has_hard_max(state) ? "[h]" : "");
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
-					 param, key, show_rl(rl));
+					 param, key, buf);
 	} END_FOR_EACH_SM(tmp);
 }
 
