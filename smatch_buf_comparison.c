@@ -404,6 +404,20 @@ static void match_calloc(const char *fn, struct expression *expr, void *_start_a
 	add_link(arg, pointer, expr);
 }
 
+static void match_allocation(struct expression *expr,
+			     const char *name, struct symbol *sym,
+			     struct allocation_info *info)
+{
+	struct expression *pointer;
+
+	if (!info->total_size)
+		return;
+
+	pointer = strip_expr(expr->left);
+	match_alloc_helper(pointer, info->total_size, expr);
+	match_struct_size_helper(pointer, info->total_size, expr);
+}
+
 static struct expression *get_size_variable_from_binop(struct expression *expr, int *limit_type)
 {
 	struct smatch_state *state;
@@ -1114,6 +1128,8 @@ void register_buf_comparison(int id)
 		add_function_hook("copy_from_user", &match_copy, NULL);
 		add_function_hook("__copy_from_user", &match_copy, NULL);
 	}
+
+	add_allocation_hook(&match_allocation);
 
 	add_hook(&array_check, OP_HOOK);
 	add_hook(&array_check_data_info, OP_HOOK);
