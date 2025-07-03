@@ -381,6 +381,16 @@ struct smatch_state *get_state(int owner, const char *name, struct symbol *sym)
 	return __get_state(owner, name, sym);
 }
 
+struct smatch_state *get_check_state(const char *check_name, const char *name, struct symbol *sym)
+{
+	int owner;
+
+	owner = id_from_name(check_name);
+	if (owner == 0)
+		return NULL;
+	return get_state(owner, name, sym);
+}
+
 struct smatch_state *get_state_expr(int owner, struct expression *expr)
 {
 	struct expression *fake_parent;
@@ -402,6 +412,26 @@ struct smatch_state *get_state_expr(int owner, struct expression *expr)
 free:
 	free_string(name);
 	return ret;
+}
+
+struct smatch_state *get_check_state_expr(const char *check_name, struct expression *expr)
+{
+	int owner;
+
+	owner = id_from_name(check_name);
+	if (owner == 0)
+		return NULL;
+	return get_state_expr(owner, expr);
+}
+
+struct sm_state *get_check_sm_state_expr(const char *check_name, struct expression *expr)
+{
+	int owner;
+
+	owner = id_from_name(check_name);
+	if (owner == 0)
+		return NULL;
+	return get_sm_state_expr(owner, expr);
 }
 
 bool has_possible_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)

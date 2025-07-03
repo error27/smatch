@@ -455,6 +455,9 @@ bool has_states(struct stree *stree, int owner);
 struct smatch_state *__get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_state_expr(int owner, struct expression *expr);
+struct smatch_state *get_check_state(const char *check_name, const char *name, struct symbol *sym);
+struct smatch_state *get_check_state_expr(const char *check_name, struct expression *expr);
+struct sm_state *get_check_sm_state_expr(const char *check_name, struct expression *expr);
 bool has_possible_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
 bool expr_has_possible_state(int owner, struct expression *expr, struct smatch_state *state);
 struct state_list *get_possible_states(int owner, const char *name,
