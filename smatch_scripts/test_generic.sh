@@ -72,7 +72,7 @@ fi
 
 make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O clean
 find -name \*.c.smatch -exec rm \{\} \;
-make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} $ENDIAN -k CC=$BIN_DIR/cgcc CHECK="$CMD -p=${PROJECT} --file-output $*" \
+make $KERNEL_ARCH $KERNEL_CROSS_COMPILE $KERNEL_O -j${NR_CPU} $ENDIAN -k CC=$BIN_DIR/cgcc CHECK="$CMD -p=${PROJECT} --full-path --file-output $*" \
 	C=1 $TARGET 2>&1 | tee $LOG
 find -name \*.c.smatch -exec cat \{\} \; -exec rm \{\} \; > $WLOG
 
