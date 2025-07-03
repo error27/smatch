@@ -110,6 +110,45 @@ void add_allocation_hook_early(alloc_hook *hook)
 	add_ptr_list(&hook_funcs_early, hook);
 }
 
+static void set_nr_size(struct allocation_info *data, struct expression *arg1, struct expression *arg2)
+{
+	struct expression *tmp;
+	bool swap = false;
+	sval_t dummy;
+
+	arg1 = strip_parens(arg1);
+	if (!arg2) {
+		tmp = get_assigned_expr(arg1);
+		if (tmp)
+			arg1 = tmp;
+		if (!arg1 || arg1->type != EXPR_BINOP || arg1->op != '*')
+			return;
+		tmp = arg1;
+		arg1 = tmp->left;
+		arg2 = tmp->right;
+	}
+
+	if (!arg1 || !arg2)
+		return;
+
+	if (arg2->type == EXPR_SIZEOF)
+		swap = false;
+	else if (arg1->type == EXPR_SIZEOF)
+		swap = true;
+	else if (get_value(arg2, &dummy))
+		swap = false;
+	else if (get_value(arg1, &dummy))
+		swap = true;
+
+	if (swap) {
+		data->nr_elems = arg2;
+		data->elem_size = arg1;
+	} else {
+		data->nr_elems = arg1;
+		data->elem_size = arg2;
+	}
+}
+
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
@@ -138,6 +177,7 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	p++;
 	if (*p == '\0') {
 		data->total_size = arg1;
+		set_nr_size(data, arg1, NULL);
 		return;
 	}
 	while (*p == ' ')
@@ -157,10 +197,8 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 		return;
 
 	data->total_size = binop_expression(arg1, op, arg2);
-	if (op == '*') {
-		data->nr_elems = arg1;
-		data->elem_size = arg2;
-	}
+	if (op == '*')
+		set_nr_size(data, arg1, arg2);
 }
 
 static void match_alloc_helper(struct alloc_hook_list *hooks, struct expression *expr, const char *name, struct symbol *sym, void *_info)
