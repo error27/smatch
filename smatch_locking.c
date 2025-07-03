@@ -548,6 +548,8 @@ static struct lock_info lock_table[] = {
 
 	{"schedule", IGNORE, irq, -2, "$"},
 
+	{"wait_consider_task",	UNLOCK, read_lock, NO_ARG, "global &tasklist_lock"},
+
 	{},
 };
 
