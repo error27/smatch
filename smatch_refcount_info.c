@@ -114,6 +114,7 @@ static struct ref_func_info func_table[] = {
 	{ "atomic64_dec_if_positive", REFCOUNT_DEC, 0, "$->counter", &int_zero, &int_max},
 
 	{ "of_node_get", REFCOUNT_INC, 0, "$->kobj.kref.refcount.refs.counter" },
+	{ "of_node_get", REFCOUNT_INC, -1, "$->kobj.kref.refcount.refs.counter" },
 	{ "of_node_put", REFCOUNT_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
 	{ "of_get_parent", REFCOUNT_INC, -1, "$->kobj.kref.refcount.refs.counter" },
 	{ "of_clk_del_provider", REFCOUNT_DEC, 0, "$->kobj.kref.refcount.refs.counter" },
