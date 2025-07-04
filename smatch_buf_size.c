@@ -815,7 +815,7 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
 
-	if (!is_pointer(left) && !get_state_expr(my_size_id, expr))
+	if (!is_pointer(left) && !get_state_expr(my_size_id, left))
 		return;
 
 	/* char buf[24] = "str"; */
