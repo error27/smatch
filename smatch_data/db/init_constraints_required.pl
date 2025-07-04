@@ -38,15 +38,17 @@ sub load_manual_constraints($$)
         return;
     }
 
-    open(FILE, "$dir/$project.constraints_required");
-    while (<FILE>) {
-        ($data, $op, $limit) = split(/,/);
-        $op =~ s/ //g;
-        $limit =~ s/^ +//;
-        $limit =~ s/\n//;
-        $db->do("insert into constraints_required values (?, ?, ?);", undef, $data, $op, $limit);
+    if(open(FILE, "$dir/$project.constraints_required"))
+    {
+        while (<FILE>) {
+            ($data, $op, $limit) = split(/,/);
+            $op =~ s/ //g;
+            $limit =~ s/^ +//;
+            $limit =~ s/\n//;
+            $db->do("insert into constraints_required values (?, ?, ?);", undef, $data, $op, $limit);
+        }
+        close(FILE);
     }
-    close(FILE);
 
     $db->commit();
 }
