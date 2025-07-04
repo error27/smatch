@@ -158,6 +158,7 @@ void check_sleep_info(int id)
 	add_function_hook("vfree", &match_sleep, NULL);
 	add_function_hook("__might_sleep", &match_might_sleep_fn, NULL);
 	add_function_hook("___might_sleep", &match_might_sleep_fn, NULL);
+	add_function_hook("synchronize_srcu", &match_might_sleep_fn, NULL);
 	add_hook(&match_might_sleep_macro, STMT_HOOK);
 
 	add_hook(&match_gfp_t, FUNCTION_CALL_HOOK);
