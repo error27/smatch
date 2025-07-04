@@ -166,7 +166,7 @@ int negate_comparison(int op)
 	}
 }
 
-static int rl_comparison(struct range_list *left_rl, struct range_list *right_rl)
+int get_comparison_rl(struct range_list *left_rl, struct range_list *right_rl)
 {
 	sval_t left_min, left_max, right_min, right_max;
 	struct symbol *type = &int_ctype;
@@ -208,12 +208,10 @@ static int comparison_from_extra(struct expression *a, struct expression *b)
 {
 	struct range_list *left, *right;
 
-	if (!get_implied_rl(a, &left))
-		return UNKNOWN_COMPARISON;
-	if (!get_implied_rl(b, &right))
-		return UNKNOWN_COMPARISON;
+	get_absolute_rl(a, &left);
+	get_absolute_rl(b, &right);
 
-	return rl_comparison(left, right);
+	return get_comparison_rl(left, right);
 }
 
 static struct range_list *get_orig_rl(struct var_sym_list *vsl)
@@ -254,7 +252,7 @@ static struct smatch_state *unmatched_comparison(struct sm_state *sm)
 	else if (!get_implied_rl_var_sym(data->right_var, vsl_to_sym(data->right_vsl), &right_rl))
 		goto alloc;
 
-	op = rl_comparison(left_rl, right_rl);
+	op = get_comparison_rl(left_rl, right_rl);
 
 alloc:
 	return alloc_compare_state(data->left, data->left_var, data->left_vsl,
@@ -890,7 +888,7 @@ static void match_preop(struct expression *expr)
 	   !get_implied_rl(parent->right, &right))
 		return;
 
-	op = rl_comparison(left, right);
+	op = get_comparison_rl(left, right);
 	if (op == UNKNOWN_COMPARISON)
 		return;
 
