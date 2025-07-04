@@ -64,38 +64,40 @@ sub insert_record($$$$$$$)
 
 my ($ret, $insert, $file, $func, $type, $param, $key, $value);
 
-open(FILE, "<$insertions");
-while (<FILE>) {
+if (open(FILE, "<$insertions"))
+{
+    while (<FILE>) {
 
-    if ($_ =~ /^\s*#/) {
-        next;
+        if ($_ =~ /^\s*#/) {
+            next;
+        }
+
+        ($ret, $insert) = split(/\|/, $_);
+
+        if ($ret =~ /(.+),\W*(.+),\W*"(.*)"/) {
+            $file = $1;
+            $func = $2;
+            $ret = $3;
+        } elsif ($ret =~ /(.+),\W*"(.*)"/) {
+            $file = "";
+            $func = $1;
+            $ret = $2;
+        } else {
+            next;
+        }
+
+        ($type, $param, $key, $value) = split(/,/, $insert);
+
+        $type = int($type);
+        $param = int($param);
+        $key =~ s/^["\s]+|["\s]+$//g;
+        $value =~ s/^["\s]+|["\s]+$//g;
+        chomp($value);
+
+        insert_record($file, $func, $ret, $type, $param, $key, $value);
     }
-
-    ($ret, $insert) = split(/\|/, $_);
-
-    if ($ret =~ /(.+),\W*(.+),\W*"(.*)"/) {
-        $file = $1;
-        $func = $2;
-        $ret = $3;
-    } elsif ($ret =~ /(.+),\W*"(.*)"/) {
-        $file = "";
-        $func = $1;
-        $ret = $2;
-    } else {
-        next;
-    }
-
-    ($type, $param, $key, $value) = split(/,/, $insert);
-
-    $type = int($type);
-    $param = int($param);
-    $key =~ s/^["\s]+|["\s]+$//g;
-    $value =~ s/^["\s]+|["\s]+$//g;
-    chomp($value);
-
-    insert_record($file, $func, $ret, $type, $param, $key, $value);
+    close(FILE);
 }
-close(FILE);
 
 $db->commit();
 $db->disconnect();
