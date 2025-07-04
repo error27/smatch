@@ -50,26 +50,30 @@ sub load_manual_constraints($$)
         return;
     }
 
-    open(FILE, "$dir/$project.constraints");
-    while (<FILE>) {
-        s/\n//;
-        $db->do("insert or ignore into constraints (str) values ('$_')");
+    if (open(FILE, "$dir/$project.constraints"))
+    {
+        while (<FILE>) {
+            s/\n//;
+            $db->do("insert or ignore into constraints (str) values ('$_')");
+        }
+        close(FILE);
     }
-    close(FILE);
 
-    open(FILE, "$dir/$project.constraints_required");
-    while (<FILE>) {
-        my $limit;
-        my $dummy;
+    if (open(FILE, "$dir/$project.constraints_required"))
+    {
+        while (<FILE>) {
+            my $limit;
+            my $dummy;
 
-        ($dummy, $dummy, $limit) = split(/,/);
-        $limit =~ s/^ +//;
-        $limit =~ s/\n//;
-        try {
-            $db->do("insert or ignore into constraints (str) values ('$limit')");
-        } catch {}
+            ($dummy, $dummy, $limit) = split(/,/);
+            $limit =~ s/^ +//;
+            $limit =~ s/\n//;
+            try {
+                $db->do("insert or ignore into constraints (str) values ('$limit')");
+            } catch {}
+        }
+        close(FILE);
     }
-    close(FILE);
 
     $db->commit();
 }
