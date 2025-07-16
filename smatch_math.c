@@ -1171,6 +1171,28 @@ static bool handle_variable(struct expression *expr, int implied, int *recurse_c
 				return true;
 			if (is_array(expr) && get_array_rl(expr, res))
 				return true;
+			/*
+			 * There are two reasons why we can't use DB information
+			 * for RL_IMPLIED.  The main reason is that the DB
+			 * information uses type data which is set before the
+			 * information goes "live".  So we might allocate
+			 * something with kzalloc() so it's set to zero but then
+			 * we initialize it to 3.  So really it's 3 and not 0.
+			 * This is more complicated because a lot of data goes
+			 * live when probe succeeds.
+			 *
+			 * The other reason is recursion but where we're using
+			 * data from the database to fill the database.  We
+			 * could easily solve that by banning recursion:
+			 * if (option_info && implied == RL_IMPLIED)
+			 * 	return false;
+			 *
+			 * So because of these reasons when you need DB
+			 * information, then use get_absolute_rl().  Like maybe
+			 * we don't know exactly what the value of a variable is
+			 * but the DB information is enough to say that a
+			 * certain condition is true or false and that's useful.
+			 */
 			if (implied == RL_IMPLIED)
 				return false;
 			if (get_db_type_rl(expr, res))
