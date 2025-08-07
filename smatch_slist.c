@@ -499,7 +499,7 @@ struct sm_state *merge_sm_states(struct sm_state *one, struct sm_state *two)
 	if (one == two)
 		return one;
 	if (out_of_memory()) {
-		if (!warned)
+		if (option_spammy && !warned)
 			sm_warning("Function too hairy.  No more merges.");
 		warned = 1;
 		return one;

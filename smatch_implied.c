@@ -681,7 +681,7 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 	gettimeofday(&time_after, NULL);
 	sec = time_after.tv_sec - time_before.tv_sec;
 	if (sec > 20)
-		sm_perror("Function too hairy.  Ignoring implications after %d seconds.", sec);
+		sm_msg("Function too hairy.  Implications taking too long: %d seconds.", sec);
 }
 
 static struct expression *get_last_expr(struct statement *stmt)

@@ -1560,8 +1560,9 @@ void __split_stmt(struct statement *stmt)
 
 		__bail_on_rest_of_function = 1;
 		final_pass = 1;
-		sm_perror("Function too hairy.  Giving up. %lu seconds",
-		       start.tv_sec - fn_start_time.tv_sec);
+		if (option_spammy)
+			sm_perror("Function too hairy.  Giving up. %lu seconds",
+			       start.tv_sec - fn_start_time.tv_sec);
 		fake_a_return();
 		final_pass = 0;  /* turn off sm_msg() from here */
 		return;
