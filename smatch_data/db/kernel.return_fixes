@@ -149,3 +149,6 @@ iommu_attach_handle_get 0,4-9223372036854775807 4096-ptr_max
 cifs_sb_master_tlink 0-u64max[$0->master_tlink] 4096-ptr_max[$0->master_tlink]
 afs_yfsvl_get_cell_name 0-u64max 4096-ptr_max
 process_lvol 0 4096-ptr_max
+__rb_reserve_next 0-u64max 4096-ptr_max
+regmap_field_read s32min-(-1),1-s32max (-4095)-(-1)
+__tag_set -1 s64min-s64max
