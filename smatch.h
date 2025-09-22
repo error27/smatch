@@ -933,6 +933,12 @@ void __match_initializer_call(struct symbol *sym);
 struct expression *get_unfaked_call(void);
 void fake_param_assign_helper(struct expression *call, struct expression *fake_assign, bool shallow);
 
+enum early_late {
+	EARLY = 1,
+	LATE = 2,
+	EARLY_LATE = 3,
+};
+
 /* smatch_db.c */
 enum info_type {
 	INTERNAL	= 0,

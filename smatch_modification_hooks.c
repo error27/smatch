@@ -34,12 +34,6 @@
 #include "smatch_extra.h"
 #include "smatch_slist.h"
 
-enum {
-	EARLY = 0,
-	LATE = 1,
-	BOTH = 2
-};
-
 static sm_hook **hooks;
 static sm_hook **hooks_late;
 
@@ -142,11 +136,11 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 		if (!match)
 			continue;
 
-		if (late == EARLY || late == BOTH) {
+		if (late == EARLY || late == EARLY_LATE) {
 			if (hooks[sm->owner])
 				(hooks[sm->owner])(sm, mod_expr);
 		}
-		if (late == LATE || late == BOTH) {
+		if (late == LATE || late == EARLY_LATE) {
 			if (hooks_late[sm->owner])
 				(hooks_late[sm->owner])(sm, mod_expr);
 		}
@@ -186,13 +180,13 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 		goto free;
 
 	__in_fake_assign++;
-	call_modification_hooks_name_sym(name, sym, expr, BOTH);
+	call_modification_hooks_name_sym(name, sym, expr, EARLY_LATE);
 	__in_fake_assign--;
 
 	other_name = get_other_name_sym(name, sym, &other_sym);
 	if (other_name) {
 		__in_fake_assign++;
-		call_modification_hooks_name_sym(other_name, other_sym, expr, BOTH);
+		call_modification_hooks_name_sym(other_name, other_sym, expr, EARLY_LATE);
 		__in_fake_assign--;
 		free_string(other_name);
 	}
@@ -229,9 +223,9 @@ static void match_call(struct expression *expr)
 	FOR_EACH_PTR(expr->args, arg) {
 		tmp = strip_expr(arg);
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
-			call_modification_hooks(tmp->unop, expr, BOTH);
+			call_modification_hooks(tmp->unop, expr, EARLY_LATE);
 		else
-			call_modification_hooks(deref_expression(tmp), expr, BOTH);
+			call_modification_hooks(deref_expression(tmp), expr, EARLY_LATE);
 	} END_FOR_EACH_PTR(arg);
 }
 
