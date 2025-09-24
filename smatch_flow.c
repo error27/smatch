@@ -201,6 +201,31 @@ int is_assigned_call(struct expression *expr)
 	return 0;
 }
 
+struct expression *get_parent_assignment(struct expression *expr)
+{
+	struct expression *parent;
+	int cnt = 0;
+
+	if (expr->type == EXPR_ASSIGNMENT)
+		return NULL;
+
+	parent = expr;
+	while (true) {
+		parent = expr_get_fake_or_real_parent_expr(parent);
+		if (!parent || ++cnt >= 5)
+			break;
+		if (parent->type == EXPR_CAST)
+			continue;
+		if (parent->type == EXPR_PREOP && parent->op == '(')
+			continue;
+		break;
+	}
+
+	if (parent && parent->type == EXPR_ASSIGNMENT)
+		return parent;
+	return NULL;
+}
+
 int is_fake_assigned_call(struct expression *expr)
 {
 	struct expression *parent = expr_get_fake_parent_expr(expr);
@@ -495,31 +520,6 @@ int is_condition_call(struct expression *expr)
 	} END_FOR_EACH_PTR_REVERSE(tmp);
 
 	return 0;
-}
-
-static struct expression *get_parent_assignment(struct expression *expr)
-{
-	struct expression *parent;
-	int cnt = 0;
-
-	if (expr->type == EXPR_ASSIGNMENT)
-		return NULL;
-
-	parent = expr;
-	while (true) {
-		parent = expr_get_fake_or_real_parent_expr(parent);
-		if (!parent || ++cnt >= 5)
-			break;
-		if (parent->type == EXPR_CAST)
-			continue;
-		if (parent->type == EXPR_PREOP && parent->op == '(')
-			continue;
-		break;
-	}
-
-	if (parent && parent->type == EXPR_ASSIGNMENT)
-		return parent;
-	return NULL;
 }
 
 static bool gen_fake_function_assign(struct expression *expr)

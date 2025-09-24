@@ -311,31 +311,6 @@ free:
 	free_string(name);
 }
 
-static struct expression *get_parent_assignment(struct expression *expr)
-{
-	struct expression *parent;
-	int cnt = 0;
-
-	if (expr->type == EXPR_ASSIGNMENT)
-		return NULL;
-
-	parent = expr;
-	while (true) {
-		parent = expr_get_fake_or_real_parent_expr(parent);
-		if (!parent || ++cnt >= 5)
-			break;
-		if (parent->type == EXPR_CAST)
-			continue;
-		if (parent->type == EXPR_PREOP && parent->op == '(')
-			continue;
-		break;
-	}
-
-	if (parent && parent->type == EXPR_ASSIGNMENT)
-		return parent;
-	return NULL;
-}
-
 static void param_key_function(const char *fn, struct expression *expr, void *data)
 {
 	struct param_key_data *pkd = data;
