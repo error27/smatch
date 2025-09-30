@@ -202,7 +202,7 @@ static bool binop_capped(struct expression *expr)
 			return true;
 		left_user = is_user_rl(expr->left);
 		right_user = is_user_rl(expr->right);
-		if (!left_user && !right_user)
+		if (!left_user || !right_user)
 			return true;
 
 		left_capped = user_rl_capped(expr->left);

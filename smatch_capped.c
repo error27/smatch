@@ -76,7 +76,7 @@ static bool binop_capped(struct expression *expr)
 	if (expr->op == SPECIAL_RIGHTSHIFT)
 		return false;
 	if (expr->op == '%' &&
-	    !get_value(expr->right, &sval) && is_capped(expr->right))
+	    !get_value(expr->right, &sval) && !is_user_rl(expr->right))
 		return true;
 
 	left_capped = is_capped(expr->left);
