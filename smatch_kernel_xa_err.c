@@ -57,6 +57,26 @@ static void match_xa_is_err_false(const char *fn, struct expression *call_expr,
 	set_extra_expr_nomod(arg, alloc_estate_rl(rl));
 }
 
+static void match_mas_is_err_true(const char *fn, struct expression *call_expr,
+				  struct expression *assign_expr, void *unused)
+{
+	struct expression *arg, *node;
+	struct smatch_state *pre_state;
+	struct range_list *rl;
+
+	arg = get_argument_from_call_expr(call_expr->args, 0);
+	node = gen_expression_from_key(arg, "$->node");
+	if (!node)
+		return;
+	pre_state = get_state_expr(SMATCH_EXTRA, node);
+	rl = estate_rl(pre_state);
+	if (!rl)
+		rl = alloc_rl(ptr_xa_err_min, ptr_xa_err_max);
+	rl = rl_intersection(rl, alloc_rl(ptr_xa_err_min, ptr_xa_err_max));
+	rl = cast_rl(get_type(node), rl);
+	set_extra_expr_nomod(node, alloc_estate_rl(rl));
+}
+
 static int implied_xa_err_return(struct expression *call, void *unused, struct range_list **rl)
 {
 	struct expression *arg;
@@ -83,6 +103,8 @@ void register_kernel_xa_err(int id)
 
 	return_implies_state("xa_is_err", 1, 1, &match_xa_is_err_true, NULL);
 	return_implies_state("xa_is_err", 0, 0, &match_xa_is_err_false, NULL);
+
+	return_implies_state("mas_is_err", 1, 1, &match_mas_is_err_true, NULL);
 
 	add_implied_return_hook("xa_err", &implied_xa_err_return, NULL);
 }
