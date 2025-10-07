@@ -27,3 +27,6 @@ intel_pasid_setup_sm_context 1
 walk_system_ram_res 1
 nouveau_connector_create 0
 ubi_find_or_add_av 0
+xe_migrate_copy 0
+scmi_get_or_create_handler 0
+alloc_frame_masks 0
