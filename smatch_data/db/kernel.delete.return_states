@@ -30,3 +30,4 @@ ubi_find_or_add_av 0
 xe_migrate_copy 0
 scmi_get_or_create_handler 0
 alloc_frame_masks 0
+hmm_range_fault 1
