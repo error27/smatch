@@ -19,7 +19,7 @@ except sqlite3.Error as e:
 def usage():
     print("%s" % (sys.argv[0]))
     print("<function> - how a function is called")
-    print("info <type> - how a function is called, filtered by type")
+    print("info <function> <type> - how a function is called, filtered by type")
     print("return_states <function> - what a function returns")
     print("call_tree <function> - show the call tree")
     print("where <struct_type> <member> - where a struct member is set")
