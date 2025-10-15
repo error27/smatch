@@ -596,6 +596,28 @@ static struct symbol_op object_size_op = {
 	.expand = expand_object_size,
 };
 
+static int expand_strlen(struct expression *expr, int cost)
+{
+	struct expression *arg = first_expression(expr->args);
+
+	if (!arg)
+		return UNSAFE;
+	if (arg->type == EXPR_SYMBOL)
+		arg = arg->symbol->initializer;
+	if (!arg || arg->type != EXPR_STRING || !arg->string->length)
+		return UNSAFE;
+
+	expr->flags |= CEF_SET_ICE;
+	expr->type = EXPR_VALUE;
+	expr->value = arg->string->length - 1;
+	expr->taint = 0;
+	return 0;
+}
+
+static struct symbol_op strlen_op = {
+	.expand = expand_strlen,
+};
+
 /*
  * Builtin functions
  */
@@ -775,7 +797,7 @@ static const struct builtin_fn builtins_common[] = {
 	{ "__builtin_strcpy", &string_ctype, 0, { &string_ctype, &const_string_ctype }},
 	{ "__builtin_strcspn", size_t_ctype, 0, { &const_string_ctype, &const_string_ctype }},
 	{ "__builtin_strdup", &string_ctype, 0, { &const_string_ctype }},
-	{ "__builtin_strlen", size_t_ctype, 0, { &const_string_ctype }},
+	{ "__builtin_strlen", size_t_ctype, 0, { &const_string_ctype }, .op = &strlen_op},
 	{ "__builtin_strncasecmp", &int_ctype, 0, { &const_string_ctype, &const_string_ctype, size_t_ctype }},
 	{ "__builtin_strncat", &string_ctype, 0, { &string_ctype, &const_string_ctype, size_t_ctype }},
 	{ "__builtin_strncmp", &int_ctype, 0, { &const_string_ctype, &const_string_ctype, size_t_ctype }},
