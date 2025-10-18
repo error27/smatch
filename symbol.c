@@ -552,6 +552,7 @@ static struct symbol *examine_pointer_type(struct symbol *sym)
 static struct symbol *examine_typeof_helper(struct symbol *sym, bool qual)
 {
 	struct symbol *base = evaluate_expression(sym->initializer);
+	struct ident *as = base->ctype.as;
 	unsigned long mod = 0;
 
 	if (!base)
@@ -567,6 +568,8 @@ static struct symbol *examine_typeof_helper(struct symbol *sym, bool qual)
 	sym->type = SYM_NODE;
 	sym->ctype.modifiers = mod;
 	sym->ctype.base_type = base;
+	if (qual)
+		sym->ctype.as = as;
 	return examine_node_type(sym);
 }
 
