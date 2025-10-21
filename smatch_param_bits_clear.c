@@ -30,9 +30,6 @@ static void match_assign(struct expression *expr)
 {
 	sval_t sval;
 
-	if (expr->type != EXPR_ASSIGNMENT)
-		return;
-
 	if (expr->op != SPECIAL_AND_ASSIGN)
 		return;
 
