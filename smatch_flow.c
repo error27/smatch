@@ -29,6 +29,7 @@ int __in_fake_assign;
 int __in_fake_struct_assign;
 int __in_buf_clear;
 int __in_fake_var_assign;
+int __in_array_initializer;
 int __fake_state_cnt;
 int __debug_skip;
 int in_fake_env;
@@ -2128,10 +2129,13 @@ static void do_initializer_stuff(struct symbol *sym)
 		return;
 
 	if (sym->initializer->type == EXPR_INITIALIZER) {
-		if (get_real_base_type(sym)->type == SYM_ARRAY)
+		if (get_real_base_type(sym)->type == SYM_ARRAY) {
+			__in_array_initializer++;
 			fake_element_assigns(sym, __split_expr);
-		else
+			__in_array_initializer--;
+		} else {
 			fake_member_assigns(sym, __split_expr);
+		}
 	} else {
 		fake_assign_expr(sym);
 	}

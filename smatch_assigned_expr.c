@@ -29,6 +29,7 @@ static int my_id;
 static int link_id;
 
 static struct expression *skip_mod;
+static struct stree *global_stree;
 
 static struct smatch_state *merge_expr(struct smatch_state *s1, struct smatch_state *s2)
 {
@@ -52,12 +53,26 @@ static void undef(struct sm_state *sm, struct expression *mod_expr)
 
 struct expression *get_assigned_expr(struct expression *expr)
 {
+	struct expression *ret = NULL;
 	struct smatch_state *state;
+	char *name;
+	struct symbol *sym;
 
-	state = get_state_expr(my_id, expr);
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+
+	if (sym->ctype.modifiers & MOD_TOPLEVEL)
+		state = get_state_stree(global_stree, my_id, name, sym);
+	else
+		state = get_state(my_id, name, sym);
+
 	if (!state)
-		return NULL;
-	return (struct expression *)state->data;
+		goto free;
+	ret = (struct expression *)state->data;
+free:
+	free_string(name);
+	return ret;
 }
 
 struct sm_state *get_assigned_sm(struct expression *expr)
@@ -231,6 +246,39 @@ free:
 	free_string(name);
 }
 
+static void match_global_assignment(struct expression *expr)
+{
+	static struct expression *right;
+	struct smatch_state *state;
+	char *name;
+	struct symbol *sym;
+
+	if (__in_array_initializer)
+		return;
+
+	name = expr_to_var_sym(expr->left, &sym);
+	if (!name || !sym)
+		return;
+
+	right = expr->right;
+	if (right->type == EXPR_ASSIGNMENT && right->op == '=')
+		right = right->left;
+
+	right = strip__builtin_choose_expr(right);
+	right = strip_Generic(right);
+	right = strip_useless_scope(expr, right);
+
+	if (!right || right->smatch_flags & Tmp)
+		return;
+
+	state = alloc_state_expr(right);
+	if (!state)
+		return;
+
+	state  = clone_state_perm(state);
+	set_state_stree_perm(&global_stree, my_id, name, sym, state);
+}
+
 void register_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
@@ -239,6 +287,8 @@ void register_assigned_expr(int id)
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
 	add_modification_hook_late(my_id, &undef);
 	select_return_states_hook(PARAM_SET, &record_param_assignment);
+
+	add_hook(&match_global_assignment, GLOBAL_ASSIGNMENT_HOOK);
 }
 
 void register_assigned_expr_links(int id)
