@@ -71,6 +71,15 @@ static void match_divide(struct expression *expr)
 	set_true_false_states_expr(my_id, right->right, NULL, &no_overflow);
 }
 
+static int match_comparison_to_safe_variable(struct expression *left, struct expression *right)
+{
+	if (is_overflow_safe_variable(right)) {
+		set_true_false_states_expr(my_id, left, &no_overflow, NULL);
+		return true;
+	}
+	return false;
+}
+
 static int match_overflow_to_less_than_helper(struct expression *left, struct expression *right)
 {
 	struct symbol *type, *tmp;
@@ -113,6 +122,9 @@ static void match_overflow_to_less_than(struct expression *expr)
 
 	left = strip_parens(expr->left);
 	right = strip_parens(expr->right);
+
+	if (match_comparison_to_safe_variable(left, right))
+		return;
 
 	if (match_overflow_to_less_than_helper(left, right))
 		return;
@@ -344,6 +356,17 @@ static void match_safe(struct expression *expr, const char *name, struct symbol 
 	set_state(my_id, name, sym, &no_overflow);
 }
 
+static void match_checked(struct expression *expr, const char *name, struct symbol *sym, void *info)
+{
+	struct statement *stmt;
+
+	stmt = get_parent_stmt(expr);
+	if (!stmt || stmt->type != STMT_IF)
+		return;
+
+	set_state(my_id, name, sym, &no_overflow);
+}
+
 void register_simple_no_overflow(int id)
 {
 	my_id = id;
@@ -373,6 +396,10 @@ void register_simple_no_overflow(int id)
 	return_implies_param_key("kvmalloc_array_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
 	return_implies_param_key("kvmalloc_array_node_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 0, "$", NULL);
 	return_implies_param_key("kvmalloc_array_node_noprof", valid_ptr_min_sval, valid_ptr_max_sval, &match_safe, 1, "$", NULL);
+	add_function_param_key_hook("size_add", &match_checked, 0, "$", NULL);
+	add_function_param_key_hook("size_add", &match_checked, 1, "$", NULL);
+	add_function_param_key_hook("size_mul", &match_checked, 0, "$", NULL);
+	add_function_param_key_hook("size_mul", &match_checked, 1, "$", NULL);
 
 	select_return_states_hook(NO_OVERFLOW_SIMPLE, &db_returns_no_overflow);
 	select_caller_info_hook(set_param_no_overflow, NO_OVERFLOW_SIMPLE);
