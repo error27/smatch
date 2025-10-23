@@ -466,6 +466,8 @@ static void print_related(struct sm_state *sm)
 {
 	struct relation *rel;
 
+	if (sm->owner != SMATCH_EXTRA)
+		return;
 	if (!estate_related(sm->state))
 		return;
 
@@ -634,6 +636,7 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 		continue;
 print:
 		sm_msg("%s", show_sm(sm));
+		print_related(sm);
 	} END_FOR_EACH_SM(sm);
 }
 
