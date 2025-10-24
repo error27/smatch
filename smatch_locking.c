@@ -492,8 +492,9 @@ static struct lock_info lock_table[] = {
 	{"class_thermal_zone_reverse_destructor", LOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_lock},
 	{"class_cooling_dev_destructor", UNLOCK, mutex, 0, "&%s->lock", NULL, NULL, &match_class_generic_unlock},
 	{"class_mvm_destructor", UNLOCK, mutex, 0, "&%s->mutex", NULL, NULL, &match_class_generic_unlock},
+	{"class_coef_mutex_destructor", UNLOCK, mutex, 0, "&%s->spec->coef_mutex", NULL, NULL, &match_class_generic_unlock},
 
-	{"class_mvm_destructor", UNLOCK, mutex, 0, "&$->mutex"},
+	{"class_console_lock_destructor", UNLOCK, sem, -2, "global &console_sem"},
 
 	{"lock_cluster_or_swap_info",   LOCK,   spin_lock, 0, "&$->lock"},
 	{"unlock_cluster_or_swap_info", UNLOCK, spin_lock, 0, "&$->lock"},
@@ -549,6 +550,10 @@ static struct lock_info lock_table[] = {
 	{"schedule", IGNORE, irq, -2, "$"},
 
 	{"wait_consider_task",	UNLOCK, read_lock, NO_ARG, "global &tasklist_lock"},
+
+	{"ldsem_down_read_trylock", LOCK, sem, 0, "$", &int_one, &int_one},
+	{"ldsem_down_read", LOCK, sem, 0, "$"},
+	{"ldsem_up_read", UNLOCK, sem, 0, "$"},
 
 	{},
 };
