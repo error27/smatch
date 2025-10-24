@@ -1000,11 +1000,26 @@ static void clear_state(struct sm_state *sm, struct expression *mod_expr)
 	do_clear(NULL, NULL, NULL, sm->name, sm->sym);
 }
 
+static bool in_local_lock_cpu_slab(struct expression *expr)
+{
+	char *macro;
+
+	if (!expr)
+		return false;
+	macro = get_macro_name(expr->pos);
+	if (macro && strcmp(macro, "local_lock_cpu_slab") == 0)
+		return true;
+	return false;
+}
+
 static void db_param_locked_unlocked(struct expression *expr, int param, const char *key, int lock_unlock, struct lock_info *info)
 {
 	struct expression *call, *arg, *lock = NULL;
 	const char *name = NULL;
 	struct symbol *sym = NULL;
+
+	if (lock_unlock == RESTORE && in_local_lock_cpu_slab(expr))
+		return;
 
 	if (info && info->action == IGNORE_LOCK)
 		return;
