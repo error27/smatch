@@ -81,6 +81,10 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 		       is_end ? "" : orig + offset + 2 + len);
 	if (ret >= sizeof(buf))
 		return NULL;
+
+	if (buf[0] == '&' && buf[1] == '*')
+		return alloc_string(buf + 2);
+
 	return alloc_string(buf);
 }
 
