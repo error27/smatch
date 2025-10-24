@@ -1213,8 +1213,6 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		type = get_db_type(sm);
-		if (local_debug)
-			sm_msg("%s: type=%d sm='%s'", __func__, type, show_sm(sm));
 		if (type == -1)
 			continue;
 
