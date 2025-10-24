@@ -1003,6 +1003,13 @@ const char *get_container_of_str(struct expression *expr)
 	return state->name;
 }
 
+static bool is_self_assign(struct expression *expr)
+{
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return false;
+	return expr_equiv(expr->left, expr->right);
+}
+
 static void match_assign(struct expression *expr)
 {
 	struct symbol *param_sym;
@@ -1013,7 +1020,8 @@ static void match_assign(struct expression *expr)
 
 	/* __in_fake_parameter_assign is included deliberately */
 	if (is_fake_call(expr->right) ||
-	    __in_fake_struct_assign)
+	    __in_fake_struct_assign ||
+	    is_self_assign(expr))
 		return;
 
 	param_name = get_param_name_sym(expr->right, &param_sym);
