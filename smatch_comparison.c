@@ -2181,7 +2181,16 @@ char *name_sym_to_param_comparison(const char *name, struct symbol *sym)
 
 char *expr_equal_to_param(struct expression *expr, int ignore)
 {
-	return range_comparison_to_param_helper(expr, '=', ignore);
+	char *ret;
+
+	/* FIXME: This is ugly. */
+
+	ret = range_comparison_to_param_helper(expr, '=', ignore);
+	if (!ret || strncmp(ret, "[==", 3) != 0)
+		return ret;
+	ret += 2;
+	ret[0] = '[';
+	return ret;
 }
 
 char *expr_lte_to_param(struct expression *expr, int ignore)

@@ -829,13 +829,57 @@ void fake_param_assign_helper(struct expression *call, struct expression *fake_a
 	clear_unfaked_call();
 }
 
+static struct expression *get_arg_from_ret_string(struct expression *call, const char *ret_string)
+{
+	struct expression *arg, *tmp;
+	char *str;
+	char buf[64];
+	int param;
+
+	str = strchr(ret_string, '[');
+	if (!str)
+		return NULL;
+	str++;
+	if (strncmp(str, "== ", 3) == 0)
+		str += 3;
+
+	if (str[0] != '$' || !isdigit(str[1]))
+		return NULL;
+
+	param = atoi(str + 1);
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return NULL;
+
+	if (arg->smatch_flags & Fake) {
+		/* There should be a get_other_name() function which returns an expr */
+		tmp = get_assigned_expr(arg);
+		if (!tmp)
+			return NULL;
+		arg = tmp;
+	}
+
+	snprintf(buf, sizeof(buf), "$%s", str + 2);
+	str = strchr(buf, ']');
+	if (!str)
+		return NULL;
+	*str = '\0';
+
+	/*
+	 * This is a sanity check to prevent side effects from evaluating stuff
+	 * twice.
+	 */
+	str = expr_to_chunk_sym_vsl(arg, NULL, NULL);
+	if (!str)
+		return NULL;
+	free_string(str);
+
+	return gen_expression_from_key(arg, buf);
+}
+
 static bool fake_a_param_assignment(struct expression *expr, const char *ret_str, struct smatch_state *orig)
 {
-	struct expression *arg, *left, *right, *tmp, *fake_assign;
-	char *p;
-	int param;
-	char buf[256];
-	char *str;
+	struct expression *arg, *left, *right, *fake_assign;
 
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return false;
@@ -847,49 +891,11 @@ static bool fake_a_param_assignment(struct expression *expr, const char *ret_str
 	if (!right || right->type != EXPR_CALL)
 		return false;
 
-	p = strchr(ret_str, '[');
-	if (!p)
-		return false;
-
-	p++;
-	if (p[0] == '=' && p[1] == '=')
-		p += 2;
-	if (p[0] != '$')
-		return false;
-
-	snprintf(buf, sizeof(buf), "%s", p);
-
-	p = buf;
-	p += 1;
-	param = strtol(p, &p, 10);
-
-	p = strchr(p, ']');
-	if (!p || *p != ']')
-		return false;
-	*p = '\0';
-
-	arg = get_argument_from_call_expr(right->args, param);
+	arg = get_arg_from_ret_string(right, ret_str);
 	if (!arg)
 		return false;
 
-	/* There should be a get_other_name() function which returns an expr */
-	tmp = get_assigned_expr(arg);
-	if (tmp)
-		arg = tmp;
-
-	/*
-	 * This is a sanity check to prevent side effects from evaluating stuff
-	 * twice.
-	 */
-	str = expr_to_chunk_sym_vsl(arg, NULL, NULL);
-	if (!str)
-		return false;
-	free_string(str);
-
-	right = gen_expression_from_key(arg, buf);
-	if (!right)  /* Mostly fails for binops like [$0 + 4032] */
-		return false;
-	fake_assign = assign_expression(left, '=', right);
+	fake_assign = assign_expression(left, '=', arg);
 	fake_param_assign_helper(expr, fake_assign, false);
 
 	/*
@@ -1034,19 +1040,10 @@ static void set_other_side_state(struct db_callback_info *db_info)
 
 static void handle_ret_equals_param(char *ret_string, struct range_list *rl, struct expression *call)
 {
-	char *str;
-	long long param;
 	struct expression *arg;
 	struct range_list *orig;
 
-	// TODO: faked_assign This needs to be handled in the assignment code
-
-	str = strstr(ret_string, "==$");
-	if (!str)
-		return;
-	str += 3;
-	param = strtoll(str, NULL, 10);
-	arg = get_argument_from_call_expr(call->args, param);
+	arg = get_arg_from_ret_string(call, ret_string);
 	if (!arg)
 		return;
 	get_absolute_rl(arg, &orig);
