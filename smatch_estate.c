@@ -503,8 +503,7 @@ struct smatch_state *clone_estate_perm(struct smatch_state *state)
 {
 	struct smatch_state *ret;
 
-	ret = malloc(sizeof(*ret));
-	ret->name = alloc_string(state->name);
+	ret = clone_state_perm(state);
 	ret->data = clone_dinfo_perm(get_dinfo(state));
 	return ret;
 }

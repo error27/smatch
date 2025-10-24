@@ -74,6 +74,17 @@ void remove_parens(char *str)
 	*dst = *src;
 }
 
+struct smatch_state *clone_state_perm(struct smatch_state *state)
+{
+	struct smatch_state *ret;
+
+	ret = malloc(sizeof(*ret));
+	ret->name = alloc_string(state->name);
+	ret->data = state->data;
+
+	return ret;
+}
+
 struct smatch_state *alloc_state_num(int num)
 {
 	struct smatch_state *state;

@@ -506,6 +506,7 @@ char *alloc_string(const char *str);
 char *alloc_string_newline(const char *str);
 void free_string(char *str);
 void remove_parens(char *str);
+struct smatch_state *clone_state_perm(struct smatch_state *state);
 struct smatch_state *alloc_state_num(int num);
 struct smatch_state *alloc_state_str(const char *name);
 struct smatch_state *merge_str_state(struct smatch_state *s1, struct smatch_state *s2);
