@@ -588,6 +588,7 @@ int success_fail_return(struct range_list *rl);
 #define UNKNOWN_SCOPE -5
 
 char *swap_names(const char *orig, const char *remove, const char *add);
+char *get_param_var_sym_var_sym_early(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p);
 char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p);
 char *get_param_name_sym(struct expression *expr, struct symbol **sym_p);
 int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,

@@ -561,7 +561,7 @@ char *get_param_name(struct sm_state *sm)
 	return get_param_name_var_sym(sm->name, sm->sym);
 }
 
-char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
+char *get_param_var_sym_var_sym_helper(enum early_late el, const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
 {
 	struct smatch_state *state;
 	struct var_sym *var_sym;
@@ -574,10 +574,12 @@ char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct exp
 
 	// FIXME was modified...
 
-	param = get_param_num_from_sym(sym);
-	if (param >= 0) {
-		*sym_p = sym;
-		return alloc_string(name);
+	if (el == LATE || !param_was_set_var_sym(name, sym)) {
+		param = get_param_num_from_sym(sym);
+		if (param >= 0) {
+			*sym_p = sym;
+			return alloc_string(name);
+		}
 	}
 
 	state = get_state(my_id, name, sym);
@@ -599,6 +601,16 @@ char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct exp
 	 */
 
 	return swap_with_param(name, sym, sym_p);
+}
+
+char *get_param_var_sym_var_sym_early(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
+{
+	return get_param_var_sym_var_sym_helper(EARLY, name, sym, ret_expr, sym_p);
+}
+
+char *get_param_var_sym_var_sym(const char *name, struct symbol *sym, struct expression *ret_expr, struct symbol **sym_p)
+{
+	return get_param_var_sym_var_sym_helper(LATE, name, sym, ret_expr, sym_p);
 }
 
 char *get_param_name_sym(struct expression *expr, struct symbol **sym_p)
