@@ -83,8 +83,6 @@ static void match_call_info(struct expression *expr)
 
 		if (strcmp(sm->name, "bottom_half") == 0)
 			name = "bh";
-		else if (strcmp(sm->name, "rcu_read") == 0)
-			name = "rcu_read_lock";
 		else
 			name = sm->name;
 
@@ -99,6 +97,8 @@ static void match_call_info(struct expression *expr)
 
 static void set_locked(const char *name, struct symbol *sym, char *value)
 {
+	if (name && strcmp(name, "rcu_read_lock") == 0)
+		name = "rcu_read";
 	set_state(my_id, name, sym, &locked);
 }
 
