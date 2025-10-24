@@ -931,6 +931,7 @@ void __call_array_initialized_hooks(struct expression *array, int nr);
 /* smatch_function_hooks.c */
 const char *get_fn_name(struct expression *fn);
 void add_fake_call_after_return(struct expression *call);
+struct expression *get_real_call(void);
 void create_function_hook_hash(void);
 void __match_initializer_call(struct symbol *sym);
 

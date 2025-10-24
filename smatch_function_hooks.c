@@ -157,11 +157,19 @@ void add_fake_call_after_return(struct expression *call)
 	add_ptr_list(&fake_calls, call);
 }
 
-static void parse_fake_calls(void)
+static struct expression *real_call;
+struct expression *get_real_call(void)
+{
+	return real_call;
+}
+
+static void parse_fake_calls(struct expression *expr)
 {
 	struct expression_list *list;
-	struct expression *call;
+	struct expression *call, *orig;
 
+	orig = real_call;
+	real_call = expr;
 	list = fake_calls;
 	fake_calls = NULL;
 
@@ -170,6 +178,7 @@ static void parse_fake_calls(void)
 	} END_FOR_EACH_PTR(call);
 
 	__free_ptr_list((struct ptr_list **)&list);
+	real_call = orig;
 }
 
 static struct fcall_back *alloc_fcall_back(int type, void *call_back,
@@ -1158,7 +1167,7 @@ static void process_return_states(struct db_callback_info *db_info)
 
 	set_implied_states(db_info);
 	set_fresh_mtag_returns(db_info);
-	parse_fake_calls();
+	parse_fake_calls(db_info->expr);
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
 	if (debug_db) {
@@ -1767,7 +1776,7 @@ static void match_function_call(struct expression *expr)
 	call_function_hooks(expr, REGULAR_CALL);
 	db_return_states_call(expr);
 	/* If we have no database there could be unprocessed fake calls */
-	parse_fake_calls();
+	parse_fake_calls(expr);
 }
 
 static void match_macro_assign(struct expression *expr)
@@ -1843,6 +1852,7 @@ void register_function_hooks(int id)
 {
 	add_function_data((unsigned long *)&fake_calls);
 	add_function_data((unsigned long *)&__in_fake_parameter_assign);
+	add_function_data((unsigned long *)&real_call);
 	add_hook(&match_function_call, CALL_HOOK_AFTER_INLINE);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_macro_assign, MACRO_ASSIGNMENT_HOOK);
