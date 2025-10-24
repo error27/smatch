@@ -1258,7 +1258,7 @@ static void load_table(struct lock_info *lock_table)
 		if (lock->call_back) {
 			add_function_hook(lock->function, lock->call_back, lock);
 		} else if (lock->implies_start) {
-			return_implies_state_sval(lock->function,
+			return_implies_exact(lock->function,
 					*lock->implies_start,
 					*lock->implies_end,
 					&match_lock_held, lock);
