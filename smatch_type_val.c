@@ -95,6 +95,7 @@ int get_db_type_rl(struct expression *expr, struct range_list **rl)
 	struct symbol *type;
 	int ret;
 
+	*rl = NULL;
 	if (get_cached(expr, rl, &ret))
 		return ret;
 
@@ -139,44 +140,6 @@ static void add_type_val(char *member, struct range_list *rl)
 	set_state_stree(&fn_type_val, my_id, member, NULL, new);
 }
 
-static void add_fake_type_val(char *member, struct range_list *rl, int ignore)
-{
-	struct smatch_state *old, *add, *new;
-
-	member = alloc_string(member);
-	old = get_state_stree(fn_type_val, my_id, member, NULL);
-	if (old && strcmp(old->name, "min-max") == 0)
-		return;
-	if (ignore && old && strcmp(old->name, "ignore") == 0)
-		return;
-	add = alloc_estate_rl(rl);
-	if (old) {
-		new = merge_estates(old, add);
-	} else {
-		new = add;
-		if (ignore)
-			new->name = alloc_string("ignore");
-		else
-			new->name = alloc_string("min-max");
-	}
-	set_state_stree(&fn_type_val, my_id, member, NULL, new);
-}
-
-static void add_global_type_val(char *member, struct range_list *rl)
-{
-	struct smatch_state *old, *add, *new;
-
-	member = alloc_string(member);
-	old = get_state_stree(global_type_val, my_id, member, NULL);
-	add = alloc_estate_rl(rl);
-	if (old)
-		new = merge_estates(old, add);
-	else
-		new = add;
-	new = clone_estate_perm(new);
-	set_state_stree_perm(&global_type_val, my_id, member, NULL, new);
-}
-
 static int has_link_cb(void *has_link, int argc, char **argv, char **azColName)
 {
 	*(int *)has_link = 1;
@@ -210,6 +173,57 @@ static int is_ignored_fake_assignment(void)
 		"select * from data_info where type = %d and data = '%s' and value = '%s';",
 		TYPE_LINK, member_name, type_to_str(type));
 	return has_link;
+}
+
+static int right_is_void(void)
+{
+	struct expression *expr;
+
+	expr = get_faked_expression();
+	if (!expr || expr->type != EXPR_ASSIGNMENT)
+		return 0;
+	return is_void_pointer(expr->right);
+}
+
+static void add_fake_type_val(char *member, struct range_list *rl, struct expression *expr)
+{
+	struct smatch_state *old, *add, *new;
+	bool ignore = is_ignored_fake_assignment();
+
+	member = alloc_string(member);
+	old = get_state_stree(fn_type_val, my_id, member, NULL);
+	if (old && strcmp(old->name, "min-max") == 0)
+		return;
+	if (ignore && old && strcmp(old->name, "ignore") == 0)
+		return;
+	add = alloc_estate_rl(rl);
+	if (old) {
+		new = merge_estates(old, add);
+	} else {
+		new = add;
+		if (ignore)
+			new->name = alloc_string("ignore");
+		else if (right_is_void())
+			new->name = alloc_string("ignore (void)");
+		else
+			new->name = alloc_string("min-max");
+	}
+	set_state_stree(&fn_type_val, my_id, member, NULL, new);
+}
+
+static void add_global_type_val(char *member, struct range_list *rl)
+{
+	struct smatch_state *old, *add, *new;
+
+	member = alloc_string(member);
+	old = get_state_stree(global_type_val, my_id, member, NULL);
+	add = alloc_estate_rl(rl);
+	if (old)
+		new = merge_estates(old, add);
+	else
+		new = add;
+	new = clone_estate_perm(new);
+	set_state_stree_perm(&global_type_val, my_id, member, NULL, new);
 }
 
 static int is_container_of(void)
@@ -493,7 +507,7 @@ static void match_assign_value(struct expression *expr)
 			return;
 		if (is_driver_data())
 			return;
-		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), is_ignored_fake_assignment());
+		add_fake_type_val(member, alloc_whole_rl(get_type(expr->left)), expr);
 		return;
 	}
 
@@ -523,6 +537,8 @@ static void match_assign_pointer(struct expression *expr)
 
 	right = strip_expr(expr->right);
 	if (right->type != EXPR_PREOP || right->op != '&')
+		return;
+	if (__in_fake_var_assign)
 		return;
 	right = strip_expr(right->unop);
 
