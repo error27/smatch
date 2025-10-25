@@ -494,7 +494,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 		struct smatch_state *estate;
 
 		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
-		if (!estate || estate_rl(estate) != estate_related(orig_state))
+		if (!estate || estate_related(estate) != estate_related(orig_state))
 			continue;
 		set_extra_nomod_helper(rel->name, rel->sym, expr, clone_estate_cast(estate_type(estate), state));
 	} END_FOR_EACH_PTR(rel);
