@@ -406,16 +406,16 @@ smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS)
 smatch_data/db/sm_hash: sm_hash.o $(SMATCH_OBJS)
 	$(Q)$(LD) -o smatch_data/db/sm_hash sm_hash.o smatch_hash.o $(SMATCH_LDFLAGS)
 
-sm_hash.o: sm_hash.c smatch.h
+sm_hash.o: sm_hash.c smatch.h smatch_dbtypes.h
 	$(CC) $(CFLAGS) -c sm_hash.c
 
 check_list_local.h:
 	touch check_list_local.h
 
-smatch.o: smatch.c $(LIB_H) smatch.h check_list.h check_list_local.h
+smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h check_list.h check_list_local.h
 	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(smatch_datadir)"'
 
-$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_slist.h smatch_extra.h \
+$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_dbtypes.h smatch_slist.h smatch_extra.h \
 	smatch_constants.h avl.h
 
 ########################################################################
