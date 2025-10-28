@@ -594,7 +594,7 @@ def caller_info_values(filename, func):
 
 def print_return_states(func):
     cur = con.cursor()
-    cur.execute("select * from return_states where function = '%s';" %(func))
+    cur.execute("select * from return_states where function = '%s' order by return_id, type;" %(func))
     count = 0
     try:
         for txt in cur:
