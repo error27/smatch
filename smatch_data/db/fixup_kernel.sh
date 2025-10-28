@@ -175,9 +175,9 @@ delete from type_value where type = '(struct mc_cmd_header)->status';
 /* this is handled in check_kernel.c */
 delete from return_states where function = '__write_once_size';
 
-update return_states set value = 's32min-s32max[\$1]' where function = 'atomic_set' and parameter = 0 and type = 1025;
+update return_states set value = 's32min-s32max[\$1]' where function = 'atomic_set' and parameter = 0 and type = 2525;
 
-update return_states set value = '0-u64max' where function = '_kstrtoull' and parameter = 2 and type = 1025;
+update return_states set value = '0-u64max' where function = '_kstrtoull' and parameter = 2 and type = 2525;
 
 /* other atomic stuff */
 delete from return_states where function = 'sg_common_write' and type = 8023;
@@ -188,9 +188,9 @@ delete from return_states where function = 'printk' and type = 8024;
 delete from return_states where function = 'vsnprintf' and type = 8024;
 
 update return_states set return = '0-32,2147483648-2147483690' where function = '_parse_integer' and return = '0';
-update return_states set value = '0-u64max' where function = '_parse_integer' and type = 1025 and parameter = 2 and key = '*$';
-update return_states set value = '0-s32max' where function = 'dm_split_args' and type = 1025 and parameter = 0 and key = '*$';
-update return_states set value = '(-4095)-0' where function = 'usb_submit_urb' and return ='0' and type = 1025 and parameter = 0 and key = '\$->status';
+update return_states set value = '0-u64max' where function = '_parse_integer' and type = 2525 and parameter = 2 and key = '*$';
+update return_states set value = '0-s32max' where function = 'dm_split_args' and type = 2525 and parameter = 0 and key = '*$';
+update return_states set value = '(-4095)-0' where function = 'usb_submit_urb' and return ='0' and type = 2525 and parameter = 0 and key = '\$->status';
 
 /* delete some function pointers which are sometimes byte units */
 delete from caller_info where function = '(struct i2c_algorithm)->master_xfer' and type = 1027;
@@ -224,7 +224,7 @@ insert into function_ptr values ('fixup_kernel.sh', 'r get_handler()', 'ioctl_st
 insert into function_ptr values ('fixup_kernel.sh', 'r get_handler()', 'ioctl_standard_iw_point param 3', 1);
 
 /* device_add() returns too many states so delete stuff */
-delete from return_states where function = '__device_attach' and type = 1012;
+delete from return_states where function = '__device_attach' and type = 2535;
 
 delete from return_states where function = 'bus_for_each_dev' and return = '1';
 /* This matches the wrong function pointers with the wrong data pointer. */
@@ -232,8 +232,8 @@ delete from return_states where function = 'bus_for_each_dev' and return = '1';
 delete from caller_info where function = 'device_for_each_child' and type != 0;
 
 /* kfree does poison stuff but it ends up being a lot of data to track all that */
-delete from return_states where function = 'kfree' and (type = 501 or type = 502 or type = 1012 or type = 1025) and key = '*$';
-delete from return_states where function = 'vfree' and (type = 501 or type = 502 or type = 1012 or type = 1025) and key = '*$';
+delete from return_states where function = 'kfree' and (type = 2501 or type = 2502 or type = 2535 or type = 2525) and key = '*$';
+delete from return_states where function = 'vfree' and (type = 2501 or type = 2502 or type = 2535 or type = 2525) and key = '*$';
 
 /* The only work queue we care about is process_one_work() */
 delete from caller_info where caller = 'cache_set_flush' and function = '(struct work_struct)->func';
