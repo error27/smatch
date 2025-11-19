@@ -1022,7 +1022,10 @@ static void handle_pre_loop(struct statement *stmt)
 	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 	__in_pre_condition++;
 	__set_confidence_implied();
-	__split_whole_condition_tf(stmt->iterator_pre_condition, &once_through);
+	if (stmt->iterator_pre_condition)
+		__split_whole_condition_tf(stmt->iterator_pre_condition, &once_through);
+	else
+		once_through = true;
 	__unset_confidence();
 	if (once_through != true)
 		once_through = call_once_through_hooks(stmt);
