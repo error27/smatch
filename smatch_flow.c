@@ -269,6 +269,10 @@ static int is_noreturn_func(struct expression *expr)
 
 	if (expr->symbol->ctype.modifiers & MOD_NORETURN)
 		return 1;
+	if (expr->symbol->ident &&
+	    strcmp(expr->symbol->ident->name, "__builtin_unreachable") == 0)
+		return 1;
+
 	return 0;
 }
 
