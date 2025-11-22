@@ -139,6 +139,7 @@ int Wuninitialized = 1;
 int Wunion_cast = 0;
 int Wuniversal_initializer = 0;
 int Wunknown_attribute = 0;
+int Wunused_label = 1;
 int Wvla = 1;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -897,6 +898,7 @@ static const struct flag warnings[] = {
 	{ "union-cast", &Wunion_cast },
 	{ "universal-initializer", &Wuniversal_initializer },
 	{ "unknown-attribute", &Wunknown_attribute },
+	{ "unused-label", &Wunused_label },
 	{ "vla", &Wvla },
 	{ }
 };

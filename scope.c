@@ -32,6 +32,7 @@
 #include "allocate.h"
 #include "symbol.h"
 #include "scope.h"
+#include "options.h"
 
 static struct scope builtin_scope = { .next = &builtin_scope };
 
@@ -160,7 +161,9 @@ void end_label_scope(void)
 			continue;
 		if (sym->label_modifiers & MOD_UNUSED)
 			continue;
-		warning(sym->pos, "unused label '%s'", show_ident(sym->ident));
+		if (Wunused_label)
+			warning(sym->pos, "unused label '%s'",
+			    show_ident(sym->ident));
 	} END_FOR_EACH_PTR(sym);
 
 	end_scope(&label_scope);
