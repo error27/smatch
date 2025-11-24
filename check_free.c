@@ -346,7 +346,7 @@ static void match_return(struct expression *expr)
 	free_string(name);
 }
 
-int parent_is_free_var_sym_strict(const char *name, struct symbol *sym)
+int parent_is_free_var_sym(const char *name, struct symbol *sym)
 {
 	char buf[256];
 	char *start;
@@ -385,7 +385,7 @@ int parent_is_free_strict(struct expression *expr)
 	var = expr_to_var_sym(expr, &sym);
 	if (!var || !sym)
 		goto free;
-	ret = parent_is_free_var_sym_strict(var, sym);
+	ret = parent_is_free_var_sym(var, sym);
 free:
 	free_string(var);
 	return ret;
@@ -440,7 +440,7 @@ static void match_free(struct expression *expr, const char *name, struct symbol 
 		set_state_expr(my_id, tmp, &freed);
 }
 
-void check_free_strict(int id)
+void check_free(int id)
 {
 	my_id = id;
 
