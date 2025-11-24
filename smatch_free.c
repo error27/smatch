@@ -40,6 +40,11 @@ struct func_info {
 
 static struct func_info *free_table;
 
+static struct func_info default_func_table[] = {
+	{ "free", PARAM_FREED, 0, "$" },
+	{ /* sentinel */ }
+};
+
 static struct func_info illumos_func_table[] = {
 	{ "kmem_free", PARAM_FREED, 0, "$" },
 	{ /* sentinel */ }
@@ -223,7 +228,8 @@ void register_free(int id)
 		free_table = illumos_func_table;
 		break;
 	default:
-		return;
+		free_table = default_func_table;
+		break;
 	}
 
 	for (info = &free_table[0]; info->name; info++) {
