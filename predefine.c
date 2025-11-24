@@ -280,6 +280,9 @@ void predefined_macros(void)
 		predefine("__sun", 1, "1");
 		predefine_nostd("sun");
 		predefine("__svr4__", 1, "1");
+#ifdef __illumos__
+		predefine("__illumos__", 1, "1");
+#endif
 		break;
 	}
 }

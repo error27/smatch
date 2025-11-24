@@ -645,7 +645,7 @@ static void str_to_rl_helper(struct expression *call, struct symbol *type, const
 				break;
 		}
 		if (*c != '-') {
-			sm_msg("debug XXX: trouble parsing %s c = %s", str, c);
+			sm_debug("XXX: trouble parsing %s c = %s", str, c);
 			break;
 		}
 		c++;
