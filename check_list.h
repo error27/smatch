@@ -110,7 +110,6 @@ CK(register_kernel_xa_err)
 CK(register_locking)
 CK(register_locking_info)
 CK(register_locking_type)
-CK(register_free)
 CK(register_free_return_states)
 
 CK(check_debug)
