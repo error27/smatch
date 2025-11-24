@@ -1543,6 +1543,7 @@ bool is_part_of_condition(struct expression *expr);
 bool is_percent_p_print(struct expression *expr);
 
 void add_free_hook(name_sym_hook *hook);
+void add_maybe_free_hook(name_sym_hook *hook);
 
 /* smatch_unconstant_macros.c */
 int is_unconstant_macro(struct expression *expr);
