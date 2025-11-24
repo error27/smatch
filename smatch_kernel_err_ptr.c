@@ -40,6 +40,13 @@ bool possible_err_ptr(struct expression *expr)
 	return true;
 }
 
+bool is_err_ptr_name_sym(const char *name, struct symbol *sym)
+{
+	if (get_state(my_id, name, sym) == &err_ptr)
+		return true;
+	return false;
+}
+
 static void match_return_info(int return_id, char *return_ranges,
 				       struct expression *returned_expr,
 				       int param,
