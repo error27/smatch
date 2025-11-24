@@ -16,6 +16,6 @@ void func (void)
  * check-command: smatch sm_double_free1.c
  *
  * check-output-start
-sm_double_free1.c:10 func() error: double free of 'x'
+sm_double_free1.c:10 func() error: double free of 'x' (line 9)
  * check-output-end
  */
