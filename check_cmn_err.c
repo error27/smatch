@@ -31,7 +31,7 @@
 #define	DER_PANIC (7)
 
 static void
-match_err(const char *fn, struct expression *expr, int value)
+match_cmn_err(const char *fn, struct expression *expr, void *panic_value)
 {
 	struct expression *arg;
 	sval_t sval;
@@ -40,18 +40,8 @@ match_err(const char *fn, struct expression *expr, int value)
 	if (!get_implied_value(arg, &sval))
 		return;
 
-	if (sval.value == value)
+	if (sval.value == PTR_INT(panic_value))
 		nullify_path();
-}
-
-void match_cmn_err(const char *fn, struct expression *expr, void *unused)
-{
-	match_err(fn, expr, CE_PANIC);
-}
-
-void match_ddi_err(const char *fn, struct expression *expr, void *unused)
-{
-	match_err(fn, expr, DER_PANIC);
 }
 
 void check_cmn_err(int id)
@@ -59,6 +49,6 @@ void check_cmn_err(int id)
 	if (option_project != PROJ_ILLUMOS_KERNEL)
 		return;
 
-	add_function_hook("cmn_err", &match_cmn_err, NULL);
-	add_function_hook("ddi_err", &match_ddi_err, NULL);
+	add_function_hook("cmn_err", &match_cmn_err, INT_PTR(CE_PANIC));
+	add_function_hook("ddi_err", &match_cmn_err, INT_PTR(DER_PANIC));
 }
