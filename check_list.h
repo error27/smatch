@@ -111,6 +111,7 @@ CK(register_locking)
 CK(register_locking_info)
 CK(register_locking_type)
 CK(register_free_return_states)
+CK(register_free)
 
 CK(check_debug)
 
