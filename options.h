@@ -139,6 +139,7 @@ extern int Wuninitialized;
 extern int Wunion_cast;
 extern int Wuniversal_initializer;
 extern int Wunknown_attribute;
+extern int Wunused_label;
 extern int Wvla;
 
 extern char **handle_switch(char *arg, char **next);
