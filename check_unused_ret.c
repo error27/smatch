@@ -95,6 +95,11 @@ static void match_assign_call(struct expression *expr)
 
 	if (final_pass)
 		return;
+	if (__in_fake_parameter_assign || __in_fake_assign ||
+	    __in_fake_struct_assign)
+		return;
+	if (is_fake_var(expr->left) || is_fake_var(expr->right))
+		return;
 	if (in_condition())
 		return;
 	if (expr->op != '=')
@@ -126,6 +131,11 @@ static void match_assign(struct expression *expr)
 	struct expression *left;
 
 	if (expr->op != '=')
+		return;
+	if (__in_fake_parameter_assign || __in_fake_assign ||
+	    __in_fake_struct_assign)
+		return;
+	if (is_fake_var(expr->right))
 		return;
 	left = strip_expr(expr->left);
 	if (!left || left->type != EXPR_SYMBOL)
@@ -196,6 +206,7 @@ void check_unused_ret(int id)
 	/* It turns out that this test is worthless unless you use --two-passes.  */
 	if (!option_two_passes)
 		return;
+	add_function_data((unsigned long *)&assignment_list);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_symbol, SYM_HOOK);

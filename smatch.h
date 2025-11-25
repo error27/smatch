@@ -708,6 +708,7 @@ extern int  __in_array_initializer;
 extern int __in_builtin_overflow_func;
 extern int __fake_state_cnt;
 extern int __debug_skip;
+bool is_fake_var(struct expression *expr);
 extern int in_fake_env;
 bool is_fake_var_assign(struct expression *expr);
 struct expression *get_fake_return_variable(struct expression *expr);
