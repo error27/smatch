@@ -28,6 +28,7 @@ STATE(maybe_freed);
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
+	struct expression *call;
 	sval_t sval;
 
 	/*
@@ -44,6 +45,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (sm->state != &freed && sm->state != &maybe_freed)
 		return &undefined;
 
+	call = get_this_fn_call();
 #if 0
 	/*
 	 * The problem is that we sometimes know that kref_put() isn't going
@@ -52,10 +54,19 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	 * bumped in the callers.
 	 */
 	/* In fake kref_put() everything gets promoted to &free.  :P */
-	real_call = get_real_call();
-	if (real_call && sym_name_is("kref_put", real_call->fn))
+	if (call && sym_name_is("kref_put", call->fn))
 		return &freed;
 #endif
+
+	/*
+	 * Hopefully, things should be merged at the if statement level.
+	 * The issue here is that there was a bug so Smatch thought we only
+	 * passed NULL pointers to this function so they always got turned
+	 * into frees.
+	 *
+	 */
+	if (call)
+		return &undefined;
 
 	/* The parent is NULL */
 	if (parent_is_null_var_sym(sm->name, sm->sym))

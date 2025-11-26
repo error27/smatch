@@ -163,6 +163,12 @@ struct expression *get_real_call(void)
 	return real_call;
 }
 
+static struct expression *this_fn_call;
+struct expression *get_this_fn_call(void)
+{
+	return this_fn_call;
+}
+
 static void parse_fake_calls(struct expression *expr)
 {
 	struct expression_list *list;
@@ -1390,6 +1396,7 @@ void function_comparison(struct expression *left, int comparison, struct express
 {
 	struct expression *var_expr;
 	struct expression *call_expr;
+	struct expression *orig_expr;
 	struct stree *implied_true = NULL;
 	struct stree *implied_false = NULL;
 	struct range_list *rl;
@@ -1413,6 +1420,9 @@ void function_comparison(struct expression *left, int comparison, struct express
 		var_expr = left;
 	}
 
+	orig_expr = this_fn_call;
+	this_fn_call = call_expr;
+
 	get_absolute_rl(var_expr, &rl);
 
 	if (rl_to_sval(rl, &sval))
@@ -1421,6 +1431,8 @@ void function_comparison(struct expression *left, int comparison, struct express
 	compare_db_return_states_callbacks(left, comparison, right, implied_true, implied_false);
 	free_stree(&implied_true);
 	free_stree(&implied_false);
+
+	this_fn_call = orig_expr;
 }
 
 static void call_ranged_return_hooks(struct db_callback_info *db_info)
@@ -1545,6 +1557,10 @@ static int db_return_states_assign(struct expression *expr)
 	struct expression *right;
 	struct sm_state *sm;
 	struct db_callback_info db_info = {};
+	struct expression *orig_expr;
+
+	orig_expr = this_fn_call;
+	this_fn_call = expr;
 
 	right = strip_expr(expr->right);
 
@@ -1583,6 +1599,8 @@ static int db_return_states_assign(struct expression *expr)
 		mark_call_params_untracked(right);
 
 	call_return_states_after_hooks(right);
+
+	this_fn_call = orig_expr;
 
 	return db_info.handled;
 }
@@ -1724,9 +1742,13 @@ static void db_return_states(struct expression *expr)
 {
 	struct sm_state *sm;
 	struct db_callback_info db_info = {};
+	struct expression *orig_expr;
 
 	if (!__get_cur_stree())  /* no return functions */
 		return;
+
+	orig_expr = this_fn_call;
+	this_fn_call = expr;
 
 	db_info.prev_return_id = -1;
 	db_info.expr = expr;
@@ -1751,6 +1773,8 @@ static void db_return_states(struct expression *expr)
 		mark_call_params_untracked(expr);
 
 	call_return_states_after_hooks(expr);
+
+	this_fn_call = orig_expr;
 }
 
 static void db_return_states_call(struct expression *expr)
