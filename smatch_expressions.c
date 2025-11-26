@@ -93,6 +93,9 @@ struct expression *cast_expression(struct expression *expr, struct symbol *type)
 {
 	struct expression *cast;
 
+	if (!expr)
+		return NULL;
+
 	cast = alloc_tmp_expression(expr->pos, EXPR_CAST);
 	cast->cast_type = type;
 	cast->cast_expression = expr;

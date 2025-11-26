@@ -956,6 +956,8 @@ static void fake_return_assignment(struct db_callback_info *db_info, int type, i
 	if (!left)
 		return;
 	right = get_argument_from_call_expr(call->args, right_param);
+	if (!right)
+		return;
 
 	if (strcmp(key, "$") == 0)
 		right = cast_expression(right, get_type(call));
