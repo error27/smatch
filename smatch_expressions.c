@@ -363,6 +363,7 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	struct expression *ret;
 	struct token *token, *end;
 	const char *p = key;
+	char *close_square;
 	char buf[4095];
 	char *alloc;
 	int cnt = 0;
@@ -386,6 +387,12 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 	while (*p >= '0' && *p <= '9')
 		p++;
 	len = snprintf(buf, sizeof(buf), "%s\n", p);
+	close_square = strchr(buf, ']');
+	if (close_square) {
+		close_square[0] = '\n';
+		close_square[1] = '\0';
+		len = close_square + 1 - buf;
+	}
 	alloc = alloc_string(buf);
 
 	token = tokenize_buffer(alloc, len, &end);
@@ -448,6 +455,30 @@ struct expression *gen_expr_from_param_key(struct expression *expr, int param, c
 	}
 
 	return gen_expression_from_key(arg, key);
+}
+
+struct expression *gen_expr_from_dollar_key(struct expression *expr, const char *key)
+{
+	struct expression *call, *arg, *ret;
+	int param;
+
+	if (!expr)
+		return NULL;
+
+	call = expr;
+	while (call->type == EXPR_ASSIGNMENT)
+		call = strip_expr(call->right);
+	if (call->type != EXPR_CALL)
+		return NULL;
+
+	if (key[0] != '$')
+		return NULL;
+
+	param = atoi(key + 1);
+	arg = get_argument_from_call_expr(call->args, param);
+
+	ret = gen_expression_from_key(arg, key);
+	return ret;
 }
 
 bool is_fake_var(struct expression *expr)

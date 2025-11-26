@@ -2603,6 +2603,7 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	char *returned_name;
 	struct sm_state *sm;
 	char *compare_str;
+	char *math_str;
 	char val_buf[256];
 	int param;
 
@@ -2627,10 +2628,15 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 		if (!strchr(name_buf, '-'))
 			continue;
 
+		math_str = get_value_in_terms_of_parameter_math_var_sym(sm->name, sm->sym);
 		compare_str = name_sym_to_param_comparison(sm->name, sm->sym);
-		if (!compare_str && estate_is_whole(sm->state))
+		if (!compare_str && !math_str && estate_is_whole(sm->state))
 			continue;
-		snprintf(val_buf, sizeof(val_buf), "%s%s", sm->state->name, compare_str ?: "");
+
+		if (math_str && strcmp(sm->state->name, math_str) != 0)
+			snprintf(val_buf, sizeof(val_buf), "%s[%s]", sm->state->name, math_str);
+		else
+			snprintf(val_buf, sizeof(val_buf), "%s%s", sm->state->name, compare_str ?: "");
 
 		sql_insert_return_states(return_id, return_ranges, PARAM_VALUE,
 					 -1, name_buf, val_buf);
@@ -2967,8 +2973,42 @@ static void match_lost_param(struct expression *call, int param)
 		; /* if pointer then set struct members, maybe?*/
 }
 
+static bool handle_with_fake_assign(struct expression *call,
+				    const char *name, struct symbol *sym,
+				    const char *value)
+{
+	struct expression *left, *right, *fake_assign;
+	const char *p;
+
+	p = strchr(value, '[');
+	if (!p)
+		return false;
+	p++;
+
+	left = gen_expression_from_name_sym(name, sym);
+	if (!left)
+		return false;
+
+	if (strncmp(p, "==", 2) == 0) {
+		p += 2;
+		if (p[0] == ' ')
+			p++;
+	}
+	/* FIXME: handle [r $3] and <~$ */
+	if (p[0] != '$')
+		return false;
+	right = gen_expr_from_dollar_key(call, p);
+	if (!right)
+		return false;
+
+	fake_assign = assign_expression(left, '=', right);
+	fake_param_assign_helper(call, fake_assign, false);
+	return true;
+}
+
 static void db_param_value(struct expression *expr, int param, char *key, char *value)
 {
+	struct smatch_state *state;
 	struct expression *call;
 	char *name;
 	struct symbol *sym;
@@ -2990,7 +3030,17 @@ static void db_param_value(struct expression *expr, int param, char *key, char *
 		goto free;
 
 	call_results_to_rl(call, type, value, &rl);
+	if (handle_with_fake_assign(call, name, sym, value)) {
+		state = get_state(SMATCH_EXTRA, name, sym);
+		if (!state)
+			goto skip;
+		if (rl_equiv(rl, estate_rl(state)))
+			goto free;
+		rl = rl_intersection(rl, estate_rl(state));
+		set_extra_nomod(name, sym, NULL, alloc_estate_rl(rl));
+	}
 
+skip:
 	set_extra_mod(name, sym, NULL, alloc_estate_rl(rl));
 free:
 	free_string(name);
