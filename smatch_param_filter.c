@@ -71,9 +71,6 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	struct symbol *param_sym;
 	char *param_name;
 
-	if (__in_fake_assign)
-		return;
-
 	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
 	if (!param_name || !param_sym)
 		goto free;
