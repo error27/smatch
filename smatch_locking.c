@@ -555,6 +555,9 @@ static struct lock_info lock_table[] = {
 	{"ldsem_down_read", LOCK, sem, 0, "$"},
 	{"ldsem_up_read", UNLOCK, sem, 0, "$"},
 
+	{"(struct regmap)->lock",   LOCK,   mutex, 0, "$"},
+	{"(struct regmap)->unlock", UNLOCK, mutex, 0, "$"},
+
 	{},
 };
 
