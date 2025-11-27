@@ -130,7 +130,6 @@ static bool prev_stmt_false_if(void)
 
 static void unreachable_stmt(struct statement *stmt)
 {
-
 	if (__inline_fn)
 		return;
 
