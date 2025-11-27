@@ -303,6 +303,8 @@ void register_modification_hooks_late(int id)
 
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_add);
+	select_return_states_hook(BUF_ADD, &db_param_add);
+	select_return_states_hook(BUF_CLEARED, &db_param_add);
 
 	add_hook(&match_assign_late, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&unop_expr_late, OP_HOOK);
