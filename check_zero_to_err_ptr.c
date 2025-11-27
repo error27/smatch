@@ -182,6 +182,14 @@ static bool has_distinct_positive(struct range_list *rl)
 	return false;
 }
 
+static bool is_printing_percent_p(struct expression *expr)
+{
+	const char *macro = get_macro_name(expr->pos);
+	if (macro && strcmp(macro, "dev_err") == 0)
+		return true;
+	return false;
+}
+
 static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 {
 	struct expression *arg_expr;
@@ -220,6 +228,8 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 		}
 
 		if (has_distinct_positive(estate_rl(tmp->state))) {
+			if (is_printing_percent_p(expr))
+				return;
 			sm_warning("passing positive error code '%s' to '%s'", tmp->state->name, fn);
 			return;
 		}
