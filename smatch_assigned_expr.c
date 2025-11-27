@@ -143,12 +143,58 @@ static struct expression *strip_useless_scope(struct expression *right)
 	return orig;
 }
 
-static struct expression *ignored_expr;
+static struct sm_state *pre_sm;
+static struct expression *unfaked_call;
+
+static void merge_unfaked_call(struct sm_state *cur, struct sm_state *other)
+{
+	struct smatch_state *state;
+	struct expression *right;
+
+	/*
+	 * Imagine we have a function that returns param0 on some paths
+	 * but returns literals on other paths.  We end up creating a
+	 * fake "ret = param0;" assignment which is parsed before the
+	 * "ret = frob(param0);" real assignment.
+	 * Fine.  But what about the other returns where we don't create
+	 * a fake assignment? In that case they were keeping they're
+	 * original assignment or they were undefined.
+	 *
+	 * Maybe we should create fake assignments for every return.  But
+	 * for now I guess I'm just going to bodge this function together
+	 * to fix this one module.
+	 *
+	 * Another thing is that actually maybe sometimes we want to save
+	 * the function here instead of the fake assignment.  Probably
+	 * we will introduce a new module to save fake assignments and
+	 * save the function here.  But for now there is no need.
+	 */
+	if (!pre_sm || pre_sm != cur)
+		return;
+	if (!unfaked_call || unfaked_call->type != EXPR_ASSIGNMENT)
+		return;
+
+	right = unfaked_call->right;
+	if (right->type == EXPR_ASSIGNMENT && right->op == '=')
+		right = right->left;
+
+	right = strip__builtin_choose_expr(right);
+	right = strip_Generic(right);
+	right = strip_useless_scope(right);
+	right = strip_expr(right);
+
+	state = alloc_state_expr(right);
+	if (!state)
+		return;
+
+	set_state(my_id, cur->name, cur->sym, state);
+}
+
 static void match_assignment(struct expression *expr)
 {
 	struct symbol *left_sym, *right_sym;
-	static struct expression *right;
 	struct smatch_state *state;
+	struct expression *right;
 	char *left_name = NULL;
 	char *right_name = NULL;
 
@@ -173,10 +219,15 @@ static void match_assignment(struct expression *expr)
 			return;
 	}
 
-	if (ignored_expr == expr)
+	if (unfaked_call == expr) {
+		pre_sm = NULL;
+		unfaked_call = NULL;
 		return;
-	if (__in_fake_parameter_assign)
-		ignored_expr = get_unfaked_call();
+	}
+	if (__in_fake_parameter_assign) {
+		pre_sm = get_sm_state_expr(my_id, expr->left);
+		unfaked_call = get_unfaked_call();
+	}
 
 	left_name = expr_to_var_sym(expr->left, &left_sym);
 	if (!left_name || !left_sym)
@@ -284,7 +335,9 @@ void register_assigned_expr(int id)
 	my_id = check_assigned_expr_id = id;
 	add_function_data((unsigned long *)&skip_mod);
 	set_dynamic_states(check_assigned_expr_id);
+	add_function_data((unsigned long *)&unfaked_call);
 	add_hook(&match_assignment, ASSIGNMENT_HOOK_AFTER);
+	add_pre_merge_hook(my_id, &merge_unfaked_call);
 	add_modification_hook_late(my_id, &undef);
 	select_return_states_hook(PARAM_SET, &record_param_assignment);
 
@@ -295,7 +348,6 @@ void register_assigned_expr_links(int id)
 {
 	link_id = id;
 	add_merge_hook(my_id, &merge_expr);
-	add_function_data((unsigned long *)&ignored_expr);
 	set_dynamic_states(link_id);
 	db_ignore_states(link_id);
 	set_up_link_functions(my_id, link_id);
