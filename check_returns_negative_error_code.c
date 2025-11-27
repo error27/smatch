@@ -98,6 +98,7 @@ static bool is_empty_state(struct expression *expr)
 
 bool holds_kernel_error_codes(struct expression *expr)
 {
+	struct expression *fake;
 	struct range_list *rl;
 
 	if (!expr)
@@ -105,6 +106,10 @@ bool holds_kernel_error_codes(struct expression *expr)
 
 	if (is_error_macro(expr))
 		return true;
+
+	fake = get_fake_return_variable(expr);
+	if (fake)
+		expr = fake;
 
 	if (is_empty_state(expr))
 		return false;
