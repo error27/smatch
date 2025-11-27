@@ -1540,14 +1540,22 @@ static int return_implies_callbacks(void *_info, int argc, char **argv, char **a
 	type = atoi(argv[1]);
 	param = atoi(argv[2]);
 
-	/* The caller doesn't pass the assignment so -1 can't be useful */
-	if (param == -1)
-		return 0;
-	if (param >= 0) {
-		arg = get_argument_from_call_expr(info->expr->args, param);
-		if (!arg)
-			return 0;
+
+	if (param == -1) {
+		struct expression *parent = get_call_parent(info->expr);
+		int cnt = 0;
+
+		while (parent && parent->type == EXPR_ASSIGNMENT) {
+			arg = parent->left;
+			parent = arg;
+			if (cnt++ > 5)
+				break;
+		}
 	}
+	if (param >= 0)
+		arg = get_argument_from_call_expr(info->expr->args, param);
+	if (!arg)
+		return 0;
 
 	FOR_EACH_PTR(info->cb_list, cb) {
 		if (cb->type != type)

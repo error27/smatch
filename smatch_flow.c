@@ -202,6 +202,19 @@ int is_assigned_call(struct expression *expr)
 	return 0;
 }
 
+struct expression *get_call_parent(struct expression *expr)
+{
+	struct expression *parent = expr_get_parent_expr(expr);
+
+	if (parent &&
+	    parent->type == EXPR_ASSIGNMENT &&
+	    parent->op == '=' &&
+	    strip_expr(parent->right) == expr)
+		return parent;
+
+	return NULL;
+}
+
 struct expression *get_parent_assignment(struct expression *expr)
 {
 	struct expression *parent;
