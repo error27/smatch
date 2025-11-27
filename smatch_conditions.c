@@ -872,6 +872,7 @@ static struct statement *split_then_return_last(struct statement *stmt)
 
 	__push_scope_hooks();
 	FOR_EACH_PTR(stmt->stmts, tmp) {
+		stmt_set_parent_stmt(tmp, stmt);
 		if (tmp == last_stmt) {
 			if (tmp->type == STMT_LABEL) {
 				__split_label_stmt(tmp);
@@ -904,9 +905,12 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		right = right->unop;
 	if (right->type != EXPR_STATEMENT)
 		return 0;
+	if (right != expr->right)
+		expr_set_parent_expr(right, expr->right);
 
 	__expr_stmt_count++;
 	stmt = right->statement;
+	stmt_set_parent_expr(stmt, right);
 	if (stmt->type == STMT_COMPOUND) {
 		struct statement *last_stmt;
 		struct expression *fake_assign;
