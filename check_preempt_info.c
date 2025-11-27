@@ -118,6 +118,7 @@ static struct preempt_info func_table[] = {
 	{ "class_spinlock_destructor",		PREEMPT_SUB },
 	{ "class_read_lock_destructor",		PREEMPT_SUB },
 	{ "class_task_rq_lock_destructor",	PREEMPT_SUB },
+	{ "class_spinlock_bh_destructor",	PREEMPT_SUB },
 	{ "spin_unlock_bh",			PREEMPT_SUB },
 	{ "_spin_unlock_bh",			PREEMPT_SUB },
 	{ "__spin_unlock_bh",			PREEMPT_SUB },
@@ -130,6 +131,9 @@ static struct preempt_info func_table[] = {
 	{ "bit_spin_unlock",			PREEMPT_SUB },
 	{ "__bit_spin_unlock",			PREEMPT_SUB },
 	{ "class_serio_pause_rx_destructor",	PREEMPT_SUB },
+	{ "class_uart_port_lock_irqsave_destructor", PREEMPT_SUB },
+	{ "__irq_exit_rcu",			PREEMPT_SUB },
+	{ "irq_exit_rcu",			PREEMPT_SUB },
 
 	{ "mtk_wed_device_attach",		PREEMPT_IGNORE },
 };
