@@ -1783,6 +1783,31 @@ int get_comparison_strings(const char *one, const char *two)
 	return ret;
 }
 
+static int handle_mod_op(struct expression *a, struct expression *b)
+{
+	int r_comp;
+
+	/*
+	 * This is very useful for handling:
+	 * a -= a % 4;
+	 * When we are copying the last 3 bytes in a loop.
+	 *
+	 */
+
+	if (!a || !b)
+		return UNKNOWN_COMPARISON;
+
+	if (b->type == EXPR_BINOP && b->op == '%' &&
+	    expr_equiv(a, b->left)) {
+		r_comp = get_comparison(a, b->right);
+		if (r_comp == '<')
+			return '>';
+		return SPECIAL_GTE;
+	}
+
+	return UNKNOWN_COMPARISON;
+}
+
 static int get_comparison_helper(struct expression *a, struct expression *b, bool use_extra)
 {
 	char *one = NULL;
@@ -1808,6 +1833,10 @@ static int get_comparison_helper(struct expression *a, struct expression *b, boo
 
 	ret = get_comparison_strings(one, two);
 	if (ret)
+		goto free;
+
+	ret = handle_mod_op(a, b);
+	if (ret != UNKNOWN_COMPARISON)
 		goto free;
 
 	if (is_plus_one(a) || is_minus_one(a)) {
