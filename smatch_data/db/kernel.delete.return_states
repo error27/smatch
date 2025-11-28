@@ -31,3 +31,5 @@ xe_migrate_copy 0
 scmi_get_or_create_handler 0
 alloc_frame_masks 0
 hmm_range_fault 1
+get_net_ns_by_pid 0
+rtnl_link_get_net_by_nlattr 0

@@ -12,6 +12,7 @@ xfs_next_bit
 find_next_bit
 find_first_bit
 __test_and_set_bit
+_test_and_set_bit
 sync_set_bit
 bitmap_weight
 bitmap_intersects

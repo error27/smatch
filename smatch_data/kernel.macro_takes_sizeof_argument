@@ -2,3 +2,5 @@ BNX2FC_RQ_BUF_LOG_SZ
 BNX2FC_NUM_MAX_SESS_LOG
 ilog2
 FP_XSTATE_MAGIC2_SIZE
+make_range
+make_range_no_check

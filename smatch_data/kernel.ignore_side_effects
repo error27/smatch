@@ -83,6 +83,7 @@ __soc_pcm_params_symmetry
 test_simple_strtoxx
 unsafe_get_user
 unsafe_put_user
+UVC_COPY_XU_DESCRIPTOR
 VIA_OUT_RING_QW
 WREG32_SOC15_DPG_MODE_2_0
 WRITE64

@@ -171,3 +171,11 @@ lp55xx_read 2
 dma_alloc_coherent 2
 dma_alloc_attrs 2
 dma_alloc_wc 2
+aw_dev_dsp_read_16bit 2
+aw_dev_dsp_read 2
+xe_pcode_read 2
+xe_pcode_read 3
+pvr2_ctrl_get_def 1
+isl29501_register_read 2
+snd_rme_get_status1 1
+tee_shm_get_pa 2
