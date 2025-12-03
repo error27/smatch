@@ -62,13 +62,12 @@ struct expression *get_assigned_expr(struct expression *expr)
 	if (!name || !sym)
 		goto free;
 
-	if (sym->ctype.modifiers & MOD_TOPLEVEL)
+	state = get_state(my_id, name, sym);
+	if (!state && (sym->ctype.modifiers & MOD_TOPLEVEL))
 		state = get_state_stree(global_stree, my_id, name, sym);
-	else
-		state = get_state(my_id, name, sym);
-
 	if (!state)
 		goto free;
+
 	ret = (struct expression *)state->data;
 free:
 	free_string(name);
