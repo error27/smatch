@@ -1212,9 +1212,24 @@ int rl_equiv(struct range_list *one, struct range_list *two)
 {
 	struct data_range *one_range;
 	struct data_range *two_range;
+	struct symbol *type;
 
 	if (one == two)
 		return 1;
+
+	if (!one || !two)
+		return 0;
+
+	if (rl_type(one) != rl_type(two)) {
+		type = rl_type(one);
+		if (type_positive_bits(type) < type_positive_bits(rl_type(two)))
+			type = rl_type(two);
+		if (type_positive_bits(type) < 31)
+			type = &int_ctype;
+
+		one = cast_rl(type, one);
+		two = cast_rl(type, two);
+	}
 
 	PREPARE_PTR_LIST(one, one_range);
 	PREPARE_PTR_LIST(two, two_range);
