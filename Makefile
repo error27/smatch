@@ -304,6 +304,7 @@ SMATCH_OBJS += smatch_kernel_has_devm_cleanup.o
 SMATCH_OBJS += smatch_kernel_irq_context.o
 SMATCH_OBJS += smatch_kernel_kref_put.o
 SMATCH_OBJS += smatch_kernel_netdev_priv.o
+SMATCH_OBJS += smatch_kernel_rcu_assign_pointer.o
 SMATCH_OBJS += smatch_kernel_task_state.o
 SMATCH_OBJS += smatch_kernel_task_state_info.o
 SMATCH_OBJS += smatch_kernel_user_data.o

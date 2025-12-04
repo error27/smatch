@@ -112,6 +112,7 @@ CK(register_locking_info)
 CK(register_locking_type)
 CK(register_free_return_states)
 CK(register_free)
+CK(register_kernel_rcu_assign_pointer)
 
 CK(check_debug)
 
