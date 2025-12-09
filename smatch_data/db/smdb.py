@@ -21,7 +21,7 @@ def usage():
     print("<function> - how a function is called")
     print("info <function> <type> - how a function is called, filtered by type")
     print("return_states <function> - what a function returns")
-    print("call_tree <function> - show the call tree")
+    print("call_tree <function> [depth] - show the call tree")
     print("where <struct_type> <member> - where a struct member is set")
     print("type_size <struct_type> <member> - how a struct member is allocated")
     print("type_info <struct_type> <member> - stuff from type_info")
@@ -718,13 +718,15 @@ def get_callers(func, restrict = ""):
     return ret
 
 printed_funcs = []
-def call_tree_helper(func, restrict = "", indent = 0):
+def call_tree_helper(func, restrict = "", indent = 0, maxdepth = 999, depth = 0):
     global printed_funcs
     if func in printed_funcs:
         return
     if func == "too common":
         return
     if indent > 30:
+        return
+    if depth >= maxdepth:
         return
     printed_funcs.append(func)
     callers = get_callers(func, restrict)
@@ -736,13 +738,13 @@ def call_tree_helper(func, restrict = "", indent = 0):
             print("%s+ %s()" %(" " * indent, caller))
         else:
             print("%s%s()" %(" " * (indent + 2), caller))
-        call_tree_helper(caller, restrict, indent + 2)
+        call_tree_helper(caller, restrict, indent + 2, maxdepth, depth + 1)
 
-def print_call_tree(func):
+def print_call_tree(func, maxdepth):
     global printed_funcs
     printed_funcs = []
     print("%s()" %(func))
-    call_tree_helper(func)
+    call_tree_helper(func, maxdepth = maxdepth)
 
 def get_type_callers(call_tree, branch, func, my_type):
     cur = con.cursor()
@@ -996,7 +998,13 @@ elif sys.argv[1] == "data_info":
     print_data_info(struct_type, member)
 elif sys.argv[1] == "call_tree":
     func = sys.argv[2]
-    print_call_tree(func)
+    maxdepth = 999
+    if len(sys.argv) >= 4:
+        maxdepth = int(sys.argv[3])
+        if (maxdepth <= 0):
+            print("depth for call_tree must be greater than zero")
+            sys.exit(1)
+    print_call_tree(func, maxdepth)
 elif sys.argv[1] == "preempt":
     func = sys.argv[2]
     print_preempt_tree(func)
