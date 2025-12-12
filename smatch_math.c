@@ -949,13 +949,6 @@ static bool handle_logical_AND(struct expression *expr, int implied, int *recurs
 	get_rl_internal(expr->left, implied, recurse_cnt, &left);
 	get_rl_internal(expr->right, implied, recurse_cnt, &right);
 
-	if (local_debug && implied == RL_IMPLIED)
-		sm_msg("%s: left='%s' left_rl='%s' right='%s' right_rl='%s'",
-		       __func__,
-		       expr_to_str(expr->left), show_rl(left),
-		       expr_to_str(expr->right), show_rl(right));
-
-
 	if ((left && rl_is_zero(left)) ||
 	    (right && rl_is_zero(right))) {
 		*res_sval = zero;
