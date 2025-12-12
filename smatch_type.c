@@ -356,7 +356,7 @@ static struct symbol *get_type_helper(struct expression *expr)
 		return NULL;
 	}
 
-	if (ret && ret->type == SYM_TYPEOF)
+	if (ret && (ret->type == SYM_TYPEOF || ret->type == SYM_TYPEOF_UNQUAL))
 		ret = get_type(ret->initializer);
 
 	expr->ctype = ret;
