@@ -1297,6 +1297,12 @@ static struct smatch_state *increment_state(struct smatch_state *state)
 	if (inside_loop())
 		max = sval_type_max(max.type);
 
+	/* zero is a special case where we increment the type_min */
+	if (sval_cmp(min, max) == 0) {
+		min = sval_binop(min, '+', int_one);
+		return alloc_estate_sval(min);
+	}
+
 	if (!sval_is_min(min) && !sval_is_max(min))
 		min.value++;
 	if (!sval_is_min(max) && !sval_is_max(max))
