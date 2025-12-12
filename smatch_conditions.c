@@ -414,6 +414,23 @@ static void hackup_unsigned_compares(struct expression *expr)
 		expr->op = make_op_unsigned(expr->op);
 }
 
+static bool handle_subtract_condition(struct expression *expr, int *known_tf)
+{
+	struct expression *left, *right, *tmp;
+
+	if (expr->type != EXPR_BINOP || expr->op != '-')
+		return false;
+
+	left = strip_parens(expr->left);
+	right = strip_parens(expr->right);
+	if (left->type == EXPR_BINOP || right->type == EXPR_BINOP)
+		return false;
+
+	tmp = compare_expression(expr->left, SPECIAL_NOTEQUAL, expr->right);
+	split_conditions(tmp, known_tf);
+	return true;
+}
+
 static bool handle_expr_statement_conditions(struct expression *expr, int *known_tf)
 {
 	struct statement *last_stmt, *stmt;
@@ -518,6 +535,10 @@ static void split_conditions(struct expression *expr, int *known_tf)
 		handle_logical(expr, known_tf);
 		return;
 	}
+
+	if (expr->type == EXPR_BINOP && expr->op == '-' &&
+	    handle_subtract_condition(expr, known_tf))
+		return;
 
 	switch (expr->type) {
 	case EXPR_LOGICAL:
