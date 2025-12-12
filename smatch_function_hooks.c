@@ -52,9 +52,16 @@
  * For Macro Assignments:
  *     add_macro_assign_hook()
  *
+ * This is selecting stuff from the DB.  The hooks are called for a given
+ * return:
+ * void select_return_states_hook(int type, return_implies_hook *callback)
+ *
  * Manipulate the return range.
  *     add_implied_return_hook()
  *     add_cull_hook()
+ *
+ * The return string is generated in get_return_ranges_str().
+ *
  */
 
 #include <stdlib.h>
