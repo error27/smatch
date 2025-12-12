@@ -1189,7 +1189,7 @@ char *get_member_name(struct expression *expr)
 		member = buf;
 		goto done;
 	}
-	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident->name, expr->member->name);
+	snprintf(buf, sizeof(buf), "(struct %s)->%s", sym->ident ? sym->ident->name : "anon", expr->member->name);
 	member = buf;
 
 done:
