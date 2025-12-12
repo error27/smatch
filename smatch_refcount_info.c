@@ -41,6 +41,7 @@ struct ref_func_info {
 };
 
 static void match_atomic_add(struct expression *expr, const char *name, struct symbol *sym, void *_unused);
+static void match_find_process(struct expression *expr, const char *name, struct symbol *sym, void *_unused);
 
 static struct ref_func_info func_table[] = {
 	{ "atomic_inc", REFCOUNT_INC, 0, "$->counter" },
@@ -133,6 +134,8 @@ static struct ref_func_info func_table[] = {
 
 	{ "xe_device_mem_access_get", REFCOUNT_INC, 0, "$->mem_access.ref.counter", },
 	{ "xe_device_mem_access_put", REFCOUNT_DEC, 0, "$->mem_access.ref.counter", },
+
+	{ "find_process", REFCOUNT_INC, -1, "$->ref.refcount.refs.counter", &valid_ptr_min_sval, &valid_ptr_max_sval, &match_find_process },
 };
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
@@ -263,6 +266,23 @@ static void match_atomic_add(struct expression *expr, const char *name, struct s
 		do_inc(expr, name, sym);
 	else
 		do_dec(expr, name, sym);
+}
+
+static void match_find_process(struct expression *expr, const char *name, struct symbol *sym, void *_unused)
+{
+	struct expression *call, *ref;
+	sval_t sval;
+
+	call = expr;
+	while (call && call->type == EXPR_ASSIGNMENT)
+		call = call->right;
+	if (!call || call->type != EXPR_CALL)
+		return;
+
+	ref = get_argument_from_call_expr(call->args, 1);
+	if (get_implied_value(ref, &sval) &&
+	    sval.value == 1)
+		do_inc(expr, name, sym);
 }
 
 static void refcount_init(struct expression *expr, const char *name, struct symbol *sym, void *data)
