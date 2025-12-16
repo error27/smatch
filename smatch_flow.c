@@ -362,6 +362,11 @@ void __process_post_op_stack(void)
 	__free_ptr_list((struct ptr_list **)&post_op_stack);
 }
 
+void add_postop(struct expression *expr)
+{
+	push_expression(&post_op_stack, expr);
+}
+
 static int handle_comma_assigns(struct expression *expr)
 {
 	struct expression *right;
@@ -622,6 +627,7 @@ static unsigned long skip_split;
 void parse_assignment(struct expression *expr, bool shallow)
 {
 	struct expression *right;
+	bool left_parsed = false;
 
 	expr_set_parent_expr(expr->left, expr);
 	expr_set_parent_expr(expr->right, expr);
@@ -639,16 +645,22 @@ void parse_assignment(struct expression *expr, bool shallow)
 	if (__handle_condition_assigns(expr))
 		goto after_assign;
 	/* foo = (x < 5 ? foo : 5); */
-	if (__handle_select_assigns(expr))
+	if (__handle_select_assigns(expr)) {
+		left_parsed = true;
 		goto after_assign;
+	}
 	/* foo = ({frob(); frob(); frob(); 1;}) */
 	if (__handle_expr_statement_assigns(expr))
 		goto done;  // FIXME: goto after
 	/* foo = (3, 4); */
-	if (handle_comma_assigns(expr))
+	if (handle_comma_assigns(expr)) {
+		left_parsed = true;
 		goto after_assign;
-	if (handle__builtin_choose_expr_assigns(expr))
+	}
+	if (handle__builtin_choose_expr_assigns(expr)) {
+		left_parsed = true;
 		goto after_assign;
+	}
 	if (handle_postop_assigns(expr))
 		goto done;  /* no need to goto after_assign */
 
@@ -673,7 +685,8 @@ after_assign:
 		__pass_to_client(expr, MACRO_ASSIGNMENT_HOOK);
 
 	__pass_to_client(expr, ASSIGNMENT_HOOK_AFTER);
-	__split_expr(expr->left);
+	if (!left_parsed)
+		__split_expr(expr->left);
 
 done:
 	if (shallow)
@@ -753,7 +766,7 @@ void __split_expr(struct expression *expr)
 		expr_set_parent_expr(expr->unop, expr);
 
 		__split_expr(expr->unop);
-		push_expression(&post_op_stack, expr);
+		add_postop(expr);
 		break;
 	case EXPR_STATEMENT:
 		__expr_stmt_count++;

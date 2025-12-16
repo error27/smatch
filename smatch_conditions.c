@@ -845,6 +845,7 @@ int __handle_select_assigns(struct expression *expr)
 		fake_assign = assign_expression(expr->left, expr->op, fake_condition->left);
 		expr_set_parent_expr(fake_assign, right);
 		__split_expr(fake_assign);
+		__process_post_op_stack();
 	}
 
 	if (!is_false && right->cond_true) {
@@ -853,6 +854,7 @@ int __handle_select_assigns(struct expression *expr)
 		fake_expr = assign_expression(expr->left, expr->op, right->cond_true);
 		expr_set_parent_expr(fake_expr, expr);
 		__split_expr(fake_expr);
+		__process_post_op_stack();
 		final_states = clone_stree(__get_cur_stree());
 	} else if (!is_false) {
 		final_states = clone_stree(__get_cur_stree());
@@ -868,6 +870,7 @@ int __handle_select_assigns(struct expression *expr)
 		fake_expr = assign_expression(expr->left, expr->op, right->cond_false);
 		expr_set_parent_expr(fake_expr, expr);
 		__split_expr(fake_expr);
+		__process_post_op_stack();
 		merge_stree(&final_states, __get_cur_stree());
 	}
 
