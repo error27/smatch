@@ -1580,7 +1580,7 @@ static void match_assign_sub(struct expression *expr)
 	struct expression *right;
 	struct expression *r_left, *r_right;
 	int comparison;
-	sval_t min;
+	sval_t sval, min;
 
 	right = strip_expr(expr->right);
 	r_left = strip_expr(right->left);
@@ -1588,6 +1588,17 @@ static void match_assign_sub(struct expression *expr)
 
 	if (get_absolute_min(r_right, &min) && sval_is_negative(min))
 		return;
+
+	/*
+	 * If we do something like "x = 0; unsigned int y = x - 1",
+	 * then y > x, so this isn't really 100% true, but it's the
+	 * safer assumption if you want to silence false positives.
+	 *
+	 */
+	if (get_value(r_right, &sval) && sval.value == 1) {
+		add_comparison(expr->left, '<', r_left);
+		return;
+	}
 
 	comparison = get_comparison(r_left, r_right);
 
