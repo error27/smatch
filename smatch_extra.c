@@ -2483,7 +2483,7 @@ static int is_really_long(struct sm_state *sm)
 
 static bool used_param_value_info(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
-	int cnt;
+	int cnt = 0;
 
 	/* for function pointers assume everything is used */
 	if (call->fn->type != EXPR_SYMBOL ||
