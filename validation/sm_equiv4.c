@@ -3,9 +3,10 @@
 void *ioremap();
 void iounmap(void *);
 
-int *a, *b, *c;
 int func(void)
 {
+	int *a, *b, *c;
+
 	a = ioremap();
 	b = ioremap();
 	c = a;
@@ -17,6 +18,6 @@ int func(void)
  * check-command: smatch -p=kernel --spammy -I.. sm_equiv4.c
  *
  * check-output-start
-sm_equiv4.c:13 func() warn: 'b' from ioremap() not released on lines: 13.
+sm_equiv4.c:14 func() warn: 'b' from ioremap() not released on lines: 14.
  * check-output-end
  */
