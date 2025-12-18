@@ -765,7 +765,7 @@ static bool delete_pci_error_returns(struct expression *expr)
 	return false;
 }
 
-static bool match_with_intel_runtime(struct statement *stmt)
+static bool match_once_through_macros(struct statement *stmt)
 {
 	char *macro;
 
@@ -774,7 +774,10 @@ static bool match_with_intel_runtime(struct statement *stmt)
 		return false;
 	if (strncmp(macro, "with_intel_runtime", 18) == 0 ||
 	    strncmp(macro, "with_intel_display", 18) == 0 ||
-	    strcmp(macro, "drm_exec_until_all_locked") == 0)
+	    strcmp(macro, "drm_exec_until_all_locked") == 0 ||
+	    strcmp(macro, "xe_validation_guard") == 0 ||
+	    strcmp(macro, "for_each_gt") == 0 ||
+	    strcmp(macro, "for_each_online_cpu") ==0)
 		return true;
 	return false;
 }
@@ -821,7 +824,7 @@ void check_kernel(int id)
 	add_function_hook("closure_call", &match_closure_call, NULL);
 	add_function_hook("put_device", &match_put_device, NULL);
 
-	add_once_through_hook(&match_with_intel_runtime);
+	add_once_through_hook(&match_once_through_macros);
 
 	add_hook(fix_msecs_to_jiffies, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&match_kernel_param, BASE_HOOK);
