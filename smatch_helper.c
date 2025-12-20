@@ -232,6 +232,8 @@ static struct expression *strip_parens_symbol(struct expression *expr)
 	 * write even more code that relies on the bug.  ;)
 	 */
 	unop = strip_expr(expr->unop);
+	if (!unop)
+		return expr;
 	if (unop->type != EXPR_SYMBOL)
 		return expr;
 	return unop;

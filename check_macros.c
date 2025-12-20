@@ -26,6 +26,8 @@ static void match_inside(struct expression *expr, struct position pos)
 
 	if (positions_eq(expr->pos, pos))
 		matched++;
+	if (!expr->unop)
+		return;
 	if (positions_eq(expr->unop->pos, pos))
 		matched++;
 	if (matched != 1)
