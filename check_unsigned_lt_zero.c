@@ -97,6 +97,9 @@ static bool is_allowed_zero(struct expression *expr)
 	macro = get_macro_name(expr->pos);
 	if (!macro)
 		return false;
+	/* When --spammy is disabled then everything in a macro is silenced. */
+	if (!option_spammy)
+		return true;
 	if (strcmp(macro, "ARRAY_SIZE") == 0 ||
 	    strcmp(macro, "DPMCP_MIN_VER_MINOR") == 0 ||
 	    strcmp(macro, "FIRST_USER_ADDRESS") == 0 ||
@@ -105,7 +108,8 @@ static bool is_allowed_zero(struct expression *expr)
 	    strcmp(macro, "STRTO_H") == 0 ||
 	    strcmp(macro, "SUB_EXTEND_USTAT") == 0 ||
 	    strcmp(macro, "TEST_CASTABLE_TO_TYPE_VAR") == 0 ||
-	    strcmp(macro, "TEST_ONE_SHIFT") == 0)
+	    strcmp(macro, "TEST_ONE_SHIFT") == 0 ||
+	    strcmp(macro, "check_shl_overflow") == 0)
 		return true;
 	return false;
 }
