@@ -709,6 +709,13 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 	run_sql(get_row_count, &row_count, "select count(*) from return_states where %s;",
 		get_static_filter(fn->symbol));
+
+	/*
+	 * FIXME: This isn't right.  We want to check that everything we
+	 * search for has something in the DB.  But because of aliases then
+	 * I added the "fn->symbol && fn->symbol->definition" so it means only
+	 * check long functions in the same file.  Which is a bogus solution.
+	 */
 	if (row_count == 0 && fn->symbol && fn->symbol->definition &&
 	    !(fn->symbol->ident && strncmp(fn->symbol->ident->name, "__smatch", 8)))
 		__db_incomplete = true;
@@ -723,6 +730,8 @@ void sql_select_return_states(const char *cols, struct expression *call,
 
 bool db_incomplete(void)
 {
+	if (option_no_db)
+		return true;
 	return __db_incomplete;
 }
 
