@@ -224,6 +224,9 @@ void check_spectre(int id)
 {
 	my_id = id;
 
+	if (option_no_db)
+		return;
+
 	suppress_multiple = getenv("FULL_SPECTRE") == NULL;
 	if (getenv("ANALYZE_HOST_DATA"))
 		analyzed_data_type = HOST_DATA_TYPE;
