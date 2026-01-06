@@ -244,6 +244,8 @@ void check_arm64_tagged(int id)
 
 	if (option_project != PROJ_KERNEL)
 		return;
+	if (!option_spammy)
+		return;
 
 	/* Limit to aarch64 */
 	arch = getenv("ARCH");
