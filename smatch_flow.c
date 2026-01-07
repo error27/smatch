@@ -43,7 +43,6 @@ static struct position current_pos;
 
 static char *base_file;
 static const char *filename;
-static char *pathname;
 static char *full_filename;
 static char *full_base_file;
 static char *cur_func;
@@ -161,6 +160,7 @@ static void set_position(struct position pos)
 {
 	int len;
 	static int prev_stream = -1;
+	char *pathname;
 
 	if (in_fake_env)
 		return;
@@ -178,7 +178,10 @@ static void set_position(struct position pos)
 	filename = stream_name(pos.stream);
 
 	free(full_filename);
-	pathname = getcwd(NULL, 0);
+	if (filename[0] == '/')
+		pathname = NULL;
+	else
+		pathname = getcwd(NULL, 0);
 	if (pathname) {
 		len = strlen(pathname) + 1 + strlen(filename) + 1;
 		full_filename = malloc(len);
