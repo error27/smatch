@@ -774,17 +774,22 @@ static void match_print_stree_id(const char *fn, struct expression *expr, void *
 
 static void match_bits(const char *fn, struct expression *expr, void *_unused)
 {
+	static int bits_id;
 	struct expression *arg;
 	struct bit_info *info;
+	struct sm_state *sm;
 	char *name;
+
+	if (!bits_id)
+		bits_id = id_from_name("register_bits");
 
 	arg = get_argument_from_call_expr(expr->args, 0);
 	name = expr_to_str(arg);
-
 	info = get_bit_info(arg);
+	sm = get_sm_state_expr(bits_id, arg);
 
-	sm_msg("bit info '%s': definitely set 0x%llx.  possibly set 0x%llx.",
-	       name, info->set, info->possible);
+	sm_msg("bit info '%s': definitely set 0x%llx.  possibly set 0x%llx. sm='%s'",
+	       name, info->set, info->possible, show_sm(sm));
 }
 
 static void match_units(const char *fn, struct expression *expr, void *info)
