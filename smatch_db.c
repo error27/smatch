@@ -1978,7 +1978,6 @@ static bool is_implies_function(struct expression *expr)
 	if (!rl)
 		return false;
 
-	sm_msg("%s: is implied", __func__);
 	return true;
 }
 
