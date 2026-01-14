@@ -134,32 +134,44 @@ static void match_print_known(const char *fn, struct expression *expr, void *inf
 	free_string(name);
 }
 
-static void match_print_implied(const char *fn, struct expression *expr, void *info)
+static void debug_print_implied(struct expression *expr)
 {
-	struct expression *arg;
 	struct range_list *rl = NULL;
 	char *name;
 
-	arg = get_argument_from_call_expr(expr->args, 0);
-	get_implied_rl(arg, &rl);
+	get_implied_rl(expr, &rl);
 
-	name = expr_to_str(arg);
+	name = expr_to_str(expr);
 	sm_msg("implied: %s = '%s'", name, show_rl(rl));
+	free_string(name);
+}
+
+static void match_print_implied(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	debug_print_implied(arg);
+}
+
+static void debug_print_real_absolute(struct expression *expr)
+{
+	struct range_list *rl = NULL;
+	char *name;
+
+	get_real_absolute_rl(expr, &rl);
+
+	name = expr_to_str(expr);
+	sm_msg("real absolute: %s = '%s'", name, show_rl(rl));
 	free_string(name);
 }
 
 static void match_real_absolute(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
-	struct range_list *rl = NULL;
-	char *name;
 
 	arg = get_argument_from_call_expr(expr->args, 0);
-	get_real_absolute_rl(arg, &rl);
-
-	name = expr_to_str(arg);
-	sm_msg("real absolute: %s = '%s'", name, show_rl(rl));
-	free_string(name);
+	debug_print_real_absolute(arg);
 }
 
 static void match_print_implied_min(const char *fn, struct expression *expr, void *info)
@@ -403,23 +415,29 @@ static void match_possible(const char *fn, struct expression *expr, void *info)
 	} END_FOR_EACH_SM(tmp);
 }
 
-static void match_strlen(const char *fn, struct expression *expr, void *info)
+static void debug_print_strlen(struct expression *expr)
 {
-	struct expression *arg;
 	struct range_list *rl = NULL;
 	char *name;
 
-	arg = get_argument_from_call_expr(expr->args, 0);
-	get_implied_strlen(arg, &rl);
+	get_implied_strlen(expr, &rl);
 
-	name = expr_to_str(arg);
+	name = expr_to_str(expr);
 	sm_msg("strlen: '%s' %s characters", name, show_rl(rl));
 	free_string(name);
 }
 
-static void match_buf_size(const char *fn, struct expression *expr, void *info)
+static void match_strlen(const char *fn, struct expression *expr, void *info)
 {
-	struct expression *arg, *comp;
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	debug_print_strlen(arg);
+}
+
+static void debug_print_buf_size(struct expression *expr)
+{
+	struct expression *comp;
 	struct range_list *rl;
 	int elements, bytes;
 	char *name;
@@ -428,14 +446,12 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 	int n;
 	sval_t sval;
 
-	arg = get_argument_from_call_expr(expr->args, 0);
+	elements = get_array_size(expr);
+	bytes = get_array_size_bytes_max(expr);
+	rl = get_array_size_bytes_rl(expr);
+	comp = get_size_variable(expr, &limit_type);
 
-	elements = get_array_size(arg);
-	bytes = get_array_size_bytes_max(arg);
-	rl = get_array_size_bytes_rl(arg);
-	comp = get_size_variable(arg, &limit_type);
-
-	name = expr_to_str(arg);
+	name = expr_to_str(expr);
 	n = snprintf(buf, sizeof(buf), "buf size: '%s' %d elements, %d bytes", name, elements, bytes);
 	free_string(name);
 
@@ -448,6 +464,14 @@ static void match_buf_size(const char *fn, struct expression *expr, void *info)
 		free_string(name);
 	}
 	sm_msg("%s", buf);
+}
+
+static void match_buf_size(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	debug_print_buf_size(arg);
 }
 
 static void match_note(const char *fn, struct expression *expr, void *info)
@@ -599,31 +623,32 @@ static void mtag_info(struct expression *expr)
 	sm_msg("mtag = %llu offset = %d rl = '%s'", tag, offset, show_rl(rl));
 }
 
-static void match_about(const char *fn, struct expression *expr, void *info)
+void debug_print_about(struct expression *expr)
 {
-	struct expression *arg;
 	struct range_list *rl;
 	struct sm_state *sm;
 	char *name;
 	int len;
 
+	expr = strip_expr(expr);
+
 	sm_msg("---- about ----");
-	match_print_implied(fn, expr, NULL);
-	match_buf_size(fn, expr, NULL);
-	match_strlen(fn, expr, NULL);
-	match_real_absolute(fn, expr, NULL);
+	sm_msg("expr='%s' type=%d", expr_to_str(expr), expr ? expr->type : -1);
+	debug_print_implied(expr);
+	debug_print_buf_size(expr);
+	debug_print_strlen(expr);
+	debug_print_real_absolute(expr);
 	mtag_info(expr);
 
-	arg = get_argument_from_call_expr(expr->args, 0);
-	name = expr_to_str(arg);
+	name = expr_to_str(expr);
 	if (!name) {
 		sm_msg("info: not a straight forward variable.");
 		return;
 	}
 
-	if (get_user_rl(arg, &rl))
+	if (get_user_rl(expr, &rl))
 		sm_msg("user_rl = '%s'", show_rl(rl));
-	if (points_to_user_data(arg))
+	if (points_to_user_data(expr))
 		sm_msg("points to user data");
 
 	len = strlen(name);
@@ -638,6 +663,14 @@ print:
 		sm_msg("%s", show_sm(sm));
 		print_related(sm);
 	} END_FOR_EACH_SM(sm);
+}
+
+static void match_about(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	debug_print_about(arg);
 }
 
 static void match_intersection(const char *fn, struct expression *expr, void *info)
