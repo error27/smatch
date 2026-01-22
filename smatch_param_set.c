@@ -82,24 +82,6 @@ static int parent_is_set(const char *name, struct symbol *sym, struct smatch_sta
 	return ret;
 }
 
-static bool is_probably_worthless(struct expression *expr)
-{
-	struct expression *faked;
-
-	if (!__in_fake_struct_assign)
-		return false;
-
-	faked = get_faked_expression();
-	if (!faked || faked->type != EXPR_ASSIGNMENT)
-		return false;
-
-	if (faked->left->type == EXPR_PREOP &&
-	    faked->left->op == '*')
-		return false;
-
-	return true;
-}
-
 static bool name_is_sym_name(const char *name, struct symbol *sym)
 {
 	if (!name || !sym || !sym->ident)
@@ -114,32 +96,47 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	struct symbol *type;
 	char *param_name;
 
-	if (expr && expr->smatch_flags & Fake)
-		return;
+	/*
+	 * The problem in this function is that when we have a
+	 * simple assignment like "p = q", it can balloon out into
+	 * hundreds of fake assingments:
+	 * p->foo = q->foo
+	 * p->foo.one = q->foo.one
+	 *
+	 * Also when I wrote this we didn't create a fake assignments
+	 * for the p = q, in the caller but now we do.
+	 *
+	 * So we want to only track useful assignments.  And actually
+	 * that should be done in smatch_extra.c.  It should ignore unknown
+	 * values and stuff which is already in the database.  But you run
+	 * into a recursion problem.
+	 *
+	 */
 
-	if (is_probably_worthless(expr))
-		return;
-
-	type = get_type(expr);
-	if (type && (type->type == SYM_STRUCT || type->type == SYM_UNION))
-		return;
-
-	if (name_is_sym_name(name, sym))
-		return;
 
 	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
 	if (!param_name || !param_sym)
 		goto free;
-	if (get_param_num_from_sym(param_sym) < 0)
-		goto free;
-	if (parent_is_set(param_name, param_sym, state))
-		return;
-
 	if (get_state(my_id, param_name, param_sym))
 		goto reset;
 
+	if (expr && expr->smatch_flags & Fake)
+		goto free;
+
+	type = get_type(expr);
+	if (type && (type->type == SYM_STRUCT || type->type == SYM_UNION))
+		goto free;
+
+	if (name_is_sym_name(name, sym))
+		goto free;
+
+	if (get_param_num_from_sym(param_sym) < 0)
+		goto free;
+	if (parent_is_set(param_name, param_sym, state))
+		goto free;
+
 	if (__in_buf_clear)
-		return;
+		goto free;
 reset:
 	set_state(my_id, param_name, param_sym, state);
 free:
