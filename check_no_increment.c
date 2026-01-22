@@ -24,7 +24,7 @@ STATE(modified);
 
 static int my_id;
 
-struct stree *stree;
+static struct stree *stree;
 
 static void set_inc_state(const char *name, struct symbol *sym, struct smatch_state *state)
 {
@@ -70,7 +70,6 @@ static void match_modify(struct sm_state *sm, struct expression *expr)
 		set_inc_state(sm->name, sm->sym, &iterator);
 		return;
 	}
-
 
 	set_inc_state(sm->name, sm->sym, &modified);
 }
