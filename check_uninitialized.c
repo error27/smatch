@@ -503,6 +503,9 @@ void check_uninitialized(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_hook(&match_declarations, DECLARATION_HOOK);
 	add_extra_mod_hook(&extra_mod_hook);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
