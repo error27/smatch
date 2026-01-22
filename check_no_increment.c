@@ -97,6 +97,9 @@ void check_no_increment(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_function_data((unsigned long *)&stree);
 
 	preserve_out_of_scope(my_id);
