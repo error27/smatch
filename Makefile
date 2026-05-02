@@ -410,7 +410,10 @@ SMATCH_SCRIPTS=smatch_scripts/add_gfp_to_allocations.sh \
 
 SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 
-smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS)
+smatch_checks.h: $(SMATCH_CHECKS)
+	./build_check_list.sh
+
+smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) smatch_checks.h
 	$(Q)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
 smatch_data/db/sm_hash: sm_hash.o $(SMATCH_OBJS)
@@ -422,7 +425,7 @@ sm_hash.o: sm_hash.c smatch.h smatch_dbtypes.h
 check_list_local.h:
 	touch check_list_local.h
 
-smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h check_list.h check_list_local.h
+smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h smatch_modules.h smatch_modules_late.h smatch_checks.h
 	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(smatch_datadir)"'
 
 $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_dbtypes.h smatch_slist.h smatch_extra.h \

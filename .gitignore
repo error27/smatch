@@ -53,8 +53,8 @@ cscope.files
 local.mk
 .*.mk
 
-# local smatch checks
-check_list_local.h
+# auto generated
+smatch_checks.h
 
 # cscope and Qt files
 cscope.out

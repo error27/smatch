@@ -106,7 +106,7 @@ static void match_symbol(struct expression *expr)
 		sm_error("Using '%s' after free_{netdev,candev}(%s);\n", name, parent_netdev);
 }
 
-void check_uaf_netdev_priv(int id)
+void check_netdev_priv(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

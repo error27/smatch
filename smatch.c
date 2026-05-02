@@ -20,7 +20,9 @@
 #include <libgen.h>
 #include "smatch.h"
 #include "smatch_slist.h"
-#include "check_list.h"
+#include "smatch_modules.h"
+#include "smatch_checks.h"
+#include "smatch_modules_late.h"
 
 char *option_debug_check;
 char *option_debug_var;
@@ -69,7 +71,9 @@ static struct reg_func_info {
 	int enabled;
 } reg_funcs[] = {
 	{"internal", NULL},
-#include "check_list.h"
+#include "smatch_modules.h"
+#include "smatch_checks.h"
+#include "smatch_modules_late.h"
 };
 #undef CK
 int num_checks = ARRAY_SIZE(reg_funcs);
