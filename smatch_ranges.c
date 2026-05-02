@@ -2645,7 +2645,7 @@ void split_comparison_rl(struct range_list *left_orig, int op, struct range_list
 			right_true = remove_range(right_orig, rl_min(left_orig), rl_min(left_orig));
 		break;
 	default:
-		sm_perror(" unhandled comparison %d", op);
+		sm_perror("unhandled comparison %d", op);
 	}
 
 	if (left_true_rl) {
