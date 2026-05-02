@@ -423,9 +423,35 @@ static void match_untracked(struct expression *call, int param)
 	free_slist(&slist);
 }
 
+static void set_assigned_expr_free(const char *name, struct symbol *sym)
+{
+	struct expression *expr;
+	int offset;
+
+	expr = get_assigned_expr_name_sym(name, sym);
+	if (!expr)
+		return;
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		expr = expr->unop;
+
+		if (expr && expr->type == EXPR_DEREF) {
+			offset = get_member_offset_from_deref(expr);
+			if (offset < 0)
+				return;
+			if (offset != 0) {
+				return;
+			}
+			expr = strip_expr(expr->deref);
+			if (expr->type == EXPR_PREOP && expr->op == '*')
+				expr = strip_parens(expr->unop);
+		}
+	}
+
+	set_state_expr(my_id, expr, &freed);
+}
+
 static void match_free(struct expression *expr, const char *name, struct symbol *sym)
 {
-	struct expression *tmp;
 	int line;
 
 	// FIXME: check if these are NULL before we free
@@ -435,9 +461,7 @@ static void match_free(struct expression *expr, const char *name, struct symbol 
 		sm_error("double free of '%s' (line %d)", name, line);
 	set_state(my_id, name, sym, &freed);
 
-	tmp = get_assigned_expr_name_sym(name, sym);
-	if (tmp)
-		set_state_expr(my_id, tmp, &freed);
+	set_assigned_expr_free(name, sym);
 }
 
 void check_free(int id)
