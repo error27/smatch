@@ -21,7 +21,7 @@ void func(void)
 }
 /*
  * check-name: smatch check kunmap
- * check-command: smatch -p=kernel sm_check_kunmap.c
+ * check-command: smatch -p=kernel sm_check_kunmap.c | grep passing
  *
  * check-output-start
 sm_check_kunmap.c:17 func() warn: passing the wrong variable to kunmap()

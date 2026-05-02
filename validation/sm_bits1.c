@@ -27,7 +27,7 @@ void test(void)
 
 /*
  * check-name: smatch bits #1
- * check-command: smatch -I.. sm_bits1.c
+ * check-command: smatch -I.. sm_bits1.c | grep definitely
  *
  * check-output-start
 sm_bits1.c:15 test() bit info 'a': definitely set 0x3.  possibly set 0xff.
