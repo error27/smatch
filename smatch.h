@@ -1157,6 +1157,7 @@ enum project_type {
 extern enum project_type option_project;
 const char *check_name(unsigned short id);
 int id_from_name(const char *name);
+bool check_enabled(unsigned short id);
 
 
 /* smatch_buf_size.c */

@@ -141,6 +141,13 @@ static void enable_disable_checks(char *s, bool enable)
 	} while ((s = next));
 }
 
+bool check_enabled(unsigned short id)
+{
+	if (id >= ARRAY_SIZE(reg_funcs))
+		return 0;
+	return reg_funcs[id].enabled;
+}
+
 static void help(void)
 {
 	printf("Usage:  smatch [smatch arguments][sparse arguments] file.c\n");

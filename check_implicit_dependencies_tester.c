@@ -156,6 +156,9 @@ void check_implicit_dependencies_tester(int id)
 {
     my_id = id;
 
+    if (!check_enabled(id))
+        return;
+
     if (option_project != PROJ_KERNEL)
 	return;
 
