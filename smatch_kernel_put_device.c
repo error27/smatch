@@ -21,6 +21,18 @@
 
 static int my_id;
 
+static unsigned long put_device_stmt;
+
+bool was_put_device_stmt(void)
+{
+	return put_device_stmt;
+}
+
+static void clear_put_device_stmt(struct statement *stmt)
+{
+	put_device_stmt = false;
+}
+
 static int save_string(void *_list, int argc, char **argv, char **azColName)
 {
 	struct string_list **list = _list;
@@ -116,6 +128,7 @@ static void match_put_device_fake(struct expression *expr, const char *name, str
 	add_ptr_list(&args, arg);
 	fake_call = call_expression(fn, args);
 	__split_expr(fake_call);
+	put_device_stmt = true;
 }
 
 void register_kernel_put_device(int id)
@@ -125,6 +138,9 @@ void register_kernel_put_device(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	add_function_data(&put_device_stmt);
+
 	add_put_device_hook(&match_put_device_fake);
+	add_hook(&clear_put_device_stmt, STMT_HOOK);
 }
 

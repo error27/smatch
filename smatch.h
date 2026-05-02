@@ -1573,6 +1573,7 @@ bool is_percent_p_print(struct expression *expr);
 
 void add_free_hook(name_sym_hook *hook);
 void add_maybe_free_hook(name_sym_hook *hook);
+bool was_put_device_stmt(void);
 void add_put_device_hook(name_sym_hook *hook);
 void set_ignore_put_device(const char *name, struct symbol *sym);
 

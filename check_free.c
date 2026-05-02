@@ -185,6 +185,8 @@ static void match_symbol(struct expression *expr)
 		return;
 	if (__in_fake_parameter_assign)
 		return;
+	if (was_put_device_stmt())
+		return;
 
 	if (is_part_of_condition(expr))
 		return;
@@ -220,6 +222,9 @@ static void deref_hook(struct expression *expr)
 		return;
 
 	if (is_impossible_path())
+		return;
+
+	if (was_put_device_stmt())
 		return;
 
 	line = get_freed_line(expr);
@@ -297,6 +302,8 @@ static void match_call(struct expression *expr)
 
 	if (is_impossible_path())
 		return;
+	if (was_put_device_stmt())
+		return;
 
 	set_ignored_params(expr);
 
@@ -331,6 +338,8 @@ static void match_return(struct expression *expr)
 	int line;
 
 	if (is_impossible_path())
+		return;
+	if (was_put_device_stmt())
 		return;
 
 	line = get_freed_line(expr);
