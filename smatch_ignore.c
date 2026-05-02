@@ -24,6 +24,8 @@ static struct stree *ignored_from_file;
 
 void add_ignore(int owner, const char *name, struct symbol *sym)
 {
+	if (!final_pass)
+		return;
 	set_state_stree(&ignored, owner, name, sym, &ignore);
 }
 
