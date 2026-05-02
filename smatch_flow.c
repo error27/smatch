@@ -1659,7 +1659,8 @@ void __split_stmt(struct statement *stmt)
 		split_ret_value(stmt->ret_value);
 		__process_post_op_stack();
 		__call_all_scope_hooks();
-		__pass_to_client(stmt->ret_value, RETURN_HOOK);
+		if (final_pass)
+			__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
 		break;
 	case STMT_EXPRESSION:
