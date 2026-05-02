@@ -34,6 +34,7 @@ int __fake_state_cnt;
 int __debug_skip;
 int in_fake_env;
 int final_pass;
+int silence_output;
 int __inline_call;
 bool __reparsing_code;
 struct expression  *__inline_fn;
@@ -2449,7 +2450,8 @@ void parse_inline(struct expression *call)
 
 	gettimeofday(&fn_start_time, NULL);
 	__pass_to_client(call, INLINE_FN_START);
-	final_pass = 0;  /* don't print anything */
+	final_pass = 1;
+	silence_output++; /* don't print inline things by default */
 	__inline_fn = call;
 	orig_budget = inline_budget;
 	inline_budget = inline_budget - 5;
@@ -2504,6 +2506,7 @@ void parse_inline(struct expression *call)
 	__inline_fn = orig_inline;
 	inline_budget = orig_budget;
 	__pass_to_client(call, INLINE_FN_END);
+	silence_output--;
 }
 
 static struct symbol_list *inlines_called;

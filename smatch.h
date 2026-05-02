@@ -308,6 +308,7 @@ char *get_function(void);
 extern int __smatch_lineno;
 int get_lineno(void);
 extern int final_pass;
+extern int silence_output;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
 extern int local_debug;
@@ -353,7 +354,7 @@ extern int sm_nr_errors;
  */
 
 #define sm_printf(msg...) do {						\
-	if (final_pass || option_debug || local_debug || debug_db)	\
+	if ((final_pass && !silence_output) || option_debug || local_debug || debug_db)	\
 		fprintf(sm_outfd, msg);					\
 } while (0)
 
@@ -372,6 +373,8 @@ extern bool __silence_warnings_for_stmt;
 #define sm_print_msg(type, msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
+	if (silence_output && !option_debug && !local_debug && !debug_db) \
+		break;					       \
 	if (!final_pass && !option_debug && !local_debug && !debug_db)	  \
 		break;                                         \
 	if (__silence_warnings_for_stmt && !option_debug && !local_debug) \
