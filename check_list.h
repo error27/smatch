@@ -296,7 +296,7 @@ CK(register_comparison_late) /* has to come after modification_hooks_late */
 CK(register_function_hooks)
 CK(register_definition_db_callbacks_late) /* has to come after register_function_hooks() */
 CK(register_kernel)  /* this is overwriting stuff from smatch_extra_late */
-CK(check_wine)
+CK(register_wine)
 CK(register_returns)
 
 #ifdef __undo_CK_def
