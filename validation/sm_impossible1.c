@@ -9,9 +9,9 @@ int zero(void)
 int main(unsigned int x, unsigned int y)
 {
 	if (zero())
-		__smatch_states("register_impossible_return");
+		__smatch_states("smatch_impossible_return");
 	else
-		__smatch_states("register_impossible_return");
+		__smatch_states("smatch_impossible_return");
 }
 
 /*
@@ -19,8 +19,8 @@ int main(unsigned int x, unsigned int y)
  * check-command: smatch -I.. sm_impossible1.c
  *
  * check-output-start
-sm_impossible1.c:12 main() [register_impossible_return] impossible (nil) = 'impossible'
-sm_impossible1.c:14 main() no states found for 'register_impossible_return'
-sm_impossible1.c:14 main() register_impossible_return: no states
+sm_impossible1.c:12 main() [smatch_impossible_return] impossible (nil) = 'impossible'
+sm_impossible1.c:14 main() no states found for 'smatch_impossible_return'
+sm_impossible1.c:14 main() smatch_impossible_return: no states
  * check-output-end
  */
