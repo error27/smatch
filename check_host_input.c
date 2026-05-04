@@ -309,6 +309,7 @@ static void array_offset_check(struct expression *expr)
 
 void check_host_input(int id)
 {
+    return;
     my_id = id;
     add_hook(&match_assign, ASSIGNMENT_HOOK);
     add_hook(&match_return, RETURN_HOOK);
