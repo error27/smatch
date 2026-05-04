@@ -21,6 +21,7 @@
 
 static int my_id;
 
+static unsigned long returns_err_ptr;
 STATE(err_ptr);
 
 bool possible_err_ptr(struct expression *expr)
@@ -66,7 +67,14 @@ static void match_return_info(int return_id, char *return_ranges,
 	if (!rl_intersection(estate_rl(state), alloc_rl(ptr_err_min, ptr_err_max)))
 		return;
 
+	returns_err_ptr = true;
 	sql_insert_return_states(return_id, return_ranges, ERR_PTR, param, printed_name, "");
+}
+
+static void return_implies_err_ptr(void)
+{
+	if (returns_err_ptr)
+		sql_insert_return_implies(ERR_PTR, -1, "$", "");
 }
 
 static void match_assign(struct expression *expr)
@@ -119,10 +127,13 @@ void register_kernel_err_ptr(int id)
 	if (option_project != PROJ_KERNEL)
 		return;
 
+	add_function_data(&returns_err_ptr);
+
 	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	add_return_info_callback(my_id, &match_return_info);
+	all_return_states_hook(&return_implies_err_ptr);
 
 	add_function_assign_hook("ERR_PTR", &match_err_ptr, NULL);
 	add_function_assign_hook("ERR_CAST", &match_err_ptr, NULL);
