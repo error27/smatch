@@ -1012,7 +1012,11 @@ const char *find_include(const char *skip, const char *look_for)
 		lstat(entry->d_name, &statbuf);
 
 		if (strcmp(entry->d_name, look_for) == 0) {
-			snprintf(buf, sizeof(buf), "%s/%s", cwd, entry->d_name);
+			int cnt;
+
+			cnt = snprintf(buf, sizeof(buf), "%s/%s", cwd, entry->d_name);
+			if (cnt >= sizeof(buf))
+				return NULL;
 			closedir(dp);
 			return buf;
 		}
