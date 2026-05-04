@@ -210,7 +210,7 @@ static void print_stored_to_mtag(int return_id, char *return_ranges, struct expr
 	} END_FOR_EACH_SM(sm);
 }
 
-void register_param_to_mtag_data(int id)
+void smatch_param_to_mtag_data(int id)
 {
 	my_id = id;
 

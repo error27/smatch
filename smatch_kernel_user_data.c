@@ -1391,7 +1391,7 @@ static void match_capped(struct expression *expr, const char *name, struct symbo
 	set_state(my_id, name, sym, new);
 }
 
-void register_kernel_user_data(int id)
+void smatch_kernel_user_data(int id)
 {
 	struct user_fn_info *info;
 	int i;
@@ -1442,7 +1442,7 @@ void register_kernel_user_data(int id)
 	}
 }
 
-void register_kernel_user_data2(int id)
+void smatch_kernel_user_data2(int id)
 {
 	my_call_id = id;
 

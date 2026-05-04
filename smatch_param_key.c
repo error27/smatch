@@ -1208,7 +1208,7 @@ static void return_str_hook(struct expression *expr, const char *ret_str)
 	set_state_expr(my_id, expr->left, alloc_var_sym_state(buf, sym));
 }
 
-void register_param_key(int id)
+void smatch_param_key(int id)
 {
 	my_id = id;
 

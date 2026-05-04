@@ -3245,7 +3245,7 @@ struct smatch_state *get_extra_state(struct expression *expr)
 	return sm->state;
 }
 
-void register_smatch_extra(int id)
+void smatch_extra(int id)
 {
 	my_id = id;
 
@@ -3286,13 +3286,13 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(link_id, sm->name, sm->sym, &undefined);
 }
 
-void register_smatch_extra_links(int id)
+void smatch_smatch_extra_links(int id)
 {
 	link_id = id;
 	set_dynamic_states(link_id);
 }
 
-void register_smatch_extra_late(int id)
+void smatch_smatch_extra_late(int id)
 {
 	add_merge_hook(link_id, &merge_link_states);
 	add_modification_hook(link_id, &match_link_modify);

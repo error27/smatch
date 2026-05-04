@@ -329,7 +329,7 @@ static void match_global_assignment(struct expression *expr)
 	set_state_stree_perm(&global_stree, my_id, name, sym, state);
 }
 
-void register_assigned_expr(int id)
+void smatch_assigned_expr(int id)
 {
 	my_id = check_assigned_expr_id = id;
 	add_function_data((unsigned long *)&skip_mod);
@@ -343,7 +343,7 @@ void register_assigned_expr(int id)
 	add_hook(&match_global_assignment, GLOBAL_ASSIGNMENT_HOOK);
 }
 
-void register_assigned_expr_links(int id)
+void smatch_assigned_expr_links(int id)
 {
 	link_id = id;
 	add_merge_hook(my_id, &merge_expr);

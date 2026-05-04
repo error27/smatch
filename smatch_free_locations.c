@@ -81,7 +81,7 @@ static void match_maybe_free(struct expression *expr, const char *name, struct s
 	match_free_member(expr, name, sym, true);
 }
 
-void register_free_locations(int id)
+void smatch_free_locations(int id)
 {
 	add_free_hook(&match_free);
 	add_maybe_free_hook(&match_maybe_free);

@@ -27,7 +27,7 @@ static bool has_inc_state(const char *name, struct symbol *sym)
 	struct sm_state *sm, *tmp;
 
 	if (!refcount_id)
-		refcount_id = id_from_name("register_refcount_info");
+		refcount_id = id_from_name("smatch_refcount_info");
 
 	sm = get_sm_state(refcount_id, name, sym);
 	if (!sm)
@@ -72,7 +72,7 @@ static void match_kref_put(const char *fn, struct expression *call_expr,
 	add_fake_call_after_return(fake_call);
 }
 
-void register_kernel_kref_put(int id)
+void smatch_kernel_kref_put(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

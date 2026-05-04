@@ -36,7 +36,7 @@ bool has_devm_cleanup(void)
 	return false;
 }
 
-void register_kernel_has_devm_cleanup(int id)
+void smatch_kernel_has_devm_cleanup(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

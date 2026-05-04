@@ -56,7 +56,7 @@ static void match_assign(struct expression *expr)
 	sql_insert_mtag_map(left_tag, left_offset, right_tag, right_offset);
 }
 
-void register_mtag_map(int id)
+void smatch_mtag_map(int id)
 {
 	my_id = id;
 

@@ -207,7 +207,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *_size_arg
 	set_fresh(expr->left);
 }
 
-void register_fresh_alloc(int id)
+void smatch_fresh_alloc(int id)
 {
 	int i;
 

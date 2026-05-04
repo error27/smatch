@@ -76,7 +76,7 @@ bool is_devm_pointer(struct expression *expr)
 	return false;
 }
 
-void register_kernel_devm(int id)
+void smatch_kernel_devm(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

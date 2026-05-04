@@ -143,7 +143,7 @@ static void set_param_compare(const char *buffer_name, struct symbol *buffer_sym
 	record_size(buffer, size, NULL);
 }
 
-void register_buf_comparison2(int id)
+void smatch_buf_comparison2(int id)
 {
 	my_id = id;
 

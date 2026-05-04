@@ -390,7 +390,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, STR_LEN, param, printed_name, sm->state->name);
 }
 
-void register_strlen(int id)
+void smatch_strlen(int id)
 {
 	my_strlen_id = id;
 
@@ -424,7 +424,7 @@ void register_strlen(int id)
 	add_function_hook("__builtin_strcpy", &match_strcpy, NULL);
 }
 
-void register_strlen_equiv(int id)
+void smatch_strlen_equiv(int id)
 {
 	my_equiv_id = id;
 	set_dynamic_states(my_equiv_id);

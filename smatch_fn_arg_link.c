@@ -199,7 +199,7 @@ static void match_call_info(struct expression *call)
 		return;
 }
 
-void register_fn_arg_link(int id)
+void smatch_fn_arg_link(int id)
 {
 	my_id = id;
 

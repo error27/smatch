@@ -1279,7 +1279,7 @@ static bool is_smp_config(void)
 	return !!lookup_symbol(id, NS_MACRO);
 }
 
-void register_locking(int id)
+void smatch_locking(int id)
 {
 	my_id = id;
 

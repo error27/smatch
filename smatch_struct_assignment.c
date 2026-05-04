@@ -707,7 +707,7 @@ static void db_buf_cleared(struct expression *expr, int param, char *key, char *
 	__in_buf_clear--;
 }
 
-void register_struct_assignment(int id)
+void smatch_struct_assignment(int id)
 {
 	my_id = id;
 

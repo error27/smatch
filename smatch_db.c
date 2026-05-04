@@ -2543,12 +2543,12 @@ static bool split_by_impossible(struct expression *expr)
 	int nr_states;
 
 	if (!impossible_id)
-		impossible_id = id_from_name("register_impossible_return");
+		impossible_id = id_from_name("smatch_impossible_return");
 	if (!impossible_id)
 		return false;
 
 	/*
-	 * The only states for register_impossible_return are &impossible,
+	 * The only states for smatch_impossible_return are &impossible,
 	 * &undefined and &merged.  This function will break otherwise.
 	 */
 
@@ -3176,7 +3176,7 @@ static void register_forced_return_splits(void)
 	}
 }
 
-void register_definition_db_callbacks(int id)
+void smatch_definition_db_callbacks(int id)
 {
 	my_id = id;
 
@@ -3202,12 +3202,12 @@ void register_definition_db_callbacks(int id)
 	add_hook(&dump_cache, END_FILE_HOOK);
 }
 
-void register_definition_db_callbacks_late(int id)
+void smatch_definition_db_callbacks_late(int id)
 {
 	add_hook(&match_return_implies_late, CALL_HOOK_AFTER_INLINE);
 }
 
-void register_db_call_marker(int id)
+void smatch_db_call_marker(int id)
 {
 	add_hook(&match_call_marker, FUNCTION_CALL_HOOK_BEFORE);
 }

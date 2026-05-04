@@ -199,7 +199,7 @@ static void returns_power_of_two_set(struct expression *expr, int param, char *k
 	set_state(my_id, name, sym, &power_of_two);
 }
 
-void register_power_of_two(int id)
+void smatch_power_of_two(int id)
 {
 	my_id = id;
 

@@ -94,7 +94,7 @@ static int implied_xa_err_return(struct expression *call, void *unused, struct r
 	return false;
 }
 
-void register_kernel_xa_err(int id)
+void smatch_kernel_xa_err(int id)
 {
 	my_id = id;
 

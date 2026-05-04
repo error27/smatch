@@ -121,7 +121,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 			-2, "", "");
 }
 
-void register_kernel_task_state_info(int id)
+void smatch_kernel_task_state_info(int id)
 {
 	struct state_param *info;
 	int i;

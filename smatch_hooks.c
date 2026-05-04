@@ -331,7 +331,7 @@ void allocate_hook_memory(void)
 	memset(pre_merge_hooks, 0, num_checks * sizeof(*pre_merge_hooks));
 }
 
-void register_hooks(int id)
+void smatch_hooks(int id)
 {
 	add_function_data((unsigned long *)&scope_hooks);
 	my_id = id;

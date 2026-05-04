@@ -367,7 +367,7 @@ static void match_checked(struct expression *expr, const char *name, struct symb
 	set_state(my_id, name, sym, &no_overflow);
 }
 
-void register_simple_no_overflow(int id)
+void smatch_simple_no_overflow(int id)
 {
 	my_id = id;
 	add_hook(&match_condition, CONDITION_HOOK);

@@ -129,7 +129,7 @@ static void match_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-void register_passes_array_size(int id)
+void smatch_passes_array_size(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }

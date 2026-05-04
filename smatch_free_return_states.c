@@ -141,7 +141,7 @@ static void match_maybe_free(struct expression *expr, const char *name, struct s
 	match_free_helper(expr, name, sym, &maybe_freed);
 }
 
-void register_free_return_states(int id)
+void smatch_free_return_states(int id)
 {
 	my_id = id;
 

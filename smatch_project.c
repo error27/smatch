@@ -254,7 +254,7 @@ static void register_no_inline_functions(void)
 	clear_token_alloc();
 }
 
-void register_project(int id)
+void smatch_project(int id)
 {
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_function_data(&skipped);

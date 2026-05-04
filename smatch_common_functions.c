@@ -94,7 +94,7 @@ static int match_sprintf(struct expression *call, void *_arg, struct range_list 
 	return 1;
 }
 
-void register_common_functions(int id)
+void smatch_common_functions(int id)
 {
 	/*
 	 * When you add a new function here, then don't forget to delete it from

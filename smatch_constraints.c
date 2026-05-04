@@ -513,7 +513,7 @@ free:
 	free_string(name);
 }
 
-void register_constraints(int id)
+void smatch_constraints(int id)
 {
 	my_id = id;
 

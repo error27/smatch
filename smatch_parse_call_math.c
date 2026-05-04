@@ -629,7 +629,7 @@ const char *get_allocation_math(struct expression *expr)
 	return state->name;
 }
 
-void register_parse_call_math(int id)
+void smatch_parse_call_math(int id)
 {
 	int i;
 

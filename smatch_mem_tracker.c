@@ -82,7 +82,7 @@ unsigned long get_max_memory(void)
 	return max_size;
 }
 
-void register_mem_tracker(int id)
+void smatch_mem_tracker(int id)
 {
 	my_id = id;
 

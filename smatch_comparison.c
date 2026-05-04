@@ -2818,7 +2818,7 @@ static void free_data(struct symbol *sym)
 	clear_compare_data_alloc();
 }
 
-void register_comparison(int id)
+void smatch_comparison(int id)
 {
 	comparison_id = id;
 	set_dynamic_states(comparison_id);
@@ -2838,13 +2838,13 @@ void register_comparison(int id)
 	add_hook(&match_preop, OP_HOOK);
 }
 
-void register_comparison_late(int id)
+void smatch_comparison_late(int id)
 {
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_return_string_hook(return_str_comparison);
 }
 
-void register_comparison_links(int id)
+void smatch_comparison_links(int id)
 {
 	link_id = id;
 	db_ignore_states(link_id);
@@ -2856,13 +2856,13 @@ void register_comparison_links(int id)
 	add_member_info_callback(link_id, struct_member_callback);
 }
 
-void register_comparison_inc_dec(int id)
+void smatch_comparison_inc_dec(int id)
 {
 	inc_dec_id = id;
 	add_modification_hook_late(inc_dec_id, &iter_modify);
 }
 
-void register_comparison_inc_dec_links(int id)
+void smatch_comparison_inc_dec_links(int id)
 {
 	inc_dec_link_id = id;
 	set_dynamic_states(inc_dec_link_id);

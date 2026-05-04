@@ -176,7 +176,7 @@ static void db_param_unlocked(struct expression *expr, int param, char *key, cha
 	update_state(key, &unlock);
 }
 
-void register_locking_type(int id)
+void smatch_locking_type(int id)
 {
 	my_id = id;
 

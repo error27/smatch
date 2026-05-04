@@ -159,7 +159,7 @@ struct smatch_state *get_real_absolute_state_var_sym(const char *name, struct sy
 	return __get_state(my_id, name, sym);
 }
 
-void register_real_absolute(int id)
+void smatch_real_absolute(int id)
 {
 	my_id = id;
 

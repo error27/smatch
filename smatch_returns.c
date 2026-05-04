@@ -81,7 +81,7 @@ static void free_resources(struct symbol *sym)
 	free_stack_and_strees(&return_stree_stack);
 }
 
-void register_returns_early(int id)
+void smatch_returns_early(int id)
 {
 	RETURN_ID = id;
 
@@ -89,7 +89,7 @@ void register_returns_early(int id)
 	add_split_return_callback(match_return);
 }
 
-void register_returns(int id)
+void smatch_returns(int id)
 {
 	add_hook(&match_end_func, END_FUNC_HOOK);
 	add_function_data((unsigned long *)&all_return_states);

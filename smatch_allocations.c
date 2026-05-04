@@ -232,7 +232,7 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 	match_alloc_helper(hook_funcs, expr, name, sym, _info);
 }
 
-void register_allocations(int id)
+void smatch_allocations(int id)
 {
 	struct alloc_fn_info *info;
 

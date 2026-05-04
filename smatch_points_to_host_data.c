@@ -353,7 +353,7 @@ static void caller_info_callback_host(struct expression *call, int param, char *
 	sql_insert_caller_info(call, HOST_PTR, param, printed_name, "");
 }
 
-void register_points_to_host_data(int id)
+void smatch_points_to_host_data(int id)
 {
 	my_id = id;
 

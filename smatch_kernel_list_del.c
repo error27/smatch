@@ -73,7 +73,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, "");
 }
 
-void register_kernel_list_del(int id)
+void smatch_kernel_list_del(int id)
 {
 	struct func_info *info;
 	int i;

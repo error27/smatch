@@ -120,7 +120,7 @@ static void match_is_err_false(struct expression *expr, const char *name, struct
 	set_state(my_id, name, sym, &undefined);
 }
 
-void register_kernel_err_ptr(int id)
+void smatch_kernel_err_ptr(int id)
 {
 	my_id = id;
 

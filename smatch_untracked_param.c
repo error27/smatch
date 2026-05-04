@@ -280,7 +280,7 @@ static void match_param_assign_in_asm(struct statement *stmt)
 	} END_FOR_EACH_PTR(op);
 }
 
-void register_untracked_param(int id)
+void smatch_untracked_param(int id)
 {
 	my_id = id;
 

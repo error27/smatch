@@ -36,7 +36,7 @@ int is_unconstant_macro(struct expression *expr)
 	return 0;
 }
 
-void register_unconstant_macros(int id)
+void smatch_unconstant_macros(int id)
 {
 	my_id = id;
 

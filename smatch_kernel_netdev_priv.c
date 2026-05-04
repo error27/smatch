@@ -47,7 +47,7 @@ struct expression *get_netdev_priv(struct expression *dev)
 	return state->data;
 }
 
-void register_kernel_netdev_priv(int id)
+void smatch_kernel_netdev_priv(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

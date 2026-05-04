@@ -89,7 +89,7 @@ bool is_NOT_ENABLED(void)
 	return disabled;
 }
 
-void register_kernel_NOT_ENABLED(int id)
+void smatch_kernel_NOT_ENABLED(int id)
 {
 	my_id = id;
 

@@ -1299,7 +1299,7 @@ static void set_param_host_input_data(struct expression *expr, const char *name,
 	tag_as_host_data(arg);
 }
 
-void register_kernel_host_data(int id)
+void smatch_kernel_host_data(int id)
 {
 	int i;
 	struct host_fn_info *info;

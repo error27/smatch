@@ -64,7 +64,7 @@ static void match_assign(struct expression *expr)
 	sql_insert_data_info(expr->left, TYPE_LINK, type_to_str(type));
 }
 
-void register_type_links(int id)
+void smatch_type_links(int id)
 {
 	if (!option_info)
 		return;

@@ -302,7 +302,7 @@ free:
 	free_string(name);
 }
 
-void register_capped(int id)
+void smatch_capped(int id)
 {
 	my_id = id;
 

@@ -131,7 +131,7 @@ struct expression *get_stored_container(struct expression *expr, int offset)
 	return state->data;
 }
 
-void register_points_to_container(int id)
+void smatch_points_to_container(int id)
 {
 	my_id = id;
 

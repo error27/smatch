@@ -176,7 +176,7 @@ int param_has_filter_data(struct sm_state *sm)
 	return 0;
 }
 
-void register_param_filter(int id)
+void smatch_param_filter(int id)
 {
 	my_id = id;
 

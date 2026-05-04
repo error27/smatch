@@ -253,7 +253,7 @@ static void match_host_rl(const char *fn, struct expression *expr, void *info)
        int host_id;
        char *name;
 
-       host_id = id_from_name("register_kernel_host_data");
+       host_id = id_from_name("smatch_kernel_host_data");
        if (!host_id) {
                sm_msg("no host id");
                return;
@@ -794,7 +794,7 @@ static void match_bits(const char *fn, struct expression *expr, void *_unused)
 	char *name;
 
 	if (!bits_id)
-		bits_id = id_from_name("register_bits");
+		bits_id = id_from_name("smatch_bits");
 
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
@@ -812,7 +812,7 @@ static void match_units(const char *fn, struct expression *expr, void *info)
 	char *name;
 
 	if (!units_id)
-		units_id = id_from_name("register_units");
+		units_id = id_from_name("smatch_units");
 
 	arg = get_check_arg(expr, 0);
 	sm = get_sm_state_expr(units_id, arg);

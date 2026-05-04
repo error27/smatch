@@ -37,7 +37,7 @@ static void match_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-void register_function_info(int id)
+void smatch_function_info(int id)
 {
 	my_id = id;
 	add_hook(match_def, FUNC_DEF_HOOK);

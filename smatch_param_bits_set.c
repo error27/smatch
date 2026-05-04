@@ -63,7 +63,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 	sql_insert_return_states(return_id, return_ranges, BIT_SET, param, printed_name, buffer);
 }
 
-void register_param_bits_set(int id)
+void smatch_param_bits_set(int id)
 {
 	my_id = id;
 

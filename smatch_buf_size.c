@@ -1111,7 +1111,7 @@ static void record_global_size(struct symbol *sym)
 	sql_insert_data_info_var_sym(sym->ident->name, sym, BUF_SIZE, buf);
 }
 
-void register_buf_size(int id)
+void smatch_buf_size(int id)
 {
 	my_size_id = id;
 
@@ -1183,7 +1183,7 @@ void register_buf_size(int id)
 	add_hook(&match_clear_cache, AFTER_FUNC_HOOK);
 }
 
-void register_buf_size_late(int id)
+void smatch_buf_size_late(int id)
 {
 	/* has to happen after match_alloc() */
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);

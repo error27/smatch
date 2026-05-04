@@ -95,14 +95,14 @@ static void match_assignment(struct expression *expr)
 	free_string(name);
 }
 
-void register_state_assigned(int id)
+void smatch_state_assigned(int id)
 {
 	my_id = id;
 
 	hooks = malloc(num_checks * sizeof(*hooks));
 	memset(hooks, 0, num_checks * sizeof(*hooks));
 
-	ssa_id = id_from_name("register_ssa");
+	ssa_id = id_from_name("smatch_ssa");
 	ssa_hooks = malloc(num_checks * sizeof(*ssa_hooks));
 	memset(ssa_hooks, 0, num_checks * sizeof(*ssa_hooks));
 

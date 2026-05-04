@@ -581,7 +581,7 @@ static void returns_bit_clear(struct expression *expr, int param, char *key, cha
 						 possible & binfo->possible));
 }
 
-void register_bits(int id)
+void smatch_bits(int id)
 {
 	my_id = id;
 

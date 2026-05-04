@@ -670,7 +670,7 @@ static void match_end_file(struct symbol_list *sym_list)
 	} END_FOR_EACH_SM(sm);
 }
 
-void register_type_val(int id)
+void smatch_type_val(int id)
 {
 	my_id = id;
 

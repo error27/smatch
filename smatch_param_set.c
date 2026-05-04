@@ -490,7 +490,7 @@ static void register_ignored_params_from_file(void)
 	clear_token_alloc();
 }
 
-void register_param_set(int id)
+void smatch_param_set(int id)
 {
 	my_id = id;
 

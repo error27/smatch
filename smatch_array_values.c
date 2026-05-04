@@ -247,7 +247,7 @@ static void mark_strings_unknown(const char *fn, struct expression *expr, void *
 	update_cache(name, is_file_local(dest), alloc_whole_rl(type));
 }
 
-void register_array_values(int id)
+void smatch_array_values(int id)
 {
 	my_id = id;
 

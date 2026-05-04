@@ -119,7 +119,7 @@ static void match_thread_stuff(const char *fn, struct expression *expr, void *un
 	nothing_impossible = true;
 }
 
-void register_impossible(int id)
+void smatch_impossible(int id)
 {
 	my_id = id;
 
@@ -127,7 +127,7 @@ void register_impossible(int id)
 	add_hook(&match_case, CASE_HOOK);
 }
 
-void register_impossible_return(int id)
+void smatch_impossible_return(int id)
 {
 	my_return_id = id;
 

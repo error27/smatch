@@ -347,7 +347,7 @@ static void match_asm(struct statement *stmt)
 		do_dec(expr, name, sym);
 }
 
-void register_refcount_info(int id)
+void smatch_refcount_info(int id)
 {
 	struct ref_func_info *info;
 	param_key_hook *cb;

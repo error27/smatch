@@ -34,7 +34,7 @@ static void match_def(struct symbol *sym)
 	} END_FOR_EACH_PTR(param);
 }
 
-void register_parameter_names(int id)
+void smatch_parameter_names(int id)
 {
 	if (!option_info)
 		return;

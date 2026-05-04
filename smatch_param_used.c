@@ -118,7 +118,7 @@ static void match_function_def(struct symbol *sym)
 	free_stree(&used_stree);
 }
 
-void register_param_used(int id)
+void smatch_param_used(int id)
 {
 	my_id = id;
 

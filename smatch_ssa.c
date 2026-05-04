@@ -292,7 +292,7 @@ struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr)
 	return sm->state;
 }
 
-void register_ssa(int id)
+void smatch_ssa(int id)
 {
 	my_id = id;
 

@@ -1876,12 +1876,12 @@ void create_function_hook_hash(void)
 	func_hash = create_function_hashtable(5000);
 }
 
-void register_function_hooks_early(int id)
+void smatch_function_hooks_early(int id)
 {
 	add_hook(&match_function_call_early, FUNCTION_CALL_HOOK_BEFORE);
 }
 
-void register_function_hooks(int id)
+void smatch_function_hooks(int id)
 {
 	add_function_data((unsigned long *)&fake_calls);
 	add_function_data((unsigned long *)&__in_fake_parameter_assign);

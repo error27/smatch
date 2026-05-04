@@ -131,7 +131,7 @@ static void match_put_device_fake(struct expression *expr, const char *name, str
 	put_device_stmt = true;
 }
 
-void register_kernel_put_device(int id)
+void smatch_kernel_put_device(int id)
 {
 	my_id = id;
 

@@ -107,7 +107,7 @@ static void set_half_locked(const char *name, struct symbol *sym, char *value)
 	set_state(my_id, name, sym, &half_locked);
 }
 
-void register_locking_info(int id)
+void smatch_locking_info(int id)
 {
 	my_id = id;
 

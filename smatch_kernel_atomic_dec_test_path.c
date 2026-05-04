@@ -79,7 +79,7 @@ int on_atomic_dec_path(void)
 	return get_state(my_id, "dec_path", NULL) == &zero_path;
 }
 
-void register_kernel_atomic_dec_test_path(int id)
+void smatch_kernel_atomic_dec_test_path(int id)
 {
 	my_id = id;
 

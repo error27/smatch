@@ -75,7 +75,7 @@ static void select_return_info(struct expression *expr, int param, char *key, ch
 	set_state(my_id, "stmts", NULL, alloc_state_num(cnt + add));
 }
 
-void register_statement_count(int id)
+void smatch_statement_count(int id)
 {
 	my_id = id;
 

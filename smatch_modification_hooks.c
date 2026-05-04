@@ -286,7 +286,7 @@ void allocate_modification_hooks(void)
 	memset(hooks_late, 0, num_checks * sizeof(*hooks));
 }
 
-void register_modification_hooks(int id)
+void smatch_modification_hooks(int id)
 {
 	my_id = id;
 
@@ -297,7 +297,7 @@ void register_modification_hooks(int id)
 	add_hook(&asm_expr_early, ASM_HOOK);
 }
 
-void register_modification_hooks_late(int id)
+void smatch_modification_hooks_late(int id)
 {
 	add_hook(&match_call, FUNCTION_CALL_HOOK_AFTER_DB);
 

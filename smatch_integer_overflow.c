@@ -277,7 +277,7 @@ static void match_call_info(struct expression *call)
 	free_stree(&done);
 }
 
-void register_integer_overflow(int id)
+void smatch_integer_overflow(int id)
 {
 	my_id = id;
 	set_dynamic_states(my_id);
@@ -285,7 +285,7 @@ void register_integer_overflow(int id)
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
 }
 
-void register_integer_overflow_links(int id)
+void smatch_integer_overflow_links(int id)
 {
 	link_id = id;
 	set_up_link_functions(my_id, link_id);

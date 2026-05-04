@@ -116,7 +116,7 @@ static void match_caller_info(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-void register_data_source(int id)
+void smatch_data_source(int id)
 {
 //	if (!option_info)
 //		return;

@@ -68,7 +68,7 @@ static void process_states(void)
 	sql_insert_return_implies(LEAF_FN, -1, "", "");
 }
 
-void register_leaf_fn(int id)
+void smatch_leaf_fn(int id)
 {
 	my_id = id;
 

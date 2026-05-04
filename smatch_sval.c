@@ -873,7 +873,7 @@ static void free_svals(struct symbol *sym)
 	clear_sval_alloc();
 }
 
-void register_sval(int my_id)
+void smatch_sval(int my_id)
 {
 	add_hook(&free_svals, AFTER_FUNC_HOOK);
 }

@@ -454,7 +454,7 @@ static void global_variable(struct symbol *sym)
 	print_initializer_list(sym->initializer->expr_list, struct_type);
 }
 
-void register_function_ptrs(int id)
+void smatch_function_ptrs(int id)
 {
 	my_id = id;
 

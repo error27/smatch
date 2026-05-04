@@ -51,7 +51,7 @@ static void match_allocation(struct expression *expr,
 	sql_insert_function_type_info(ALLOC, type_str, member, info->fn_name);
 }
 
-void register_allocations_locations(int id)
+void smatch_allocations_locations(int id)
 {
 	add_allocation_hook(&match_allocation);
 }

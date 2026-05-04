@@ -304,7 +304,7 @@ static void match_strnlen_test(struct expression *expr)
 				(expr->op == SPECIAL_NOTEQUAL) ? &terminated : NULL);
 }
 
-void register_nul_terminator(int id)
+void smatch_nul_terminator(int id)
 {
 	my_id = id;
 
@@ -321,7 +321,7 @@ void register_nul_terminator(int id)
 	add_hook(&match_strnlen_test, CONDITION_HOOK);
 }
 
-void register_nul_terminator_param_set(int id)
+void smatch_nul_terminator_param_set(int id)
 {
 	param_set_id = id;
 }

@@ -60,7 +60,7 @@ void record_condition(struct expression *expr)
 	set_true_false_states(my_id, name, NULL, &true_path, &false_path);
 }
 
-void register_parsed_conditions(int id)
+void smatch_parsed_conditions(int id)
 {
 	my_id = id;
 	add_hook(&record_condition, CONDITION_HOOK);

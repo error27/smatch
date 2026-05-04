@@ -225,7 +225,7 @@ free:
 	free_string(left_name);
 }
 
-void register_return_to_param(int id)
+void smatch_return_to_param(int id)
 {
 	my_id = id;
 	set_dynamic_states(my_id);
@@ -233,7 +233,7 @@ void register_return_to_param(int id)
 	add_modification_hook(my_id, &undef);
 }
 
-void register_return_to_param_links(int id)
+void smatch_return_to_param_links(int id)
 {
 	link_id = id;
 	set_up_link_functions(my_id, link_id);

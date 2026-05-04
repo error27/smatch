@@ -111,7 +111,7 @@ static void set_eprobe_defer(struct expression *expr, const char *name, struct s
 	set_state(my_id, name, sym, &eprobe_defer);
 }
 
-void register_kernel_EPROBE_DEFER(int id)
+void smatch_kernel_EPROBE_DEFER(int id)
 {
 	my_id = id;
 

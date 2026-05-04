@@ -48,7 +48,7 @@ static void match_call_info(struct expression *expr)
 		sql_insert_caller_info(expr, TASK_NOT_RUNNING, -2, "", "");
 }
 
-void register_kernel_task_state(int id)
+void smatch_kernel_task_state(int id)
 {
 	my_id = id;
 

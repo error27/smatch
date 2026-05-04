@@ -452,7 +452,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, "");
 }
 
-void register_points_to_user_data(int id)
+void smatch_points_to_user_data(int id)
 {
 	struct user_fn_info *info;
 	int i;

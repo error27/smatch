@@ -265,13 +265,13 @@ struct expression_list *get_conditions(struct expression *expr)
 	return state->data;
 }
 
-void register_stored_conditions(int id)
+void smatch_stored_conditions(int id)
 {
 	my_id = id;
 	set_dynamic_states(my_id);
 }
 
-void register_stored_conditions_links(int id)
+void smatch_stored_conditions_links(int id)
 {
 	link_id = id;
 	db_ignore_states(link_id);

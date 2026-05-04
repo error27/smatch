@@ -394,7 +394,7 @@ int main(int argc, char **argv)
 	open_smatch_db(option_db_file);
 	sparse_initialize(argc, argv, &filelist);
 	alloc_ptr_constants();
-	SMATCH_EXTRA = id_from_name("register_smatch_extra");
+	SMATCH_EXTRA = id_from_name("smatch_extra");
 	allocate_modification_hooks();
 
 	for (i = 1; i < ARRAY_SIZE(reg_funcs); i++) {
@@ -404,7 +404,7 @@ int main(int argc, char **argv)
 		   0 is used for internal stuff. */
 		if (!option_enable || reg_funcs[i].enabled == 1 ||
 		    (option_disable && reg_funcs[i].enabled != -1) ||
-		    strncmp(reg_funcs[i].name, "register_", 9) == 0)
+		    strncmp(reg_funcs[i].name, "smatch_", 7) == 0)
 			func(i);
 	}
 	__cur_check_id = 0;

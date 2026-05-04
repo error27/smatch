@@ -1246,7 +1246,7 @@ int impossible_assumption(struct expression *left, int op, sval_t sval)
 void __extra_match_condition(struct expression *expr);
 void __comparison_match_condition(struct expression *expr);
 void __stored_condition(struct expression *expr);
-void register_implications(int id)
+void smatch_implications(int id)
 {
 	ignore_implications = malloc(num_checks);
 	memset(ignore_implications, 0, num_checks);

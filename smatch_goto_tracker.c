@@ -37,7 +37,7 @@ struct sm_state *get_goto_sm_state(void)
 	return get_sm_state(my_id, "goto", NULL);
 }
 
-void register_goto_tracker(int id)
+void smatch_goto_tracker(int id)
 {
 	my_id = id;
 

@@ -469,7 +469,7 @@ static bool ambiguous_members_set(struct symbol *arg)
 	int cnt = 0;
 
 	if (!param_set_id)
-		param_set_id = id_from_name("register_param_set");
+		param_set_id = id_from_name("smatch_param_set");
 
 	if (!arg || !arg->ident)
 		return false;
@@ -692,7 +692,7 @@ static void promote_void_param_sets(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-void register_param_cleared(int id)
+void smatch_param_cleared(int id)
 {
 	my_id = id;
 

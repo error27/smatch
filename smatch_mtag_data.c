@@ -332,7 +332,7 @@ int get_mtag_rl(struct expression *expr, struct range_list **rl)
 	return get_rl_from_mtag_offset(tag, offset, type, rl);
 }
 
-void register_mtag_data(int id)
+void smatch_mtag_data(int id)
 {
 	my_id = id;
 

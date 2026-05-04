@@ -434,7 +434,7 @@ int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset)
 	return 0;
 }
 
-void register_mtag(int id)
+void smatch_mtag(int id)
 {
 	my_id = id;
 

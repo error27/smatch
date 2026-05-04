@@ -104,7 +104,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 				 param, printed_name, "");
 }
 
-void register_kernel_put_device_info(int id)
+void smatch_kernel_put_device_info(int id)
 {
 	struct type_handler_pair hooks[] = {
 		{ PUT_DEVICE, match_put_device },

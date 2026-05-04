@@ -42,7 +42,7 @@ struct stree *get_start_states(void)
 	return start_states;
 }
 
-void register_start_states(int id)
+void smatch_start_states(int id)
 {
 	my_id = id;
 

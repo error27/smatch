@@ -83,7 +83,7 @@ static void match_asm(struct statement *stmt)
 	__split_expr(assign);
 }
 
-void register_kernel_rcu_assign_pointer(int id)
+void smatch_kernel_rcu_assign_pointer(int id)
 {
 	if (option_project != PROJ_KERNEL)
 		return;

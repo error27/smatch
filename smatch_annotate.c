@@ -37,7 +37,7 @@ static int param_caps_return(struct expression *call, void *_arg, struct range_l
 	return 0;
 }
 
-void register_annotate(int id)
+void smatch_annotate(int id)
 {
 	/*
 	 * Technically snprintf() returns the number of bytes which *would* have

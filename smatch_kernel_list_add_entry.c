@@ -96,7 +96,7 @@ int get_list_add_line(const char *var, struct symbol *sym)
 	return -1;
 }
 
-void register_kernel_list_add_entry(int id)
+void smatch_kernel_list_add_entry(int id)
 {
 	struct func_info *info;
 	int i;

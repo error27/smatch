@@ -40,7 +40,7 @@ void match_fatal_report(const char *fn, struct expression *expr,
 }
 
 
-void register_wine(int id)
+void smatch_wine(int id)
 {
 	if (option_project != PROJ_WINE)
 		return;

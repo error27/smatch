@@ -109,7 +109,7 @@ static void load_ignores(void)
 	clear_token_alloc();
 }
 
-void register_smatch_ignore(int id)
+void smatch_smatch_ignore(int id)
 {
 	add_hook(&clear_ignores, AFTER_FUNC_HOOK);
 	load_ignores();

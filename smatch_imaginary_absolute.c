@@ -72,7 +72,7 @@ int get_imaginary_absolute(struct expression *expr, struct range_list **rl)
 	return 1;
 }
 
-void register_imaginary_absolute(int id)
+void smatch_imaginary_absolute(int id)
 {
 	my_id = id;
 

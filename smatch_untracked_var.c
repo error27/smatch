@@ -47,7 +47,7 @@ bool is_untracked(struct expression *expr)
 	return false;
 }
 
-void register_untracked_var(int id)
+void smatch_untracked_var(int id)
 {
 	my_id = id;
 

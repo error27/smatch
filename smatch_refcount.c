@@ -73,7 +73,7 @@ free:
 	return ret;
 }
 
-void register_refcount(int id)
+void smatch_refcount(int id)
 {
 	my_id = id;
 

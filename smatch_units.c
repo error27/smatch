@@ -528,7 +528,7 @@ char *get_unit_str(struct expression *expr)
 	return (char *)state->name;
 }
 
-void register_units(int id)
+void smatch_units(int id)
 {
 	struct type_info *info;
 	int i;

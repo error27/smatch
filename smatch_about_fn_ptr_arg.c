@@ -219,7 +219,7 @@ static void match_end_func(struct symbol *sym)
 	next_fn = NULL;
 }
 
-void register_about_fn_ptr_arg(int id)
+void smatch_about_fn_ptr_arg(int id)
 {
 	my_id = id;
 

@@ -353,7 +353,7 @@ free:
 	free_string(right_name);
 }
 
-void register_param_compare_limit(int id)
+void smatch_param_compare_limit(int id)
 {
 	compare_id = id;
 
@@ -364,7 +364,7 @@ void register_param_compare_limit(int id)
 	select_return_states_hook(COMPARE_LIMIT, &db_return_comparison);
 }
 
-void register_param_compare_limit_links(int id)
+void smatch_param_compare_limit_links(int id)
 {
 	link_id = id;
 

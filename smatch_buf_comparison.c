@@ -1083,7 +1083,7 @@ static void match_copy(const char *fn, struct expression *expr, void *unused)
 			 BYTE_COUNT, src_param, size_param, BYTE_COUNT);
 }
 
-void register_buf_comparison(int id)
+void smatch_buf_comparison(int id)
 {
 	int i;
 
@@ -1116,7 +1116,7 @@ void register_buf_comparison(int id)
 	}
 }
 
-void register_buf_comparison_links(int id)
+void smatch_buf_comparison_links(int id)
 {
 	link_id = id;
 	set_dynamic_states(link_id);

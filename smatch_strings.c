@@ -148,7 +148,7 @@ static void match_string(struct expression *expr)
 		  tag, 0, STRING_VALUE, escape_newlines(expr->string->data));
 }
 
-void register_strings(int id)
+void smatch_strings(int id)
 {
 	my_id = id;
 

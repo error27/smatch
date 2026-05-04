@@ -262,7 +262,7 @@ static void match_end_func(struct symbol *sym)
 	free_stree(&limit_states);
 }
 
-void register_param_limit(int id)
+void smatch_param_limit(int id)
 {
 	my_id = id;
 

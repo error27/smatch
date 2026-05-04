@@ -621,7 +621,7 @@ static void handle_passed_container(struct symbol *sym)
 	} END_FOR_EACH_PTR(arg);
 }
 
-void register_container_of(int id)
+void smatch_container_of(int id)
 {
 	my_id = id;
 
@@ -629,7 +629,7 @@ void register_container_of(int id)
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 }
 
-void register_container_of2(int id)
+void smatch_container_of2(int id)
 {
 	param_id = id;
 

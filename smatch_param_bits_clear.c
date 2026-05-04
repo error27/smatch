@@ -79,7 +79,7 @@ struct smatch_state *merge_bstates_clear(struct smatch_state *one_state,
 	return alloc_bstate(0, one->possible | two->possible);
 }
 
-void register_param_bits_clear(int id)
+void smatch_param_bits_clear(int id)
 {
 	my_id = id;
 

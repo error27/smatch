@@ -186,7 +186,7 @@ static void param_deref(struct expression *expr)
 	call_deref_hooks(expr);
 }
 
-void register_dereferences(int id)
+void smatch_dereferences(int id)
 {
 	struct deref_info *info;
 	int i;

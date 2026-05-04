@@ -214,7 +214,7 @@ static void match___skb_pad(struct expression *expr, const char *name, struct sy
 	call_free_call_backs_expr(type, skb);
 }
 
-void register_free(int id)
+void smatch_free(int id)
 {
 	struct func_info *info;
 	param_key_hook *cb;

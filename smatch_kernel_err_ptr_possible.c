@@ -45,7 +45,7 @@ static void match_returns_error_pointers(struct expression *call, struct express
 	set_state_expr(my_id, arg, &err_ptr);
 }
 
-void register_kernel_err_ptr_possible(int id)
+void smatch_kernel_err_ptr_possible(int id)
 {
 	my_id = id;
 
