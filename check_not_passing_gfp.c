@@ -24,15 +24,15 @@ static const char *my_flags;
 
 static void match_function_definition(struct symbol *sym)
 {
-	struct symbol *arg;
-	char *type_str;
+	struct symbol *arg, *arg_type;
 
 	FOR_EACH_PTR(sym->ctype.base_type->arguments, arg) {
-		type_str = pos_ident(arg->pos);
-		if (!type_str || strcmp(type_str, "gfp_t") != 0)
-			continue;
-		my_flags = arg->ident->name;
-		return;
+		arg_type = get_base_type(arg);
+		if (arg_type && arg_type->ident &&
+		    strcmp(arg_type->ident->name, "gfp_t") == 0) {
+			my_flags = arg->ident->name;
+			return;
+		}
 	} END_FOR_EACH_PTR(arg);
 }
 
