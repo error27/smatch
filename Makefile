@@ -305,7 +305,6 @@ SMATCH_OBJS += smatch_kernel_atomic_dec_test_path.o
 SMATCH_OBJS += smatch_kernel_err_ptr.o
 SMATCH_OBJS += smatch_kernel_err_ptr_possible.o
 SMATCH_OBJS += smatch_kernel_has_devm_cleanup.o
-SMATCH_OBJS += smatch_kernel_irq_context.o
 SMATCH_OBJS += smatch_kernel_kref_put.o
 SMATCH_OBJS += smatch_kernel_netdev_priv.o
 SMATCH_OBJS += smatch_kernel_NOT_ENABLED.o
