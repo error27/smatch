@@ -75,8 +75,10 @@ bool is_EPROBE_DEFER(struct expression *expr)
 
 bool is_EPROBE_DEFER_name_sym(const char *name, struct symbol *sym)
 {
-	struct range_list *rl;
 	struct smatch_state *estate;
+
+	if (!has_possible_state(my_id, name, sym, &eprobe_defer))
+		return false;
 
 	estate = get_state(SMATCH_EXTRA, name, sym);
 	if (!estate)
