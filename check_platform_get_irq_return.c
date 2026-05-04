@@ -67,9 +67,30 @@ static bool is_part_of_select(struct expression *expr)
 	return false;
 }
 
+static const char *get_function_name(struct expression *expr)
+{
+	const char *ret = "this function";
+	struct expression *tmp;
+	char *str;
+	char buf[64];
+
+	tmp = get_assigned_expr(expr);
+	if (!tmp || tmp->type != EXPR_CALL)
+		return ret;
+
+	str = expr_to_var(tmp->fn);
+	if (!str)
+		return ret;
+
+	snprintf(buf, sizeof(buf), "%s()", str);
+	free_string(str);
+	return alloc_sname(buf);
+}
+
 static void match_condition(struct expression *expr)
 {
 	struct range_list *rl;
+	const char *fn;
 
 	if (!expr_has_possible_state(my_id, expr, &get_irq))
 		return;
@@ -83,7 +104,8 @@ static void match_condition(struct expression *expr)
 	if (is_part_of_select(expr))
 		return;
 
-	sm_msg("warn: platform_get_irq() does not return zero");
+	fn = get_function_name(expr);
+	sm_msg("warn: %s does not return zero", fn);
 }
 
 void check_platform_get_irq_return(int id)
@@ -94,6 +116,7 @@ void check_platform_get_irq_return(int id)
 	add_function_param_key_hook_late("platform_get_irq_optional", &match_platform_get_irq, -1, "$", NULL);
 	add_function_param_key_hook_late("platform_get_irq_byname", &match_platform_get_irq, -1, "$", NULL);
 	add_function_param_key_hook_late("platform_get_irq_byname_optional", &match_platform_get_irq, -1, "$", NULL);
+	add_function_param_key_hook_late("gpiod_to_irq", &match_platform_get_irq, -1, "$", NULL);
 	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_condition, CONDITION_HOOK);
 }
