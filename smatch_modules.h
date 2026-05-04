@@ -34,6 +34,8 @@ CK(smatch_param_cleared)  /* param_set relies on param_cleared */
 CK(smatch_param_limit)    /* param limit has to be before param_set */
 CK(smatch_param_set)
 
+CK(smatch_param_bits_set)
+
 /* order doesn't matter for the rest so they go in alphabetical order */
 
 CK(smatch_about_fn_ptr_arg)
