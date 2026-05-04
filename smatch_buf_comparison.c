@@ -362,18 +362,6 @@ static void match_struct_size_helper(struct expression *pointer, struct expressi
 	add_link(count, member, mod_expr);
 }
 
-static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
-{
-	int size_arg = PTR_INT(_size_arg);
-	struct expression *pointer, *call, *arg;
-
-	pointer = strip_expr(expr->left);
-	call = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(call->args, size_arg);
-	match_alloc_helper(pointer, arg, expr);
-	match_struct_size_helper(pointer, arg, expr);
-}
-
 static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
 {
 	struct smatch_state *state;
@@ -1105,26 +1093,7 @@ void register_buf_comparison(int id)
 
 	add_unmatched_state_hook(size_id, &unmatched_state);
 
-	add_allocation_function("malloc", &match_alloc, 0);
-	add_allocation_function("memdup", &match_alloc, 1);
-	add_allocation_function("realloc", &match_alloc, 1);
 	if (option_project == PROJ_KERNEL) {
-		add_allocation_function("kmalloc", &match_alloc, 0);
-		add_allocation_function("kzalloc", &match_alloc, 0);
-		add_allocation_function("vmalloc", &match_alloc, 0);
-		add_allocation_function("__vmalloc", &match_alloc, 0);
-		add_allocation_function("sock_kmalloc", &match_alloc, 1);
-		add_allocation_function("kmemdup", &match_alloc, 1);
-		add_allocation_function("memdup_user", &match_alloc, 1);
-		add_allocation_function("dma_alloc_attrs", &match_alloc, 1);
-		add_allocation_function("dma_alloc_coherent", &match_alloc, 1);
-		add_allocation_function("devm_kmalloc", &match_alloc, 1);
-		add_allocation_function("devm_kzalloc", &match_alloc, 1);
-		add_allocation_function("kcalloc", &match_calloc, 0);
-		add_allocation_function("devm_kcalloc", &match_calloc, 1);
-		add_allocation_function("kmalloc_array", &match_calloc, 0);
-		add_allocation_function("krealloc", &match_alloc, 1);
-
 		add_function_hook("copy_from_user", &match_copy, NULL);
 		add_function_hook("__copy_from_user", &match_copy, NULL);
 	}
