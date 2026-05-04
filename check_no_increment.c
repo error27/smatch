@@ -80,6 +80,8 @@ static void process_states(void)
 
 	if (__bail_on_rest_of_function)
 		return;
+	if (is_NOT_ENABLED())
+		return;
 
 	FOR_EACH_SM(stree, tmp) {
 		if (slist_has_state(tmp->possible, &iterator) &&

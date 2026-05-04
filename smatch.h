@@ -1578,6 +1578,8 @@ bool was_put_device_stmt(void);
 void add_put_device_hook(name_sym_hook *hook);
 void set_ignore_put_device(const char *name, struct symbol *sym);
 
+bool is_NOT_ENABLED(void);
+
 /* smatch_unconstant_macros.c */
 int is_unconstant_macro(struct expression *expr);
 

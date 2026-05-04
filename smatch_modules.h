@@ -117,6 +117,7 @@ CK(register_locking_type)
 CK(register_free_return_states)
 CK(register_free)
 CK(register_kernel_rcu_assign_pointer)
+CK(register_kernel_NOT_ENABLED)
 
 #ifdef __undo_CK_def
 #undef CK
