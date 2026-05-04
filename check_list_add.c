@@ -138,6 +138,7 @@ void check_list_add(int id)
 	add_function_hook("list_add", &match_add, NULL);
 	add_function_hook("list_add_tail", &match_add, NULL);
 	add_function_hook("list_del", &match_del, NULL);
+	add_function_hook("list_del_init", &match_del, NULL);
 
 	add_modification_hook(my_id, &set_undefined);
 
