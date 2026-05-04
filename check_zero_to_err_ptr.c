@@ -265,6 +265,26 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 	} END_FOR_EACH_PTR(tmp);
 }
 
+static void match_err_ptr_or_zero(const char *fn, struct expression *expr, void *data)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	char *name;
+
+	if (is_impossible_path())
+		return;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	get_absolute_rl(arg, &rl);
+
+	if (rl_intersection(rl, valid_ptr_rl))
+		return;
+
+	name = expr_to_str(arg);
+	sm_warning("'%s' is never a valid pointer", name);
+	free_string(name);
+}
+
 void check_zero_to_err_ptr(int id)
 {
 	if (option_project != PROJ_KERNEL)
@@ -275,4 +295,6 @@ void check_zero_to_err_ptr(int id)
 	add_function_hook("ERR_CAST", &match_err_ptr, INT_PTR(0));
 	add_function_hook("PTR_ERR", &match_err_ptr, INT_PTR(0));
 	add_function_hook("dev_err_probe", &match_err_ptr, INT_PTR(1));
+
+	add_function_hook("ERR_PTR_OR_ZERO", &match_err_ptr_or_zero, NULL);
 }
