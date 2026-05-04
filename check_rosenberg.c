@@ -295,7 +295,6 @@ static void check_was_initialized(struct expression *data)
 		data = strip_expr(data->unop);
 	if (data->type != EXPR_SYMBOL)
 		return;
-
 	if (has_global_scope(data))
 		return;
 	if (was_initialized(data))
@@ -303,6 +302,8 @@ static void check_was_initialized(struct expression *data)
 	if (was_memset(data))
 		return;
 	if (warn_on_holey_struct(data))
+		return;
+	if (is_impossible_path())
 		return;
 	check_members_initialized(data);
 }
@@ -336,14 +337,9 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 	check_was_initialized(data);
 }
 
-static void db_param_cleared(struct expression *expr, int param, char *key, char *value)
+static void db_param_cleared(struct expression *expr, const char *name, struct symbol *sym, void *data)
 {
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
-		return;
-
-	match_clear(NULL, expr, INT_PTR(param));
+	set_state(my_whole_id, name, sym, &cleared);
 }
 
 static struct smatch_state *alloc_expr_state(struct expression *expr)
@@ -460,7 +456,7 @@ void check_rosenberg(int id)
 	add_function_hook("__builtin_memcpy", &match_clear, INT_PTR(0));
 
 	register_clears_argument();
-	select_return_states_hook(BUF_CLEARED, &db_param_cleared);
+	select_return_param_key(BUF_CLEARED, &db_param_cleared);
 
 	register_copy_funcs_from_file();
 }
