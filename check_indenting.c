@@ -37,15 +37,46 @@ static int in_ignored_macro_indent(struct statement *stmt)
 	return 0;
 }
 
+static bool is_oneline_block(struct statement *stmt)
+{
+	struct statement *parent;
+
+	parent = stmt_get_parent_stmt(stmt);
+	if (!parent)
+		return false;
+
+	if (parent->type == STMT_ITERATOR) {
+		if (stmt == parent->iterator_pre_statement ||
+		    stmt == parent->iterator_statement ||
+		    stmt == parent->iterator_post_statement)
+			return true;
+		return false;
+	}
+
+	if (parent->type == STMT_IF) {
+		if (stmt == parent->if_true ||
+		    stmt == parent->if_false)
+			return true;
+		return false;
+	}
+
+	return false;
+}
+
 static int missing_curly_braces(struct statement *stmt)
 {
 	int inside_pos;
+
+	if (!__prev_stmt)
+		return 0;
 
 	if (stmt->pos.pos == __prev_stmt->pos.pos)
 		return 0;
 
 	if (__prev_stmt->type == STMT_IF) {
 		if (__prev_stmt->if_true->type == STMT_COMPOUND)
+			return 0;
+		if (stmt == __prev_stmt->if_true)
 			return 0;
 		inside_pos = __prev_stmt->if_true->pos.pos;
 	} else if (__prev_stmt->type == STMT_ITERATOR) {
@@ -59,6 +90,19 @@ static int missing_curly_braces(struct statement *stmt)
 	}
 
 	if (stmt->pos.pos != inside_pos)
+		return 0;
+
+	/*
+	 * The __prev_stmt thing doesn't work exactly right because C is
+	 * recursive.  What ends up happening is that __prev_stmt is part
+	 * of the ({}) expression statement inside the if statement.
+	 *
+	 * Is this code really required now that GCC and Clang have
+	 * similar checks?
+	 *
+	 */
+
+	if (in_ignored_macro_indent(stmt))
 		return 0;
 
 	sm_warning("curly braces intended?");
@@ -117,6 +161,29 @@ static void match_stmt(struct statement *stmt)
 	if (!__prev_stmt)
 		return;
 
+	/* Really, these two lines should be all that's required.  LOL.
+	 * I wrote the rest of this before the stmt_get_parent_stmt()
+	 * function existed.  The way to figure out which lines are
+	 * still necessary would be to add a print before each return
+	 * statement and delete everything that doesn't generate output.
+	 * #HashTag #DeadCode
+	 */
+	if (stmt_get_parent_stmt(stmt) != stmt_get_parent_stmt(__prev_stmt))
+		return;
+	if (stmt->pos.pos == __prev_stmt->pos.pos)
+		return;
+
+	if (stmt->pos.line == __prev_stmt->pos.line) {
+		if (__inline_fn)
+			ignore_prev_inline = stmt->pos;
+		else
+			ignore_prev = stmt->pos;
+		return;
+	}
+
+	if (__prev_stmt->pos.line > stmt->pos.line)
+		return;
+
 	if (prev_lines_say_endif(stmt))
 		return;
 
@@ -130,6 +197,9 @@ static void match_stmt(struct statement *stmt)
 
 	if (__prev_stmt->type == STMT_LABEL || __prev_stmt->type == STMT_CASE)
 		return;
+	if (is_oneline_block(stmt))
+		return;
+
 	/*
 	 * This is sort of ugly.  The first statement after a case/label is
 	 * special.  Probably we should handle this in smatch_flow.c so that
@@ -153,16 +223,6 @@ static void match_stmt(struct statement *stmt)
 	}
 
 	if (missing_curly_braces(stmt))
-		return;
-
-	if (stmt->pos.line == __prev_stmt->pos.line) {
-		if (__inline_fn)
-			ignore_prev_inline = stmt->pos;
-		else
-			ignore_prev = stmt->pos;
-		return;
-	}
-	if (stmt->pos.pos == __prev_stmt->pos.pos)
 		return;
 
 	/* some people like to line up their break and case statements. */
@@ -195,6 +255,55 @@ static void match_stmt(struct statement *stmt)
 	}
 	sm_warning("inconsistent indenting");
 	orig_pos = __prev_stmt->pos.pos;
+}
+
+static struct statement *unindented_stmt, *indented_stmt;
+static void match_curly_braces_start(struct statement *stmt)
+{
+	unindented_stmt = NULL;
+	indented_stmt = NULL;
+
+	if (stmt->type == STMT_IF) {
+		if (stmt->if_true->type == STMT_COMPOUND)
+			return;
+		unindented_stmt = stmt;
+		if (stmt->if_false)
+			indented_stmt = stmt->if_false;
+		else
+			indented_stmt = stmt->if_true;
+	} else if (stmt->type == STMT_ITERATOR) {
+		if (!stmt->iterator_pre_condition)
+			return;
+		if (stmt->iterator_statement->type == STMT_COMPOUND)
+			return;
+		unindented_stmt = stmt;
+		indented_stmt = stmt->iterator_statement;
+	}
+}
+
+static void match_curly_braces_end(struct statement *stmt)
+{
+	if (!indented_stmt || !unindented_stmt)
+		return;
+	if (stmt->pos.pos != indented_stmt->pos.pos) {
+		indented_stmt = NULL;
+		unindented_stmt = NULL;
+		return;
+	}
+	/* we're in the same macro */
+	if (stmt->pos.line == indented_stmt->pos.line) {
+		indented_stmt = NULL;
+		unindented_stmt = NULL;
+		return;
+	}
+
+	if (__prev_stmt != unindented_stmt)
+		return;
+// FIXME:  I have forgotten what this was supposed to detect and I was
+// never able to make __prev_stmt work 100% so now I'm a bit lost.
+//	sm_warning("NEW curly braces intended? %d:%d vs %d:%d",
+//		   indented_stmt->pos.line, indented_stmt->pos.pos,
+//		   stmt->pos.line, stmt->pos.pos);
 }
 
 static void match_end_func(void)
@@ -232,6 +341,8 @@ void check_indenting(int id)
 {
 	my_id = id;
 	add_hook(&match_stmt, STMT_HOOK);
+	add_hook(&match_curly_braces_start, STMT_HOOK_AFTER);
+	add_hook(&match_curly_braces_end, STMT_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
 	register_ignored_macros();
 }
