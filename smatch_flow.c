@@ -2433,7 +2433,7 @@ static void restore_flow_state(void)
 	loop_num = PTR_INT(pop_backup()) >> 2;
 }
 
-void parse_inline(struct expression *call)
+static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
