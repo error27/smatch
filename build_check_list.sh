@@ -1,8 +1,9 @@
 #!/bin/bash
 
+TMP_FILE=$(mktemp)
 OUTFILE=smatch_checks.h
 
-cat << EOF > ${OUTFILE}
+cat << EOF > ${TMP_FILE}
 
 #ifndef CK
 #define CK(_x) void _x(int id);
@@ -10,20 +11,16 @@ cat << EOF > ${OUTFILE}
 #endif
 EOF
 
-#for i in check_*.c ; do
-#    NO_SUF=$(echo $i | sed -e 's/.c$//')
-#    if grep -qw $NO_SUF smatch_modules*.h ; then
-#        continue
-#    fi
-#    echo $NO_SUF | sed 's/^\(.*\)$/CK(\1)/' >> ${OUTFILE}
-#done
+ls check_*.c | sed 's/^\(.*\).c$/CK(\1)/' | sort >> ${TMP_FILE}
 
-ls check_*.c | sed 's/^\(.*\).c$/CK(\1)/' >> ${OUTFILE}
-
-cat << EOF >> ${OUTFILE}
+cat << EOF >> ${TMP_FILE}
 
 #ifdef __undo_CK_def
 #undef CK
 #undef __undo_CK_def
 #endif
 EOF
+
+cmp -s ${TMP_FILE} ${OUTFILE} || mv ${TMP_FILE} ${OUTFILE}
+
+rm -f ${TMP_FILE}

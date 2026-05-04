@@ -410,7 +410,7 @@ SMATCH_SCRIPTS=smatch_scripts/add_gfp_to_allocations.sh \
 
 SMATCH_LDFLAGS := -lsqlite3  -lssl -lcrypto -lm
 
-smatch_checks.h: $(SMATCH_CHECKS)
+smatch_checks.h: FORCE
 	./build_check_list.sh
 
 smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) smatch_checks.h
