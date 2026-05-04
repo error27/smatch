@@ -50,6 +50,9 @@ static void array_check(struct expression *expr)
 	if (buf_comparison_index_ok(expr))
 		return;
 
+	if (getting_address(expr))
+		return;
+
 	array_str = expr_to_str(array);
 	offset_str = expr_to_str(offset);
 	sm_warning("potentially one past the end of array '%s[%s]'", array_str, offset_str);
