@@ -124,6 +124,19 @@ CK(smatch_type_val)
 CK(smatch_unconstant_macros)
 CK(smatch_units)
 
+/* normally checks have one register function but sometimes they can have
+ * more than one.  So I guess add them here until I can think of a nicer
+ * way to handle this.
+ */
+CK(check_get_user_overflow2)
+CK(check_index_overflow_loop_marker)
+CK(check_list_add_late)
+CK(check_nospec_barrier)
+CK(check_ns_capable)
+CK(check_rosenberg2)
+CK(check_rosenberg3)
+CK(check_unwind_info)
+
 #ifdef __undo_CK_def
 #undef CK
 #undef __undo_CK_def
