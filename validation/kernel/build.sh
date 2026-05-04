@@ -23,7 +23,11 @@ if [[ ! -e $KERNEL_DIR ]] ; then
     exit 1
 fi
 
-MOD_DIR=$(pwd)/kernel
+if pwd | grep -q validation/kernel$ ; then
+    MOD_DIR=$(pwd)
+else
+    MOD_DIR=$(pwd)/kernel
+fi
 
 rm -f $MOD_DIR/${FILE}.o
 
