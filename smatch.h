@@ -1592,6 +1592,7 @@ bool holds_kernel_error_codes(struct expression *expr);
 bool possible_err_ptr(struct expression *expr);
 bool reasonable_err_ptr(struct expression *expr);
 bool is_err_ptr_name_sym(const char *name, struct symbol *sym);
+struct state_list *get_devm_variables(void);
 bool has_devm_cleanup(void);
 void add_set_current_state_hook(string_hook *hook);
 bool task_not_running(void);
