@@ -1645,10 +1645,11 @@ Econcat:
 static struct token *parse_expansion(struct token *expansion, struct ident *name)
 {
 	int slots = macro_nargs + (macro_vararg < 0);
-	struct arg_state args[slots] = {};
+	struct arg_state args[slots];
 	struct token **tail;
 	struct token *token;
 
+	memset(&args, 0, sizeof(struct arg_state) * slots);
 	tail = parse_body(&expansion, args);
 	seen_va_opt = false;
 	if (!tail)
