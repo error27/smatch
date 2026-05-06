@@ -203,10 +203,6 @@ void check_unused_ret(int id)
 {
 	my_id = id;
 
-	/* It turns out that this test is worthless unless you use --two-passes.  */
-	if (!option_two_passes)
-		return;
-
 	set_dynamic_states(my_id);
 	add_function_data((unsigned long *)&assignment_list);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);

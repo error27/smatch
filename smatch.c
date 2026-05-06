@@ -162,7 +162,6 @@ static void help(void)
 	printf("--full-path:  print the full pathname.\n");
 	printf("--debug-implied:  print debug output about implications.\n");
 	printf("--assume-loops:  assume loops always go through at least once.\n");
-	printf("--two-passes:  use a two pass system for each function.\n");
 	printf("--file-output:  instead of printing stdout, print to \"file.c.smatch_out\".\n");
 	printf("--fatal-checks: check output is treated as an error.\n");
 	printf("--help:  print this helpful message.\n");
@@ -274,7 +273,6 @@ void parse_args(int *argcp, char ***argvp)
 		OPTION(debug);
 		OPTION(assume_loops);
 		OPTION(no_data);
-		OPTION(two_passes);
 		OPTION(full_path);
 		OPTION(call_tree);
 		OPTION(file_output);

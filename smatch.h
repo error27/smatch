@@ -749,7 +749,6 @@ void __split_stmt(struct statement *stmt);
 extern int __in_function_def;
 extern int __in_unmatched_hook;
 extern int option_assume_loops;
-extern int option_two_passes;
 extern int option_no_db;
 extern int option_file_output;
 extern int option_time;

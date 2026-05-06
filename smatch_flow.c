@@ -86,7 +86,6 @@ static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 
 int option_assume_loops = 0;
-int option_two_passes = 0;
 struct symbol *cur_func_sym = NULL;
 struct stree *global_states;
 
@@ -2334,15 +2333,13 @@ static void split_function(struct symbol *sym)
 	last_goto_statement_handled = 0;
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;
-	if (option_two_passes) {
-		__unnullify_path();
-		loop_num = 0;
-		final_pass = 0;
-		start_function_definition(sym);
-		parse_fn_statements(base_type);
-		do_scope_hooks();
-		nullify_path();
-	}
+	__unnullify_path();
+	loop_num = 0;
+	final_pass = 0;
+	start_function_definition(sym);
+	parse_fn_statements(base_type);
+	do_scope_hooks();
+	nullify_path();
 	__unnullify_path();
 	loop_num = 0;
 	final_pass = 1;
