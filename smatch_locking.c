@@ -951,7 +951,7 @@ static struct expression *remove_XAS_INVALID(struct expression *expr)
 	expr = strip_expr(expr->unop);
 	if (expr->type != EXPR_CALL)
 		return orig;
-	if (!sym_name_is("XAS_INVALID", expr->fn))
+	if (!sym_name_is(expr->fn, "XAS_INVALID"))
 		return orig;
 
 	ret = get_argument_from_call_expr(expr->args, 0);

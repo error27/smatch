@@ -326,33 +326,33 @@ static int is_ignored_function(void)
 	if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 		return 0;
 
-	if (sym_name_is("kmalloc", expr->fn))
+	if (sym_name_is(expr->fn, "kmalloc"))
 		return 1;
-	if (sym_name_is("vmalloc", expr->fn))
+	if (sym_name_is(expr->fn, "vmalloc"))
 		return 1;
-	if (sym_name_is("kvmalloc", expr->fn))
+	if (sym_name_is(expr->fn, "kvmalloc"))
 		return 1;
-	if (sym_name_is("kmalloc_array", expr->fn))
+	if (sym_name_is(expr->fn, "kmalloc_array"))
 		return 1;
-	if (sym_name_is("vmalloc_array", expr->fn))
+	if (sym_name_is(expr->fn, "vmalloc_array"))
 		return 1;
-	if (sym_name_is("kvmalloc_array", expr->fn))
-		return 1;
-
-	if (sym_name_is("mmu_memory_cache_alloc", expr->fn))
-		return 1;
-	if (sym_name_is("kmem_alloc", expr->fn))
-		return 1;
-	if (sym_name_is("alloc_pages", expr->fn))
+	if (sym_name_is(expr->fn, "kvmalloc_array"))
 		return 1;
 
-	if (sym_name_is("netdev_priv", expr->fn))
+	if (sym_name_is(expr->fn, "mmu_memory_cache_alloc"))
 		return 1;
-	if (sym_name_is("dev_get_drvdata", expr->fn))
+	if (sym_name_is(expr->fn, "kmem_alloc"))
 		return 1;
-	if (sym_name_is("i2c_get_clientdata", expr->fn))
+	if (sym_name_is(expr->fn, "alloc_pages"))
 		return 1;
-	if (sym_name_is("idr_find", expr->fn))
+
+	if (sym_name_is(expr->fn, "netdev_priv"))
+		return 1;
+	if (sym_name_is(expr->fn, "dev_get_drvdata"))
+		return 1;
+	if (sym_name_is(expr->fn, "i2c_get_clientdata"))
+		return 1;
+	if (sym_name_is(expr->fn, "idr_find"))
 		return 1;
 
 	return 0;

@@ -41,7 +41,7 @@ static char *get_from__symbol_get(struct expression *expr)
 
 	if (expr->type != EXPR_CALL)
 		return NULL;
-	if (!sym_name_is("__symbol_get", expr->fn))
+	if (!sym_name_is(expr->fn, "__symbol_get"))
 		return NULL;
 	arg = get_argument_from_call_expr(expr->args, 0);
 	if (!arg || arg->type != EXPR_STRING)

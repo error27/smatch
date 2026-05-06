@@ -1523,26 +1523,26 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 	if (is_fake_call(expr))
 		return false;
 
-	if (sym_name_is("__builtin_constant_p", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_constant_p"))
 		return handle_builtin_constant_p(expr, implied, recurse_cnt, res_sval);
 
-	if (sym_name_is("__builtin_choose_expr", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_choose_expr"))
 		return handle__builtin_choose_expr(expr, implied, recurse_cnt, res, res_sval);
 
-	if (sym_name_is("__builtin_expect", expr->fn) ||
-	    sym_name_is("__builtin_bswap16", expr->fn) ||
-	    sym_name_is("__builtin_bswap32", expr->fn) ||
-	    sym_name_is("__builtin_bswap64", expr->fn)) {
+	if (sym_name_is(expr->fn, "__builtin_expect") ||
+	    sym_name_is(expr->fn, "__builtin_bswap16") ||
+	    sym_name_is(expr->fn, "__builtin_bswap32") ||
+	    sym_name_is(expr->fn, "__builtin_bswap64")) {
 		struct expression *arg;
 
 		arg = get_argument_from_call_expr(expr->args, 0);
 		return get_rl_sval(arg, implied, recurse_cnt, res, res_sval);
 	}
 
-	if (sym_name_is("__builtin_ffs", expr->fn) ||
-	    sym_name_is("__builtin_ffsl", expr->fn) ||
-	    sym_name_is("__builtin_ffsll", expr->fn) ||
-	    sym_name_is("__ffs", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_ffs") ||
+	    sym_name_is(expr->fn, "__builtin_ffsl") ||
+	    sym_name_is(expr->fn, "__builtin_ffsll") ||
+	    sym_name_is(expr->fn, "__ffs"))
 		return handle_ffs(expr, implied, recurse_cnt, res, res_sval);
 
 	if (is_strlen(expr))

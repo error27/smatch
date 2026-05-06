@@ -32,7 +32,7 @@ bool in_function_table(struct expression *expr, struct function_return_info *tab
 		return false;
 
 	for (i = 0; table[i].name; i++) {
-		if (sym_name_is(table[i].name, expr->fn))
+		if (sym_name_is(expr->fn, table[i].name))
 			return true;
 	}
 

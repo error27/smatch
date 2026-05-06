@@ -167,9 +167,9 @@ bool is_passed_to_IS_ERR(struct expression *expr)
 	if (!parent || parent->type != EXPR_CALL)
 		return false;
 
-	if (sym_name_is("IS_ERR", parent->fn))
+	if (sym_name_is(parent->fn, "IS_ERR"))
 		return true;
-	if (sym_name_is("IS_ERR_OR_NULL", parent->fn))
+	if (sym_name_is(parent->fn, "IS_ERR_OR_NULL"))
 		return true;
 
 	return false;

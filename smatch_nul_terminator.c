@@ -292,7 +292,7 @@ static void match_strnlen_test(struct expression *expr)
 
 	if (left->type != EXPR_CALL)
 		return;
-	if (!sym_name_is("strnlen", left->fn))
+	if (!sym_name_is(left->fn, "strnlen"))
 		return;
 	arg = get_argument_from_call_expr(left->args, 0);
 	set_true_false_states_expr(my_id, arg,

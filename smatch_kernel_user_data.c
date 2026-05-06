@@ -173,7 +173,7 @@ static bool is_array_index_mask_nospec(struct expression *expr)
 	orig = get_assigned_expr(expr);
 	if (!orig || orig->type != EXPR_CALL)
 		return false;
-	return sym_name_is("array_index_mask_nospec", orig->fn);
+	return sym_name_is(orig->fn, "array_index_mask_nospec");
 }
 
 static bool binop_capped(struct expression *expr)

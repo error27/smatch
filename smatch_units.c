@@ -230,9 +230,9 @@ static struct smatch_state *get_units_call(struct expression *expr)
 	if (!expr || expr->type != EXPR_CALL)
 		return NULL;
 
-	if (sym_name_is("unit_msecs_to_jiffies", expr->fn))
+	if (sym_name_is(expr->fn, "unit_msecs_to_jiffies"))
 		return &unit_jiffy;
-	if (sym_name_is("jiffies_to_unit_msecs", expr->fn))
+	if (sym_name_is(expr->fn, "jiffies_to_unit_msecs"))
 		return &unit_msec;
 
 	return NULL;

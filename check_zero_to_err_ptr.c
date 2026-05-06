@@ -54,7 +54,7 @@ static bool was_simple_xattrs_lazy_alloc(struct expression *expr)
 	if (!orig ||
 	    orig->type != EXPR_CALL)
 		return false;
-	if (sym_name_is("simple_xattrs_lazy_alloc", orig->fn))
+	if (sym_name_is(orig->fn, "simple_xattrs_lazy_alloc"))
 		return true;
 
 	return false;

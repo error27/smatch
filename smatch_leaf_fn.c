@@ -54,7 +54,7 @@ static void match_caller_info(struct expression *expr)
 {
 	if (has_call)
 		return;
-	if (sym_name_is("__builtin_expect", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_expect"))
 		return;
 	if (call_is_leaf_fn(expr))
 		return;

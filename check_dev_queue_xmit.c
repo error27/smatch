@@ -43,7 +43,7 @@ static int valid_use(void)
 			continue;
 //		if (tmp->type == EXPR_POSTOP)
 //			return 1;
-		if (tmp->type == EXPR_CALL && sym_name_is("kfree_skb", tmp->fn))
+		if (tmp->type == EXPR_CALL && sym_name_is(tmp->fn, "kfree_skb"))
 			return 1;
 		return 0;
 	} END_FOR_EACH_PTR_REVERSE(tmp);

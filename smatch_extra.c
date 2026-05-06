@@ -1290,7 +1290,7 @@ static void match_assign(struct expression *expr)
 	left = strip_expr(expr->left);
 
 	right = strip_parens(expr->right);
-	if (right->type == EXPR_CALL && sym_name_is("__builtin_expect", right->fn))
+	if (right->type == EXPR_CALL && sym_name_is(right->fn, "__builtin_expect"))
 		right = get_argument_from_call_expr(right->args, 0);
 	while (right->type == EXPR_ASSIGNMENT && right->op == '=')
 		right = strip_parens(right->left);

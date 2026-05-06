@@ -52,7 +52,7 @@ static bool from_safe_fn(struct expression *expr)
 		return false;
 
 	for (i = 0; i < ARRAY_SIZE(safe_fns); i++) {
-		if (sym_name_is(safe_fns[i], prev->fn))
+		if (sym_name_is(prev->fn, safe_fns[i]))
 			return true;
 	}
 	return false;

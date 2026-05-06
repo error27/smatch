@@ -1080,7 +1080,7 @@ static char *handle_netdev_priv_assign(struct expression *expr, struct symbol **
 	if (!right || right->type != EXPR_CALL)
 		return NULL;
 
-	if (!sym_name_is("netdev_priv", right->fn))
+	if (!sym_name_is(right->fn, "netdev_priv"))
 		return NULL;
 
 	arg = get_argument_from_call_expr(right->args, 0);

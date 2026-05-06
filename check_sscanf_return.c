@@ -31,7 +31,7 @@ static bool is_sscanf(struct expression *expr)
 {
 	if (!expr || expr->type != EXPR_CALL)
 		return false;
-	return sym_name_is("sscanf", expr->fn);
+	return sym_name_is(expr->fn, "sscanf");
 }
 
 static void match_return(struct expression *expr)

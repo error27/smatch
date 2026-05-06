@@ -34,7 +34,7 @@ static void match_condition(struct expression *expr)
 		return;
 	if (assigned->type != EXPR_CALL)
 		return;
-	if (!sym_name_is("pm_runtime_get_sync", assigned->fn))
+	if (!sym_name_is(assigned->fn, "pm_runtime_get_sync"))
 		return;
 	sm_warning("pm_runtime_get_sync() also returns 1 on success");
 }

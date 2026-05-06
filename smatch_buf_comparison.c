@@ -189,7 +189,7 @@ struct expression *get_kmalloc_pointer(struct expression *pointer)
 	pointer = strip_expr(pointer);
 
 	if (option_project != PROJ_KERNEL ||
-	    !sym_name_is("_res", pointer))
+	    !sym_name_is(pointer, "_res"))
 		return pointer;
 
 	stmt = get_parent_stmt(pointer);
@@ -286,15 +286,15 @@ static struct expression *get_struct_size_count(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return NULL;
 
-	if (sym_name_is("__ab_c_size", expr->fn))
+	if (sym_name_is(expr->fn, "__ab_c_size"))
 		return get_argument_from_call_expr(expr->args, 0);
 
-	if (!sym_name_is("size_add", expr->fn))
+	if (!sym_name_is(expr->fn, "size_add"))
 		return NULL;
 	expr = get_argument_from_call_expr(expr->args, 1);
 	expr = strip_expr(expr);
 	if (!expr || expr->type != EXPR_CALL ||
-	    !sym_name_is("size_mul", expr->fn))
+	    !sym_name_is(expr->fn, "size_mul"))
 		return NULL;
 
 	return get_argument_from_call_expr(expr->args, 0);

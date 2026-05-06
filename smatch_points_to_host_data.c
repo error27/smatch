@@ -244,7 +244,7 @@ static void match_host_function(const char *fn, struct expression *expr, void *_
 	struct expression *dest;
 
 	for (int i = 0; i < ARRAY_SIZE(func_pointer_table); i++)
-		if (sym_name_is(func_pointer_table[i].name, expr->fn)){
+		if (sym_name_is(expr->fn, func_pointer_table[i].name)){
 			dest = get_argument_from_call_expr(expr->args, func_pointer_table[i].param);
 			dest = strip_expr(dest);
 			if (!dest)

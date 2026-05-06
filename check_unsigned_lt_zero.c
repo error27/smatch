@@ -145,7 +145,7 @@ static bool is_special_x(struct expression *expr)
 {
 	if (option_project != PROJ_KERNEL)
 		return false;
-	if (sym_name_is("_x", expr))
+	if (sym_name_is(expr, "_x"))
 		return true;
 	return false;
 }

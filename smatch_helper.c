@@ -666,7 +666,7 @@ char *expr_to_chunk_sym_vsl(struct expression *expr, struct symbol **sym, struct
 	return expr_to_chunk_helper(expr, sym, vsl);
 }
 
-int sym_name_is(const char *name, struct expression *expr)
+int sym_name_is(struct expression *expr, const char *name)
 {
 	if (!expr)
 		return 0;
@@ -789,7 +789,7 @@ struct expression *strip__builtin_choose_expr(struct expression *expr)
 	if (expr->type != EXPR_CALL)
 		return expr;
 
-	if (!sym_name_is("__builtin_choose_expr", expr->fn))
+	if (!sym_name_is(expr->fn, "__builtin_choose_expr"))
 		return expr;
 
 	const_expr = get_argument_from_call_expr(expr->args, 0);
@@ -939,14 +939,14 @@ static struct expression *strip_expr_helper(struct expression *expr, bool set_pa
 		}
 		return expr;
 	case EXPR_CALL:
-		if (sym_name_is("__builtin_expect", expr->fn) ||
-		    sym_name_is("__builtin_bswap16", expr->fn) ||
-		    sym_name_is("__builtin_bswap32", expr->fn) ||
-		    sym_name_is("__builtin_bswap64", expr->fn)) {
+		if (sym_name_is(expr->fn, "__builtin_expect") ||
+		    sym_name_is(expr->fn, "__builtin_bswap16") ||
+		    sym_name_is(expr->fn, "__builtin_bswap32") ||
+		    sym_name_is(expr->fn, "__builtin_bswap64")) {
 			expr = get_argument_from_call_expr(expr->args, 0);
 			return strip_expr_helper(expr, set_parent, cast, nest);
 		}
-		if (sym_name_is("__builtin_choose_expr", expr->fn))
+		if (sym_name_is(expr->fn, "__builtin_choose_expr"))
 			return strip__builtin_choose_expr(expr);
 		return expr;
 	case EXPR_BINOP:

@@ -76,7 +76,7 @@ static void match_condition(struct expression *expr)
 	expr = strip_expr(expr);
 	if (expr->type != EXPR_CALL)
 		return;
-	if (!sym_name_is("IS_ERR", expr->fn))
+	if (!sym_name_is(expr->fn, "IS_ERR"))
 		return;
 
 	arg = get_argument_from_call_expr(expr->args, 0);

@@ -123,7 +123,7 @@ static int handle_zero_comparisons(struct expression *expr, int *known_tf)
 static int ignore_builtin_expect(struct expression *expr, int *known_tf)
 {
 	// TODO: move this into the caller
-	if (sym_name_is("__builtin_expect", expr->fn)) {
+	if (sym_name_is(expr->fn, "__builtin_expect")) {
 		split_conditions(first_ptr_list((struct ptr_list *) expr->args), known_tf);
 		return 1;
 	}

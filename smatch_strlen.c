@@ -95,9 +95,9 @@ bool is_strlen(struct expression *expr)
 	if (!expr || expr->type != EXPR_CALL)
 		return false;
 
-	if (sym_name_is("strlen", expr->fn) ||
-	    sym_name_is("__builtin_strlen", expr->fn) ||
-	    sym_name_is("__fortify_strlen", expr->fn))
+	if (sym_name_is(expr->fn, "strlen") ||
+	    sym_name_is(expr->fn, "__builtin_strlen") ||
+	    sym_name_is(expr->fn, "__fortify_strlen"))
 		return true;
 
 	return false;

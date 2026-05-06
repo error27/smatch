@@ -212,7 +212,7 @@ static bool is_alloc_primitive(struct expression *expr)
 		return false;
 
 	for (i = 0; i < ARRAY_SIZE(func_table); i++) {
-		if (sym_name_is(func_table[i].name, expr->fn))
+		if (sym_name_is(expr->fn, func_table[i].name))
 			return true;
 	}
 

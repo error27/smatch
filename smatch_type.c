@@ -208,7 +208,7 @@ static struct symbol *get_return_type(struct expression *expr)
 {
 	struct symbol *tmp;
 
-	if (sym_name_is("__builtin_choose_expr", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_choose_expr"))
 		return handle__builtin_choose_expr(expr);
 
 	tmp = get_type(expr->fn);

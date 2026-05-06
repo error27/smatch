@@ -549,7 +549,7 @@ char *expr_to_known_chunk_sym(struct expression *expr, struct symbol **sym);
 char *expr_to_chunk_sym_vsl(struct expression *expr, struct symbol **sym, struct var_sym_list **vsl);
 int get_complication_score(struct expression *expr);
 
-int sym_name_is(const char *name, struct expression *expr);
+int sym_name_is(struct expression *expr, const char *name);
 int get_const_value(struct expression *expr, sval_t *sval);
 int get_value(struct expression *expr, sval_t *val);
 int get_implied_value(struct expression *expr, sval_t *val);

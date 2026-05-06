@@ -501,11 +501,11 @@ static void handle_builtin_overflow_func(struct expression *expr)
 	struct expression *a, *b, *res, *assign;
 	int op;
 
-	if (sym_name_is("__builtin_add_overflow", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_add_overflow"))
 		op = '+';
-	else if (sym_name_is("__builtin_sub_overflow", expr->fn))
+	else if (sym_name_is(expr->fn, "__builtin_sub_overflow"))
 		op = '-';
-	else if (sym_name_is("__builtin_mul_overflow", expr->fn))
+	else if (sym_name_is(expr->fn, "__builtin_mul_overflow"))
 		op = '*';
 	else
 		return;
@@ -526,7 +526,7 @@ static int handle__builtin_choose_expr(struct expression *expr)
 	struct expression *const_expr, *expr1, *expr2;
 	sval_t sval;
 
-	if (!sym_name_is("__builtin_choose_expr", expr->fn))
+	if (!sym_name_is(expr->fn, "__builtin_choose_expr"))
 		return 0;
 
 	const_expr = get_argument_from_call_expr(expr->args, 0);
@@ -555,7 +555,7 @@ static int handle__builtin_choose_expr_assigns(struct expression *expr)
 	right = strip_parens(expr->right);
 	if (right->type != EXPR_CALL)
 		return 0;
-	if (!sym_name_is("__builtin_choose_expr", right->fn))
+	if (!sym_name_is(right->fn, "__builtin_choose_expr"))
 		return 0;
 
 	const_expr = get_argument_from_call_expr(right->args, 0);
@@ -637,7 +637,7 @@ static void split_call(struct expression *expr)
 
 	expr_set_parent_expr(expr->fn, expr);
 
-	if (sym_name_is("__builtin_constant_p", expr->fn))
+	if (sym_name_is(expr->fn, "__builtin_constant_p"))
 		return;
 	if (handle__builtin_choose_expr(expr))
 		return;
@@ -735,7 +735,7 @@ done:
 static bool skip_split_off(struct expression *expr)
 {
 	if (expr->type == EXPR_CALL &&
-	    sym_name_is("__smatch_stop_skip", expr->fn))
+	    sym_name_is(expr->fn, "__smatch_stop_skip"))
 		return true;
 	return false;
 }

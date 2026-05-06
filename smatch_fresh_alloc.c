@@ -133,7 +133,7 @@ bool is_fresh_alloc(struct expression *expr)
 		return true;
 	i = -1;
 	while (alloc_funcs[++i].fn) {
-		if (sym_name_is(kernel_allocation_funcs[i].fn, expr->fn))
+		if (sym_name_is(expr->fn, kernel_allocation_funcs[i].fn))
 			return true;
 	}
 	return false;
