@@ -33,6 +33,16 @@ char *trace_variable;
 static int cur_state_cnt;
 static bool print_state_cnt;
 
+
+/* print output on impossible paths */
+#define dbg(msg...) do {				\
+	if (!final_pass)				\
+		break;					\
+	force_output++;					\
+	sm_print_msg(0, msg);				\
+	force_output--;					\
+} while (0)
+
 static void match_all_values(const char *fn, struct expression *expr, void *info)
 {
 	struct stree *stree;
@@ -83,31 +93,38 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 			continue;
 		if (strcmp(sm->name, state_arg->string->data) != 0)
 			continue;
-		sm_msg("'%s' = '%s'", sm->name, sm->state->name);
+		dbg("'%s' = '%s'", sm->name, sm->state->name);
 		found = 1;
 	} END_FOR_EACH_SM(sm);
 
 	if (!found)
-		sm_msg("%s '%s' not found", check_arg->string->data, state_arg->string->data);
+		dbg("%s '%s' not found", check_arg->string->data, state_arg->string->data);
 }
 
 static void match_states(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *check_arg;
+	bool success;
+
+	if (!final_pass)
+		return;
 
 	check_arg = get_check_arg(expr, 0);
 	if (check_arg->type != EXPR_STRING) {
-		sm_error("the check_name argument to %s is supposed to be a string literal", fn);
+		dbg("the check_name argument to %s is supposed to be a string literal", fn);
 		return;
 	}
 
-	if (__print_states(check_arg->string->data))
+	force_output++;
+	success = __print_states(check_arg->string->data);
+	force_output--;
+	if (success)
 		return;
 
 	if (!id_from_name(check_arg->string->data))
-		sm_msg("invalid check name '%s'", check_arg->string->data);
+		dbg("invalid check name '%s'", check_arg->string->data);
 	else
-		sm_msg("%s: no states", check_arg->string->data);
+		dbg("%s: no states", check_arg->string->data);
 }
 
 static void match_print_value(const char *fn, struct expression *expr, void *info)
@@ -125,7 +142,7 @@ static void match_print_value(const char *fn, struct expression *expr, void *inf
 	stree = __get_cur_stree();
 	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
 		if (!strcmp(tmp->name, arg_expr->string->data))
-			sm_msg("%s = %s", tmp->name, tmp->state->name);
+			dbg("%s = %s", tmp->name, tmp->state->name);
 	} END_FOR_EACH_SM(tmp);
 }
 
@@ -144,7 +161,7 @@ static void match_print_known(const char *fn, struct expression *expr, void *inf
 	get_implied_rl(arg, &rl);
 
 	name = expr_to_str(arg);
-	sm_msg("known: '%s' = '%s'.  implied = '%s'", name, known ? sval_to_str(sval) : "<unknown>", show_rl(rl));
+	dbg("known: '%s' = '%s'.  implied = '%s'", name, known ? sval_to_str(sval) : "<unknown>", show_rl(rl));
 	free_string(name);
 }
 
@@ -156,7 +173,7 @@ static void debug_print_implied(struct expression *expr)
 	get_implied_rl(expr, &rl);
 
 	name = expr_to_str(expr);
-	sm_msg("implied: %s = '%s'", name, show_rl(rl));
+	dbg("implied: %s = '%s'", name, show_rl(rl));
 	free_string(name);
 }
 
@@ -176,7 +193,7 @@ static void debug_print_real_absolute(struct expression *expr)
 	get_real_absolute_rl(expr, &rl);
 
 	name = expr_to_str(expr);
-	sm_msg("real absolute: %s = '%s'", name, show_rl(rl));
+	dbg("real absolute: %s = '%s'", name, show_rl(rl));
 	free_string(name);
 }
 
@@ -198,9 +215,9 @@ static void match_print_implied_min(const char *fn, struct expression *expr, voi
 	name = expr_to_str(arg);
 
 	if (get_implied_min(arg, &sval))
-		sm_msg("implied min: %s = %s", name, sval_to_str(sval));
+		dbg("implied min: %s = %s", name, sval_to_str(sval));
 	else
-		sm_msg("implied min: %s = <unknown>", name);
+		dbg("implied min: %s = <unknown>", name);
 
 	free_string(name);
 }
@@ -215,9 +232,9 @@ static void match_print_implied_max(const char *fn, struct expression *expr, voi
 	name = expr_to_str(arg);
 
 	if (get_implied_max(arg, &sval))
-		sm_msg("implied max: %s = %s", name, sval_to_str(sval));
+		dbg("implied max: %s = %s", name, sval_to_str(sval));
 	else
-		sm_msg("implied max: %s = <unknown>", name);
+		dbg("implied max: %s = <unknown>", name);
 
 	free_string(name);
 }
@@ -230,7 +247,7 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 	char *name;
 
 	if (option_project != PROJ_KERNEL)
-		sm_msg("no user data for project = '%s'", option_project_str);
+		dbg("no user data for project = '%s'", option_project_str);
 
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
@@ -238,7 +255,7 @@ static void match_user_rl(const char *fn, struct expression *expr, void *info)
 	get_user_rl(arg, &rl);
 	if (rl)
 		capped = user_rl_capped(arg);
-	sm_msg("user rl: '%s' = '%s'%s", name, show_rl(rl), capped ? " (capped)" : "");
+	dbg("user rl: '%s' = '%s'%s", name, show_rl(rl), capped ? " (capped)" : "");
 
 	free_string(name);
 }
@@ -255,7 +272,7 @@ static void match_host_rl(const char *fn, struct expression *expr, void *info)
 
        host_id = id_from_name("smatch_kernel_host_data");
        if (!host_id) {
-               sm_msg("no host id");
+               dbg("no host id");
                return;
        }
 
@@ -269,7 +286,7 @@ static void match_host_rl(const char *fn, struct expression *expr, void *info)
        if (sm && estate_new(sm->state))
                new = true;
 
-       sm_msg("host rl: '%s' = '%s'%s %s sm='%s'", name, show_rl(rl),
+       dbg("host rl: '%s' = '%s'%s %s sm='%s'", name, show_rl(rl),
               capped ? " (capped)" : "",
               new ? "(new)" : "(old)",
               show_sm(sm));
@@ -284,7 +301,7 @@ static void match_capped(const char *fn, struct expression *expr, void *info)
 
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
-	sm_msg("'%s' = '%s'", name, is_capped(arg) ? "capped" : "not capped");
+	dbg("'%s' = '%s'", name, is_capped(arg) ? "capped" : "not capped");
 	free_string(name);
 }
 
@@ -298,9 +315,9 @@ static void match_print_hard_max(const char *fn, struct expression *expr, void *
 	name = expr_to_str(arg);
 
 	if (get_hard_max(arg, &sval))
-		sm_msg("hard max: %s = %s", name, sval_to_str(sval));
+		dbg("hard max: %s = %s", name, sval_to_str(sval));
 	else
-		sm_msg("hard max: %s = <unknown>", name);
+		dbg("hard max: %s = <unknown>", name);
 
 	free_string(name);
 }
@@ -315,9 +332,9 @@ static void match_print_fuzzy_max(const char *fn, struct expression *expr, void 
 	name = expr_to_str(arg);
 
 	if (get_fuzzy_max(arg, &sval))
-		sm_msg("fuzzy max: %s = %s", name, sval_to_str(sval));
+		dbg("fuzzy max: %s = %s", name, sval_to_str(sval));
 	else
-		sm_msg("fuzzy max: %s = <unknown>", name);
+		dbg("fuzzy max: %s = <unknown>", name);
 
 	free_string(name);
 }
@@ -332,7 +349,7 @@ static void match_print_absolute(const char *fn, struct expression *expr, void *
 	name = expr_to_str(arg);
 
 	get_absolute_rl(arg, &rl);
-	sm_msg("absolute: %s = %s", name, show_rl(rl));
+	dbg("absolute: %s = %s", name, show_rl(rl));
 
 	free_string(name);
 }
@@ -347,9 +364,9 @@ static void match_print_absolute_min(const char *fn, struct expression *expr, vo
 	name = expr_to_str(arg);
 
 	if (get_absolute_min(arg, &sval))
-		sm_msg("absolute min: %s = %s", name, sval_to_str(sval));
+		dbg("absolute min: %s = %s", name, sval_to_str(sval));
 	else
-		sm_msg("absolute min: %s = <unknown>", name);
+		dbg("absolute min: %s = <unknown>", name);
 
 	free_string(name);
 }
@@ -364,7 +381,7 @@ static void match_print_absolute_max(const char *fn, struct expression *expr, vo
 	get_absolute_max(arg, &sval);
 
 	name = expr_to_str(arg);
-	sm_msg("absolute max: %s = %s", name, sval_to_str(sval));
+	dbg("absolute max: %s = %s", name, sval_to_str(sval));
 	free_string(name);
 }
 
@@ -378,11 +395,11 @@ static void match_sval_info(const char *fn, struct expression *expr, void *info)
 	name = expr_to_str(arg);
 
 	if (!get_implied_value(arg, &sval)) {
-		sm_msg("no sval for '%s'", name);
+		dbg("no sval for '%s'", name);
 		goto free;
 	}
 
-	sm_msg("implied: %s %c%d ->value = %llx", name, sval_unsigned(sval) ? 'u' : 's', sval_bits(sval), sval.value);
+	dbg("implied: %s %c%d ->value = %llx", name, sval_unsigned(sval) ? 'u' : 's', sval_bits(sval), sval.value);
 free:
 	free_string(name);
 }
@@ -395,7 +412,7 @@ static void match_member_name(const char *fn, struct expression *expr, void *inf
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
 	member_name = get_member_name(arg);
-	sm_msg("member name: '%s => %s'", name, member_name);
+	dbg("member name: '%s => %s'", name, member_name);
 	free_string(name);
 }
 
@@ -403,11 +420,11 @@ static void print_possible(struct sm_state *sm)
 {
 	struct sm_state *tmp;
 
-	sm_msg("Possible values for %s", sm->name);
+	dbg("Possible values for %s", sm->name);
 	FOR_EACH_PTR(sm->possible, tmp) {
 		printf("%s\n", tmp->state->name);
 	} END_FOR_EACH_PTR(tmp);
-	sm_msg("===");
+	dbg("===");
 }
 
 static void match_possible(const char *fn, struct expression *expr, void *info)
@@ -437,7 +454,7 @@ static void debug_print_strlen(struct expression *expr)
 	get_implied_strlen(expr, &rl);
 
 	name = expr_to_str(expr);
-	sm_msg("strlen: '%s' %s characters", name, show_rl(rl));
+	dbg("strlen: '%s' %s characters", name, show_rl(rl));
 	free_string(name);
 }
 
@@ -477,7 +494,7 @@ static void debug_print_buf_size(struct expression *expr)
 		snprintf(buf + n, sizeof(buf) - n, "[size_var=%s %s]", limit_type_str(limit_type), name);
 		free_string(name);
 	}
-	sm_msg("%s", buf);
+	dbg("%s", buf);
 }
 
 static void match_buf_size(const char *fn, struct expression *expr, void *info)
@@ -497,7 +514,7 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 		sm_error("the argument to %s is supposed to be a string literal", fn);
 		return;
 	}
-	sm_msg("%s", arg_expr->string->data);
+	dbg("%s", arg_expr->string->data);
 }
 
 static void print_related(struct sm_state *sm)
@@ -547,7 +564,7 @@ static void match_compare(const char *fn, struct expression *expr, void *info)
 	one_name = expr_to_str(one);
 	two_name = expr_to_str(two);
 
-	sm_msg("%s %s %s", one_name, buf, two_name);
+	dbg("%s %s %s", one_name, buf, two_name);
 
 	free_string(one_name);
 	free_string(two_name);
@@ -566,7 +583,7 @@ static void match_debug_check(const char *fn, struct expression *expr, void *inf
 	if (!arg || arg->type != EXPR_STRING)
 		return;
 	option_debug_check = arg->string->data;
-	sm_msg("arg = '%s'", option_debug_check);
+	dbg("arg = '%s'", option_debug_check);
 }
 
 static void match_debug_var(const char *fn, struct expression *expr, void *info)
@@ -577,7 +594,7 @@ static void match_debug_var(const char *fn, struct expression *expr, void *info)
 	if (!arg || arg->type != EXPR_STRING)
 		return;
 	option_debug_var = arg->string->data;
-	sm_msg("debug var = '%s'", option_debug_var);
+	dbg("debug var = '%s'", option_debug_var);
 }
 
 static void match_debug_off(const char *fn, struct expression *expr, void *info)
@@ -634,7 +651,7 @@ static void mtag_info(struct expression *expr)
 
 	expr_to_mtag_offset(expr, &tag, &offset);
 	get_mtag_rl(expr, &rl);
-	sm_msg("mtag = %llu offset = %d rl = '%s'", tag, offset, show_rl(rl));
+	dbg("mtag = %llu offset = %d rl = '%s'", tag, offset, show_rl(rl));
 }
 
 void debug_print_about(struct expression *expr)
@@ -646,8 +663,8 @@ void debug_print_about(struct expression *expr)
 
 	expr = strip_expr(expr);
 
-	sm_msg("---- about ----");
-	sm_msg("expr='%s' type=%d", expr_to_str(expr), expr ? expr->type : -1);
+	dbg("---- about ----");
+	dbg("expr='%s' type=%d", expr_to_str(expr), expr ? expr->type : -1);
 	debug_print_implied(expr);
 	debug_print_buf_size(expr);
 	debug_print_strlen(expr);
@@ -656,14 +673,14 @@ void debug_print_about(struct expression *expr)
 
 	name = expr_to_str(expr);
 	if (!name) {
-		sm_msg("info: not a straight forward variable.");
+		dbg("info: not a straight forward variable.");
 		return;
 	}
 
 	if (get_user_rl(expr, &rl))
-		sm_msg("user_rl = '%s'", show_rl(rl));
+		dbg("user_rl = '%s'", show_rl(rl));
 	if (points_to_user_data(expr))
-		sm_msg("points to user data");
+		dbg("points to user data");
 
 	len = strlen(name);
 	FOR_EACH_SM(__get_cur_stree(), sm) {
@@ -674,7 +691,7 @@ void debug_print_about(struct expression *expr)
 			goto print;
 		continue;
 print:
-		sm_msg("%s", show_sm(sm));
+		dbg("%s", show_sm(sm));
 		print_related(sm);
 	} END_FOR_EACH_SM(sm);
 }
@@ -700,7 +717,7 @@ static void match_intersection(const char *fn, struct expression *expr, void *in
 	get_absolute_rl(two, &two_rl);
 
 	res = rl_intersection(one_rl, two_rl);
-	sm_msg("'%s' intersect '%s' is '%s'", show_rl(one_rl), show_rl(two_rl), show_rl(res));
+	dbg("'%s' intersect '%s' is '%s'", show_rl(one_rl), show_rl(two_rl), show_rl(res));
 }
 
 static void match_type(const char *fn, struct expression *expr, void *info)
@@ -712,7 +729,7 @@ static void match_type(const char *fn, struct expression *expr, void *info)
 	one = get_check_arg(expr, 0);
 	type = get_type(one);
 	name = expr_to_str(one);
-	sm_msg("type of '%s' is: '%s'", name, type_to_str(type));
+	dbg("type of '%s' is: '%s'", name, type_to_str(type));
 	free_string(name);
 }
 
@@ -726,7 +743,7 @@ static int match_type_rl_return(struct expression *call, void *unused, struct ra
 
 	two = get_argument_from_call_expr(call->args, 1);
 	if (!two || two->type != EXPR_STRING) {
-		sm_msg("expected: __smatch_type_rl(type, \"string\")");
+		dbg("expected: __smatch_type_rl(type, \"string\")");
 		return 0;
 	}
 	call_results_to_rl(call, type, two->string->data, rl);
@@ -768,7 +785,7 @@ static void match_print_merge_tree(const char *fn, struct expression *expr, void
 
 	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
 	if (!sm) {
-		sm_msg("no sm state for '%s'", name);
+		dbg("no sm state for '%s'", name);
 		goto free;
 	}
 
@@ -783,7 +800,7 @@ free:
 
 static void match_print_stree_id(const char *fn, struct expression *expr, void *info)
 {
-	sm_msg("stree_id %d", __stree_id);
+	dbg("stree_id %d", __stree_id);
 }
 
 static void match_bits(const char *fn, struct expression *expr, void *_unused)
@@ -800,7 +817,7 @@ static void match_bits(const char *fn, struct expression *expr, void *_unused)
 	name = expr_to_str(arg);
 	info = get_bit_info(arg);
 
-	sm_msg("bit info '%s': definitely set 0x%llx.  possibly set 0x%llx.",
+	dbg("bit info '%s': definitely set 0x%llx.  possibly set 0x%llx.",
 	       name, info->set, info->possible);
 }
 
@@ -818,7 +835,7 @@ static void match_units(const char *fn, struct expression *expr, void *info)
 	sm = get_sm_state_expr(units_id, arg);
 	name = expr_to_str(arg);
 
-	sm_msg("units: '%s' '%s'", name, sm ? show_sm(sm) : get_unit_str(arg));
+	dbg("units: '%s' '%s'", name, sm ? show_sm(sm) : get_unit_str(arg));
 
 	free_string(name);
 }
@@ -833,7 +850,7 @@ static void match_mtag(const char *fn, struct expression *expr, void *info)
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
 	expr_to_mtag_offset(arg, &tag, &offset);
-	sm_msg("mtag: '%s' => tag: %llu %d", name, tag, offset);
+	dbg("mtag: '%s' => tag: %llu %d", name, tag, offset);
 	free_string(name);
 }
 
@@ -847,7 +864,7 @@ static void match_mtag_data_offset(const char *fn, struct expression *expr, void
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
 	expr_to_mtag_offset(arg, &tag, &offset);
-	sm_msg("mtag: '%s' => tag: %lld, offset: %d", name, tag, offset);
+	dbg("mtag: '%s' => tag: %lld, offset: %d", name, tag, offset);
 	free_string(name);
 }
 
@@ -862,7 +879,7 @@ static void match_container(const char *fn, struct expression *expr, void *info)
 	str = get_container_name(container, x);
 	cont = expr_to_str(container);
 	name = expr_to_str(x);
-	sm_msg("container: '%s' vs '%s' --> '%s'", cont, name, str);
+	dbg("container: '%s' vs '%s' --> '%s'", cont, name, str);
 	free_string(cont);
 	free_string(name);
 }
@@ -879,7 +896,7 @@ static void match_param_key(const char *fn, struct expression *expr, void *info)
 	param = get_param_key_from_expr(arg, NULL, &key);
 
 	name = expr_to_str(arg);
-	sm_msg("expr='%s' param=%d key='%s'", name, param, key);
+	dbg("expr='%s' param=%d key='%s'", name, param, key);
 	free_string(name);
 }
 
@@ -900,7 +917,7 @@ static void match_timer_stop(const char *fn, struct expression *expr, void *info
 	usec = stop.tv_usec - debug_timer.tv_usec;
 	msec = sec * 1000 + usec / 1000;
 
-	sm_msg("timer: %ld msec", msec);
+	dbg("timer: %ld msec", msec);
 	gettimeofday(&debug_timer, NULL);
 }
 
@@ -925,7 +942,7 @@ static void print_state_count(struct statement *stmt)
 	if (stree)
 		new_cnt = stree->count;
 	if (cur_state_cnt && new_cnt > cur_state_cnt)
-		sm_msg("new states = '%d' total=%d", new_cnt - cur_state_cnt, new_cnt);
+		dbg("new states = '%d' total=%d", new_cnt - cur_state_cnt, new_cnt);
 	if (new_cnt > cur_state_cnt)
 		cur_state_cnt = new_cnt;
 }
@@ -947,7 +964,7 @@ static void match_expr(const char *fn, struct expression *expr, void *info)
 	name = expr_to_str(arg);
 	new_name = expr_to_str(new);
 
-	sm_msg("str = '%s', arg = '%s' expr = '%s'", str->string->data, name, new_name);
+	dbg("str = '%s', arg = '%s' expr = '%s'", str->string->data, name, new_name);
 
 	free_string(new_name);
 	free_string(name);
@@ -960,7 +977,7 @@ static void match_state_count(const char *fn, struct expression *expr, void *inf
 
 	if (stree)
 		count = stree->count;
-	sm_msg("state_count = %d\n", count);
+	dbg("state_count = %d\n", count);
 }
 
 static void match_mem(const char *fn, struct expression *expr, void *info)
@@ -969,8 +986,8 @@ static void match_mem(const char *fn, struct expression *expr, void *info)
 	show_data_range_alloc();
 	show_rl_ptrlist_alloc();
 	show_ptrlist_alloc();
-	sm_msg("%lu pools", get_pool_count());
-	sm_msg("%d strees", unfree_stree);
+	dbg("%lu pools", get_pool_count());
+	dbg("%d strees", unfree_stree);
 	show_smatch_state_alloc();
 	show_sm_state_alloc();
 }
@@ -997,7 +1014,7 @@ static void trace_var(struct statement *stmt)
 		old = get_sm_state_stree(old_stree, sm->owner, sm->name, sm->sym);
 		if (old && old->state == sm->state)
 			continue;
-		sm_msg("[%d] %s '%s': '%s' => '%s'", stmt->type,
+		dbg("[%d] %s '%s': '%s' => '%s'", stmt->type,
 		       check_name(sm->owner),
 		       sm->name, old ? old->state->name : "<none>", sm->state->name);
 		printed = 1;
