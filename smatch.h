@@ -381,6 +381,9 @@ do {                                                           \
 		break;					       \
 	if (!option_info && is_silenced_function())	       \
 		break;					       \
+	if (!option_info && !option_debug && !local_debug &&   \
+	    !local_debug && is_impossible_path())	       \
+		break;					       \
 	sm_prefix();					       \
 	if (type == 1) {				       \
 		sm_printf("warn: ");			       \
