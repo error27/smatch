@@ -143,10 +143,6 @@ void check_list_add(int id)
 	add_modification_hook(my_id, &set_undefined);
 
 	add_function_hook("kfree", &match_free, 0);
+	add_modification_hook_late(my_id, &trigger_list_del);
 }
 
-void check_list_add_late(int id)
-{
-	next_id = id;
-	add_modification_hook(next_id, &trigger_list_del);
-}

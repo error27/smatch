@@ -130,7 +130,6 @@ CK(smatch_units)
  */
 CK(check_get_user_overflow2)
 CK(check_index_overflow_loop_marker)
-CK(check_list_add_late)
 CK(check_nospec_barrier)
 CK(check_ns_capable)
 CK(check_rosenberg2)
