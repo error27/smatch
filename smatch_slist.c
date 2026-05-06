@@ -347,9 +347,9 @@ int out_of_memory(void)
 	 */
 	if (get_mem_kb() > oom_limit) {
 		oom_func = cur_func_sym;
-		final_pass++;
+		force_output++;
 		sm_perror("OOM: %luKb sm_state_count = %d", get_mem_kb(), sm_state_counter);
-		final_pass--;
+		force_output--;
 		return 1;
 	}
 

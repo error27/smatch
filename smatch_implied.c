@@ -1212,8 +1212,10 @@ int assume(struct expression *expr)
 
 	in_fake_env++;
 	final_pass = 0;
+	silence_output++;
 	__push_fake_cur_stree();
 	__split_whole_condition(expr);
+	silence_output--;
 	final_pass = orig_final_pass;
 	in_fake_env--;
 

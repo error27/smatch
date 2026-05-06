@@ -34,6 +34,7 @@ int __fake_state_cnt;
 int __debug_skip;
 int in_fake_env;
 int final_pass;
+int force_output;
 int silence_output;
 int __inline_call;
 bool __reparsing_code;
@@ -2306,9 +2307,9 @@ static void record_func_time(void)
 	snprintf(buf, sizeof(buf), "%d", func_time);
 	sql_insert_return_implies(FUNC_TIME, 0, "", buf);
 	if (option_time && func_time > 2) {
-		final_pass++;
+		force_output++;
 		sm_msg("func_time: %d", func_time);
-		final_pass--;
+		force_output--;
 	}
 }
 

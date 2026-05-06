@@ -308,6 +308,7 @@ char *get_function(void);
 extern int __smatch_lineno;
 int get_lineno(void);
 extern int final_pass;
+extern int force_output;
 extern int silence_output;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
@@ -353,8 +354,31 @@ extern int sm_nr_errors;
  * sm_msg(): other message (please avoid using this)
  */
 
+extern bool __silence_warnings_for_stmt;
+
+static inline bool __output_enabled(void)
+{
+	if (option_debug || local_debug || debug_db)
+		return true;
+	if (force_output)
+		return true;
+
+	if (!option_info) {
+		if (silence_output || __silence_warnings_for_stmt ||
+		    is_silenced_function())
+			return false;
+		if (is_impossible_path())
+			return false;
+	}
+
+	if (!final_pass)
+		return false;
+
+	return true;
+}
+
 #define sm_printf(msg...) do {						\
-	if ((final_pass && !silence_output) || option_debug || local_debug || debug_db)	\
+	if (__output_enabled())						\
 		fprintf(sm_outfd, msg);					\
 } while (0)
 
@@ -368,21 +392,10 @@ static inline void sm_prefix(void)
 
 static inline void print_implied_debug_msg();
 
-extern bool __silence_warnings_for_stmt;
-
 #define sm_print_msg(type, msg...) \
 do {                                                           \
 	print_implied_debug_msg();                             \
-	if (silence_output && !option_debug && !local_debug && !debug_db) \
-		break;					       \
-	if (!final_pass && !option_debug && !local_debug && !debug_db)	  \
-		break;                                         \
-	if (__silence_warnings_for_stmt && !option_debug && !local_debug) \
-		break;					       \
-	if (!option_info && is_silenced_function())	       \
-		break;					       \
-	if (!option_info && !option_debug && !local_debug &&   \
-	    !local_debug && is_impossible_path())	       \
+	if (!__output_enabled())			       \
 		break;					       \
 	sm_prefix();					       \
 	if (type == 1) {				       \
