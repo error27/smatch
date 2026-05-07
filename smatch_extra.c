@@ -1406,6 +1406,8 @@ static void unop_expr(struct expression *expr)
 	switch (expr->op) {
 	case SPECIAL_INCREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		if (estate_is_empty(state))
+			return;
 		state = increment_state(state);
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
@@ -1414,6 +1416,8 @@ static void unop_expr(struct expression *expr)
 		break;
 	case SPECIAL_DECREMENT:
 		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		if (estate_is_empty(state))
+			return;
 		state = decrement_state(state);
 		if (!state)
 			state = alloc_estate_whole(get_type(expr));
