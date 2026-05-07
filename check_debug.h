@@ -113,4 +113,7 @@ static inline void __smatch_container(long long container, long long x){}
 static inline void __smatch_param_key(long long val){}
 #define __smatch_param_key(x) __smatch_param_key(cast_ptr(x))
 
+static inline void __smatch_force_on(void){}
+static inline void __smatch_force_off(void){}
+
 #endif
