@@ -1070,6 +1070,37 @@ static void handle_pre_loop(struct statement *stmt)
 	struct stree *stree = NULL;
 	struct sm_state *sm = NULL;
 
+	/*
+	 * A pre loop is either a while loop or a for loop.  We are going to
+	 * parse the condition twice per pass.  We are going to parse the
+	 * insides of the loop twice. Imagine there is a simple  for loop:
+	 *
+	 * for (i = 0; i < 10; i++) {
+	 *
+	 * We parse he condition 4 times.
+	 * 1. true: i is zero.  false: impossible
+	 * 2. true: (discard).  false: i == 0.
+	 * At the end of the loop i is either 0 if we hit a break or
+	 * 10.
+	 * 3. true: i is 1-9.   false: impossible
+	 * 4. true: (discard).  false: i == 10
+	 *
+	 * But this becomes more complicated if we have a nested for
+	 * loop.  One way to handle this would be to reparse the loops
+	 * twice until you reach the outer loop and then do a final
+	 * pass on the whole function.  Another approach might be to
+	 * make some educated guesses that if we hit a break statement
+	 * on the first iteration then i is in the 0-9 range after the
+	 * loop.  A third approach is to just say that if we have a
+	 * break statement the we end with i = 0 or 10 after the first
+	 * iteration.
+	 *
+	 * I don't know which is the best approach so I'm going to do
+	 * whatever is easiest, which means taking the existing code
+	 * and mucking with it until the validation/ tests pass.
+	 *
+	 */
+
 	__push_scope_hooks();
 
 	loop_name = get_loop_name(loop_num);
@@ -1085,11 +1116,12 @@ static void handle_pre_loop(struct statement *stmt)
 	__push_continues();
 	__push_breaks();
 
-	__merge_gotos(loop_name, NULL);
+	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 
+	// merge the states from the first pass
+	__merge_gotos(loop_name, NULL);
 	__pass_to_client(stmt, PRELOOP_HOOK);
 
-	extra_sm = __extra_handle_canonical_loops(stmt, &stree);
 	__in_pre_condition++;
 	__set_confidence_implied();
 	__split_whole_condition_tf(stmt->iterator_pre_condition, &once_through);
@@ -1137,12 +1169,12 @@ static void handle_pre_loop(struct statement *stmt)
 		free_stree(&stree);
 	} else {
 		__merge_continues();
+		__save_gotos(loop_name, NULL);
 		unchanged = __iterator_unchanged(extra_sm);
 		__split_stmt(stmt->iterator_post_statement);
 		__prev_stmt = stmt->iterator_post_statement;
 		__cur_stmt = stmt;
 
-		__save_gotos(loop_name, NULL);
 		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
 		__in_pre_condition--;
