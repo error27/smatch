@@ -36,7 +36,7 @@ static bool print_state_cnt;
 
 /* print output on impossible paths */
 #define dbg(msg...) do {				\
-	if (!final_pass)				\
+	if (!final_pass || silence_output)		\
 		break;					\
 	force_output++;					\
 	sm_print_msg(0, msg);				\
