@@ -32,11 +32,22 @@ static int my_id;
 char *trace_variable;
 static int cur_state_cnt;
 static bool print_state_cnt;
-
+static bool debug_passes;
 
 /* print output on impossible paths */
+static inline bool enable_debug_output(void)
+{
+	if (force_output)
+		return true;
+	if (silence_output)
+		return false;
+	if (final_pass || debug_passes)
+		return true;
+	return false;
+}
+
 #define dbg(msg...) do {					\
-	if (!force_output && (!final_pass || silence_output))	\
+	if (!enable_debug_output())				\
 		break;						\
 	force_output++;						\
 	sm_print_msg(0, msg);					\
@@ -106,7 +117,7 @@ static void match_states(const char *fn, struct expression *expr, void *info)
 	struct expression *check_arg;
 	bool success;
 
-	if (!final_pass)
+	if (!enable_debug_output())
 		return;
 
 	check_arg = get_check_arg(expr, 0);
@@ -931,6 +942,11 @@ static void match_force_off(const char *fn, struct expression *expr, void *info)
 	force_output = 0;
 }
 
+static void match_debug_passes(const char *fn, struct expression *expr, void *info)
+{
+	debug_passes = true;
+}
+
 static void match_debug_state_cnt(const char *fn, struct expression *expr, void *info)
 {
 	struct stree *stree = __get_cur_stree();
@@ -1099,9 +1115,9 @@ void check_debug(int id)
 	add_function_hook("__smatch_param_key", &match_param_key, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
 	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);
-
 	add_function_hook("__smatch_force_on", &match_force_on, NULL);
 	add_function_hook("__smatch_force_off", &match_force_off, NULL);
+	add_function_hook("__smatch_debug_passes", &match_debug_passes, NULL);
 
 	add_function_hook("__smatch_debug_state_cnt", &match_debug_state_cnt, NULL);
 	add_hook(print_state_count, STMT_HOOK_AFTER);

@@ -116,4 +116,6 @@ static inline void __smatch_param_key(long long val){}
 static inline void __smatch_force_on(void){}
 static inline void __smatch_force_off(void){}
 
+static inline void __smatch_debug_passes(void){}
+
 #endif
