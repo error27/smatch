@@ -898,6 +898,11 @@ static void match_class_generic_destroy(const char *fn, struct expression *expr,
 		name = alloc_sname(buf);
 	}
 
+	if (!name) {
+		sm_msg("NULL name expr=%s", expr_to_str(expr));
+		return;
+	}
+
 	swap_global_names(&name, &sym);
 	if (state == &lock)
 		do_lock(expr, NULL, arg, name, sym);
@@ -1047,6 +1052,8 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 		// lock = gen_expression_from_key(expr->left, key);
 		// But apparently that doesn't work when the key is "&$->lock"
 		name = get_variable_from_key(expr->left, key, &sym);
+		if (!name || !sym)
+			name = key;
 		lock = gen_expression_from_name_sym(name, sym);
 	} else {
 		arg = get_argument_from_call_expr(call->args, param);
@@ -1064,13 +1071,12 @@ static void db_param_locked_unlocked(struct expression *expr, int param, const c
 		lock = gen_expression_from_name_sym(name, sym);
 	}
 
-//	if (!name)
-//		sm_msg("%s: no_name expr='%s' param=%d key=%s lock='%s'", __func__, expr_to_str(expr), param, key, expr_to_str(lock));
+	if (!name) {
+		sm_msg("%s: no_name expr='%s' param=%d key=%s lock='%s'", __func__, expr_to_str(expr), param, key, expr_to_str(lock));
+		return;
+	}
 
 	swap_global_names(&name, &sym);
-
-	if (local_debug)
-		sm_msg("%s: expr='%s' lock='%s' key='%s' name='%s' lock_unlock=%d", __func__, expr_to_str(expr), expr_to_str(lock), key, name, lock_unlock);
 
 	if (lock_unlock == LOCK)
 		do_lock(call, info, lock, name, sym);
