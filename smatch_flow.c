@@ -1168,12 +1168,12 @@ static void handle_pre_loop(struct statement *stmt)
 		free_stree(&stree);
 	} else {
 		__merge_continues();
-		__save_gotos(loop_name, NULL);
 		unchanged = __iterator_unchanged(extra_sm);
 		__split_stmt(stmt->iterator_post_statement);
 		__prev_stmt = stmt->iterator_post_statement;
 		__cur_stmt = stmt;
 
+		__save_gotos(loop_name, NULL);
 		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
 		__in_pre_condition--;
