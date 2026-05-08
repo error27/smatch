@@ -969,9 +969,9 @@ static void set_implied_states(struct expression *expr)
 		char *name;
 
 		name = expr_to_str(expr);
-		printf("These are the implied states for the true path: (%s)\n", name);
+		printf("These are the implied states for the true path: (%s) pass=%d\n", name, final_pass);
 		__print_stree(saved_implied_true);
-		printf("These are the implied states for the false path: (%s)\n", name);
+		printf("These are the implied states for the false path: (%s) pass=%d\n", name, final_pass);
 		__print_stree(saved_implied_false);
 		free_string(name);
 	}
