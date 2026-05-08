@@ -50,7 +50,6 @@ static char *full_base_file;
 static char *cur_func;
 int base_file_stream;
 static unsigned int loop_count;
-static int last_goto_statement_handled;
 int __expr_stmt_count;
 int __in_function_def;
 int __in_unmatched_hook;
@@ -1437,68 +1436,6 @@ static bool is_function_scope(struct statement *stmt)
 	return false;
 }
 
-/*
- * Sometimes people do a little backwards goto as the last statement in a
- * function.
- *
- * exit:
- *	return ret;
- * free:
- *	kfree(foo);
- *	goto exit;
- *
- * Smatch generally does a hacky thing where it just parses the code one
- * time from top to bottom, but in this case we need to go backwards so that
- * we record what "return ret;" returns.
- *
- */
-static void handle_backward_goto_at_end(struct statement *goto_stmt)
-{
-	const char *goto_name, *label_name;
-	struct statement *func_stmt;
-	struct symbol *base_type = get_base_type(cur_func_sym);
-	struct statement *tmp;
-	int found = 0;
-
-	if (!is_last_stmt(goto_stmt))
-		return;
-	if (last_goto_statement_handled)
-		return;
-	last_goto_statement_handled = 1;
-
-	if (!goto_stmt->goto_label ||
-	    goto_stmt->goto_label->type != SYM_LABEL ||
-	    !goto_stmt->goto_label->ident)
-		return;
-	goto_name = goto_stmt->goto_label->ident->name;
-
-	func_stmt = base_type->stmt;
-	if (!func_stmt)
-		func_stmt = base_type->inline_stmt;
-	if (!func_stmt)
-		return;
-	if (func_stmt->type != STMT_COMPOUND)
-		return;
-
-	FOR_EACH_PTR(func_stmt->stmts, tmp) {
-		if (!found) {
-			if (tmp->type != STMT_LABEL)
-				continue;
-			if (!tmp->label_identifier ||
-			    tmp->label_identifier->type != SYM_LABEL ||
-			    !tmp->label_identifier->ident)
-				continue;
-			label_name = tmp->label_identifier->ident->name;
-			if (strcmp(goto_name, label_name) != 0)
-				continue;
-			found = 1;
-			__reparsing_code = true;
-		}
-		__split_stmt(tmp);
-	} END_FOR_EACH_PTR(tmp);
-	__reparsing_code = false;
-}
-
 static void fake_a_return(void)
 {
 	struct expression *ret = NULL;
@@ -1769,7 +1706,6 @@ void __split_stmt(struct statement *stmt)
 			   stmt->goto_label->ident) {
 			__save_gotos(stmt->goto_label->ident->name, stmt->goto_label);
 		}
-		handle_backward_goto_at_end(stmt);
 		nullify_path();
 		break;
 	case STMT_NONE:
@@ -2363,7 +2299,6 @@ static void split_function(struct symbol *sym)
 	set_position(sym->pos);
 	clear_function_data();
 	loop_count = 0;
-	last_goto_statement_handled = 0;
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;
 	__unnullify_path();
