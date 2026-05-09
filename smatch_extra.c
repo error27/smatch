@@ -2840,7 +2840,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (other_name && other_sym) {
 		state = clone_estate(state);
 		if (op == PARAM_LIMIT)
-			set_extra_nomod_vsl(other_name, other_sym, vsl, NULL, state);
+			set_extra_nomod_vsl(other_name, other_sym, NULL, NULL, state);
 		else
 			set_extra_mod(other_name, other_sym, NULL, state);
 	}
