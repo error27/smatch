@@ -562,7 +562,7 @@ static void register_clears_param(void)
 	if (option_project == PROJ_NONE)
 		return;
 
-	snprintf(name, 256, "%s.clears_argument", option_project_str);
+	snprintf(name, 256, "%s/clears_argument", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)

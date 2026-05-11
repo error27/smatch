@@ -96,7 +96,7 @@ static void register_no_return_funcs(void)
 	const char *func;
 	char name[256];
 
-	snprintf(name, 256, "%s.no_return_funcs", option_project_str);
+	snprintf(name, 256, "%s/no_return_funcs", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)
@@ -145,7 +145,7 @@ static void register_ignored_macros(void)
 	if (option_project == PROJ_NONE)
 		strcpy(name, "ignored_macros");
 	else
-		snprintf(name, 256, "%s.ignored_macros", option_project_str);
+		snprintf(name, 256, "%s/ignored_macros", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)
@@ -173,7 +173,7 @@ static struct hashtable *register_skipped(const char *filename)
 	if (option_project == PROJ_NONE)
 		return NULL;
 
-	snprintf(name, 256, "%s.%s", option_project_str, filename);
+	snprintf(name, 256, "%s/%s", option_project_str, filename);
 
 	token = get_tokens_file(name);
 	if (!token)
@@ -207,7 +207,7 @@ static void register_silenced_functions(void)
 	if (option_project == PROJ_NONE)
 		return;
 
-	snprintf(name, 256, "%s.silenced_functions", option_project_str);
+	snprintf(name, 256, "%s/silenced_functions", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)
@@ -236,7 +236,7 @@ static void register_no_inline_functions(void)
 	if (option_project == PROJ_NONE)
 		return;
 
-	snprintf(name, 256, "%s.no_inline_functions", option_project_str);
+	snprintf(name, 256, "%s/no_inline_functions", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)

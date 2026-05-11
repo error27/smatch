@@ -45,7 +45,10 @@ for i in $SCRIPT_DIR/gen_* ; do
 	$i smatch_warns.txt -p=kernel
 done
 
-mv ${PROJECT}.* $DATA_DIR
+for data_file in ${PROJECT}.* ; do
+    TO=$(echo $data_file | sed -e 's/${PROJECT}.//')
+    mv $data_file $DATA_DIR/$PROJECT/$TO
+done
 
 $DATA_DIR/db/create_db.sh -p=kernel smatch_warns.txt
 

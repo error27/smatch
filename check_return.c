@@ -36,7 +36,7 @@ static void register_must_check_funcs(void)
 	static char name[256];
 
 
-	snprintf(name, 256, "%s.must_check_funcs", option_project_str);
+	snprintf(name, 256, "%s/must_check_funcs", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)

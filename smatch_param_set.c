@@ -465,7 +465,7 @@ static void register_ignored_params_from_file(void)
 	 *
 	 */
 
-	snprintf(name, 256, "%s.ignore_uninitialized_param", option_project_str);
+	snprintf(name, 256, "%s/ignore_uninitialized_param", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)

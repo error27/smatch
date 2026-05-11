@@ -85,7 +85,7 @@ static void load_ignores(void)
 	int owner;
 	char buf[64];
 
-	snprintf(buf, sizeof(buf), "%s.ignored_warnings", option_project_str);
+	snprintf(buf, sizeof(buf), "%s/ignored_warnings", option_project_str);
 	token = get_tokens_file(buf);
 	if (!token)
 		return;

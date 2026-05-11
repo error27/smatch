@@ -90,7 +90,7 @@ static void register_shifters(void)
 	char *name;
 	int *val;
 
-	snprintf(filename, sizeof(filename), "%s.bit_shifters", option_project_str);
+	snprintf(filename, sizeof(filename), "%s/bit_shifters", option_project_str);
 	token = get_tokens_file(filename);
 	if (!token)
 		return;

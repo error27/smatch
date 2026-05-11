@@ -149,7 +149,7 @@ static void register_allocation_funcs(void)
 	const char *func;
 	int arg;
 
-	snprintf(filename, sizeof(filename), "%s.allocation_funcs_gfp", option_project_str);
+	snprintf(filename, sizeof(filename), "%s/allocation_funcs_gfp", option_project_str);
 	token = get_tokens_file(filename);
 	if (!token)
 		return;

@@ -299,7 +299,7 @@ static void register_funcs_from_file(void)
 	int size, buf;
 	struct limiter *limiter;
 
-	snprintf(name, 256, "%s.sizeof_param", option_project_str);
+	snprintf(name, 256, "%s/sizeof_param", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)
@@ -351,7 +351,7 @@ static void register_ignored_structs_from_file(void)
 	struct token *token;
 	const char *struct_type;
 
-	snprintf(name, 256, "%s.ignore_memcpy_struct_overflows", option_project_str);
+	snprintf(name, 256, "%s/ignore_memcpy_struct_overflows", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)

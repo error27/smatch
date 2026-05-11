@@ -46,7 +46,7 @@ static void register_funcs_from_file(void)
 	int size;
 
 	memset(prev_func, 0, sizeof(prev_func));
-	snprintf(name, 256, "%s.sizeof_param", option_project_str);
+	snprintf(name, 256, "%s/sizeof_param", option_project_str);
 	name[255] = '\0';
 	token = get_tokens_file(name);
 	if (!token)

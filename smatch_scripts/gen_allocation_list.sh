@@ -13,7 +13,7 @@ if [[ "$project" != "kernel" ]] ; then
 fi
 
 bin_dir=$(dirname $0)
-remove=$(echo ${bin_dir}/../smatch_data/kernel.allocation_funcs.remove)
+remove=$(echo ${bin_dir}/../smatch_data/kernel/allocation_funcs.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 
 echo "// list of functions that return a new allocation." \

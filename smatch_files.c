@@ -62,21 +62,10 @@ struct token *get_tokens_file(const char *filename)
 	return token;
 }
 
-struct string_list *load_strings_from_file(const char *project, const char *filename)
+static struct string_list *load_strings(struct token *token)
 {
 	struct string_list *ret = NULL;
-	struct token *token;
-	char buf[64];
 	char *str;
-
-	if (project)
-		snprintf(buf, sizeof(buf), "%s.%s", project, filename);
-	else
-		snprintf(buf, sizeof(buf), "%s", filename);
-
-	token = get_tokens_file(buf);
-	if (!token)
-		return NULL;
 
 	if (token_type(token) != TOKEN_STREAMBEGIN)
 		return NULL;
@@ -91,4 +80,31 @@ struct string_list *load_strings_from_file(const char *project, const char *file
 	clear_token_alloc();
 
 	return ret;
+
+}
+
+struct string_list *load_strings_from_file(const char *project, const char *filename)
+{
+	struct token *token;
+	char buf[64];
+
+	if (project) {
+		snprintf(buf, sizeof(buf), "%s/%s", project, filename);
+		token = get_tokens_file(buf);
+		if (token)
+			return load_strings(token);
+
+		snprintf(buf, sizeof(buf), "%s.%s", project, filename);
+		token = get_tokens_file(buf);
+		if (token)
+			return load_strings(token);
+
+	}
+
+	snprintf(buf, sizeof(buf), "%s", filename);
+	token = get_tokens_file(buf);
+	if (!token)
+		return NULL;
+
+	return load_strings(token);
 }

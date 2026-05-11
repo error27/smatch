@@ -88,10 +88,26 @@ static inline void load_hashtable_helper(const char *file, int (*insert_func)(st
 	struct token *token;
 	char *name;
 
-	snprintf(filename, sizeof(filename), "%s.%s", option_project_str, file);
-	token = get_tokens_file(filename);
-	if (!token)
+	if (option_project_str) {
+		snprintf(filename, sizeof(filename), "%s/%s", option_project_str, file);
+	 	token = get_tokens_file(filename);
+		if (token)
+			goto found;
+
+		snprintf(filename, sizeof(filename), "%s.%s", option_project_str, file);
+		token = get_tokens_file(filename);
+		if (token)
+			goto found;
+
 		return;
+	} else {
+		snprintf(filename, sizeof(filename), "%s", file);
+		token = get_tokens_file(filename);
+		if (!token)
+			return;
+	}
+
+found:
 	if (token_type(token) != TOKEN_STREAMBEGIN)
 		return;
 	token = token->next;

@@ -1,0 +1,6 @@
+[submodule "smatch_data/kernel"]
+	path = smatch_data/kernel
+	url = https://github.com/error27/smatch_kernel_data.git
+[submodule "smatch_data/wine"]
+	path = smatch_data/wine
+	url = https://github.com/error27/smatch_wine_data.git

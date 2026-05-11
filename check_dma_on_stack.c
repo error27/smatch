@@ -55,7 +55,7 @@ static void register_funcs_from_file(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.dma_funcs");
+	token = get_tokens_file("kernel/dma_funcs");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)

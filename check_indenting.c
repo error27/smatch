@@ -319,7 +319,7 @@ static void register_ignored_macros(void)
 	char *macro;
 	char name[256];
 
-	snprintf(name, 256, "%s.ignore_macro_indenting", option_project_str);
+	snprintf(name, 256, "%s/ignore_macro_indenting", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)

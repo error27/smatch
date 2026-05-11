@@ -8,9 +8,10 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
+myfile="sizeof_param"
 outfile="${project}.sizeof_param"
 bin_dir=$(dirname $0)
-remove=$(echo ${bin_dir}/../smatch_data/${outfile}.remove)
+remove=$(echo ${bin_dir}/../smatch_data/${project}/${myfile}.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 tmp2=$(mktemp /tmp/smatch.XXXX)
 

@@ -13,7 +13,7 @@ if [[ "$project" != "kernel" ]] ; then
 fi
 
 bin_dir=$(dirname $0)
-remove=$(echo ${bin_dir}/../smatch_data/kernel.puts_argument.remove)
+remove=$(echo ${bin_dir}/../smatch_data/kernel/puts_argument.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 
 echo "// list of functions and the argument they decrement the ref of." > kernel.puts_argument

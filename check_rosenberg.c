@@ -393,7 +393,7 @@ static void register_clears_argument(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.clears_argument");
+	token = get_tokens_file("kernel/clears_argument");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)
@@ -420,7 +420,7 @@ static void register_copy_funcs_from_file(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.rosenberg_funcs");
+	token = get_tokens_file("kernel/rosenberg_funcs");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)

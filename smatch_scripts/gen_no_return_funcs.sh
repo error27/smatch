@@ -8,10 +8,11 @@ if [[ "$file" = "" ]] ; then
     exit 1
 fi
 
+myfile="no_return_funcs"
 outfile="${project}.no_return_funcs"
 bin_dir=$(dirname $0)
-add_file=$(echo ${bin_dir}/../smatch_data/${outfile}.add)
-remove=$(echo ${bin_dir}/../smatch_data/${outfile}.remove)
+add_file=$(echo ${bin_dir}/../smatch_data/${project}/${myfile}.add)
+remove=$(echo ${bin_dir}/../smatch_data/${project}/${myfile}.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 tmp2=$(mktemp /tmp/smatch.XXXX)
 

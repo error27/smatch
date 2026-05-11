@@ -80,7 +80,7 @@ static void register_funcs_from_file(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.frees_argument");
+	token = get_tokens_file("kernel/frees_argument");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)

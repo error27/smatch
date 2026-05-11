@@ -257,7 +257,7 @@ static void register_allocation_funcs(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.allocation_funcs_gfp");
+	token = get_tokens_file("kernel/allocation_funcs_gfp");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)

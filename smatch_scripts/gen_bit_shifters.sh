@@ -9,7 +9,7 @@ if [[ "$file" = "" ]] ; then
 fi
 
 bin_dir=$(dirname $0)
-remove=$(echo ${bin_dir}/../smatch_data/${project}.bit_shifters.remove)
+remove=$(echo ${bin_dir}/../smatch_data/${project}/bit_shifters.remove)
 tmp=$(mktemp /tmp/smatch.XXXX)
 
 echo "// list of macros used as shifters." \

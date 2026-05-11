@@ -97,7 +97,7 @@ static void register_funcs_from_file(void)
 	const char *func;
 	int arg;
 
-	token = get_tokens_file("kernel.dev_queue_xmit");
+	token = get_tokens_file("kernel/dev_queue_xmit");
 	if (!token)
 		return;
 	if (token_type(token) != TOKEN_STREAMBEGIN)

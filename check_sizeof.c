@@ -128,7 +128,7 @@ static void register_macro_takes_sizeof_argument(void)
 	char *macro;
 	char name[256];
 
-	snprintf(name, 256, "%s.macro_takes_sizeof_argument", option_project_str);
+	snprintf(name, 256, "%s/macro_takes_sizeof_argument", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)

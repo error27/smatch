@@ -239,7 +239,7 @@ static void register_turn_off_macros(void)
 	if (option_project == PROJ_NONE)
 		strcpy(name, "unreachable.turn_off");
 	else
-		snprintf(name, 256, "%s.unreachable.turn_off", option_project_str);
+		snprintf(name, 256, "%s/unreachable.turn_off", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)
