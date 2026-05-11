@@ -568,7 +568,7 @@ static sval_t parse_val(int use_max, struct expression *call, struct symbol *typ
 		/* this parses [==p0] comparisons */
 		get_val_from_key(1, type, start, call, &c, &ret);
 	} else if (type_is_ptr(type)) {
-		ret = sval_type_val(type, strtoll(start, (char **)&c, 0));
+		ret = sval_type_val(type, strtoull(start, (char **)&c, 0));
 		if (sval_type_max(&ulong_ctype).value == UINT_MAX)
 			ret.uvalue &= UINT_MAX;
 	} else if (type_positive_bits(type) == 64) {

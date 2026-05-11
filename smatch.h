@@ -1734,7 +1734,7 @@ static inline int sval_cmp(sval_t one, sval_t two)
 	one = sval_cast(type, one);
 	two = sval_cast(type, two);
 
-	if (type_unsigned(type)) {
+	if (type_unsigned(type) || type_is_ptr(type)) {
 		if (one.uvalue < two.uvalue)
 			return -1;
 		if (one.uvalue == two.uvalue)

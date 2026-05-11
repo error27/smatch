@@ -92,12 +92,16 @@ struct expression *symbol_expression(struct symbol *sym)
 struct expression *cast_expression(struct expression *expr, struct symbol *type)
 {
 	struct expression *cast;
+	struct symbol *node;
 
 	if (!expr)
 		return NULL;
 
+	node = alloc_symbol(expr->pos, SYM_NODE);
+	node->ctype.base_type = type;
+
 	cast = alloc_tmp_expression(expr->pos, EXPR_CAST);
-	cast->cast_type = type;
+	cast->cast_type = node;
 	cast->cast_expression = expr;
 	return cast;
 }
