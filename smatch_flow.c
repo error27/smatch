@@ -1215,14 +1215,13 @@ static void handle_post_loop(struct statement *stmt)
 	__merge_gotos(loop_name, NULL);
 	__split_stmt(stmt->iterator_statement);
 	__merge_continues();
-	if (!expr_is_zero(stmt->iterator_post_condition))
-		__save_gotos(loop_name, NULL);
 
 	if (is_forever_loop(stmt)) {
 		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__use_breaks();
 	} else {
 		__split_whole_condition(stmt->iterator_post_condition);
+		__save_gotos(loop_name, NULL);
 		__use_false_states();
 		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__merge_breaks();
