@@ -1020,7 +1020,8 @@ static void match_mem(const char *fn, struct expression *expr, void *info)
 
 static void match_exit(const char *fn, struct expression *expr, void *info)
 {
-	exit(0);
+	if (final_pass)
+		exit(0);
 }
 
 static struct stree *old_stree;
