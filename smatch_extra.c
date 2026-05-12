@@ -207,7 +207,6 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 {
 	if (!expr)
 		expr = gen_expression_from_name_sym(name, sym);
-	remove_from_equiv(name, sym);
 	set_union_info(name, sym, expr, state);
 	mark_sub_members_gone(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
@@ -485,7 +484,6 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 {
 	char *new_name;
 	struct symbol *new_sym;
-	struct relation *rel;
 	struct smatch_state *orig_state;
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
@@ -498,21 +496,6 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 	if (new_name && new_sym)
 		set_extra_nomod_helper(new_name, new_sym, expr, state);
 	free_string(new_name);
-
-	if (!estate_related(orig_state)) {
-		set_extra_nomod_helper(name, sym, expr, state);
-		return;
-	}
-
-	set_related(state, estate_related(orig_state));
-	FOR_EACH_PTR(estate_related(orig_state), rel) {
-		struct smatch_state *estate;
-
-		estate = get_state(SMATCH_EXTRA, rel->name, rel->sym);
-		if (!estate || estate_related(estate) != estate_related(orig_state))
-			continue;
-		set_extra_nomod_helper(rel->name, rel->sym, expr, clone_estate_cast(estate_type(estate), state));
-	} END_FOR_EACH_PTR(rel);
 }
 
 void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct expression *expr, struct smatch_state *state)
@@ -555,8 +538,6 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 {
 	char *new_name;
 	struct symbol *new_sym;
-	struct relation *rel;
-	struct smatch_state *orig_state;
 
 	if (!true_state && !false_state)
 		return;
@@ -568,24 +549,6 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	if (new_name && new_sym)
 		set_extra_true_false_helper(new_name, new_sym, expr, true_state, false_state);
 	free_string(new_name);
-
-	orig_state = get_state(SMATCH_EXTRA, name, sym);
-
-	if (!estate_related(orig_state)) {
-		set_extra_true_false_helper(name, sym, expr, true_state, false_state);
-		return;
-	}
-
-	if (true_state)
-		set_related(true_state, estate_related(orig_state));
-	if (false_state)
-		set_related(false_state, estate_related(orig_state));
-
-	FOR_EACH_PTR(estate_related(orig_state), rel) {
-		set_extra_true_false_helper(rel->name, rel->sym, expr,
-					    true_state, false_state);
-	} END_FOR_EACH_PTR(rel);
-
 }
 
 static void set_extra_true_false_states_expr(struct expression *expr,
@@ -1190,8 +1153,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	    right_name && right_sym &&
 	    values_fit_type(left, strip_expr(right)) &&
 	    !has_symbol(right, sym)) {
-		set_equiv(left, right);
-		goto free;
+		/* FIXME: this was related stuff */
 	}
 
 	if (get_implied_value(right, &sval)) {
@@ -1246,7 +1208,6 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 done:
 	set_extra_mod(name, sym, left, state);
-free:
 	free_string(right_name);
 }
 

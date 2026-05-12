@@ -121,16 +121,8 @@ static struct range_list *generify_mtag_range(struct smatch_state *state)
 
 static bool sm_was_set(struct sm_state *sm)
 {
-	struct relation *rel;
-
-	if (!estate_related(sm->state))
-		return param_was_set_var_sym(sm->name, sm->sym);
-
-	FOR_EACH_PTR(estate_related(sm->state), rel) {
-		if (param_was_set_var_sym(sm->name, sm->sym))
-			return true;
-	} END_FOR_EACH_PTR(rel);
-	return false;
+	/* FIXME: this was related stuff */
+	return param_was_set_var_sym(sm->name, sm->sym);
 }
 
 static bool is_boring_pointer_info(const char *name, struct range_list *rl)

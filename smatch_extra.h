@@ -18,15 +18,7 @@
 DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
-struct relation {
-	char *name;
-	struct symbol *sym;
-};
-
-DECLARE_PTR_LIST(related_list, struct relation);
-
 struct data_info {
-	struct related_list *related;
 	struct range_list *value_ranges;
 	sval_t fuzzy_max;
 	unsigned int hard_max:1;
@@ -141,7 +133,6 @@ int estate_is_whole(struct smatch_state *state);
 int estate_is_empty(struct smatch_state *state);
 
 struct range_list *estate_rl(struct smatch_state *state);
-struct related_list *estate_related(struct smatch_state *state);
 
 sval_t estate_min(struct smatch_state *state);
 sval_t estate_max(struct smatch_state *state);
@@ -202,16 +193,6 @@ int __iterator_unchanged(struct sm_state *sm);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,
 				struct expression *condition);
-
-/* smatch_equiv.c */
-void set_equiv(struct expression *left, struct expression *right);
-void set_related(struct smatch_state *estate, struct related_list *rlist);
-struct related_list *get_shared_relations(struct related_list *one,
-					      struct related_list *two);
-struct related_list *clone_related_list(struct related_list *related);
-void remove_from_equiv(const char *name, struct symbol *sym);
-void remove_from_equiv_expr(struct expression *expr);
-void set_equiv_state_expr(int id, struct expression *expr, struct smatch_state *state);
 
 /* smatch_function_hooks.c */
 void function_comparison(struct expression *left, int comparison, struct expression *right);

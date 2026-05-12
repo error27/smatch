@@ -276,7 +276,6 @@ SMATCH_OBJS += smatch_container_of.o
 SMATCH_OBJS += smatch_data_source.o
 SMATCH_OBJS += smatch_db.o
 SMATCH_OBJS += smatch_dereference.o
-SMATCH_OBJS += smatch_equiv.o
 SMATCH_OBJS += smatch_estate.o
 SMATCH_OBJS += smatch_expressions.o
 SMATCH_OBJS += smatch_expression_stacks.o

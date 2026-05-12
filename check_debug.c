@@ -528,34 +528,6 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 	dbg("%s", arg_expr->string->data);
 }
 
-static void print_related(struct sm_state *sm)
-{
-	struct relation *rel;
-
-	if (sm->owner != SMATCH_EXTRA)
-		return;
-	if (!estate_related(sm->state))
-		return;
-
-	sm_prefix();
-	sm_printf("%s: ", sm->name);
-	FOR_EACH_PTR(estate_related(sm->state), rel) {
-		sm_printf("%s ", rel->name);
-	} END_FOR_EACH_PTR(rel);
-	sm_printf("\n");
-}
-
-static void match_dump_related(const char *fn, struct expression *expr, void *info)
-{
-	struct stree *stree;
-	struct sm_state *tmp;
-
-	stree = __get_cur_stree();
-	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, tmp) {
-		print_related(tmp);
-	} END_FOR_EACH_SM(tmp);
-}
-
 static void match_compare(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *one, *two;
@@ -703,7 +675,6 @@ void debug_print_about(struct expression *expr)
 		continue;
 print:
 		dbg("%s", show_sm(sm));
-		print_related(sm);
 	} END_FOR_EACH_SM(sm);
 }
 
@@ -1086,7 +1057,6 @@ void check_debug(int id)
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
-	add_function_hook("__smatch_dump_related", &match_dump_related, NULL);
 	add_function_hook("__smatch_compare", &match_compare, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
 	add_function_hook("__smatch_debug_check", &match_debug_check, NULL);

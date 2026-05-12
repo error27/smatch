@@ -48,8 +48,6 @@ static inline void __smatch_buf_size(const void *buf){}
 
 static inline void __smatch_note(const char *note){}
 
-static inline void __smatch_dump_related(void){}
-
 static inline void __smatch_compare(long long one, long long two){}
 #define __smatch_compare(x, y) __smatch_compare(cast_ptr(x), cast_ptr(y))
 

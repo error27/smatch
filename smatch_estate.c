@@ -34,7 +34,6 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 {
 	struct smatch_state *tmp;
 	struct range_list *value_ranges;
-	struct related_list *rlist;
 	bool capped = false;
 
 	if (estates_equiv(s1, s2))
@@ -42,8 +41,6 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 	value_ranges = rl_union(estate_rl(s1), estate_rl(s2));
 	tmp = alloc_estate_rl(value_ranges);
-	rlist = get_shared_relations(estate_related(s1), estate_related(s2));
-	set_related(tmp, rlist);
 
 	if ((estate_has_hard_max(s1) && (!estate_rl(s2) || estate_has_hard_max(s2))) ||
 	    (estate_has_hard_max(s2) && (!estate_rl(s1) || estate_has_hard_max(s1))))
@@ -86,13 +83,6 @@ struct range_list *estate_rl(struct smatch_state *state)
 	if (!state)
 		return NULL;
 	return get_dinfo(state)->value_ranges;
-}
-
-struct related_list *estate_related(struct smatch_state *state)
-{
-	if (!state)
-		return NULL;
-	return get_dinfo(state)->related;
 }
 
 sval_t estate_get_fuzzy_max(struct smatch_state *state)
@@ -237,39 +227,12 @@ struct symbol *estate_type(struct smatch_state *state)
 	return rl_max(estate_rl(state)).type;
 }
 
-static int rlists_equiv(struct related_list *one, struct related_list *two)
-{
-	struct relation *one_rel;
-	struct relation *two_rel;
-
-	PREPARE_PTR_LIST(one, one_rel);
-	PREPARE_PTR_LIST(two, two_rel);
-	for (;;) {
-		if (!one_rel && !two_rel)
-			return 1;
-		if (!one_rel || !two_rel)
-			return 0;
-		if (one_rel->sym != two_rel->sym)
-			return 0;
-		if (strcmp(one_rel->name, two_rel->name))
-			return 0;
-		NEXT_PTR_LIST(one_rel);
-		NEXT_PTR_LIST(two_rel);
-	}
-	FINISH_PTR_LIST(two_rel);
-	FINISH_PTR_LIST(one_rel);
-
-	return 1;
-}
-
 int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 {
 	if (!one || !two)
 		return 0;
 	if (one == two)
 		return 1;
-	if (!rlists_equiv(estate_related(one), estate_related(two)))
-		return 0;
 	if (estate_capped(one) != estate_capped(two))
 		return 0;
 	if (estate_treat_untagged(one) != estate_treat_untagged(two))
@@ -296,8 +259,6 @@ int estate_is_empty(struct smatch_state *state)
 int estate_is_unknown(struct smatch_state *state)
 {
 	if (!estate_is_whole(state))
-		return 0;
-	if (estate_related(state))
 		return 0;
 	if (estate_has_fuzzy_max(state))
 		return 0;
@@ -350,7 +311,6 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
-	ret->related = clone_related_list(dinfo->related);
 	ret->value_ranges = clone_rl(dinfo->value_ranges);
 	ret->hard_max = dinfo->hard_max;
 	ret->fuzzy_max = dinfo->fuzzy_max;
@@ -380,7 +340,6 @@ struct smatch_state *clone_partial_estate(struct smatch_state *state, struct ran
 	rl = cast_rl(estate_type(state), rl);
 
 	ret = alloc_estate_rl(rl);
-	set_related(ret, clone_related_list(estate_related(state)));
 	if (estate_has_hard_max(state))
 		estate_set_hard_max(ret);
 	if (estate_has_fuzzy_max(state))
@@ -492,7 +451,6 @@ struct data_info *clone_dinfo_perm(struct data_info *dinfo)
 
 	ret = malloc(sizeof(*ret));
 	memset(ret, 0, sizeof(*ret));
-	ret->related = NULL;
 	ret->value_ranges = clone_rl_permanent(dinfo->value_ranges);
 	ret->hard_max = 0;
 	ret->fuzzy_max = dinfo->fuzzy_max;

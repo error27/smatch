@@ -736,15 +736,7 @@ static int is_merged_expr(struct expression  *expr)
 
 static void delete_gate_sm_equiv(struct stree **stree, const char *name, struct symbol *sym)
 {
-	struct smatch_state *state;
-	struct relation *rel;
-
-	state = get_state(SMATCH_EXTRA, name, sym);
-	if (!state)
-		return;
-	FOR_EACH_PTR(estate_related(state), rel) {
-		delete_state_stree(stree, SMATCH_EXTRA, rel->name, rel->sym);
-	} END_FOR_EACH_PTR(rel);
+	/* FIXME: this was related stuff */
 }
 
 static void delete_gate_sm(struct stree **stree, const char *name, struct symbol *sym)
