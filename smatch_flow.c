@@ -946,12 +946,11 @@ static int is_forever_loop(struct statement *stmt)
 	return 0;
 }
 
-static int loop_num;
-static char *get_loop_name(int num)
+static char *get_loop_name(struct statement *stmt)
 {
 	char buf[256];
 
-	snprintf(buf, 255, "-loop%d", num);
+	snprintf(buf, 255, "loop:%d:%p", stmt->pos.line, stmt);
 	buf[255] = '\0';
 	return alloc_sname(buf);
 }
@@ -1102,8 +1101,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	__push_scope_hooks();
 
-	loop_name = get_loop_name(loop_num);
-	loop_num++;
+	loop_name = get_loop_name(stmt);
 
 	split_declaration(stmt->iterator_syms);
 	if (stmt->iterator_pre_statement) {
@@ -1204,8 +1202,7 @@ static void handle_post_loop(struct statement *stmt)
 {
 	char *loop_name;
 
-	loop_name = get_loop_name(loop_num);
-	loop_num++;
+	loop_name = get_loop_name(stmt);
 	loop_count++;
 
 	__pass_to_client(stmt, POSTLOOP_HOOK);
@@ -2301,14 +2298,12 @@ static void split_function(struct symbol *sym)
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;
 	__unnullify_path();
-	loop_num = 0;
 	final_pass = 0;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	do_scope_hooks();
 	nullify_path();
 	__unnullify_path();
-	loop_num = 0;
 	final_pass = 1;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
@@ -2342,7 +2337,6 @@ static void save_flow_state(void)
 {
 	unsigned long *tmp;
 
-	__add_ptr_list(&backup, INT_PTR(loop_num << 2));
 	__add_ptr_list(&backup, INT_PTR(loop_count << 2));
 	__add_ptr_list(&backup, INT_PTR(final_pass << 2));
 
@@ -2394,7 +2388,6 @@ static void restore_flow_state(void)
 	big_statement_stack = pop_backup();
 	final_pass = PTR_INT(pop_backup()) >> 2;
 	loop_count = PTR_INT(pop_backup()) >> 2;
-	loop_num = PTR_INT(pop_backup()) >> 2;
 }
 
 static void parse_inline(struct expression *call)
@@ -2439,7 +2432,6 @@ static void parse_inline(struct expression *call)
 	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	clear_function_data();
-	loop_num = 0;
 	loop_count = 0;
 	start_function_definition(call->fn->symbol);
 	parse_fn_statements(base_type);
