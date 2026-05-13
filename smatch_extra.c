@@ -496,6 +496,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 	if (new_name && new_sym)
 		set_extra_nomod_helper(new_name, new_sym, expr, state);
 	free_string(new_name);
+	set_extra_nomod_helper(name, sym, expr, state);
 }
 
 void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct expression *expr, struct smatch_state *state)
@@ -549,6 +550,7 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	if (new_name && new_sym)
 		set_extra_true_false_helper(new_name, new_sym, expr, true_state, false_state);
 	free_string(new_name);
+	set_extra_true_false_helper(name, sym, expr, true_state, false_state);
 }
 
 static void set_extra_true_false_states_expr(struct expression *expr,
