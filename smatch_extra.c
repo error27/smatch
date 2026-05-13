@@ -1126,17 +1126,21 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	struct smatch_state *state;
 	int comparison;
 
+	/* foo = bar gets translated into foo.a = bar.a */
 	if (is_struct(left))
 		return;
 
+	/* ignore "foo = foo" */
 	if (expr_equiv(left, right))
 		return;
 
+	/* ignore foo[] = bar[] */
 	left_type = get_type(left);
 	right_type = get_type(right);
 	if (left_type && left_type->type == SYM_ARRAY)
 		return;
 
+	/* change "foo = 100 - offset" into "foo + offset == 100". */
 	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
