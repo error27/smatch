@@ -245,6 +245,8 @@ int estates_equiv(struct smatch_state *one, struct smatch_state *two)
 		return 0;
 	if (estate_new(one) != estate_new(two))
 		return 0;
+	if (get_essa(one) != get_essa(two))
+		return false;
 	if (strcmp(one->name, two->name) == 0)
 		return 1;
 	return 0;
