@@ -30,6 +30,8 @@
 #include "smatch_slist.h"
 #include "smatch_extra.h"
 
+static int my_id;
+
 struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state *s2)
 {
 	struct smatch_state *tmp;
@@ -311,6 +313,7 @@ static struct data_info *clone_dinfo(struct data_info *dinfo)
 	struct data_info *ret;
 
 	ret = alloc_dinfo();
+	ret->essa = dinfo->essa;
 	ret->value_ranges = clone_rl(dinfo->value_ranges);
 	ret->hard_max = dinfo->hard_max;
 	ret->fuzzy_max = dinfo->fuzzy_max;
@@ -346,6 +349,120 @@ struct smatch_state *clone_partial_estate(struct smatch_state *state, struct ran
 		estate_set_fuzzy_max(ret, estate_get_fuzzy_max(state));
 
 	return ret;
+}
+
+static struct stree *essa_links;
+
+static void add_essa_list(const char *essa_name, const char *name, struct symbol *sym)
+{
+	struct var_sym *vs = alloc_var_sym(name, sym);
+	struct smatch_state *state;
+	struct var_sym_list *vs_list;
+
+	state = get_state_stree(essa_links, my_id, essa_name, NULL);
+	if (!state) {
+		state = __alloc_smatch_state(0);
+		state->name = alloc_sname(name);
+	}
+
+	vs_list = state->data;
+	add_ptr_list(&vs_list, vs);
+	state->data = vs_list;
+	set_state_stree(&essa_links, my_id, essa_name, NULL, state);
+}
+
+struct var_sym_list *get_essa_list(struct smatch_state *state)
+{
+	struct smatch_state *essa_state;
+
+	if (!essa_name(state))
+		return NULL;
+
+	essa_state = get_state_stree(essa_links, my_id, essa_name(state), NULL);
+	if (!essa_state) {
+		sm_perror("untracked ssa: %s", essa_name(state));
+		return NULL;
+	}
+
+	return essa_state->data;
+}
+
+ALLOCATOR(essa_link, "essa data");
+static unsigned long essa_id;
+char *alloc_essa_name(const char *name, struct smatch_state *estate)
+{
+	char buf[64];
+
+	snprintf(buf, sizeof(buf), "%s:%ld", name, essa_id++);
+	return alloc_sname(buf);
+}
+
+struct essa_link *alloc_essa_link(const char *essa_name, const char *name, struct symbol *sym, struct symbol *type)
+{
+	struct essa_link *ret;
+
+	ret = __alloc_essa_link(0);
+	ret->name = essa_name;
+	ret->fits = true;  /* When we're allocating a new essa it always fits */
+	add_ptr_list(&ret->casts, type);
+	add_essa_list(essa_name, name, sym);
+
+	return ret;
+}
+
+struct essa_link *add_essa_link(struct essa_link *link, const char *name, struct symbol *sym, struct symbol *type)
+{
+	struct essa_link *ret;
+
+	ret = __alloc_essa_link(0);
+	ret->name = link->name;
+	ret->casts = link->casts;
+	add_ptr_list(&ret->casts, type);
+	add_essa_list(link->name, name, sym);
+
+	return ret;
+}
+
+const char *essa_name(struct smatch_state *state)
+{
+	struct data_info *dinfo;
+
+	if (!state)
+		return NULL;
+	dinfo = state->data;
+	if (!dinfo || !dinfo->essa)
+		return NULL;
+	return dinfo->essa->name;
+}
+
+bool essa_fits(struct smatch_state *state)
+{
+	struct data_info *dinfo;
+
+	if (!state || !state->data)
+		return NULL;
+	dinfo = state->data;
+	return dinfo->essa->fits;
+}
+
+void set_essa(struct smatch_state *state, struct essa_link *essa)
+{
+	struct data_info *dinfo;
+
+	if (!state || !state->data)
+		return;
+	dinfo = state->data;
+	dinfo->essa = essa;
+}
+
+struct essa_link *get_essa(struct smatch_state *state)
+{
+	struct data_info *dinfo;
+
+	if (!state || !state->data)
+		return NULL;
+	dinfo = state->data;
+	return dinfo->essa;
 }
 
 struct smatch_state *alloc_estate_empty(void)
@@ -466,4 +583,20 @@ struct smatch_state *clone_estate_perm(struct smatch_state *state)
 	return ret;
 }
 
+static void free_essa_data(struct symbol *sym)
+{
+	free_stree(&essa_links);
+
+	if (__inline_fn)
+		return;
+	clear_essa_link_alloc();
+}
+
+void smatch_estate(int id)
+{
+	my_id = id;
+
+	add_function_data((unsigned long *)&essa_links);
+	add_hook(&free_essa_data, AFTER_FUNC_HOOK);
+}
 

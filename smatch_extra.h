@@ -18,8 +18,15 @@
 DECLARE_PTR_LIST(range_list, struct data_range);
 DECLARE_PTR_LIST(range_list_stack, struct range_list);
 
+struct essa_link {
+	const char *name;
+	struct symbol_list *casts;
+	bool fits;
+};
+
 struct data_info {
 	struct range_list *value_ranges;
+	struct essa_link *essa;
 	sval_t fuzzy_max;
 	unsigned int hard_max:1;
 	unsigned int capped:1;
@@ -117,6 +124,14 @@ void free_all_rl(void);
 
 /* smatch_estate.c */
 
+struct var_sym_list *get_essa_list(struct smatch_state *state);
+char *alloc_essa_name(const char *name, struct smatch_state *estate);
+struct essa_link *alloc_essa_link(const char *essa_name, const char *name, struct symbol *sym, struct symbol *type);
+struct essa_link *add_essa_link(struct essa_link *link, const char *name, struct symbol *sym, struct symbol *type);
+const char *essa_name(struct smatch_state *state);
+bool essa_fits(struct smatch_state *state);
+void set_essa(struct smatch_state *state, struct essa_link *essa);
+struct essa_link *get_essa(struct smatch_state *state);
 struct smatch_state *alloc_estate_empty(void);
 struct smatch_state *alloc_estate_sval(sval_t sval);
 struct smatch_state *alloc_estate_range(sval_t min, sval_t max);

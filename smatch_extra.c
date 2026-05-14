@@ -480,22 +480,51 @@ free:
 	free_string(name);
 }
 
+static void update_essa_state_nomod(struct expression *expr, struct smatch_state *old_state, struct smatch_state *new_state, struct smatch_state *true_state, struct smatch_state *false_state)
+{
+	struct smatch_state *other, *clone, *t_clone, *f_clone;
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+
+	if (!essa_fits(old_state))
+		return;
+
+	vsl = get_essa_list(old_state);
+	FOR_EACH_PTR(vsl, vs) {
+		other = get_state(SMATCH_EXTRA, vs->var, vs->sym);
+		if (!other || !essa_name(other) ||
+		    strcmp(essa_name(other), essa_name(old_state)) != 0)
+			continue;
+
+		if (new_state) {
+			clone = clone_estate_cast(estate_type(other), new_state);
+			set_essa(clone, get_essa(old_state));
+			set_extra_nomod_helper(vs->var, vs->sym, expr, clone);
+		} else {
+			t_clone = clone_estate_cast(estate_type(other), true_state);
+			set_essa(t_clone, get_essa(old_state));
+			f_clone = clone_estate_cast(estate_type(other), false_state);
+			set_essa(f_clone, get_essa(old_state));
+			set_extra_true_false_helper(vs->var, vs->sym, expr, t_clone, f_clone);
+		}
+	} END_FOR_EACH_PTR(vs);
+}
+
 void set_extra_nomod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	char *new_name;
-	struct symbol *new_sym;
 	struct smatch_state *orig_state;
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
-	/* don't save unknown states if leaving it blank is the same */
+	/* don't save unknown states if leaving it blank is the same. */
 	if (!orig_state && estate_is_unknown(state))
 		return;
 
-	new_name = get_other_name_sym(name, sym, &new_sym);
-	if (new_name && new_sym)
-		set_extra_nomod_helper(new_name, new_sym, expr, state);
-	free_string(new_name);
+	if (essa_name(orig_state)) {
+		update_essa_state_nomod(expr, orig_state, state, NULL, NULL);
+		return;
+	}
+
 	set_extra_nomod_helper(name, sym, expr, state);
 }
 
@@ -537,8 +566,7 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)
 {
-	char *new_name;
-	struct symbol *new_sym;
+	struct smatch_state *orig_state;
 
 	if (!true_state && !false_state)
 		return;
@@ -546,10 +574,12 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	if (in_ignored_macro())
 		return;
 
-	new_name = get_other_name_sym(name, sym, &new_sym);
-	if (new_name && new_sym)
-		set_extra_true_false_helper(new_name, new_sym, expr, true_state, false_state);
-	free_string(new_name);
+	orig_state = get_state(SMATCH_EXTRA, name, sym);
+	if (essa_name(orig_state)) {
+		update_essa_state_nomod(expr, orig_state, NULL, true_state, false_state);
+		return;
+	}
+
 	set_extra_true_false_helper(name, sym, expr, true_state, false_state);
 }
 
@@ -1045,6 +1075,21 @@ static void match_function_call(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static bool type_fits_rl(struct symbol *type, struct range_list *rl)
+{
+	if (type_bits(type) >= type_bits(rl_type(rl)))
+		return true;
+	if (sval_is_negative(rl_min(rl))) {
+		if (type_unsigned(type))
+			return false;
+		if (sval_cmp(sval_type_min(type), rl_min(rl)) > 0)
+			return false;
+	}
+	if (sval_cmp(sval_type_max(type), rl_max(rl)) < 0)
+		return false;
+	return true;
+}
+
 int values_fit_type(struct expression *left, struct expression *right)
 {
 	struct range_list *rl;
@@ -1114,6 +1159,45 @@ static void do_array_assign(struct expression *left, int op, struct expression *
 	set_extra_array_mod(left, alloc_estate_rl(rl));
 }
 
+static void handle_var_to_var_assign(struct expression *left, struct expression *right)
+{
+	struct smatch_state *left_state, *right_state;
+	struct symbol *left_type, *right_type;
+	struct data_info *l_dinfo, *r_dinfo;
+	char *left_name, *right_name;
+	struct symbol *left_sym, *right_sym;
+
+	left_name = expr_to_var_sym(left, &left_sym);
+	right_name = expr_to_var_sym(right, &right_sym);
+	/* The caller ensures these are all set so no need to check */
+	/* (But whatever.  Check again) */
+	if (!left_name || !right_name || !left_sym || !right_sym)
+		return;
+
+	left_type = get_type(left);
+	right_type = get_type(right);
+
+	right_state = get_state(my_id, right_name, right_sym);
+	if (!right_state)
+		right_state = alloc_estate_whole(right_type);
+
+	r_dinfo = right_state->data;
+	if (!r_dinfo->essa) {
+		const char *essa_name;
+
+		essa_name = alloc_essa_name(right_name, right_state);
+		r_dinfo->essa = alloc_essa_link(essa_name, right_name, right_sym, right_type);
+		set_state(SMATCH_EXTRA, right_name, right_sym, right_state);
+	}
+
+	left_state = clone_estate_cast(left_type, right_state);
+	l_dinfo = left_state->data;
+	l_dinfo->essa = add_essa_link(r_dinfo->essa, left_name, left_sym, left_type);
+	if (type_fits_rl(left_type, estate_rl(right_state)))
+		l_dinfo->essa->fits = true;
+	set_extra_mod(left_name, left_sym, left, left_state);
+}
+
 static void match_vanilla_assign(struct expression *left, struct expression *right)
 {
 	struct range_list *orig_rl = NULL;
@@ -1121,8 +1205,8 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	struct symbol *right_sym;
 	struct symbol *left_type;
 	struct symbol *right_type;
-	char *right_name = NULL;
 	struct symbol *sym;
+	char *right_name;
 	char *name;
 	sval_t sval, max;
 	struct smatch_state *state;
@@ -1153,13 +1237,10 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	}
 
 	right_name = expr_to_var_sym(right, &right_sym);
-
-	if (!__in_fake_assign &&
-	    !(right->type == EXPR_PREOP && right->op == '&') &&
-	    right_name && right_sym &&
-	    values_fit_type(left, strip_expr(right)) &&
-	    !has_symbol(right, sym)) {
-		/* FIXME: this was related stuff */
+	if (right_name && right_sym) {
+		handle_var_to_var_assign(left, right);
+		free_string(right_name);
+		return;
 	}
 
 	if (get_implied_value(right, &sval)) {
@@ -1168,14 +1249,7 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	}
 
 	if (__in_fake_assign || is_fake_var(left)) {
-		struct smatch_state *right_state;
 		struct range_list *rl;
-
-		right_state = get_state(SMATCH_EXTRA, right_name, right_sym);
-		if (right_state) {
-			state = clone_estate_cast(left_type, right_state);
-			goto done;
-		}
 
 		if (get_implied_rl(right, &rl)) {
 			rl = cast_rl(left_type, rl);
@@ -1214,7 +1288,6 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 
 done:
 	set_extra_mod(name, sym, left, state);
-	free_string(right_name);
 }
 
 static struct range_list *get_special_assign_rl(struct expression *expr)
