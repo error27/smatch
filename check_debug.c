@@ -604,7 +604,6 @@ static void match_local_debug_on(const char *fn, struct expression *expr, void *
 
 static void match_local_debug_off(const char *fn, struct expression *expr, void *info)
 {
-	option_print_names--;
 	local_debug = 0;
 }
 
