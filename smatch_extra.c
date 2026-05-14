@@ -1166,7 +1166,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	struct data_info *l_dinfo, *r_dinfo;
 	char *left_name, *right_name;
 	struct symbol *left_sym, *right_sym;
-	struct sm_state *right_sm;
+	struct sm_state *right_sm, *left_sm;
 
 	left_name = expr_to_var_sym(left, &left_sym);
 	right_name = expr_to_var_sym(right, &right_sym);
@@ -1204,7 +1204,15 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	l_dinfo->essa = add_essa_link(r_dinfo->essa, left_name, left_sym, left_type);
 	if (essa_fits(right_state) && type_fits_rl(left_type, estate_rl(right_state)))
 		l_dinfo->essa->fits = true;
-	set_extra_mod(left_name, left_sym, left, left_state);
+	if (type_fits_rl(left_type, estate_rl(right_state)) && right_sm) {
+		left_sm = clone_sm(right_sm);
+		left_sm->name = alloc_string(left_name);
+		left_sm->sym = left_sym;
+		left_sm->state = left_state;
+		__set_sm(left_sm);
+	} else {
+		set_extra_mod(left_name, left_sym, left, left_state);
+	}
 }
 
 static void match_vanilla_assign(struct expression *left, struct expression *right)
