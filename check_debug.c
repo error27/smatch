@@ -556,6 +556,7 @@ static void match_compare(const char *fn, struct expression *expr, void *info)
 static void match_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 1;
+	local_debug++;
 }
 
 static void match_debug_check(const char *fn, struct expression *expr, void *info)
@@ -585,6 +586,7 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 	option_debug_check = NULL;
 	option_debug_var = NULL;
 	option_debug = 0;
+	local_debug--;
 	cur_state_cnt = 0;
 	print_state_cnt = false;
 }
