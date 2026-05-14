@@ -69,6 +69,8 @@ struct smatch_state *merge_estates(struct smatch_state *s1, struct smatch_state 
 
 	if (estate_new(s1) || estate_new(s2))
 		estate_set_new(tmp);
+	if (get_essa(s1) == get_essa(s2))
+		set_essa(tmp, get_essa(s1));
 
 	return tmp;
 }
