@@ -498,13 +498,13 @@ static void update_essa_state_nomod(struct expression *expr, struct smatch_state
 
 		if (new_state) {
 			clone = clone_estate_cast(estate_type(other), new_state);
-			set_essa(clone, get_essa(old_state));
+			set_essa(clone, get_essa(other));
 			set_extra_nomod_helper(vs->var, vs->sym, expr, clone);
 		} else {
 			t_clone = clone_estate_cast(estate_type(other), true_state);
-			set_essa(t_clone, get_essa(old_state));
+			set_essa(t_clone, get_essa(other));
 			f_clone = clone_estate_cast(estate_type(other), false_state);
-			set_essa(f_clone, get_essa(old_state));
+			set_essa(f_clone, get_essa(other));
 			set_extra_true_false_helper(vs->var, vs->sym, expr, t_clone, f_clone);
 		}
 	} END_FOR_EACH_PTR(vs);
