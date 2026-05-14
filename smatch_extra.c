@@ -1193,7 +1193,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	left_state = clone_estate_cast(left_type, right_state);
 	l_dinfo = left_state->data;
 	l_dinfo->essa = add_essa_link(r_dinfo->essa, left_name, left_sym, left_type);
-	if (type_fits_rl(left_type, estate_rl(right_state)))
+	if (essa_fits(right_state) && type_fits_rl(left_type, estate_rl(right_state)))
 		l_dinfo->essa->fits = true;
 	set_extra_mod(left_name, left_sym, left, left_state);
 }
