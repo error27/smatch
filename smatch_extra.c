@@ -1179,10 +1179,14 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	right_type = get_type(right);
 
 	right_sm = get_sm_state(my_id, right_name, right_sym);
-	if (right_sm)
+	if (right_sm) {
 		right_state = right_sm->state;
-	else
-		right_state = alloc_estate_whole(right_type);
+	} else {
+		struct range_list *rl;
+
+		get_absolute_rl(right, &rl);
+		right_state = alloc_estate_rl(rl);
+	}
 
 	r_dinfo = right_state->data;
 	if (!r_dinfo->essa) {
