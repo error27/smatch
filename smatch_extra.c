@@ -1166,6 +1166,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	struct data_info *l_dinfo, *r_dinfo;
 	char *left_name, *right_name;
 	struct symbol *left_sym, *right_sym;
+	struct sm_state *right_sm;
 
 	left_name = expr_to_var_sym(left, &left_sym);
 	right_name = expr_to_var_sym(right, &right_sym);
@@ -1177,8 +1178,10 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	left_type = get_type(left);
 	right_type = get_type(right);
 
-	right_state = get_state(my_id, right_name, right_sym);
-	if (!right_state)
+	right_sm = get_sm_state(my_id, right_name, right_sym);
+	if (right_sm)
+		right_state = right_sm->state;
+	else
 		right_state = alloc_estate_whole(right_type);
 
 	r_dinfo = right_state->data;
@@ -1187,7 +1190,13 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 
 		essa_name = alloc_essa_name(right_name, right_state);
 		r_dinfo->essa = alloc_essa_link(essa_name, right_name, right_sym, right_type);
-		set_state(SMATCH_EXTRA, right_name, right_sym, right_state);
+		if (right_sm) {
+			right_sm = clone_sm(right_sm);
+			right_sm->state = right_state;
+			__set_sm(right_sm);
+		} else {
+			set_state(SMATCH_EXTRA, right_name, right_sym, right_state);
+		}
 	}
 
 	left_state = clone_estate_cast(left_type, right_state);
