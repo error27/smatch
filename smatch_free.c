@@ -64,7 +64,7 @@ static struct func_info func_table[] = {
 	{ "kfree_skb", FREED, 0, "$" },
 	{ "kmem_cache_free", FREED, 1, "$" },
 	{ "kobject_put", FREED, 0, "$", NULL, NULL, &match_kobject_put },
-	{ "kvfree_call_rcu", FREED, 1, "$" },
+	{ "kvfree_call_rcu", MAYBE_FREED, 1, "$" },
 	{ "kvfree", FREED, 0, "$" },
 	{ "kzfree", FREED, 0, "$" },
 	{ "mempool_free", FREED, 0, "$" },
@@ -234,10 +234,13 @@ void smatch_free(int id)
 	}
 
 	for (info = &free_table[0]; info->name; info++) {
-		if (info->call_back)
+		if (info->call_back) {
 			cb = info->call_back;
-		else
+		} else if (info->type == MAYBE_FREED) {
+			cb = &set_param_maybe_freed;
+		} else {
 			cb = &set_param_freed;
+		}
 
 		if (info->implies_start) {
 			return_implies_param_key(info->name,
