@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
+#include "smatch_extra.h"
 #include "smatch_slist.h"
 
 #undef CHECKORDER
@@ -41,9 +42,11 @@ const char *show_sm(struct sm_state *sm)
 	if (!sm)
 		return "<none>";
 
-	pos = snprintf(buf, sizeof(buf), "[%s] %s %p = '%s'%s",
+	pos = snprintf(buf, sizeof(buf), "[%s] %s %p = '%s'%s%s%s",
 		       check_name(sm->owner), sm->name, sm->sym, show_state(sm->state),
-		       sm->merged ? " [merged]" : "");
+		       sm->merged ? " [merged]" : "",
+		       (sm->owner == SMATCH_EXTRA) ? " essa:" : "",
+		       (sm->owner == SMATCH_EXTRA) ? essa_name(sm->state): "");
 	if (pos > sizeof(buf))
 		goto truncate;
 
