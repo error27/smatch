@@ -1133,8 +1133,10 @@ static void handle_pre_loop(struct statement *stmt)
 		set_state(sm->owner, sm->name, sm->sym, sm->state);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&stree);
-	if (extra_sm)
+	if (extra_sm) {
 		extra_sm = get_sm_state(extra_sm->owner, extra_sm->name, extra_sm->sym);
+		extra_sm = __set_essa(extra_sm);
+	}
 
 	__split_stmt(stmt->iterator_statement);
 	if (is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement)) {

@@ -1169,6 +1169,26 @@ static void do_array_assign(struct expression *left, int op, struct expression *
 	set_extra_array_mod(left, alloc_estate_rl(rl));
 }
 
+struct sm_state *__set_essa(struct sm_state *sm)
+{
+	struct data_info *dinfo;
+	const char *essa_name;
+
+	if (!sm)
+		return NULL;
+	if (get_essa(sm->state))
+		return sm;
+
+	sm = clone_sm(sm);
+	sm->state = clone_estate(sm->state);
+	dinfo = sm->state->data;
+	essa_name = alloc_essa_name(sm->name, sm->state);
+	dinfo->essa = alloc_essa_link(essa_name, sm->name, sm->sym,
+				      estate_type(sm->state));
+	__set_sm(sm);
+	return sm;
+}
+
 static void handle_var_to_var_assign(struct expression *left, struct expression *right)
 {
 	struct smatch_state *left_state, *right_state;
