@@ -1219,6 +1219,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	if (essa_fits(right_state) && type_fits_rl(left_type, estate_rl(right_state)))
 		l_dinfo->essa->fits = true;
 	if (type_fits_rl(left_type, estate_rl(right_state)) && right_sm) {
+		set_extra_mod(left_name, left_sym, left, left_state);
 		left_sm = clone_sm(right_sm);
 		left_sm->name = alloc_string(left_name);
 		left_sm->sym = left_sym;
