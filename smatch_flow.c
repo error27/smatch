@@ -2408,7 +2408,6 @@ static void parse_inline(struct expression *call)
 
 	gettimeofday(&fn_start_time, NULL);
 	__pass_to_client(call, INLINE_FN_START);
-	final_pass = 1;
 	silence_output++; /* don't print inline things by default */
 	__inline_fn = call;
 	orig_budget = inline_budget;

@@ -294,7 +294,7 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 	if (key && strlen(key) >= 80)
 		return;
 	if (__inline_fn)
-		id = (unsigned long)__inline_fn;
+		id = (unsigned long)__inline_fn + final_pass;
 	else
 		id = __fn_mtag;
 
@@ -348,7 +348,7 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (__inline_call) {
 		mem_sql(NULL, NULL,
 			"insert into caller_info values (0x%llx, '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
-			get_base_file_id(), get_function(), fn, (unsigned long)call,
+			get_base_file_id(), get_function(), fn, (unsigned long)call + final_pass,
 			is_static(call->fn), type, param, key, value);
 	}
 
@@ -384,7 +384,7 @@ void sql_insert_return_implies(int type, int param, const char *key, const char 
 		return;
 
 	if (__inline_fn)
-		id = (unsigned long)__inline_fn;
+		id = (unsigned long)__inline_fn + final_pass;
 	else
 		id = __fn_mtag;
 
@@ -396,7 +396,8 @@ void sql_insert_return_implies(int type, int param, const char *key, const char 
 void sql_insert_call_implies(int type, int param, const char *key, const char *value)
 {
 	sql_insert_or_ignore(call_implies, "0x%llx, '%s', %lu, %d, %d, %d, '%s', '%s'",
-		get_base_file_id(), get_function(), (unsigned long)__inline_fn,
+		get_base_file_id(), get_function(),
+		(unsigned long)__inline_fn + final_pass,
 		fn_static(), type, param, key, value);
 }
 
@@ -708,7 +709,7 @@ void sql_select_return_states(const char *cols, struct expression *call,
 	if (inlinable(fn)) {
 		mem_sql(callback, info,
 			"select %s from return_states where call_id = '%lu' order by return_id, type;",
-			cols, (unsigned long)call);
+			cols, (unsigned long)call + final_pass);
 		return;
 	}
 
@@ -756,7 +757,7 @@ void sql_select_implies(const char *cols, struct implies_info *info,
 	if (info->type == RETURN_IMPLIES && inlinable(info->expr->fn)) {
 		mem_sql(callback, info,
 			"select %s from return_implies where call_id = '%lu';",
-			cols, (unsigned long)info->expr);
+			cols, (unsigned long)info->expr + final_pass);
 		return;
 	}
 
@@ -794,7 +795,7 @@ static void sql_select_caller_info(struct select_caller_info_data *data,
 	if (__inline_fn) {
 		mem_sql(caller_info_callback, data,
 			"select %s from caller_info where call_id = %lu;",
-			cols, (unsigned long)__inline_fn);
+			cols, (unsigned long)__inline_fn + final_pass);
 		return;
 	}
 
@@ -980,7 +981,7 @@ struct range_list *db_return_vals(struct expression *expr)
 	if (inlinable(expr->fn)) {
 		mem_sql(db_return_callback, &ret_info,
 			"select distinct return from return_states where call_id = '%lu';",
-			(unsigned long)expr);
+			(unsigned long)expr + final_pass);
 	} else {
 		run_sql(db_return_callback, &ret_info,
 			"select distinct return from return_states where %s;",
