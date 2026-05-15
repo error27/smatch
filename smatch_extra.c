@@ -1643,8 +1643,8 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	struct statement *stmt;
 	struct expression *cond;
 	struct smatch_state *true_state, *false_state;
+	struct range_list *start_rl;
 	struct symbol *type;
-	sval_t start;
 	sval_t limit;
 
 	/*
@@ -1671,13 +1671,13 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	if (left != strip_expr(cond->left) || right != strip_expr(cond->right))
 		return 0;
 
-	if (!get_implied_value(left->unop, &start))
+	if (!get_implied_rl(left->unop, &start_rl))
 		return 0;
 	if (!get_implied_value(right, &limit))
 		return 0;
 	type = get_type(left->unop);
 	limit = sval_cast(type, limit);
-	if (sval_cmp(start, limit) > 0)
+	if (sval_cmp(rl_max(start_rl), limit) > 0)
 		return 0;
 
 	switch (op) {
@@ -1692,7 +1692,7 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 
 	}
 
-	true_state = alloc_estate_range(add_one(start), limit);
+	true_state = alloc_estate_range(add_one(rl_max(start_rl)), limit);
 	false_state = alloc_estate_range(add_one(limit), add_one(limit));
 
 	/* Currently we just discard the false state but when two passes is

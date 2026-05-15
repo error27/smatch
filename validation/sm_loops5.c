@@ -7,7 +7,7 @@ void test(void)
 {
 	a = 0;
 	do {
-		frob();
+		__smatch_implied(a);
 	} while (a++ < 3);
 	__smatch_implied(a);
 }
@@ -16,6 +16,7 @@ void test(void)
  * check-command: smatch -I.. sm_loops5.c
  *
  * check-output-start
+sm_loops5.c:10 test() implied: a = '0-3'
 sm_loops5.c:12 test() implied: a = '4'
  * check-output-end
  */
