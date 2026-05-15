@@ -379,8 +379,7 @@ int main(int argc, char **argv)
 	if (argc < 2)
 		help();
 
-	/* this gets set back to zero when we parse the first function */
-	final_pass = 1;
+	output_enabled = 1;
 
 	bin_dir = get_bin_dir(argv[0]);
 	data_dir = get_data_dir(argv[0]);

@@ -41,7 +41,7 @@ static inline bool enable_debug_output(void)
 		return true;
 	if (silence_output)
 		return false;
-	if (final_pass || debug_passes)
+	if (output_enabled || debug_passes)
 		return true;
 	return false;
 }

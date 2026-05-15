@@ -1215,15 +1215,15 @@ void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool
 
 int assume(struct expression *expr)
 {
-	int orig_final_pass = final_pass;
+	int output_enabled_orig = output_enabled;
 
 	in_fake_env++;
-	final_pass = 0;
+	output_enabled = 0;
 	silence_output++;
 	__push_fake_cur_stree();
 	__split_whole_condition(expr);
 	silence_output--;
-	final_pass = orig_final_pass;
+	output_enabled = output_enabled_orig;
 	in_fake_env--;
 
 	return 1;

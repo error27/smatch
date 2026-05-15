@@ -1804,7 +1804,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 
 static bool call_return_state_hooks_conditional(struct expression *expr)
 {
-	int final_pass_orig = final_pass;
+	int output_enabled_orig = output_enabled;
 	static int recurse;
 	sval_t sval;
 
@@ -1830,9 +1830,9 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 
 	__push_fake_cur_stree();
 
-	final_pass = 0;
+	output_enabled = 0;
 	__split_whole_condition(expr->conditional);
-	final_pass = final_pass_orig;
+	output_enabled = output_enabled_orig;
 
 	call_return_state_hooks(expr->cond_true ?: expr->conditional);
 
@@ -1927,7 +1927,7 @@ static void call_return_state_hooks_compare(struct expression *expr)
 {
 	struct expression *fake;
 	char *return_ranges;
-	int final_pass_orig = final_pass;
+	int output_enabled_orig = output_enabled;
 	sval_t sval = { .type = &int_ctype };
 	sval_t ret;
 
@@ -1946,9 +1946,9 @@ static void call_return_state_hooks_compare(struct expression *expr)
 
 	__push_fake_cur_stree();
 
-	final_pass = 0;
+	output_enabled = 0;
 	__split_whole_condition(expr);
-	final_pass = final_pass_orig;
+	output_enabled = output_enabled_orig;
 
 	if (ret.value != 0) {
 		return_ranges = alloc_sname("1");
@@ -2197,7 +2197,7 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	struct sm_state *sm;
 	struct smatch_state *state;
 	int nr_states;
-	int final_pass_orig = final_pass;
+	int output_enabled_orig = output_enabled;
 
 	if (!expr || expr_equal_to_param(expr, -1))
 		return 0;
@@ -2227,9 +2227,9 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 
 	__push_fake_cur_stree();
 
-	final_pass = 0;
+	output_enabled = 0;
 	__split_whole_condition(expr);
-	final_pass = final_pass_orig;
+	output_enabled = output_enabled_orig;
 
 	nonnull_rl = rl_filter(rl, rl_zero());
 	return_ranges = show_rl(nonnull_rl);
@@ -2323,7 +2323,7 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	struct range_list *zero_rl = NULL;
 	int nr_states;
 	char *return_ranges;
-	int final_pass_orig = final_pass;
+	int output_enabled_orig = output_enabled;
 
 	if (option_project != PROJ_KERNEL)
 		return 0;
@@ -2349,9 +2349,9 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 
 	__push_fake_cur_stree();
 
-	final_pass = 0;
+	output_enabled = 0;
 	__split_whole_condition(tmp_ret);
-	final_pass = final_pass_orig;
+	output_enabled = output_enabled_orig;
 
 	nonzero_rl = rl_filter(rl, rl_zero());
 	nonzero_rl = cast_rl(cur_func_return_type(), nonzero_rl);

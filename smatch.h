@@ -309,6 +309,7 @@ extern int __smatch_lineno;
 int get_lineno(void);
 extern int final_pass;
 extern int force_output;
+extern int output_enabled;
 extern int silence_output;
 extern struct symbol *cur_func_sym;
 extern int option_debug;
@@ -371,7 +372,7 @@ static inline bool __output_enabled(void)
 			return false;
 	}
 
-	if (!final_pass)
+	if (!output_enabled)
 		return false;
 
 	return true;
@@ -433,7 +434,7 @@ static inline void print_implied_debug_msg(void)
 #define db_debug(msg...) do { if (option_debug || debug_db) sm_printf(msg); } while (0)
 
 #define sm_info(msg...) do {					\
-	if (option_debug || (option_info && final_pass)) {	\
+	if (option_debug || (option_info && output_enabled)) {	\
 		sm_prefix();					\
 		sm_printf("info: ");				\
 		sm_printf(msg);					\

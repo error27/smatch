@@ -35,6 +35,7 @@ int __debug_skip;
 int in_fake_env;
 int final_pass;
 int force_output;
+int output_enabled;
 int silence_output;
 int __inline_call;
 bool __reparsing_code;
@@ -1597,14 +1598,13 @@ void __split_stmt(struct statement *stmt)
 		gettimeofday(&start, NULL);
 
 		__bail_on_rest_of_function = 1;
-		final_pass = 1;
 		force_output++;
 		if (option_spammy)
 			sm_perror("Function too hairy.  Giving up. %lu seconds",
 			       start.tv_sec - fn_start_time.tv_sec);
 		fake_a_return();
 		force_output--;
-		final_pass = 0;  /* turn off sm_msg() from here */
+		output_enabled = 0;  /* turn off sm_msg() from here */
 		return;
 	}
 
@@ -2301,12 +2301,14 @@ static void split_function(struct symbol *sym)
 	__stree_id = 0;
 	__unnullify_path();
 	final_pass = 0;
+	output_enabled = 0;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	do_scope_hooks();
 	nullify_path();
 	__unnullify_path();
 	final_pass = 1;
+	output_enabled = 1;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	if (!__path_is_null() &&
@@ -2617,14 +2619,13 @@ static void split_c_file_functions(struct symbol_list *sym_list)
 	__pass_to_client(sym_list, END_FILE_HOOK);
 }
 
-static int final_before_fake;
+static int output_enabled_orig;
 void init_fake_env(void)
 {
 	if (!in_fake_env)
-		final_before_fake = final_pass;
+		output_enabled_orig = output_enabled;
 	in_fake_env++;
 	__push_fake_cur_stree();
-	final_pass = 0;
 }
 
 void end_fake_env(void)
@@ -2632,7 +2633,7 @@ void end_fake_env(void)
 	__free_fake_cur_stree();
 	in_fake_env--;
 	if (!in_fake_env)
-		final_pass = final_before_fake;
+		output_enabled = output_enabled_orig;
 }
 
 static void open_output_files(char *base_file)
@@ -2687,7 +2688,7 @@ void smatch(struct string_list *filelist)
 	gettimeofday(&stop, NULL);
 
 	set_position(last_pos);
-	final_pass = 1;
+	output_enabled = 1;
 	if (option_time)
 		sm_msg("time: %lu", stop.tv_sec - start.tv_sec);
 	if (option_mem)
