@@ -513,6 +513,8 @@ static void update_essa_state_nomod(struct expression *expr, struct smatch_state
 void set_extra_nomod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
 	struct smatch_state *orig_state;
+	char *other_name;
+	struct symbol *other_sym;
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
 
@@ -520,12 +522,15 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 	if (!orig_state && estate_is_unknown(state))
 		return;
 
-	if (essa_name(orig_state)) {
-		update_essa_state_nomod(expr, orig_state, state, NULL, NULL);
-		return;
-	}
+	other_name = get_other_name_sym(name, sym, &other_sym);
+	if (other_name && other_sym)
+		set_extra_nomod_helper(other_name, other_sym, expr, state);
+	free_string(other_name);
 
-	set_extra_nomod_helper(name, sym, expr, state);
+	if (essa_name(orig_state))
+		update_essa_state_nomod(expr, orig_state, state, NULL, NULL);
+	else
+		set_extra_nomod_helper(name, sym, expr, state);
 }
 
 void set_extra_nomod_vsl(const char *name, struct symbol *sym, struct var_sym_list *vsl, struct expression *expr, struct smatch_state *state)
@@ -566,6 +571,8 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 			struct smatch_state *true_state,
 			struct smatch_state *false_state)
 {
+	char *other_name;
+	struct symbol *other_sym;
 	struct smatch_state *orig_state;
 
 	if (!true_state && !false_state)
@@ -574,13 +581,16 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	if (in_ignored_macro())
 		return;
 
-	orig_state = get_state(SMATCH_EXTRA, name, sym);
-	if (essa_name(orig_state)) {
-		update_essa_state_nomod(expr, orig_state, NULL, true_state, false_state);
-		return;
-	}
+	other_name = get_other_name_sym(name, sym, &other_sym);
+	if (other_name && other_sym)
+		set_extra_true_false_helper(other_name, other_sym, expr, true_state, false_state);
+	free_string(other_name);
 
-	set_extra_true_false_helper(name, sym, expr, true_state, false_state);
+	orig_state = get_state(SMATCH_EXTRA, name, sym);
+	if (essa_name(orig_state))
+		update_essa_state_nomod(expr, orig_state, NULL, true_state, false_state);
+	else
+		set_extra_true_false_helper(name, sym, expr, true_state, false_state);
 }
 
 static void set_extra_true_false_states_expr(struct expression *expr,
