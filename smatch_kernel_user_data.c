@@ -920,11 +920,15 @@ static bool is_ptr_subtract(struct expression *expr)
 
 static void set_user_safe(struct expression *expr)
 {
+	if (__inline_fn)
+		return;
 	expr->user_safe |= (1 << pass_cnt);
 }
 
 static bool is_user_safe(struct expression *expr)
 {
+	if (__inline_fn)
+		return false;
 	return (expr->user_safe & (1 << pass_cnt));
 }
 
