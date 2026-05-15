@@ -2309,6 +2309,7 @@ static void split_function(struct symbol *sym)
 	__unnullify_path();
 	pass_cnt = 1;
 	output_enabled = 1;
+	loop_count = 0;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	if (!__path_is_null() &&
