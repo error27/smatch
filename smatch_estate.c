@@ -394,7 +394,7 @@ struct var_sym_list *get_essa_list(struct smatch_state *state)
 
 ALLOCATOR(essa_link, "essa data");
 static unsigned long essa_id;
-char *alloc_essa_name(const char *name, struct smatch_state *estate)
+char *alloc_essa_name(const char *name)
 {
 	char buf[64];
 

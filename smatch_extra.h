@@ -126,7 +126,7 @@ void free_all_rl(void);
 
 struct sm_state *__set_essa(struct sm_state *sm);
 struct var_sym_list *get_essa_list(struct smatch_state *state);
-char *alloc_essa_name(const char *name, struct smatch_state *estate);
+char *alloc_essa_name(const char *name);
 struct essa_link *alloc_essa_link(const char *essa_name, const char *name, struct symbol *sym, struct symbol *type);
 struct essa_link *add_essa_link(struct essa_link *link, const char *name, struct symbol *sym, struct symbol *type);
 const char *essa_name(struct smatch_state *state);

@@ -1182,7 +1182,7 @@ struct sm_state *__set_essa(struct sm_state *sm)
 	sm = clone_sm(sm);
 	sm->state = clone_estate(sm->state);
 	dinfo = sm->state->data;
-	essa_name = alloc_essa_name(sm->name, sm->state);
+	essa_name = alloc_essa_name(sm->name);
 	dinfo->essa = alloc_essa_link(essa_name, sm->name, sm->sym,
 				      estate_type(sm->state));
 	__set_sm(sm);
@@ -1222,7 +1222,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	if (!r_dinfo->essa) {
 		const char *essa_name;
 
-		essa_name = alloc_essa_name(right_name, right_state);
+		essa_name = alloc_essa_name(right_name);
 		r_dinfo->essa = alloc_essa_link(essa_name, right_name, right_sym, right_type);
 		if (right_sm) {
 			right_sm = clone_sm(right_sm);
