@@ -1206,7 +1206,8 @@ static void handle_post_loop(struct statement *stmt)
 	char *loop_name;
 
 	loop_name = get_loop_name(stmt);
-	loop_count++;
+	if (!expr_is_zero(stmt->iterator_post_condition))
+		loop_count++;
 
 	__pass_to_client(stmt, POSTLOOP_HOOK);
 
@@ -1221,12 +1222,14 @@ static void handle_post_loop(struct statement *stmt)
 		__use_breaks();
 	} else {
 		__split_whole_condition(stmt->iterator_post_condition);
-		__save_gotos(loop_name, NULL);
+		if (!expr_is_zero(stmt->iterator_post_condition))
+			__save_gotos(loop_name, NULL);
 		__use_false_states();
 		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
 		__merge_breaks();
 	}
-	loop_count--;
+	if (!expr_is_zero(stmt->iterator_post_condition))
+		loop_count--;
 }
 
 static int empty_statement(struct statement *stmt)
