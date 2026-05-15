@@ -33,7 +33,7 @@ int __in_array_initializer;
 int __fake_state_cnt;
 int __debug_skip;
 int in_fake_env;
-int final_pass;
+int pass_cnt;
 int force_output;
 int output_enabled;
 int silence_output;
@@ -1626,7 +1626,7 @@ void __split_stmt(struct statement *stmt)
 		split_ret_value(stmt->ret_value);
 		__process_post_op_stack();
 		__call_all_scope_hooks();
-		if (final_pass)
+		if (pass_cnt)
 			__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
 		break;
@@ -2300,14 +2300,14 @@ static void split_function(struct symbol *sym)
 	sm_debug("new function:  %s\n", cur_func);
 	__stree_id = 0;
 	__unnullify_path();
-	final_pass = 0;
+	pass_cnt = 0;
 	output_enabled = 0;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	do_scope_hooks();
 	nullify_path();
 	__unnullify_path();
-	final_pass = 1;
+	pass_cnt = 1;
 	output_enabled = 1;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
@@ -2342,7 +2342,7 @@ static void save_flow_state(void)
 	unsigned long *tmp;
 
 	__add_ptr_list(&backup, INT_PTR(loop_count << 2));
-	__add_ptr_list(&backup, INT_PTR(final_pass << 2));
+	__add_ptr_list(&backup, INT_PTR(pass_cnt << 2));
 
 	__add_ptr_list(&backup, big_statement_stack);
 	__add_ptr_list(&backup, big_expression_stack);
@@ -2390,7 +2390,7 @@ static void restore_flow_state(void)
 	big_condition_stack = pop_backup();
 	big_expression_stack = pop_backup();
 	big_statement_stack = pop_backup();
-	final_pass = PTR_INT(pop_backup()) >> 2;
+	pass_cnt = PTR_INT(pop_backup()) >> 2;
 	loop_count = PTR_INT(pop_backup()) >> 2;
 }
 

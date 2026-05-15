@@ -307,7 +307,7 @@ unsigned long long get_base_file_id(void);
 char *get_function(void);
 extern int __smatch_lineno;
 int get_lineno(void);
-extern int final_pass;
+extern int pass_cnt;
 extern int force_output;
 extern int output_enabled;
 extern int silence_output;

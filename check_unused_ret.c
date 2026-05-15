@@ -93,7 +93,7 @@ static void match_assign_call(struct expression *expr)
 	struct expression *left;
 	struct assignment *assign;
 
-	if (final_pass)
+	if (pass_cnt)
 		return;
 	if (__in_fake_parameter_assign || __in_fake_assign ||
 	    __in_fake_struct_assign)

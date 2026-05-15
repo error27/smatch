@@ -992,7 +992,7 @@ static void match_mem(const char *fn, struct expression *expr, void *info)
 
 static void match_exit(const char *fn, struct expression *expr, void *info)
 {
-	if (final_pass)
+	if (pass_cnt)
 		exit(0);
 }
 

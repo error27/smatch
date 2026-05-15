@@ -56,7 +56,7 @@ void record_condition(struct expression *expr)
 	if (__in_pre_condition)
 		return;
 
-	snprintf(name, sizeof(name), "condition %p pass=%d", expr, final_pass);
+	snprintf(name, sizeof(name), "condition %p pass=%d", expr, pass_cnt);
 	set_true_false_states(my_id, name, NULL, &true_path, &false_path);
 }
 
@@ -93,7 +93,7 @@ struct sm_state *parsed_condition_implication_hook(struct expression *expr,
 	struct sm_state *sm, *tmp;
 	char name[32];
 
-	snprintf(name, sizeof(name), "condition %p pass=%d", expr, final_pass);
+	snprintf(name, sizeof(name), "condition %p pass=%d", expr, pass_cnt);
 
 	sm = get_sm_state(my_id, name, NULL);
 	if (!sm)
