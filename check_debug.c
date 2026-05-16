@@ -567,6 +567,7 @@ static void match_debug_check(const char *fn, struct expression *expr, void *inf
 	if (!arg || arg->type != EXPR_STRING)
 		return;
 	option_debug_check = arg->string->data;
+	local_debug++;
 	dbg("arg = '%s'", option_debug_check);
 }
 
@@ -586,7 +587,8 @@ static void match_debug_off(const char *fn, struct expression *expr, void *info)
 	option_debug_check = NULL;
 	option_debug_var = NULL;
 	option_debug = 0;
-	local_debug--;
+	if (local_debug > 0)
+		local_debug--;
 	cur_state_cnt = 0;
 	print_state_cnt = false;
 }

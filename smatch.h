@@ -453,7 +453,7 @@ static inline void print_implied_debug_msg(void)
 #define sm_perror(msg...) do { sm_print_msg(3, msg); } while (0)
 #define sm_pedantic(msg...) do { if (option_pedantic) sm_print_msg(4, msg); } while (0)
 #define sm_local(msg...) do {						\
-	if (local_debug) {						\
+	if (local_debug > 0) {						\
 		sm_prefix();						\
 		sm_printf("local debug: %s:%d ", __func__, __LINE__);	\
 		sm_printf(msg);						\
