@@ -1631,7 +1631,7 @@ void __split_stmt(struct statement *stmt)
 		split_ret_value(stmt->ret_value);
 		__process_post_op_stack();
 		__call_all_scope_hooks();
-		if (pass_cnt)
+		if (pass_cnt || __inline_fn)
 			__pass_to_client(stmt->ret_value, RETURN_HOOK);
 		nullify_path();
 		break;
