@@ -2782,13 +2782,6 @@ static void reset_memdb(struct symbol *sym)
 	mem_sql(NULL, NULL, "delete from return_implies;");
 }
 
-static void match_end_func_info(struct symbol *sym)
-{
-	if (__path_is_null())
-		return;
-	call_return_state_hooks(NULL);
-}
-
 static void match_after_func(struct symbol *sym)
 {
 	clear_cached_return_vals();
@@ -3187,7 +3180,6 @@ void smatch_definition_db_callbacks(int id)
 	add_split_return_callback(print_returned_struct_members);
 	add_split_return_callback(print_return_info);
 	add_hook(&call_return_state_hooks, RETURN_HOOK);
-	add_hook(&match_end_func_info, END_FUNC_HOOK);
 	add_hook(&match_after_func, AFTER_FUNC_HOOK);
 
 	add_hook(&match_data_from_db, FUNC_DEF_HOOK);
