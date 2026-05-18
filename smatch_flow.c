@@ -1110,7 +1110,8 @@ static void handle_pre_loop(struct statement *stmt)
 		__prev_stmt = stmt->iterator_pre_statement;
 	}
 
-	loop_count++;
+	if (!is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement))
+		loop_count++;
 	__push_continues();
 	__push_breaks();
 
@@ -1141,7 +1142,6 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	if (is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement)) {
 		__merge_continues();
-		__save_gotos(loop_name, NULL);
 		if (once_through == true)
 			__discard_false_states();
 		else
@@ -1193,7 +1193,8 @@ static void handle_pre_loop(struct statement *stmt)
 		__merge_breaks();
 	}
 done:
-	loop_count--;
+	if (!is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement))
+		loop_count--;
 
 	do_scope_hooks();
 }
