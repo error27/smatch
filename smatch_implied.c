@@ -759,36 +759,17 @@ static void delete_gate_sm(struct stree **stree, const char *name, struct symbol
 	delete_state_stree(stree, SMATCH_EXTRA, name, sym);
 }
 
-static int handle_comparison(struct expression *expr,
-			      struct stree **implied_true,
-			      struct stree **implied_false)
+static void handle_comparison_helper(struct sm_state *sm, int comparison, struct range_list *rl,
+		struct stree *pre_stree,
+		struct stree **implied_true,
+		struct stree **implied_false)
 {
-	struct sm_state *sm = NULL;
-	struct range_list *rl = NULL;
-	struct expression *left;
-	struct expression *right;
 	struct symbol *type;
-	int comparison = expr->op;
 	int mixed = 0;
 
-	left = get_left_most_expr(expr->left);
-	right = get_left_most_expr(expr->right);
-
-	if (is_merged_expr(left)) {
-		sm = get_sm_state_expr(SMATCH_EXTRA, left);
-		get_implied_rl(right, &rl);
-	} else if (is_merged_expr(right)) {
-		sm = get_sm_state_expr(SMATCH_EXTRA, right);
-		get_implied_rl(left, &rl);
-		comparison = flip_comparison(comparison);
-	}
-
-	if (!rl || !sm)
-		return 0;
-
-	type = get_type(expr);
+	type = estate_type(sm->state);
 	if (!type)
-		return 0;
+		return;
 	if (type_positive_bits(rl_type(rl)) > type_positive_bits(type))
 		type = rl_type(rl);
 	if (type_positive_bits(type) < 31)
@@ -803,6 +784,30 @@ static int handle_comparison(struct expression *expr,
 		delete_gate_sm(implied_true, sm->name, sm->sym);
 		delete_gate_sm(implied_false, sm->name, sm->sym);
 	}
+}
+
+static int handle_comparison(struct expression *expr,
+			      struct stree **implied_true,
+			      struct stree **implied_false)
+{
+	struct sm_state *sm = NULL;
+	struct range_list *rl = NULL;
+	struct expression *left;
+	struct expression *right;
+	int comparison = expr->op;
+
+	left = get_left_most_expr(expr->left);
+	right = get_left_most_expr(expr->right);
+
+	if (is_merged_expr(left) &&
+	    (sm = get_sm_state_expr(SMATCH_EXTRA, left)) &&
+	    get_implied_rl(right, &rl))
+		handle_comparison_helper(sm, comparison, rl, __get_cur_stree(), implied_true, implied_false);
+
+	if (is_merged_expr(right) &&
+	    (sm = get_sm_state_expr(SMATCH_EXTRA, right)) &&
+	    get_implied_rl(left, &rl))
+		handle_comparison_helper(sm, flip_comparison(comparison), rl, __get_cur_stree(), implied_true, implied_false);
 
 	return 1;
 }
