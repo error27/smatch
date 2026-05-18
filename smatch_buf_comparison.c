@@ -362,36 +362,6 @@ static void match_struct_size_helper(struct expression *pointer, struct expressi
 	add_link(count, member, mod_expr);
 }
 
-static void match_calloc(const char *fn, struct expression *expr, void *_start_arg)
-{
-	struct smatch_state *state;
-	int start_arg = PTR_INT(_start_arg);
-	struct expression *pointer, *call, *arg;
-	struct sm_state *tmp;
-	int limit_type = ELEM_COUNT;
-	sval_t sval;
-
-	pointer = strip_expr(expr->left);
-	call = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(call->args, start_arg);
-	if (get_implied_value(arg, &sval) &&
-	    sval.value == bytes_per_element(pointer))
-		arg = get_argument_from_call_expr(call->args, start_arg + 1);
-
-	if (arg->type == EXPR_BINOP && arg->op == '+' &&
-	    get_value(arg->right, &sval) && sval.value == 1) {
-		arg = arg->left;
-		limit_type = ELEM_LAST;
-	}
-
-	state = alloc_compare_size(limit_type, arg);
-	db_save_type_links(pointer, limit_type, arg);
-	tmp = set_state_expr(size_id, pointer, state);
-	if (!tmp)
-		return;
-	add_link(arg, pointer, expr);
-}
-
 static void match_allocation(struct expression *expr,
 			     const char *name, struct symbol *sym,
 			     struct allocation_info *info)
@@ -724,11 +694,6 @@ static void array_check_data_info(struct expression *expr)
 free:
 	free_slist(&slist);
 	free_string(offset_name);
-}
-
-static void add_allocation_function(const char *func, void *call_back, int param)
-{
-	add_function_assign_hook(func, call_back, INT_PTR(param));
 }
 
 static int is_sizeof(struct expression *expr)
