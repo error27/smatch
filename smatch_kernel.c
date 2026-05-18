@@ -611,6 +611,10 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, "power.work."))
 		return true;
+	if (strstr(name, "power.wakeup"))
+		return true;
+	if (strstr(name, "parent->power"))
+		return true;
 	if (strstr(name, ".lock.rlock."))
 		return true;
 	if (strstr(name, "lockdep_mutex."))
