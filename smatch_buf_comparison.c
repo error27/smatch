@@ -444,37 +444,6 @@ struct expression *get_array_variable(struct expression *size)
 	return NULL;
 }
 
-static void array_check(struct expression *expr)
-{
-	struct expression *array;
-	struct expression *size;
-	struct expression *offset;
-	char *array_str, *offset_str;
-	int limit_type;
-
-	expr = strip_expr(expr);
-	if (!is_array(expr))
-		return;
-
-	array = get_array_base(expr);
-	size = get_size_variable(array, &limit_type);
-	if (!size)
-		return;
-	if (limit_type != ELEM_COUNT)
-		return;
-	offset = get_array_offset(expr);
-	if (!possible_comparison(size, SPECIAL_EQUAL, offset))
-		return;
-	if (getting_address(expr))
-		return;
-
-	array_str = expr_to_str(array);
-	offset_str = expr_to_str(offset);
-	sm_warning("potentially one past the end of array '%s[%s]'", array_str, offset_str);
-	free_string(array_str);
-	free_string(offset_str);
-}
-
 struct db_info {
 	char *name;
 	int ret;
@@ -619,81 +588,6 @@ bool buf_has_bytes(struct expression *buf, struct expression *var)
 		return true;
 
 	return buf_comp_has_bytes(buf, var);
-}
-
-static int known_access_ok_numbers(struct expression *expr)
-{
-	struct expression *array;
-	struct expression *offset;
-	sval_t max;
-	int size;
-
-	array = get_array_base(expr);
-	offset = get_array_offset(expr);
-
-	size = get_array_size(array);
-	if (size <= 0)
-		return 0;
-
-	get_absolute_max(offset, &max);
-	if (max.uvalue < size)
-		return 1;
-	return 0;
-}
-
-static void array_check_data_info(struct expression *expr)
-{
-	struct expression *array;
-	struct expression *offset;
-	struct state_list *slist;
-	struct sm_state *sm;
-	struct compare_data *comp;
-	char *offset_name;
-	const char *equal_name = NULL;
-
-	expr = strip_expr(expr);
-	if (!is_array(expr))
-		return;
-
-	if (known_access_ok_numbers(expr))
-		return;
-	if (buf_comparison_index_ok(expr))
-		return;
-
-	array = get_array_base(expr);
-	offset = get_array_offset(expr);
-	offset_name = expr_to_var(offset);
-	if (!offset_name)
-		return;
-	slist = get_all_possible_equal_comparisons(offset);
-	if (!slist)
-		goto free;
-
-	FOR_EACH_PTR(slist, sm) {
-		comp = sm->state->data;
-		if (strcmp(comp->left_var, offset_name) == 0) {
-			if (db_var_is_array_limit(array, comp->right_var, comp->right_vsl)) {
-				equal_name = comp->right_var;
-				break;
-			}
-		} else if (strcmp(comp->right_var, offset_name) == 0) {
-			if (db_var_is_array_limit(array, comp->left_var, comp->left_vsl)) {
-				equal_name = comp->left_var;
-				break;
-			}
-		}
-	} END_FOR_EACH_PTR(sm);
-
-	if (equal_name) {
-		char *array_name = expr_to_str(array);
-
-		sm_warning("potential off by one '%s[]' limit '%s'", array_name, equal_name);
-		free_string(array_name);
-	}
-
-free:
-	free_slist(&slist);
-	free_string(offset_name);
 }
 
 static int is_sizeof(struct expression *expr)
@@ -1065,8 +959,6 @@ void smatch_buf_comparison(int id)
 
 	add_allocation_hook(&match_allocation);
 
-	add_hook(&array_check, OP_HOOK);
-	add_hook(&array_check_data_info, OP_HOOK);
 	add_hook(&set_used, OP_HOOK);
 
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
