@@ -39,15 +39,15 @@ static void array_check(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
+	if (array_safe_expr(expr))
+		return;
+
 	array = get_array_base(expr);
 	size = get_size_variable(array, &limit_type);
 	if (!size || limit_type != ELEM_COUNT)
 		return;
 	offset = get_array_offset(expr);
 	if (!possible_comparison(size, SPECIAL_EQUAL, offset))
-		return;
-
-	if (buf_comparison_index_ok(expr))
 		return;
 
 	if (getting_address(expr))
@@ -94,9 +94,10 @@ static void array_check_data_info(struct expression *expr)
 	if (!is_array(expr))
 		return;
 
-	if (known_access_ok_numbers(expr))
+	if (array_safe_expr(expr))
 		return;
-	if (buf_comparison_index_ok(expr))
+
+	if (known_access_ok_numbers(expr))
 		return;
 
 	array = get_array_base(expr);
