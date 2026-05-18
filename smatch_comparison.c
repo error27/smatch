@@ -2964,7 +2964,8 @@ static void filter_by_sm(struct sm_state *sm, int op,
 		       show_sm(sm));
 	}
 
-	*useful = true;
+	if ((is_true || is_false) && is_leaf(sm))
+		*useful = true;
 	if (is_true)
 		add_ptr_list(true_stack, sm);
 	if (is_false)
