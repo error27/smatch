@@ -172,7 +172,6 @@ static bool handle_array_address(struct expression *expr, int implied, int *recu
 
 static bool handle_address_member_offset(struct expression *expr, struct symbol *type, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	struct expression *orig = expr;
 	struct range_list *outer_rl;
 	sval_t offset = { .type = &ulong_ctype, .value = 0};
 	mtag_t tag;
@@ -230,7 +229,6 @@ static bool handle_address_member_offset(struct expression *expr, struct symbol 
 
 static bool handle_ampersand_address(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
-	struct expression *orig = expr;
 	struct symbol *type;
 
 	/*
