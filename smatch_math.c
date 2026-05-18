@@ -1653,6 +1653,7 @@ static bool handle_offsetof_rl(struct expression *expr, int implied, int *recurs
 
 static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res)
 {
+	int output_enabled_orig = output_enabled;
 	struct range_list *rl = (void *)-1UL;
 	struct symbol *type;
 	sval_t sval = {};
@@ -1677,6 +1678,7 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	if (!expr)
 		return false;
 
+	output_enabled = false;
 	switch (expr->type) {
 	case EXPR_VALUE:
 		sval = sval_from_val(expr, expr->value);
@@ -1734,6 +1736,7 @@ static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, 
 	default:
 		handle_variable(expr, implied, recurse_cnt, &rl, &sval);
 	}
+	output_enabled = output_enabled_orig;
 
 out_cast:
 	if (rl == (void *)-1UL)
