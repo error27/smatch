@@ -114,10 +114,18 @@ static void call_free_call_backs_expr(int type, struct expression *expr)
 	free_string(name);
 }
 
-static bool is_free_primitive(struct expression *expr)
+bool is_free_primitive(struct expression *expr)
 {
-	const char *name = get_fn_name(expr);
+	const char *name;
 	struct func_info *info;
+
+	while (expr && expr->type != EXPR_CALL)
+		expr = expr_get_parent_expr(expr);
+
+	if (!expr)
+		return false;
+
+	name = get_fn_name(expr);
 
 	if (!name)
 		return false;
