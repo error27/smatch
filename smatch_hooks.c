@@ -157,6 +157,8 @@ void __pass_to_client(void *data, enum hook_type type)
 		return;
 
 	FOR_EACH_PTR(hook_array[type], container) {
+//		if (data_types[type] == EXPR_PTR)
+//			sm_local("calling hook: %s expr=%s", check_name(container->owner), expr_to_str(data));
 		switch (data_types[type]) {
 		case EXPR_PTR:
 			pass_expr_to_client(container->fn, data);
