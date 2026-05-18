@@ -260,6 +260,7 @@ SMATCH_OBJS += smatch_address.o
 SMATCH_OBJS += smatch_allocations.o
 SMATCH_OBJS += smatch_allocations_locations.o
 SMATCH_OBJS += smatch_annotate.o
+SMATCH_OBJS += smatch_array_index_safe.o
 SMATCH_OBJS += smatch_array_values.o
 SMATCH_OBJS += smatch_assigned_expr.o
 SMATCH_OBJS += smatch_bits.o
