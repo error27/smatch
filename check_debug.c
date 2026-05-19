@@ -885,6 +885,19 @@ static void match_param_key(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p);
+static void match_return_ranges(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	struct range_list *rl;
+	const char *name;
+
+	arg = get_check_arg(expr, 0);
+
+	name = get_return_ranges_str(arg, &rl);
+	dbg("ret_str='%s'", name);
+}
+
 static struct timeval debug_timer;
 static void match_timer_start(const char *fn, struct expression *expr, void *info)
 {
@@ -1087,6 +1100,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_units", &match_units, NULL);
 	add_function_hook("__smatch_container", &match_container, NULL);
 	add_function_hook("__smatch_param_key", &match_param_key, NULL);
+	add_function_hook("__smatch_return_str", &match_return_ranges, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
 	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);
 	add_function_hook("__smatch_force_on", &match_force_on, NULL);

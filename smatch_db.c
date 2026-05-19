@@ -1716,7 +1716,7 @@ static char *get_return_compare_str(struct expression *expr)
 	return expr_param_comparison(expr, -1);
 }
 
-static const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
+const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p)
 {
 	struct expression *fake;
 	struct range_list *rl;

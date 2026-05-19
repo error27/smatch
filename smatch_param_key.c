@@ -1146,7 +1146,8 @@ static void match_assign(struct expression *expr)
 	goto free;
 
 set_state:
-	set_state_expr(my_id, expr->left, alloc_var_sym_state(param_name, param_sym));
+	if (!param_was_set_var_sym(param_name, param_sym))
+		set_state_expr(my_id, expr->left, alloc_var_sym_state(param_name, param_sym));
 free:
 	free_string(param_name);
 }
