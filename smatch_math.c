@@ -1514,6 +1514,39 @@ static bool handle_ffs(struct expression *expr, int implied, int *recurse_cnt, s
 	return false;
 }
 
+static bool inline_return_literal(struct expression *expr, sval_t *res_sval)
+{
+	struct statement *stmt;
+	struct symbol *type;
+	struct symbol *base;
+	sval_t sval;
+
+	if (!inlinable(expr->fn))
+		return false;
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_BASETYPE)
+		return false;
+
+	base = get_base_type(expr->fn->symbol);
+	if (!base)
+		return false;
+	stmt = base->stmt;
+	if (!stmt)
+		stmt = base->inline_stmt;
+	if (!stmt || stmt->type != STMT_COMPOUND)
+		return false;
+	stmt = first_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!stmt || stmt->type != STMT_RETURN || !stmt->ret_value)
+		return false;
+
+	if (!get_value(stmt->ret_value, &sval))
+		return false;
+
+	*res_sval = sval;
+	return true;
+}
+
 static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *rl;
@@ -1545,6 +1578,9 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 
 	if (is_strlen(expr))
 		return handle_strlen(expr, implied, recurse_cnt, res, res_sval);
+
+	if (inline_return_literal(expr, res_sval))
+		return true;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
