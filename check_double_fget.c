@@ -70,6 +70,7 @@ void check_double_fget(int id)
 	add_function_param_key_hook("fget", &match_fget, 0, "$", NULL);
 	add_function_param_key_hook("fdget", &match_fget, 0, "$", NULL);
 	add_return_info_callback(my_id, return_info_callback);
+	add_modification_hook(my_id, &set_undefined);
 	select_return_param_key(FGET, &match_fget);
 
 	add_caller_info_callback(my_id, caller_info_callback);
