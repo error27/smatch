@@ -39,6 +39,7 @@ int test(struct bar *bar)
  *
  * check-output-start
 sm_loops6.c:10 test() implied: a = '0-9'
+sm_loops6.c:11 test() warn: should this be 'a == -1'
 sm_loops6.c:11 test() implied: a = '(-1)'
 sm_loops6.c:14 test() implied: b = '1-9'
 sm_loops6.c:15 test() implied: b = '0'

@@ -1167,7 +1167,7 @@ static void handle_pre_loop(struct statement *stmt)
 		free_stree(&stree);
 	} else {
 		__merge_continues();
-		unchanged = __iterator_unchanged(extra_sm);
+		unchanged = variable_unchanged(extra_sm);
 		__split_stmt(stmt->iterator_post_statement);
 		__prev_stmt = stmt->iterator_post_statement;
 		__cur_stmt = stmt;

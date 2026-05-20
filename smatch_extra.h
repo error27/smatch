@@ -205,7 +205,7 @@ int parent_is_free_var_sym(const char *name, struct symbol *sym);
 int parent_is_free(struct expression *expr);
 
 struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct stree **stree);
-int __iterator_unchanged(struct sm_state *sm);
+bool variable_unchanged(struct sm_state *sm);
 void __extra_pre_loop_hook_after(struct sm_state *sm,
 				struct statement *iterator,
 				struct expression *condition);

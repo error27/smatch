@@ -907,13 +907,18 @@ struct sm_state *__extra_handle_canonical_loops(struct statement *loop, struct s
 	return ret;
 }
 
-int __iterator_unchanged(struct sm_state *sm)
+bool variable_unchanged(struct sm_state *sm)
 {
-	if (!sm)
-		return 0;
-	if (get_sm_state(my_id, sm->name, sm->sym) == sm)
-		return 1;
-	return 0;
+	struct smatch_state *cur;
+
+	if (!sm || !essa_name(sm->state))
+		return false;
+	cur = get_state(my_id, sm->name, sm->sym);
+	if (!essa_name(cur))
+		return false;
+	if (strcmp(essa_name(sm->state), essa_name(cur)) != 0)
+		return false;
+	return true;
 }
 
 static void while_count_down_after(struct sm_state *sm, struct expression *condition)
