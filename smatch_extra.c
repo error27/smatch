@@ -585,7 +585,7 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 	free_string(other_name);
 
 	orig_state = get_state(SMATCH_EXTRA, name, sym);
-	if (essa_name(orig_state))
+	if (essa_name(orig_state) && essa_fits(orig_state))
 		update_essa_state_nomod(expr, orig_state, NULL, true_state, false_state);
 	else
 		set_extra_true_false_helper(name, sym, expr, true_state, false_state);
