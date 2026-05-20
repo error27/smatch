@@ -486,8 +486,6 @@ static void update_essa_state_nomod(struct expression *expr, struct smatch_state
 	struct var_sym_list *vsl;
 	struct var_sym *vs;
 
-	if (!essa_fits(old_state))
-		return;
 
 	vsl = get_essa_list(old_state);
 	FOR_EACH_PTR(vsl, vs) {
@@ -527,7 +525,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 		set_extra_nomod_helper(other_name, other_sym, expr, state);
 	free_string(other_name);
 
-	if (essa_name(orig_state))
+	if (essa_name(orig_state) && essa_fits(orig_state))
 		update_essa_state_nomod(expr, orig_state, state, NULL, NULL);
 	else
 		set_extra_nomod_helper(name, sym, expr, state);
