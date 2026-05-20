@@ -601,11 +601,7 @@ static bool gen_fake_function_assign(struct expression *expr)
 		return false;
 
 	parent = get_parent_assignment(expr);
-	if (parent && parent->type == EXPR_ASSIGNMENT)
-		return false;
-
-	parent = expr_get_fake_parent_expr(expr);
-	if (parent) {
+	if (parent && parent->type == EXPR_ASSIGNMENT) {
 		struct expression *left = parent->left;
 
 		if (parent == parsed)
@@ -616,6 +612,7 @@ static bool gen_fake_function_assign(struct expression *expr)
 			return false;
 		parsed = parent;
 		__split_expr(parent);
+		parsed = NULL;
 		return true;
 	}
 
@@ -628,6 +625,7 @@ static bool gen_fake_function_assign(struct expression *expr)
 
 	parsed = assign;
 	__split_expr(assign);
+	parsed = NULL;
 	return true;
 }
 
