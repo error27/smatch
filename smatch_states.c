@@ -70,6 +70,7 @@ static bool *keep_out_of_scope;
 static int in_goto_merge;
 
 int option_debug;
+#define sm_dcur(msg...) do { if (option_debug) sm_local(msg); } while (0)
 
 void __print_cur_stree(void)
 {
@@ -223,6 +224,7 @@ struct stree *__swap_cur_stree(struct stree *stree)
 {
 	struct stree *orig = cur_stree;
 
+	sm_dcur("cur_stree: swapping the cur_stree");
 	cur_stree = stree;
 	return orig;
 }
@@ -235,6 +237,7 @@ void __push_fake_cur_stree(void)
 
 struct stree *__pop_fake_cur_stree(void)
 {
+	sm_dcur("cur_stree: popping the fake cur_stree");
 	if (!fake_cur_stree_stack)
 		sm_perror("popping too many fake cur strees.");
 	__use_pre_cond_states();
@@ -245,6 +248,7 @@ void __free_fake_cur_stree(void)
 {
 	struct stree *stree;
 
+	sm_dcur("cur_stree: freeing the fake cur_stree");
 	stree = __pop_fake_cur_stree();
 	free_stree(&stree);
 }
@@ -848,6 +852,7 @@ void __fold_in_set_states(void)
 	struct stree *new_states;
 	struct sm_state *sm;
 
+	sm_dcur("cur_stree: folding in set states");
 	new_states = __pop_fake_cur_stree();
 	FOR_EACH_SM(new_states, sm) {
 		__set_sm(sm);
@@ -907,6 +912,7 @@ static void __use_cond_stack(struct stree_stack **stack)
 
 	free_stree(&cur_stree);
 
+	sm_dcur("cur_stree: using condition stack");
 	cur_stree = pop_stree(&pre_cond_stack);
 	push_stree(&pre_cond_stack, clone_stree(cur_stree));
 
@@ -918,6 +924,7 @@ static void __use_cond_stack(struct stree_stack **stack)
 void __use_pre_cond_states(void)
 {
 	free_stree(&cur_stree);
+	sm_dcur("cur_stree: using pre condition stack");
 	cur_stree = pop_stree(&pre_cond_stack);
 }
 
@@ -988,6 +995,7 @@ void __use_cond_states(void)
 	free_stree(&true_states);
 	/* we use the true states right away */
 	free_stree(&cur_stree);
+	sm_dcur("cur_stree: using true states");
 	cur_stree = pre;
 
 	false_states = pop_stree(&cond_false_stack);
@@ -1004,6 +1012,7 @@ void __push_true_states(void)
 void __use_false_states(void)
 {
 	free_stree(&cur_stree);
+	sm_dcur("cur_stree: using false states");
 	cur_stree = pop_stree(&false_stack);
 }
 
@@ -1180,6 +1189,7 @@ void __use_breaks(void)
 	struct sm_state *sm;
 
 	free_stree(&cur_stree);
+	sm_dcur("cur_stree: using break states");
 	cur_stree = pop_stree(&break_stack);
 
 	if (!fake_cur_stree_stack)
@@ -1348,6 +1358,7 @@ void __discard_fake_states(struct expression *call)
 	} END_FOR_EACH_SM(sm);
 
 	free_stree(&cur_stree);
+	sm_dcur("cur_stree: discarding fake states");
 	cur_stree = new;
 	__fake_state_cnt = 0;
 }
