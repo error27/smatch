@@ -68,18 +68,38 @@ static void match_cur_stree(const char *fn, struct expression *expr, void *info)
 	__print_cur_stree();
 }
 
+bool is_debug_arg(struct expression *expr)
+{
+	int i;
+
+	expr = expr_get_parent_expr(expr);
+	sm_local("expr='%s'", expr_to_str(expr));
+	if (!expr || expr->type != EXPR_PREOP || expr->op != '(')
+		return false;
+	for (i = 0; i < 4; i++) {
+		expr = expr_get_parent_expr(expr);
+		sm_local("expr='%s'", expr_to_str(expr));
+		if (!expr || expr->type != EXPR_PREOP || expr->op != '!')
+			return false;
+	}
+	return true;
+}
+
 static struct expression *get_check_arg(struct expression *expr, int arg_nr)
 {
-	struct expression *arg;
+	struct expression *orig, *arg;
+	int i;
 
 	arg = get_argument_from_call_expr(expr->args, arg_nr);
-	arg = strip_Generic(arg);
-	if (!arg)
-		return NULL;
-	if (get_type(arg) == &ulong_ctype &&
-	    arg->type == EXPR_CAST && is_pointer(arg->cast_expression))
-		arg = strip_parens(arg->cast_expression);
-	return arg;
+	orig = arg;
+	for (i = 0; i < 4; i++) {
+		if (!arg || arg->type != EXPR_PREOP || arg->op != '!')
+			return orig;
+		arg = arg->unop;
+	}
+	if (!arg || arg->type != EXPR_PREOP || arg->op != '(')
+		return orig;
+	return arg->unop;
 }
 
 static void match_state(const char *fn, struct expression *expr, void *info)

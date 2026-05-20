@@ -79,6 +79,9 @@ static void match_condition(struct expression *expr)
 {
 	char *name;
 
+	if (is_debug_arg(expr))
+		return;
+
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->left);
 

@@ -1,14 +1,7 @@
 #ifndef __SMATCH_CHECK_DEBUG
 #define __SMATCH_CHECK_DEBUG
 
-#define cast_ptr(x) _Generic(x, \
-	signed char: x, unsigned char: x, \
-	short: x, unsigned short: x, \
-	int: x, unsigned int: x, \
-	long: x, unsigned long: x, \
-	long long: x, unsigned long long: x, \
-	float: x, double: x, long double: x, \
-	default: (unsigned long)(x))
+#define cast_ptr(x) !!!!(x)
 
 static inline void __smatch_about(long var){}
 #define __smatch_about(x) __smatch_about(cast_ptr(x))

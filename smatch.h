@@ -319,6 +319,7 @@ extern bool implied_debug;
 bool debug_implied(void);
 bool debug_on(const char *check_name, const char *var);
 void debug_print_about(struct expression *expr);
+bool is_debug_arg(struct expression *expr);
 extern int option_info;
 extern int option_spammy;
 extern int option_pedantic;
