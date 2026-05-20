@@ -298,7 +298,8 @@ static int __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 			return 0;
 		}
 		if (expr->op == SPECIAL_DECREMENT ||
-		    expr->op == SPECIAL_INCREMENT)
+		    expr->op == SPECIAL_INCREMENT ||
+		    expr->op == '-')
 			*complicated = 1;
 
 		if (expr->op == '*' && get_array_expr(expr->unop))
