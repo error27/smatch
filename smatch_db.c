@@ -109,6 +109,8 @@ struct split_data {
 static struct split_data **forced_splits;
 static int split_count;
 
+#define sm_dsplit(msg...) do { if (option_debug || debug_db) sm_local(msg); } while (0)
+
 /* silently truncates if needed. */
 char *escape_newlines(const char *str)
 {
@@ -2608,14 +2610,12 @@ static void call_return_state_hooks(struct expression *expr)
 	int nr_states;
 	sval_t sval;
 
-	if (debug_db) {
-		struct range_list *rl = NULL;
-
-		get_absolute_rl(expr, &rl);
-		sm_msg("RETURN: expr='%s' rl='%s' %lu states%s", expr_to_str(expr),
-		       show_rl(rl), stree_count(__get_cur_stree()),
-		       is_impossible_path() ? " (impossible path)" : "");
-	}
+	return_ranges = get_return_ranges_str(expr, &ret_rl);
+	sm_dsplit("db_split: start: %s%sexpr='%s' str='%s' ret_rl='%s'",
+		  __path_is_null() ? "(null path) " : "",
+		  is_impossible_path() ? "(impossible path) " : "",
+		  expr_to_str(expr),
+		  return_ranges, show_rl(ret_rl));
 
 	if (__path_is_null())
 		return;
@@ -2626,58 +2626,47 @@ static void call_return_state_hooks(struct expression *expr)
 	if (expr && (expr->type == EXPR_COMPARE ||
 		     !get_implied_value(expr, &sval)) &&
 	    (is_condition(expr) || is_boolean_return(expr))) {
+		sm_dsplit("using call_return_state_hooks_compare(): expr='%s'", expr_to_str(expr));
 		call_return_state_hooks_compare(expr);
-		if (debug_db)
-			sm_msg("%s: bool", __func__);
 		return;
 	} else if (call_return_state_hooks_conditional(expr)) {
-		if (debug_db)
-			sm_msg("%s: condition", __func__);
+		sm_dsplit("used call_return_state_hooks_conditional(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (is_kernel_error_path(expr)) {
-		if (debug_db)
-			sm_msg("%s: kernel error path", __func__);
+		sm_dsplit("is_kernel_error_path(): expr='%s'", expr_to_str(expr));
 		goto vanilla;
 	} else if (call_return_state_hooks_split_success_fail(expr)) {
-		if (debug_db)
-			sm_msg("%s: success_fail", __func__);
+		sm_dsplit("used call_return_state_hooks_split_success_fail(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (call_return_state_hooks_split_possible(expr)) {
-		if (debug_db)
-			sm_msg("%s: split_possible", __func__);
+		sm_dsplit("used call_return_state_hooks_split_possible(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (split_positive_from_negative(expr)) {
-		if (debug_db)
-			sm_msg("%s: positive negative", __func__);
+		sm_dsplit("used split_positive_from_negative(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (call_return_state_hooks_split_null_non_null_zero(expr)) {
-		if (debug_db)
-			sm_msg("%s: split zero non-zero", __func__);
+		sm_dsplit("used call_return_state_hooks_split_null_non_null_zero(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (splitable_function_call(expr)) {
-		if (debug_db)
-			sm_msg("%s: split_function_call", __func__);
+		sm_dsplit("used splitable_function_call(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (split_by_bool_param(expr)) {
-		if (debug_db)
-			sm_msg("%s: bool param", __func__);
+		sm_dsplit("used split_by_bool_param(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (split_by_null_nonnull_param(expr)) {
-		if (debug_db)
-			sm_msg("%s: null non-null param", __func__);
+		sm_dsplit("used split_by_null_nonnull_param(): expr='%s'", expr_to_str(expr));
 		return;
 	} else if (split_by_impossible(expr)) {
-		if (debug_db)
-			sm_msg("%s: split by impossible", __func__);
+		sm_dsplit("used split_by_impossible(): expr='%s'", expr_to_str(expr));
 		return;
 	}
 
 vanilla:
-	return_ranges = get_return_ranges_str(expr, &ret_rl);
 	set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
 
 	nr_states = get_db_state_count();
 	if (nr_states >= 10000) {
+		sm_dsplit("too many states: expr='%s'", expr_to_str(expr));
 		return_id++;
 		match_return_info(return_id, (char *)return_ranges, expr);
 		print_limited_param_set(return_id, (char *)return_ranges, expr);
@@ -2685,8 +2674,7 @@ vanilla:
 		return;
 	}
 	call_return_states_callbacks(return_ranges, expr);
-	if (debug_db)
-		sm_msg("%s: vanilla", __func__);
+	sm_dsplit("used vanilla split: expr='%s'", expr_to_str(expr));
 }
 
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
