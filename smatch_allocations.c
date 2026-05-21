@@ -154,15 +154,6 @@ static void set_nr_size(struct allocation_info *data, struct expression *arg1, s
 	}
 }
 
-struct expression *get_right_most_call(struct expression *expr)
-{
-	while (expr && expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (!expr || expr->type != EXPR_CALL)
-		return NULL;
-	return expr;
-}
-
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
@@ -181,7 +172,7 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 		return;
 	param = atoi(p);
 
-	call = get_right_most_call(expr);
+	call = get_rightmost_call(expr);
 	if (!call)
 		return;
 	arg1 = get_argument_from_call_expr(call->args, param);
