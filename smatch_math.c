@@ -1978,6 +1978,14 @@ int get_implied_max(struct expression *expr, sval_t *sval)
 
 	if (!get_rl_helper(expr, RL_IMPLIED, &rl) || !rl)
 		return 0;
+	if (type_positive_bits(rl_type(rl)) >= 31) {
+		struct data_range *drange;
+
+		drange = last_ptr_list((struct ptr_list *)rl);
+		if (sval_is_max(drange->max) &&
+		    (sval_is_min(drange->min) || drange->min.uvalue < 10))
+			return 0;
+	}
 	*sval = rl_max(rl);
 	return 1;
 }
