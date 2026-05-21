@@ -2330,6 +2330,9 @@ static int call_return_state_hooks_split_success_fail(struct expression *expr)
 	if (option_project != PROJ_KERNEL)
 		return 0;
 
+	if (!holds_kernel_error_codes(expr))
+		return 0;
+
 	nr_states = get_db_state_count();
 	if (nr_states > 2000)
 		return 0;
