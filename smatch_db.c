@@ -2001,6 +2001,30 @@ static int ptr_in_list(struct sm_state *sm, struct state_list *slist)
 	return 0;
 }
 
+static bool is_plus_plus(struct expression *expr)
+{
+	struct modification_data *data;
+	struct sm_state *sm, *tmp;
+	struct expression *mod;
+
+	sm = get_modification_sm(expr);
+	if (!sm)
+		return false;
+
+	FOR_EACH_PTR(sm->possible, tmp) {
+		data = tmp->state->data;
+		if (!data || !data->cur)
+			continue;
+		mod = data->cur;
+		if (mod->type != EXPR_PREOP && mod->type != EXPR_POSTOP)
+			continue;
+		if (mod->op == SPECIAL_INCREMENT ||
+		    mod->op == SPECIAL_DECREMENT)
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+	return false;
+}
+
 static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 {
 	struct range_list *rl;
@@ -2014,6 +2038,9 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 	sval_t sval;
 
 	if (!sm || !sm->merged)
+		return 0;
+
+	if (is_plus_plus(expr))
 		return 0;
 
 	if (too_many_possible(sm) && !is_implies_function(expr))
@@ -2204,6 +2231,8 @@ static int call_return_state_hooks_split_null_non_null_zero(struct expression *e
 	if (!expr || expr_equal_to_param(expr, -1))
 		return 0;
 	if (expr->type == EXPR_CALL)
+		return 0;
+	if (is_plus_plus(expr))
 		return 0;
 
 	sm = get_returned_sm(expr);
