@@ -20,15 +20,9 @@
 
 static const char *get_free_fn_name(struct expression *expr)
 {
-	struct expression *call;
-	const char *fn_name;
-
-	call = get_assigned_call(expr);
-	if (!call)
+	if (expr->type != EXPR_CALL)
 		return NULL;
-
-	fn_name = get_fn_name(call->fn);
-	return fn_name;
+	return get_fn_name(expr->fn);
 }
 
 static void match_free_member(struct expression *expr, const char *name, struct symbol *sym, bool maybe)

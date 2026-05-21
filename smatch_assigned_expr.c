@@ -117,6 +117,16 @@ struct expression *get_assigned_expr_name_sym_recurse(const char *name, struct s
 	return expr;
 }
 
+struct expression *get_assigned_call(struct expression *expr)
+{
+	struct expression *ret;
+
+	ret = get_assigned_expr_recurse(expr);
+	if (!ret || ret->type != EXPR_CALL)
+		return NULL;
+	return ret;
+}
+
 static struct expression *strip_useless_scope(struct expression *right)
 {
 	struct expression *orig;
