@@ -73,12 +73,10 @@ bool is_debug_arg(struct expression *expr)
 	int i;
 
 	expr = expr_get_parent_expr(expr);
-	sm_local("expr='%s'", expr_to_str(expr));
 	if (!expr || expr->type != EXPR_PREOP || expr->op != '(')
 		return false;
 	for (i = 0; i < 4; i++) {
 		expr = expr_get_parent_expr(expr);
-		sm_local("expr='%s'", expr_to_str(expr));
 		if (!expr || expr->type != EXPR_PREOP || expr->op != '!')
 			return false;
 	}
