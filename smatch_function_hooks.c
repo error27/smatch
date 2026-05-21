@@ -600,9 +600,8 @@ static void call_function_hooks(struct expression *expr, enum fn_hook_type type)
 	struct call_back_list *call_backs;
 	const char *fn_name;
 
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
+	expr = get_rightmost_call(expr);
+	if (!expr)
 		return;
 
 	fn_name = get_fn_name(expr->fn);
@@ -801,9 +800,8 @@ static void call_cull_hooks(struct db_callback_info *db_info, struct range_list 
 	struct fcall_back *tmp;
 	const char *fn_name;
 
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
+	expr = get_rightmost_call(expr);
+	if (!expr)
 		return;
 
 	fn_name = get_fn_name(expr->fn);
@@ -908,9 +906,8 @@ static bool fake_a_param_assignment(struct expression *expr, const char *ret_str
 	left = expr->left;
 	right = expr->right;
 
-	while (right->type == EXPR_ASSIGNMENT)
-		right = strip_expr(right->right);
-	if (!right || right->type != EXPR_CALL)
+	right = get_rightmost_call(right);
+	if (!right)
 		return false;
 
 	arg = get_arg_from_ret_string(right, ret_str);
@@ -950,10 +947,8 @@ static void fake_return_assignment(struct db_callback_info *db_info, int type, i
 	if (type != PARAM_COMPARE)
 		return;
 
-	call = db_info->expr;
-	while (call && call->type == EXPR_ASSIGNMENT)
-		call = strip_expr(call->right);
-	if (!call || call->type != EXPR_CALL)
+	call = get_rightmost_call(db_info->expr);
+	if (!call)
 		return;
 
 	// TODO: This only handles "$->foo = arg" and not "$->foo = arg->bar".
@@ -1079,9 +1074,8 @@ static bool impossible_limit(struct db_callback_info *db_info, int param, char *
 	struct range_list *limit;
 	struct symbol *compare_type;
 
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
+	expr = get_rightmost_call(expr);
+	if (!expr)
 		return false;
 
 	arg = get_argument_from_call_expr(expr->args, param);
@@ -1443,10 +1437,8 @@ static void call_ranged_return_hooks(struct db_callback_info *db_info)
 	struct fcall_back *tmp;
 	const char *fn_name;
 
-	expr = strip_expr(db_info->expr);
-	while (expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-	if (expr->type != EXPR_CALL)
+	expr = get_rightmost_call(db_info->expr);
+	if (!expr)
 		return;
 
 	fn_name = get_fn_name(expr->fn);
