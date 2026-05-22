@@ -200,6 +200,7 @@ struct allocation_info {
 typedef void (alloc_hook)(struct expression *expr, const char *name, struct symbol *sym, struct allocation_info *info);
 void add_allocation_hook_early(alloc_hook *hook);
 void add_allocation_hook(alloc_hook *func);
+bool is_allocation_primitive(struct expression *expr);
 
 void add_hook(void *func, enum hook_type type);
 typedef struct smatch_state *(merge_func_t)(struct smatch_state *s1, struct smatch_state *s2);

@@ -115,6 +115,26 @@ void add_allocation_hook_early(alloc_hook *hook)
 	add_ptr_list(&hook_funcs_early, hook);
 }
 
+bool is_allocation_primitive(struct expression *expr)
+{
+	struct alloc_fn_info *info;
+	const char *name;
+
+	expr = get_rightmost_call(expr);
+	if (!expr)
+		return false;
+
+	name = get_fn_name(expr);
+	if (!name)
+		return false;
+
+	for (info = &alloc_table[0]; info->name; info++) {
+		if (strcmp(info->name, name) == 0)
+			return true;
+	}
+	return false;
+}
+
 static void set_nr_size(struct allocation_info *data, struct expression *arg1, struct expression *arg2)
 {
 	struct expression *tmp;
