@@ -1,6 +1,6 @@
 #include "check_debug.h"
 
-void frob();
+void frob(void);
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
@@ -12,6 +12,8 @@ void func(void)
 	for (i = 0; i < 10; i++) {
 		val = min(5, i);
 		__smatch_value("val");
+		if (frob())
+			break;
 	}
 
 	i++;
@@ -19,20 +21,23 @@ void func(void)
 	val = min(100, i);
 	__smatch_value("val");
 
-	for (i = 0; i < 10; i++)
-		frob();
+	for (i = 0; i < 10; i++) {
+		if (frob())
+			break;
+	}
 
 	val = min(100, i);
 	__smatch_value("val");
 }
+
 /*
  * check-name: assigning select statements
  * check-command: smatch -I.. sm_select_assign.c
  *
  * check-output-start
 sm_select_assign.c:14 func() val = 0-5
-sm_select_assign.c:18 func() i = 11-s32max
-sm_select_assign.c:20 func() val = 11-100
-sm_select_assign.c:26 func() val = 10
+sm_select_assign.c:20 func() i = 1-11
+sm_select_assign.c:22 func() val = 1-11
+sm_select_assign.c:30 func() val = 0-10
  * check-output-end
  */
