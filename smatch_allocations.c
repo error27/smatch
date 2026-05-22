@@ -193,6 +193,7 @@ static void set_nr_size(struct allocation_info *data, struct expression *arg1, s
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
+	struct range_list *rl;
 	const char *p;
 	int op;
 	int param;
@@ -219,6 +220,8 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	if (*p == '\0') {
 		data->total_size = arg1;
 		set_nr_size(data, arg1, NULL);
+		get_absolute_rl(arg1, &rl);
+		data->size_rl = cast_rl(&ulong_ctype, rl);
 		return;
 	}
 	while (*p == ' ')
@@ -240,6 +243,8 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	data->total_size = binop_expression(arg1, op, arg2);
 	if (op == '*')
 		set_nr_size(data, arg1, arg2);
+	get_absolute_rl(data->total_size, &rl);
+	data->size_rl = cast_rl(&ulong_ctype, rl);
 }
 
 static void match_alloc_helper(struct alloc_hook_list *hooks, struct expression *expr, const char *name, struct symbol *sym, void *_info)

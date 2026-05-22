@@ -189,11 +189,11 @@ void add_dereference_hook(expr_func *fn);
 
 struct allocation_info {
 	const char *fn_name;
+	struct range_list *size_rl;
 	const char *size_str;
 	struct expression *total_size;
 	struct expression *nr_elems;
 	struct expression *elem_size;
-	long min, max;
 	bool zeroed;
 	bool safe;  /* safe from overflows */
 };
