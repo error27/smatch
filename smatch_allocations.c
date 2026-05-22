@@ -154,7 +154,7 @@ bool is_allocation_primitive(struct expression *expr)
 	call = get_rightmost_call(expr);
 	if (!call || !call->fn || call->fn->type != EXPR_SYMBOL)
 		return false;
-	if (!call->fn->symbol->alloc_size)
+	if (!call->fn->symbol || !call->fn->symbol->alloc_size)
 		return false;
 
 	return true;
@@ -289,7 +289,7 @@ static bool load_alloc_fn_info_from_attribute(struct expression *expr, struct al
 		return false;
 
 	fn_sym = call->fn->symbol;
-	if (!fn_sym->alloc_size)
+	if (!fn_sym || !fn_sym->alloc_size)
 		return false;
 	if (!fn_sym->ident)
 		return false;
