@@ -115,23 +115,30 @@ void add_allocation_hook_early(alloc_hook *hook)
 	add_ptr_list(&hook_funcs_early, hook);
 }
 
-static bool in_alloc_table(struct expression *expr)
+static struct alloc_fn_info *get_info_from_table(struct expression *expr)
 {
 	struct alloc_fn_info *info;
 	const char *name;
 
 	expr = get_rightmost_call(expr);
 	if (!expr)
-		return false;
+		return NULL;
 
 	name = get_fn_name(expr);
 	if (!name)
-		return false;
+		return NULL;
 
 	for (info = &alloc_table[0]; info->name; info++) {
 		if (strcmp(info->name, name) == 0)
-			return true;
+			return info;
 	}
+	return NULL;
+}
+
+static bool in_alloc_table(struct expression *expr)
+{
+	if (get_info_from_table(expr))
+		return true;
 	return false;
 }
 
@@ -247,6 +254,64 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	data->size_rl = cast_rl(&ulong_ctype, rl);
 }
 
+#define SIZE_STR_MAX 64
+static bool load_alloc_fn_info_from_attribute(struct expression *expr, struct alloc_fn_info *info)
+{
+	struct expression *call;
+	struct symbol *fn_sym;
+
+	call = get_rightmost_call(expr);
+	if (!call || !call->fn || call->fn->type != EXPR_SYMBOL)
+		return false;
+
+	fn_sym = call->fn->symbol;
+	if (!fn_sym->alloc_size)
+		return false;
+	if (!fn_sym->ident)
+		return false;
+
+	info->name = fn_sym->ident->name;
+	if (fn_sym->alloc_size->param2 == -1)
+		snprintf((char *)info->size, SIZE_STR_MAX, "$%d", fn_sym->alloc_size->param1 - 1);
+	else
+		snprintf((char *)info->size, SIZE_STR_MAX, "$%d * $%d",
+			 fn_sym->alloc_size->param1 - 1,
+			 fn_sym->alloc_size->param2 - 1);
+	if (strstr(info->name, "zalloc") || strstr(info->name, "calloc"))
+		info->zeroed = true;
+
+	return true;
+}
+
+bool load_allocation_info(struct expression *expr, struct allocation_info *info)
+{
+	struct alloc_fn_info *fn_info;
+	struct alloc_fn_info info_attrib = {};
+	char buf[SIZE_STR_MAX];
+
+	expr = get_rightmost_call(expr);
+	if (!expr)
+		return false;
+
+	fn_info = get_info_from_table(expr);
+	if (fn_info)
+		goto found;
+
+	info_attrib.size = buf;
+	if (load_alloc_fn_info_from_attribute(expr, &info_attrib)) {
+		fn_info = &info_attrib;
+		goto found;
+	}
+
+	return false;
+found:
+	info->fn_name = fn_info->name;
+	info->size_str = fn_info->size;
+	info->zeroed = fn_info->zeroed;
+	load_size_data(info, expr, fn_info->size);
+	return true;
+}
+
 static void match_alloc_helper(struct alloc_hook_list *hooks, struct expression *expr, const char *name, struct symbol *sym, void *_info)
 {
 	struct alloc_fn_info *info = _info;
@@ -276,21 +341,13 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 static void match_assign_call_helper(struct expression *expr, bool early)
 {
 	struct alloc_fn_info info = {};
-	struct expression *left, *call;
-	struct symbol *fn_sym, *sym;
-	char buf[64];
+	struct expression *left;
+	char buf[SIZE_STR_MAX];
+	struct symbol *sym;
 	char *name;
 
-	call = get_rightmost_call(expr);
-	if (!call || !call->fn || call->fn->type != EXPR_SYMBOL)
-		return;
-
-	fn_sym = call->fn->symbol;
-	if (!fn_sym->alloc_size)
-		return;
-	if (in_alloc_table(call))
-		return;
-	if (!fn_sym->ident)
+	info.size = buf;
+	if (!load_alloc_fn_info_from_attribute(expr, &info))
 		return;
 
 	if (early) {
@@ -306,21 +363,9 @@ static void match_assign_call_helper(struct expression *expr, bool early)
 		left = expr->left;
 	}
 
-
 	name = expr_to_str_sym(left, &sym);
 	if (!name || !sym)
 		return;
-
-	info.name = fn_sym->ident->name;
-	if (fn_sym->alloc_size->param2 == -1)
-		snprintf(buf, sizeof(buf), "$%d", fn_sym->alloc_size->param1 - 1);
-	else
-		snprintf(buf, sizeof(buf), "$%d * $%d",
-			 fn_sym->alloc_size->param1 - 1,
-			 fn_sym->alloc_size->param2 - 1);
-	info.size = buf;
-	if (strstr(info.name, "zalloc") || strstr(info.name, "calloc"))
-		info.zeroed = true;
 
 	match_alloc_helper(early ? hook_funcs_early : hook_funcs, expr,
 			   name, sym, &info);

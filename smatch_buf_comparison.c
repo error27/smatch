@@ -834,11 +834,28 @@ static void set_used(struct expression *expr)
 static int match_assign_array(struct expression *expr)
 {
 	struct smatch_state *state;
+	struct expression *call;
 	struct sm_state *tmp;
 	int limit_type;
 
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return 0;
+
+	call = get_assigned_call(expr->right);
+	if (call) {
+		struct allocation_info info;
+		struct symbol *sym;
+		char *name;
+
+		if (!load_allocation_info(call, &info))
+			return 0;
+		name = expr_to_str_sym(expr->left, &sym);
+		if (!name || !sym)
+			return 0;
+		match_allocation(expr, name, sym, &info);
+		free_string(name);
+		return 1;
+	}
 
 	state = get_state_expr(size_id, expr->right);
 	if (!state || !state->data)
