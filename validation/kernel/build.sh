@@ -1,10 +1,26 @@
 #!/bin/bash
 
 INFO=""
-if [ "$1" == "--info" ] ; then
-    INFO="--info"
-    shift
-fi
+VALGRIND=""
+GREP="grep"
+while true; do
+    if [ "$1" == "--info" ] ; then
+        INFO="--info"
+        shift
+        continue
+    fi
+    if [ "$1" == "--valgrind" ] ; then
+        VALGRIND="valgrind"
+        shift
+        continue
+    fi
+    if [ "$1" == "--nogrep" ] ; then
+        GREP=""
+        shift
+        continue
+    fi
+    break
+done
 
 FILE=$1
 FILE=$(echo ${FILE/.c/})
@@ -32,7 +48,9 @@ fi
 rm -f $MOD_DIR/${FILE}.o
 
 if [ "$INFO" != "" ] ; then
-    make V=1 C=2 CHECK="../../smatch -p=kernel $INFO " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
+    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel $INFO " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
+elif [ "$GREP" == "" ]; then
+    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
 else
-    make V=1 C=2 CHECK="../../smatch -p=kernel " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o | grep ^${FILE}.c
+    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o | grep ^${FILE}.c
 fi
