@@ -833,8 +833,30 @@ static void set_used(struct expression *expr)
 
 static int match_assign_array(struct expression *expr)
 {
-	// FIXME: implement
-	return 0;
+	struct smatch_state *state;
+	struct sm_state *tmp;
+	int limit_type;
+
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return 0;
+
+	state = get_state_expr(size_id, expr->right);
+	if (!state || !state->data)
+		return 0;
+
+	limit_type = state_to_limit(state);
+	if (limit_type < 0)
+		return 0;
+	if (limit_type != BYTE_COUNT) {
+		// FIXME: check the the sizes match and continue
+		return 0;
+	}
+
+	tmp = set_state_expr(size_id, expr->left, alloc_compare_size(limit_type, state->data));
+	if (!tmp)
+		return 0;
+	add_link(state->data, expr->left, expr);
+	return 1;
 }
 
 static int match_assign_size(struct expression *expr)
