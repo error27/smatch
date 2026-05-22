@@ -27,7 +27,7 @@ int frob(int x, int y)
 
 /*
  * check-name: plus minus zero
- * check-command: ./smatch -I.. sm_zero_math.c
+ * check-command: ./smatch --disable=check_OR_vs_AND -I.. sm_zero_math.c
  *
  * check-output-start
 sm_zero_math.c:8 frob() implied: x = '(-10)-10'

@@ -27,11 +27,11 @@ void func(void)
 }
 /*
  * check-name: smatch get_user() #1
- * check-command: smatch -p=kernel -I.. sm_get_user1.c
+ * check-command: smatch --print-names -p=kernel -I.. sm_get_user1.c | grep check_get_user_overflow
  *
  * check-output-start
-sm_get_user1.c:13 func() warn: check for integer over/underflow 'foo'
-sm_get_user1.c:18 func() warn: check for integer underflow 'bar'
-sm_get_user1.c:26 func() warn: check for integer overflow 'x'
+sm_get_user1.c:13 func() [smatch.check_get_user_overflow] warn: check for integer over/underflow 'foo'
+sm_get_user1.c:18 func() [smatch.check_get_user_overflow] warn: check for integer underflow 'bar'
+sm_get_user1.c:26 func() [smatch.check_get_user_overflow] warn: check for integer overflow 'x'
  * check-output-end
  */
