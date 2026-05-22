@@ -115,7 +115,7 @@ void add_allocation_hook_early(alloc_hook *hook)
 	add_ptr_list(&hook_funcs_early, hook);
 }
 
-bool is_allocation_primitive(struct expression *expr)
+static bool in_alloc_table(struct expression *expr)
 {
 	struct alloc_fn_info *info;
 	const char *name;
@@ -133,6 +133,22 @@ bool is_allocation_primitive(struct expression *expr)
 			return true;
 	}
 	return false;
+}
+
+bool is_allocation_primitive(struct expression *expr)
+{
+	struct expression *call;
+
+	if (in_alloc_table(expr))
+		return true;
+
+	call = get_rightmost_call(expr);
+	if (!call || !call->fn || call->fn->type != EXPR_SYMBOL)
+		return false;
+	if (!call->fn->symbol->alloc_size)
+		return false;
+
+	return true;
 }
 
 static void set_nr_size(struct allocation_info *data, struct expression *arg1, struct expression *arg2)
@@ -254,7 +270,6 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 
 static void match_assign_call_helper(struct expression *expr, bool early)
 {
-
 	struct alloc_fn_info info = {};
 	struct expression *left, *call;
 	struct symbol *fn_sym, *sym;
@@ -268,7 +283,7 @@ static void match_assign_call_helper(struct expression *expr, bool early)
 	fn_sym = call->fn->symbol;
 	if (!fn_sym->alloc_size)
 		return;
-	if (is_allocation_primitive(call))
+	if (in_alloc_table(call))
 		return;
 	if (!fn_sym->ident)
 		return;
