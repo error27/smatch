@@ -25,7 +25,7 @@
 
 #define UNKNOWN_SIZE -1
 
-static int my_size_id;
+static int my_id;
 
 static struct smatch_state *size_to_estate(int size)
 {
@@ -77,7 +77,7 @@ void set_param_buf_size(const char *name, struct symbol *sym, char *key, char *v
 	if (!rl || is_whole_rl(rl))
 		return;
 	state = alloc_estate_rl(rl);
-	set_state(my_size_id, fullname, sym, state);
+	set_state(my_id, fullname, sym, state);
 }
 
 static int bytes_per_element(struct expression *expr)
@@ -286,7 +286,7 @@ static void db_returns_buf_size(struct expression *expr, int param, char *unused
 	rl = cast_rl(&int_ctype, rl);
 	if (rl_to_sval(rl, &sval) && sval.value == 0)
 		return;
-	set_state_expr(my_size_id, expr->left, alloc_estate_rl(rl));
+	set_state_expr(my_id, expr->left, alloc_estate_rl(rl));
 }
 
 static int get_real_array_size_from_type(struct symbol *type)
@@ -328,7 +328,7 @@ static struct range_list *get_stored_size_bytes(struct expression *expr)
 {
 	struct smatch_state *state;
 
-	state = get_state_expr(my_size_id, expr);
+	state = get_state_expr(my_id, expr);
 	if (!state)
 		return NULL;
 	return estate_rl(state);
@@ -469,7 +469,7 @@ static struct range_list *get_stored_size_end_struct_bytes(struct expression *ex
 	if (!last_member_is_resizable(base_sym))
 		return NULL;
 
-	state = get_state(my_size_id, sym->ident->name, sym);
+	state = get_state(my_id, sym->ident->name, sym);
 	if (!estate_rl(state))
 		return NULL;
 	base_size.value = type_bytes(base_sym) - type_bytes(get_type(expr));
@@ -741,8 +741,8 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 
 	if (rl_min(rl).value != UNKNOWN_SIZE ||
 	    rl_max(rl).value != UNKNOWN_SIZE ||
-	    get_state_expr(my_size_id, expr))
-		set_state_expr(my_size_id, expr, alloc_estate_rl(rl));
+	    get_state_expr(my_id, expr))
+		set_state_expr(my_id, expr, alloc_estate_rl(rl));
 
 	type = get_type(expr);
 	if (!type)
@@ -790,7 +790,7 @@ static void match_array_assignment(struct expression *expr)
 	right = strip_expr(expr->right);
 	right = strip_ampersands(right);
 
-	if (!is_pointer(left) && !get_state_expr(my_size_id, left))
+	if (!is_pointer(left) && !get_state_expr(my_id, left))
 		return;
 
 	/* char buf[24] = "str"; */
@@ -994,21 +994,21 @@ static void match_allocation(struct expression *expr,
 
 void smatch_buf_size(int id)
 {
-	my_size_id = id;
+	my_id = id;
 
-	set_dynamic_states(my_size_id);
+	set_dynamic_states(my_id);
 
 	add_allocation_hook(&match_allocation);
-	add_unmatched_state_hook(my_size_id, &unmatched_size_state);
-	add_merge_hook(my_size_id, &merge_estates);
+	add_unmatched_state_hook(my_id, &unmatched_size_state);
+	add_merge_hook(my_id, &merge_estates);
 
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_split_return_callback(print_returned_allocations);
 
-	add_modification_hook(my_size_id, &set_size_undefined);
+	add_modification_hook(my_id, &set_size_undefined);
 
-	add_merge_hook(my_size_id, &merge_size_func);
+	add_merge_hook(my_id, &merge_size_func);
 
 	if (option_info)
 		add_hook(record_global_size, BASE_HOOK);
@@ -1022,5 +1022,5 @@ void smatch_buf_size_late(int id)
 	add_hook(&match_array_assignment, ASSIGNMENT_HOOK);
 
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_size_id, struct_member_callback);
+	add_member_info_callback(my_id, struct_member_callback);
 }
