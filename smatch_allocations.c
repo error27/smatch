@@ -199,6 +199,26 @@ static void set_nr_size(struct allocation_info *data, struct expression *arg1, s
 	}
 }
 
+static bool handle_size_mul(struct allocation_info *data, struct expression *expr)
+{
+	struct expression *tmp, *arg1, *arg2;
+
+	tmp = get_assigned_expr(expr);
+	if (tmp)
+		expr = tmp;
+	if (!expr || expr->type != EXPR_CALL || !sym_name_is(expr->fn, "size_mul"))
+		return false;
+
+	arg1 = get_argument_from_call_expr(expr->args, 0);
+	arg2 = get_argument_from_call_expr(expr->args, 1);
+	if (!arg1 || !arg2)
+		return false;
+
+	set_nr_size(data, arg1, arg2);
+	data->total_size = binop_expression(arg1, '*', arg2);
+	return true;
+}
+
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
@@ -227,9 +247,11 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 
 	p++;
 	if (*p == '\0') {
-		data->total_size = arg1;
-		set_nr_size(data, arg1, NULL);
-		get_absolute_rl(arg1, &rl);
+		if (!handle_size_mul(data, arg1)) {
+			data->total_size = arg1;
+			set_nr_size(data, arg1, NULL);
+		}
+		get_absolute_rl(data->total_size, &rl);
 		data->size_rl = cast_rl(&ulong_ctype, rl);
 		return;
 	}
