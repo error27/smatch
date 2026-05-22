@@ -252,11 +252,78 @@ static void match_alloc(struct expression *expr, const char *name, struct symbol
 	match_alloc_helper(hook_funcs, expr, name, sym, _info);
 }
 
+static void match_assign_call_helper(struct expression *expr, bool early)
+{
+
+	struct alloc_fn_info info = {};
+	struct expression *left, *call;
+	struct symbol *fn_sym, *sym;
+	char buf[64];
+	char *name;
+
+	call = get_rightmost_call(expr);
+	if (!call || !call->fn || call->fn->type != EXPR_SYMBOL)
+		return;
+
+	fn_sym = call->fn->symbol;
+	if (!fn_sym->alloc_size)
+		return;
+	if (is_allocation_primitive(call))
+		return;
+	if (!fn_sym->ident)
+		return;
+
+	if (early) {
+		struct expression *parent;
+
+		parent = expr;
+		while (parent && parent->type != EXPR_ASSIGNMENT)
+			parent = expr_get_parent_expr(parent);
+		if (!parent)
+			return;
+		left = parent->left;
+	} else {
+		left = expr->left;
+	}
+
+
+	name = expr_to_str_sym(left, &sym);
+	if (!name || !sym)
+		return;
+
+	info.name = fn_sym->ident->name;
+	if (fn_sym->alloc_size->param2 == -1)
+		snprintf(buf, sizeof(buf), "$%d", fn_sym->alloc_size->param1 - 1);
+	else
+		snprintf(buf, sizeof(buf), "$%d * $%d",
+			 fn_sym->alloc_size->param1 - 1,
+			 fn_sym->alloc_size->param2 - 1);
+	info.size = buf;
+	if (strstr(info.name, "zalloc") || strstr(info.name, "calloc"))
+		info.zeroed = true;
+
+	match_alloc_helper(early ? hook_funcs_early : hook_funcs, expr,
+			   name, sym, &info);
+}
+
+static void match_assign_call_early(struct expression *expr)
+{
+	match_assign_call_helper(expr, true);
+}
+
+static void match_assign_call(struct expression *expr)
+{
+	match_assign_call_helper(expr, false);
+}
+
 void smatch_allocations(int id)
 {
 	struct alloc_fn_info *info;
 
 	my_id = id;
+
+	add_hook(&match_assign_call_early, CALL_ASSIGNMENT_HOOK);
+	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 
 	if (option_project == PROJ_KERNEL)
 		info = kernel_alloc_funcs;
