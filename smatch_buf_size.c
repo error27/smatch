@@ -27,30 +27,6 @@
 
 static int my_size_id;
 
-static DEFINE_HASHTABLE_INSERT(insert_func, char, int);
-static DEFINE_HASHTABLE_SEARCH(search_func, char, int);
-static struct hashtable *allocation_funcs;
-
-static bool is_allocation_function(struct expression *expr)
-{
-	const char *func;
-
-	if (!expr || expr->type != EXPR_CALL)
-		return false;
-	func = get_fn_name(expr->fn);
-	if (!func)
-		return false;
-	if (search_func(allocation_funcs, (char *)func))
-		return true;
-	return false;
-}
-
-static void add_allocation_function(const char *func, void *call_back, int param)
-{
-	insert_func(allocation_funcs, (char *)func, (int *)1);
-	add_function_assign_hook(func, call_back, INT_PTR(param));
-}
-
 static struct smatch_state *size_to_estate(int size)
 {
 	sval_t sval;
@@ -774,12 +750,11 @@ static void store_alloc(struct expression *expr, struct range_list *rl)
 	if (type->type != SYM_PTR &&
 	    type->type != SYM_ARRAY)
 		return;
+
 	type = get_real_base_type(type);
 	if (!type)
 		return;
-// Why not store the size for void pointers?
-	if (type == &void_ctype)
-		return;
+
 // Because of 4 files that produce 30 warnings like this:
 // arch/x86/crypto/des3_ede_glue.c:145 __cbc_encrypt() warn: potential memory corrupting cast 8 vs 1 bytes
 	if (type->type != SYM_BASETYPE &&
@@ -821,7 +796,7 @@ static void match_array_assignment(struct expression *expr)
 	/* char buf[24] = "str"; */
 	if (is_array_base(left))
 		return;
-	if (is_allocation_function(right))
+	if (is_allocation_primitive(right))
 		return;
 
 	left_member = get_member_name(left);
@@ -837,161 +812,8 @@ static void match_array_assignment(struct expression *expr)
 	rl = get_array_size_bytes_rl(right);
 	if (!rl && __in_fake_assign)
 		return;
-
 store:
 	store_alloc(left, rl);
-}
-
-static struct expression *get_variable_struct_member(struct expression *expr)
-{
-	struct symbol *type, *last_member;
-	sval_t sval;
-
-	/*
-	 * This is a hack.  It should look at how the size is calculated instead
-	 * of just assuming that it's the last element.  However, ugly hacks are
-	 * easier to write.
-	 */
-
-	type = get_type(expr);
-	if (!type || type->type != SYM_PTR)
-		return NULL;
-	type = get_real_base_type(type);
-	if (!type || type->type != SYM_STRUCT)
-		return NULL;
-	last_member = last_ptr_list((struct ptr_list *)type->symbol_list);
-	if (!last_member || !last_member->ident)
-		return NULL;
-	type = get_real_base_type(last_member);
-	if (!type || type->type != SYM_ARRAY)
-		return NULL;
-	/* Is non-zero array size */
-	if (type->array_size) {
-		if (!get_implied_value(type->array_size, &sval) ||
-		    sval.value != 0)
-			return NULL;
-	}
-
-	return member_expression(expr, '*', last_member->ident);
-}
-
-static void match_struct_size_helper(struct expression *pointer, struct range_list *rl)
-{
-	struct range_list *buf_size;
-	struct expression *member;
-	sval_t sval = { .type = &ulong_ctype };
-
-	member = get_variable_struct_member(pointer);
-	if (!member)
-		return;
-	sval.value = bytes_per_element(pointer);
-	if (!sval.value)
-		return;
-	buf_size = rl_binop(rl, '-', alloc_rl(sval, sval));
-	store_alloc(member, buf_size);
-}
-
-static void match_alloc(const char *fn, struct expression *expr, void *_size_arg)
-{
-	int size_arg = PTR_INT(_size_arg);
-	struct expression *pointer, *right, *arg;
-	struct range_list *rl;
-
-	pointer = strip_expr(expr->left);
-	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, size_arg);
-	get_absolute_rl(arg, &rl);
-	rl = cast_rl(&ulong_ctype, rl);
-	store_alloc(pointer, rl);
-	match_struct_size_helper(pointer, rl);
-}
-
-static void match_calloc(const char *fn, struct expression *expr, void *_param)
-{
-	struct expression *right;
-	struct expression *size, *nr, *mult;
-	struct range_list *rl;
-	int param = PTR_INT(_param);
-
-	right = strip_expr(expr->right);
-	nr = get_argument_from_call_expr(right->args, param);
-	size = get_argument_from_call_expr(right->args, param + 1);
-	mult = binop_expression(nr, '*', size);
-	if (get_implied_rl(mult, &rl))
-		store_alloc(expr->left, rl);
-	else
-		store_alloc(expr->left, size_to_rl(UNKNOWN_SIZE));
-}
-
-static void match_page(const char *fn, struct expression *expr, void *_unused)
-{
-	sval_t page_size = {
-		.type = &int_ctype,
-		{.value = 4096},
-	};
-
-	store_alloc(expr->left, alloc_rl(page_size, page_size));
-}
-
-static void match_bitmap_alloc(const char *fn, struct expression *expr, void *_size_arg)
-{
-	int size_arg = PTR_INT(_size_arg);
-	struct expression *right;
-	struct expression *arg;
-	struct range_list *rl;
-	sval_t int_8 = {
-		.type = &int_ctype,
-		.value = 8,
-	};
-
-	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, size_arg);
-	get_absolute_rl(arg, &rl);
-	if (rl_max(rl).uvalue <= SHRT_MAX && rl_max(rl).uvalue % 8) {
-		sval_t max = rl_max(rl);
-		/* round up */
-		max.uvalue += 7;
-		rl = alloc_rl(rl_min(rl), max);
-	}
-	rl = rl_binop(rl, '/', alloc_rl(int_8, int_8));
-	rl = cast_rl(&ulong_ctype, rl);
-	store_alloc(expr->left, rl);
-}
-
-static void match_strndup(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *fn_expr;
-	struct expression *size_expr;
-	sval_t size;
-
-	fn_expr = strip_expr(expr->right);
-	size_expr = get_argument_from_call_expr(fn_expr->args, 1);
-	if (get_implied_max(size_expr, &size)) {
-		size.value++;
-		store_alloc(expr->left, size_to_rl(size.value));
-	} else {
-		store_alloc(expr->left, size_to_rl(UNKNOWN_SIZE));
-	}
-}
-
-static void match_alloc_pages(const char *fn, struct expression *expr, void *_order_arg)
-{
-	int order_arg = PTR_INT(_order_arg);
-	struct expression *right;
-	struct expression *arg;
-	sval_t sval;
-
-	right = strip_expr(expr->right);
-	arg = get_argument_from_call_expr(right->args, order_arg);
-	if (!get_implied_value(arg, &sval))
-		return;
-	if (sval.value < 0 || sval.value > 10)
-		return;
-
-	sval.type = &int_ctype;
-	sval.value = (1 << sval.value) * 4096;
-
-	store_alloc(expr->left, alloc_rl(sval, sval));
 }
 
 static int is_type_bytes(struct range_list *rl, struct expression *call, int nr)
@@ -1111,67 +933,78 @@ static void record_global_size(struct symbol *sym)
 	sql_insert_data_info_var_sym(sym->ident->name, sym, BUF_SIZE, buf);
 }
 
+static struct expression *get_variable_struct_member(struct expression *expr)
+{
+	struct symbol *type, *last_member;
+	sval_t sval;
+
+	/*
+	 * This is a hack.  It should look at how the size is calculated instead
+	 * of just assuming that it's the last element.  However, ugly hacks are
+	 * easier to write.
+	 */
+
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
+		return NULL;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return NULL;
+	last_member = last_ptr_list((struct ptr_list *)type->symbol_list);
+	if (!last_member || !last_member->ident)
+		return NULL;
+	type = get_real_base_type(last_member);
+	if (!type || type->type != SYM_ARRAY)
+		return NULL;
+	/* Is non-zero array size */
+	if (type->array_size) {
+		if (!get_implied_value(type->array_size, &sval) ||
+		    sval.value != 0)
+			return NULL;
+	}
+
+	return member_expression(expr, '*', last_member->ident);
+}
+
+static void match_struct_size_helper(struct expression *pointer, struct range_list *rl)
+{
+	struct range_list *buf_size;
+	struct expression *member;
+	sval_t sval = { .type = &ulong_ctype };
+
+	member = get_variable_struct_member(pointer);
+	if (!member)
+		return;
+	sval.value = bytes_per_element(pointer);
+	if (!sval.value)
+		return;
+	buf_size = rl_binop(rl, '-', alloc_rl(sval, sval));
+	store_alloc(member, buf_size);
+}
+
+static void match_allocation(struct expression *expr,
+			     const char *name, struct symbol *sym,
+			     struct allocation_info *info)
+{
+	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return;
+	store_alloc(expr->left, info->size_rl);
+	match_struct_size_helper(expr->left, info->size_rl);
+}
+
 void smatch_buf_size(int id)
 {
 	my_size_id = id;
 
 	set_dynamic_states(my_size_id);
 
+	add_allocation_hook(&match_allocation);
 	add_unmatched_state_hook(my_size_id, &unmatched_size_state);
 	add_merge_hook(my_size_id, &merge_estates);
 
 	select_caller_info_hook(set_param_buf_size, BUF_SIZE);
 	select_return_states_hook(BUF_SIZE, &db_returns_buf_size);
 	add_split_return_callback(print_returned_allocations);
-
-	allocation_funcs = create_function_hashtable(100);
-	add_allocation_function("malloc", &match_alloc, 0);
-	add_allocation_function("calloc", &match_calloc, 0);
-	add_allocation_function("memdup", &match_alloc, 1);
-	add_allocation_function("realloc", &match_alloc, 1);
-	if (option_project == PROJ_KERNEL) {
-		add_allocation_function("kmalloc", &match_alloc, 0);
-		add_allocation_function("kmalloc_node", &match_alloc, 0);
-		add_allocation_function("kmalloc_noprof", &match_alloc, 0);
-		add_allocation_function("kzalloc", &match_alloc, 0);
-		add_allocation_function("kzalloc_node", &match_alloc, 0);
-		add_allocation_function("kzalloc_noprof", &match_alloc, 0);
-		add_allocation_function("vmalloc", &match_alloc, 0);
-		add_allocation_function("vzalloc", &match_alloc, 0);
-		add_allocation_function("__vmalloc", &match_alloc, 0);
-		add_allocation_function("kvmalloc", &match_alloc, 0);
-		add_allocation_function("kcalloc", &match_calloc, 0);
-		add_allocation_function("kvcalloc", &match_calloc, 0);
-		add_allocation_function("kmalloc_array", &match_calloc, 0);
-		add_allocation_function("devm_kmalloc_array", &match_calloc, 1);
-		add_allocation_function("sock_kmalloc", &match_alloc, 1);
-		add_allocation_function("kmemdup", &match_alloc, 1);
-		add_allocation_function("memdup_user", &match_alloc, 1);
-		add_allocation_function("dma_alloc_attrs", &match_alloc, 1);
-		add_allocation_function("devm_kmalloc", &match_alloc, 1);
-		add_allocation_function("devm_kzalloc", &match_alloc, 1);
-		add_allocation_function("krealloc", &match_alloc, 1);
-		add_allocation_function("__alloc_bootmem", &match_alloc, 0);
-		add_allocation_function("alloc_bootmem", &match_alloc, 0);
-		add_allocation_function("kmap", &match_page, 0);
-		add_allocation_function("kmap_atomic", &match_page, 0);
-		add_allocation_function("get_zeroed_page", &match_page, 0);
-		add_allocation_function("alloc_page", &match_page, 0);
-		add_allocation_function("alloc_pages", &match_alloc_pages, 1);
-		add_allocation_function("alloc_pages_current", &match_alloc_pages, 1);
-		add_allocation_function("__get_free_pages", &match_alloc_pages, 1);
-		add_allocation_function("dma_alloc_contiguous", &match_alloc, 1);
-		add_allocation_function("dma_alloc_coherent", &match_alloc, 1);
-		add_allocation_function("bitmap_alloc", &match_bitmap_alloc, 0);
-		add_allocation_function("bitmap_alloc_node", &match_bitmap_alloc, 0);
-		add_allocation_function("bitmap_zalloc", &match_bitmap_alloc, 0);
-		add_allocation_function("devm_bitmap_alloc", &match_bitmap_alloc, 1);
-		add_allocation_function("devm_bitmap_zalloc", &match_bitmap_alloc, 1);
-	}
-
-	add_allocation_function("strndup", match_strndup, 0);
-	if (option_project == PROJ_KERNEL)
-		add_allocation_function("kstrndup", match_strndup, 0);
 
 	add_modification_hook(my_size_id, &set_size_undefined);
 
