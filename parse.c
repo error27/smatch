@@ -80,7 +80,10 @@ typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
 
 static attr_t
-	attribute_packed, attribute_aligned, attribute_modifier,
+	attribute_packed,
+	attribute_aligned,
+	attribute_alloc_size,
+	attribute_modifier,
 	attribute_function,
 	attribute_bitwise,
 	attribute_address_space, attribute_context,
@@ -374,6 +377,10 @@ static struct symbol_op aligned_op = {
 	.attribute = attribute_aligned,
 };
 
+static struct symbol_op alloc_size_op = {
+	.attribute = attribute_alloc_size,
+};
+
 static struct symbol_op cleanup_op = {
 	.attribute = attribute_cleanup,
 };
@@ -559,6 +566,7 @@ static struct init_keyword {
 	/* Attributes */
 	D("packed",		&packed_op),
 	D("aligned",		&aligned_op),
+	D("alloc_size",		&alloc_size_op),
 	D("cleanup",		&cleanup_op),
 	D("nocast",		&attr_mod_op,		.mods = MOD_NOCAST),
 	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
@@ -1165,6 +1173,33 @@ static struct token *attribute_cleanup(struct token *token, struct symbol *attr,
 
 	sparse_error(token->pos, "an argument is expected for attribute 'cleanup'");
 	return token;
+}
+
+ALLOCATOR(alloc_size, "alloc_size");
+static struct token *attribute_alloc_size(struct token *token, struct symbol *attr, struct decl_state *ctx)
+{
+	struct expression *param1 = NULL;
+	struct expression *param2 = NULL;
+	struct alloc_size *size;
+
+	size = __alloc_alloc_size(0);
+	size->param1 = -1;
+	size->param2 = -1;
+
+	token = expect(token, '(', "in __alloc_size__");
+	token = parse_expression(token, &param1);
+	if (param1)
+		size->param1 = const_expression_value(param1);
+
+	if (match_op(token, ',')) {
+		token = token->next;
+		token = parse_expression(token, &param2);
+		if (param2)
+			size->param2 = const_expression_value(param2);
+	}
+	ctx->alloc_size = size;
+
+	return expect(token, ')', "after attribute's argument'");
 }
 
 static void apply_mod(struct position *pos, unsigned long *mods, unsigned long mod)
@@ -3085,6 +3120,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		}
 		/* apply attributes placed after the declarator */
 		decl->ctype.modifiers |= ctx.f_modifiers;
+		decl->alloc_size = ctx.alloc_size;
 
 		/* K&R argument declaration? */
 		if (lookup_type(token))

@@ -104,11 +104,16 @@ struct ctype {
 	struct ident *as;
 };
 
+struct alloc_size {
+	int param1, param2;
+};
+
 struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
 	struct symbol_op *mode;
 	struct expression *cleanup;
+	struct alloc_size *alloc_size;
 	unsigned long f_modifiers;		// function attributes
 	unsigned long storage_class;
 	unsigned char prefer_abstract;
@@ -200,6 +205,7 @@ struct symbol {
 					transparent_union:1;
 			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
+			struct alloc_size *alloc_size;
 			struct ctype ctype;
 			struct symbol_list *arguments;
 			struct statement *stmt;
