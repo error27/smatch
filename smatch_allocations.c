@@ -105,6 +105,8 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{ },
 };
 
+struct alloc_fn_info *alloc_table;
+
 void add_allocation_hook(alloc_hook *hook)
 {
 	add_ptr_list(&hook_funcs, hook);
@@ -391,10 +393,11 @@ void smatch_allocations(int id)
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
 
 	if (option_project == PROJ_KERNEL)
-		info = kernel_alloc_funcs;
+		alloc_table = kernel_alloc_funcs;
 	else
-		info = alloc_fns;
+		alloc_table = alloc_fns;
 
+	info = alloc_table;
 	while (info->name) {
 		add_function_param_key_hook_early(info->name, &match_alloc_early, -1, "$", info);
 		add_function_param_key_hook(info->name, &match_alloc, -1, "$", info);
