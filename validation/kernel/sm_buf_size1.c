@@ -54,6 +54,6 @@ int test_alloc(void __user *argp)
 sm_buf_size1.c:41 test_alloc() implied: tmp.nevents = '0-300'
 sm_buf_size1.c:42 test_alloc() implied: size = '16-2416'
 sm_buf_size1.c:43 test_alloc() buf size: 'filter' 151 elements, 2416 bytes (rl = 16-2416)[size_var=byte_count size]
-sm_buf_size1.c:44 test_alloc() buf size: 'filter->events' 300 elements, 2400 bytes (rl = 0-2400)
+sm_buf_size1.c:44 test_alloc() buf size: 'filter->events' 300 elements, 2400 bytes (rl = 0-2400)[size_var=elem_count filter->nevents]
  * check-output-end
  */
