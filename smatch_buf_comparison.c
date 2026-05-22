@@ -841,6 +841,9 @@ static int match_assign_array(struct expression *expr)
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return 0;
 
+	if (!type_is_ptr(get_type(expr->left)))
+		return 0;
+
 	call = get_assigned_call(expr->right);
 	if (call) {
 		struct allocation_info info;
