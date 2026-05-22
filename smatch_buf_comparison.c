@@ -918,30 +918,6 @@ static void match_assign(struct expression *expr)
 		return;
 }
 
-static void match_copy(const char *fn, struct expression *expr, void *unused)
-{
-	struct expression *src, *size;
-	int src_param, size_param;
-
-	src = get_argument_from_call_expr(expr->args, 1);
-	size = get_argument_from_call_expr(expr->args, 2);
-	src = strip_expr(src);
-	size = strip_expr(size);
-	if (!src || !size)
-		return;
-	if (src->type != EXPR_SYMBOL || size->type != EXPR_SYMBOL)
-		return;
-
-	src_param = get_param_num_from_sym(src->symbol);
-	size_param = get_param_num_from_sym(size->symbol);
-	if (src_param < 0 || size_param < 0)
-		return;
-
-	sql_insert_cache(call_implies, "'%s', '%s', 0, %d, %d, %d, '==$%d', '%d'",
-			 get_base_file(), get_function(), fn_static(),
-			 BYTE_COUNT, src_param, size_param, BYTE_COUNT);
-}
-
 void smatch_buf_comparison(int id)
 {
 	int i;
@@ -949,21 +925,11 @@ void smatch_buf_comparison(int id)
 	size_id = id;
 
 	set_dynamic_states(size_id);
-
 	add_unmatched_state_hook(size_id, &unmatched_state);
-
-	if (option_project == PROJ_KERNEL) {
-		add_function_hook("copy_from_user", &match_copy, NULL);
-		add_function_hook("__copy_from_user", &match_copy, NULL);
-	}
-
 	add_allocation_hook(&match_allocation);
-
 	add_hook(&set_used, OP_HOOK);
-
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
 	add_hook(&munge_start_states, AFTER_DEF_HOOK);
-
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 
 	for (i = BYTE_COUNT; i <= USED_COUNT; i++) {
