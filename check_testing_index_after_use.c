@@ -35,10 +35,13 @@ static void array_check(struct expression *expr)
 	struct expression *array_expr;
 	int array_size;
 	struct expression *offset;
-	struct range_list *rl;
 
 	expr = strip_expr(expr);
 	if (!is_array(expr))
+		return;
+	if (getting_address(expr))
+		return;
+	if (array_safe_expr(expr))
 		return;
 
 	array_expr = get_array_base(expr);
@@ -47,14 +50,6 @@ static void array_check(struct expression *expr)
 		return;
 
 	offset = get_array_offset(expr);
-	get_absolute_rl(offset, &rl);
-	if (rl_max(rl).uvalue < array_size)
-		return;
-	if (buf_comparison_index_ok(expr))
-		return;
-
-	if (getting_address(expr))
-		return;
 	if (is_capped(offset))
 		return;
 	set_state_expr(my_used_id, offset, alloc_state_num(array_size));
