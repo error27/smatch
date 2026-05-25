@@ -485,6 +485,8 @@ static void match_assign_value(struct expression *expr)
 	type = get_type(expr->left);
 	if (type && type->type == SYM_STRUCT)
 		return;
+	if (type && type->type == SYM_ARRAY)
+		return;
 	member = get_member_name(expr->left);
 	if (!member)
 		return;
