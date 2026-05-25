@@ -1329,7 +1329,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	true_states = db_info.stree;
 	if (!true_states && db_info.has_states) {
 		__push_fake_cur_stree();
-		set_path_impossible();
+		set_path_impossible(left);
 		true_states = __pop_fake_cur_stree();
 	}
 
@@ -1351,7 +1351,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 	false_states = db_info.stree;
 	if (!false_states && db_info.has_states) {
 		__push_fake_cur_stree();
-		set_path_impossible();
+		set_path_impossible(left);
 		false_states = __pop_fake_cur_stree();
 	}
 
@@ -1579,7 +1579,7 @@ static int db_return_states_assign(struct expression *expr)
 
 	if (!db_info.stree && db_info.cull) { /* this means we culled everything */
 		set_extra_expr_mod(expr->left, alloc_estate_whole(get_type(expr->left)));
-		set_path_impossible();
+		set_path_impossible(expr);
 	}
 	FOR_EACH_SM(db_info.stree, sm) {
 		__set_sm(sm);

@@ -1373,11 +1373,11 @@ static void handle_comparison(struct expression *left_expr, int op, struct expre
 	if (op == IMPOSSIBLE_COMPARISON &&
 	    false_op != IMPOSSIBLE_COMPARISON &&
 	    false_op != UNKNOWN_COMPARISON)
-		set_true_path_impossible();
+		set_true_path_impossible(left_expr);
 	if (op != IMPOSSIBLE_COMPARISON &&
 	    op != UNKNOWN_COMPARISON &&
 	    false_op == IMPOSSIBLE_COMPARISON)
-		set_false_path_impossible();
+		set_false_path_impossible(left_expr);
 
 	set_true_false_states(comparison_id, state_name, NULL, true_state, false_state);
 	__compare_param_limit_hook(left_expr, right_expr, state_name, true_state, false_state);

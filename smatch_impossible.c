@@ -20,6 +20,7 @@
 
 static int my_id;
 static int my_return_id;
+static int my_split_id;
 
 unsigned long nothing_impossible;
 
@@ -59,6 +60,10 @@ static void handle_compare(struct expression *left, int op, struct expression *r
 	set_true_false_states(my_return_id, "impossible", NULL,
 			      true_impossible ? &impossible : NULL,
 			      false_impossible ? &impossible : NULL);
+	if (left || !in_macro(left->pos))
+		set_true_false_states(my_split_id, "impossible", NULL,
+				      true_impossible ? &impossible : NULL,
+				      false_impossible ? &impossible : NULL);
 }
 
 static void match_condition(struct expression *expr)
@@ -69,23 +74,27 @@ static void match_condition(struct expression *expr)
 		handle_compare(expr, SPECIAL_NOTEQUAL, zero_expr());
 }
 
-void set_true_path_impossible(void)
+void set_true_path_impossible(struct expression *expr)
 {
 	set_true_false_states(my_id, "impossible", NULL, &impossible, NULL);
 	if (inside_loop())
 		return;
 	set_true_false_states(my_return_id, "impossible", NULL, &impossible, NULL);
+	if (expr || !in_macro(expr->pos))
+		set_true_false_states(my_split_id, "impossible", NULL, &impossible, NULL);
 }
 
-void set_false_path_impossible(void)
+void set_false_path_impossible(struct expression *expr)
 {
 	set_true_false_states(my_id, "impossible", NULL, NULL, &impossible);
 	if (inside_loop())
 		return;
 	set_true_false_states(my_return_id, "impossible", NULL, NULL, &impossible);
+	if (expr || !in_macro(expr->pos))
+		set_true_false_states(my_split_id, "impossible", NULL, NULL, &impossible);
 }
 
-void set_path_impossible(void)
+void set_path_impossible(struct expression *expr)
 {
 	set_state(my_id, "impossible", NULL, &impossible);
 
@@ -93,13 +102,15 @@ void set_path_impossible(void)
 		return;
 
 	set_state(my_return_id, "impossible", NULL, &impossible);
+	if (expr || !in_macro(expr->pos))
+		set_state(my_split_id, "impossible", NULL, &impossible);
 }
 
 static void match_case(struct expression *expr, struct range_list *rl)
 {
 	if (rl)
 		return;
-	set_path_impossible();
+	set_path_impossible(expr);
 }
 
 static void print_impossible_return(int return_id, char *return_ranges, struct expression *expr)
@@ -151,4 +162,9 @@ void smatch_impossible_return(int id)
 	}
 
 	add_split_return_callback(&print_impossible_return);
+}
+
+void smatch_impossible_split_return(int id)
+{
+	my_split_id = id;
 }

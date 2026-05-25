@@ -2578,7 +2578,7 @@ static bool split_by_impossible(struct expression *expr)
 	int nr_states;
 
 	if (!impossible_id)
-		impossible_id = id_from_name("smatch_impossible_return");
+		impossible_id = id_from_name("smatch_impossible_split_return");
 	if (!impossible_id)
 		return false;
 
