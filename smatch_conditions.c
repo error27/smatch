@@ -628,7 +628,7 @@ static void split_conditions(struct expression *expr, int *known_tf)
 static int inside_condition;
 void __split_whole_condition_tf(struct expression *expr, int *known_tf)
 {
-
+	/* -1 means neither known nor unknown */
 	*known_tf = -1;
 	inside_condition++;
 

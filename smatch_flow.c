@@ -1146,10 +1146,12 @@ static void handle_pre_loop(struct statement *stmt)
 	__in_pre_condition++;
 	__set_confidence_implied();
 	__split_whole_condition_tf(stmt->iterator_pre_condition, &once_through);
+	if (once_through == -1)
+		once_through = false;
 	if (!stmt->iterator_pre_condition)
 		once_through = true;
 	__unset_confidence();
-	if (once_through != true)
+	if (!once_through)
 		once_through = call_once_through_hooks(stmt);
 	__in_pre_condition--;
 	FOR_EACH_SM(stree, sm) {
@@ -1164,7 +1166,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	if (is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement)) {
 		__merge_continues();
-		if (once_through == true)
+		if (once_through)
 			__discard_false_states();
 		else
 			__merge_false_states();
@@ -1202,7 +1204,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__in_pre_condition--;
 		nullify_path();
 		__merge_false_states();
-		if (once_through == true)
+		if (once_through)
 			__discard_false_states();
 		else
 			__merge_false_states();
