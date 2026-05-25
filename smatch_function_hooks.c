@@ -840,13 +840,40 @@ static void clear_unfaked_call(void)
 	delete_ptr_list_last((struct ptr_list **)&unfaked_calls);
 }
 
-void fake_param_assign_helper(struct expression *call, struct expression *fake_assign, bool shallow)
+void fake_param_assign_helper(struct expression *expr, struct expression *fake_assign, bool shallow)
 {
-	store_unfaked_call(call);
+	struct stree *orig, *before, *set;
+	struct expression *call;
+	struct symbol *left_sym;
+	struct sm_state *sm;
+	char *name;
+
+	name = expr_to_var_sym(expr->left, &left_sym);
+	if (!name || !left_sym)
+		return;
+
+	call = get_rightmost_call(expr);
+	before = get_expr_stree(call);
+	if (!before) {
+		sm_perror("no saved stree for: '%s'", expr_to_str(call));
+		before = __get_cur_stree();
+	}
+	orig = __swap_cur_stree(before);
+	__push_fake_cur_stree();
+
+	store_unfaked_call(expr);
 	__in_fake_parameter_assign++;
 	parse_assignment(fake_assign, true);
 	__in_fake_parameter_assign--;
 	clear_unfaked_call();
+
+	set = __pop_fake_cur_stree();
+	__swap_cur_stree(orig);
+	FOR_EACH_SM(set, sm) {
+		if (sm->sym == left_sym && strcmp(sm->name, name) == 0)
+			__set_sm(sm);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&set);
 }
 
 static struct expression *get_arg_from_ret_string(struct expression *call, const char *ret_string)

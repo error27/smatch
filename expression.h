@@ -173,6 +173,8 @@ typedef struct {
 	};
 } sval_t;
 
+struct stree;
+
 struct expression {
 	enum expression_type type:8;
 	unsigned flags:8;
@@ -183,6 +185,7 @@ struct expression {
 	struct position pos;
 	struct symbol *ctype;
 	unsigned long parent;
+	struct stree *stree[2];
 	union {
 		// EXPR_VALUE
 		struct {

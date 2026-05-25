@@ -629,6 +629,28 @@ static bool gen_fake_function_assign(struct expression *expr)
 	return true;
 }
 
+static void set_expr_stree(struct expression *expr)
+{
+	int idx = cur_func_sym->pass_cnt;
+	int other = (cur_func_sym->pass_cnt + 1) % 2;
+
+	if (!expr)
+		return;
+
+	free_stree(&expr->stree[idx]);
+	expr->stree[idx] = clone_stree(__get_cur_stree());
+	free_stree(&expr->stree[other]);
+}
+
+struct stree *get_expr_stree(struct expression *expr)
+{
+	int idx = cur_func_sym->pass_cnt;
+
+	if (!expr)
+		return NULL;
+	return expr->stree[idx];
+}
+
 static void split_call(struct expression *expr)
 {
 	if (gen_fake_function_assign(expr))
@@ -648,6 +670,7 @@ static void split_call(struct expression *expr)
 		__inline_call = 1;
 	__process_post_op_stack();
 	__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
+	set_expr_stree(expr);
 	__pass_to_client(expr, FUNCTION_CALL_HOOK);
 	__inline_call = 0;
 	if (inlinable(expr->fn))
@@ -658,6 +681,7 @@ static void split_call(struct expression *expr)
 	if (!expr_get_parent_expr(expr) && indent_cnt == 1)
 		__discard_fake_states(expr);
 	handle_builtin_overflow_func(expr);
+	set_expr_stree(expr);
 	__add_ptr_list((struct ptr_list **)&parsed_calls, expr);
 }
 
@@ -2334,6 +2358,7 @@ static void split_function(struct symbol *sym)
 
 	record_func_time();
 
+	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 	cur_func_sym = NULL;
 	cur_func = NULL;
 	free_data_info_allocs();
@@ -2454,6 +2479,7 @@ static void parse_inline(struct expression *call)
 	__free_scope_hooks();
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
+	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
