@@ -104,14 +104,19 @@ static void match_case(struct expression *expr, struct range_list *rl)
 
 static void print_impossible_return(int return_id, char *return_ranges, struct expression *expr)
 {
+	struct sm_state *sm;
+	char value_buf[32];
+
 	if (nothing_impossible)
 		return;
 
-	if (get_state(my_return_id, "impossible", NULL) == &impossible) {
-		if (option_debug)
-			sm_msg("impossible return.  return_id = %d return ranges = %s", return_id, return_ranges);
-		sql_insert_return_states(return_id, return_ranges, CULL_PATH, -1, "", "");
-	}
+	sm = get_sm_state(my_return_id, "impossible", NULL);
+	if (!sm || sm->state != &impossible)
+		return;
+	if (option_debug)
+		sm_msg("impossible return.  return_id = %d return ranges = %s", return_id, return_ranges);
+	snprintf(value_buf, sizeof(value_buf), "line %d", sm->line);
+	sql_insert_return_states(return_id, return_ranges, CULL_PATH, -1, "", value_buf);
 }
 
 static void match_thread_stuff(const char *fn, struct expression *expr, void *unused)
