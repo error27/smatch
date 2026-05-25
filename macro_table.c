@@ -88,6 +88,11 @@ char *get_macro_name(struct position pos)
 	return first_ptr_list((struct ptr_list *)list);
 }
 
+bool in_macro(struct position pos)
+{
+	return !!get_macro_name(pos);
+}
+
 char *get_inner_macro(struct position pos)
 {
 	struct string_list *list;
