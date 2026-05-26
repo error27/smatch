@@ -854,10 +854,8 @@ void fake_param_assign_helper(struct expression *expr, struct expression *fake_a
 
 	call = get_rightmost_call(expr);
 	before = get_expr_stree(call);
-	if (!before) {
-		sm_perror("no saved stree for: '%s'", expr_to_str(call));
+	if (!before)
 		before = __get_cur_stree();
-	}
 	orig = __swap_cur_stree(before);
 	__push_fake_cur_stree();
 
