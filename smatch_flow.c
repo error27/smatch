@@ -25,6 +25,8 @@
 #include "smatch_extra.h"
 #include "smatch_slist.h"
 
+static int my_id;
+
 int __in_fake_assign;
 int __in_fake_struct_assign;
 int __in_buf_clear;
@@ -1177,6 +1179,10 @@ static void handle_pre_loop(struct statement *stmt)
 	__unset_confidence();
 	if (!once_through)
 		once_through = call_once_through_hooks(stmt);
+	if (!once_through && pass_cnt == 1 &&
+	    get_state(my_id, loop_name, NULL))
+		once_through = true;
+
 	__in_pre_condition--;
 	FOR_EACH_SM(stree, sm) {
 		set_state(sm->owner, sm->name, sm->sym, sm->state);
@@ -1222,6 +1228,8 @@ static void handle_pre_loop(struct statement *stmt)
 		__prev_stmt = stmt->iterator_post_statement;
 		__cur_stmt = stmt;
 
+		if (pass_cnt == 0 && once_through)
+			set_state(my_id, loop_name, NULL, &true_state);
 		__save_gotos(loop_name, NULL);
 		__in_pre_condition++;
 		__split_whole_condition(stmt->iterator_pre_condition);
@@ -2750,4 +2758,9 @@ void smatch(struct string_list *filelist)
 		sm_msg("time: %lu", stop.tv_sec - start.tv_sec);
 	if (option_mem)
 		sm_msg("mem: %luKb", get_max_memory());
+}
+
+void smatch_flow(int id)
+{
+	my_id = id;
 }
