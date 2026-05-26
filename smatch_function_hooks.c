@@ -848,7 +848,7 @@ void fake_param_assign_helper(struct expression *expr, struct expression *fake_a
 	struct sm_state *sm;
 	char *name;
 
-	name = expr_to_var_sym(expr->left, &left_sym);
+	name = expr_to_var_sym(fake_assign->left, &left_sym);
 	if (!name || !left_sym)
 		return;
 
