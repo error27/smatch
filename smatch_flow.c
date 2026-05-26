@@ -2369,6 +2369,7 @@ static void split_function(struct symbol *sym)
 	do_scope_hooks();
 	nullify_path();
 	__unnullify_path();
+	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 	pass_cnt = 1;
 	output_enabled = 1;
 	loop_count = 0;
@@ -2392,7 +2393,6 @@ static void split_function(struct symbol *sym)
 
 	record_func_time();
 
-	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 	cur_func_sym = NULL;
 	cur_func = NULL;
 	free_data_info_allocs();
