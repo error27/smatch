@@ -629,25 +629,48 @@ static bool gen_fake_function_assign(struct expression *expr)
 	return true;
 }
 
-static void set_expr_stree(struct expression *expr)
+static void set_expr_stree(struct expression *expr, struct stree *stree)
 {
-	int idx = cur_func_sym->pass_cnt;
-	int other = (cur_func_sym->pass_cnt + 1) % 2;
+	int idx;
+	int other;
 
+	if (!cur_func_sym)
+		return;
 	if (!expr)
 		return;
 
-	free_stree(&expr->stree[idx]);
+	idx = cur_func_sym->pass_cnt;
+	other = (idx + 1) % 2;
+
 	expr->stree[idx] = clone_stree(__get_cur_stree());
 	free_stree(&expr->stree[other]);
 }
 
+static void set_expr_cur_stree(struct expression *expr)
+{
+	struct stree *clone = clone_stree(__get_cur_stree());
+
+	set_expr_stree(expr, clone);
+}
+
+static void free_expr_stree(struct expression *expr)
+{
+	int idx;
+
+	if (!cur_func_sym || !expr)
+		return;
+
+	idx = cur_func_sym->pass_cnt;
+	free_stree(&expr->stree[idx]);
+}
+
 struct stree *get_expr_stree(struct expression *expr)
 {
-	int idx = cur_func_sym->pass_cnt;
+	int idx;
 
-	if (!expr)
+	if (!cur_func_sym || !expr)
 		return NULL;
+	idx = cur_func_sym->pass_cnt;
 	return expr->stree[idx];
 }
 
@@ -670,7 +693,7 @@ static void split_call(struct expression *expr)
 		__inline_call = 1;
 	__process_post_op_stack();
 	__pass_to_client(expr, FUNCTION_CALL_HOOK_BEFORE);
-	set_expr_stree(expr);
+	set_expr_cur_stree(expr);
 	__pass_to_client(expr, FUNCTION_CALL_HOOK);
 	__inline_call = 0;
 	if (inlinable(expr->fn))
@@ -681,7 +704,8 @@ static void split_call(struct expression *expr)
 	if (!expr_get_parent_expr(expr) && indent_cnt == 1)
 		__discard_fake_states(expr);
 	handle_builtin_overflow_func(expr);
-	set_expr_stree(expr);
+	free_expr_stree(expr);
+	set_expr_cur_stree(expr);
 	__add_ptr_list((struct ptr_list **)&parsed_calls, expr);
 }
 
