@@ -266,7 +266,7 @@ static void register_ignored_macros(void)
 	if (option_project == PROJ_NONE)
 		strcpy(name, "unreachable.ignore");
 	else
-		snprintf(name, 256, "%s.unreachable.ignore", option_project_str);
+		snprintf(name, 256, "%s/unreachable.ignore", option_project_str);
 
 	token = get_tokens_file(name);
 	if (!token)
