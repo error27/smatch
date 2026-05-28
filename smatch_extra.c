@@ -486,7 +486,6 @@ static void update_essa_state_nomod(struct expression *expr, struct smatch_state
 	struct var_sym_list *vsl;
 	struct var_sym *vs;
 
-
 	vsl = get_essa_list(old_state);
 	FOR_EACH_PTR(vsl, vs) {
 		other = get_state(SMATCH_EXTRA, vs->var, vs->sym);
