@@ -488,11 +488,27 @@ free:
 	return ret;
 }
 
+static struct sm_state *get_scope_sm_state(int owner, const char *name, struct symbol *sym)
+{
+	struct stree *stree;
+
+	if (!sym || !sym->scope || !sym->scope->token)
+		return NULL;
+	stree = get_scope_stree(sym);
+	if (!stree)
+		return NULL;
+	return get_sm_state_stree(stree, owner, name, sym);
+}
+
 struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 {
 	struct sm_state *ret;
 
 	ret = get_sm_state_stree(fast_overlay, owner, name, sym);
+	if (ret)
+		return ret;
+
+	ret = get_scope_sm_state(owner, name, sym);
 	if (ret)
 		return ret;
 

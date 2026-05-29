@@ -28,10 +28,13 @@
 struct symbol;
 struct position;
 
+struct stree;
+
 struct scope {
 	struct token *token;
 	struct symbol_list *symbols;	/* List of symbols in this scope */
 	struct scope *next;
+	struct stree *stree;
 };
 
 extern struct scope

@@ -664,6 +664,32 @@ struct stree *get_expr_stree(struct expression *expr)
 	return expr->stree;
 }
 
+static void save_scope_stree(struct statement *stmt)
+{
+	struct scope *scope;
+
+	if (!cur_func_sym)
+		return;
+	if (!stmt || stmt->type != STMT_COMPOUND || !stmt->block_scope)
+		return;
+
+	scope = stmt->block_scope;
+	free_stree(&scope->stree);
+	scope->stree = clone_stree(__get_cur_stree());
+}
+
+struct stree *get_scope_stree(struct symbol *sym)
+{
+	struct stree *stree;
+
+	if (!cur_func_sym || !sym || !sym->scope)
+		return NULL;
+	stree = sym->scope->stree;
+	if (!stree || stree->parse_id != __parse_id_cur)
+		return NULL;
+	return stree;
+}
+
 static void split_call(struct expression *expr)
 {
 	if (gen_fake_function_assign(expr))
@@ -1023,6 +1049,8 @@ void do_scope_hooks_end(struct statement *stmt)
 
 	__call_scope_hooks();
 	set_position(orig);
+
+	save_scope_stree(stmt);
 }
 
 static const char *get_scoped_guard_label(struct statement *iterator)

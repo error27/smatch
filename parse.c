@@ -2709,6 +2709,7 @@ struct token *compound_statement(struct token *token, struct statement *stmt)
 {
 	stmt->type = STMT_COMPOUND;
 	start_block_scope(token->pos);
+	stmt->block_scope = block_scope;
 	token = statement_list(token, &stmt->stmts);
 	end_block_scope();
 	return token;

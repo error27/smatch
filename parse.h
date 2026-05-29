@@ -67,6 +67,7 @@ struct statement {
 			struct statement *if_false;
 		};
 		struct /* compound_struct */ {
+			struct scope *block_scope;
 			struct statement_list *stmts;
 			struct symbol *ret;
 			struct symbol *inline_fn;
