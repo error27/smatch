@@ -462,7 +462,7 @@ static bool handle_expr_statement_conditions(struct expression *expr, int *known
 		return false;
 
 	__expr_stmt_count++;
-	__push_scope_hooks();
+	do_scope_hooks_start(stmt);
 	FOR_EACH_PTR(stmt->stmts, stmt) {
 		if (stmt == last_stmt) {
 			if (stmt->type == STMT_LABEL)
@@ -894,7 +894,7 @@ static struct statement *split_then_return_last(struct statement *stmt)
 	if (!last_stmt)
 		return NULL;
 
-	__push_scope_hooks();
+	do_scope_hooks_start(stmt);
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		stmt_set_parent_stmt(tmp, stmt);
 		if (tmp == last_stmt) {
@@ -906,6 +906,7 @@ static struct statement *split_then_return_last(struct statement *stmt)
 		}
 		__split_stmt(tmp);
 	} END_FOR_EACH_PTR(tmp);
+	/* the last_stmt check at the start makes this unreachable */
 	return NULL;
 }
 

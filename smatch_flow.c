@@ -1028,6 +1028,11 @@ static bool call_once_through_hooks(struct statement *stmt)
 	return false;
 }
 
+void do_scope_hooks_start(struct statement *stmt)
+{
+	__push_scope_hooks();
+}
+
 void do_scope_hooks_end(struct statement *stmt)
 {
 	struct position orig = current_pos;
@@ -1151,7 +1156,7 @@ static void handle_pre_loop(struct statement *stmt)
 	 *
 	 */
 
-	__push_scope_hooks();
+	do_scope_hooks_start(stmt);
 
 	loop_name = get_loop_name(stmt);
 
@@ -1379,7 +1384,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 
 	stmt = stmt->switch_statement;
 
-	__push_scope_hooks();
+	do_scope_hooks_start(stmt);
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
 		// FIXME: what if default comes before the known case statement?
@@ -1544,7 +1549,7 @@ static void split_compound(struct statement *stmt)
 	struct statement *cur = NULL;
 	struct statement *next;
 
-	__push_scope_hooks();
+	do_scope_hooks_start(stmt);
 
 	FOR_EACH_PTR(stmt->stmts, next) {
 		/* just set them all ahead of time */
