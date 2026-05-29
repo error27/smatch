@@ -594,7 +594,6 @@ int known_condition_false(struct expression *expr);
 int implied_condition_true(struct expression *expr);
 int implied_condition_false(struct expression *expr);
 int can_integer_overflow(struct symbol *type, struct expression *expr);
-void clear_math_cache(void);
 void clear_strip_cache(void);
 void set_fast_math_only(void);
 void clear_fast_math_only(void);

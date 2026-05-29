@@ -1846,7 +1846,7 @@ static struct {
 } cached_results[24];
 static int cache_idx;
 
-void clear_math_cache(void)
+static void clear_math_cache(struct symbol *sym)
 {
 	memset(cached_results, 0, sizeof(cached_results));
 }
@@ -2243,4 +2243,5 @@ int implied_condition_false(struct expression *expr)
 void smatch_math(int id)
 {
 	add_function_data((unsigned long *)&custom_handle_variable);
+	add_hook(clear_math_cache, AFTER_FUNC_HOOK);
 }

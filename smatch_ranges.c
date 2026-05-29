@@ -2540,7 +2540,6 @@ void free_data_info_allocs(void)
 	struct allocation_blob *blob = desc->blobs;
 
 	free_all_rl();
-	clear_math_cache();
 	clear_strip_cache();
 
 	desc->blobs = NULL;
