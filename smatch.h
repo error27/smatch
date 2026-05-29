@@ -757,7 +757,7 @@ extern int in_fake_env;
 bool is_fake_var_assign(struct expression *expr);
 struct expression *get_fake_return_variable(struct expression *expr);
 struct stree *get_expr_stree(struct expression *expr);
-void do_scope_hooks(struct statement *stmt);
+void do_scope_hooks_end(struct statement *stmt);
 struct expression *gen_expr_from_dollar_key(struct expression *expr, const char *key);
 void smatch (struct string_list *filelist);
 int inside_loop(void);

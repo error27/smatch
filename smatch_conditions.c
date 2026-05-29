@@ -474,7 +474,7 @@ static bool handle_expr_statement_conditions(struct expression *expr, int *known
 	} END_FOR_EACH_PTR(stmt);
 	exit(1);
 done:
-	do_scope_hooks(stmt);
+	do_scope_hooks_end(stmt);
 	__expr_stmt_count--;
 
 	return true;
@@ -957,7 +957,7 @@ int __handle_expr_statement_assigns(struct expression *expr)
 		__split_expr(fake_assign);
 
 		__pass_to_client(stmt, STMT_HOOK_AFTER);
-		do_scope_hooks(stmt);
+		do_scope_hooks_end(stmt);
 	} else if (stmt->type == STMT_EXPRESSION) {
 		struct expression *fake_assign;
 

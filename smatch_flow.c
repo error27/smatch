@@ -1028,7 +1028,7 @@ static bool call_once_through_hooks(struct statement *stmt)
 	return false;
 }
 
-void do_scope_hooks(struct statement *stmt)
+void do_scope_hooks_end(struct statement *stmt)
 {
 	struct position orig = current_pos;
 
@@ -1255,7 +1255,7 @@ done:
 	if (!is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement))
 		loop_count--;
 
-	do_scope_hooks(stmt);
+	do_scope_hooks_end(stmt);
 }
 
 /*
@@ -1401,7 +1401,7 @@ next:
 		}
 	} END_FOR_EACH_PTR(tmp);
 out:
-	do_scope_hooks(stmt);
+	do_scope_hooks_end(stmt);
 	if (!__pop_default())
 		__merge_switches(top_expression(switch_expr_stack), NULL);
 	__discard_switches();
@@ -1571,7 +1571,7 @@ static void split_compound(struct statement *stmt)
 	 * end of function hooks can run.
 	 */
 	if (!is_function_scope(stmt))
-		do_scope_hooks(stmt);
+		do_scope_hooks_end(stmt);
 }
 
 void __split_label_stmt(struct statement *stmt)
@@ -2369,7 +2369,7 @@ static void split_function(struct symbol *sym)
 	output_enabled = 0;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
-	do_scope_hooks(NULL);
+	do_scope_hooks_end(NULL);
 	nullify_path();
 	__unnullify_path();
 	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
