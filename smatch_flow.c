@@ -1941,13 +1941,6 @@ static void call_cleanup_fn(void *_sym)
 	set_position(orig);
 }
 
-static void add_cleanup_hook(struct symbol *sym)
-{
-	if (!sym->cleanup)
-		return;
-	add_scope_hook(&call_cleanup_fn, sym);
-}
-
 static void split_sym(struct symbol *sym)
 {
 	if (!sym)
@@ -1958,7 +1951,7 @@ static void split_sym(struct symbol *sym)
 	__split_stmt(sym->stmt);
 	__split_expr(sym->array_size);
 	if (sym->cleanup)
-		add_cleanup_hook(sym);
+		add_scope_hook(&call_cleanup_fn, sym);
 	split_symlist(sym->arguments);
 	split_symlist(sym->symbol_list);
 	__split_stmt(sym->inline_stmt);
