@@ -185,7 +185,7 @@ struct expression {
 	struct position pos;
 	struct symbol *ctype;
 	unsigned long parent;
-	struct stree *stree[2];
+	struct stree *stree;
 	union {
 		// EXPR_VALUE
 		struct {

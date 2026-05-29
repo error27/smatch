@@ -35,7 +35,8 @@ struct stree {
 	AvlNode    *root;
 	struct stree *base_stree;
 	char *has_states;
-	size_t      count;
+	size_t count;
+	int parse_id;
 	int stree_id;
 	int references;
 	int line;

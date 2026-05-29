@@ -87,6 +87,8 @@ static void split_args(struct expression *expr);
 static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *call, struct expression *expr, int nr);
 static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
+unsigned long __parse_id_cur;
+static unsigned long parse_id_next;
 
 int option_assume_loops = 0;
 struct symbol *cur_func_sym = NULL;
@@ -636,47 +638,30 @@ static bool gen_fake_function_assign(struct expression *expr)
 
 static void set_expr_stree(struct expression *expr, struct stree *stree)
 {
-	int idx;
-	int other;
-
-	if (!cur_func_sym)
-		return;
-	if (!expr)
+	if (!cur_func_sym || !expr)
 		return;
 
-	idx = cur_func_sym->pass_cnt;
-	other = (idx + 1) % 2;
-
-	expr->stree[idx] = clone_stree(__get_cur_stree());
-	free_stree(&expr->stree[other]);
+	free_stree(&expr->stree);
+	expr->stree = clone_stree(stree);
 }
 
 static void set_expr_cur_stree(struct expression *expr)
 {
-	struct stree *clone = clone_stree(__get_cur_stree());
-
-	set_expr_stree(expr, clone);
-}
-
-static void free_expr_stree(struct expression *expr)
-{
-	int idx;
-
-	if (!cur_func_sym || !expr)
-		return;
-
-	idx = cur_func_sym->pass_cnt;
-	free_stree(&expr->stree[idx]);
+	set_expr_stree(expr, __get_cur_stree());
 }
 
 struct stree *get_expr_stree(struct expression *expr)
 {
-	int idx;
-
 	if (!cur_func_sym || !expr)
 		return NULL;
-	idx = cur_func_sym->pass_cnt;
-	return expr->stree[idx];
+	if (!expr->stree)
+		return NULL;
+	if (expr->stree->parse_id != __parse_id_cur) {
+		free_stree(&expr->stree);
+		return NULL;
+	}
+
+	return expr->stree;
 }
 
 static void split_call(struct expression *expr)
@@ -709,7 +694,6 @@ static void split_call(struct expression *expr)
 	if (!expr_get_parent_expr(expr) && indent_cnt == 1)
 		__discard_fake_states(expr);
 	handle_builtin_overflow_func(expr);
-	free_expr_stree(expr);
 	set_expr_cur_stree(expr);
 	__add_ptr_list((struct ptr_list **)&parsed_calls, expr);
 }
@@ -2372,15 +2356,16 @@ static void split_function(struct symbol *sym)
 	__unnullify_path();
 	pass_cnt = 0;
 	output_enabled = 0;
+	__parse_id_cur = ++parse_id_next;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	do_scope_hooks_end(NULL);
 	nullify_path();
 	__unnullify_path();
-	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 	pass_cnt = 1;
 	output_enabled = 1;
 	loop_count = 0;
+	__parse_id_cur = ++parse_id_next;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
 	if (!__path_is_null() &&
@@ -2396,7 +2381,6 @@ static void split_function(struct symbol *sym)
 	__free_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
-	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 
 	clear_all_states();
 
@@ -2509,6 +2493,7 @@ static void parse_inline(struct expression *call)
 	__unnullify_path();
 	clear_function_data();
 	loop_count = 0;
+	__parse_id_cur = ++parse_id_next;
 	start_function_definition(call->fn->symbol);
 	parse_fn_statements(base_type);
 	if (!__path_is_null() &&
@@ -2522,7 +2507,7 @@ static void parse_inline(struct expression *call)
 	__free_scope_hooks();
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
-	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
+	__parse_id_cur = ++parse_id_next;
 
 	free_expression_stack(&switch_expr_stack);
 	__free_ptr_list((struct ptr_list **)&big_statement_stack);
@@ -2772,4 +2757,5 @@ void smatch(struct string_list *filelist)
 void smatch_flow(int id)
 {
 	my_id = id;
+	add_function_data(&__parse_id_cur);
 }
