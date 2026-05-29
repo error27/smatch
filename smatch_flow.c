@@ -2388,6 +2388,7 @@ static void split_function(struct symbol *sym)
 	__free_scope_hooks();
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
+	cur_func_sym->pass_cnt = (cur_func_sym->pass_cnt + 1) % 2;
 
 	clear_all_states();
 
