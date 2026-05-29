@@ -359,6 +359,9 @@ int inlinable(struct expression *expr)
 
 	if (__inline_fn)  /* don't nest */
 		return 0;
+	/* don't inline recursively */
+	if (expr->symbol == cur_func_sym)
+		return 0;
 
 	if (expr->type != EXPR_SYMBOL || !expr->symbol)
 		return 0;
