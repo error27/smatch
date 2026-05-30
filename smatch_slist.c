@@ -84,9 +84,9 @@ void __print_stree(struct stree *stree)
 	option_debug++;
 	sm_msg("dumping stree [%ld states]", stree_count(stree));
 	FOR_EACH_SM(stree, sm) {
-		sm_printf("%s\n", show_sm(sm));
+		sm_msg("%s", show_sm(sm));
 	} END_FOR_EACH_SM(sm);
-	sm_printf("---\n");
+	sm_msg("---");
 	option_debug--;
 }
 
