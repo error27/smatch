@@ -1252,6 +1252,7 @@ static void handle_pre_loop(struct statement *stmt)
 			set_state(my_id, loop_name, NULL, &true_state);
 		__save_gotos(loop_name, NULL);
 		__in_pre_condition++;
+		__pass_to_client(stmt->iterator_pre_condition, PRE_LOOP_CONDITION_TWO);
 		__split_whole_condition(stmt->iterator_pre_condition);
 		__in_pre_condition--;
 		nullify_path();
