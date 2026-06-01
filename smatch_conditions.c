@@ -485,6 +485,15 @@ static void do_condition(struct expression *expr)
 	__fold_in_set_states();
 	__push_fake_cur_stree();
 	__pass_to_client(expr, CONDITION_HOOK);
+	if (expr->type == EXPR_COMPARE) {
+		struct expression *flipped;
+
+		__pass_to_client(expr, COMPARE_HOOK);
+		flipped = compare_expression(expr->right,
+					     flip_comparison(expr->op),
+					     expr->left);
+		__pass_to_client(flipped, FLIPPED_COMPARE_HOOK);
+	}
 	__fold_in_set_states();
 }
 
