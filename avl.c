@@ -24,7 +24,6 @@
 #include <stdlib.h>
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static AvlNode *mkNode(const struct sm_state *sm);
 static void freeNode(AvlNode *node);

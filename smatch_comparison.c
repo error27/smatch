@@ -29,8 +29,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 int comparison_id;
 static int link_id;

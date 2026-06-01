@@ -23,7 +23,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
 
 static DEFINE_HASHTABLE_INSERT(insert_func, char, int);

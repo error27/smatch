@@ -21,7 +21,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static struct smatch_state *alloc_link(struct var_sym_list *links)
 {

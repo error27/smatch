@@ -22,7 +22,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 STATE(no_free);
 STATE(ok);

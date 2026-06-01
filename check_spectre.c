@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static int my_id;
 extern int second_half_id;

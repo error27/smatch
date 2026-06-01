@@ -17,8 +17,6 @@
 
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 ALLOCATOR(data_info, "smatch extra data");
 ALLOCATOR(data_range, "data range");

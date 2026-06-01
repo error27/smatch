@@ -58,8 +58,6 @@
 
 #include <time.h>
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 char *implied_debug_msg;
 static char *ignore_implications;

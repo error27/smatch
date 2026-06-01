@@ -68,8 +68,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
 #include "smatch_expression_stacks.h"
 

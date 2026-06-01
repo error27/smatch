@@ -21,7 +21,6 @@
 #include <ctype.h>
 #include <string.h>
 #include "smatch.h"
-#include "smatch_slist.h"
 
 #define spam(args...) do {			\
 	if (option_spammy)			\

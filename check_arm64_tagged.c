@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
 
 static bool expr_has_memory_addr(struct expression *expr);

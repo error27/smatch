@@ -25,7 +25,6 @@
 
 #include "scope.h"
 #include "smatch.h"
-#include "smatch_extra.h"
 
 #define	CE_PANIC (3)
 #define	DER_PANIC (7)

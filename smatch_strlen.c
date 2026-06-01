@@ -19,8 +19,6 @@
 #include <errno.h>
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int my_strlen_id;
 /*

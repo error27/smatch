@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static int find_param_eq(struct expression *expr, int size)
 {

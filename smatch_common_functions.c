@@ -17,7 +17,6 @@
 
 #include "scope.h"
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static int match_strlen(struct expression *call, void *unused, struct range_list **rl)
 {

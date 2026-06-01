@@ -42,7 +42,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 #include "smatch_function_hashtable.h"
 
 static int my_id;

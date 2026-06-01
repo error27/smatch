@@ -21,7 +21,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static int param_caps_return(struct expression *call, void *_arg, struct range_list **res)
 {

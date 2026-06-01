@@ -22,7 +22,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static int my_max_id;
 static int my_min_id;

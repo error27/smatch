@@ -20,8 +20,6 @@
 
 #include "symbol.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static bool get_rl_sval(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *sval_res);
 static bool get_rl_internal(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res);

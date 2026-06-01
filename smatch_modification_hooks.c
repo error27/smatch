@@ -31,8 +31,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 static sm_hook **hooks;
 static sm_hook **hooks_late;

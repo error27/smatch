@@ -16,8 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 #define NOBUF -2
 

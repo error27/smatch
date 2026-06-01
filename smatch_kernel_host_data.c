@@ -34,8 +34,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 struct host_fn_info {
 	const char *name;

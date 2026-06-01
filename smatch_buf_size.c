@@ -19,8 +19,6 @@
 #include <errno.h>
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
 
 #define UNKNOWN_SIZE -1

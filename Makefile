@@ -432,7 +432,7 @@ check_list_local.h:
 smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h smatch_modules.h smatch_modules_late.h smatch_checks.h
 	$(CC) $(CFLAGS) -c smatch.c -DSMATCHDATADIR='"$(smatch_datadir)"'
 
-$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_dbtypes.h smatch_slist.h smatch_extra.h \
+$(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_dbtypes.h \
 	smatch_constants.h avl.h
 
 ########################################################################

@@ -21,7 +21,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static void check_func_return(struct expression *expr)
 {

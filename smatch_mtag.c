@@ -43,8 +43,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 #include "cwchash/hashtable.h"
 
 static DEFINE_HASHTABLE_INSERT(insert_sym, mtag_t, struct symbol);

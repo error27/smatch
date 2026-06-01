@@ -16,8 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 bool in_function_table(struct expression *expr, struct function_return_info *table)
 {

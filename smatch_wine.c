@@ -21,7 +21,6 @@
 
 #include "scope.h"
 #include "smatch.h"
-#include "smatch_extra.h"
 
 /* report (R_FATAL, "Can't get OS version."); */
 void match_fatal_report(const char *fn, struct expression *expr,

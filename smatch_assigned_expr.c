@@ -21,8 +21,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 int check_assigned_expr_id;
 static int my_id;

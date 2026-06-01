@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static int my_id;
 static struct expr_fn_list *deref_hooks;

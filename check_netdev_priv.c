@@ -17,7 +17,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 #include "smatch_function_hashtable.h"
 
 static int my_id;

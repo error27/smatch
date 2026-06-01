@@ -21,8 +21,6 @@
 
 #include "scope.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int implied_err_cast_return(struct expression *call, void *unused, struct range_list **rl)
 {

@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
 
 static const char *get_free_fn_name(struct expression *expr)
 {

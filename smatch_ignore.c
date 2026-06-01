@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 STATE(ignore);
 static struct stree *ignored;

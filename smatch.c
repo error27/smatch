@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <libgen.h>
 #include "smatch.h"
-#include "smatch_slist.h"
 #include "smatch_modules.h"
 #include "smatch_checks.h"
 #include "smatch_modules_late.h"

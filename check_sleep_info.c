@@ -16,8 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 static struct expr_fn_list *hooks;
 

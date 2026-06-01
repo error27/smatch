@@ -25,8 +25,6 @@
 
 #include <string.h>
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int my_id;
 static int next_id;

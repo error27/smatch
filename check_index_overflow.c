@@ -18,8 +18,6 @@
 #include <stdlib.h>
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int loop_id;
 

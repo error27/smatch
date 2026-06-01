@@ -16,7 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static int my_id;
 int __ignore_param_used;

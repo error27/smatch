@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 struct smatch_state undefined = { .name = "undefined" };
 struct smatch_state merged = { .name = "merged" };

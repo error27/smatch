@@ -30,8 +30,6 @@
  *
  */
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 #include <math.h>
 
 STATE(called_funcs);

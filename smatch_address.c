@@ -16,8 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static bool matches_anonymous_union(struct symbol *sym, const char *member_name)
 {

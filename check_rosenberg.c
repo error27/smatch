@@ -23,8 +23,6 @@
 #include "scope.h"
 #include "smatch.h"
 #include "smatch_function_hashtable.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int my_whole_id;
 static int my_member_id;

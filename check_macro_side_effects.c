@@ -17,7 +17,6 @@
 
 #include "scope.h"
 #include "smatch.h"
-#include "smatch_slist.h"
 #include "smatch_expression_stacks.h"
 
 static int my_id;

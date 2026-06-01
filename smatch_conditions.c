@@ -55,8 +55,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 #include "smatch_expression_stacks.h"
 
 extern int __expr_stmt_count;

@@ -16,8 +16,6 @@
  */
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 /* New chips will probably be able to speculate further ahead */
 #define MAX_SPEC_STMT 200

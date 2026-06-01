@@ -1,5 +1,4 @@
 #include "smatch.h"
-#include "smatch_extra.h"
 
 DECLARE_ALLOCATOR(sname);
 __ALLOCATOR(struct expression, "temporary expr", tmp_expression);

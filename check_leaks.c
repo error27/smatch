@@ -37,7 +37,6 @@
 #include <unistd.h>
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"
 
 static int my_id;
 

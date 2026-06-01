@@ -18,8 +18,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 #undef CHECKORDER
 

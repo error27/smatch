@@ -20,8 +20,6 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 struct sqlite3 *smatch_db;
 struct sqlite3 *mem_db;

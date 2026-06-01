@@ -18,8 +18,6 @@
 #include <ctype.h>
 
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 static int my_id;
 static int info_id;

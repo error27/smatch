@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include "allocate.h"
 #include "smatch.h"
-#include "smatch_extra.h"
-#include "smatch_slist.h"
 
 #define VAR_LEN 512
 

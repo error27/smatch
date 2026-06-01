@@ -18,8 +18,6 @@
 #include <string.h>
 
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 void show_sname_alloc(void);
 void show_data_range_alloc(void);

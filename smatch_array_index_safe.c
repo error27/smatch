@@ -18,8 +18,6 @@
 #include <stdlib.h>
 #include "parse.h"
 #include "smatch.h"
-#include "smatch_slist.h"
-#include "smatch_extra.h"
 
 static int definitely_just_used_as_limiter(struct expression *expr, struct expression *array, struct expression *offset)
 {
