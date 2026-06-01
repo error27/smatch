@@ -1634,6 +1634,8 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 
 static sval_t add_one(sval_t sval)
 {
+	if (sval_is_min(sval) || sval_is_max(sval))
+		return sval;
 	sval.value++;
 	return sval;
 }
@@ -1662,23 +1664,25 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 		return 0;
 	if (stmt->type == STMT_COMPOUND)
 		stmt = stmt->parent;
-	if (!stmt || stmt->type != STMT_ITERATOR || !stmt->iterator_post_condition)
+	if (!stmt || stmt->type != STMT_ITERATOR)
+		return 0;
+	if (stmt->iterator_pre_condition)
+		cond = strip_expr(stmt->iterator_pre_condition);
+	else if (stmt->iterator_post_condition)
+		cond = strip_expr(stmt->iterator_post_condition);
+	else
 		return 0;
 
-	cond = strip_expr(stmt->iterator_post_condition);
 	if (cond->type != EXPR_COMPARE || cond->op != op)
 		return 0;
 	if (left != strip_expr(cond->left) || right != strip_expr(cond->right))
 		return 0;
 
-	if (!get_implied_rl(left->unop, &start_rl))
-		return 0;
+	get_absolute_rl(left->unop, &start_rl);
 	if (!get_implied_value(right, &limit))
 		return 0;
 	type = get_type(left->unop);
 	limit = sval_cast(type, limit);
-	if (sval_cmp(rl_max(start_rl), limit) > 0)
-		return 0;
 
 	switch (op) {
 	case '<':
@@ -1687,13 +1691,17 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	case SPECIAL_LTE:
 	case SPECIAL_UNSIGNED_LTE:
 		limit = add_one(limit);
+		break;
 	default:
 		return 0;
 
 	}
 
-	true_state = alloc_estate_range(add_one(rl_max(start_rl)), limit);
-	false_state = alloc_estate_range(add_one(limit), add_one(limit));
+	true_state = alloc_estate_range(add_one(rl_min(start_rl)), limit);
+	if (sval_cmp(rl_max(start_rl), limit) <= 0)
+		false_state = alloc_estate_range(add_one(limit), add_one(limit));
+	else
+		false_state = alloc_estate_range(add_one(limit), add_one(rl_max(start_rl)));
 
 	/* Currently we just discard the false state but when two passes is
 	 * implemented correctly then it will use it.
