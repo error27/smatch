@@ -1657,7 +1657,7 @@ static int handle_postop_inc(struct expression *left, int op, struct expression 
 	if (left->type != EXPR_POSTOP || left->op != SPECIAL_INCREMENT)
 		return 0;
 
-	stmt = __cur_stmt->parent;
+	stmt = get_parent_stmt(left);
 	if (!stmt)
 		return 0;
 	if (stmt->type == STMT_COMPOUND)
