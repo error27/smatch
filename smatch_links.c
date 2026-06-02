@@ -94,14 +94,19 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
 
-static void oo_scope(struct sm_state *link)
+static void oo_scope(struct sm_state *link_sm)
 {
+	struct var_sym_list *links;
+	struct var_sym *tmp;
 	struct sm_state *sm;
 
-	sm = get_sm_state(link->owner - 1, link->name, link->sym);
-	if (!sm)
-		return;
-	delete_scoped_state(sm);
+	links = link_sm->state->data;
+
+	FOR_EACH_PTR(links, tmp) {
+		sm = get_sm_state(link_sm->owner - 1, tmp->var, tmp->sym);
+		if (sm)
+			delete_scoped_state(sm);
+	} END_FOR_EACH_PTR(tmp);
 }
 
 void set_up_link_functions(int id, int link_id)
