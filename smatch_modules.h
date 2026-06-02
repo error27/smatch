@@ -15,6 +15,7 @@ CK(smatch_buf_comparison_links)
 CK(smatch_buf_comparison2)
 CK(smatch_modification_hooks)
 CK(smatch_hooks)
+CK(smatch_flow)
 
 /*
  * Implications should probably be after all the modification and smatch_extra
@@ -56,7 +57,6 @@ CK(smatch_constraints_required)
 CK(smatch_data_source)
 CK(smatch_dereferences)
 CK(smatch_estate)
-CK(smatch_flow)
 CK(smatch_fn_arg_link)
 CK(smatch_free)
 CK(smatch_free_locations)

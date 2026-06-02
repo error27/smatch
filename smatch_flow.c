@@ -1041,6 +1041,61 @@ void do_scope_hooks_start(struct statement *stmt)
 	__push_scope_hooks();
 }
 
+static oo_scope_hook **oo_scope_hooks;
+void set_oo_scope_hook(int owner, oo_scope_hook *hook)
+{
+	if (owner < 0 || owner >= num_checks)
+		return;
+	oo_scope_hooks[owner] = hook;
+}
+
+static oo_scope_hook *get_out_of_scope_hook(int owner)
+{
+	if (owner < 0 || owner >= num_checks)
+		return NULL;
+	return oo_scope_hooks[owner];
+}
+
+static struct state_list *to_delete;
+void delete_scoped_state(struct sm_state *sm)
+{
+	if (!sm)
+		return;
+	add_ptr_list(&to_delete, sm);
+}
+
+static void free_out_of_scope_variables(struct statement *stmt)
+{
+	oo_scope_hook *oo_scope_hook;
+	struct stree *new_cur_stree;
+	struct sm_state *sm;
+
+	if (to_delete)
+		sm_perror("why is to_delete non-NULL?");
+	to_delete = NULL;
+
+	if (!stmt || stmt->type != STMT_COMPOUND || !stmt->block_scope)
+		return;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->sym && sm->sym->scope == stmt->block_scope) {
+			oo_scope_hook = get_out_of_scope_hook(sm->owner);
+			if (oo_scope_hook)
+				oo_scope_hook(sm);
+			__delete_all_states_sym(sm->sym);
+		}
+	} END_FOR_EACH_SM(sm);
+
+	// FIXME: Should we free the old cur stree?
+	new_cur_stree = clone_stree(__get_cur_stree());
+	FOR_EACH_PTR(to_delete, sm) {
+		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_PTR(sm);
+
+	__swap_cur_stree(new_cur_stree);
+	free_slist(&to_delete);
+}
+
 void do_scope_hooks_end(struct statement *stmt)
 {
 	struct position orig = current_pos;
@@ -1049,6 +1104,7 @@ void do_scope_hooks_end(struct statement *stmt)
 	set_position(orig);
 
 	save_scope_stree(stmt);
+	free_out_of_scope_variables(stmt);
 }
 
 static const char *get_scoped_guard_label(struct statement *iterator)
@@ -2778,4 +2834,6 @@ void smatch_flow(int id)
 {
 	my_id = id;
 	add_function_data(&__parse_id_cur);
+
+	oo_scope_hooks = calloc(num_checks, sizeof(*oo_scope_hooks));
 }

@@ -94,6 +94,16 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 	set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
 
+static void oo_scope(struct sm_state *link)
+{
+	struct sm_state *sm;
+
+	sm = get_sm_state(link->owner - 1, link->name, link->sym);
+	if (!sm)
+		return;
+	delete_scoped_state(sm);
+}
+
 void set_up_link_functions(int id, int link_id)
 {
 	if (id + 1 != link_id)
@@ -102,6 +112,7 @@ void set_up_link_functions(int id, int link_id)
 	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_link_states);
 	add_modification_hook(link_id, &match_link_modify);
+	set_oo_scope_hook(link_id, &oo_scope);
 	// free link at the end of function
 }
 
