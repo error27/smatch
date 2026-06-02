@@ -199,9 +199,10 @@ static void merge_unfaked_call(struct sm_state *cur, struct sm_state *other)
 
 static void match_assignment(struct expression *expr)
 {
-	struct symbol *left_sym, *right_sym;
+	struct symbol *right_sym = NULL;
 	struct smatch_state *state;
 	struct expression *right;
+	struct symbol *left_sym;
 	char *left_name = NULL;
 	char *right_name = NULL;
 
@@ -247,6 +248,11 @@ static void match_assignment(struct expression *expr)
 	right = strip__builtin_choose_expr(right);
 	right = strip_Generic(right);
 	right = strip_useless_scope(right);
+
+	right_name = expr_to_var_sym(right, &right_sym);
+	/* this is checked before setting up the link */
+	if (right_sym == left_sym)
+		goto free;
 
 	state = alloc_state_expr(strip_expr(right));
 	if (!state)
