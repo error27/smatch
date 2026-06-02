@@ -573,6 +573,7 @@ static void match_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 1;
 	local_debug++;
+	debug_passes = true;
 }
 
 static void match_debug_check(const char *fn, struct expression *expr, void *info)
@@ -584,6 +585,7 @@ static void match_debug_check(const char *fn, struct expression *expr, void *inf
 		return;
 	option_debug_check = arg->string->data;
 	local_debug++;
+	debug_passes = true;
 	dbg("arg = '%s'", option_debug_check);
 }
 
@@ -617,6 +619,7 @@ static void match_start_skip(const char *fn, struct expression *expr, void *info
 static void match_local_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	local_debug = 1;
+	debug_passes = true;
 	option_print_names++;
 }
 
