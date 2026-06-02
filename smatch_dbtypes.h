@@ -182,6 +182,8 @@ enum info_type {
 	FREED_IN_LOCK	= 8061,
 	SET_IN_LOCK	= 8062,
 
+	HARD_VALUE	= 8063,
+
 	/* Do not use numbers above 100k */
 };
 
