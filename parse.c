@@ -2259,6 +2259,7 @@ static struct statement *start_function(struct symbol *sym)
 	ret->ctype.modifiers |= (MOD_AUTO | MOD_REGISTER);
 	bind_symbol(ret, &return_ident, NS_ITERATOR);
 	stmt->ret = ret;
+	stmt->block_scope = block_scope;
 	fn_local_symbol(ret);
 
 	// Currently parsed symbol for __func__/__FUNCTION__/__PRETTY_FUNCTION__
@@ -2586,6 +2587,7 @@ static struct token *statement(struct token *token, struct statement **tree)
 			stmt->type = STMT_LABEL;
 			stmt->label_identifier = s;
 			stmt->label_scope = label_scope;
+			stmt->label_location = block_scope;
 			if (s->label_scope) {
 				if (!is_in_scope(label_scope, s->label_scope))
 					warn_label_usage(stmt->pos, s->label_pos, s->ident);

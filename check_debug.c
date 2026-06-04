@@ -544,6 +544,18 @@ static void match_note(const char *fn, struct expression *expr, void *info)
 	dbg("%s", arg_expr->string->data);
 }
 
+static void match_marker(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg, *msg;
+
+	arg = get_check_arg(expr, 0);
+	if (!arg || arg->type != EXPR_PREOP || arg->op != '&')
+		return;
+	arg = arg->unop;
+	msg = get_assigned_expr(arg);
+	dbg("cleanup: %s: %s", expr_to_str(arg), expr_to_str(msg));
+}
+
 static void match_compare(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *one, *two;
@@ -1092,6 +1104,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);
 	add_function_hook("__smatch_buf_size", &match_buf_size, NULL);
 	add_function_hook("__smatch_note", &match_note, NULL);
+	add_function_hook("__smatch_marker", &match_marker, NULL);
 	add_function_hook("__smatch_compare", &match_compare, NULL);
 	add_function_hook("__smatch_debug_on", &match_debug_on, NULL);
 	add_function_hook("__smatch_debug_check", &match_debug_check, NULL);

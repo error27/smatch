@@ -105,6 +105,8 @@ static inline void __smatch_param_key(long long val){}
 #define __smatch_param_key(x) __smatch_param_key(cast_ptr(x))
 static inline void __smatch_return_str(long long val){}
 #define __smatch_return_str(x) __smatch_return_str(cast_ptr(x))
+static inline void __smatch_marker(char **p){}
+#define __cleanup_marker  __attribute__((cleanup(__smatch_marker)))
 
 static inline void __smatch_force_on(void){}
 static inline void __smatch_force_off(void){}

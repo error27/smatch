@@ -217,6 +217,7 @@ void add_scope_hook(scope_hook *hook, void *data);
 typedef void (oo_scope_hook)(struct sm_state *state);
 void set_oo_scope_hook(int owner, oo_scope_hook *hook);
 void delete_scoped_state(struct sm_state *sm);
+void __call_cleanup_fn(struct sm_state *sm);
 void add_return_string_hook(string_hook *fn);
 typedef void (param_key_hook)(struct expression *expr, const char *name, struct symbol *sym, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);

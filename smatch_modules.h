@@ -30,6 +30,7 @@ CK(smatch_untracked_param)
 CK(smatch_param_compare_limit)
 CK(smatch_param_compare_limit_links)
 CK(smatch_returns_early)
+CK(smatch_cleanup)
 
 CK(smatch_param_cleared)  /* param_set relies on param_cleared */
 CK(smatch_param_limit)    /* param limit has to be before param_set */
