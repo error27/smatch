@@ -1205,6 +1205,11 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	if (!left_name || !right_name || !left_sym || !right_sym)
 		return;
 
+	if (__in_fake_struct_assign &&
+	    !get_state_expr(my_id, left) &&
+	    !get_state_expr(my_id, right))
+		return;
+
 	left_type = get_type(left);
 	right_type = get_type(right);
 
