@@ -19,12 +19,6 @@
 
 #include "smatch.h"
 
-void show_sname_alloc(void);
-void show_data_range_alloc(void);
-void show_ptrlist_alloc(void);
-void show_rl_ptrlist_alloc(void);
-void show_sm_state_alloc(void);
-
 int local_debug;
 static int my_id;
 char *trace_variable;
@@ -79,6 +73,51 @@ bool is_debug_arg(struct expression *expr)
 			return false;
 	}
 	return true;
+}
+
+void show_smatch_allocations(void)
+{
+	struct allocator_stats stats;
+
+	void get_sname_stats(struct allocator_stats *stats);
+	void get_data_range_stats(struct allocator_stats *stats);
+	void get_rl_ptrlist_stats(struct allocator_stats *stats);
+	void get_ptrlist_stats(struct allocator_stats *stats);
+	void get_smatch_state_stats(struct allocator_stats *stats);
+	void get_sm_state_stats(struct allocator_stats *stats);
+
+	get_ptrlist_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	get_sm_state_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	get_rl_ptrlist_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	get_data_range_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	get_sname_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	get_smatch_state_stats(&stats);
+	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
+	       stats.name, stats.allocations, stats.total_bytes,
+	       stats.useful_bytes);
+
+	sm_msg("%lu pools", get_pool_count());
+	sm_msg("%d strees", unfree_stree);
 }
 
 static struct expression *get_check_arg(struct expression *expr, int arg_nr)
@@ -1026,14 +1065,7 @@ static void match_state_count(const char *fn, struct expression *expr, void *inf
 
 static void match_mem(const char *fn, struct expression *expr, void *info)
 {
-	show_sname_alloc();
-	show_data_range_alloc();
-	show_rl_ptrlist_alloc();
-	show_ptrlist_alloc();
-	dbg("%lu pools", get_pool_count());
-	dbg("%d strees", unfree_stree);
-	show_smatch_state_alloc();
-	show_sm_state_alloc();
+	show_smatch_allocations();
 }
 
 static void match_exit(const char *fn, struct expression *expr, void *info)
