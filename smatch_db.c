@@ -333,6 +333,8 @@ void sql_insert_caller_info(struct expression *call, int type,
 	FILE *tmp_fd = sm_outfd;
 	char *fn;
 
+	if (__inline_fn)
+		return;
 	if (!option_info && !__inline_call)
 		return;
 	if (is_unreachable())
