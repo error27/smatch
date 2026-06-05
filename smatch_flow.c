@@ -663,18 +663,12 @@ struct stree *get_expr_stree(struct expression *expr)
 	return expr->stree;
 }
 
-static void save_scope_stree(struct statement *stmt)
+static void save_scope_stree(struct scope *scope)
 {
-	struct scope *scope;
+	if (scope->stree && scope->stree->parse_id != __parse_id_cur)
+		free_stree(&scope->stree);
 
-	if (!cur_func_sym)
-		return;
-	if (!stmt || stmt->type != STMT_COMPOUND || !stmt->block_scope)
-		return;
-
-	scope = stmt->block_scope;
-	free_stree(&scope->stree);
-	scope->stree = clone_stree(__get_cur_stree());
+	merge_stree(&scope->stree, clone_stree(__get_cur_stree()));
 }
 
 struct stree *get_scope_stree(struct symbol *sym)
@@ -1090,36 +1084,19 @@ void delete_scoped_state(struct sm_state *sm)
 	add_ptr_list(&to_delete, sm);
 }
 
-static void free_out_of_scope_variables(struct statement *stmt)
+static bool dest_out_of_scope(struct scope *dest_scope)
 {
-	oo_scope_hook *oo_scope_hook;
-	struct stree *new_cur_stree;
-	struct sm_state *sm;
+	struct scope *scope;
 
-	if (to_delete)
-		sm_perror("why is to_delete non-NULL?");
-	to_delete = NULL;
-
-	if (!stmt || stmt->type != STMT_COMPOUND || !stmt->block_scope)
-		return;
-
-	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (sm->sym && sm->sym->scope == stmt->block_scope) {
-			oo_scope_hook = get_out_of_scope_hook(sm->owner);
-			if (oo_scope_hook)
-				oo_scope_hook(sm);
-			__delete_all_states_sym(sm->sym);
-		}
-	} END_FOR_EACH_SM(sm);
-
-	// FIXME: Should we free the old cur stree?
-	new_cur_stree = clone_stree(__get_cur_stree());
-	FOR_EACH_PTR(to_delete, sm) {
-		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
-	} END_FOR_EACH_PTR(sm);
-
-	__swap_cur_stree(new_cur_stree);
-	free_slist(&to_delete);
+	scope = dest_scope;
+	while (scope) {
+		if (current_scope == scope)
+			return false;
+		if (scope == scope->next)
+			return true;
+		scope = scope->next;
+	}
+	return true;
 }
 
 bool out_of_scope(struct symbol *sym, struct scope *dest_scope)
@@ -1179,8 +1156,6 @@ static void process_cleanup_fns_helper(struct scope *dest_scope, bool skip_oosco
 
 	stree = clone_stree(__get_cur_stree());
 	FOR_EACH_MY_SM(cleanup_id, stree, sm) {
-//		if (sm->state != &true_state)
-//			sm_perror("cleanup already called: '%s'", sm->name);
 		if (sm->state == &true_state &&
 		    (skip_ooscope || out_of_scope(sm->sym, dest_scope))) {
 			set_state(cleanup_id, sm->name, sm->sym, &undefined);
@@ -1200,15 +1175,54 @@ static void call_all_cleanup_fns(void)
 	process_cleanup_fns_helper(NULL, true);
 }
 
+static void free_out_of_scope_variables(struct scope *dest_scope)
+{
+	oo_scope_hook *oo_scope_hook;
+	struct stree *new_cur_stree;
+	struct sm_state *sm;
+
+	if (to_delete)
+		sm_perror("why is to_delete non-NULL?");
+	to_delete = NULL;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (!sm->sym)
+			continue;
+		if (!out_of_scope(sm->sym, dest_scope))
+			continue;
+		delete_scoped_state(sm);
+		oo_scope_hook = get_out_of_scope_hook(sm->owner);
+		if (oo_scope_hook)
+			oo_scope_hook(sm);
+	} END_FOR_EACH_SM(sm);
+
+	// FIXME: Should we free the old cur stree?
+	new_cur_stree = clone_stree(__get_cur_stree());
+	FOR_EACH_PTR(to_delete, sm) {
+		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_PTR(sm);
+
+	__swap_cur_stree(new_cur_stree);
+	free_slist(&to_delete);
+}
+
+void do_scope_exit(struct scope *dest_scope)
+{
+	if (!dest_out_of_scope(dest_scope))
+		return;
+	process_cleanup_fns(dest_scope);
+	save_scope_stree(current_scope);
+	free_out_of_scope_variables(dest_scope);
+}
+
 void do_scope_hooks_end(struct statement *stmt)
 {
 	struct position orig = current_pos;
 
+	do_scope_exit(current_scope->next);
 	__call_scope_hooks();
 	set_position(orig);
-
-	save_scope_stree(stmt);
-	free_out_of_scope_variables(stmt);
+	current_scope = current_scope->next;
 }
 
 static const char *get_scoped_guard_label(struct statement *iterator)
@@ -1290,7 +1304,6 @@ static void handle_pre_loop(struct statement *stmt)
 {
 	int once_through; /* we go through the loop at least once */
 	struct sm_state *extra_sm = NULL;
-	struct scope *dest_scope;
 	int unchanged = 0;
 	char *loop_name;
 	struct stree *stree = NULL;
@@ -1392,6 +1405,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__push_fake_cur_stree();
 		__split_stmt(stmt->iterator_post_statement);
 		stree = __pop_fake_cur_stree();
+		do_scope_hooks_end(stmt);
 
 		__discard_false_states();
 		__pass_to_client(stmt, AFTER_LOOP_NO_BREAKS);
@@ -1416,9 +1430,7 @@ static void handle_pre_loop(struct statement *stmt)
 		__in_pre_condition--;
 		nullify_path();
 		__merge_false_states();
-		dest_scope = stmt->iterator_break->scope;
-		if (dest_scope)
-			process_cleanup_fns(dest_scope->next);
+		do_scope_hooks_end(stmt);
 		if (once_through)
 			__discard_false_states();
 		else
@@ -1434,8 +1446,6 @@ static void handle_pre_loop(struct statement *stmt)
 done:
 	if (!is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement))
 		loop_count--;
-
-	do_scope_hooks_end(stmt);
 }
 
 /*
@@ -1549,6 +1559,7 @@ static struct range_list *get_case_rl(struct expression *switch_expr,
 
 static void split_known_switch(struct statement *stmt, sval_t sval)
 {
+	struct statement *switch_stmt = stmt;
 	struct statement *tmp;
 	struct range_list *rl;
 
@@ -1563,7 +1574,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 
 	stmt = stmt->switch_statement;
 
-	do_scope_hooks_start(stmt);
+	do_scope_hooks_start(switch_stmt);
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
 		// FIXME: what if default comes before the known case statement?
@@ -1585,7 +1596,7 @@ next:
 		}
 	} END_FOR_EACH_PTR(tmp);
 out:
-	do_scope_hooks_end(stmt);
+	do_scope_hooks_end(switch_stmt);
 	if (!__pop_default())
 		__merge_switches(top_expression(switch_expr_stack), NULL);
 	__discard_switches();
@@ -1727,7 +1738,6 @@ static void split_compound(struct statement *stmt)
 	struct statement *prev = NULL;
 	struct statement *cur = NULL;
 	struct statement *next;
-	struct scope *scope;
 
 	do_scope_hooks_start(stmt);
 
@@ -1755,12 +1765,15 @@ static void split_compound(struct statement *stmt)
 	 * For function scope, then delay calling the scope hooks until the
 	 * end of function hooks can run.
 	 */
-	scope = stmt->block_scope;
-	if (scope)
-		process_cleanup_fns(scope->next);
 
-	if (!is_function_scope(stmt))
+	/* don't free all the out of scope variables */
+	if (!is_function_scope(stmt)) {
 		do_scope_hooks_end(stmt);
+	} else {
+		struct scope *scope = stmt->block_scope;
+		if (scope)
+			process_cleanup_fns(scope->next);
+	}
 	__free_scope_hooks();
 }
 
@@ -1954,7 +1967,7 @@ void __split_stmt(struct statement *stmt)
 		__split_expr(stmt->goto_expression);
 		dest_scope = get_destination_scope(stmt);
 		if (dest_scope)
-			process_cleanup_fns(dest_scope);
+			do_scope_exit(dest_scope);
 		if (stmt->goto_label && stmt->goto_label->type == SYM_NODE) {
 			if (!strcmp(stmt->goto_label->ident->name, "break")) {
 				__process_breaks();
@@ -2544,10 +2557,10 @@ static void split_function(struct symbol *sym)
 	__parse_id_cur = ++parse_id_next;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
-	do_scope_hooks_end(NULL);
 	nullify_path();
 	__unnullify_path();
 	pass_cnt = 1;
+	current_scope = NULL;
 	output_enabled = 1;
 	loop_count = 0;
 	__parse_id_cur = ++parse_id_next;
@@ -2564,6 +2577,7 @@ static void split_function(struct symbol *sym)
 	}
 	__pass_to_client(sym, END_FUNC_HOOK);
 	__free_scope_hooks();
+	current_scope = NULL;
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
 
@@ -2690,6 +2704,7 @@ static void parse_inline(struct expression *call)
 	}
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 	__free_scope_hooks();
+	current_scope = NULL;
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
 	__parse_id_cur = ++parse_id_next;
@@ -2943,6 +2958,7 @@ void smatch_flow(int id)
 {
 	my_id = id;
 	add_function_data(&__parse_id_cur);
+	add_function_data((unsigned long *)&current_scope);
 
 	oo_scope_hooks = calloc(num_checks, sizeof(*oo_scope_hooks));
 }

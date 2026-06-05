@@ -431,7 +431,7 @@ static bool handle_subtract_condition(struct expression *expr, int *known_tf)
 
 static bool handle_expr_statement_conditions(struct expression *expr, int *known_tf)
 {
-	struct statement *last_stmt, *stmt;
+	struct statement *last_stmt, *compound, *stmt;
 	struct expression *last_expr;
 
 	if (expr->type == EXPR_PREOP && expr->op == '(')
@@ -439,11 +439,11 @@ static bool handle_expr_statement_conditions(struct expression *expr, int *known
 	if (expr->type != EXPR_STATEMENT)
 		return false;
 
-	stmt = expr->statement;
-	if (stmt->type != STMT_COMPOUND)
+	compound = expr->statement;
+	if (compound->type != STMT_COMPOUND)
 		return false;
 
-	last_stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	last_stmt = last_ptr_list((struct ptr_list *)compound->stmts);
 	if (!last_stmt)
 		return false;
 
@@ -460,8 +460,8 @@ static bool handle_expr_statement_conditions(struct expression *expr, int *known
 		return false;
 
 	__expr_stmt_count++;
-	do_scope_hooks_start(stmt);
-	FOR_EACH_PTR(stmt->stmts, stmt) {
+	do_scope_hooks_start(compound);
+	FOR_EACH_PTR(compound->stmts, stmt) {
 		if (stmt == last_stmt) {
 			if (stmt->type == STMT_LABEL)
 				__split_label_stmt(stmt);
@@ -472,7 +472,7 @@ static bool handle_expr_statement_conditions(struct expression *expr, int *known
 	} END_FOR_EACH_PTR(stmt);
 	exit(1);
 done:
-	do_scope_hooks_end(stmt);
+	do_scope_hooks_end(compound);
 	__expr_stmt_count--;
 
 	return true;
