@@ -1575,6 +1575,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	stmt = stmt->switch_statement;
 
 	do_scope_hooks_start(switch_stmt);
+	do_scope_hooks_start(stmt);
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
 		// FIXME: what if default comes before the known case statement?
@@ -1596,6 +1597,7 @@ next:
 		}
 	} END_FOR_EACH_PTR(tmp);
 out:
+	do_scope_hooks_end(stmt);
 	do_scope_hooks_end(switch_stmt);
 	if (!__pop_default())
 		__merge_switches(top_expression(switch_expr_stack), NULL);
