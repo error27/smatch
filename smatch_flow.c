@@ -1388,6 +1388,7 @@ static void handle_pre_loop(struct statement *stmt)
 	__split_stmt(stmt->iterator_statement);
 	if (is_scoped_guard_goto(stmt->iterator_statement, stmt->iterator_post_statement)) {
 		__merge_continues();
+		do_scope_hooks_end(stmt);
 		if (once_through)
 			__discard_false_states();
 		else
