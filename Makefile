@@ -375,6 +375,7 @@ SMATCH_OBJS += smatch_strlen.o
 SMATCH_OBJS += smatch_struct_assignment.o
 SMATCH_OBJS += smatch_sval.o
 SMATCH_OBJS += smatch_tracker.o
+SMATCH_OBJS += smatch_type_info.o
 SMATCH_OBJS += smatch_type_links.o
 SMATCH_OBJS += smatch_type.o
 SMATCH_OBJS += smatch_type_val.o
