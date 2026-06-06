@@ -1564,6 +1564,7 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 	struct statement *tmp;
 	struct range_list *rl;
 
+	do_scope_hooks_start(switch_stmt);
 	__split_expr(stmt->switch_expression);
 	sval = sval_cast(get_type(stmt->switch_expression), sval);
 
@@ -1575,7 +1576,6 @@ static void split_known_switch(struct statement *stmt, sval_t sval)
 
 	stmt = stmt->switch_statement;
 
-	do_scope_hooks_start(switch_stmt);
 	do_scope_hooks_start(stmt);
 	FOR_EACH_PTR(stmt->stmts, tmp) {
 		__smatch_lineno = tmp->pos.line;
@@ -1938,8 +1938,8 @@ void __split_stmt(struct statement *stmt)
 			split_known_switch(stmt, sval);
 			break;
 		}
-		__split_expr(stmt->switch_expression);
 		do_scope_hooks_start(stmt);
+		__split_expr(stmt->switch_expression);
 		push_expression(&switch_expr_stack, stmt->switch_expression);
 		__save_switch_states(top_expression(switch_expr_stack));
 		nullify_path();
