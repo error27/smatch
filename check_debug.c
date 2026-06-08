@@ -77,6 +77,7 @@ bool is_debug_arg(struct expression *expr)
 
 void show_smatch_allocations(void)
 {
+	struct stree *stree;
 	struct allocator_stats stats;
 
 	void get_sname_stats(struct allocator_stats *stats);
@@ -85,6 +86,9 @@ void show_smatch_allocations(void)
 	void get_ptrlist_stats(struct allocator_stats *stats);
 	void get_smatch_state_stats(struct allocator_stats *stats);
 	void get_sm_state_stats(struct allocator_stats *stats);
+
+	stree = __get_cur_stree();
+	sm_msg("cur stree: %zd states", stree_count(stree));
 
 	get_ptrlist_stats(&stats);
 	sm_msg("%12s allocations=%8u total_bytes=%10lu useful_bytes=%10lu",
