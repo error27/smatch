@@ -152,21 +152,11 @@ void add_refcount_dec_hook(name_sym_hook *hook)
 	add_ptr_list(&dec_hooks, hook);
 }
 
-static void call_hooks(struct name_sym_fn_list *hooks, struct expression *expr,
-		       const char *name, struct symbol *sym)
-{
-	name_sym_hook *hook;
-
-	FOR_EACH_PTR(hooks, hook) {
-		hook(expr, name, sym);
-	} END_FOR_EACH_PTR(hook);
-}
-
 static void do_init(struct expression *expr, const char *name, struct symbol *sym)
 {
 	struct smatch_state *orig;
 
-	call_hooks(init_hooks, expr, name, sym);
+	call_name_sym_fns(init_hooks, expr, name, sym);
 
 	orig = get_state(my_id, name, sym);
 	if (orig) {
@@ -181,7 +171,7 @@ static void do_inc(struct expression *expr, const char *name, struct symbol *sym
 {
 	struct smatch_state *orig;
 
-	call_hooks(inc_hooks, expr, name, sym);
+	call_name_sym_fns(inc_hooks, expr, name, sym);
 
 	orig = get_state(my_id, name, sym);
 	if (orig) {
@@ -196,7 +186,7 @@ static void do_dec(struct expression *expr, const char *name, struct symbol *sym
 {
 	struct smatch_state *orig;
 
-	call_hooks(dec_hooks, expr, name, sym);
+	call_name_sym_fns(dec_hooks, expr, name, sym);
 
 	orig = get_state(my_id, name, sym);
 	if (orig) {
