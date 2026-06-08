@@ -85,8 +85,10 @@ static void match_assign(struct expression *expr)
 		return;
 	if (!has_states(__get_cur_stree(), my_id))
 		return;
-	if (possible_err_ptr(expr->right))
+	if (possible_err_ptr(expr->right)) {
+		add_type_info(expr->left, ERR_PTR, "");
 		set_state_expr(my_id, expr->left, &err_ptr);
+	}
 }
 
 static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
