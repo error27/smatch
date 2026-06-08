@@ -1222,7 +1222,17 @@ void do_scope_hooks_end(struct statement *stmt)
 	do_scope_exit(current_scope->next);
 	__call_scope_hooks();
 	set_position(orig);
-	current_scope = current_scope->next;
+	scope = get_scope(stmt);
+	/*
+	 * Ideally, we would be able to say:
+	 *
+	 * 	current_scope = current_scope->next;
+	 *
+	 * But that gets a bit messed up when we start faking scopes, and
+	 * in particular if we have ({ something }) = ({ something });
+	 *
+	 */
+	current_scope = scope->next;
 }
 
 static const char *get_scoped_guard_label(struct statement *iterator)
@@ -1462,7 +1472,6 @@ static void handle_post_loop(struct statement *stmt)
 
 	__pass_to_client(stmt, POSTLOOP_HOOK);
 
-	// FIXME: Is this right?
 	do_scope_hooks_start(stmt);
 	__push_continues();
 	__push_breaks();
