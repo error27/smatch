@@ -492,6 +492,8 @@ static struct sm_state *get_scope_sm_state(int owner, const char *name, struct s
 
 	if (!sym || !sym->scope || !sym->scope->token)
 		return NULL;
+	if (!out_of_scope(sym))
+		return NULL;
 	stree = get_scope_stree(sym);
 	if (!stree)
 		return NULL;

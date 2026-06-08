@@ -1099,7 +1099,7 @@ static bool dest_out_of_scope(struct scope *dest_scope)
 	return true;
 }
 
-bool out_of_scope(struct symbol *sym, struct scope *dest_scope)
+static bool sym_out_of_scope(struct symbol *sym, struct scope *dest_scope)
 {
 	struct scope *scope;
 
@@ -1119,6 +1119,11 @@ bool out_of_scope(struct symbol *sym, struct scope *dest_scope)
 		scope = scope->next;
 	}
 	return true;
+}
+
+bool out_of_scope(struct symbol *sym)
+{
+	return sym_out_of_scope(sym, current_scope);
 }
 
 static struct scope *get_destination_scope(struct statement *stmt)
@@ -1157,7 +1162,7 @@ static void process_cleanup_fns_helper(struct scope *dest_scope, bool skip_oosco
 	stree = clone_stree(__get_cur_stree());
 	FOR_EACH_MY_SM(cleanup_id, stree, sm) {
 		if (sm->state == &true_state &&
-		    (skip_ooscope || out_of_scope(sm->sym, dest_scope))) {
+		    (skip_ooscope || sym_out_of_scope(sm->sym, dest_scope))) {
 			set_state(cleanup_id, sm->name, sm->sym, &undefined);
 			__call_cleanup_fn(sm);
 		}
@@ -1188,7 +1193,7 @@ static void free_out_of_scope_variables(struct scope *dest_scope)
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (!sm->sym)
 			continue;
-		if (!out_of_scope(sm->sym, dest_scope))
+		if (!sym_out_of_scope(sm->sym, dest_scope))
 			continue;
 		delete_scoped_state(sm);
 		oo_scope_hook = get_out_of_scope_hook(sm->owner);
