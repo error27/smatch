@@ -141,7 +141,7 @@ static bool is_boring_pointer_info(const char *name, struct range_list *rl)
 	 *
 	 */
 
-	if (strlen(name) < 40)
+	if (strlen(name) < 20)
 		return false;
 
 	rl_str = show_rl(rl);
