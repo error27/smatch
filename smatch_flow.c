@@ -1182,8 +1182,8 @@ static void call_all_cleanup_fns(void)
 
 static void free_out_of_scope_variables(struct scope *dest_scope)
 {
+	struct stree *new_cur_stree, *stree;
 	oo_scope_hook *oo_scope_hook;
-	struct stree *new_cur_stree;
 	struct sm_state *sm;
 
 	if (to_delete)
@@ -1207,7 +1207,8 @@ static void free_out_of_scope_variables(struct scope *dest_scope)
 		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
 	} END_FOR_EACH_PTR(sm);
 
-	__swap_cur_stree(new_cur_stree);
+	stree = __swap_cur_stree(new_cur_stree);
+	free_stree(&stree);
 	free_slist(&to_delete);
 }
 
