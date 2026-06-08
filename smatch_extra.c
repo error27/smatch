@@ -1205,11 +1205,6 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	if (!left_name || !right_name || !left_sym || !right_sym)
 		return;
 
-	if (__in_fake_struct_assign &&
-	    !get_state_expr(my_id, left) &&
-	    !get_state_expr(my_id, right))
-		return;
-
 	left_type = get_type(left);
 	right_type = get_type(right);
 
@@ -1287,6 +1282,14 @@ static void match_vanilla_assign(struct expression *left, struct expression *rig
 	save_chunk_info(left, right);
 
 	name = expr_to_var_sym(left, &sym);
+	/*
+	 * FIXME: ideally this wouldn't happen.  And if we could just
+	 * test for EXPR_PREOP instead of testing name[0].
+	 */
+	if ((left->type == EXPR_PREOP && left->op == '&') ||
+	    (name && name[0] == '&'))
+		return;
+
 	if (!name) {
 		if (chunk_has_array(left))
 			do_array_assign(left, '=', right);
