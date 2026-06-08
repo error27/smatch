@@ -506,11 +506,10 @@ struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 	if (ret)
 		return ret;
 
-	ret = get_scope_sm_state(owner, name, sym);
+	ret = get_sm_state_stree(cur_stree, owner, name, sym);
 	if (ret)
 		return ret;
-
-	return get_sm_state_stree(cur_stree, owner, name, sym);
+	return get_scope_sm_state(owner, name, sym);
 }
 
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
