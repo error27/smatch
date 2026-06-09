@@ -828,7 +828,7 @@ void __split_expr(struct expression *expr)
 	if (__debug_skip)
 		return;
 
-	if (skip_split)
+	if (skip_split && expr->type != EXPR_ASSIGNMENT)
 		return;
 
 //	if (local_debug)
