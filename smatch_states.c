@@ -1351,9 +1351,6 @@ void __discard_fake_states(struct expression *call)
 	char buf[64];
 	int len;
 
-	if (__fake_state_cnt == 0)
-		return;
-
 	/*
 	 * This is just a best effort type of thing.  There could be
 	 * fake states in the true/false trees already.  They might
