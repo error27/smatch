@@ -320,6 +320,7 @@ extern int __smatch_lineno;
 int get_lineno(void);
 extern int pass_cnt;
 extern int force_output;
+extern int print_passes;
 extern int output_enabled;
 extern int silence_output;
 extern struct symbol *cur_func_sym;
@@ -399,6 +400,8 @@ static inline bool __output_enabled(void)
 static inline void sm_prefix(void)
 {
 	sm_printf("%s:%d %s() ", get_filename(), get_lineno(), get_function());
+	if (print_passes)
+		sm_printf("[pass=%d] ", pass_cnt);
 	if (option_info || !option_print_names)
 		return;
 	sm_printf("[smatch.%s] ", __CHECKNAME__);

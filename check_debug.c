@@ -20,6 +20,7 @@
 #include "smatch.h"
 
 int local_debug;
+int print_passes;
 static int my_id;
 char *trace_variable;
 static int cur_state_cnt;
@@ -628,6 +629,7 @@ static void match_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	option_debug = 1;
 	local_debug++;
+	print_passes = 1;
 	debug_passes = true;
 }
 
@@ -640,6 +642,7 @@ static void match_debug_check(const char *fn, struct expression *expr, void *inf
 		return;
 	option_debug_check = arg->string->data;
 	local_debug++;
+	print_passes = 1;
 	debug_passes = true;
 	dbg("arg = '%s'", option_debug_check);
 }
@@ -674,6 +677,7 @@ static void match_start_skip(const char *fn, struct expression *expr, void *info
 static void match_local_debug_on(const char *fn, struct expression *expr, void *info)
 {
 	local_debug = 1;
+	print_passes = 1;
 	debug_passes = true;
 	option_print_names++;
 }
@@ -685,6 +689,7 @@ static void match_local_debug_off(const char *fn, struct expression *expr, void 
 
 static void match_debug_db_on(const char *fn, struct expression *expr, void *info)
 {
+	print_passes = 1;
 	debug_db = 1;
 }
 
