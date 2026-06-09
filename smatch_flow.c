@@ -1224,6 +1224,7 @@ void do_scope_exit(struct scope *dest_scope)
 void do_scope_hooks_end(struct statement *stmt)
 {
 	struct position orig = current_pos;
+	struct scope *scope;
 
 	do_scope_exit(current_scope->next);
 	__call_scope_hooks();
