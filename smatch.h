@@ -212,6 +212,7 @@ typedef struct smatch_state *(unmatched_func_t)(struct sm_state *state);
 void add_merge_hook(int client_id, merge_func_t *func);
 void add_unmatched_state_hook(int client_id, unmatched_func_t *func);
 void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct sm_state *other));
+extern struct scope *__current_scope;
 typedef void (scope_hook)(void *data);
 void add_scope_hook(scope_hook *hook, void *data);
 typedef void (oo_scope_hook)(struct sm_state *state);

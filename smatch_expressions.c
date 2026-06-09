@@ -532,6 +532,7 @@ static struct expression *fake_variable_helper(struct symbol *type, const char *
 	sym->ident = ident;
 	sym->ctype.base_type = type;
 	sym->ctype.modifiers |= MOD_AUTO;
+	sym->scope = __current_scope;
 
 	node = alloc_symbol(get_cur_pos(), SYM_NODE);
 	node->ident = ident;

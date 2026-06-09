@@ -87,7 +87,7 @@ static void add_inline_function(struct symbol *sym);
 static void parse_inline(struct expression *expr);
 unsigned long __parse_id_cur;
 static unsigned long parse_id_next;
-struct scope *current_scope;
+struct scope *__current_scope;
 
 int option_assume_loops = 0;
 struct symbol *cur_func_sym = NULL;
@@ -1058,7 +1058,7 @@ struct scope *get_scope(struct statement *stmt)
 void do_scope_hooks_start(struct statement *stmt)
 {
 	__push_scope_hooks();
-	current_scope = get_scope(stmt);
+	__current_scope = get_scope(stmt);
 }
 
 static oo_scope_hook **oo_scope_hooks;
@@ -1090,7 +1090,7 @@ static bool dest_out_of_scope(struct scope *dest_scope)
 
 	scope = dest_scope;
 	while (scope) {
-		if (current_scope == scope)
+		if (__current_scope == scope)
 			return false;
 		if (scope == scope->next)
 			return true;
@@ -1123,7 +1123,7 @@ static bool sym_out_of_scope(struct symbol *sym, struct scope *dest_scope)
 
 bool out_of_scope(struct symbol *sym)
 {
-	return sym_out_of_scope(sym, current_scope);
+	return sym_out_of_scope(sym, __current_scope);
 }
 
 static struct scope *get_destination_scope(struct statement *stmt)
@@ -1217,7 +1217,7 @@ void do_scope_exit(struct scope *dest_scope)
 	if (!dest_out_of_scope(dest_scope))
 		return;
 	process_cleanup_fns(dest_scope);
-	save_scope_stree(current_scope);
+	save_scope_stree(__current_scope);
 	free_out_of_scope_variables(dest_scope);
 }
 
@@ -1226,20 +1226,20 @@ void do_scope_hooks_end(struct statement *stmt)
 	struct position orig = current_pos;
 	struct scope *scope;
 
-	do_scope_exit(current_scope->next);
+	do_scope_exit(__current_scope->next);
 	__call_scope_hooks();
 	set_position(orig);
 	scope = get_scope(stmt);
 	/*
 	 * Ideally, we would be able to say:
 	 *
-	 * 	current_scope = current_scope->next;
+	 * 	__current_scope = __current_scope->next;
 	 *
 	 * But that gets a bit messed up when we start faking scopes, and
 	 * in particular if we have ({ something }) = ({ something });
 	 *
 	 */
-	current_scope = scope->next;
+	__current_scope = scope->next;
 }
 
 static const char *get_scoped_guard_label(struct statement *iterator)
@@ -2579,7 +2579,7 @@ static void split_function(struct symbol *sym)
 	nullify_path();
 	__unnullify_path();
 	pass_cnt = 1;
-	current_scope = NULL;
+	__current_scope = NULL;
 	output_enabled = 1;
 	loop_count = 0;
 	__parse_id_cur = ++parse_id_next;
@@ -2596,7 +2596,7 @@ static void split_function(struct symbol *sym)
 	}
 	__pass_to_client(sym, END_FUNC_HOOK);
 	__free_scope_hooks();
-	current_scope = NULL;
+	__current_scope = NULL;
 	__pass_to_client(sym, AFTER_FUNC_HOOK);
 	sym->parsed = true;
 
@@ -2723,7 +2723,7 @@ static void parse_inline(struct expression *call)
 	}
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 	__free_scope_hooks();
-	current_scope = NULL;
+	__current_scope = NULL;
 	__pass_to_client(call->fn->symbol, AFTER_FUNC_HOOK);
 	call->fn->symbol->parsed = true;
 	__parse_id_cur = ++parse_id_next;
