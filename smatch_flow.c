@@ -1105,7 +1105,7 @@ static bool sym_out_of_scope(struct symbol *sym, struct scope *dest_scope)
 
 	if (!sym || !dest_scope)
 		return false;
-	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
+	if (sym->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))
 		return false;
 	if (!sym->ident || !sym->scope || !sym->scope->token)
 		return false;
