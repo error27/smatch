@@ -19,12 +19,6 @@
 
 static int my_id;
 
-static struct smatch_state *unmatched_state(struct sm_state *sm)
-{
-	sm_warning("unmatched cleanup: '%s'", sm->name);
-	return &undefined;
-}
-
 static void match_declarations(struct symbol *sym)
 {
 	if (!cur_func_sym)
