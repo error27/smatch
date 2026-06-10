@@ -104,9 +104,12 @@ static void match_put_device_fake(struct expression *expr, const char *name, str
 {
 	struct expression *fn, *arg, *fake_call;
 	struct expression_list *args = NULL;
+	sval_t sval;
 
 	fn = get_release_fn(name, sym);
 	if (!fn)
+		return;
+	if (get_implied_value(fn, &sval) && sval.value == 0)
 		return;
 	if (fn->type == EXPR_PREOP && fn->op == '&')
 		fn = strip_expr(fn->unop);
