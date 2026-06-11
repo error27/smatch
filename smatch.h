@@ -401,7 +401,7 @@ static inline bool __output_enabled(void)
 static inline void sm_prefix(void)
 {
 	sm_printf("%s:%d %s() ", get_filename(), get_lineno(), get_function());
-	if (print_passes)
+	if (print_passes && !option_info)
 		sm_printf("[pass=%d] ", pass_cnt);
 	if (option_info || !option_print_names)
 		return;
