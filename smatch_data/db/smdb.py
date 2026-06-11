@@ -622,10 +622,10 @@ def print_return_implies(func):
 
 def print_type_size(struct_type, member):
     cur = con.cursor()
-    cur.execute("select * from function_type_value where type = '(struct %s)->%s';" %(struct_type, member))
-    print("file | type | size")
+    cur.execute("select * from type_size where type = '(struct %s)->%s';" %(struct_type, member))
+    print("type | size")
     for txt in cur:
-        print("%-15s | %-15s | %s | %s" %(hash_to_string(txt[0]), txt[1], txt[2], txt[3]))
+        print("%s | %s" %(txt[0], txt[1]))
 
     cur.execute("select * from function_type_size where type like '(struct %s)->%s';" %(struct_type, member))
     print("file | function | type | size")
