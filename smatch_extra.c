@@ -2787,6 +2787,8 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 		param = get_return_param_key_from_var_sym(sm->name, sm->sym, expr, &name_buf);
 		if (param != -1 || !name_buf)
 			continue;
+		if (name_buf[0] == '&')
+			continue;
 		if (!strchr(name_buf, '-'))
 			continue;
 
