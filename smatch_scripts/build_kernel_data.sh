@@ -46,7 +46,7 @@ for i in $SCRIPT_DIR/gen_* ; do
 done
 
 for data_file in ${PROJECT}.* ; do
-    TO=$(echo $data_file | sed -e 's/${PROJECT}.//')
+    TO=$(echo $data_file | sed -e "s/${PROJECT}.//")
     mv $data_file $DATA_DIR/$PROJECT/$TO
 done
 
