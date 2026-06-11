@@ -1334,6 +1334,8 @@ void __merge_gotos(const char *name, struct symbol *sym)
 {
 	struct stree **stree;
 
+	__fake_state_cnt++;
+
 	stree = get_named_stree(goto_stack, name, sym);
 	if (stree) {
 		if (sym)
@@ -1350,6 +1352,9 @@ void __discard_fake_states(struct expression *call)
 	struct sm_state *sm;
 	char buf[64];
 	int len;
+
+	if (__fake_state_cnt == 0)
+		return;
 
 	/*
 	 * This is just a best effort type of thing.  There could be
