@@ -145,6 +145,9 @@ static const char *irqsave_funcs[] = {
 
 static void irq_hook(const char *fn, struct expression *expr, void *_param)
 {
+	if (pass_cnt == 0)
+		return;
+
 	if (warned)
 		return;
 	if (irq_save) {
@@ -157,6 +160,9 @@ static void irq_hook(const char *fn, struct expression *expr, void *_param)
 static void irqsave_hook(const char *fn, struct expression *expr, void *_param)
 {
 	char *macro;
+
+	if (pass_cnt == 0)
+		return;
 
 	if (warned)
 		return;
