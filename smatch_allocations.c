@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/param.h>
 #include "parse.h"
 #include "smatch.h"
 
@@ -92,6 +93,9 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"sk_alloc", ""},
 	{"sk_prot_alloc", ""},
 	{"sock_kmalloc", "$1"},
+
+	{"bitmap_alloc", "bits($0)"},
+	{"bitmap_zalloc", "bits($0)", .zeroed=true},
 
 #if 0
 	{"get_zeroed_page", {"PAGE_SIZE", zeroed=true}},
@@ -217,6 +221,39 @@ static bool handle_size_mul(struct allocation_info *data, struct expression *exp
 	return true;
 }
 
+static void load_bits(struct allocation_info *data, struct expression *expr, const char *size_str)
+{
+	struct expression *call, *arg;
+	sval_t sval, size;
+	const char *p;
+	int param;
+
+	call = get_rightmost_call(expr);
+	if (!call)
+		return;
+
+	if (strncmp(size_str, "bits($", 6) != 0)
+		return;
+
+	p = &size_str[6];
+	if (!isdigit(*p))
+		return;
+
+	param = atoi(p);
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+
+	/* TODO: how to handle unknown bit values? */
+	if (!get_implied_value(arg, &sval))
+		return;
+
+	size.type = &ulong_ctype;
+	size.value = roundup(sval.value, type_bits(&ulong_ctype)) / 8;
+
+	data->size_rl = alloc_rl(size, size);
+}
+
 static void load_size_data(struct allocation_info *data, struct expression *expr, const char *size_str)
 {
 	struct expression *call, *arg1, *arg2;
@@ -227,6 +264,9 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 
 	if (!size_str)
 		return;
+
+	if (strncmp(size_str, "bits(", 5) == 0)
+		return load_bits(data, expr, size_str);
 
 	p = size_str;
 	if (*p != '$')
