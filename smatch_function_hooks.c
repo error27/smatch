@@ -850,6 +850,15 @@ void fake_param_assign_helper(struct expression *expr, struct expression *fake_a
 	if (!name || !left_sym)
 		return;
 
+	/*
+	 * There have been too many cases where a fake assign wasn't
+	 * parsed.  Potentially just do this at the start:
+	 *     get_absolute_rl(right, &rl);
+	 *     set_extra_expr_nomod(left, alloc_estate_rl(rl));
+	 * Then we will do the assignment and if it works it will
+	 * overwrite the dummy value I just set.
+	 */
+
 	call = get_rightmost_call(expr);
 	before = get_expr_stree(call);
 	if (!before)
