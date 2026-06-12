@@ -1207,6 +1207,23 @@ static void return_str_hook(struct expression *expr, const char *ret_str)
 	set_state_expr(my_id, expr->left, alloc_var_sym_state(buf, sym));
 }
 
+struct smatch_state *merge_var_sym_states(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct var_sym *vs1, *vs2;
+
+	if (s1->data == s2->data)
+		return s1;
+	if (!s1->data || !s2->data)
+		return &merged;
+	vs1 = s1->data;
+	vs2 = s2->data;
+	if (vs1->sym != vs2->sym)
+		return &merged;
+	if (strcmp(s1->name, s2->name) == 0)
+		return s1;
+	return &merged;
+}
+
 void smatch_param_key(int id)
 {
 	my_id = id;
@@ -1214,6 +1231,7 @@ void smatch_param_key(int id)
 	set_dynamic_states(my_id);
 	add_hook(&match_assign, ASSIGNMENT_HOOK_AFTER);
 	add_return_string_hook(return_str_hook);
+	add_merge_hook(my_id, &merge_var_sym_states);
 	add_modification_hook(my_id, &set_undefined);
 }
 
