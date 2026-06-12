@@ -1084,6 +1084,22 @@ void delete_scoped_state(struct sm_state *sm)
 	add_ptr_list(&to_delete, sm);
 }
 
+void __delete_old_states(void)
+{
+	struct stree *new_cur_stree, *stree;
+	struct sm_state *sm;
+
+	// FIXME: Should we free the old cur stree?
+	new_cur_stree = clone_stree(__get_cur_stree());
+	FOR_EACH_PTR(to_delete, sm) {
+		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
+	} END_FOR_EACH_PTR(sm);
+
+	stree = __swap_cur_stree(new_cur_stree);
+	free_stree(&stree);
+	free_slist(&to_delete);
+}
+
 static bool dest_out_of_scope(struct scope *dest_scope)
 {
 	struct scope *scope;
@@ -1182,13 +1198,11 @@ static void call_all_cleanup_fns(void)
 
 static void free_out_of_scope_variables(struct scope *dest_scope)
 {
-	struct stree *new_cur_stree, *stree;
 	oo_scope_hook *oo_scope_hook;
 	struct sm_state *sm;
 
 	if (to_delete)
 		sm_perror("why is to_delete non-NULL?");
-	to_delete = NULL;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (!sm->sym)
@@ -1201,15 +1215,7 @@ static void free_out_of_scope_variables(struct scope *dest_scope)
 			oo_scope_hook(sm);
 	} END_FOR_EACH_SM(sm);
 
-	// FIXME: Should we free the old cur stree?
-	new_cur_stree = clone_stree(__get_cur_stree());
-	FOR_EACH_PTR(to_delete, sm) {
-		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
-	} END_FOR_EACH_PTR(sm);
-
-	stree = __swap_cur_stree(new_cur_stree);
-	free_stree(&stree);
-	free_slist(&to_delete);
+	__delete_old_states();
 }
 
 void do_scope_exit(struct scope *dest_scope)
