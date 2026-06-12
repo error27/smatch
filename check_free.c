@@ -81,7 +81,7 @@ static bool expr_is_condition(struct expression *expr)
 	return false;
 }
 
-bool is_part_of_condition(struct expression *expr)
+static bool is_part_of_condition(struct expression *expr)
 {
 	struct expression *parent;
 
@@ -126,7 +126,7 @@ static bool is_percent_p(struct expression *str_expr, int idx)
 	return false;
 }
 
-bool is_percent_p_print(struct expression *expr)
+static bool is_percent_p_print(struct expression *expr)
 {
 	struct expression *parent, *arg;
 	int expr_idx, string_idx;
@@ -157,7 +157,7 @@ found:
 	return false;
 }
 
-bool is_passed_to_IS_ERR(struct expression *expr)
+static bool is_passed_to_IS_ERR(struct expression *expr)
 {
 	struct expression *parent;
 

@@ -1619,9 +1619,6 @@ bool is_freed_var_sym(const char *name, struct symbol *sym);
 void track_freed_param(struct expression *expr, struct smatch_state *state);
 void track_freed_param_var_sym(const char *name, struct symbol *sym,
 			       struct smatch_state *state);
-bool is_part_of_condition(struct expression *expr);
-bool is_percent_p_print(struct expression *expr);
-
 bool is_free_primitive(struct expression *expr);
 void add_free_hook(name_sym_hook *hook);
 void add_maybe_free_hook(name_sym_hook *hook);
