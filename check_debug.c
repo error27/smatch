@@ -164,7 +164,7 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 			continue;
 		if (strcmp(sm->name, state_arg->string->data) != 0)
 			continue;
-		dbg("'%s' = '%s'", sm->name, sm->state->name);
+		dbg("%s", show_sm(sm));
 		found = 1;
 	} END_FOR_EACH_SM(sm);
 
