@@ -44,6 +44,7 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	bool is_addr = false;
 	bool is_star = false;  /* fixme: this should be star_cnt */
 	bool is_end = false;
+	bool add_parens = false;
 
 	if (orig[0] == '*')
 		is_star = true;
@@ -55,6 +56,8 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 			is_addr = true;
 		add++;
 	}
+	if (add[0] == '*')
+		add_parens = true;
 
 	offset = 0;
 	while(orig[offset] == '*' || orig[offset] == '&' || orig[offset] == '(')
@@ -73,8 +76,10 @@ char *swap_names(const char *orig, const char *remove, const char *add)
 	if (!is_star && is_end)
 		return NULL;
 
-	ret = snprintf(buf, sizeof(buf), "%.*s%s%s%s", offset, orig,
+	ret = snprintf(buf, sizeof(buf), "%.*s%s%s%s%s%s", offset, orig,
+		       add_parens ? "(" : "",
 		       add,
+		       add_parens ? ")" : "",
 		       is_end ? "" : (is_addr ? "." : "->"),
 		       is_end ? "" : orig + offset + 2 + len);
 	if (ret >= sizeof(buf))
