@@ -14,7 +14,7 @@ int main(unsigned int x, unsigned int y)
  *
  * check-output-start
 sm_impossible1.c:5 main() warn: unsigned 'x' is never less than zero.
-sm_impossible1.c:6 main() [smatch_impossible_return] impossible (nil) = 'impossible'
+sm_impossible1.c:6 main() [smatch_impossible_return] line=5 impossible (nil) = 'impossible'
 sm_impossible1.c:8 main() no states found for 'smatch_impossible_return'
 sm_impossible1.c:8 main() smatch_impossible_return: no states
  * check-output-end
