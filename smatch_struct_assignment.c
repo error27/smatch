@@ -713,6 +713,7 @@ void smatch_struct_assignment(int id)
 
 	add_function_hook("memset", &match_memset, NULL);
 	add_function_hook("__memset", &match_memset, NULL);
+	add_function_hook("__underlying_memset", &match_memset, NULL);
 	add_function_hook("__builtin_memset", &match_memset, NULL);
 
 	add_function_hook("memcpy", &match_memcpy, INT_PTR(0));
