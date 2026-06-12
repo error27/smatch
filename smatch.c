@@ -61,6 +61,7 @@ int sm_nr_checks;
 int __cur_check_id;
 
 bool __silence_warnings_for_stmt;
+int print_impossible;
 
 typedef void (*reg_func) (int id);
 #define CK(_x) {.name = #_x, .func = &_x, .enabled = 0},

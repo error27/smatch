@@ -373,6 +373,7 @@ extern int sm_nr_errors;
 
 extern bool __silence_warnings_for_stmt;
 
+extern int print_impossible;
 static inline bool __output_enabled(void)
 {
 	if (option_debug || local_debug || debug_db)
@@ -384,7 +385,7 @@ static inline bool __output_enabled(void)
 		if (silence_output || __silence_warnings_for_stmt ||
 		    is_silenced_function())
 			return false;
-		if (is_impossible_path())
+		if (!print_impossible && is_impossible_path())
 			return false;
 	}
 
@@ -461,6 +462,10 @@ static inline void print_implied_debug_msg(void)
 } while(0)
 
 #define sm_warning(msg...) do { sm_print_msg(1, msg); } while (0)
+#define sm_warning_impossible(msg...) do { 				\
+	print_impossible++; sm_warning(msg); print_impossible--;	\
+} while(0)
+
 #define sm_warning_line(line, msg...) do {	\
 	int __orig = __smatch_lineno;		\
 	__smatch_lineno = line;			\

@@ -41,7 +41,7 @@ static void match_return(struct expression *expr)
 		return;
 	FOR_EACH_PTR(sm->possible, tmp) {
 		if (is_sscanf(tmp->state->data)) {
-			sm_warning("sscanf doesn't return error codes");
+			sm_warning_impossible("sscanf doesn't return error codes");
 			return;
 		}
 	} END_FOR_EACH_PTR(tmp);
