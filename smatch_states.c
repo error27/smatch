@@ -1330,24 +1330,45 @@ void __save_gotos(const char *name, struct symbol *sym)
 	}
 }
 
+static struct stree_func_list *old_goto_filters;
+void add_old_goto_filter(stree_func *fn)
+{
+	add_ptr_list(&old_goto_filters, fn);
+}
+
+static struct stree *call_filter_old_goto_hooks(struct stree *stree)
+{
+	stree_func *fn;
+
+	FOR_EACH_PTR(old_goto_filters, fn) {
+		fn(stree);
+	} END_FOR_EACH_PTR(fn);
+
+	return __delete_old_states(stree);
+}
+
 void __merge_gotos(const char *name, struct symbol *sym)
 {
-	struct stree **stree;
+	struct stree **stree, *filtered;
 
 	__fake_state_cnt++;
 
 	stree = get_named_stree(goto_stack, name, sym);
-	if (stree) {
-		if (sym)
-			in_goto_merge++;
-		merge_stree(&cur_stree, *stree);
-		if (sym)
-			in_goto_merge--;
-	}
+	if (!stree)
+		return;
+
+	filtered = call_filter_old_goto_hooks(*stree);
+
+	if (sym)
+		in_goto_merge++;
+	merge_stree(&cur_stree, filtered);
+	if (sym)
+		in_goto_merge--;
 }
 
 void __discard_fake_states(struct expression *call)
 {
+	struct stree *new_stree, *old;
 	struct sm_state *sm;
 	char buf[64];
 	int len;
@@ -1366,6 +1387,9 @@ void __discard_fake_states(struct expression *call)
 			delete_scoped_state(sm);
 	} END_FOR_EACH_SM(sm);
 
-	__delete_old_states();
+	new_stree = __delete_old_states(__get_cur_stree());
+	old = __swap_cur_stree(new_stree);
+	free_stree(&old);
+
 	__fake_state_cnt = 0;
 }

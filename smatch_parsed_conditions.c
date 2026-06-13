@@ -55,14 +55,28 @@ void record_condition(struct expression *expr)
 	if (__in_pre_condition)
 		return;
 
-	snprintf(name, sizeof(name), "condition %p pass=%d", expr, pass_cnt);
+	snprintf(name, sizeof(name), "pass=%d condition %p", pass_cnt, expr);
 	set_true_false_states(my_id, name, NULL, &true_path, &false_path);
+}
+
+static void old_goto_filter(struct stree *stree)
+{
+	struct sm_state *sm;
+
+	if (pass_cnt == 0)
+		return;
+
+	FOR_EACH_MY_SM(my_id, stree, sm) {
+		if (strncmp(sm->name, "pass=0", 6) == 0)
+			delete_scoped_state(sm);
+	} END_FOR_EACH_SM(sm);
 }
 
 void smatch_parsed_conditions(int id)
 {
 	my_id = id;
 	add_hook(&record_condition, CONDITION_HOOK);
+	add_old_goto_filter(&old_goto_filter);
 }
 
 static void filter_by_sm(struct sm_state *sm,

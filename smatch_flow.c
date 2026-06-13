@@ -764,7 +764,6 @@ void parse_assignment(struct expression *expr, bool shallow)
 	else
 		__pass_to_client(expr, ASSIGNMENT_HOOK);
 
-
 	// FIXME: the ordering of this is tricky
 	__fake_struct_member_assignments(expr);
 
@@ -1084,20 +1083,18 @@ void delete_scoped_state(struct sm_state *sm)
 	add_ptr_list(&to_delete, sm);
 }
 
-void __delete_old_states(void)
+struct stree *__delete_old_states(struct stree *stree)
 {
-	struct stree *new_cur_stree, *stree;
+	struct stree *new_stree;
 	struct sm_state *sm;
 
-	// FIXME: Should we free the old cur stree?
-	new_cur_stree = clone_stree(__get_cur_stree());
+	new_stree = clone_stree(stree);
 	FOR_EACH_PTR(to_delete, sm) {
-		delete_state_stree(&new_cur_stree, sm->owner, sm->name, sm->sym);
+		delete_state_stree(&new_stree, sm->owner, sm->name, sm->sym);
 	} END_FOR_EACH_PTR(sm);
 
-	stree = __swap_cur_stree(new_cur_stree);
-	free_stree(&stree);
 	free_slist(&to_delete);
+	return new_stree;
 }
 
 static bool dest_out_of_scope(struct scope *dest_scope)
@@ -1199,6 +1196,7 @@ static void call_all_cleanup_fns(void)
 static void free_out_of_scope_variables(struct scope *dest_scope)
 {
 	oo_scope_hook *oo_scope_hook;
+	struct stree *new_stree, *old;
 	struct sm_state *sm;
 
 	if (to_delete)
@@ -1215,7 +1213,9 @@ static void free_out_of_scope_variables(struct scope *dest_scope)
 			oo_scope_hook(sm);
 	} END_FOR_EACH_SM(sm);
 
-	__delete_old_states();
+	new_stree = __delete_old_states(__get_cur_stree());
+	old = __swap_cur_stree(new_stree);
+	free_stree(&old);
 }
 
 void do_scope_exit(struct scope *dest_scope)
