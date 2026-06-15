@@ -79,7 +79,7 @@ struct expression *get_switch_expr(void) { return top_expression(switch_expr_sta
 int in_expression_statement(void) { return !!__expr_stmt_count; }
 
 static void split_symlist(struct symbol_list *sym_list);
-static void split_declaration(struct symbol_list *sym_list);
+static void split_declaration(struct statement *stmt);
 static void split_expr_list(struct expression_list *expr_list, struct expression *parent);
 static void split_args(struct expression *expr);
 static struct expression *fake_a_variable_assign(struct symbol *type, struct expression *call, struct expression *expr, int nr);
@@ -1367,7 +1367,7 @@ static void handle_pre_loop(struct statement *stmt)
 
 	loop_name = get_loop_name(stmt);
 
-	split_declaration(stmt->iterator_syms);
+	split_declaration(stmt);
 	if (stmt->iterator_pre_statement) {
 		__split_stmt(stmt->iterator_pre_statement);
 		__prev_stmt = stmt->iterator_pre_statement;
@@ -1911,7 +1911,7 @@ void __split_stmt(struct statement *stmt)
 
 	switch (stmt->type) {
 	case STMT_DECLARATION:
-		split_declaration(stmt->declaration);
+		split_declaration(stmt);
 		break;
 	case STMT_RETURN:
 		expr_set_parent_stmt(stmt->ret_value, stmt);
@@ -2241,7 +2241,7 @@ static struct ident *number_to_member(struct expression *expr, int num)
 	return NULL;
 }
 
-static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
+static void fake_element_assigns_helper(struct statement *parent_stmt, struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb);
 
 static void set_inner_struct_members(struct expression *expr, struct symbol *member)
 {
@@ -2309,7 +2309,9 @@ static void set_unset_to_zero(struct symbol *type, struct expression *expr)
 	} END_FOR_EACH_PTR(tmp);
 }
 
-static void fake_member_assigns_helper(struct expression *symbol, struct expression_list *members, fake_cb *fake_cb)
+static void fake_member_assigns_helper(struct statement *parent_stmt,
+		struct expression *symbol, struct expression_list *members,
+		fake_cb *fake_cb)
 {
 	struct expression *deref, *assign, *tmp, *right;
 	struct symbol *struct_type, *type;
@@ -2355,11 +2357,12 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 		if (right->type == EXPR_INITIALIZER) {
 			type = get_type(deref);
 			if (type && type->type == SYM_ARRAY)
-				fake_element_assigns_helper(deref, right->expr_list, fake_cb);
+				fake_element_assigns_helper(parent_stmt, deref, right->expr_list, fake_cb);
 			else
-				fake_member_assigns_helper(deref, right->expr_list, fake_cb);
+				fake_member_assigns_helper(parent_stmt, deref, right->expr_list, fake_cb);
 		} else {
 			assign = assign_expression(deref, '=', right);
+			expr_set_parent_stmt(assign, parent_stmt);
 			fake_cb(assign);
 		}
 	} END_FOR_EACH_PTR(tmp);
@@ -2367,13 +2370,13 @@ static void fake_member_assigns_helper(struct expression *symbol, struct express
 	set_unset_to_zero(struct_type, symbol);
 }
 
-static void fake_member_assigns(struct symbol *sym, fake_cb *fake_cb)
+static void fake_member_assigns(struct statement *parent_stmt, struct symbol *sym, fake_cb *fake_cb)
 {
-	fake_member_assigns_helper(symbol_expression(sym),
+	fake_member_assigns_helper(parent_stmt, symbol_expression(sym),
 				   sym->initializer->expr_list, fake_cb);
 }
 
-static void fake_element_assigns_helper(struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb)
+static void fake_element_assigns_helper(struct statement *parent_stmt, struct expression *array, struct expression_list *expr_list, fake_cb *fake_cb)
 {
 	struct expression *offset, *binop, *assign, *tmp;
 	struct symbol *type;
@@ -2387,6 +2390,7 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 		 * with huge global arrays.  However, we may as well parse this
 		 * one the long way seeing as it's a one time thing.
 		 */
+		expr_set_parent_stmt(assign, parent_stmt);
 		__split_expr(assign);
 		return;
 	}
@@ -2409,11 +2413,12 @@ static void fake_element_assigns_helper(struct expression *array, struct express
 		if (tmp->type == EXPR_INITIALIZER) {
 			type = get_type(binop);
 			if (type && type->type == SYM_ARRAY)
-				fake_element_assigns_helper(binop, tmp->expr_list, fake_cb);
+				fake_element_assigns_helper(parent_stmt, binop, tmp->expr_list, fake_cb);
 			else
-				fake_member_assigns_helper(binop, tmp->expr_list, fake_cb);
+				fake_member_assigns_helper(parent_stmt, binop, tmp->expr_list, fake_cb);
 		} else {
 			assign = assign_expression(binop, '=', tmp);
+			expr_set_parent_stmt(assign, parent_stmt);
 			fake_cb(assign);
 		}
 next:
@@ -2425,21 +2430,22 @@ next:
 	__call_array_initialized_hooks(array, max);
 }
 
-static void fake_element_assigns(struct symbol *sym, fake_cb *fake_cb)
+static void fake_element_assigns(struct statement *parent_stmt, struct symbol *sym, fake_cb *fake_cb)
 {
-	fake_element_assigns_helper(symbol_expression(sym), sym->initializer->expr_list, fake_cb);
+	fake_element_assigns_helper(parent_stmt, symbol_expression(sym), sym->initializer->expr_list, fake_cb);
 }
 
-static void fake_assign_expr(struct symbol *sym)
+static void fake_assign_expr(struct statement *parent_stmt, struct symbol *sym)
 {
 	struct expression *assign, *symbol;
 
 	symbol = symbol_expression(sym);
 	assign = assign_expression(symbol, '=', sym->initializer);
+	expr_set_parent_stmt(assign, parent_stmt);
 	__split_expr(assign);
 }
 
-static void do_initializer_stuff(struct symbol *sym)
+static void do_initializer_stuff(struct statement *stmt, struct symbol *sym)
 {
 	if (!sym->initializer)
 		return;
@@ -2447,23 +2453,33 @@ static void do_initializer_stuff(struct symbol *sym)
 	if (sym->initializer->type == EXPR_INITIALIZER) {
 		if (get_real_base_type(sym)->type == SYM_ARRAY) {
 			__in_array_initializer++;
-			fake_element_assigns(sym, __split_expr);
+			fake_element_assigns(stmt, sym, __split_expr);
 			__in_array_initializer--;
 		} else {
-			fake_member_assigns(sym, __split_expr);
+			fake_member_assigns(stmt, sym, __split_expr);
 		}
 	} else {
-		fake_assign_expr(sym);
+		fake_assign_expr(stmt, sym);
 	}
 }
 
-static void split_declaration(struct symbol_list *sym_list)
+static void split_declaration(struct statement *stmt)
 {
+	struct symbol_list *sym_list;
 	struct symbol *sym;
 
+	if (!stmt)
+		return;
+	if (stmt->type == STMT_DECLARATION)
+		sym_list = stmt->declaration;
+	else if (stmt->type == STMT_ITERATOR)
+		sym_list = stmt->iterator_syms;
+
 	FOR_EACH_PTR(sym_list, sym) {
+		if (cur_func_sym && sym->ident && sym->scope != __current_scope)
+			sm_perror("scope problem in declaration: %s", sym->ident->name);
 		__pass_to_client(sym, DECLARATION_HOOK);
-		do_initializer_stuff(sym);
+		do_initializer_stuff(stmt, sym);
 		__pass_to_client(sym, DECLARATION_HOOK_AFTER);
 		split_sym(sym);
 	} END_FOR_EACH_PTR(sym);
@@ -2480,23 +2496,23 @@ static void fake_global_assign(struct symbol *sym)
 
 	if (get_real_base_type(sym)->type == SYM_ARRAY) {
 		if (sym->initializer && sym->initializer->type == EXPR_INITIALIZER) {
-			fake_element_assigns(sym, call_global_assign_hooks);
+			fake_element_assigns(NULL, sym, call_global_assign_hooks);
 		} else if (sym->initializer) {
 			symbol = symbol_expression(sym);
 			assign = assign_expression(symbol, '=', sym->initializer);
 			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 		} else {
-			fake_element_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
+			fake_element_assigns_helper(NULL, symbol_expression(sym), NULL, call_global_assign_hooks);
 		}
 	} else if (get_real_base_type(sym)->type == SYM_STRUCT) {
 		if (sym->initializer && sym->initializer->type == EXPR_INITIALIZER) {
-			fake_member_assigns(sym, call_global_assign_hooks);
+			fake_member_assigns(NULL, sym, call_global_assign_hooks);
 		} else if (sym->initializer) {
 			symbol = symbol_expression(sym);
 			assign = assign_expression(symbol, '=', sym->initializer);
 			__pass_to_client(assign, GLOBAL_ASSIGNMENT_HOOK);
 		} else {
-			fake_member_assigns_helper(symbol_expression(sym), NULL, call_global_assign_hooks);
+			fake_member_assigns_helper(NULL, symbol_expression(sym), NULL, call_global_assign_hooks);
 		}
 	} else {
 		symbol = symbol_expression(sym);
