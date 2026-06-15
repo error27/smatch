@@ -55,6 +55,31 @@ static int is_bool_op(struct expression *expr)
 	return is_bool(expr);
 }
 
+static bool is_in_declaration(struct expression *expr)
+{
+	struct statement *stmt;
+	int cnt = 0;
+
+	/*
+	 * I believe the problem is that Sparse occasionally evaluates stuff
+	 * and that strips out unnecessary parentheses.  This is the same thing
+	 * with converting sizeof() to just regular values.  I want the raw
+	 * un-processed code.  I have complained about this before but someone
+	 * on the Sparse list said that processed was awesome and I was a
+	 * crazy person.  :P
+	 */
+
+	stmt = get_parent_stmt(expr);
+	while (stmt) {
+		if (stmt->type == STMT_DECLARATION)
+			return true;
+		stmt = stmt_get_parent_stmt(stmt);
+		if (cnt++ > 5)
+			return false;
+	}
+	return false;
+}
+
 static void match_condition(struct expression *expr)
 {
 	int print = 0;
@@ -118,6 +143,9 @@ static void match_mask(struct expression *expr)
 	if (expr->right->op != SPECIAL_RIGHTSHIFT)
 		return;
 
+	if (is_in_declaration(expr))
+		return;
+
 	if (get_macro_name(expr->pos))
 		return;
 
@@ -140,6 +168,9 @@ static void match_mask_compare(struct expression *expr)
 
 static void match_subtract_shift(struct expression *expr)
 {
+	if (is_in_declaration(expr))
+		return;
+
 	if (expr->op != SPECIAL_LEFTSHIFT)
 		return;
 	if (expr->right->type != EXPR_BINOP)
