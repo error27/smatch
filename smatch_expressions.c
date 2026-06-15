@@ -642,7 +642,7 @@ struct statement *expr_get_parent_stmt(struct expression *expr)
 struct statement *get_parent_stmt(struct expression *expr)
 {
 	struct expression *tmp;
-	int count = 10;
+	int count = 20;
 
 	if (!expr)
 		return NULL;
