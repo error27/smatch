@@ -154,3 +154,10 @@ regmap_field_read s32min-(-1),1-s32max (-4095)-(-1)
 __tag_set -1 s64min-s64max
 lowmem_page_address -1 s64min-s64max
 pn533_fill_fragment_skbs s32min-s32max[$0->fragment_skb.qlen] 1-s32max[$0->fragment_skb.qlen]
+_kvmalloc_array_node_noprof 0-u64max 0,4096-ptr_max
+_kvmalloc_array_node_noprof 1-u64max 4096-ptr_max
+__kvmalloc_node_noprof 0-u64max 0,4096-ptr_max
+__kvmalloc_node_noprof 1-u64max 4096-ptr_max
+_kmalloc_noprof 0-u64max 0,4096-ptr_max
+_kzalloc_noprof 0-u64max 0,4096-ptr_max
+_kmalloc_array_noprof 0-u64max 0,4096-ptr_max
