@@ -43,6 +43,12 @@ static void is_ok(struct sm_state *sm, struct expression *mod_expr)
 	set_state(my_id, sm->name, sm->sym, &ok);
 }
 
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	if (is_impossible_path())
+		set_state(my_id, cur->name, cur->sym, &ok);
+}
+
 static int get_checked_line_var_sym(char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
@@ -144,6 +150,7 @@ void check_check_deref(int id)
 {
 	my_id = id;
 
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_modification_hook(my_id, &is_ok);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_dereference_hook(deref_hook);
