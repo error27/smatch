@@ -36,17 +36,11 @@
 static int my_id;
 
 STATE(null);
-STATE(ok);
-
-static void is_ok(struct sm_state *sm, struct expression *mod_expr)
-{
-	set_state(my_id, sm->name, sm->sym, &ok);
-}
 
 static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
 	if (is_impossible_path())
-		set_state(my_id, cur->name, cur->sym, &ok);
+		set_state(my_id, cur->name, cur->sym, &undefined);
 }
 
 static int get_checked_line_var_sym(char *name, struct symbol *sym)
@@ -63,10 +57,6 @@ static int get_checked_line_var_sym(char *name, struct symbol *sym)
 		return 0;
 
 	FOR_EACH_PTR(sm->possible, tmp) {
-		if (tmp->state == &merged)
-			continue;
-		if (tmp->state == &ok)
-			continue;
 		if (tmp->state == &null)
 			return tmp->line;
 	} END_FOR_EACH_PTR(tmp);
@@ -141,7 +131,7 @@ static void match_condition(struct expression *expr)
 		return;
 
 	if (get_state_expr(my_id, expr))
-		true_state = &ok;
+		true_state = &undefined;
 
 	set_true_false_states_expr(my_id, expr, true_state, &null);
 }
@@ -151,7 +141,7 @@ void check_check_deref(int id)
 	my_id = id;
 
 	add_pre_merge_hook(my_id, &pre_merge_hook);
-	add_modification_hook(my_id, &is_ok);
+	add_modification_hook(my_id, &set_undefined);
 	add_hook(&match_condition, CONDITION_HOOK);
 	add_dereference_hook(deref_hook);
 }
