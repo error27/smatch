@@ -182,7 +182,7 @@ static const char *replace_return_ranges(const char *return_ranges)
 		/* I have no idea why EXPORT_SYMBOL() is here */
 		return return_ranges;
 	}
-	for (i = 0; i < replace_count; i += 3) {
+	for (i = 0; i < replace_count * 3; i += 3) {
 		if (strcmp(replace_table[i + 0], get_function()) == 0) {
 			if (strcmp(replace_table[i + 1], return_ranges) == 0)
 				return replace_table[i + 2];
@@ -3082,63 +3082,89 @@ static void register_return_deletes(void)
 	}
 }
 
-#define RETURN_FIX_SIZE 8196
+int line_count(int fd)
+{
+	ssize_t bytes_read;
+	int line_count = 0;
+	char buf[4096];
+
+	while ((bytes_read = read(fd, buf, sizeof(buf))) > 0) {
+		for (int i = 0; i < bytes_read; i++) {
+			if (buf[i] == '\n')
+				line_count++;
+		}
+	}
+
+	if (bytes_read == -1) {
+		perror("Error reading file descriptor");
+		return -1;
+	}
+
+	return line_count;
+}
+
+ssize_t read_line(int fd, char *buf, size_t len)
+{
+	size_t count;
+	char ch;
+	ssize_t num_read;
+
+	count = 0;
+	while (count < len - 1) {
+		num_read = read(fd, &ch, 1);
+
+		if (num_read < 0) {
+			return -1;
+		} else if (num_read == 0) {
+			if (count == 0)
+				return 0;
+			break;
+		} else {
+			buf[count++] = ch;
+			if (ch == '\n')
+				break;
+		}
+	}
+	buf[count] = '\0';
+	return count;
+}
+
 static void register_return_replacements(void)
 {
-	char *func, *orig, *new;
 	char filename[256];
-	int fd, ret, i;
-	char *buf;
-	char *p;
+	char line[256];
+	char func[80];
+	char orig[80];
+	char new[80];
+	int fd, i;
 
 	snprintf(filename, 256, "db/%s.return_fixes", option_project_str);
 	fd = open_schema_file(filename);
 	if (fd < 0)
 		return;
-	buf = malloc(RETURN_FIX_SIZE);
-	ret = read(fd, buf, RETURN_FIX_SIZE);
-	close(fd);
-	if (ret < 0) {
-		free(buf);
-		return;
-	}
-	if (ret == RETURN_FIX_SIZE) {
-		sm_ierror("file too large:  %s (limit %d bytes)",
-		       filename, RETURN_FIX_SIZE);
-		free(buf);
-		return;
-	}
-	buf[ret] = '\0';
 
-	p = buf;
-	while (*p) {
-		get_next_string(&p);
-		replace_count++;
-	}
-	if (replace_count == 0) {
-		free(buf);
+	replace_count = line_count(fd);
+	if (replace_count <= 0)
 		return;
-	}
-	if (replace_count % 3 != 0) {
-		printf("error parsing '%s' replace_count=%d\n", filename, replace_count);
-		replace_count = 0;
-		free(buf);
-		return;
-	}
-	replace_table = malloc(replace_count * sizeof(char *));
 
-	p = buf;
+	if (lseek(fd, 0, SEEK_SET) < 0)
+		return;
+
+	replace_table = malloc(replace_count * 3 * sizeof(char *));
 	i = 0;
-	while (*p) {
-		func = alloc_string(get_next_string(&p));
-		orig = alloc_string(get_next_string(&p));
-		new  = alloc_string(get_next_string(&p));
+	while (read_line(fd, line, sizeof(line)) > 0) {
+		if (sscanf(line, "%79s %79s %79s", func, orig, new) != 3)
+			break;
 
-		replace_table[i++] = func;
-		replace_table[i++] = orig;
-		replace_table[i++] = new;
+		if (i + 3 > replace_count * 3)
+			break;
+
+		replace_table[i++] = alloc_string(func);
+		replace_table[i++] = alloc_string(orig);
+		replace_table[i++] = alloc_string(new);
 	}
-	free(buf);
+
+	close(fd);
 }
 
 static void register_forced_return_splits(void)
