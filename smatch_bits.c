@@ -358,6 +358,8 @@ bool get_implied_bit_info(struct expression *expr, struct bit_info **binfo)
 	struct bit_info *bit_info;
 	sval_t known;
 
+	*binfo = NULL;
+
 	expr = strip_parens(expr);
 
 	if (get_implied_value(expr, &known)) {

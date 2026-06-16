@@ -2327,7 +2327,6 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 	sval_t min = rl_min(rl);
 	sval_t max = rl_max(rl);
 	struct range_list *ret;
-	bool add_zero = false;
 
 	if (!rl)
 		return NULL;
@@ -2340,7 +2339,6 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 	if ((min.uvalue & bits.uvalue) != bits.uvalue) {
 		if ((min.uvalue & bits.uvalue) == 0) {
 			min = sval_lowest_set_bit(bits);
-			add_zero = true;
 		} else {
 			min.uvalue &= bits.uvalue;
 		}
@@ -2349,8 +2347,7 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 		max.value &= bits.uvalue;
 
 	ret = alloc_rl(min, max);
-	if (add_zero)
-		add_range(&ret, zero, zero);
+	add_range(&ret, zero, zero);
 
 	return ret;
 }
