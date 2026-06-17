@@ -180,6 +180,33 @@ static void set_param_maybe_freed(struct expression *expr,
 	set_param_freed_helper(expr, name, sym, data, MAYBE_FREED);
 }
 
+static void param_freed_refcounted(struct expression *expr, int param, char *key, char *value)
+{
+	struct expression *call, *arg;
+	char *name, *ref_name;
+	struct symbol *sym;
+
+
+	call = get_rightmost_call(expr);
+	if (!call)
+		return;
+	arg = get_argument_from_call_expr(call->args, param);
+	if (!arg)
+		return;
+
+	name = get_variable_from_key(arg, key, &sym);
+	if (!name || !sym)
+		return;
+	ref_name = get_variable_from_key(arg, value, NULL);
+	if (!ref_name)
+		return;
+
+	if (was_inced(ref_name, sym))
+		return;
+
+	set_param_freed_helper(expr, name, sym, NULL, FREED);
+}
+
 static void match_kobject_put(struct expression *expr,
 		const char *name, struct symbol *sym, const char *value, void *data)
 {

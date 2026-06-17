@@ -287,6 +287,7 @@ SMATCH_OBJS += smatch_flow.o
 SMATCH_OBJS += smatch_fn_arg_link.o
 SMATCH_OBJS += smatch_free.o
 SMATCH_OBJS += smatch_free_locations.o
+SMATCH_OBJS += smatch_free_refcounted.o
 SMATCH_OBJS += smatch_free_return_states.o
 SMATCH_OBJS += smatch_fresh_alloc.o
 SMATCH_OBJS += smatch_function_hooks.o
