@@ -30,7 +30,9 @@ static int my_id;
 
 STATE(fget);
 
-static void match_fget(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_fget(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	if (local_debug) {
 		struct sm_state *sm = get_sm_state(my_id, name, sym);

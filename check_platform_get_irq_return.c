@@ -21,7 +21,9 @@ static int my_id;
 
 STATE(get_irq);
 
-static void match_platform_get_irq(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_platform_get_irq(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &get_irq);
 }

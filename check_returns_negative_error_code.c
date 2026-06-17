@@ -138,7 +138,9 @@ static void match_return(int return_id, char *return_ranges, struct expression *
 				 -1, "$", "");
 }
 
-static void set_error_code(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_error_code(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &error_code);
 }

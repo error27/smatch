@@ -96,7 +96,9 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_id, expr->left, &err_ptr);
 }
 
-static void set_error_code(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_error_code(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	char *macro;
 
@@ -110,12 +112,16 @@ static void set_error_code(struct expression *expr, const char *name, struct sym
 	set_state(my_id, name, sym, &err_ptr);
 }
 
-static void match_is_err_true(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_is_err_true(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &err_ptr);
 }
 
-static void match_is_err_false(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_is_err_false(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &undefined);
 }

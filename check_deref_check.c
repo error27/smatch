@@ -54,7 +54,9 @@ static void match_condition(struct expression *expr)
 	set_state_expr(my_id, expr, &undefined);
 }
 
-static void match_err_check(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_err_check(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct sm_state *sm;
 	char *macro;

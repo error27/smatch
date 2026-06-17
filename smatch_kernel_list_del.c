@@ -42,7 +42,9 @@ void add_list_del_hook(name_sym_hook *fn)
 	add_ptr_list(&del_hooks, fn);
 }
 
-static void list_del(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void list_del(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &deleted);
 	call_name_sym_fns(del_hooks, expr, name, sym);

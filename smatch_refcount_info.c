@@ -37,8 +37,8 @@ struct ref_func_info {
 	param_key_hook *call_back;
 };
 
-static void match_atomic_add(struct expression *expr, const char *name, struct symbol *sym, void *_unused);
-static void match_find_process(struct expression *expr, const char *name, struct symbol *sym, void *_unused);
+static void match_atomic_add(struct expression *expr, const char *name, struct symbol *sym, const char *value, void *_unused);
+static void match_find_process(struct expression *expr, const char *name, struct symbol *sym, const char *value, void *_unused);
 
 static struct ref_func_info func_table[] = {
 	{ "atomic_inc", REFCOUNT_INC, 0, "$->counter" },
@@ -226,7 +226,9 @@ static bool is_refcount_primitive(struct expression *expr)
 	return false;
 }
 
-static void match_atomic_add(struct expression *expr, const char *name, struct symbol *sym, void *_unused)
+static void match_atomic_add(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *_unused)
 {
 	struct expression *amount;
 	sval_t sval;
@@ -248,7 +250,9 @@ static void match_atomic_add(struct expression *expr, const char *name, struct s
 		do_dec(expr, name, sym);
 }
 
-static void match_find_process(struct expression *expr, const char *name, struct symbol *sym, void *_unused)
+static void match_find_process(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *_unused)
 {
 	struct expression *call, *ref;
 	sval_t sval;
@@ -265,21 +269,27 @@ static void match_find_process(struct expression *expr, const char *name, struct
 		do_inc(expr, name, sym);
 }
 
-static void refcount_init(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void refcount_init(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	if (!data && is_refcount_primitive(expr))
 		return;
 	do_init(expr, name, sym);
 }
 
-static void refcount_inc(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void refcount_inc(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	if (!data && is_refcount_primitive(expr))
 		return;
 	do_inc(expr, name, sym);
 }
 
-static void refcount_dec(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void refcount_dec(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	if (!data && is_refcount_primitive(expr))
 		return;

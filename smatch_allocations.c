@@ -390,12 +390,16 @@ static void match_alloc_helper(struct alloc_hook_list *hooks, struct expression 
 	} END_FOR_EACH_PTR(fn);
 }
 
-static void match_alloc_early(struct expression *expr, const char *name, struct symbol *sym, void *_info)
+static void match_alloc_early(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *_info)
 {
 	match_alloc_helper(hook_funcs_early, expr, name, sym, _info);
 }
 
-static void match_alloc(struct expression *expr, const char *name, struct symbol *sym, void *_info)
+static void match_alloc(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *_info)
 {
 	match_alloc_helper(hook_funcs, expr, name, sym, _info);
 }

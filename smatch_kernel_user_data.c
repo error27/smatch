@@ -1370,8 +1370,9 @@ static void returns_param_user_data_set(struct expression *expr, int param, char
 	set_to_user_data(arg, key, value, NEW);
 }
 
-static void set_param_key_user_data(struct expression *expr, const char *name,
-				    struct symbol *sym, void *data)
+static void set_param_key_user_data(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct expression *arg;
 
@@ -1379,7 +1380,9 @@ static void set_param_key_user_data(struct expression *expr, const char *name,
 	set_state_expr(my_id, arg, new_state(get_type(arg)));
 }
 
-static void match_capped(struct expression *expr, const char *name, struct symbol *sym, void *info)
+static void match_capped(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct smatch_state *state, *new;
 

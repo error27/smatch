@@ -254,7 +254,9 @@ static void match_strcpy(const char *fn, struct expression *expr, void *unused)
 	set_state_expr(my_strlen_id, dest, alloc_estate_rl(rl));
 }
 
-static void match_str_chr(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_str_chr(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct expression *call, *orig;
 	struct smatch_state *state;

@@ -383,12 +383,16 @@ static void returns_user_ptr_helper(struct expression *expr, const char *name, s
 	set_state_expr(my_id, arg, set ? &user_data_set : &user_data);
 }
 
-static void returns_user_ptr(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void returns_user_ptr(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	returns_user_ptr_helper(expr, name, sym, false);
 }
 
-static void returns_user_ptr_set(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void returns_user_ptr_set(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	returns_user_ptr_helper(expr, name, sym, true);
 }
@@ -398,8 +402,9 @@ static void set_param_user_ptr(const char *name, struct symbol *sym, char *value
 	set_state(my_id, name, sym, &user_data);
 }
 
-static void set_caller_param_key_user_ptr(struct expression *expr, const char *name,
-				    struct symbol *sym, void *data)
+static void set_caller_param_key_user_ptr(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &user_data);
 }

@@ -349,12 +349,16 @@ int is_overflow_safe_variable(struct expression *expr)
 	return 0;
 }
 
-static void match_safe(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_safe(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &no_overflow);
 }
 
-static void match_checked(struct expression *expr, const char *name, struct symbol *sym, void *info)
+static void match_checked(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *info)
 {
 	struct statement *stmt;
 

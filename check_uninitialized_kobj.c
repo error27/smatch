@@ -19,8 +19,9 @@
 
 static int my_id;
 
-static void match_kobject_function(struct expression *expr, const char *name,
-				   struct symbol *sym, void *data)
+static void match_kobject_function(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct sm_state *sm, *tmp;
 

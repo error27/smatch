@@ -106,7 +106,9 @@ static void match_assign(struct expression *expr)
 		set_state_expr(my_id, expr->left, &eprobe_defer);
 }
 
-static void set_eprobe_defer(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_eprobe_defer(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &eprobe_defer);
 }

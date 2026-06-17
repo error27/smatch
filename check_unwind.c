@@ -217,7 +217,9 @@ static bool is_alloc_primitive(struct expression *expr)
 	return false;
 }
 
-static void return_param_alloc(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void return_param_alloc(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct smatch_state *state;
 	char *fn_name;
@@ -244,7 +246,9 @@ static void return_param_alloc(struct expression *expr, const char *name, struct
 	set_ssa_state(my_id, name, sym, state);
 }
 
-static void return_param_release(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void return_param_release(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct sm_state *start_sm;
 
@@ -265,7 +269,9 @@ static void return_param_release(struct expression *expr, const char *name, stru
 	}
 }
 
-static void return_param_ignore(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void return_param_ignore(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct sm_state *start_sm;
 

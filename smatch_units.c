@@ -460,7 +460,9 @@ static void set_param_units(const char *name, struct symbol *sym, char *key, cha
 	set_state(my_id, sym->ident->name, sym, state);
 }
 
-static void set_param_units_from_table(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_param_units_from_table(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value_unused, void *data)
 {
 	const char *value = data;
 	struct smatch_state *state;

@@ -72,7 +72,9 @@ static bool refcount_bumped(const char *name, struct symbol *sym)
 	return false;
 }
 
-static void match_put_device(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_put_device(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	if (!data && in_function_table(expr, func_table))
 		return;
@@ -85,7 +87,9 @@ static void match_put_device(struct expression *expr, const char *name, struct s
 	set_state(my_id, name, sym, &put);
 }
 
-static void return_param_ignore(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void return_param_ignore(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &ignore);
 }

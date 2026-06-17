@@ -42,7 +42,9 @@ void add_list_add_entry_hook(name_sym_hook *fn)
 	add_ptr_list(&add_hooks, fn);
 }
 
-static void param_added(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void param_added(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &added);
 	call_name_sym_fns(add_hooks, expr, name, sym);

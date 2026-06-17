@@ -312,13 +312,15 @@ void add_cull_hook(const char *look_for, cull_hook *call_back, void *info)
 	add_callback(func_hash, look_for, cb);
 }
 
-static void db_helper(struct expression *expr, param_key_hook *call_back, int param, const char *key, void *info)
+static void db_helper(struct expression *expr, param_key_hook *call_back,
+		int param, const char *key,
+		const char *value, void *info)
 {
 	char *name;
 	struct symbol *sym;
 
 	if (param == -2) {
-		call_back(expr, key, NULL, info);
+		call_back(expr, key, NULL, value, info);
 		return;
 	}
 
@@ -326,7 +328,7 @@ static void db_helper(struct expression *expr, param_key_hook *call_back, int pa
 	if (!name || !sym)
 		goto free;
 
-	call_back(expr, name, sym, info);
+	call_back(expr, name, sym, value, info);
 free:
 	free_string(name);
 }
@@ -340,7 +342,7 @@ static void param_key_function(const char *fn, struct expression *expr, void *da
 	if (parent)
 		expr = parent;
 
-	db_helper(expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
+	db_helper(expr, pkd->call_back, pkd->param, pkd->key, NULL, pkd->info);
 }
 
 static void param_key_expr_function(const char *fn, struct expression *expr, void *data)
@@ -363,7 +365,8 @@ static void param_key_implies_function(const char *fn, struct expression *call_e
 {
 	struct param_key_data *pkd = data;
 
-	db_helper(assign_expr ?: call_expr, pkd->call_back, pkd->param, pkd->key, pkd->info);
+	db_helper(assign_expr ?: call_expr, pkd->call_back, pkd->param,
+			pkd->key, NULL, pkd->info);
 }
 
 static void param_key_expr_implies_function(const char *fn, struct expression *call_expr,
@@ -547,7 +550,7 @@ static void call_db_return_callback(struct db_callback_info *db_info,
 				    int param, char *key, char *value)
 {
 	if (cb->param_key) {
-		db_helper(db_info->expr, cb->pk_callback, param, key, NULL);
+		db_helper(db_info->expr, cb->pk_callback, param, key, value, NULL);
 		add_ptr_list(&db_info->called, cb);
 	} else {
 		cb->callback(db_info->expr, param, key, value);

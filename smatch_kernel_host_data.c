@@ -1287,8 +1287,9 @@ static void match_function_def(struct symbol *sym)
 		func_gets_host_data = true;
 }
 
-static void set_param_host_input_data(struct expression *expr, const char *name,
-				 struct symbol *sym, void *data)
+static void set_param_host_input_data(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct expression *arg;
 

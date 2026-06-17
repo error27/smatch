@@ -24,8 +24,8 @@ static int my_id;
 
 #define IGNORE -1
 
-static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data);
-static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, void *data);
+static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, const char *value, void *data);
+static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, const char *value, void *data);
 
 struct func_info {
 	const char *name;
@@ -166,17 +166,22 @@ static void set_param_freed_helper(struct expression *expr, const char *name, st
 	call_free_call_backs_name_sym(type, expr, name, sym);
 }
 
-static void set_param_freed(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_param_freed(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_param_freed_helper(expr, name, sym, data, FREED);
 }
 
-static void set_param_maybe_freed(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void set_param_maybe_freed(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_param_freed_helper(expr, name, sym, data, MAYBE_FREED);
 }
 
-static void match_kobject_put(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match_kobject_put(struct expression *expr,
+		const char *name, struct symbol *sym, const char *value, void *data)
 {
 	struct expression *arg;
 
@@ -197,7 +202,8 @@ static void match_kobject_put(struct expression *expr, const char *name, struct 
 	call_free_call_backs_expr(MAYBE_FREED, arg);
 }
 
-static void match___skb_pad(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void match___skb_pad(struct expression *expr,
+		const char *name, struct symbol *sym, const char *value, void *data)
 {
 	struct expression *arg, *skb;
 	sval_t sval;

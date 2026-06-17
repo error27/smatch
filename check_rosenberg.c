@@ -335,7 +335,9 @@ static void match_copy_to_user(const char *fn, struct expression *expr, void *_a
 	check_was_initialized(data);
 }
 
-static void db_param_cleared(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void db_param_cleared(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_whole_id, name, sym, &cleared);
 }

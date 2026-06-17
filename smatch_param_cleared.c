@@ -238,7 +238,9 @@ free:
 	free_string(name);
 }
 
-static void db_buf_add(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void db_buf_add(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	set_state(my_id, name, sym, &add);
 }
@@ -250,16 +252,17 @@ static void match_memcpy(const char *fn, struct expression *expr, void *arg)
 
 static void buf_cleared_db(struct expression *expr, const char *name, struct symbol *sym, const char *value)
 {
-	if (strcmp(value, "0") == 0)
+	if (value && strcmp(value, "0") == 0)
 		set_state(my_id, name, sym, &zeroed);
 	else
 		set_state(my_id, name, sym, &cleared);
 }
 
-static void buf_cleared(struct expression *expr, const char *name, struct symbol *sym, void *data)
+static void buf_cleared(struct expression *expr,
+		const char *name, struct symbol *sym,
+		const char *value, void *data)
 {
 	struct func_info *info = data;
-	const char *value = "";
 
 	if (info && info->value)
 		value = info->value;

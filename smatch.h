@@ -226,7 +226,7 @@ void __call_cleanup_fn(struct sm_state *sm);
 struct stree *__delete_old_states(struct stree *stree);
 void add_old_goto_filter(stree_func *fn);
 void add_return_string_hook(string_hook *fn);
-typedef void (param_key_hook)(struct expression *expr, const char *name, struct symbol *sym, void *data);
+typedef void (param_key_hook)(struct expression *expr, const char *name, struct symbol *sym, const char *value, void *data);
 typedef void (func_hook)(const char *fn, struct expression *expr, void *data);
 typedef void (implication_hook)(const char *fn, struct expression *call_expr,
 				struct expression *assign_expr, void *data);
