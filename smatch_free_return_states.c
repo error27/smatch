@@ -126,6 +126,9 @@ static void match_free_helper(struct expression *expr, const char *name, struct 
 	if (param < 0)
 		return;
 
+	if (get_state(my_id, orig_name, orig_sym) == &freed)
+		return;
+
 	set_state(my_id, orig_name, orig_sym, state);
 }
 
