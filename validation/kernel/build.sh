@@ -48,9 +48,15 @@ fi
 rm -f $MOD_DIR/${FILE}.o
 
 if [ "$INFO" != "" ] ; then
-    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel $INFO " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
+    make V=1 C=2 \
+        CHECK="$VALGRIND ../../smatch -p=kernel --db-file=$KERNEL_DIR/smatch_db.sqlite $INFO " \
+        -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
 elif [ "$GREP" == "" ]; then
-    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
+    make V=1 C=2 \
+        CHECK="$VALGRIND ../../smatch -p=kernel --db-file=$KERNEL_DIR/smatch_db.sqlite" \
+        -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o
 else
-    make V=1 C=2 CHECK="$VALGRIND ../../smatch -p=kernel " -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o | grep ^${FILE}.c
+    make V=1 C=2 \
+        CHECK="$VALGRIND ../../smatch -p=kernel --db-file=$KERNEL_DIR/smatch_db.sqlite" \
+        -C $KERNEL_DIR M=$MOD_DIR ${FILE}.o | grep ^${FILE}.c
 fi
