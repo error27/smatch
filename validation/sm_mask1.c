@@ -32,8 +32,8 @@ void func(int a, int b, int c, int d, int e)
  *
  * check-output-start
 sm_mask1.c:16 func() implied: a = '65-s32max'
-sm_mask1.c:17 func() implied: a & ~7 = '64-s32max'
-sm_mask1.c:18 func() implied: ~7 & a = '64-s32max'
+sm_mask1.c:17 func() implied: a & ~7 = '0,64-s32max'
+sm_mask1.c:18 func() implied: ~7 & a = '0,64-s32max'
 sm_mask1.c:19 func() implied: b & ~7 = '0'
 sm_mask1.c:20 func() implied: c & ~7 = '0,8-16'
 sm_mask1.c:21 func() implied: d & 255 = '0-255'

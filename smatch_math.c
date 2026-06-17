@@ -654,7 +654,7 @@ static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurs
 	struct symbol *type;
 	struct range_list *left_rl, *right_rl;
 	struct bit_info *l_bits, *r_bits;
-	unsigned long long definitely_set = 0;
+	unsigned long long l_poss, r_poss, definitely_set = 0;
 	int new_recurse;
 	sval_t sval, min;
 
@@ -688,12 +688,19 @@ static bool handle_bitwise_AND(struct expression *expr, int implied, int *recurs
 
 	*res = rl_binop(left_rl, '&', right_rl);
 	if (get_implied_bit_info(expr->left, &l_bits))
-		*res = rl_AND_mask(*res, l_bits->possible);
+		l_poss = l_bits->possible;
+	else
+		l_poss = -1ULL;
+
 	if (get_implied_bit_info(expr->right, &r_bits))
-		*res = rl_AND_mask(*res, r_bits->possible);
+		r_poss = r_bits->possible;
+	else
+		r_poss = -1ULL;
+
+	*res = rl_AND_mask(*res, l_poss & r_poss);
 	if (l_bits && r_bits)
 		definitely_set = l_bits->set & r_bits->set;
-	if (definitely_set) {
+	if (definitely_set > rl_min(*res).uvalue) {
 		min = rl_min(*res);
 		min.uvalue = definitely_set;
 		*res = alloc_rl(min, rl_max(*res));

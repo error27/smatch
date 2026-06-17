@@ -2319,22 +2319,58 @@ static sval_t sval_lowest_set_bit(sval_t sval)
 	return ret;
 }
 
+struct range_list *cast_to_unsigned(struct range_list *rl)
+{
+	if (type_unsigned(rl_type(rl)))
+		return rl;
+
+	if (type_positive_bits(rl_type(rl)) < 32)
+		return cast_rl(&uint_ctype, rl);
+	else
+		return cast_rl(&ullong_ctype, rl);
+}
+
+static sval_t rl_min_non_zero(struct range_list *rl)
+{
+	struct data_range *tmp;
+	sval_t ret;
+
+	if (type_signed(rl_type(rl)))
+		return rl_min(rl);
+
+	FOR_EACH_PTR(rl, tmp) {
+		if (tmp->min.value == 0 && tmp->max.value == 0)
+			continue;
+		if (tmp->min.value == 0) {
+			ret = tmp->min;
+			ret.value = 1;
+			return ret;
+		}
+		return tmp->min;
+	} END_FOR_EACH_PTR(tmp);
+
+	return rl_min(rl);
+}
+
 struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 {
+	struct range_list *rl_orig = rl;
 	sval_t zero = { .type = rl_type(rl), .value = 0 };
 	sval_t bits = { .type = rl_type(rl) };
-	struct bit_info *binfo;
-	sval_t min = rl_min(rl);
-	sval_t max = rl_max(rl);
+	sval_t min;
+	sval_t max;
 	struct range_list *ret;
 
 	if (!rl)
 		return NULL;
-	if (mask == 0)
+	if (mask == 0 || rl_is_zero(rl))
 		return alloc_rl(zero, zero);
 
-	binfo = rl_to_binfo(rl);
-	bits.uvalue = binfo->possible & mask;
+	rl = cast_to_unsigned(rl);
+	min = rl_min_non_zero(rl);
+	max = rl_max(rl);
+
+	bits.uvalue = rl_bits_maybe_set(rl) & mask;
 
 	if ((min.uvalue & bits.uvalue) != bits.uvalue) {
 		if ((min.uvalue & bits.uvalue) == 0) {
@@ -2343,10 +2379,11 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 			min.uvalue &= bits.uvalue;
 		}
 	}
-	if (!sval_is_max(max) || (sm_fls64(max.uvalue) > sm_fls64(bits.uvalue)))
+	if (!sval_is_max(rl_max(rl_orig)) || (sm_fls64(max.uvalue) > sm_fls64(bits.uvalue)))
 		max.value &= bits.uvalue;
 
 	ret = alloc_rl(min, max);
+	ret = cast_rl(rl_type(rl_orig), ret);
 	add_range(&ret, zero, zero);
 
 	return ret;
