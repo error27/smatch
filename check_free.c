@@ -30,7 +30,6 @@
 static int my_id;
 
 STATE(freed);
-STATE(maybe_freed);
 STATE(ok);
 
 static void ok_to_use(struct sm_state *sm, struct expression *mod_expr)
@@ -63,7 +62,7 @@ bool is_freed_var_sym(const char *name, struct symbol *sym)
 	struct smatch_state *state;
 
 	state = get_state(my_id, name, sym);
-	if (state == &freed || state == &maybe_freed)
+	if (state == &freed)
 		return true;
 
 	return false;
