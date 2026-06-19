@@ -278,7 +278,7 @@ echo "select distinct file, function from function_ptr where ptr='(struct rtl_ha
          | sqlite3 $db_file
 done
 
-for func in __kmalloc __kmalloc_track_caller __do_kmalloc_node __kmalloc_node_track_caller kmalloc_noprof ; do
+for func in __kmalloc __kmalloc_track_caller __kmalloc_noprof __kmalloc_node_track_caller kmalloc_noprof ; do
     FILE_SLUB=$(echo "select file from return_states where function = '$func' limit 1;" | sqlite3 $db_file)
     IS_STATIC=$(echo "select static from return_states where function = '$func' limit 1;" | sqlite3 $db_file)
     if [ "$FILE_SLUB" == "" ] ; then
