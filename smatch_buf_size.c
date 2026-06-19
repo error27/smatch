@@ -270,12 +270,15 @@ static struct range_list *size_from_db(struct expression *expr)
 	return size_from_db_type(expr);
 }
 
+static struct expression *already_parsed;
 static void db_returns_buf_size(struct expression *expr, int param, char *unused, char *math)
 {
 	struct expression *call;
 	struct range_list *rl;
 	sval_t sval;
 
+	if (expr == already_parsed)
+		return;
 	if (expr->type != EXPR_ASSIGNMENT)
 		return;
 	call = strip_expr(expr->right);
@@ -781,6 +784,8 @@ static void match_array_assignment(struct expression *expr)
 	struct range_list *rl;
 	sval_t sval;
 
+	if (expr == already_parsed)
+		return;
 	if (expr->op != '=')
 		return;
 
@@ -986,6 +991,7 @@ static void match_allocation(struct expression *expr,
 {
 	if (!expr || expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
+	already_parsed = expr;
 	store_alloc(expr->left, info->size_rl);
 	match_struct_size_helper(expr->left, info->size_rl);
 }
