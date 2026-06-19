@@ -155,6 +155,24 @@ static bool is_boring_pointer_info(const char *name, struct range_list *rl)
 	return false;
 }
 
+static struct string_list *recorded;
+static bool already_recorded(int param, const char *key, const char *value)
+{
+	char buf[256];
+
+	snprintf(buf, sizeof(buf), "%d %s %s", param, key, value);
+	if (list_has_string(recorded, buf))
+		return true;
+
+	insert_string(&recorded, buf);
+	return 0;
+}
+
+static void free_already_recorded(void)
+{
+	free_ptr_list(&recorded);
+}
+
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state, *old;
@@ -201,9 +219,13 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 			continue;
 
 		snprintf(buf, sizeof(buf), "%s%s", show_rl(rl), estate_has_hard_max(state) ? "[h]" : "");
+		if (already_recorded(param, key, buf))
+			continue;
 		sql_insert_return_states(return_id, return_ranges, PARAM_LIMIT,
 					 param, key, buf);
 	} END_FOR_EACH_SM(tmp);
+
+	free_already_recorded();
 }
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
