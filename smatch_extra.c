@@ -291,6 +291,8 @@ char *get_other_name_sym_from_chunk(const char *name, const char *chunk, int len
 	assigned = get_assigned_expr_name_sym(chunk, sym);
 	if (!assigned)
 		return NULL;
+	if (is_void_ptr(get_type(assigned)))
+		return NULL;
 	if (assigned->type == EXPR_CALL)
 		return map_call_to_other_name_sym(name, sym, new_sym);
 	if (assigned->type == EXPR_PREOP && assigned->op == '&') {
@@ -328,19 +330,21 @@ static char *get_long_name_sym(const char *name, struct symbol *sym, struct symb
 		return NULL;
 
 	orig = get_assigned_expr_name_sym(sym->ident->name, sym);
-	if (orig) {
-		orig_name = expr_to_var_sym(orig, &orig_sym);
-		if (!orig_name)
-			return NULL;
+	if (!orig)
+		return NULL;
 
-		ret = swap_names(name, sym->ident->name, orig_name);
-		free_string(orig_name);
-		if (ret)
-			*new_sym = orig_sym;
-		return ret;
-	}
+	if (is_void_ptr(get_type(orig)))
+		return NULL;
 
-	return NULL;
+	orig_name = expr_to_var_sym(orig, &orig_sym);
+	if (!orig_name)
+		return NULL;
+
+	ret = swap_names(name, sym->ident->name, orig_name);
+	free_string(orig_name);
+	if (ret)
+		*new_sym = orig_sym;
+	return ret;
 }
 
 char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)
