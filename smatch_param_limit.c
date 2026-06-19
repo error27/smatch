@@ -198,7 +198,9 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		if (param < 0)
 			continue;
 
-		state = __get_state(my_id, orig_name, sym);
+		state = __get_state(my_id, tmp->name, tmp->sym);
+		if (!state)
+			state = __get_state(my_id, orig_name, sym);
 		if (!state) {
 			if (sm_was_set(tmp))
 				continue;
@@ -250,7 +252,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (__in_buf_clear)
 		return;
 
-	orig = get_state(SMATCH_EXTRA, param_name, param_sym);
+	orig = get_state(SMATCH_EXTRA, name, sym);
+	if (!orig)
+		orig = get_state(SMATCH_EXTRA, param_name, param_sym);
 	if (!orig)
 		orig = alloc_estate_whole(estate_type(state));
 
