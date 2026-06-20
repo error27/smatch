@@ -2444,13 +2444,7 @@ static struct range_list *rl_handle_lshift(struct range_list *left_orig, struct 
 	if (shift.value == 0)
 		return left_orig;
 
-	/* Cast to unsigned for easier left shift math */
-	if (type_positive_bits(rl_type(left_orig)) < 32)
-		left = cast_rl(&uint_ctype, left_orig);
-	else if(type_positive_bits(rl_type(left_orig)) == 63)
-		left = cast_rl(&ullong_ctype, left_orig);
-	else
-		left = left_orig;
+	left = cast_to_unsigned(left_orig);
 
 	FOR_EACH_PTR(left, tmp) {
 		min = tmp->min;
