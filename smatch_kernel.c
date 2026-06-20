@@ -640,6 +640,8 @@ bool is_ignored_kernel_data(const char *name)
 		return true;
 	if (strstr(name, "parent->parent"))
 		return true;
+	if (strstr(name, "sk_peer_cred"))
+		return true;
 
 	/* ignore mutex internals */
 	if ((p = strstr(name, ".rlock.")) ||
