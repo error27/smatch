@@ -387,6 +387,7 @@ static int __get_variable_from_expr(struct symbol **sym_ptr, char *buf,
 		return off - orig_off;
 	}
 	case EXPR_CAST:
+	case EXPR_IMPLIED_CAST:
 	case EXPR_FORCE_CAST:
 		return __get_variable_from_expr(sym_ptr, buf,
 						expr->cast_expression, off, len,
