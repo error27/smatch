@@ -1151,7 +1151,7 @@ static bool impossible_limit(struct db_callback_info *db_info, int param, char *
 	if (possibly_true_rl(passed, SPECIAL_EQUAL, limit))
 		return false;
 	if (option_debug || local_debug || debug_db)
-		sm_msg("impossible: %d '%s' limit '%s' == '%s' return='%s'", param, key, show_rl(passed), value, db_info->ret_str);
+		sm_msg("impossible: param=%d key='%s' limit passed='%s' == need='%s' return='%s'", param, key, show_rl(passed), value, db_info->ret_str);
 	return true;
 }
 
