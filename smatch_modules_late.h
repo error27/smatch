@@ -3,6 +3,7 @@
 #define __undo_CK_def
 #endif
 
+CK(smatch_free)
 CK(smatch_stored_conditions)
 CK(smatch_stored_conditions_links)
 CK(smatch_parsed_conditions)
