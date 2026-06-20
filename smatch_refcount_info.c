@@ -95,6 +95,7 @@ static struct ref_func_info func_table[] = {
 	{ "refcount_set", REFCOUNT_INIT, 0, "$->refs.counter" },
 
 	{ "refcount_inc", REFCOUNT_INC, 0, "$->refs.counter" },
+	{ "__refcount_inc", REFCOUNT_INC, 0, "$->refs.counter" },
 	{ "refcount_dec", REFCOUNT_DEC, 0, "$->refs.counter" },
 	{ "refcount_dec_and_test", REFCOUNT_DEC, 0, "$->refs.counter" },
 	{ "__refcount_dec_and_test", REFCOUNT_DEC, 0, "$->refs.counter" },
