@@ -261,6 +261,9 @@ for i in $(echo "select distinct return from return_states where function = 'cle
     echo "update return_states set return = '$i[<=\$1]' where return = '$i' and function = 'clear_user';" | sqlite3 $db_file
 done
 
+echo "update return_states set key = '\$->next' where function = '__skb_queue_tail' and type = 2525 and key = '\$->prev->next';" | sqlite3 $db_file
+echo "update return_states set key = '\$->next' where function = '__skb_queue_before' and type = 2525 and key = '\$->prev->next';" | sqlite3 $db_file
+
 echo "select distinct file, function from function_ptr where ptr='(struct rtl_hal_ops)->set_hw_reg';" \
         | sqlite3 $db_file | sed -e 's/|/ /' | while read file function ; do
 
