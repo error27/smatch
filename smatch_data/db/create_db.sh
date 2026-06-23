@@ -55,6 +55,7 @@ ${bin_dir}/copy_function_pointers.pl $db_file
 ${bin_dir}/remove_mixed_up_pointer_params.pl $db_file
 ${bin_dir}/delete_too_common_fn_ptr.sh $db_file
 ${bin_dir}/mark_function_ptrs_searchable.pl $db_file
+${bin_dir}/save_return_values.pl $db_file
 
 # delete duplicate entrees and speed things up
 echo "delete from function_ptr where rowid not in (select min(rowid) from function_ptr group by file, function, ptr, searchable);" | sqlite3 $db_file

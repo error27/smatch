@@ -631,30 +631,42 @@ struct string_list *get_caller_ptrs(struct symbol *sym)
 	return list;
 }
 
-static void sql_select_return_states_pointer(const char *cols,
-	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
+static bool too_many_return_states_ptr(const char *ptr)
 {
-	char *ptr;
 	int return_count = 0;
 
-	ptr = get_fnptr_name(call->fn);
-	if (!ptr)
-		return;
+	run_sql(get_row_count, &return_count,
+		"select count(*) from function_ptr where ptr = '%s';", ptr);
+	if (return_count == 0 || return_count > 50)
+		return true;
 
+	return_count = 0;
 	run_sql(get_row_count, &return_count,
 		"select count(*) from return_states join function_ptr "
 		"where return_states.function == function_ptr.function and "
 		"ptr = '%s' and searchable = 1 and type = %d;", ptr, INTERNAL);
 	/* The magic number 100 is just from testing on the kernel. */
-	if (return_count == 0 || return_count > 100) {
+	if (return_count == 0 || return_count > 100)
+		return true;
+
+	return false;
+}
+
+static void sql_select_return_states_pointer(const char *cols,
+	struct expression *call, int (*callback)(void*, int, char**, char**), void *info)
+{
+	char *ptr;
+
+	ptr = get_fnptr_name(call->fn);
+	if (!ptr)
+		goto mark_untracked;
+
+	if (too_many_return_states_ptr(ptr)) {
+		/* record the return value only */
 		run_sql(callback, info,
-			"select distinct %s from return_states join function_ptr where "
-			"return_states.function == function_ptr.function and ptr = '%s' "
-			"and searchable = 1 and type = %d "
-			"order by function_ptr.file, return_states.file, return_id, type;",
-			cols, ptr, INTERNAL);
-		mark_call_params_untracked(call);
-		return;
+			"select %s from function_ptrs_return where ptr = '%s'",
+			cols, ptr);
+		goto mark_untracked;
 	}
 
 	run_sql(callback, info,
@@ -663,6 +675,10 @@ static void sql_select_return_states_pointer(const char *cols,
 		"and searchable = 1 "
 		"order by function_ptr.file, return_states.file, return_id, type;",
 		cols, ptr);
+	return;
+
+mark_untracked:
+	mark_call_params_untracked(call);
 }
 
 static int is_local_symbol(struct expression *expr)

@@ -1,0 +1,13 @@
+CREATE TABLE function_ptrs_return (
+	file big int,
+	ptr varchar(64),
+	call_id big int,
+	return_id integer,
+	return varchar(256),
+	static boolean,
+	type integer,
+	parameter integer,
+	key varchar(256),
+	value varchar(256)
+);
+
