@@ -269,6 +269,12 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 			insert_string(&set_list, (char *)sm->name);
 			continue;
 		}
+		if (is_whole_rl(estate_rl(sm->state)) &&
+		    parent_buf_clear_name_sym(sm->name, sm->sym)) {
+			insert_string(&set_list, (char *)sm->name);
+			continue;
+		}
+
 		if (untracked) {
 			if (parent_was_PARAM_CLEAR(sm->name, sm->sym))
 				continue;

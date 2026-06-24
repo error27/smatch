@@ -108,6 +108,9 @@ static inline void __smatch_return_str(long long val){}
 static inline void __smatch_marker(char **p){}
 #define __cleanup_marker  __attribute__((cleanup(__smatch_marker)))
 
+static inline void __smatch_is_clear(long long val){}
+#define __smatch_is_clear(x) __smatch_is_clear(cast_ptr(x))
+
 static inline void __smatch_force_on(void){}
 static inline void __smatch_force_off(void){}
 

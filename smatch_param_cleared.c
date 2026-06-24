@@ -693,6 +693,95 @@ static void promote_void_param_sets(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static bool buf_contains(const char *container, char *var, bool parent)
+{
+	bool addr = false;
+	int i;
+
+	/*
+	 * What we do is:
+	 * If "p" is memset then p->q and p->q.r are memset() but p->q->x is
+	 * not.  If &arg is memset() then arg.a and arg.a.b are memset() but
+	 * arg.a.b->c is not.
+	 *
+	 */
+
+	if (container[0] == '&') {
+		container++;
+		addr = true;
+	}
+
+	i = 0;
+	while (container[i] && container[i] == var[i])
+		i++;
+
+	if (container[i] != '\0')
+		return false;
+
+	var += i;
+	if (var[0] == '\0')
+		return true;
+	if (var[0] != '.' && var[0] != '-')
+		return false;
+
+	if (parent)
+		return true;
+
+	if (!addr && var[0] == '-' && var[1] == '>')
+		var += 2;
+
+	if (strchr(var, '-'))
+		return false;
+
+	return true;
+}
+
+bool in_buf_clear_name_sym(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+
+
+	if (!name || !sym)
+		return false;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->sym != sym)
+			continue;
+		if (buf_contains(sm->name, name, false))
+			return true;
+	} END_FOR_EACH_SM(sm);
+	return false;
+}
+
+bool in_buf_clear(struct expression *expr)
+{
+	struct symbol *sym;
+	char *name;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name)
+		return false;
+
+	return in_buf_clear_name_sym(name, sym);
+}
+
+bool parent_buf_clear_name_sym(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+
+
+	if (!name || !sym)
+		return false;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (sm->sym != sym)
+			continue;
+		if (buf_contains(sm->name, name, true))
+			return true;
+	} END_FOR_EACH_SM(sm);
+	return false;
+}
+
 void smatch_param_cleared(int id)
 {
 	my_id = id;

@@ -862,6 +862,21 @@ free:
 	free_string(name);
 }
 
+static void match_is_clear(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	char *name;
+	bool in;
+
+	arg = get_check_arg(expr, 0);
+
+	name = expr_to_str(arg);
+
+	in = in_buf_clear(arg);
+	dbg("%s: is_clear=%d", name, in);
+	free_string(name);
+}
+
 static void match_print_stree_id(const char *fn, struct expression *expr, void *info)
 {
 	dbg("stree_id %d", __stree_id);
@@ -1120,6 +1135,7 @@ static void free_old_stree(struct symbol *sym)
 void check_debug(int id)
 {
 	my_id = id;
+
 	add_function_hook("__smatch_about", &match_about, NULL);
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_state", &match_state, NULL);
@@ -1162,6 +1178,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_type", &match_type, NULL);
 	add_implied_return_hook("__smatch_type_rl_helper", &match_type_rl_return, NULL);
 	add_function_hook("__smatch_merge_tree", &match_print_merge_tree, NULL);
+	add_function_hook("__smatch_is_clear", &match_is_clear, NULL);
 	add_function_hook("__smatch_stree_id", &match_print_stree_id, NULL);
 	add_function_hook("__smatch_bits", &match_bits, NULL);
 	add_function_hook("__smatch_mtag", &match_mtag, NULL);
