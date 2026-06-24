@@ -1213,6 +1213,9 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	right_type = get_type(right);
 
 	right_sm = get_sm_state(my_id, right_name, right_sym);
+	if (!right_sm && __in_fake_struct_assign &&
+	    !get_state(my_id, left_name, left_sym))
+		return;
 	if (right_sm) {
 		right_state = right_sm->state;
 	} else {
