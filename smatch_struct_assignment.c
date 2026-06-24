@@ -699,9 +699,9 @@ static void db_buf_cleared(struct expression *expr, int param, char *key, char *
 
 	__in_buf_clear++;
 	if (strcmp(value, "0") == 0)
-		__struct_members_copy(COPY_ZERO, expr, arg, NULL, split_fake_expr, NULL);
+		__struct_members_copy(COPY_ZERO, expr, add_dereference(arg), NULL, split_fake_expr, NULL);
 	else
-		__struct_members_copy(COPY_UNKNOWN, expr, arg, NULL, split_fake_expr, NULL);
+		__struct_members_copy(COPY_UNKNOWN, expr, add_dereference(arg), NULL, split_fake_expr, NULL);
 	__in_buf_clear--;
 }
 
