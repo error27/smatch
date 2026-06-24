@@ -3053,6 +3053,33 @@ static bool handle_param_assign(struct expression *expr, int param, char *key, c
 	return true;
 }
 
+static bool void_to_struct_cast(struct expression *expr, int param)
+{
+	struct symbol *type;
+	struct expression *arg;
+
+	if (expr->type != EXPR_CALL)
+		return false;
+	type = get_arg_type(expr->fn, param);
+	if (!type || type->type != SYM_PTR)
+		return false;
+	type = get_real_base_type(type);
+	if (type != &void_ctype)
+		return false;
+
+	arg = get_argument_from_call_expr(expr->args, param);
+	if (!arg)
+		return false;
+	type = get_type(arg);
+	if (!is_ptr_type(type))
+		return false;
+	type = get_real_base_type(type);
+	if (!type || type->type != SYM_STRUCT)
+		return false;
+
+	return true;
+}
+
 static void db_param_add_set(struct expression *expr, int param, char *key, char *value, enum info_type op)
 {
 	struct expression *arg, *gen_expr;
@@ -3092,6 +3119,8 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 			goto free;
 	}
 	gen_expr = gen_expression_from_key(arg, key);
+	if (void_to_struct_cast(expr, param) && !gen_expr)
+		goto free;
 
 	state = get_state(SMATCH_EXTRA, name, sym);
 	if (state)

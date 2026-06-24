@@ -361,6 +361,29 @@ struct expression *gen_expression_from_name_sym(const char *name, struct symbol 
 	return ret;
 }
 
+static bool struct_has_member(struct expression *struct_expr, struct ident *ident)
+{
+	struct symbol *type, *tmp;
+
+	if (!ident)
+		return false;
+
+	type = get_type(struct_expr);
+	if (is_ptr_type(type))
+		type = get_real_base_type(type);
+	if (!type)
+		return false;
+
+	FOR_EACH_PTR(type->symbol_list, tmp) {
+		if (!tmp->ident)
+			continue;
+		if (strcmp(tmp->ident->name, ident->name) == 0)
+			return true;
+	} END_FOR_EACH_PTR(tmp);
+
+	return false;
+}
+
 struct expression *gen_expression_from_key(struct expression *arg, const char *key)
 {
 	struct expression *ret;
@@ -431,6 +454,8 @@ struct expression *gen_expression_from_key(struct expression *arg, const char *k
 
 		if (star)
 			ret = deref_expression(ret);
+		if (!struct_has_member(ret, token->ident))
+			return NULL;
 		ret = member_expression(ret, star ? '*' : '.', token->ident);
 		token = token->next;
 	}
