@@ -150,6 +150,8 @@ static bool is_printk_goto(struct statement *goto_stmt)
 static void match_goto(struct statement *stmt)
 {
 	/* Find the first goto */
+	if (pass_cnt == 0)
+		return;
 
 	if (next_goto)
 		return;
@@ -173,6 +175,9 @@ static void match_return(struct expression *expr)
 {
 	struct range_list *rl;
 
+	if (pass_cnt == 0)
+		return;
+
 	if (next_goto)
 		return;
 	if (!goto_stmt)
@@ -190,6 +195,9 @@ static void match_return(struct expression *expr)
 
 static void match_next_goto(struct statement *stmt)
 {
+	if (pass_cnt == 0)
+		return;
+
 	if (next_goto)
 		return;
 
@@ -233,6 +241,9 @@ static void match_label(struct statement *stmt)
 {
 	sval_t sval;
 
+	if (pass_cnt == 0)
+		return;
+
 	if (stmt->type != STMT_LABEL)
 		return;
 
@@ -261,6 +272,9 @@ static void match_label(struct statement *stmt)
 
 static void match_label_after(struct statement *stmt)
 {
+	if (pass_cnt == 0)
+		return;
+
 	if (stmt->type != STMT_LABEL)
 		return;
 	if (set_label) {
@@ -272,6 +286,9 @@ static void match_label_after(struct statement *stmt)
 static void match_final_return(struct expression *expr)
 {
 	struct range_list *rl;
+
+	if (pass_cnt == 0)
+		return;
 
 	if (!expr)
 		return;
