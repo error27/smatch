@@ -331,12 +331,15 @@ static void match_call(struct expression *expr)
 
 static void match_return(struct expression *expr)
 {
+	struct range_list *rl;
 	char *name;
 	int line;
 
 	if (is_impossible_path())
 		return;
 	if (was_put_device_stmt())
+		return;
+	if (get_implied_rl(expr, &rl) && is_err_or_null(rl))
 		return;
 
 	line = get_freed_line(expr);
