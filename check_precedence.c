@@ -158,7 +158,7 @@ static void match_mask(struct expression *expr)
 
 static void match_mask_compare(struct expression *expr)
 {
-	if (expr->op != '&')
+	if (expr->op != '&' && expr->op != '|')
 		return;
 	if (expr->right->type != EXPR_COMPARE)
 		return;
