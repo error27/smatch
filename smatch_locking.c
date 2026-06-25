@@ -556,6 +556,9 @@ static struct lock_info lock_table[] = {
 	{"(struct regmap)->lock",   LOCK,   mutex, 0, "$"},
 	{"(struct regmap)->unlock", UNLOCK, mutex, 0, "$"},
 
+	{"tscm_hwdep_read_queue", UNLOCK, sem, 0, "&$->lock"},
+	{"tscm_hwdep_read_queue", UNLOCK, irq, -2, "irq"},
+
 	{},
 };
 
