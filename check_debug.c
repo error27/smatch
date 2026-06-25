@@ -145,8 +145,6 @@ static struct expression *get_check_arg(struct expression *expr, int arg_nr)
 static void match_state(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *check_arg, *state_arg;
-	struct sm_state *sm;
-	int found = 0;
 
 	check_arg = get_check_arg(expr, 0);
 	if (check_arg->type != EXPR_STRING) {
@@ -159,17 +157,7 @@ static void match_state(const char *fn, struct expression *expr, void *info)
 		return;
 	}
 
-	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (strcmp(check_name(sm->owner), check_arg->string->data) != 0)
-			continue;
-		if (strcmp(sm->name, state_arg->string->data) != 0)
-			continue;
-		dbg("%s", show_sm(sm));
-		found = 1;
-	} END_FOR_EACH_SM(sm);
-
-	if (!found)
-		dbg("%s '%s' not found", check_arg->string->data, state_arg->string->data);
+	__print_state(check_arg->string->data, state_arg->string->data);
 }
 
 static void match_states(const char *fn, struct expression *expr, void *info)

@@ -75,7 +75,7 @@ void __print_cur_stree(void)
 	__print_stree(cur_stree);
 }
 
-bool __print_states(const char *owner)
+static bool __print_state_helper(const char *owner, const char *name)
 {
 	struct sm_state *sm;
 	bool found = false;
@@ -86,12 +86,33 @@ bool __print_states(const char *owner)
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (!strstr(check_name(sm->owner), owner))
 			continue;
+		if (name && strcmp(sm->name, name) != 0)
+			continue;
 		sm_msg("%s", show_sm(sm));
 		found = true;
 	} END_FOR_EACH_SM(sm);
 
+	return found;
+}
+
+bool __print_states(const char *owner)
+{
+	bool found;
+
+	found = __print_state_helper(owner, NULL);
 	if (!found)
 		sm_msg("no states found for '%s'", owner);
+
+	return found;
+}
+
+bool __print_state(const char *owner, const char *name)
+{
+	bool found;
+
+	found = __print_state_helper(owner, name);
+	if (!found)
+		sm_msg("states not found: '%s' '%s'", owner, name);
 
 	return found;
 }

@@ -987,6 +987,7 @@ void __discard_fake_states(struct expression *call);
 
 void __print_cur_stree(void);
 bool __print_states(const char *owner);
+bool __print_state(const char *owner, const char *name);
 typedef void (check_tracker_hook)(int owner, const char *name, struct symbol *sym, struct smatch_state *state);
 void add_check_tracker(const char *check_name, check_tracker_hook *fn);
 
