@@ -2601,6 +2601,7 @@ static void split_function(struct symbol *sym)
 	nullify_path();
 	__unnullify_path();
 	pass_cnt = 1;
+	set_position(sym->pos);
 	__current_scope = NULL;
 	output_enabled = 1;
 	loop_count = 0;
