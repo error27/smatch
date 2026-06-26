@@ -103,7 +103,6 @@ void check_no_increment(int id)
 
 	add_function_data((unsigned long *)&stree);
 
-	preserve_out_of_scope(my_id);
 	add_hook(&clear_stree, AFTER_FUNC_HOOK);
 
 	add_hook(&match_declaration, DECLARATION_HOOK);
