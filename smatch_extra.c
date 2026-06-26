@@ -1189,6 +1189,7 @@ struct sm_state *__set_essa(struct sm_state *sm)
 	essa_name = alloc_essa_name(sm->name);
 	dinfo->essa = alloc_essa_link(essa_name, sm->name, sm->sym,
 				      estate_type(sm->state));
+	add_possible_sm(sm, sm);
 	__set_sm(sm);
 	return sm;
 }
@@ -1234,6 +1235,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 		if (right_sm) {
 			right_sm = clone_sm(right_sm);
 			right_sm->state = right_state;
+			add_possible_sm(right_sm, right_sm);
 			__set_sm(right_sm);
 		} else {
 			set_state(SMATCH_EXTRA, right_name, right_sym, right_state);
@@ -1251,6 +1253,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 		left_sm->name = alloc_string(left_name);
 		left_sm->sym = left_sym;
 		left_sm->state = left_state;
+		add_possible_sm(left_sm, left_sm);
 		__set_sm(left_sm);
 	} else {
 		set_extra_mod(left_name, left_sym, left, left_state);

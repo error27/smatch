@@ -210,6 +210,8 @@ static int create_fake_history(struct sm_state *sm, int comparison, struct range
 	sm->merged = 1;
 	sm->left = true_sm;
 	sm->right = false_sm;
+	add_possible_sm(sm, true_sm);
+	add_possible_sm(sm, false_sm);
 
 	return 1;
 }
