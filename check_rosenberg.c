@@ -334,6 +334,8 @@ static void db_param_cleared(struct expression *expr,
 		const char *name, struct symbol *sym,
 		const char *value, void *data)
 {
+	if (name[0] == '&')
+		name += 1;
 	set_state(my_whole_id, name, sym, &cleared);
 }
 
