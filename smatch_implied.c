@@ -1216,6 +1216,64 @@ void overwrite_states_using_pool(struct sm_state *gate_sm, struct sm_state *pool
 	free_stree(&implied_true);
 }
 
+static void get_tf_stacks_from_extra_pool(struct sm_state *gate_sm,
+				    struct sm_state *pool_sm,
+				    struct state_list **true_stack,
+				    struct state_list **false_stack,
+				    int *recurse_cnt)
+{
+	struct range_list *intersect;
+
+	if ((*recurse_cnt)++ >= 100)
+		return;
+
+	if (!gate_sm)
+		return;
+	if (!estate_rl(gate_sm->state) || !estate_rl(pool_sm->state))
+		return;
+
+	intersect = rl_intersection(estate_rl(gate_sm->state),
+				    estate_rl(pool_sm->state));
+	if (!intersect) {
+		add_ptr_list(false_stack, gate_sm);
+		return;
+	}
+	if (rl_equiv(intersect, estate_rl(gate_sm->state))) {
+		add_ptr_list(true_stack, pool_sm);
+		return;
+	}
+
+	get_tf_stacks_from_extra_pool(gate_sm->left, pool_sm, true_stack, false_stack, recurse_cnt);
+	get_tf_stacks_from_extra_pool(gate_sm->right, pool_sm, true_stack, false_stack, recurse_cnt);
+}
+
+void overwrite_states_using_extra_pool(struct sm_state *gate_sm, struct sm_state *pool_sm)
+{
+	struct state_list *true_stack = NULL;
+	struct state_list *false_stack = NULL;
+	struct stree *pre_stree;
+	struct stree *implied_true;
+	struct sm_state *tmp;
+	int recurse_cnt = 0;
+
+	if (!pool_sm->pool)
+		return;
+
+	get_tf_stacks_from_extra_pool(gate_sm, pool_sm, &true_stack, &false_stack, &recurse_cnt);
+	pre_stree = clone_stree(__get_cur_stree());
+	implied_true = filter_stack(gate_sm, pre_stree, false_stack, true_stack);
+
+	free_stree(&pre_stree);
+	free_slist(&true_stack);
+	free_slist(&false_stack);
+
+	FOR_EACH_SM(implied_true, tmp) {
+		__set_sm(tmp);
+	} END_FOR_EACH_SM(tmp);
+
+	free_stree(&implied_true);
+}
+
 int assume(struct expression *expr)
 {
 	int output_enabled_orig = output_enabled;

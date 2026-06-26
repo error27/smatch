@@ -2087,7 +2087,7 @@ static int split_possible_helper(struct sm_state *sm, struct expression *expr)
 		ret = 1;
 		__push_fake_cur_stree();
 
-		overwrite_states_using_pool(sm, tmp);
+		overwrite_states_using_extra_pool(sm, tmp);
 
 		rl = cast_rl(cur_func_return_type(), estate_rl(tmp->state));
 		return_ranges = show_rl(rl);
@@ -2511,7 +2511,7 @@ static int split_on_bool_sm(struct sm_state *sm, struct expression *expr)
 		ret = 1;
 		__push_fake_cur_stree();
 
-		overwrite_states_using_pool(sm, tmp);
+		overwrite_states_using_extra_pool(sm, tmp);
 
 		return_ranges = get_return_ranges_str(expr, &ret_rl);
 		set_state(RETURN_ID, "return_ranges", NULL, alloc_estate_rl(ret_rl));
