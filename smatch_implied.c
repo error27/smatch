@@ -1323,6 +1323,11 @@ void smatch_implications(int id)
 	ignore_implications = malloc(num_checks);
 	memset(ignore_implications, 0, num_checks);
 
+	add_function_data((unsigned long *)&saved_implied_true);
+	add_function_data((unsigned long *)&saved_implied_false);
+	add_function_data((unsigned long *)&extra_saved_implied_true);
+	add_function_data((unsigned long *)&extra_saved_implied_false);
+
 	add_hook(&save_implications_hook, CONDITION_HOOK);
 	add_hook(&set_implied_states, CONDITION_HOOK);
 	add_hook(&__extra_match_condition, CONDITION_HOOK);
