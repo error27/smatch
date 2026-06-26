@@ -108,11 +108,6 @@ next:
 	if (prev_type && prev_type->type == SYM_BITFIELD)
 		return 0;
 	if (align % type->ctype.alignment) {
-			sm_msg("%s: tmp='%s' align=%d ctype.align=%ld type='%s'", __func__,
-			       tmp->ident ? tmp->ident->name : "<unknown>",
-			       align, tmp->ctype.alignment,
-			       type_to_str(get_real_base_type(tmp)));
-
 		print_holey_warning(expr, (prev && prev->ident) ? prev->ident->name : NULL);
 		return 1;
 	}
