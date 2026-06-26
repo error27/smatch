@@ -659,18 +659,6 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 	separate_pools(sm, comparison, rl, &true_stack, &false_stack, NULL, mixed);
 
-	if (full_debug) {
-		struct sm_state *sm;
-
-		FOR_EACH_PTR(true_stack, sm) {
-			sm_msg("TRUE POOL: %p", sm->pool);
-		} END_FOR_EACH_PTR(sm);
-
-		FOR_EACH_PTR(false_stack, sm) {
-			sm_msg("FALSE POOL: %p", sm->pool);
-		} END_FOR_EACH_PTR(sm);
-	}
-
 	DIMPLIED("filtering true stack.\n");
 	*true_states = filter_stack(sm, pre_stree, false_stack, true_stack);
 	DIMPLIED("filtering false stack.\n");
