@@ -693,7 +693,7 @@ static void promote_void_param_sets(struct expression *expr)
 	} END_FOR_EACH_PTR(arg);
 }
 
-static bool buf_contains(const char *container, char *var, bool parent)
+static bool buf_contains(const char *container, const char *var, bool parent)
 {
 	bool addr = false;
 	int i;
