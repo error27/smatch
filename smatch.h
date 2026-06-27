@@ -835,6 +835,8 @@ void create_recursive_fake_assignments(struct expression *expr,
 bool in_buf_clear_name_sym(const char *name, struct symbol *sym);
 bool in_buf_clear(struct expression *expr);
 bool parent_buf_clear_name_sym(const char *name, struct symbol *sym);
+bool in_buf_zero_name_sym(const char *name, struct symbol *sym);
+bool in_buf_zero(struct expression *expr);
 
 /* smatch_project.c */
 int is_no_inline_function(const char *function);
