@@ -808,7 +808,7 @@ bool parent_buf_clear_name_sym(const char *name, struct symbol *sym)
 	return false;
 }
 
-void smatch_param_cleared(int id)
+void smatch_buf_cleared(int id)
 {
 	my_id = id;
 
