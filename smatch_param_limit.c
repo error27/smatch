@@ -66,7 +66,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	struct smatch_state *state;
 
 	if (!param_was_set_var_sym(sm->name, sm->sym)) {
-		state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		state = __get_extra_name_sym(sm->name, sm->sym);
 		if (state)
 			return state;
 	}
@@ -81,7 +81,7 @@ struct smatch_state *get_orig_estate(const char *name, struct symbol *sym)
 	if (state)
 		return state;
 
-	state = get_state(SMATCH_EXTRA, name, sym);
+	state = get_extra_name_sym(name, sym);
 	if (state)
 		return state;
 	return alloc_estate_rl(alloc_whole_rl(get_real_base_type(sym)));
@@ -252,9 +252,9 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	if (__in_buf_clear)
 		return;
 
-	orig = get_state(SMATCH_EXTRA, name, sym);
+	orig = get_extra_name_sym(name, sym);
 	if (!orig)
-		orig = get_state(SMATCH_EXTRA, param_name, param_sym);
+		orig = get_extra_name_sym(param_name, param_sym);
 	if (!orig)
 		orig = alloc_estate_whole(estate_type(state));
 

@@ -71,7 +71,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		return sm->state;
 
 	/* The pointer is NULL */
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = get_extra_name_sym(sm->name, sm->sym);
 	if (state && estate_get_single_value(state, &sval) && sval.value == 0)
 		return sm->state;
 

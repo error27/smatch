@@ -47,7 +47,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 	struct bit_info *binfo;
 	sval_t sval;
 
-	estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = get_extra_name_sym(sm->name, sm->sym);
 	if (estate_get_single_value(estate, &sval))
 		return;
 

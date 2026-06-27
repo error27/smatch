@@ -489,7 +489,7 @@ bool get_implied_rl_from_call_str(struct expression *expr, const char *data, str
 	if (!name)
 		return false;
 
-	state = get_state(SMATCH_EXTRA, name, sym);
+	state = get_extra_name_sym(name, sym);
 	if (!estate_rl(state))
 		return false;
 	*rl = estate_rl(state);

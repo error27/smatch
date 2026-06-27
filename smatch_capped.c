@@ -40,7 +40,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
 
-	state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = __get_extra_name_sym(sm->name, sm->sym);
 	if (state && !estate_is_whole(state))
 		return &capped;
 	return &uncapped;
@@ -254,7 +254,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 
 	if (sm->state != &capped)
 		return;
-	estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = __get_extra_name_sym(sm->name, sm->sym);
 	if (estate_get_single_value(estate, &sval))
 		return;
 	sql_insert_caller_info(call, CAPPED_DATA, param, printed_name, "1");
@@ -274,7 +274,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (printed_name[0] == '&')
 		return;
 
-	estate = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = __get_extra_name_sym(sm->name, sm->sym);
 	if (estate_get_single_value(estate, &sval))
 		return;
 

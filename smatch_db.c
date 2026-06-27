@@ -1284,7 +1284,7 @@ static struct sm_state *get_returned_sm(struct expression *expr)
 	if (fake)
 		expr = fake;
 
-	return get_sm_state_expr(SMATCH_EXTRA, expr);
+	return get_extra_sm_state(expr);
 }
 
 static void match_call_info_new(struct expression *call)
@@ -2533,7 +2533,7 @@ static int split_by_bool_param(struct expression *expr)
 	start_sm = find_bool_param();
 	if (!start_sm)
 		return 0;
-	sm = get_sm_state(SMATCH_EXTRA, start_sm->name, start_sm->sym);
+	sm = get_extra_sm_name_sym(start_sm->name, start_sm->sym);
 	if (!sm || estate_get_single_value(sm->state, &sval))
 		return 0;
 
@@ -2557,7 +2557,7 @@ static int split_by_null_nonnull_param(struct expression *expr)
 
 	if (param_was_set_var_sym(arg->ident->name, arg))
 		return 0;
-	sm = get_sm_state(SMATCH_EXTRA, arg->ident->name, arg);
+	sm = get_extra_sm_name_sym(arg->ident->name, arg);
 	if (!sm)
 		return 0;
 

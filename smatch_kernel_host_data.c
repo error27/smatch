@@ -192,7 +192,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	struct smatch_state *state;
 	struct range_list *rl;
 
-	extra = __get_state(SMATCH_EXTRA, cur->name, cur->sym);
+	extra = __get_extra_name_sym(cur->name, cur->sym);
 	if (!extra)
 		return;
 	rl = rl_intersection(estate_rl(kernel), estate_rl(extra));
@@ -1031,7 +1031,7 @@ static void return_info_callback_host(int return_id, char *return_ranges,
 	rl = estate_rl(sm->state);
 	if (!rl)
 		return;
-	extra = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra = get_extra_name_sym(sm->name, sm->sym);
 	if (estate_rl(extra))
 		rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 	if (!rl)
@@ -1070,7 +1070,7 @@ static void caller_info_callback_host(struct expression *call, int param, char *
 	if (strcmp(sm->state->name, "") == 0)
 		return;
 
-	state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = __get_extra_name_sym(sm->name, sm->sym);
 	if (!state || !estate_rl(state))
 		rl = estate_rl(sm->state);
 	else

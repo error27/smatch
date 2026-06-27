@@ -212,7 +212,7 @@ static void match_err_ptr(const char *fn, struct expression *expr, void *data)
 		return;
 
 	arg_expr = get_argument_from_call_expr(expr->args, arg);
-	sm = get_sm_state_expr(SMATCH_EXTRA, arg_expr);
+	sm = get_extra_sm_state(arg_expr);
 	if (!sm)
 		return;
 

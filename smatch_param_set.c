@@ -249,7 +249,7 @@ static void print_return_value_param_helper(int return_id, char *return_ranges, 
 
 		if (!estate_rl(sm->state))
 			continue;
-		extra = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+		extra = __get_extra_name_sym(sm->name, sm->sym);
 		if (extra) {
 			rl = rl_intersection(estate_rl(sm->state), estate_rl(extra));
 			if (!rl)

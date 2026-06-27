@@ -50,7 +50,7 @@ static void deref_hook(struct expression *expr)
 		return;
 	if (implied_not_equal(expr, 0))
 		return;
-	estate = get_state_expr(SMATCH_EXTRA, expr);
+	estate = get_extra_state(expr);
 	if (estate_is_empty(estate))
 		return;
 	if (is_impossible_path())
@@ -83,7 +83,7 @@ static void match_condition(struct expression *expr)
 	if (!arg || implied_not_equal(arg, 0))
 		return;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
+	sm = get_extra_sm_state(arg);
 	if (!sm)
 		return;
 

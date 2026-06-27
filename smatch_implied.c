@@ -714,7 +714,7 @@ static int is_merged_expr(struct expression  *expr)
 
 	if (get_value(expr, &dummy))
 		return 0;
-	sm = get_sm_state_expr(SMATCH_EXTRA, expr);
+	sm = get_extra_sm_state(expr);
 	if (!sm)
 		return 0;
 	if (is_merged(sm))
@@ -728,13 +728,13 @@ static void delete_gate_sm_equiv(struct stree **stree, const char *name, struct 
 	struct var_sym_list *vsl;
 	struct var_sym *vs;
 
-	state = get_state(SMATCH_EXTRA, name, sym);
+	state = get_extra_name_sym(name, sym);
 	if (!state || !essa_name(state))
 		return;
 
 	vsl = get_essa_list(state);
 	FOR_EACH_PTR(vsl, vs) {
-		other = get_state(SMATCH_EXTRA, vs->var, vs->sym);
+		other = get_extra_name_sym(vs->var, vs->sym);
 		if (!other || !essa_name(other) ||
 		    strcmp(essa_name(other), essa_name(state)) != 0)
 			continue;
@@ -788,12 +788,12 @@ static int handle_comparison(struct expression *expr,
 	right = get_left_most_expr(expr->right);
 
 	if (is_merged_expr(left) &&
-	    (sm = get_sm_state_expr(SMATCH_EXTRA, left)) &&
+	    (sm = get_extra_sm_state(left)) &&
 	    get_implied_rl(right, &rl))
 		handle_comparison_helper(sm, comparison, rl, __get_cur_stree(), implied_true, implied_false);
 
 	if (is_merged_expr(right) &&
-	    (sm = get_sm_state_expr(SMATCH_EXTRA, right)) &&
+	    (sm = get_extra_sm_state(right)) &&
 	    get_implied_rl(left, &rl))
 		handle_comparison_helper(sm, flip_comparison(comparison), rl, __get_cur_stree(), implied_true, implied_false);
 
@@ -816,7 +816,7 @@ static int handle_zero_comparison(struct expression *expr,
 	name = expr_to_var_sym(expr, &sym);
 	if (!name || !sym)
 		goto free;
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	sm = get_extra_sm_name_sym(name, sym);
 	if (!sm || !sm->merged)
 		goto free;
 
@@ -1036,7 +1036,7 @@ void param_limit_implications(struct expression *expr, int param, char *key, cha
 	if (!name || !sym)
 		goto free;
 
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	sm = get_extra_sm_name_sym(name, sym);
 	if (!sm || !sm->merged)
 		goto free;
 

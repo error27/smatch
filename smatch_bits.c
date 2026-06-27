@@ -123,7 +123,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	unsigned long long possible;
 	struct bit_info *p;
 
-	estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = get_extra_name_sym(sm->name, sm->sym);
 	if (estate_rl(estate)) {
 		p = rl_to_binfo(estate_rl(estate));
 		return alloc_bstate(p->set, p->possible);
@@ -506,7 +506,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	if (binfo->set == binfo->possible)
 		return;
 
-	estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = get_extra_name_sym(sm->name, sm->sym);
 	if (is_unknown_binfo(estate_type(estate), binfo))
 		return;
 

@@ -62,7 +62,7 @@ static void check_variable(struct sm_state *sm)
 	struct sm_state *extra_sm, *tmp;
 	int line = sm->line;
 
-	extra_sm = get_sm_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra_sm = get_extra_sm_name_sym(sm->name, sm->sym);
 	if (!extra_sm)
 		return;
 

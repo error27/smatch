@@ -61,7 +61,7 @@ static void hack_ERR_PTR(struct symbol *sym)
 	if (!arg || !arg->ident)
 		return;
 
-	estate = get_state(SMATCH_EXTRA, arg->ident->name, arg);
+	estate = get_extra_name_sym(arg->ident->name, arg);
 	if (!estate) {
 		after = alloc_rl(low_error, minus_one);
 	} else {
@@ -82,7 +82,7 @@ static void match_param_valid_ptr(const char *fn, struct expression *call_expr,
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	if (estate_rl(pre_state)) {
 		rl = estate_rl(pre_state);
 		rl = remove_range(rl, ptr_null, ptr_null);
@@ -104,7 +104,7 @@ static void match_param_err_or_null(const char *fn, struct expression *call_expr
 	struct smatch_state *end_state;
 
 	arg = get_argument_from_call_expr(call_expr->args, param);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	if (pre_state)
 		pre = estate_rl(pre_state);
 	else
@@ -124,7 +124,7 @@ static void match_not_err(const char *fn, struct expression *call_expr,
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	if (pre_state) {
 		rl = estate_rl(pre_state);
 		rl = remove_range(rl, ptr_err_min, ptr_err_max);
@@ -143,7 +143,7 @@ static void match_err(const char *fn, struct expression *call_expr,
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	rl = estate_rl(pre_state);
 	if (!rl)
 		rl = alloc_rl(ptr_err_min, ptr_err_max);

@@ -27,7 +27,7 @@ bool possible_err_ptr(struct expression *expr)
 	struct smatch_state *state;
 	struct range_list *rl;
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
+	state = get_extra_state(expr);
 	if (state && estate_is_empty(state))
 		return false;
 
@@ -59,7 +59,7 @@ static void match_return_info(int return_id, char *return_ranges,
 	if (!slist_has_state(sm->possible, &err_ptr))
 		return;
 
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = get_extra_name_sym(sm->name, sm->sym);
 	if (!state)
 		return;
 	if (!rl_intersection(estate_rl(state), alloc_rl(ptr_err_min, ptr_err_max)))

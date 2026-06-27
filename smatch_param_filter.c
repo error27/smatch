@@ -40,7 +40,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return alloc_estate_empty();
 
-	state = __get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = __get_extra_name_sym(sm->name, sm->sym);
 	if (state)
 		return state;
 	return alloc_estate_whole(estate_type(sm->state));
@@ -54,7 +54,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	if (estate_rl(other->state))
 		return;
 
-	extra = get_state(SMATCH_EXTRA, cur->name, cur->sym);
+	extra = get_extra_name_sym(cur->name, cur->sym);
 	if (!extra)
 		return;
 

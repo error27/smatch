@@ -56,7 +56,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	struct smatch_state *extra;
 	struct range_list *rl;
 
-	extra = get_state(SMATCH_EXTRA, cur->name, cur->sym);
+	extra = get_extra_name_sym(cur->name, cur->sym);
 	if (!extra || !estate_rl(extra))
 		return;
 	if (!estate_rl(cur->state)) {

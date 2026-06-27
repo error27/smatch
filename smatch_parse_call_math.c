@@ -158,7 +158,7 @@ static int read_rl_from_var(struct expression *call, const char *p, const char *
 		return 0;
 	strncat(buf, p, *end - p);
 
-	state = get_state(SMATCH_EXTRA, buf, sym);
+	state = get_extra_name_sym(buf, sym);
 	if (!state)
 		return 0;
 	*rl = estate_rl(state);

@@ -67,7 +67,7 @@ static void match_return_var(struct expression *ret_value)
 		return;
 	if (!slist_has_state(sm->possible, &remaining))
 		return;
-	state = get_state_expr(SMATCH_EXTRA, ret_value);
+	state = get_extra_state(ret_value);
 	if (!state)
 		return;
 	if (!get_absolute_min(ret_value, &min))

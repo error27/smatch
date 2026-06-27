@@ -26,7 +26,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 	struct sm_state *sm;
 	sval_t sval;
 
-	sm = get_sm_state(SMATCH_EXTRA, cur->name, cur->sym);
+	sm = get_extra_sm_name_sym(cur->name, cur->sym);
 	if (!sm || !estate_rl(sm->state))
 		return;
 	if (type_unsigned(estate_type(sm->state)))

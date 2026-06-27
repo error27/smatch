@@ -53,7 +53,7 @@ static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 		return;
 	}
 
-	state = get_state(SMATCH_EXTRA, cur->name, cur->sym);
+	state = get_extra_name_sym(cur->name, cur->sym);
 	if (!state || !estate_rl(state))
 		return;
 	if (!rl_has_sval(estate_rl(state), ptr_null))
@@ -64,7 +64,7 @@ static bool is_possibly_zero(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm, *tmp;
 
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	sm = get_extra_sm_name_sym(name, sym);
 	if (!sm)
 		return false;
 	FOR_EACH_PTR(sm->possible, tmp) {

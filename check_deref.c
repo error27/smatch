@@ -63,7 +63,7 @@ static bool is_possibly_zero(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm, *tmp;
 
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	sm = get_extra_sm_name_sym(name, sym);
 	if (!sm)
 		return false;
 	FOR_EACH_PTR(sm->possible, tmp) {

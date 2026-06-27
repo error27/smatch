@@ -2056,7 +2056,7 @@ int get_implied_rl_var_sym(const char *var, struct symbol *sym, struct range_lis
 {
 	struct smatch_state *state;
 
-	state = get_state(SMATCH_EXTRA, var, sym);
+	state = get_extra_name_sym(var, sym);
 	*rl = estate_rl(state);
 	if (*rl)
 		return 1;

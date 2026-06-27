@@ -108,7 +108,7 @@ static int check_pool(struct sm_state *goto_sm, struct sm_state *extra_sm)
 
 	orig = __swap_cur_stree(goto_sm->pool);
 
-	old = get_sm_state(SMATCH_EXTRA, extra_sm->name, extra_sm->sym);
+	old = get_extra_sm_name_sym(extra_sm->name, extra_sm->sym);
 	if (!old)
 		goto swap;
 	if (goto_sm->line < old->line)

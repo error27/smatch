@@ -26,7 +26,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	struct smatch_state *state;
 	sval_t sval;
 
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = get_extra_name_sym(sm->name, sm->sym);
 	if (!state)
 		return &undefined;
 	if (!estate_get_single_value(state, &sval))
@@ -179,7 +179,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param != -1 && !param_was_set_var_sym(sm->name, sm->sym))
 		return;
 
-	estate = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	estate = get_extra_name_sym(sm->name, sm->sym);
 	if (estate_get_single_value(estate, &sval))
 		return;
 

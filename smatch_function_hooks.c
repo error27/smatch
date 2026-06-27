@@ -1106,7 +1106,7 @@ static bool impossible_limit(struct db_callback_info *db_info, int param, char *
 		if (!name || !sym)
 			return false;
 
-		state = get_state(SMATCH_EXTRA, name, sym);
+		state = get_extra_name_sym(name, sym);
 		if (!state) {
 			free_string(name);
 			return false;

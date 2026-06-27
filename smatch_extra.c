@@ -200,7 +200,7 @@ void set_extra_mod_helper(const char *name, struct symbol *sym, struct expressio
 	mark_sub_members_gone(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
 	if ((__in_fake_assign || in_param_set) &&
-	    estate_is_unknown(state) && !get_state(SMATCH_EXTRA, name, sym))
+	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
 		return;
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
@@ -480,7 +480,7 @@ static void update_essa_state_nomod(struct expression *expr, struct smatch_state
 
 	vsl = get_essa_list(old_state);
 	FOR_EACH_PTR(vsl, vs) {
-		other = get_state(SMATCH_EXTRA, vs->var, vs->sym);
+		other = get_extra_name_sym(vs->var, vs->sym);
 		if (!other || !essa_name(other) ||
 		    strcmp(essa_name(other), essa_name(old_state)) != 0)
 			continue;
@@ -505,7 +505,7 @@ void set_extra_nomod(const char *name, struct symbol *sym, struct expression *ex
 	char *other_name;
 	struct symbol *other_sym;
 
-	orig_state = get_state(SMATCH_EXTRA, name, sym);
+	orig_state = get_extra_name_sym(name, sym);
 
 	/* don't save unknown states if leaving it blank is the same. */
 	if (!orig_state && estate_is_unknown(state))
@@ -575,7 +575,7 @@ static void set_extra_true_false(const char *name, struct symbol *sym,
 		set_extra_true_false_helper(other_name, other_sym, expr, true_state, false_state);
 	free_string(other_name);
 
-	orig_state = get_state(SMATCH_EXTRA, name, sym);
+	orig_state = get_extra_name_sym(name, sym);
 	if (essa_name(orig_state) && essa_fits(orig_state))
 		update_essa_state_nomod(expr, orig_state, NULL, true_state, false_state);
 	else
@@ -719,7 +719,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 
 	iter_var = unop->unop;
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	sm = get_extra_sm_state(iter_var);
 	if (!sm)
 		return NULL;
 	if (sval_cmp(estate_min(sm->state), right) < 0)
@@ -753,7 +753,7 @@ static struct sm_state *handle_canonical_while_count_down(struct statement *loop
 		estate_copy_fuzzy_max(estate, sm->state);
 		set_extra_expr_mod(iter_var, estate);
 	}
-	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	return get_extra_sm_state(iter_var);
 }
 
 static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
@@ -766,7 +766,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 	bool unknown_end = false;
 
 	iter_var = iter_expr->unop;
-	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	sm = get_extra_sm_state(iter_var);
 	if (!sm)
 		return NULL;
 	if (!estate_get_single_value(sm->state, &start))
@@ -778,7 +778,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 			unknown_end = true;
 	}
 
-	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
+	if (get_extra_sm_state(condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
@@ -809,7 +809,7 @@ static struct sm_state *handle_canonical_for_inc(struct expression *iter_expr,
 		estate_set_fuzzy_max(estate, max);
 	}
 	set_extra_expr_mod(iter_var, estate);
-	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	return get_extra_sm_state(iter_var);
 }
 
 static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
@@ -821,7 +821,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	sval_t start, end;
 
 	iter_var = iter_expr->unop;
-	sm = get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	sm = get_extra_sm_state(iter_var);
 	if (!sm)
 		return NULL;
 	if (!estate_get_single_value(sm->state, &start))
@@ -829,7 +829,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	if (!get_implied_min(condition->right, &end))
 		end = sval_type_min(get_type(iter_var));
 	end = sval_cast(estate_type(sm->state), end);
-	if (get_sm_state_expr(SMATCH_EXTRA, condition->left) != sm)
+	if (get_extra_sm_state(condition->left) != sm)
 		return NULL;
 
 	switch (condition->op) {
@@ -849,7 +849,7 @@ static struct sm_state *handle_canonical_for_dec(struct expression *iter_expr,
 	estate_set_hard_max(estate);
 	estate_set_fuzzy_max(estate, estate_get_fuzzy_max(estate));
 	set_extra_expr_mod(iter_var, estate);
-	return get_sm_state_expr(SMATCH_EXTRA, iter_var);
+	return get_extra_sm_state(iter_var);
 }
 
 static struct sm_state *handle_canonical_for_loops(struct statement *loop)
@@ -1506,7 +1506,7 @@ static void unop_expr(struct expression *expr)
 
 	switch (expr->op) {
 	case SPECIAL_INCREMENT:
-		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		state = get_extra_state(expr->unop);
 		if (estate_is_empty(state))
 			return;
 		state = increment_state(state);
@@ -1516,7 +1516,7 @@ static void unop_expr(struct expression *expr)
 		clear_pointed_at_state(expr->unop);
 		break;
 	case SPECIAL_DECREMENT:
-		state = get_state_expr(SMATCH_EXTRA, expr->unop);
+		state = get_extra_state(expr->unop);
 		if (estate_is_empty(state))
 			return;
 		state = decrement_state(state);
@@ -1615,7 +1615,7 @@ static void set_param_dereferenced(struct expression *call, struct expression *a
 		struct smatch_state *orig, *new;
 		struct range_list *rl;
 
-		orig = get_state(SMATCH_EXTRA, name, sym);
+		orig = get_extra_name_sym(name, sym);
 		if (orig) {
 			rl = rl_intersection(estate_rl(orig),
 					     alloc_rl(valid_ptr_min_sval,
@@ -2505,7 +2505,7 @@ int implied_not_equal_name_sym(char *name, struct symbol *sym, long long val)
 {
 	struct smatch_state *estate;
 
-	estate = get_state(SMATCH_EXTRA, name, sym);
+	estate = get_extra_name_sym(name, sym);
 	if (!estate)
 		return 0;
 	if (!rl_has_sval(estate_rl(estate), sval_type_val(estate_type(estate), 0)))
@@ -2535,7 +2535,7 @@ static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol 
 	start = &buf[0];
 	while (*start == '*') {
 		start++;
-		state = __get_state(SMATCH_EXTRA, start, sym);
+		state = __get_extra_name_sym(start, sym);
 		if (!state)
 			continue;
 		if (!estate_rl(state))
@@ -2560,7 +2560,7 @@ static int parent_is_err_or_null_var_sym_helper(const char *name, struct symbol 
 		}
 		if (len == 0)
 			return 0;
-		state = __get_state(SMATCH_EXTRA, start, sym);
+		state = __get_extra_name_sym(start, sym);
 		if (!state)
 			continue;
 		if (is_noderef_ptr_rl(estate_rl(state)))
@@ -2912,7 +2912,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	if (op != PARAM_LIMIT && !sym)
 		goto free;
 
-	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	sm = get_extra_sm_name_sym(name, sym);
 	if (sm)
 		rl = estate_rl(sm->state);
 	else
@@ -3108,7 +3108,7 @@ static void db_param_add_set(struct expression *expr, int param, char *key, char
 	if (void_to_struct_cast(expr, param) && !gen_expr)
 		goto free;
 
-	state = get_state(SMATCH_EXTRA, name, sym);
+	state = get_extra_name_sym(name, sym);
 	if (state)
 		new = estate_rl(state);
 
@@ -3218,7 +3218,7 @@ static void db_param_value(struct expression *expr, int param, char *key, char *
 
 	call_results_to_rl(call, type, value, &rl);
 	if (handle_with_fake_assign(call, name, sym, value)) {
-		state = get_state(SMATCH_EXTRA, name, sym);
+		state = get_extra_name_sym(name, sym);
 		if (!state)
 			goto skip;
 		if (rl_equiv(rl, estate_rl(state)))
@@ -3302,7 +3302,7 @@ static void set_param_fuzzy_max(const char *name, struct symbol *sym, char *key,
 	if (!fullname)
 		return;
 
-	state = get_state(SMATCH_EXTRA, fullname, sym);
+	state = get_extra_name_sym(fullname, sym);
 	if (!state)
 		return;
 	type = estate_type(state);
@@ -3323,7 +3323,7 @@ static void set_param_hard_max(const char *name, struct symbol *sym, char *key, 
 	if (!fullname)
 		return;
 
-	state = get_state(SMATCH_EXTRA, fullname, sym);
+	state = get_extra_name_sym(fullname, sym);
 	if (!state)
 		return;
 	estate_set_hard_max(state);
@@ -3441,7 +3441,7 @@ static void match_link_modify(struct sm_state *sm, struct expression *mod_expr)
 		if (sm->sym == tmp->sym &&
 		    strcmp(sm->name, tmp->var) == 0)
 			continue;
-		state = get_state(SMATCH_EXTRA, tmp->var, tmp->sym);
+		state = get_extra_name_sym(tmp->var, tmp->sym);
 		if (!state)
 			continue;
 		set_state(SMATCH_EXTRA, tmp->var, tmp->sym, alloc_estate_whole(estate_type(state)));

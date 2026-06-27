@@ -244,7 +244,7 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	if (strcmp(sm->state->name, "") == 0)
 		return;
 
-	extra_state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	extra_state = get_extra_name_sym(sm->name, sm->sym);
 	if (extra_state && type_is_ptr(estate_type(extra_state)))
 		return;
 

@@ -835,7 +835,7 @@ static void match_print_merge_tree(const char *fn, struct expression *expr, void
 	arg = get_check_arg(expr, 0);
 	name = expr_to_str(arg);
 
-	sm = get_sm_state_expr(SMATCH_EXTRA, arg);
+	sm = get_extra_sm_state(arg);
 	if (!sm) {
 		dbg("no sm state for '%s'", name);
 		goto free;

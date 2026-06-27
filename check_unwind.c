@@ -108,7 +108,7 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (is_impossible_path())
 		return &param_released;
 
-	state = get_state(SMATCH_EXTRA, sm->name, sm->sym);
+	state = get_extra_name_sym(sm->name, sm->sym);
 	if (!state)
 		return &undefined;
 	if (!estate_rl(state) || is_err_or_null(estate_rl(state)))

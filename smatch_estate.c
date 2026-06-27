@@ -553,7 +553,7 @@ struct smatch_state *get_implied_estate(struct expression *expr)
 	struct smatch_state *state;
 	struct range_list *rl;
 
-	state = get_state_expr(SMATCH_EXTRA, expr);
+	state = get_extra_state(expr);
 	if (state)
 		return state;
 	if (!get_implied_rl(expr, &rl))

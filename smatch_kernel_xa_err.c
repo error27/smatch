@@ -27,7 +27,7 @@ static void match_xa_is_err_true(const char *fn, struct expression *call_expr,
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	rl = estate_rl(pre_state);
 	if (!rl)
 		rl = alloc_rl(ptr_xa_err_min, ptr_xa_err_max);
@@ -44,7 +44,7 @@ static void match_xa_is_err_false(const char *fn, struct expression *call_expr,
 	struct range_list *rl;
 
 	arg = get_argument_from_call_expr(call_expr->args, 0);
-	pre_state = get_state_expr(SMATCH_EXTRA, arg);
+	pre_state = get_extra_state(arg);
 	if (pre_state)
 		rl = estate_rl(pre_state);
 	else
@@ -66,7 +66,7 @@ static void match_mas_is_err_true(const char *fn, struct expression *call_expr,
 	node = gen_expression_from_key(arg, "$->node");
 	if (!node)
 		return;
-	pre_state = get_state_expr(SMATCH_EXTRA, node);
+	pre_state = get_extra_state(node);
 	rl = estate_rl(pre_state);
 	if (!rl)
 		rl = alloc_rl(ptr_xa_err_min, ptr_xa_err_max);
