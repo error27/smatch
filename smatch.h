@@ -2059,8 +2059,12 @@ struct smatch_state *clone_estate_perm(struct smatch_state *state);
 
 /* smatch_extra.c */
 bool is_impossible_variable(struct expression *expr);
+struct sm_state *get_extra_sm_name_sym(const char *name, struct symbol *sym);
 struct sm_state *get_extra_sm_state(struct expression *expr);
+struct smatch_state *get_extra_name_sym(const char *name, struct symbol *sym);
 struct smatch_state *get_extra_state(struct expression *expr);
+struct smatch_state *__get_extra_name_sym(const char *name, struct symbol *sym);
+struct smatch_state *__get_extra_state(struct expression *expr);
 void call_extra_mod_hooks(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 void set_extra_expr_mod(struct expression *expr, struct smatch_state *state);

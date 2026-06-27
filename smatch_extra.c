@@ -3349,6 +3349,11 @@ static struct sm_state *get_sm_from_call(struct expression *expr)
 	return get_sm_state(SMATCH_EXTRA, buf, NULL);
 }
 
+struct sm_state *get_extra_sm_name_sym(const char *name, struct symbol *sym)
+{
+	return get_sm_state(SMATCH_EXTRA, name, sym);
+}
+
 struct sm_state *get_extra_sm_state(struct expression *expr)
 {
 	char *name;
@@ -3372,6 +3377,11 @@ free:
 	return ret;
 }
 
+struct smatch_state *get_extra_name_sym(const char *name, struct symbol *sym)
+{
+	return get_state(SMATCH_EXTRA, name, sym);
+}
+
 struct smatch_state *get_extra_state(struct expression *expr)
 {
 	struct sm_state *sm;
@@ -3380,6 +3390,22 @@ struct smatch_state *get_extra_state(struct expression *expr)
 	if (!sm)
 		return NULL;
 	return sm->state;
+}
+
+struct smatch_state *__get_extra_name_sym(const char *name, struct symbol *sym)
+{
+	return __get_state(SMATCH_EXTRA, name, sym);
+}
+
+struct smatch_state *__get_extra_state(struct expression *expr)
+{
+	/* NOTE 2026: It's weird that this works, yeah?  The get_extra_state()
+	 * really should call the get_state_hooks() and probably
+	 * get_sm_state() as well.  Originally, when I implemented
+	 * get_state_hooks() calling get_sm_state() wasn't as common as
+	 * it is now.
+	 */
+	return get_extra_state(expr);
 }
 
 void smatch_extra(int id)
