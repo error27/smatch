@@ -611,7 +611,10 @@ static void match_assign(struct expression *expr)
 	if (!type || type->type != SYM_STRUCT)
 		return;
 
-	set_state_expr(my_id, expr->left, &cleared);
+	if (in_buf_zero(expr->right))
+		set_state_expr(my_id, expr->left, &zeroed);
+	else
+		set_state_expr(my_id, expr->left, &cleared);
 }
 
 static void match_array_assign(struct expression *expr)
@@ -813,6 +816,7 @@ void smatch_buf_cleared(int id)
 	my_id = id;
 
 	add_merge_hook(my_id, &merge_hook);
+	add_modification_hook(my_id, &set_undefined);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
