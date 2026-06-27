@@ -1008,30 +1008,6 @@ static void fake_return_assignment(struct db_callback_info *db_info, int type, i
 	push_expression(&db_info->fake_param_assign_stack, assign);
 }
 
-static void set_fresh_mtag_returns(struct db_callback_info *db_info)
-{
-	struct expression *expr;
-	struct smatch_state *state;
-
-	if (!db_info->ret_state)
-		return;
-
-	if (!db_info->expr ||
-	    db_info->expr->type != EXPR_ASSIGNMENT ||
-	    db_info->expr->op != '=')
-		return;
-
-	expr = db_info->expr->left;
-
-	state = alloc_estate_rl(cast_rl(get_type(expr), clone_rl(estate_rl(db_info->ret_state))));
-	state = get_mtag_return(db_info->expr, state);
-	if (!state)
-		return;
-
-	set_real_absolute(expr, state);
-	set_extra_expr_mod(expr, state);
-}
-
 static void set_return_assign_state(struct db_callback_info *db_info)
 {
 	struct expression *expr = db_info->expr->left;
@@ -1203,7 +1179,6 @@ static void process_return_states(struct db_callback_info *db_info)
 	struct stree *stree;
 
 	set_implied_states(db_info);
-	set_fresh_mtag_returns(db_info);
 	parse_fake_calls(db_info->expr);
 	free_ptr_list(&db_info->called);
 	stree = __pop_fake_cur_stree();
