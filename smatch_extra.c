@@ -191,86 +191,6 @@ static bool is_fake_assign(struct expression *expr)
 	return false;
 }
 
-static bool in_param_set;
-void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
-{
-	if (!expr)
-		expr = gen_expression_from_name_sym(name, sym);
-	set_union_info(name, sym, expr, state);
-	mark_sub_members_gone(name, sym, expr, state);
-	call_extra_mod_hooks(name, sym, expr, state);
-	if ((__in_fake_assign || in_param_set) &&
-	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
-		return;
-	set_state(SMATCH_EXTRA, name, sym, state);
-}
-
-static void set_extra_nomod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
-{
-	call_extra_nomod_hooks(name, sym, expr, state);
-	set_state(SMATCH_EXTRA, name, sym, state);
-}
-
-static void set_extra_true_false_helper(const char *name, struct symbol *sym,
-					struct expression *expr,
-					struct smatch_state *true_state,
-					struct smatch_state *false_state)
-{
-	struct stree *true_stree = NULL, *false_stree = NULL;
-	struct sm_state *tmp;
-
-
-	if (true_state) {
-		__push_fake_cur_stree();
-		call_extra_nomod_hooks(name, sym, expr, true_state);
-		true_stree = __pop_fake_cur_stree();
-	}
-
-	if (false_state) {
-		__push_fake_cur_stree();
-		call_extra_nomod_hooks(name, sym, expr, false_state);
-		false_stree = __pop_fake_cur_stree();
-	}
-
-	/* FIXME: do we need a set_true_false_sm() function? */
-	FOR_EACH_SM(true_stree, tmp) {
-		set_true_false_states(tmp->owner, tmp->name, tmp->sym, tmp->state, NULL);
-	} END_FOR_EACH_SM(tmp);
-
-	FOR_EACH_SM(false_stree, tmp) {
-		set_true_false_states(tmp->owner, tmp->name, tmp->sym, NULL, tmp->state);
-	} END_FOR_EACH_SM(tmp);
-
-	free_stree(&true_stree);
-	free_stree(&false_stree);
-
-	set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
-}
-
-static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol **new_sym)
-{
-	struct expression *assigned;
-
-	/*
-	 * Imagine we have an assignment: "foo = &addr;" then the other name
-	 * of "*foo" is addr.
-	 */
-
-	if (name[0] != '*')
-		return NULL;
-	if (strcmp(name + 1, sym->ident->name) != 0)
-		return NULL;
-
-	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
-	if (!assigned)
-		return NULL;
-	assigned = strip_parens(assigned);
-	if (assigned->type != EXPR_PREOP || assigned->op != '&')
-		return NULL;
-
-	return expr_to_var_sym(assigned->unop, new_sym);
-}
-
 char *get_other_name_sym_from_chunk(const char *name, const char *chunk, int len, struct symbol *sym, struct symbol **new_sym)
 {
 	struct expression *assigned;
@@ -337,6 +257,30 @@ static char *get_long_name_sym(const char *name, struct symbol *sym, struct symb
 	return ret;
 }
 
+static char *get_pointed_at(const char *name, struct symbol *sym, struct symbol **new_sym)
+{
+	struct expression *assigned;
+
+	/*
+	 * Imagine we have an assignment: "foo = &addr;" then the other name
+	 * of "*foo" is addr.
+	 */
+
+	if (name[0] != '*')
+		return NULL;
+	if (strcmp(name + 1, sym->ident->name) != 0)
+		return NULL;
+
+	assigned = get_assigned_expr_name_sym(sym->ident->name, sym);
+	if (!assigned)
+		return NULL;
+	assigned = strip_parens(assigned);
+	if (assigned->type != EXPR_PREOP || assigned->op != '&')
+		return NULL;
+
+	return expr_to_var_sym(assigned->unop, new_sym);
+}
+
 char *get_other_name_sym_helper(const char *name, struct symbol *sym, struct symbol **new_sym, bool use_stack)
 {
 	char buf[256];
@@ -386,6 +330,62 @@ char *get_other_name_sym(const char *name, struct symbol *sym, struct symbol **n
 char *get_other_name_sym_nostack(const char *name, struct symbol *sym, struct symbol **new_sym)
 {
 	return get_other_name_sym_helper(name, sym, new_sym, false);
+}
+
+static bool in_param_set;
+void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	if (!expr)
+		expr = gen_expression_from_name_sym(name, sym);
+	set_union_info(name, sym, expr, state);
+	mark_sub_members_gone(name, sym, expr, state);
+	call_extra_mod_hooks(name, sym, expr, state);
+	if ((__in_fake_assign || in_param_set) &&
+	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
+		return;
+	set_state(SMATCH_EXTRA, name, sym, state);
+}
+
+static void set_extra_nomod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	call_extra_nomod_hooks(name, sym, expr, state);
+	set_state(SMATCH_EXTRA, name, sym, state);
+}
+
+static void set_extra_true_false_helper(const char *name, struct symbol *sym,
+					struct expression *expr,
+					struct smatch_state *true_state,
+					struct smatch_state *false_state)
+{
+	struct stree *true_stree = NULL, *false_stree = NULL;
+	struct sm_state *tmp;
+
+
+	if (true_state) {
+		__push_fake_cur_stree();
+		call_extra_nomod_hooks(name, sym, expr, true_state);
+		true_stree = __pop_fake_cur_stree();
+	}
+
+	if (false_state) {
+		__push_fake_cur_stree();
+		call_extra_nomod_hooks(name, sym, expr, false_state);
+		false_stree = __pop_fake_cur_stree();
+	}
+
+	/* FIXME: do we need a set_true_false_sm() function? */
+	FOR_EACH_SM(true_stree, tmp) {
+		set_true_false_states(tmp->owner, tmp->name, tmp->sym, tmp->state, NULL);
+	} END_FOR_EACH_SM(tmp);
+
+	FOR_EACH_SM(false_stree, tmp) {
+		set_true_false_states(tmp->owner, tmp->name, tmp->sym, NULL, tmp->state);
+	} END_FOR_EACH_SM(tmp);
+
+	free_stree(&true_stree);
+	free_stree(&false_stree);
+
+	set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
 }
 
 void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
