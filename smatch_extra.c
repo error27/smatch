@@ -36,6 +36,7 @@ static int my_id;
 static int link_id;
 
 static void match_link_modify(struct sm_state *sm, struct expression *mod_expr);
+static void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state, bool store);
 
 typedef void (mod_hook)(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state);
 DECLARE_PTR_LIST(mod_hook_list, mod_hook *);
@@ -136,7 +137,7 @@ static void set_union_info(const char *name, struct symbol *sym, struct expressi
 				continue;
 			new_type = get_real_base_type(inner);
 			new = alloc_estate_rl(cast_rl(new_type, estate_rl(state)));
-			set_extra_mod_helper(member_name, sym, member_expr, new);
+			set_extra_mod_helper(member_name, sym, member_expr, new, true);
 			free_string(member_name);
 		} END_FOR_EACH_PTR(inner);
 	} END_FOR_EACH_PTR(tmp);
@@ -333,13 +334,15 @@ char *get_other_name_sym_nostack(const char *name, struct symbol *sym, struct sy
 }
 
 static bool in_param_set;
-void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+static void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state, bool store)
 {
 	if (!expr)
 		expr = gen_expression_from_name_sym(name, sym);
 	set_union_info(name, sym, expr, state);
 	mark_sub_members_gone(name, sym, expr, state);
 	call_extra_mod_hooks(name, sym, expr, state);
+	if (!store)
+		return;
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
 		return;
@@ -388,16 +391,21 @@ static void set_extra_true_false_helper(const char *name, struct symbol *sym,
 	set_true_false_states(SMATCH_EXTRA, name, sym, true_state, false_state);
 }
 
-void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+void set_extra_mod_internal(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state, bool store)
 {
 	char *new_name;
 	struct symbol *new_sym;
 
-	set_extra_mod_helper(name, sym, expr, state);
+	set_extra_mod_helper(name, sym, expr, state, store);
 	new_name = get_other_name_sym_nostack(name, sym, &new_sym);
 	if (new_name && new_sym)
-		set_extra_mod_helper(new_name, new_sym, NULL, state);
+		set_extra_mod_helper(new_name, new_sym, NULL, state, store);
 	free_string(new_name);
+}
+
+void set_extra_mod(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
+{
+	set_extra_mod_internal(name, sym, expr, state, true);
 }
 
 static struct expression *chunk_get_array_base(struct expression *expr)
@@ -1192,6 +1200,7 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 	char *left_name, *right_name;
 	struct symbol *left_sym, *right_sym;
 	struct sm_state *right_sm, *left_sm;
+	struct range_list *rl;
 
 	left_name = expr_to_var_sym(left, &left_sym);
 	right_name = expr_to_var_sym(right, &right_sym);
@@ -1205,13 +1214,16 @@ static void handle_var_to_var_assign(struct expression *left, struct expression 
 
 	right_sm = get_sm_state(my_id, right_name, right_sym);
 	if (!right_sm && __in_fake_struct_assign &&
-	    !get_state(my_id, left_name, left_sym))
+	    !get_state(my_id, left_name, left_sym)) {
+		get_absolute_rl(left, &rl);
+		left_state = alloc_estate_rl(rl);
+		set_extra_mod_internal(left_name, left_sym, left, left_state, false);
 		return;
+
+	}
 	if (right_sm) {
 		right_state = right_sm->state;
 	} else {
-		struct range_list *rl;
-
 		get_absolute_rl(right, &rl);
 		right_state = alloc_estate_rl(rl);
 	}
