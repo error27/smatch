@@ -300,7 +300,9 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 {
 	struct symbol *type;
 	char buf[256];
+	char copy[128];
 	char *tmp;
+	bool add_parens = false;
 	bool address = false;
 	int star_cnt = 0;
 	bool add_dot = false;
@@ -388,10 +390,28 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		key++;
 	}
 
+	if (key[0] == '(') {
+		int len;
+
+		snprintf(copy, sizeof(copy), "%s", key);
+		len = strlen(copy);
+		if (len && copy[len - 1] == ')') {
+			copy[len - 1] = '\0';
+			key = copy + 1;
+		}
+		add_parens = true;
+	}
+
 	if (key[0] == '&') {
-		address = true;
+		if (star_cnt)
+			star_cnt--;
+		else
+			address = true;
 		key++;
 	}
+
+	if (key[0] != '$')
+		return NULL;
 
 	/*
 	 * FIXME:  This is a hack.
@@ -406,14 +426,22 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		star_cnt--;
 	}
 
+	if (add_parens && !star_cnt)
+		add_parens = false;
+
 	if (arg->type == EXPR_PREOP && arg->op == '&') {
 		arg = strip_expr(arg->unop);
 		tmp = expr_to_var_sym(arg, sym);
 		if (!tmp)
 			return NULL;
-		ret = snprintf(buf, sizeof(buf), "%s%.*s%s.%s",
+		if (!strchr(tmp, '+') &&
+		    !strchr(tmp, '*'))
+			add_parens = false;
+		ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s.%s%s",
 			       address ? "&" : "", star_cnt, "**********",
-			       tmp, key + 3);
+			       add_parens ? "(" : "",
+			       tmp, key + 3,
+			       add_parens ? ")" : "");
 		if (ret >= sizeof(buf))
 			return NULL;
 		return alloc_string(buf);
@@ -422,8 +450,22 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 	tmp = expr_to_var_sym(arg, sym);
 	if (!tmp)
 		return NULL;
-	ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s",
-		       address ? "&" : "", star_cnt, "**********", tmp, key + 1);
+
+	/* FIXME: This is a hack.
+	 * It's to handle that smatch_modification_hooks.c adds "*()" to
+	 * the string, but probably the parens are not required.  Probably
+	 * this whole function should be re-thought.  We should probably
+	 * generate an expression and then add an EXPR_PREOP.
+	 */
+	if (!strchr(tmp, '+') &&
+	    !strchr(tmp, '*'))
+		add_parens = false;
+
+	ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s%s%s",
+		       address ? "&" : "", star_cnt, "**********",
+		       add_parens ? "(" : "",
+		       tmp, key + 1,
+		       add_parens ? ")" : "");
 	free_string(tmp);
 	if (ret >= sizeof(buf))
 		return NULL;

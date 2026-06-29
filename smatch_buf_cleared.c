@@ -306,6 +306,7 @@ static void return_info_callback(int return_id, char *return_ranges,
 {
 	static struct stree *already_set;
 	static int prev_return_id;
+	int type = BUF_ADD;
 
 	if (return_id != prev_return_id)
 		free_stree(&already_set);
@@ -314,18 +315,16 @@ static void return_info_callback(int return_id, char *return_ranges,
 	if (param < 0)
 		return;
 
-	if (sm->state != &add &&
-	    sm->state != &cleared &&
-	    sm->state != &zeroed)
-		return;
+	if (sm->state == &cleared ||
+	    sm->state == &zeroed)
+		type = BUF_CLEARED;
 
 	if (parent_set(already_set, sm))
 		return;
 
 	sql_insert_return_states(return_id, return_ranges,
-			(sm->state == &add) ? BUF_ADD : BUF_CLEARED,
-			param, printed_name,
-			(sm->state == &zeroed) ? "0" : "");
+				 type, param, printed_name,
+				 (sm->state == &zeroed) ? "0" : "");
 
 	avl_insert(&already_set, sm);
 }
@@ -604,17 +603,38 @@ static void match_assign(struct expression *expr)
 	struct symbol *type;
 
 	/*
-	 * If we have struct foo x, y; and we say that x = y; then it
+	 * If we have struct foo x, y; and we say that *x = *y; then it
 	 * initializes the struct holes.  So we record that here.
 	 */
 	type = get_type(expr->left);
 	if (!type || type->type != SYM_STRUCT)
 		return;
 
-	if (in_buf_zero(expr->right))
-		set_state_expr(my_id, expr->left, &zeroed);
+	if (expr->type != EXPR_PREOP ||
+	    expr->op != '*')
+		expr = strip_parens(expr->unop);
 	else
-		set_state_expr(my_id, expr->left, &cleared);
+		expr = preop_expression(expr, '&');
+
+	set_state_expr(my_id, expr->left, &cleared);
+}
+
+static void match_zero_buf_assign(struct expression *expr)
+{
+	struct symbol *type;
+
+	/*
+	 * If we have struct foo x, y; and we say that x = y; then it
+	 * initializes the struct holes.  So we record that here.
+	 */
+	type = get_type(expr->left);
+	if (!type_is_ptr(type))
+		return;
+
+	if (!in_buf_zero(expr->right))
+		return;
+
+	set_state_expr(my_id, expr->left, &zeroed);
 }
 
 static void match_array_assign(struct expression *expr)
@@ -819,6 +839,7 @@ void smatch_buf_cleared(int id)
 	add_modification_hook(my_id, &set_undefined);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_zero_buf_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_array_assign, ASSIGNMENT_HOOK);
 
 	register_clears_param();

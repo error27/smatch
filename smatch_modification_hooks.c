@@ -163,6 +163,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	struct expression *arg;
 	char *name, *other_name;
 	struct symbol *sym, *other_sym;
+	char buf[128];
 
 	while (expr->type == EXPR_ASSIGNMENT)
 		expr = strip_expr(expr->right);
@@ -173,7 +174,8 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!arg)
 		return;
 
-	name = get_variable_from_key(arg, key, &sym);
+	snprintf(buf, sizeof(buf), "*(%s)", key);
+	name = get_variable_from_key(arg, buf, &sym);
 	if (!name || !sym)
 		goto free;
 
