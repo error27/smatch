@@ -2129,6 +2129,7 @@ struct expression *expr_get_fake_parent_expr(struct expression *expr);
 struct expression *expr_get_fake_or_real_parent_expr(struct expression *expr);
 struct statement *expr_get_parent_stmt(struct expression *expr);
 struct statement *get_parent_stmt(struct expression *expr);
+struct statement *get_parent_if_stmt(struct expression *expr);
 
 /* smatch_param_limit.c */
 struct smatch_state *get_orig_estate(const char *name, struct symbol *sym);

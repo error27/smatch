@@ -111,3 +111,23 @@ struct statement *get_parent_stmt(struct expression *expr)
 
 	return expr_get_parent_stmt(expr);
 }
+
+/*
+ * Say we have a return -ENOMEM and we want to know why then we
+ * can call get_parent_if_stmt() and it returns the "if (!ptr) {"
+ * statement.
+ */
+struct statement *get_parent_if_stmt(struct expression *expr)
+{
+	struct statement *stmt;
+
+	stmt = get_parent_stmt(expr);
+	if (!stmt)
+		return NULL;
+	stmt = stmt_get_parent_stmt(stmt);
+	if (stmt && stmt->type == STMT_COMPOUND)
+		stmt = stmt_get_parent_stmt(stmt);
+	if (!stmt || stmt->type != STMT_IF)
+		return NULL;
+	return stmt;
+}
