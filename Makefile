@@ -347,6 +347,7 @@ SMATCH_OBJS += smatch_param_limit.o
 SMATCH_OBJS += smatch_param_set.o
 SMATCH_OBJS += smatch_param_to_mtag_data.o
 SMATCH_OBJS += smatch_param_used.o
+SMATCH_OBJS += smatch_parents.o
 SMATCH_OBJS += smatch_parse_call_math.o
 SMATCH_OBJS += smatch_parsed_conditions.o
 SMATCH_OBJS += smatch_passes_array_size.o
