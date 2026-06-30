@@ -23,49 +23,45 @@
 
 static int my_id;
 
-static void match_return(struct expression *ret_value)
+static struct expression *get_assigned_ptr(struct expression *expr)
 {
-	struct expression *expr;
-	struct sm_state *sm;
-	struct stree *stree;
+	if (!expr)
+		return NULL;
+	if (expr->type == EXPR_COMPARE &&
+	    expr->op == SPECIAL_EQUAL &&
+	    expr_is_zero(expr->right))
+		return get_assigned_ptr(expr->left);
+
+	return get_assigned_expr(expr);
+}
+
+static void match_return(struct expression *expr)
+{
+	struct expression *cond, *assign;
+	struct statement *stmt;
 	sval_t sval;
 
-	if (!ret_value)
+	if (!expr)
 		return;
 	if (returns_unsigned(cur_func_sym))
 		return;
 	if (returns_pointer(cur_func_sym))
 		return;
-	if (!get_value(ret_value, &sval) || sval.value != -1)
+	if (!get_value(expr, &sval))
 		return;
-	if (get_macro_name(ret_value->pos))
+	if (sval.value == -12 || sval.value == 0 || !sval_is_negative(sval))
 		return;
-
-	stree = __get_cur_stree();
-
-	FOR_EACH_MY_SM(SMATCH_EXTRA, stree, sm) {
-		if (!estate_get_single_value(sm->state, &sval) || sval.value != 0)
-			continue;
-		expr = get_assigned_expr_name_sym(sm->name, sm->sym);
-		if (!expr)
-			continue;
-		if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
-			continue;
-		if (!expr->fn->symbol_name)
-			continue;
-		/* To be honest the correct check is:
-		 * if (strstr(expr->fn->symbol_name->name, "alloc"))
-		 * 	complain();
-		 * But it generates too many warnings and it's too depressing.
-		 */
-		if (strcmp(expr->fn->symbol_name->name, "kmalloc") != 0 &&
-		    strcmp(expr->fn->symbol_name->name, "kzalloc") != 0)
-			continue;
-
-		sm_warning("returning -1 instead of -ENOMEM is sloppy");
+	if (get_macro_name(expr->pos))
 		return;
 
-	} END_FOR_EACH_SM(sm);
+	stmt = get_parent_if_stmt(expr);
+	if (!stmt)
+		return;
+	cond = strip_expr(stmt->if_conditional);
+	assign = get_assigned_ptr(cond);
+	if (!is_allocation_primitive(assign))
+		return;
+	sm_warning("return -ENOMEM on allocation failure");
 }
 
 void check_return_enomem(int id)
