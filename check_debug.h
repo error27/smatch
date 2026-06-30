@@ -103,6 +103,7 @@ static inline void __smatch_container(long long container, long long x){}
 	__smatch_container(cast_ptr(container), cast_ptr(x))
 static inline void __smatch_param_key(long long val){}
 #define __smatch_param_key(x) __smatch_param_key(cast_ptr(x))
+static inline void __smatch_arg_key(void *arg, const char *key){}
 static inline void __smatch_return_str(long long val){}
 #define __smatch_return_str(x) __smatch_return_str(cast_ptr(x))
 static inline void __smatch_marker(char **p){}

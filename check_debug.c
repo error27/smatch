@@ -967,6 +967,27 @@ static void match_param_key(const char *fn, struct expression *expr, void *info)
 	free_string(name);
 }
 
+static void match_arg_key(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg, *key;
+	char *arg_name, *name;
+
+	arg = get_check_arg(expr, 0);
+	arg_name = expr_to_str(arg);
+
+	key = get_check_arg(expr, 1);
+	if (!key || key->type != EXPR_STRING) {
+		dbg("expected: __smatch_arg_key(ptr, \"$->foo->bar\")");
+		return;
+	}
+	name = get_variable_from_key(arg, key->string->data, NULL);
+
+	dbg("arg='%s' key='%s' result='%s'", arg_name, key->string->data, name);
+
+	free_string(arg_name);
+	free_string(name);
+}
+
 const char *get_return_ranges_str(struct expression *expr, struct range_list **rl_p);
 static void match_return_ranges(const char *fn, struct expression *expr, void *info)
 {
@@ -1178,6 +1199,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_units", &match_units, NULL);
 	add_function_hook("__smatch_container", &match_container, NULL);
 	add_function_hook("__smatch_param_key", &match_param_key, NULL);
+	add_function_hook("__smatch_arg_key", &match_arg_key, NULL);
 	add_function_hook("__smatch_return_str", &match_return_ranges, NULL);
 	add_function_hook("__smatch_timer_start", &match_timer_start, NULL);
 	add_function_hook("__smatch_timer_stop", &match_timer_stop, NULL);

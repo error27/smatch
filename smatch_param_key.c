@@ -298,62 +298,39 @@ struct expression *map_netdev_priv_to_simpler_expr_key(struct expression *expr, 
 
 char *get_variable_from_key(struct expression *arg, const char *key, struct symbol **sym)
 {
-	struct symbol *type;
 	char buf[256];
-	char copy[128];
-	char *tmp;
-	bool add_parens = false;
-	bool address = false;
-	int star_cnt = 0;
-	bool add_dot = false;
-	int ret;
+	char *var;
+	int off = 0;
 
-	// FIXME:  this function has been marked for being made static
-	// Use get_name_sym_from_param_key().
+	if (!key)
+		return NULL;
+	arg = strip_expr(arg);
+	if (!arg)
+		return NULL;
 
 	if (sym)
 		*sym = NULL;
 
-	if (!arg)
-		return NULL;
-
-	arg = strip_expr(arg);
-
-	if (strcmp(key, "$") == 0)
-		return expr_to_var_sym(arg, sym);
-
-	if (strcmp(key, "*$") == 0) {
-		if (arg->type == EXPR_PREOP && arg->op == '&') {
-			arg = strip_expr(arg->unop);
-			return expr_to_var_sym(arg, sym);
-		} else {
-			tmp = expr_to_var_sym(arg, sym);
-			if (!tmp)
-				return NULL;
-			ret = snprintf(buf, sizeof(buf), "*%s", tmp);
-			free_string(tmp);
-			if (ret >= sizeof(buf))
-				return NULL;
-			return alloc_string(buf);
-		}
-	}
-
-	if (strncmp(key, "(*$)", 4) == 0) {
-		if (arg->type == EXPR_PREOP && arg->op == '&') {
-			arg = strip_expr(arg->unop);
-			snprintf(buf, sizeof(buf), "$%s", key + 4);
-			return get_variable_from_key(arg, buf, sym);
-		} else {
-			tmp = expr_to_var_sym(arg, sym);
-			if (!tmp)
-				return NULL;
-			ret = snprintf(buf, sizeof(buf), "(*%s)%s", tmp, key + 4);
-			free_string(tmp);
-			if (ret >= sizeof(buf))
-				return NULL;
-			return alloc_string(buf);
-		}
-	}
+	/*
+	 * The format is:
+	 * asterisks or an ampersand
+	 * then parens maybe a stuff inside including a $
+	 * or just $ with no parens
+	 * followed by ->foo
+	 *
+	 * The stuff in parens could be:
+	 * (*$)
+	 * (16<~$0) // starts with a digit
+	 * (r netdev_priv($))
+	 * ((&(16<~$0)->destroy_work))->data.counter // nested parens
+	 *
+	 * When we're handling the $ the tricky bit is that *& cancels
+	 * out.  Or if we just have &foo then $->x becomes a foo.x.
+	 *
+	 * Ideally, probably this function would be a recursive function
+	 * but I wrote the map_container_of_to_simpler_expr_key() and
+	 * map_netdev_priv_to_simpler_expr_key() already so...
+	 */
 
 	if (strstr(key, "<~$")) {
 		struct expression *expr;
@@ -362,11 +339,8 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		expr = map_container_of_to_simpler_expr_key(arg, key, &new_key);
 		if (!expr)
 			return NULL;
-		if (arg != expr) {
+		if (arg != expr)
 			arg = expr;
-			if (sym)
-				*sym = expr_to_sym(expr);
-		}
 		key = new_key;
 	}
 
@@ -377,99 +351,81 @@ char *get_variable_from_key(struct expression *arg, const char *key, struct symb
 		expr = map_netdev_priv_to_simpler_expr_key(arg, key, &new_key);
 		if (!expr)
 			return NULL;
-		if (arg != expr) {
+		if (arg != expr)
 			arg = expr;
-			if (sym)
-				*sym = expr_to_sym(expr);
-		}
 		key = new_key;
 	}
 
-	while (key[0] == '*') {
-		star_cnt++;
+	if (sym)
+		*sym = expr_to_sym(arg);
+
+	while ((key[0] == '*' || key[0] == '&') && (off < sizeof(buf))) {
+		buf[off++] = key[0];
 		key++;
 	}
 
-	if (key[0] == '(') {
-		int len;
+	if (off >= sizeof(buf) || key[0] == '\0')
+		return NULL;
 
-		snprintf(copy, sizeof(copy), "%s", key);
-		len = strlen(copy);
-		if (len && copy[len - 1] == ')') {
-			copy[len - 1] = '\0';
-			key = copy + 1;
+	if (strncmp(key, "(*$)", 4) == 0) {
+		key += 4;
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			/* the *& cancels out and we can drop the parens */
+			arg = strip_expr(arg->unop);
+			var = expr_to_var(arg);
+			if (!var)
+				return NULL;
+			snprintf(buf + off, sizeof(buf) - off, "%s%s", var, key);
+			return alloc_string(buf);
+
+		} else {
+			var = expr_to_var(arg);
+			if (!var)
+				return NULL;
+			snprintf(buf + off, sizeof(buf) - off, "(*%s)%s", var, key);
+			return alloc_string(buf);
 		}
-		add_parens = true;
+	} else if (key[0] == '$') {
+		if (arg->type == EXPR_PREOP && arg->op == '&') {
+			if (off && buf[off - 1] == '*') {
+				key++;
+				off--;
+				/* the *& cancels out */
+				arg = strip_expr(arg->unop);
+				var = expr_to_var(arg);
+				if (!var)
+					return NULL;
+				snprintf(buf + off, sizeof(buf) - off, "%s%s", var, key);
+				return alloc_string(buf);
+			} else if (key[1] == '-') {
+				key += 3;
+				/* the &foo + $->bar becomes foo.bar */
+				arg = strip_expr(arg->unop);
+				var = expr_to_var(arg);
+				if (!var)
+					return NULL;
+				snprintf(buf + off, sizeof(buf) - off, "%s.%s", var, key);
+				return alloc_string(buf);
+			} else {
+				key++;
+				var = expr_to_var(arg);
+				if (!var)
+					return NULL;
+				snprintf(buf + off, sizeof(buf) - off, "%s%s", var, key);
+				return alloc_string(buf);
+
+			}
+		} else {
+			var = expr_to_var(arg);
+			if (!var)
+				return NULL;
+			key++;
+			snprintf(buf + off, sizeof(buf) - off, "%s%s", var, key);
+			return alloc_string(buf);
+
+		}
 	}
-
-	if (key[0] == '&') {
-		if (star_cnt)
-			star_cnt--;
-		else
-			address = true;
-		key++;
-	}
-
-	if (key[0] != '$')
-		return NULL;
-
-	/*
-	 * FIXME:  This is a hack.
-	 * We should be able to parse expressions like (*$)->foo and *$->foo.
-	 */
-	type = get_type(arg);
-	if (is_struct_ptr(type))
-		add_dot = true;
-
-	if (arg->type == EXPR_PREOP && arg->op == '&' && star_cnt && !add_dot) {
-		arg = strip_expr(arg->unop);
-		star_cnt--;
-	}
-
-	if (add_parens && !star_cnt)
-		add_parens = false;
-
-	if (arg->type == EXPR_PREOP && arg->op == '&') {
-		arg = strip_expr(arg->unop);
-		tmp = expr_to_var_sym(arg, sym);
-		if (!tmp)
-			return NULL;
-		if (!strchr(tmp, '+') &&
-		    !strchr(tmp, '*'))
-			add_parens = false;
-		ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s.%s%s",
-			       address ? "&" : "", star_cnt, "**********",
-			       add_parens ? "(" : "",
-			       tmp, key + 3,
-			       add_parens ? ")" : "");
-		if (ret >= sizeof(buf))
-			return NULL;
-		return alloc_string(buf);
-	}
-
-	tmp = expr_to_var_sym(arg, sym);
-	if (!tmp)
-		return NULL;
-
-	/* FIXME: This is a hack.
-	 * It's to handle that smatch_modification_hooks.c adds "*()" to
-	 * the string, but probably the parens are not required.  Probably
-	 * this whole function should be re-thought.  We should probably
-	 * generate an expression and then add an EXPR_PREOP.
-	 */
-	if (!strchr(tmp, '+') &&
-	    !strchr(tmp, '*'))
-		add_parens = false;
-
-	ret = snprintf(buf, sizeof(buf), "%s%.*s%s%s%s%s",
-		       address ? "&" : "", star_cnt, "**********",
-		       add_parens ? "(" : "",
-		       tmp, key + 1,
-		       add_parens ? ")" : "");
-	free_string(tmp);
-	if (ret >= sizeof(buf))
-		return NULL;
-	return alloc_string(buf);
+	return NULL;
 }
 
 bool split_param_key(const char *value, int *param, char *key, int len)

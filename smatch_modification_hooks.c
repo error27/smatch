@@ -174,7 +174,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!arg)
 		return;
 
-	snprintf(buf, sizeof(buf), "*(%s)", key);
+	snprintf(buf, sizeof(buf), "*%s", key);
 	name = get_variable_from_key(arg, buf, &sym);
 	if (!name || !sym)
 		goto free;
