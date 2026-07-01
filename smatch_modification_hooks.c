@@ -174,7 +174,7 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 	if (!arg)
 		return;
 
-	snprintf(buf, sizeof(buf), "*%s", key);
+	snprintf(buf, sizeof(buf), "%s", key);
 	name = get_variable_from_key(arg, buf, &sym);
 	if (!name || !sym)
 		goto free;
@@ -193,6 +193,14 @@ static void db_param_add(struct expression *expr, int param, char *key, char *va
 
 free:
 	free_string(name);
+}
+
+static void db_buf_add(struct expression *expr, int param, char *key, char *value)
+{
+	char buf[128];
+
+	snprintf(buf, sizeof(buf), "*%s", key);
+	db_param_add(expr, param, buf, value);
 }
 
 static void match_assign(struct expression *expr, int late)
@@ -308,8 +316,8 @@ void smatch_modification_hooks_late(int id)
 
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_add);
-	select_return_states_hook(BUF_ADD, &db_param_add);
-	select_return_states_hook(BUF_CLEARED, &db_param_add);
+	select_return_states_hook(BUF_ADD, &db_buf_add);
+	select_return_states_hook(BUF_CLEARED, &db_buf_add);
 
 	add_hook(&match_assign_late, ASSIGNMENT_HOOK_AFTER);
 	add_hook(&unop_expr_late, OP_HOOK);
