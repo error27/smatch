@@ -235,7 +235,10 @@ static struct symbol *get_select_type(struct expression *expr)
 {
 	struct symbol *one, *two;
 
-	one = get_type(expr->cond_true);
+	if (expr->cond_true)
+		one = get_type(expr->cond_true);
+	else
+		one = get_type(expr->conditional);
 	two = get_type(expr->cond_false);
 	if (!one || !two)
 		return NULL;
