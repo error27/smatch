@@ -316,6 +316,50 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 	data->size_rl = cast_rl(&ulong_ctype, rl);
 }
 
+static unsigned long __GFP_ZERO(void)
+{
+	static unsigned long GFP_ZERO = -1;
+	struct symbol *sym;
+        struct ident *id;
+	sval_t sval;
+
+	if (GFP_ZERO != -1)
+		return GFP_ZERO;
+
+	id = built_in_ident("___GFP_ZERO_BIT");
+        sym = lookup_symbol(id, NS_SYMBOL);
+	if (!sym)
+		return 0;
+	if (!get_implied_value(sym->initializer, &sval))
+		return 0;
+
+	GFP_ZERO = 1UL << sval.value;
+	return GFP_ZERO;
+}
+
+static bool is_zeroed_alloc(struct expression *expr, struct alloc_fn_info *info)
+{
+	struct expression *arg;
+	sval_t sval;
+	int gfp;
+
+	if (info) {
+		if (info->zeroed)
+			return true;
+		if (strstr(info->name, "zalloc") || strstr(info->name, "calloc"))
+			return true;
+	}
+
+	gfp = get_gfp_param(expr);
+	if (gfp < 0)
+		return false;
+	arg = get_argument_from_call_expr(expr->args, gfp);
+	if (!get_implied_value(arg, &sval))
+		return false;
+
+	return sval.uvalue & __GFP_ZERO();
+}
+
 #define SIZE_STR_MAX 64
 static bool load_alloc_fn_info_from_attribute(struct expression *expr, struct alloc_fn_info *info)
 {
@@ -339,7 +383,7 @@ static bool load_alloc_fn_info_from_attribute(struct expression *expr, struct al
 		snprintf((char *)info->size, SIZE_STR_MAX, "$%d * $%d",
 			 fn_sym->alloc_size->param1 - 1,
 			 fn_sym->alloc_size->param2 - 1);
-	if (strstr(info->name, "zalloc") || strstr(info->name, "calloc"))
+	if (is_zeroed_alloc(call, info))
 		info->zeroed = true;
 
 	return true;
