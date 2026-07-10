@@ -565,6 +565,9 @@ struct sm_state *get_ssa_sm_state_expr(int owner, struct expression *expr);
 struct smatch_state *get_ssa_state(int owner, const char *name, struct symbol *sym);
 struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr);
 
+/* smatch_ssa_pointer.c */
+const char *get_ssa_ptr_name(struct expression *expr);
+
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);
 char *alloc_string(const char *str);

@@ -475,6 +475,19 @@ static void match_member_name(const char *fn, struct expression *expr, void *inf
 	free_string(name);
 }
 
+static void match_ssa(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+	const char *ssa_name;
+	char *name;
+
+	arg = get_check_arg(expr, 0);
+	name = expr_to_str(arg);
+	ssa_name = get_ssa_ptr_name(arg);
+	dbg("name ssa_name: '%s => %s'", name, ssa_name);
+	free_string(name);
+}
+
 static void print_possible(struct sm_state *sm)
 {
 	struct sm_state *tmp;
@@ -1165,6 +1178,7 @@ void check_debug(int id)
 	add_function_hook("__smatch_real_absolute", &match_real_absolute, NULL);
 	add_function_hook("__smatch_sval_info", &match_sval_info, NULL);
 	add_function_hook("__smatch_member_name", &match_member_name, NULL);
+	add_function_hook("__smatch_ssa", &match_ssa, NULL);
 	add_function_hook("__smatch_possible", &match_possible, NULL);
 	add_function_hook("__smatch_cur_stree", &match_cur_stree, NULL);
 	add_function_hook("__smatch_strlen", &match_strlen, NULL);

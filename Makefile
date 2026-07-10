@@ -364,6 +364,7 @@ SMATCH_OBJS += smatch_refcount_info.o
 SMATCH_OBJS += smatch_returns.o
 SMATCH_OBJS += smatch_return_to_param.o
 SMATCH_OBJS += smatch_ssa.o
+SMATCH_OBJS += smatch_ssa_pointer.o
 SMATCH_OBJS += smatch_simple_no_overflow.o
 SMATCH_OBJS += smatch_slist.o
 SMATCH_OBJS += smatch_start_states.o
