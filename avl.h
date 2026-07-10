@@ -91,6 +91,11 @@ bool avl_check_invariants(struct stree *avl);
 	avl_foreach(_i, avl) {			\
 		_sm = _i.sm;
 
+#define FOR_EACH_SM_REVERSE(avl, _sm) {		\
+	AvlIter _i;				\
+	avl_foreach_reverse(_i, avl) {		\
+		_sm = _i.sm;
+
 #define END_FOR_EACH_SM(_sm) }}
 
 #define FOR_EACH_SM_SAFE(avl, _sm) {		\
