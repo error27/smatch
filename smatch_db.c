@@ -2722,7 +2722,7 @@ vanilla:
 		return;
 	}
 	call_return_states_callbacks(return_ranges, expr);
-	sm_dsplit("used vanilla split: expr='%s'", expr_to_str(expr));
+	sm_dsplit("used vanilla split: expr='%s' return_ranges='%s'", expr_to_str(expr), return_ranges);
 }
 
 static void print_returned_struct_members(int return_id, char *return_ranges, struct expression *expr)
