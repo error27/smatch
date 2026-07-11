@@ -333,6 +333,15 @@ char *get_other_name_sym_nostack(const char *name, struct symbol *sym, struct sy
 	return get_other_name_sym_helper(name, sym, new_sym, false);
 }
 
+static void call_update_mtag_data(struct expression *expr,
+				  struct smatch_state *state)
+{
+	if (is_fake_assign(expr))
+		return;
+
+	update_mtag_data(expr, state);
+}
+
 static bool in_param_set;
 static void set_extra_mod_helper(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state, bool store)
 {
@@ -343,6 +352,7 @@ static void set_extra_mod_helper(const char *name, struct symbol *sym, struct ex
 	call_extra_mod_hooks(name, sym, expr, state);
 	if (!store)
 		return;
+	call_update_mtag_data(expr, state);
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
 		return;
