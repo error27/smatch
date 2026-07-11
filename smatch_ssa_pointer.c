@@ -178,7 +178,7 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 
 static void match_assign(struct expression *expr)
 {
-	struct smatch_state *ssa;
+	struct smatch_state *state;
 	struct symbol *type;
 
 	if (expr->op != '=')
@@ -190,10 +190,21 @@ static void match_assign(struct expression *expr)
 	if (!is_ptr_type(type))
 		return;
 
-	ssa = get_or_alloc_ssa_ptr(expr->right);
-	if (!ssa)
+	state = get_or_alloc_ssa_ptr(expr->right);
+	if (!state && expr->right && expr->right->type == EXPR_CALL) {
+		char *name;
+
+		name = expr_to_var(expr->left);
+		if (!name)
+			return;
+		state = ssa_ptr_new(name);
+		free_string(name);
+		store_ssa_state(expr->left, state);
 		return;
-	store_ssa_state(expr->left, ssa);
+	}
+	if (!state)
+		return;
+	store_ssa_state(expr->left, state);
 }
 
 void smatch_ssa_pointer(int id)
