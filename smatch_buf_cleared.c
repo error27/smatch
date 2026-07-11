@@ -806,12 +806,12 @@ bool in_buf_clear(struct expression *expr)
 
 bool in_buf_zero_name_sym(const char *name, struct symbol *sym)
 {
-	return in_buf_clear_name_sym_helper(name, sym, false);
+	return in_buf_clear_name_sym_helper(name, sym, true);
 }
 
 bool in_buf_zero(struct expression *expr)
 {
-	return in_buf_clear_helper(expr, false);
+	return in_buf_clear_helper(expr, true);
 }
 
 bool parent_buf_clear_name_sym(const char *name, struct symbol *sym)
