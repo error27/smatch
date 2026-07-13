@@ -235,11 +235,6 @@ struct sm_state *alloc_sm_state(int owner, const char *name,
 	sm_state->sym = sym;
 	sm_state->state = state;
 	sm_state->line = get_lineno();
-	sm_state->merged = 0;
-	sm_state->pool = NULL;
-	sm_state->left = NULL;
-	sm_state->right = NULL;
-	sm_state->possible = NULL;
 	add_ptr_list(&sm_state->possible, sm_state);
 	return sm_state;
 }
