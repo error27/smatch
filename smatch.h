@@ -830,7 +830,14 @@ struct statement *get_last_stmt(void);
 int is_last_stmt(struct statement *cur_stmt);
 
 /* smatch_struct_assignment.c */
+enum {
+	COPY_NORMAL,
+	COPY_UNKNOWN,
+	COPY_ZERO,
+};
 struct expression *get_faked_expression(void);
+typedef void (struct_copy_hook)(int mode, struct expression *left, struct expression *right);
+void add_struct_copy_hook(struct_copy_hook *hook);
 void __fake_struct_member_assignments(struct expression *expr);
 void create_recursive_fake_assignments(struct expression *expr,
 		void (*assign_handler)(struct expression *expr, void *data),

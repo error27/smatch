@@ -867,14 +867,15 @@ static void match_is_clear(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *arg;
 	char *name;
-	bool in;
+	bool zeroed, cleared;
 
 	arg = get_check_arg(expr, 0);
 
 	name = expr_to_str(arg);
 
-	in = in_buf_clear(arg);
-	dbg("%s: is_clear=%d", name, in);
+	zeroed = in_buf_zero(arg);
+	cleared = in_buf_clear(arg);
+	dbg("%s: %s", name, zeroed ? "zeroed" : cleared ? "cleared" : "nope");
 	free_string(name);
 }
 

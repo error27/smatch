@@ -268,6 +268,7 @@ SMATCH_OBJS += smatch_buf_cleared.o
 SMATCH_OBJS += smatch_buf_comparison.o
 SMATCH_OBJS += smatch_buf_comparison2.o
 SMATCH_OBJS += smatch_buf_size.o
+SMATCH_OBJS += smatch_buf_zero.o
 SMATCH_OBJS += smatch_capped.o
 SMATCH_OBJS += smatch_cleanup.o
 SMATCH_OBJS += smatch_common_functions.o

@@ -63,12 +63,6 @@
 
 static int my_id;
 
-enum {
-	COPY_NORMAL,
-	COPY_UNKNOWN,
-	COPY_ZERO,
-};
-
 static struct symbol *get_struct_type(struct expression *expr)
 {
 	struct symbol *type;
@@ -140,6 +134,25 @@ struct expression *get_faked_expression(void)
 	if (!__in_fake_assign)
 		return NULL;
 	return faked_expression;
+}
+
+DECLARE_PTR_LIST(copy_hook_list, struct_copy_hook);
+struct copy_hook_list *copy_hooks;
+
+void add_struct_copy_hook(struct_copy_hook *hook)
+{
+	add_ptr_list(&copy_hooks, hook);
+}
+
+static void call_struct_copy_hooks(int mode, struct expression *left, struct expression *right)
+{
+	struct_copy_hook *hook;
+
+	__in_fake_assign++;
+	FOR_EACH_PTR(copy_hooks, hook) {
+		hook(mode, left, right);
+	} END_FOR_EACH_PTR(hook);
+	__in_fake_assign--;
 }
 
 static void split_fake_expr(struct expression *expr, void *unused)
@@ -336,6 +349,7 @@ static void __struct_members_copy(int mode, struct expression *faked,
 		return;
 
 	faked_expression = faked;
+	call_struct_copy_hooks(mode, left, right);
 
 	left = strip_expr(left);
 	right = strip_expr(right);

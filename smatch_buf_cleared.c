@@ -759,7 +759,7 @@ static bool buf_contains(const char *container, const char *var, bool parent)
 	return true;
 }
 
-static bool in_buf_clear_name_sym_helper(const char *name, struct symbol *sym, bool in_zero)
+static bool in_buf_clear_name_sym_helper(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
 
@@ -770,15 +770,13 @@ static bool in_buf_clear_name_sym_helper(const char *name, struct symbol *sym, b
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (sm->sym != sym)
 			continue;
-		if (in_zero && sm->state != &zeroed)
-			continue;
 		if (buf_contains(sm->name, name, false))
 			return true;
 	} END_FOR_EACH_SM(sm);
 	return false;
 }
 
-static bool in_buf_clear_helper(struct expression *expr, bool in_zero)
+static bool in_buf_clear_helper(struct expression *expr)
 {
 	struct symbol *sym;
 	char *name;
@@ -788,7 +786,7 @@ static bool in_buf_clear_helper(struct expression *expr, bool in_zero)
 	if (!name)
 		return false;
 
-	ret = in_buf_clear_name_sym_helper(name, sym, in_zero);
+	ret = in_buf_clear_name_sym_helper(name, sym);
 	free_string(name);
 
 	return ret;
@@ -796,22 +794,12 @@ static bool in_buf_clear_helper(struct expression *expr, bool in_zero)
 
 bool in_buf_clear_name_sym(const char *name, struct symbol *sym)
 {
-	return in_buf_clear_name_sym_helper(name, sym, false);
+	return in_buf_clear_name_sym_helper(name, sym);
 }
 
 bool in_buf_clear(struct expression *expr)
 {
-	return in_buf_clear_helper(expr, false);
-}
-
-bool in_buf_zero_name_sym(const char *name, struct symbol *sym)
-{
-	return in_buf_clear_name_sym_helper(name, sym, true);
-}
-
-bool in_buf_zero(struct expression *expr)
-{
-	return in_buf_clear_helper(expr, true);
+	return in_buf_clear_helper(expr);
 }
 
 bool parent_buf_clear_name_sym(const char *name, struct symbol *sym)
