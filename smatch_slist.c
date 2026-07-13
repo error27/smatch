@@ -239,6 +239,22 @@ struct sm_state *alloc_sm_state(int owner, const char *name,
 	return sm_state;
 }
 
+struct sm_state *alloc_sm_state_perm(int owner, const char *name,
+				struct symbol *sym, struct smatch_state *state)
+{
+	struct sm_state *sm;
+
+	sm = malloc(sizeof(*sm) + strlen(name) + 1);
+	memset(sm, 0, sizeof(*sm));
+	sm->line = get_lineno();
+	sm->owner = owner;
+	sm->name = (char *)(sm + 1);
+	strcpy((char *)sm->name, name);
+	sm->sym = sym;
+	sm->state = state;
+	return sm;
+}
+
 static struct sm_state *alloc_state_no_name(int owner, const char *name,
 				     struct symbol *sym,
 				     struct smatch_state *state)
@@ -608,15 +624,7 @@ void set_state_stree_perm(struct stree **stree, int owner, const char *name,
 {
 	struct sm_state *sm;
 
-	sm = malloc(sizeof(*sm) + strlen(name) + 1);
-	memset(sm, 0, sizeof(*sm));
-	sm->line = get_lineno();
-	sm->owner = owner;
-	sm->name = (char *)(sm + 1);
-	strcpy((char *)sm->name, name);
-	sm->sym = sym;
-	sm->state = state;
-
+	sm = alloc_sm_state_perm(owner, name, sym, state);
 	overwrite_sm_state_stree(stree, sm);
 }
 
