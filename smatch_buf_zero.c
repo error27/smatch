@@ -132,12 +132,25 @@ static struct expression *remove_dereference(struct expression *expr)
 	return preop_expression(expr, '&');
 }
 
+static void match_assign(struct expression *left, struct expression *right)
+{
+	struct expression *expr;
+
+	if (!in_buf_zero(right))
+		return;
+
+	expr = remove_dereference(left);
+	set_state_expr(my_id, expr, &zeroed);
+}
+
 static void match_zero_copy(int mode, struct expression *left, struct expression *right)
 {
 	struct expression *expr;
 
-	if (mode != COPY_ZERO)
+	if (mode != COPY_ZERO) {
+		match_assign(left, right);
 		return;
+	}
 
 	expr = remove_dereference(left);
 	set_state_expr(my_id, expr, &zeroed);
