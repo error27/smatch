@@ -171,9 +171,6 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	if (!name)
 		return NULL;
 
-	if (name[0] == '&')
-		name++;
-
 	sm = get_ssa_ptr_sm(name, sym);
 	if (!sm) {
 		state = ssa_ptr_new(name);
