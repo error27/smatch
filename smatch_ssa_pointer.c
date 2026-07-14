@@ -45,51 +45,72 @@ static struct smatch_state *ssa_ptr_new(const char *name)
 	return state;
 }
 
-const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
+static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 {
-	struct smatch_state *state;
 	struct sm_state *sm;
-	char buf[128];
+	bool amp = false;
 	int len;
 
 	if (!name || !sym)
 		return NULL;
 
 	if (name[0] == '&') {
-		state = get_state(my_id, name + 1, sym);
-		if (state && state != &undefined && state != &merged)
-			return state->name;
-		return NULL;
+		name++;
+		amp = true;
 	}
 
-	state = get_state(my_id, name, sym);
-	if (state) {
-		if (state == &undefined || state == &merged)
+	sm = get_sm_state(my_id, name, sym);
+	if (sm) {
+		if (sm->state == &undefined || sm->state == &merged)
 			return NULL;
-		return state->name;
+		return sm;
 	}
 
 	FOR_EACH_SM_REVERSE(has_ssa, sm) {
 		if (sm->sym != sym)
 			continue;
+		if (sm->state == &undefined || sm->state == &merged)
+			return NULL;
 		len = strlen(sm->name);
 		if (strncmp(sm->name, name, len) != 0)
 			continue;
 		if (name[len] == '-' || name[len] == '.')
+			goto found;
+		if (amp && name[len] == '\0')
 			goto found;
 	} END_FOR_EACH_SM(sm);
 
 	return NULL;
 
 found:
-	state = get_state(my_id, sm->name, sm->sym);
-	if (!state || state == &undefined || state == &merged)
+	sm = get_sm_state(my_id, sm->name, sm->sym);
+	if (!sm || sm->state == &undefined || sm->state == &merged)
+		return NULL;
+	return sm;
+}
+
+const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+	char buf[128];
+	int len;
+
+	sm = get_ssa_ptr_sm(name, sym);
+	if (!sm)
 		return NULL;
 
+	len = strlen(sm->name);
+	if (strlen(name) < len) {
+		sm_perror("unexpected ssa ptr length name=%s sm->name=%s state->name=%s, len=%d",
+			  name, sm->name, sm->state->name, len);
+		return NULL;
+	}
+	if (name[len] == '\0')
+		return sm->state->name;
 	if (name[len] == '-')
-		snprintf(buf, sizeof(buf), "%s%s", state->name, name + len);
+		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, name + len);
 	else
-		snprintf(buf, sizeof(buf), "%s->%s", state->name, name + len + 1);
+		snprintf(buf, sizeof(buf), "%s->%s", sm->state->name, name + len + 1);
 
 	return alloc_sname(buf);
 
@@ -128,7 +149,9 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 {
 	struct smatch_state *state;
 	const char *ssa_name;
+	struct sm_state *sm;
 	struct symbol *type;
+	struct symbol *sym;
 	char *name;
 
 	if (!expr)
@@ -141,36 +164,29 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	if (!type || type->type != SYM_STRUCT)
 		return NULL;
 
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
+	if (expr->type == EXPR_PREOP && expr->op == '&')
 		expr = strip_expr(expr->unop);
-		state = get_state_expr(my_id, expr);
-		if (state && state != &undefined && state != &merged)
-			return state;
 
-		name = expr_to_var(expr);
-		if (!name)
-			return NULL;
+	name = expr_to_var_sym(expr, &sym);
+	if (!name)
+		return NULL;
+
+	if (name[0] == '&')
+		name++;
+
+	sm = get_ssa_ptr_sm(name, sym);
+	if (!sm) {
 		state = ssa_ptr_new(name);
 		free_string(name);
 		store_ssa_state(expr, state);
 		return state;
 	}
-
-	state = get_state_expr(my_id, expr);
-	if (state && state != &undefined && state != &merged)
-		return state;
-
-	ssa_name = get_ssa_ptr_name(expr);
-	if (ssa_name) {
-		state = ssa_ptr_member(ssa_name);
-		store_ssa_state(expr, state);
-		return state;
+	if (strcmp(sm->name, name) == 0) {
+		free_string(name);
+		return sm->state;
 	}
-
-	name = expr_to_var(expr);
-	if (!name)
-		return NULL;
-	state = ssa_ptr_new(name);
+	ssa_name = get_ssa_ptr_name_sym(name, sym);
+	state = ssa_ptr_member(ssa_name);
 	free_string(name);
 	store_ssa_state(expr, state);
 	return state;
