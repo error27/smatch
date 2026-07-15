@@ -21,7 +21,6 @@ static int my_id;
 
 static int print_unreached = 1;
 static struct string_list *turn_off_names;
-static struct string_list *ignore_names;
 
 static bool empty_statement(struct statement *stmt)
 {
@@ -46,7 +45,6 @@ static void print_unreached_initializers(struct symbol_list *sym_list)
 static bool is_ignored_macro(struct statement *stmt)
 {
 	char *name;
-	char *tmp;
 
 	name = get_macro_name(stmt->pos);
 	if (!name)
@@ -54,11 +52,6 @@ static bool is_ignored_macro(struct statement *stmt)
 
 	if (strncmp(name, "for_", 4) == 0)
 		return true;
-
-	FOR_EACH_PTR(ignore_names, tmp) {
-		if (strcmp(tmp, name) == 0)
-			return true;
-	} END_FOR_EACH_PTR(tmp);
 
 	return false;
 }
@@ -257,39 +250,11 @@ static void register_turn_off_macros(void)
 	clear_token_alloc();
 }
 
-static void register_ignored_macros(void)
-{
-	struct token *token;
-	char *macro;
-	char name[256];
-
-	if (option_project == PROJ_NONE)
-		strcpy(name, "unreachable.ignore");
-	else
-		snprintf(name, 256, "%s/unreachable.ignore", option_project_str);
-
-	token = get_tokens_file(name);
-	if (!token)
-		return;
-	if (token_type(token) != TOKEN_STREAMBEGIN)
-		return;
-	token = token->next;
-	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			return;
-		macro = alloc_string(show_ident(token->ident));
-		add_ptr_list(&ignore_names, macro);
-		token = token->next;
-	}
-	clear_token_alloc();
-}
-
 void check_unreachable(int id)
 {
 	my_id = id;
 
 	register_turn_off_macros();
-	register_ignored_macros();
 	add_hook(&unreachable_stmt, STMT_HOOK);
 	add_hook(&turn_off_unreachable, STMT_HOOK_AFTER);
 }

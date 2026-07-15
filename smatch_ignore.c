@@ -15,6 +15,12 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
 #include "smatch.h"
 
 STATE(ignore);
@@ -70,6 +76,31 @@ int is_ignored_expr(int owner, struct expression *expr)
 	return false;
 }
 
+bool ignored_warning(const char *check_name)
+{
+	char *macro = NULL;
+	int owner = id_from_name(check_name);
+
+	if (option_info)
+		return false;
+	if (owner < 0)
+		return false;
+
+	if (get_state_stree(ignored_from_file, owner, get_filename(), NULL))
+		return true;
+
+	if (get_state_stree(ignored_from_file, owner, get_function(), NULL))
+		return true;
+
+	if (__hook_pos) {
+		macro = get_macro_name(*__hook_pos);
+		if (get_state_stree(ignored_from_file, owner, macro, NULL))
+			return true;
+	}
+
+	return false;
+}
+
 static void clear_ignores(void)
 {
 	if (__inline_fn)
@@ -77,14 +108,23 @@ static void clear_ignores(void)
 	free_stree(&ignored);
 }
 
-static void load_ignores(void)
+static void load_ignore_file(const char *ignore_file)
 {
 	struct token *token;
-	const char *name, *str;
+	const char *str;
 	int owner;
+	char check_name[64];
 	char buf[64];
+	char *p;
 
-	snprintf(buf, sizeof(buf), "%s/ignored_warnings", option_project_str);
+	p = strstr(ignore_file, ".ignore");
+	snprintf(check_name, sizeof(check_name), "%.*s", (int)(p - ignore_file),
+		 ignore_file);
+	owner = id_from_name(check_name);
+	if (owner < 0)
+		return;
+
+	snprintf(buf, sizeof(buf), "%s/%s", option_project_str, ignore_file);
 	token = get_tokens_file(buf);
 	if (!token)
 		return;
@@ -92,12 +132,6 @@ static void load_ignores(void)
 		return;
 	token = token->next;
 	while (token_type(token) != TOKEN_STREAMEND) {
-		if (token_type(token) != TOKEN_IDENT)
-			break;
-		name = show_ident(token->ident);
-		token = token->next;
-		owner = id_from_name(name);
-
 		if (token_type(token) != TOKEN_IDENT)
 			break;
 		str = show_ident(token->ident);
@@ -108,8 +142,33 @@ static void load_ignores(void)
 	clear_token_alloc();
 }
 
+static void load_ignore_files(void)
+{
+	struct dirent *entry;
+	char buf[64];
+	DIR *dir;
+
+
+	snprintf(buf, sizeof(buf), "%s/%s/", data_dir, option_project_str);
+	dir = opendir(buf);
+	if (!dir)
+		return;
+
+	while ((entry = readdir(dir))) {
+		if (entry->d_type != DT_REG)
+			continue;
+
+		if (strncmp(entry->d_name, "check_", 6) != 0 ||
+		    !strstr(entry->d_name, ".ignore"))
+			continue;
+		load_ignore_file(entry->d_name);
+	}
+
+	closedir(dir);
+}
+
 void smatch_smatch_ignore(int id)
 {
 	add_hook(&clear_ignores, AFTER_FUNC_HOOK);
-	load_ignores();
+	load_ignore_files();
 }

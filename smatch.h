@@ -398,6 +398,7 @@ static inline bool __output_enabled(void)
 
 	return true;
 }
+bool ignored_warning(const char *check_name);
 
 #define sm_printf(msg...) do {						\
 	if (__output_enabled())						\
@@ -420,6 +421,8 @@ static inline void print_implied_debug_msg();
 do {                                                           \
 	print_implied_debug_msg();                             \
 	if (!__output_enabled())			       \
+		break;					       \
+	if (ignored_warning(__CHECKNAME__))		       \
 		break;					       \
 	sm_prefix();					       \
 	if (type == 1) {				       \
@@ -828,6 +831,7 @@ int time_parsing_function(void);
 bool taking_too_long(void);
 struct statement *get_last_stmt(void);
 int is_last_stmt(struct statement *cur_stmt);
+extern struct position *__hook_pos;
 
 /* smatch_struct_assignment.c */
 enum {

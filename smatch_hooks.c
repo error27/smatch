@@ -132,14 +132,28 @@ void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct
 	pre_merge_hooks[client_id] = hook;
 }
 
-static void pass_expr_to_client(void *fn, void *data)
+struct position *__hook_pos;
+
+static void pass_expr_to_client(expr_func *fn, void *data)
 {
-	((expr_func *)fn)((struct expression *)data);
+	struct position *orig = __hook_pos;
+	struct expression *expr = data;
+
+	if (expr)
+		__hook_pos = &expr->pos;
+	fn(expr);
+	__hook_pos = orig;
 }
 
-static void pass_stmt_to_client(void *fn, void *data)
+static void pass_stmt_to_client(stmt_func *fn, void *data)
 {
-	((stmt_func *)fn)((struct statement *)data);
+	struct position *orig = __hook_pos;
+	struct statement *stmt = data;
+
+	if (stmt)
+		__hook_pos = &stmt->pos;
+	fn(stmt);
+	__hook_pos = orig;
 }
 
 static void pass_sym_to_client(void *fn, void *data)
