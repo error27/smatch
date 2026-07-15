@@ -93,9 +93,6 @@ bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm)
 		return false;
 
 	sm_name = sm->name;
-	if (sm_name[0] == '&')
-		sm_name++;
-
 	len = shared_cnt(sm_name, name);
 	if (name[len] == '\0') {
 		if (sm_name[len] == '\0')
@@ -129,6 +126,8 @@ static void call_modification_hooks_name_sym(char *name, struct symbol *sym, str
 		if (sm->owner > num_checks)
 			continue;
 		if (!hooks[sm->owner] && !hooks_late[sm->owner])
+			continue;
+		if (name[0] == '&')
 			continue;
 		match = is_sub_member(name, sym, sm);
 		if (!match)
