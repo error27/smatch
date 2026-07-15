@@ -356,6 +356,8 @@ static void set_extra_mod_helper(const char *name, struct symbol *sym, struct ex
 	if ((__in_fake_assign || in_param_set) &&
 	    estate_is_unknown(state) && !get_extra_name_sym(name, sym))
 		return;
+	if (in_buf_zeroing_expr() && !get_state(SMATCH_EXTRA, name, sym))
+		return;
 	set_state(SMATCH_EXTRA, name, sym, state);
 }
 
@@ -3339,9 +3341,31 @@ static struct sm_state *get_sm_from_call(struct expression *expr)
 	return get_sm_state(SMATCH_EXTRA, buf, NULL);
 }
 
+static struct sm_state *fake_zero_sm(void)
+{
+	static struct sm_state *sm;
+	static struct smatch_state *state;
+
+	if (sm)
+		return sm;
+
+	state = alloc_estate_sval(int_zero);
+	state = clone_estate_perm(state);
+
+	sm = alloc_sm_state_perm(SMATCH_EXTRA, "extra_zero", NULL, state);
+	return sm;
+}
+
 struct sm_state *get_extra_sm_name_sym(const char *name, struct symbol *sym)
 {
-	return get_sm_state(SMATCH_EXTRA, name, sym);
+	struct sm_state *sm;
+
+	sm = get_sm_state(SMATCH_EXTRA, name, sym);
+	if (sm)
+		return sm;
+	if (in_buf_zero_name_sym(name, sym))
+		return fake_zero_sm();
+	return NULL;
 }
 
 struct sm_state *get_extra_sm_state(struct expression *expr)
@@ -3361,7 +3385,7 @@ struct sm_state *get_extra_sm_state(struct expression *expr)
 	if (!name)
 		goto free;
 
-	ret = get_sm_state(SMATCH_EXTRA, name, sym);
+	ret = get_extra_sm_name_sym(name, sym);
 free:
 	free_string(name);
 	return ret;

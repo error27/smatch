@@ -132,6 +132,17 @@ static struct expression *remove_dereference(struct expression *expr)
 	return preop_expression(expr, '&');
 }
 
+static struct expression *buf_zero_expr;
+bool in_buf_zeroing_expr(void)
+{
+	struct expression *faked;
+
+	faked = get_faked_expression();
+	if (faked && faked == buf_zero_expr)
+		return true;
+	return false;
+}
+
 static void match_assign(struct expression *left, struct expression *right)
 {
 	struct expression *expr;
@@ -154,6 +165,7 @@ static void match_zero_copy(int mode, struct expression *left, struct expression
 
 	expr = remove_dereference(left);
 	set_state_expr(my_id, expr, &zeroed);
+	buf_zero_expr = get_faked_expression();
 }
 
 void smatch_buf_zero(int id)
