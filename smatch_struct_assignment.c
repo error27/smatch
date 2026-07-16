@@ -416,29 +416,19 @@ static void match_allocation(struct expression *expr,
 	if (!info->zeroed)
 		return;
 
-	while (expr && expr->type == EXPR_ASSIGNMENT)
-		expr = strip_expr(expr->right);
-
-	zero_allocation = expr;
+	zero_allocation = get_rightmost_call(expr);
 }
 
 static int returns_zeroed_mem(struct expression *expr)
 {
-	struct expression *tmp;
-
-	tmp = get_assigned_expr(expr);
-	if (tmp)
-		expr = tmp;
-
-	if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+	expr = get_rightmost_call(expr);
+	if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 		return 0;
 
 	if (is_fake_call(expr)) {
-		tmp = get_faked_expression();
-		if (!tmp || tmp->type != EXPR_ASSIGNMENT || tmp->op != '=')
-			return 0;
-		expr = tmp->right;
-		if (expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
+		expr = get_faked_expression();
+		expr = get_rightmost_call(expr);
+		if (!expr || expr->type != EXPR_CALL || expr->fn->type != EXPR_SYMBOL)
 			return 0;
 	}
 
