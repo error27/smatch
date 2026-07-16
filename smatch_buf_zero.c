@@ -168,10 +168,24 @@ static void match_zero_copy(int mode, struct expression *left, struct expression
 	buf_zero_expr = get_faked_expression();
 }
 
+static void select_param_zeroed(const char *name, struct symbol *sym, char *value)
+{
+	set_state(my_id, name, sym, &zeroed);
+}
+
+static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
+	if (sm->state != &zeroed)
+		return;
+	sql_insert_caller_info(call, BUF_ZERO, param, printed_name, "");
+}
+
 void smatch_buf_zero(int id)
 {
 	my_id = id;
 
 	add_modification_hook(my_id, &set_undefined);
 	add_struct_copy_hook(match_zero_copy);
+	add_caller_info_callback(my_id, caller_info_callback);
+	select_caller_name_sym(&select_param_zeroed, BUF_ZERO);
 }
