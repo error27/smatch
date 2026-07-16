@@ -1025,6 +1025,13 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 		if (state)
 			return state;
 	}
+	if (in_buf_zero_name_sym(sm->name, sm->sym)) {
+		sval_t sval;
+
+		sval.type = estate_type(sm->state);
+		sval.value = 0;
+		return alloc_estate_sval(sval);
+	}
 	if (parent_is_gone_var_sym(sm->name, sm->sym))
 		return alloc_estate_empty();
 	if (get_global_rl(sm->name, sm->sym, &rl))
