@@ -724,6 +724,7 @@ void smatch_struct_assignment(int id)
 	my_id = id;
 
 	add_function_data((unsigned long *)&faked_expression);
+	add_function_data((unsigned long *)&zero_allocation);
 
 	add_function_hook("memset", &match_memset, NULL);
 	add_function_hook("__memset", &match_memset, NULL);
