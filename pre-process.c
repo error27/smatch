@@ -1649,7 +1649,8 @@ Econcat:
 static struct token *parse_expansion(struct token *expansion, struct ident *name)
 {
 	int slots = macro_nargs + (macro_vararg < 0);
-	struct arg_state args[slots] = {};
+	struct arg_state args[slots];
+	memset(args, 0, sizeof(args));
 	struct token **tail;
 	struct token *token;
 
