@@ -20,6 +20,7 @@
 static int my_id;
 static unsigned long ssa_id = 1;
 static struct stree *has_ssa;
+static char *disable_ssa;
 
 static struct smatch_state *ssa_ptr_member(const char *name)
 {
@@ -220,9 +221,26 @@ static void match_assign(struct expression *expr)
 	store_ssa_state(expr->left, state);
 }
 
+void disable_ssa_pointers(int id)
+{
+	disable_ssa[id] = true;
+}
+
+bool ssa_pointers_disabled(int owner)
+{
+	return false;
+
+	if (owner >= 0 && owner < num_checks)
+		return disable_ssa[owner];
+	return false;
+}
+
 void smatch_ssa_pointer(int id)
 {
 	my_id = id;
+
+	disable_ssa = malloc(num_checks);
+	memset(disable_ssa, 0, num_checks);
 
 	add_function_data((unsigned long *)&has_ssa);
 

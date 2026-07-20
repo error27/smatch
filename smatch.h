@@ -569,6 +569,9 @@ struct smatch_state *get_ssa_state(int owner, const char *name, struct symbol *s
 struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr);
 
 /* smatch_ssa_pointer.c */
+void disable_ssa_pointers(int id);
+bool ssa_pointers_disabled(int owner);
+const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym);
 const char *get_ssa_ptr_name(struct expression *expr);
 
 /* smatch_helper.c */
