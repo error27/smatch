@@ -166,6 +166,45 @@ static struct sm_state *store_ssa_state(struct expression *expr, struct smatch_s
 	return sm;
 }
 
+static void promote_states_to_ssa(struct sm_state *sm)
+{
+	struct state_list *slist = NULL;
+	struct sm_state *tmp, *new;
+	const char *ssa_name;
+
+	return;
+
+	if (!sm)
+		return;
+
+	FOR_EACH_SM(__get_cur_stree(), tmp) {
+		if (tmp->owner == my_id)
+			continue;
+		if (tmp->sym != sm->sym)
+			continue;
+		if (ssa_pointers_disabled(tmp->owner))
+			continue;
+		if (get_ssa_ptr_sm(tmp->name, tmp->sym) != sm)
+			continue;
+		ssa_name = expand_ssa_name(sm, tmp->name);
+		if (!ssa_name)
+			continue;
+
+		new = clone_sm(tmp);
+		new->name = ssa_name;
+		new->sym = NULL;
+		add_ptr_list(&slist, new);
+
+		sm_local("promoting %s: %s to %s", check_name(tmp->owner), tmp->name, ssa_name);
+
+	} END_FOR_EACH_SM(tmp);
+
+	FOR_EACH_PTR(slist, tmp) {
+		sm_local("set state=%s", show_sm(tmp));
+		__set_sm(tmp);
+	} END_FOR_EACH_PTR(tmp);
+
+	free_slist(&slist);
 }
 
 static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
@@ -199,6 +238,7 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 		state = ssa_ptr_new(name);
 		free_string(name);
 		sm = store_ssa_state(expr, state);
+		promote_states_to_ssa(sm);
 		return sm ? sm->state : NULL;
 	}
 	if (strcmp(sm->name, name) == 0) {
@@ -209,6 +249,7 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	state = ssa_ptr_member(ssa_name);
 	free_string(name);
 	sm = store_ssa_state(expr, state);
+	promote_states_to_ssa(sm);
 	return sm ? sm->state : NULL;
 }
 
