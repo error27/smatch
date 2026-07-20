@@ -6,6 +6,7 @@
 CK(smatch_db_call_marker) /* always has to be first  */
 CK(smatch_mtag_data)      /* before smatch_extra to clear cache at start of function */
 CK(smatch_param_used)     /* get_state_hooks have to be registered before smatch_extra */
+CK(smatch_ssa_pointer)
 CK(smatch_container_of)
 CK(smatch_container_of2)
 CK(smatch_extra)
@@ -118,7 +119,6 @@ CK(smatch_return_to_param_links)
 CK(smatch_simple_no_overflow)
 CK(smatch_smatch_ignore)
 CK(smatch_ssa)
-CK(smatch_ssa_pointer)
 CK(smatch_start_states)
 CK(smatch_state_assigned)
 CK(smatch_statement_count)
