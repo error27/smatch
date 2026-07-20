@@ -48,12 +48,17 @@ static struct smatch_state *ssa_ptr_new(const char *name)
 
 static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 {
+	static bool nested;
 	struct sm_state *sm;
 	bool amp = false;
 	int len;
 
 	if (!name || !sym)
 		return NULL;
+
+	if (nested)
+		return NULL;
+	nested = true;
 
 	if (name[0] == '&') {
 		name++;
@@ -63,15 +68,17 @@ static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 	sm = get_sm_state(my_id, name, sym);
 	if (sm) {
 		if (sm->state == &undefined || sm->state == &merged)
-			return NULL;
-		return sm;
+			sm = NULL;
+		goto done;
 	}
 
 	FOR_EACH_SM_REVERSE(has_ssa, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (sm->state == &undefined || sm->state == &merged)
-			return NULL;
+		if (sm->state == &undefined || sm->state == &merged) {
+			sm = NULL;
+			goto done;
+		}
 		len = strlen(sm->name);
 		if (strncmp(sm->name, name, len) != 0)
 			continue;
@@ -81,12 +88,15 @@ static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 			goto found;
 	} END_FOR_EACH_SM(sm);
 
-	return NULL;
+	sm = NULL;
+	goto done;
 
 found:
 	sm = get_sm_state(my_id, sm->name, sm->sym);
 	if (!sm || sm->state == &undefined || sm->state == &merged)
-		return NULL;
+		sm = NULL;
+done:
+	nested = false;
 	return sm;
 }
 
