@@ -100,15 +100,13 @@ done:
 	return sm;
 }
 
-const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
+static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 {
-	struct sm_state *sm;
 	char buf[128];
 	int len;
 
-	sm = get_ssa_ptr_sm(name, sym);
-	if (!sm)
-		return NULL;
+	if (name[0] == '&')
+		name++;
 
 	len = strlen(sm->name);
 	if (strlen(name) < len) {
@@ -124,7 +122,17 @@ const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
 		snprintf(buf, sizeof(buf), "%s->%s", sm->state->name, name + len + 1);
 
 	return alloc_sname(buf);
+}
 
+const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
+{
+	struct sm_state *sm;
+
+	sm = get_ssa_ptr_sm(name, sym);
+	if (!sm)
+		return NULL;
+
+	return expand_ssa_name(sm, name);
 }
 
 const char *get_ssa_ptr_name(struct expression *expr)
@@ -142,18 +150,22 @@ const char *get_ssa_ptr_name(struct expression *expr)
 	return ret;
 }
 
-static void store_ssa_state(struct expression *expr, struct smatch_state *state)
+static struct sm_state *store_ssa_state(struct expression *expr, struct smatch_state *state)
 {
+	struct sm_state *sm;
 	struct symbol *sym;
 	char *name;
 
 	name = expr_to_var_sym(expr, &sym);
 	if (!name)
-		return;
+		return NULL;
 
 	set_state_stree(&has_ssa, my_id, name, sym, state);
-	set_state(my_id, name, sym, state);
+	sm = set_state(my_id, name, sym, state);
 	free_string(name);
+	return sm;
+}
+
 }
 
 static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
@@ -186,8 +198,8 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	if (!sm) {
 		state = ssa_ptr_new(name);
 		free_string(name);
-		store_ssa_state(expr, state);
-		return state;
+		sm = store_ssa_state(expr, state);
+		return sm ? sm->state : NULL;
 	}
 	if (strcmp(sm->name, name) == 0) {
 		free_string(name);
@@ -196,8 +208,8 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	ssa_name = get_ssa_ptr_name_sym(name, sym);
 	state = ssa_ptr_member(ssa_name);
 	free_string(name);
-	store_ssa_state(expr, state);
-	return state;
+	sm = store_ssa_state(expr, state);
+	return sm ? sm->state : NULL;
 }
 
 static void match_assign(struct expression *expr)
