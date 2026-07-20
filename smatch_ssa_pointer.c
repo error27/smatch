@@ -263,6 +263,9 @@ static void match_assign(struct expression *expr)
 	if (__in_fake_struct_assign)
 		return;
 
+	if (expr->left->smatch_flags & Fake)
+		return;
+
 	type = get_type(expr->left);
 	if (!is_ptr_type(type))
 		return;
