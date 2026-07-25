@@ -743,7 +743,7 @@ static bool buf_contains(const char *container, const char *var, bool parent)
 
 	var += i;
 	if (var[0] == '\0')
-		return true;
+		return false;
 	if (var[0] != '.' && var[0] != '-')
 		return false;
 
