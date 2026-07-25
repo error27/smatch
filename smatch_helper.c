@@ -526,6 +526,8 @@ char *expr_to_var_sym(struct expression *expr,
 			*sym_ptr = NULL;
 		return NULL;
 	}
+	if (sym_ptr && !*sym_ptr)
+		return NULL;
 	return alloc_string(var_name);
 }
 
