@@ -189,7 +189,6 @@ static void promote_states_to_ssa(struct sm_state *sm)
 	struct sm_state *tmp, *new;
 	const char *ssa_name;
 
-
 	if (!sm)
 		return;
 
@@ -231,9 +230,6 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 
 	type = get_type(expr);
 	if (!type || type->type != SYM_PTR)
-		return NULL;
-	type = get_real_base_type(type);
-	if (!type || type->type != SYM_STRUCT)
 		return NULL;
 
 	name = expr_to_var_sym(expr, &sym);
