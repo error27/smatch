@@ -18,7 +18,6 @@
 #include "smatch.h"
 
 static int my_id;
-static unsigned long ssa_id = 1;
 static struct stree *has_ssa;
 static char *disable_ssa;
 
@@ -32,16 +31,29 @@ static struct smatch_state *ssa_ptr_member(const char *name)
 	return state;
 }
 
-static struct smatch_state *ssa_ptr_new(const char *name)
+static void gen_name(char *buf, size_t len, struct expression *expr, const char *name)
+{
+	struct expression *tmp;
+
+	if (expr->type == EXPR_PREOP && expr->op == '&') {
+		tmp = strip_expr(expr->unop);
+		if (tmp && tmp->type == EXPR_SYMBOL) {
+			snprintf(buf, len, "%s{0}", name);
+			return;
+		}
+	}
+	snprintf(buf, len, "%s{%d_%p}", name, expr->pos.line, expr);
+}
+
+static struct smatch_state *ssa_ptr_new(struct expression *expr, const char *name)
 {
 	struct smatch_state *state;
 	char buf[64];
 
 	state = __alloc_smatch_state(0);
-	snprintf(buf, sizeof(buf), "%s{%ld}", name, ssa_id);
-	state->name = alloc_sname(buf);
+	gen_name(buf, sizeof(buf), expr, name);
 
-	ssa_id++;
+	state->name = alloc_sname(buf);
 
 	return state;
 }
@@ -230,7 +242,7 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 
 	sm = get_ssa_ptr_sm(name, sym);
 	if (!sm) {
-		state = ssa_ptr_new(name);
+		state = ssa_ptr_new(expr, name);
 		free_string(name);
 		sm = store_ssa_state(expr, state);
 		promote_states_to_ssa(sm);
@@ -275,7 +287,7 @@ static void match_assign(struct expression *expr)
 		name = expr_to_var(expr->left);
 		if (!name)
 			return;
-		state = ssa_ptr_new(name);
+		state = ssa_ptr_new(expr->right, name);
 		free_string(name);
 		store_ssa_state(expr->left, state);
 		ignored_mod = expr;
@@ -300,6 +312,13 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 	if (estate_get_single_value(state, &sval) && sval.value == 0)
 		return sm->state;
 	return &undefined;
+}
+
+static struct smatch_state *merge_states(struct smatch_state *s1, struct smatch_state *s2)
+{
+	if (strcmp(s1->name, s2->name) == 0)
+		return s1;
+	return &merged;
 }
 
 static void match_modify(struct sm_state *sm, struct expression *mod_expr)
@@ -334,5 +353,6 @@ void smatch_ssa_pointer(int id)
 	set_dynamic_states(my_id);
 	add_modification_hook(my_id, &match_modify);
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_merge_hook(my_id, &merge_states);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 }
