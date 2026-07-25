@@ -220,22 +220,6 @@ static void match_assign(struct expression *expr)
 		set_state_expr(my_id, expr->left, &no_overflow);
 }
 
-static void match_call_info(struct expression *expr)
-{
-	struct expression *arg;
-	int i = 0;
-
-	i = -1;
-	FOR_EACH_PTR(expr->args, arg) {
-		i++;
-
-		if (get_state_expr(my_id, arg) != &no_overflow)
-			continue;
-
-		sql_insert_caller_info(expr, NO_OVERFLOW_SIMPLE, i, "$", "");
-	} END_FOR_EACH_PTR(arg);
-}
-
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -379,8 +363,7 @@ void smatch_simple_no_overflow(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_id, struct_member_callback);
+	add_caller_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_data);
 	return_implies_param_key("__builtin_mul_overflow", int_zero, int_zero, &match_safe, 0, "$", NULL);
 	return_implies_param_key("__builtin_mul_overflow", int_zero, int_zero, &match_safe, 1, "$", NULL);

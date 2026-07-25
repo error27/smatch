@@ -404,22 +404,6 @@ struct constraint_list *get_constraints(struct expression *expr)
 	return state->data;
 }
 
-static void match_caller_info(struct expression *expr)
-{
-	struct expression *tmp;
-	struct smatch_state *state;
-	int i;
-
-	i = -1;
-	FOR_EACH_PTR(expr->args, tmp) {
-		i++;
-		state = get_state_expr(my_id, tmp);
-		if (!state || state == &merged || state == &undefined)
-			continue;
-		sql_insert_caller_info(expr, CONSTRAINT, i, "$", state->name);
-	} END_FOR_EACH_PTR(tmp);
-}
-
 static void struct_member_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
 {
 	if (sm->state == &merged || sm->state == &undefined)
@@ -519,8 +503,7 @@ void smatch_constraints(int id)
 	add_merge_hook(my_id, &merge_func);
 	add_hook(&match_condition, CONDITION_HOOK);
 
-	add_hook(&match_caller_info, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_id, struct_member_callback);
+	add_caller_info_callback(my_id, struct_member_callback);
 	select_caller_info_hook(&set_param_constrained, CONSTRAINT);
 
 	add_split_return_callback(print_return_implies_constrained);

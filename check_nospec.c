@@ -257,7 +257,7 @@ void check_nospec(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_id, struct_member_callback);
+	add_caller_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&returned_struct_members);
 	select_return_states_hook(NOSPEC, &db_returns_nospec);
 	select_return_states_hook(NOSPEC_WB, &db_returns_barrier);

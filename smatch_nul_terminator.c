@@ -148,24 +148,6 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 	sql_insert_caller_info(call, TERMINATED, param, printed_name, term ? "1" : "0");
 }
 
-static void match_call_info(struct expression *expr)
-{
-	struct smatch_state *state;
-	struct expression *arg;
-	int i;
-
-	i = -1;
-	FOR_EACH_PTR(expr->args, arg) {
-		i++;
-
-		state = get_terminated_state(arg);
-		if (!state)
-			continue;
-		sql_insert_caller_info(expr, TERMINATED, i, "$",
-				       (state == &terminated) ? "1" : "0");
-	} END_FOR_EACH_PTR(arg);
-}
-
 static void caller_info_terminated(const char *name, struct symbol *sym, char *key, char *value)
 {
 	char fullname[256];
@@ -310,8 +292,7 @@ void smatch_nul_terminator(int id)
 	add_hook(&match_nul_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_string_assign, ASSIGNMENT_HOOK);
 
-	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
-	add_member_info_callback(my_id, struct_member_callback);
+	add_caller_info_callback(my_id, struct_member_callback);
 	add_split_return_callback(&split_return_info);
 
 	select_caller_info_hook(caller_info_terminated, TERMINATED);
