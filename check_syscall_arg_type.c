@@ -40,7 +40,7 @@ STATE(arg_sockaddrlen);
 STATE(arg_socketinfo);
 #endif
 
-struct smatch_state *merge_states(struct smatch_state *s1, struct smatch_state *s2)
+static struct smatch_state *merge_states(struct smatch_state *s1, struct smatch_state *s2)
 {
 	if (s1 == &undefined)
 		return s2;
