@@ -94,6 +94,11 @@ static bool is_empty_state(struct expression *expr)
 	return true;
 }
 
+bool holds_kernel_error_codes_name_sym(const char *name, struct symbol *sym)
+{
+	return has_possible_state(my_id, name, sym, &error_code);
+}
+
 bool holds_kernel_error_codes(struct expression *expr)
 {
 	struct expression *fake;
