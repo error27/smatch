@@ -70,15 +70,45 @@ static bool buf_contains(const char *container, const char *var, bool parent)
 	return true;
 }
 
+static bool ssa_buf_contains(const char *container, const char *var)
+{
+	int i;
+
+	i = 0;
+	while (container[i] && container[i] == var[i])
+		i++;
+
+	if (container[i] != '\0')
+		return false;
+
+	var += i;
+	if (var[0] != '-')
+		return false;
+	return true;
+}
+
 static bool in_buf_zero_name_sym_helper(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
+	const char *ssa_name;
 
-
-	if (!name || !sym)
+	if (!name)
 		return false;
 
+	if (!sym) {
+		if (strchr(name, '{'))
+			ssa_name = name;
+		else
+			return false;
+	} else {
+		ssa_name = get_ssa_ptr_name_sym(name, sym);
+	}
+
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		if (ssa_name && sm->state == &zeroed &&
+		    ssa_buf_contains(sm->name, ssa_name)) {
+			return true;
+		}
 		if (sm->sym != sym)
 			continue;
 		if (sm->state != &zeroed)
@@ -86,6 +116,7 @@ static bool in_buf_zero_name_sym_helper(const char *name, struct symbol *sym)
 		if (buf_contains(sm->name, name, false))
 			return true;
 	} END_FOR_EACH_SM(sm);
+
 	return false;
 }
 
