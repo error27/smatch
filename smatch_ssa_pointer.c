@@ -336,6 +336,11 @@ bool ssa_pointers_disabled(int owner)
 	return false;
 }
 
+static void free_resources(struct symbol *sym)
+{
+	free_stree(&has_ssa);
+}
+
 void smatch_ssa_pointer(int id)
 {
 	my_id = id;
@@ -351,4 +356,6 @@ void smatch_ssa_pointer(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_states);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&free_resources, AFTER_PASS0_HOOK);
+	add_hook(&free_resources, AFTER_FUNC_HOOK);
 }

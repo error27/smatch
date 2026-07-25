@@ -2598,6 +2598,7 @@ static void split_function(struct symbol *sym)
 	__parse_id_cur = ++parse_id_next;
 	start_function_definition(sym);
 	parse_fn_statements(base_type);
+	__pass_to_client(sym, AFTER_PASS0_HOOK);
 	nullify_path();
 	__unnullify_path();
 	pass_cnt = 1;
