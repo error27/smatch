@@ -49,8 +49,8 @@ static struct smatch_state *ssa_ptr_new(const char *name)
 static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 {
 	static bool nested;
+	const char *dot, *arrow;
 	struct sm_state *sm;
-	bool amp = false;
 	int len;
 
 	if (!name || !sym)
@@ -60,42 +60,44 @@ static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 		return NULL;
 	nested = true;
 
-	if (name[0] == '&') {
-		name++;
-		amp = true;
-	}
-
 	sm = get_sm_state(my_id, name, sym);
-	if (sm) {
-		if (sm->state == &undefined || sm->state == &merged)
-			sm = NULL;
+	if (sm)
 		goto done;
-	}
 
 	FOR_EACH_SM_REVERSE(has_ssa, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (sm->state == &undefined || sm->state == &merged) {
-			sm = NULL;
+		if (sm->state == &undefined || sm->state == &merged)
 			goto done;
-		}
 		len = strlen(sm->name);
 		if (strncmp(sm->name, name, len) != 0)
 			continue;
 		if (name[len] == '-' || name[len] == '.')
 			goto found;
-		if (amp && name[len] == '\0')
+		if (name[len] == '\0')
 			goto found;
 	} END_FOR_EACH_SM(sm);
+
+	dot = strchr(name, '.');
+	if (dot) {
+		arrow = strchr(name, '-');
+		if (!arrow || dot < arrow) {
+			char buf[64];
+
+			snprintf(buf, sizeof(buf), "&%.*s", (int)(dot - name), name);
+			sm = get_sm_state(my_id, buf, sym);
+			goto done;
+		}
+	}
 
 	sm = NULL;
 	goto done;
 
 found:
 	sm = get_sm_state(my_id, sm->name, sm->sym);
-	if (!sm || sm->state == &undefined || sm->state == &merged)
-		sm = NULL;
 done:
+	if (sm && (sm->state == &undefined || sm->state == &merged))
+		sm = NULL;
 	nested = false;
 	return sm;
 }
@@ -103,10 +105,13 @@ done:
 static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 {
 	char buf[128];
+	int amp = 0;
 	int len;
 
-	if (name[0] == '&')
-		name++;
+	if (!sm)
+		return NULL;
+	if (sm->name[0] == '&')
+		amp = 1;
 
 	len = strlen(sm->name);
 	if (strlen(name) < len) {
@@ -117,9 +122,9 @@ static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 	if (name[len] == '\0')
 		return sm->state->name;
 	if (name[len] == '-')
-		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, name + len);
+		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, name + len - amp);
 	else
-		snprintf(buf, sizeof(buf), "%s->%s", sm->state->name, name + len + 1);
+		snprintf(buf, sizeof(buf), "%s->%s", sm->state->name, name + len - amp + 1);
 
 	return alloc_sname(buf);
 }
@@ -172,14 +177,11 @@ static void promote_states_to_ssa(struct sm_state *sm)
 	struct sm_state *tmp, *new;
 	const char *ssa_name;
 
-	return;
 
 	if (!sm)
 		return;
 
 	FOR_EACH_SM(__get_cur_stree(), tmp) {
-		if (tmp->owner == my_id)
-			continue;
 		if (tmp->sym != sm->sym)
 			continue;
 		if (ssa_pointers_disabled(tmp->owner))
@@ -194,13 +196,9 @@ static void promote_states_to_ssa(struct sm_state *sm)
 		new->name = ssa_name;
 		new->sym = NULL;
 		add_ptr_list(&slist, new);
-
-		sm_local("promoting %s: %s to %s", check_name(tmp->owner), tmp->name, ssa_name);
-
 	} END_FOR_EACH_SM(tmp);
 
 	FOR_EACH_PTR(slist, tmp) {
-		sm_local("set state=%s", show_sm(tmp));
 		__set_sm(tmp);
 	} END_FOR_EACH_PTR(tmp);
 
@@ -226,9 +224,6 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	if (!type || type->type != SYM_STRUCT)
 		return NULL;
 
-	if (expr->type == EXPR_PREOP && expr->op == '&')
-		expr = strip_expr(expr->unop);
-
 	name = expr_to_var_sym(expr, &sym);
 	if (!name)
 		return NULL;
@@ -253,6 +248,7 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	return sm ? sm->state : NULL;
 }
 
+static struct expression *ignored_mod;
 static void match_assign(struct expression *expr)
 {
 	struct smatch_state *state;
@@ -261,6 +257,8 @@ static void match_assign(struct expression *expr)
 	if (expr->op != '=')
 		return;
 	if (__in_fake_struct_assign)
+		return;
+	if (__in_fake_parameter_assign)
 		return;
 
 	if (expr->left->smatch_flags & Fake)
@@ -280,11 +278,35 @@ static void match_assign(struct expression *expr)
 		state = ssa_ptr_new(name);
 		free_string(name);
 		store_ssa_state(expr->left, state);
+		ignored_mod = expr;
 		return;
 	}
 	if (!state)
 		return;
+	ignored_mod = expr;
 	store_ssa_state(expr->left, state);
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	struct smatch_state *state;
+	sval_t sval;
+
+	if (sm->name[0] == '&' && sm->sym && sm->sym->ident &&
+	    strcmp(sm->sym->ident->name, sm->name + 1) == 0)
+		return sm->state;
+
+	state = get_extra_name_sym(sm->name, sm->sym);
+	if (estate_get_single_value(state, &sval) && sval.value == 0)
+		return sm->state;
+	return &undefined;
+}
+
+static void match_modify(struct sm_state *sm, struct expression *mod_expr)
+{
+	if (ignored_mod && mod_expr == ignored_mod)
+		return;
+	set_state(sm->owner, sm->name, sm->sym, &undefined);
 }
 
 void disable_ssa_pointers(int id)
@@ -294,8 +316,6 @@ void disable_ssa_pointers(int id)
 
 bool ssa_pointers_disabled(int owner)
 {
-	return false;
-
 	if (owner >= 0 && owner < num_checks)
 		return disable_ssa[owner];
 	return false;
@@ -308,9 +328,11 @@ void smatch_ssa_pointer(int id)
 	disable_ssa = malloc(num_checks);
 	memset(disable_ssa, 0, num_checks);
 
+	disable_ssa_pointers(my_id);
 	add_function_data((unsigned long *)&has_ssa);
 
 	set_dynamic_states(my_id);
-	add_modification_hook(my_id, &set_undefined);
+	add_modification_hook(my_id, &match_modify);
+	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 }
