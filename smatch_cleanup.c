@@ -50,5 +50,6 @@ void smatch_cleanup(int id)
 {
 	my_id = id;
 
+	disable_ssa_pointers(id);
 	add_hook(&match_declarations, DECLARATION_HOOK);
 }
