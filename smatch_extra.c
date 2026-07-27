@@ -2792,7 +2792,6 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 	char *compare_str;
 	char *math_str;
 	char val_buf[256];
-	int param;
 
 	// FIXME handle *$
 
@@ -2809,8 +2808,7 @@ static void returned_struct_members(int return_id, char *return_ranges, struct e
 		if (!estate_rl(sm->state))
 			continue;
 
-		param = get_return_param_key_from_var_sym(sm->name, sm->sym, expr, &name_buf);
-		if (param != -1 || !name_buf)
+		if (!get_key_from_var_sym(sm->name, sm->sym, expr, &name_buf))
 			continue;
 		if (name_buf[0] == '&')
 			continue;

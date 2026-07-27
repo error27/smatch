@@ -704,38 +704,35 @@ free:
 	return alloc_string(ret);
 }
 
-int get_return_param_key_from_var_sym(const char *name, struct symbol *sym,
-				      struct expression *ret_expr,
-				      const char **key)
+bool get_key_from_var_sym(const char *name, struct symbol *sym,
+			  struct expression *expr, const char **key)
 {
 	struct expression *fake;
 	const char *param_name;
 	struct symbol *ret_sym;
 	char *ret_str;
 
-	if (key)
-		*key = NULL;
+	*key = NULL;
 
-	if (!ret_expr)
-		return -2;
+	if (!expr)
+		return false;
 
-	fake = get_fake_return_variable(ret_expr);
+	fake = get_fake_return_variable(expr);
 	if (fake)
 		ret_str = expr_to_str_sym(fake, &ret_sym);
 	else
-		ret_str = expr_to_str_sym(ret_expr, &ret_sym);
+		ret_str = expr_to_str_sym(expr, &ret_sym);
 	if (ret_str && ret_sym == sym) {
 		param_name = state_name_to_param_name(name, ret_str);
 		if (param_name) {
 			free_string(ret_str);
-			if (key)
-				*key = param_name;
-			return -1;
+			*key = param_name;
+			return true;
 		}
 	}
 	free_string(ret_str);
 
-	return -2;
+	return false;
 }
 
 int get_param_key_from_var_sym(const char *name, struct symbol *sym,
@@ -763,8 +760,7 @@ int get_param_key_from_var_sym(const char *name, struct symbol *sym,
 	}
 
 	/* Matches the return expression.  Shouldn't this come first? */
-	param = get_return_param_key_from_var_sym(name, sym, ret_expr, &ret_key);
-	if (param == -1) {
+	if (get_key_from_var_sym(name, sym, ret_expr, &ret_key)) {
 		*key = ret_key;
 		return param;
 	}
