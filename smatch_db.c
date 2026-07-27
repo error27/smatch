@@ -1169,14 +1169,9 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	bool new)
 {
 	struct sm_state *sm;
-	const char *sm_name;
-	char *name;
 	struct symbol *sym;
-	int len;
-	char printed_name[256];
-	int is_address = 0;
-	bool add_star;
 	struct symbol *type;
+	const char *key;
 
 	expr = strip_expr(expr);
 	if (!expr)
@@ -1185,80 +1180,20 @@ static void print_struct_members(struct expression *call, struct expression *exp
 	if (!new && type && type_bits(type) < type_bits(&ulong_ctype))
 		return;
 
-	if (expr->type == EXPR_PREOP && expr->op == '&') {
-		expr = strip_expr(expr->unop);
-		is_address = 1;
-	}
+	sym = expr_to_sym(expr);
+	if (!sym)
+		return;
 
-	name = expr_to_var_sym(expr, &sym);
-	if (!name || !sym)
-		goto free;
-
-	len = strlen(name);
 	FOR_EACH_SM(__get_cur_stree(), sm) {
 		if (sm->owner != owner || sm->sym != sym)
 			continue;
 
-		sm_name = sm->name;
-		add_star = false;
-		if (sm_name[0] == '*') {
-			add_star = true;
-			sm_name++;
-		}
-		// FIXME: simplify?
-		if (!add_star && strcmp(name, sm_name) == 0) {
-			if (is_address) {
-				snprintf(printed_name, sizeof(printed_name), "*$");
-			} else {
-				if (new)
-					snprintf(printed_name, sizeof(printed_name), "$");
-				else
-					continue;
-			}
-		} else if (add_star && strcmp(name, sm_name) == 0) {
-			snprintf(printed_name, sizeof(printed_name), "%s*$",
-				 is_address ? "*" : "");
-		} else if (strncmp(name, sm_name, len) == 0) {
-			if (sm_name[len] != '.' && sm_name[len] != '-')
-				continue;
-			if (is_address && sm_name[len] == '.') {
-				snprintf(printed_name, sizeof(printed_name),
-					 "%s$->%s", add_star ? "*" : "",
-					 sm_name + len + 1);
-			} else if (is_address && sm_name[len] == '-') {
-				snprintf(printed_name, sizeof(printed_name),
-					 "%s(*$)%s", add_star ? "*" : "",
-					 sm_name + len);
-			} else {
-				snprintf(printed_name, sizeof(printed_name),
-					 "%s$%s", add_star ? "*" : "",
-					 sm_name + len);
-			}
-		} else if (sm_name[0] == '&' && strncmp(name, sm_name + 1, len) == 0) {
-			if (sm_name[len + 1] != '.' && sm_name[len + 1] != '-')
-				continue;
-			if (is_address && sm_name[len + 1] == '.') {
-				snprintf(printed_name, sizeof(printed_name),
-					 "&%s$->%s", add_star ? "*" : "",
-					 sm_name + len + 2);
-			} else if (is_address && sm_name[len] == '-') {
-				snprintf(printed_name, sizeof(printed_name),
-					 "&%s(*$)%s", add_star ? "*" : "",
-					 sm_name + len + 1);
-			} else {
-				snprintf(printed_name, sizeof(printed_name),
-					 "&%s$%s", add_star ? "*" : "",
-					 sm_name + len + 1);
-			}
-		} else {
+		if (!get_key_from_var_sym(sm->name, sm->sym, expr, &key))
 			continue;
-		}
-		if (is_recursive_member(printed_name))
+		if (is_recursive_member(key))
 			continue;
-		callback(call, param, printed_name, sm);
+		callback(call, param, (char *)key, sm);
 	} END_FOR_EACH_SM(sm);
-free:
-	free_string(name);
 }
 
 static void match_call_info(struct expression *call)
