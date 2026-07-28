@@ -198,6 +198,26 @@ static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 	return alloc_sname(buf);
 }
 
+bool ssa_buf_contains(const char *container, const char *var)
+{
+	int i;
+
+	if (var[0] != '(')
+		return false;
+
+	i = 0;
+	while (container[i] && container[i] == var[i + 1])
+		i++;
+
+	if (container[i] != '\0')
+		return false;
+
+	var += i + 1;
+	if (var[0] != ')' || var[1] != '-')
+		return false;
+	return true;
+}
+
 const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;

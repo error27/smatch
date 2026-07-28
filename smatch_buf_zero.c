@@ -70,26 +70,6 @@ static bool buf_contains(const char *container, const char *var, bool parent)
 	return true;
 }
 
-static bool ssa_buf_contains(const char *container, const char *var)
-{
-	int i;
-
-	if (var[0] != '(')
-		return false;
-
-	i = 0;
-	while (container[i] && container[i] == var[i + 1])
-		i++;
-
-	if (container[i] != '\0')
-		return false;
-
-	var += i + 1;
-	if (var[0] != ')' || var[1] != '-')
-		return false;
-	return true;
-}
-
 static bool in_buf_zero_name_sym_helper(const char *name, struct symbol *sym)
 {
 	struct sm_state *sm;
