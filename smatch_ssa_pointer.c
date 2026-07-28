@@ -249,6 +249,8 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 		return sm->state;
 	}
 	ssa_name = get_ssa_ptr_name_sym(name, sym);
+	if (!ssa_name)
+		return NULL;
 	state = ssa_ptr_member(ssa_name);
 	free_string(name);
 	sm = store_ssa_state(expr, state);
