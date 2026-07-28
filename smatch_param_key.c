@@ -722,16 +722,20 @@ bool get_key_from_var_sym(const char *name, struct symbol *sym,
 		ret_str = expr_to_str_sym(fake, &ret_sym);
 	else
 		ret_str = expr_to_str_sym(expr, &ret_sym);
-	if (ret_str && ret_sym == sym) {
-		param_name = state_name_to_param_name(name, ret_str);
-		if (param_name) {
-			free_string(ret_str);
-			*key = param_name;
-			return true;
-		}
-	}
-	free_string(ret_str);
+	if (!ret_str)
+		return false;
+	if (ret_sym != sym)
+		goto done;
 
+	param_name = state_name_to_param_name(name, ret_str);
+	if (param_name) {
+		free_string(ret_str);
+		*key = param_name;
+		return true;
+	}
+
+done:
+	free_string(ret_str);
 	return false;
 }
 
