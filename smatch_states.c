@@ -187,7 +187,7 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 {
 	struct sm_state *ret;
 
-	if (!name || !state)
+	if (!name || !state || !state->name)
 		return NULL;
 
 	if (read_only)
@@ -648,6 +648,9 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	if (!name)
 		return;
 	if (!true_state && !false_state)
+		return;
+	if ((true_state && !true_state->name) ||
+	    (false_state && !false_state->name))
 		return;
 
 	if (debug_on(check_name(owner), name)) {
