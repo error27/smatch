@@ -74,15 +74,18 @@ static bool ssa_buf_contains(const char *container, const char *var)
 {
 	int i;
 
+	if (var[0] != '(')
+		return false;
+
 	i = 0;
-	while (container[i] && container[i] == var[i])
+	while (container[i] && container[i] == var[i + 1])
 		i++;
 
 	if (container[i] != '\0')
 		return false;
 
-	var += i;
-	if (var[0] != '-')
+	var += i + 1;
+	if (var[0] != ')' || var[1] != '-')
 		return false;
 	return true;
 }
@@ -106,9 +109,9 @@ static bool in_buf_zero_name_sym_helper(const char *name, struct symbol *sym)
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
 		if (ssa_name && sm->state == &zeroed &&
-		    ssa_buf_contains(sm->name, ssa_name)) {
+		    ssa_buf_contains(sm->name, ssa_name))
 			return true;
-		}
+
 		if (sm->sym != sym)
 			continue;
 		if (sm->state != &zeroed)

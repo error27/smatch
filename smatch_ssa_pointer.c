@@ -61,7 +61,7 @@ static struct smatch_state *ssa_ptr_new(struct expression *expr, const char *nam
 static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 {
 	static bool nested;
-	const char *dot, *arrow;
+	const char *dot, *arrow, *no_amp;
 	struct sm_state *sm;
 	int len;
 
@@ -79,9 +79,17 @@ static struct sm_state *get_ssa_ptr_sm(const char *name, struct symbol *sym)
 	FOR_EACH_SM_REVERSE(has_ssa, sm) {
 		if (sm->sym != sym)
 			continue;
-		if (sm->state == &undefined || sm->state == &merged)
-			goto done;
+
 		len = strlen(sm->name);
+		if (name[0] == '&' && sm->name[0] != '&') {
+			no_amp = name + 1;
+			if (strncmp(sm->name, no_amp, len) != 0)
+				continue;
+			if (no_amp[len] == '-' || no_amp[len] == '.')
+				goto found;
+			if (no_amp[len] == '\0')
+				goto found;
+		}
 		if (strncmp(sm->name, name, len) != 0)
 			continue;
 		if (name[len] == '-' || name[len] == '.')
@@ -114,27 +122,76 @@ done:
 	return sm;
 }
 
+static const char *handle_struct_swap(struct sm_state *sm, const char *name)
+{
+	char buf[128];
+
+	/* This converts "foo.a" into "(&foo{0})->a". */
+
+	if (sm->name[0] != '&' || sm->state->name[0] != '&')
+		return 0;
+	if (name[0] == '&')
+		return NULL;
+	if (!sm->sym || !sm->sym->ident)
+		return NULL;
+
+	if (strncmp(sm->state->name + 1, sm->sym->ident->name, sm->sym->ident->len) != 0)
+		return NULL;
+	if (sm->state->name[1 + sm->sym->ident->len] != '{')
+		return NULL;
+	if (strncmp(name, sm->sym->ident->name, sm->sym->ident->len) != 0)
+		return NULL;
+	if (name[sm->sym->ident->len] != '.')
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "(%s)->%s", sm->state->name, name + 1 + sm->sym->ident->len);
+	return alloc_sname(buf);
+}
+
 static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 {
+	const char *ret;
 	char buf[128];
 	int amp = 0;
 	int len;
 
 	if (!sm)
 		return NULL;
-	if (sm->name[0] == '&')
-		amp = 1;
+
+	/* The sm is something like "p equals &foo{0}" and the name
+	 * is something like "p->a".  And we want to translate that to
+	 * "(&foo{0})->a".
+	 *
+	 * There are a few scenarios:
+	 * foo.a becomes &foo{0}->a
+	 * &p->a->stuff becomes &(&foo{0})->a->stuff
+	 *
+	 */
+
+	ret = handle_struct_swap(sm, name);
+	if (ret)
+		return ret;
 
 	len = strlen(sm->name);
-	if (strlen(name) < len) {
-		sm_perror("unexpected ssa ptr length name=%s sm->name=%s state->name=%s, len=%d",
-			  name, sm->name, sm->state->name, len);
+	if (strlen(name) < len + amp) {
+		sm_msg("unexpected ssa ptr length name=%s sm->name=%s state->name=%s, len=%d amp=%d",
+			  name, sm->name, sm->state->name, len, amp);
 		return NULL;
 	}
 	if (name[len] == '\0')
 		return sm->state->name;
 	if (name[len] == '-')
-		snprintf(buf, sizeof(buf), "%s%s", sm->state->name, name + len - amp);
+		snprintf(buf, sizeof(buf), "%s%s%s%s",
+			 sm->state->name[0] == '&' ? "(" : "",
+			 sm->state->name,
+			 sm->state->name[0] == '&' ? ")" : "",
+			 name + len + amp);
+	else if (name[len] == '.')
+		snprintf(buf, sizeof(buf), "%s%s%s->%s",
+			 sm->state->name[0] == '&' ? "(" : "",
+			 sm->state->name,
+			 sm->state->name[0] == '&' ? ")" : "",
+			 name + len + amp + 1);
 	else
 		snprintf(buf, sizeof(buf), "%s->%s", sm->state->name, name + len - amp + 1);
 
