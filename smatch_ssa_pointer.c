@@ -198,6 +198,40 @@ static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 	return alloc_sname(buf);
 }
 
+const char *swap_ssa_ptr_to_name_sym(struct expression *expr, const char *name, struct symbol **sym)
+{
+	const char *ssa_name;
+	struct symbol *var_sym;
+	char *var_name;
+	const char *p;
+	char buf[64];
+	int len;
+
+	if (!expr || *sym)
+		return name;
+	if (!strchr(name, '{'))
+		return name;
+
+	ssa_name = get_ssa_ptr_name(expr);
+	if (!ssa_name)
+		return name;
+
+	p = strstr(name, ssa_name);
+	if (!p)
+		return name;
+	len = strlen(ssa_name);
+
+	var_name = expr_to_var_sym(expr, &var_sym);
+	if (!var_name)
+		return name;
+
+	snprintf(buf, sizeof(buf), "%.*s%s%s",
+		 (int)(p - name), name, var_name, name + len);
+
+	*sym = var_sym;
+	return alloc_sname(buf);
+}
+
 bool ssa_buf_contains(const char *container, const char *var)
 {
 	int i;

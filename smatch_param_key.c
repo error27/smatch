@@ -717,6 +717,10 @@ bool get_key_from_var_sym(const char *name, struct symbol *sym,
 	if (!expr)
 		return false;
 
+	name = swap_ssa_ptr_to_name_sym(expr, name, &sym);
+	if (!name)
+		return false;
+
 	fake = get_fake_return_variable(expr);
 	if (fake)
 		ret_str = expr_to_str_sym(fake, &ret_sym);

@@ -1185,7 +1185,8 @@ static void print_struct_members(struct expression *call, struct expression *exp
 		return;
 
 	FOR_EACH_SM(__get_cur_stree(), sm) {
-		if (sm->owner != owner || sm->sym != sym)
+		if (sm->owner != owner ||
+		    (sm->sym && sm->sym != sym))
 			continue;
 
 		if (!get_key_from_var_sym(sm->name, sm->sym, expr, &key))
