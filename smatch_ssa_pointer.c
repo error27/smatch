@@ -31,6 +31,11 @@ static struct smatch_state *ssa_ptr_member(const char *name)
 	return state;
 }
 
+static void gen_name_zero(char *buf, size_t len, const char *name)
+{
+	snprintf(buf, len, "%s{0}", name);
+}
+
 static void gen_name(char *buf, size_t len, struct expression *expr, const char *name)
 {
 	struct expression *tmp;
@@ -38,7 +43,7 @@ static void gen_name(char *buf, size_t len, struct expression *expr, const char 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		tmp = strip_expr(expr->unop);
 		if (tmp && tmp->type == EXPR_SYMBOL) {
-			snprintf(buf, len, "%s{0}", name);
+			gen_name_zero(buf, len, name);
 			return;
 		}
 	}
@@ -408,6 +413,28 @@ static void match_assign(struct expression *expr)
 	store_ssa_state(expr->left, state);
 }
 
+static void match_function_def(struct symbol *sym)
+{
+	struct smatch_state *state;
+	struct symbol *type;
+	struct symbol *arg;
+	char buf[64];
+
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		if (!arg->ident)
+			continue;
+
+		type = get_real_base_type(arg);
+		if (!type || type->type != SYM_PTR)
+			continue;
+
+		state = __alloc_smatch_state(0);
+		gen_name_zero(buf, sizeof(buf), arg->ident->name);
+		state->name = alloc_sname(buf);
+		set_state(my_id, arg->ident->name, arg, state);
+	} END_FOR_EACH_PTR(arg);
+}
+
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
 	struct smatch_state *state;
@@ -469,6 +496,7 @@ void smatch_ssa_pointer(int id)
 	add_unmatched_state_hook(my_id, &unmatched_state);
 	add_merge_hook(my_id, &merge_states);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_function_def, FUNC_DEF_HOOK);
 	add_hook(&free_resources, AFTER_PASS0_HOOK);
 	add_hook(&free_resources, AFTER_FUNC_HOOK);
 }
