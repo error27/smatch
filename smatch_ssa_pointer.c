@@ -304,6 +304,12 @@ static struct sm_state *store_ssa_state(struct expression *expr, struct smatch_s
 	return sm;
 }
 
+static void store_ssa_name_sym(const char *name, struct symbol *sym, struct smatch_state *state)
+{
+	set_state_stree(&has_ssa, my_id, name, sym, state);
+	set_state(my_id, name, sym, state);
+}
+
 static void promote_states_to_ssa(struct sm_state *sm)
 {
 	struct state_list *slist = NULL;
