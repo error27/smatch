@@ -15,6 +15,7 @@
  * along with this program; if not, see http://www.gnu.org/copyleft/gpl.txt
  */
 
+#include <ctype.h>
 #include "smatch.h"
 
 static int my_id;
@@ -31,11 +32,6 @@ static struct smatch_state *ssa_ptr_member(const char *name)
 	return state;
 }
 
-static void gen_name_zero(char *buf, size_t len, const char *name)
-{
-	snprintf(buf, len, "%s{0}", name);
-}
-
 static void gen_name(char *buf, size_t len, struct expression *expr, const char *name)
 {
 	struct expression *tmp;
@@ -43,7 +39,7 @@ static void gen_name(char *buf, size_t len, struct expression *expr, const char 
 	if (expr->type == EXPR_PREOP && expr->op == '&') {
 		tmp = strip_expr(expr->unop);
 		if (tmp && tmp->type == EXPR_SYMBOL) {
-			gen_name_zero(buf, len, name);
+			snprintf(buf, len, "%s{}", name);
 			return;
 		}
 	}
@@ -131,7 +127,7 @@ static const char *handle_struct_swap(struct sm_state *sm, const char *name)
 {
 	char buf[128];
 
-	/* This converts "foo.a" into "(&foo{0})->a". */
+	/* This converts "foo.a" into "(&foo{})->a". */
 
 	if (sm->name[0] != '&' || sm->state->name[0] != '&')
 		return 0;
@@ -163,13 +159,13 @@ static const char *expand_ssa_name(struct sm_state *sm, const char *name)
 	if (!sm)
 		return NULL;
 
-	/* The sm is something like "p equals &foo{0}" and the name
+	/* The sm is something like "p equals &foo{}" and the name
 	 * is something like "p->a".  And we want to translate that to
-	 * "(&foo{0})->a".
+	 * "(&foo{})->a".
 	 *
 	 * There are a few scenarios:
-	 * foo.a becomes &foo{0}->a
-	 * &p->a->stuff becomes &(&foo{0})->a->stuff
+	 * foo.a becomes &foo{}->a
+	 * &p->a->stuff becomes &(&foo{})->a->stuff
 	 *
 	 */
 
@@ -239,21 +235,30 @@ const char *swap_ssa_ptr_to_name_sym(struct expression *expr, const char *name, 
 
 bool ssa_buf_contains(const char *container, const char *var)
 {
+	int skip = 0;
 	int i;
 
-	if (var[0] != '(')
+	if (!container || !var)
 		return false;
 
+	if (var[0] == '(')
+		skip++;
+
 	i = 0;
-	while (container[i] && container[i] == var[i + 1])
+	while (container[i] && container[i] == var[i + skip])
 		i++;
 
 	if (container[i] != '\0')
 		return false;
 
-	var += i + 1;
-	if (var[0] != ')' || var[1] != '-')
-		return false;
+	var += i + skip;
+	if (skip) {
+		if (var[0] != ')' || var[1] != '-')
+			return false;
+	} else {
+		if (var[0] != '-')
+			return false;
+	}
 	return true;
 }
 
@@ -419,8 +424,11 @@ static void match_function_def(struct symbol *sym)
 	struct symbol *type;
 	struct symbol *arg;
 	char buf[64];
+	int i;
 
+	i = -1;
 	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, arg) {
+		i++;
 		if (!arg->ident)
 			continue;
 
@@ -429,25 +437,50 @@ static void match_function_def(struct symbol *sym)
 			continue;
 
 		state = __alloc_smatch_state(0);
-		gen_name_zero(buf, sizeof(buf), arg->ident->name);
+		snprintf(buf, sizeof(buf), "%s{%d}", arg->ident->name, i);
 		state->name = alloc_sname(buf);
-		set_state(my_id, arg->ident->name, arg, state);
+		store_ssa_name_sym(arg->ident->name, arg, state);
 	} END_FOR_EACH_PTR(arg);
+}
+
+static void match_declaration(struct symbol *sym)
+{
+	struct smatch_state *state;
+	struct symbol *type;
+	char buf[64];
+
+	if (!sym->ident)
+		return;
+
+	type = get_real_base_type(sym);
+	if (!type || type->type != SYM_STRUCT)
+		return;
+
+	state = __alloc_smatch_state(0);
+	snprintf(buf, sizeof(buf), "&%s{}", sym->ident->name);
+	state->name = alloc_sname(buf);
+
+	snprintf(buf, sizeof(buf), "&%s", sym->ident->name);
+	store_ssa_name_sym(buf, sym, state);
 }
 
 static struct smatch_state *unmatched_state(struct sm_state *sm)
 {
-	struct smatch_state *state;
-	sval_t sval;
-
 	if (sm->name[0] == '&' && sm->sym && sm->sym->ident &&
 	    strcmp(sm->sym->ident->name, sm->name + 1) == 0)
 		return sm->state;
 
-	state = get_extra_name_sym(sm->name, sm->sym);
-	if (estate_get_single_value(state, &sval) && sval.value == 0)
-		return sm->state;
 	return &undefined;
+}
+
+static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
+{
+	struct smatch_state *state;
+	sval_t sval;
+
+	state = get_extra_name_sym(cur->name, cur->sym);
+	if (estate_get_single_value(state, &sval) && sval.value == 0)
+		set_state(my_id, cur->name, cur->sym, other->state);
 }
 
 static struct smatch_state *merge_states(struct smatch_state *s1, struct smatch_state *s2)
@@ -494,9 +527,11 @@ void smatch_ssa_pointer(int id)
 	set_dynamic_states(my_id);
 	add_modification_hook(my_id, &match_modify);
 	add_unmatched_state_hook(my_id, &unmatched_state);
+	add_pre_merge_hook(my_id, &pre_merge_hook);
 	add_merge_hook(my_id, &merge_states);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_function_def, FUNC_DEF_HOOK);
+	add_hook(&match_declaration, DECLARATION_HOOK);
 	add_hook(&free_resources, AFTER_PASS0_HOOK);
 	add_hook(&free_resources, AFTER_FUNC_HOOK);
 }
