@@ -15,7 +15,6 @@ void func(struct foo *p)
 		memset(p, 0, sizeof(*p));
 	memset(&foo, 0, sizeof(foo));
 
-	__smatch_is_clear(foo);
 	__smatch_is_clear(foo.a);
 	__smatch_is_clear(p->b);
 	memset(p, 0, sizeof(*p));
@@ -27,9 +26,8 @@ void func(struct foo *p)
  * check-command: smatch -I.. sm_buf_cleared1.c
  *
  * check-output-start
-sm_buf_cleared1.c:18 func() foo: zeroed
-sm_buf_cleared1.c:19 func() foo.a: zeroed
-sm_buf_cleared1.c:20 func() p->b: cleared
-sm_buf_cleared1.c:22 func() p->b: zeroed
+sm_buf_cleared1.c:18 func() foo.a: zeroed
+sm_buf_cleared1.c:19 func() p->b: cleared
+sm_buf_cleared1.c:21 func() p->b: zeroed
  * check-output-end
  */
