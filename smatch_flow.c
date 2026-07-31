@@ -759,10 +759,12 @@ void parse_assignment(struct expression *expr, bool shallow)
 		goto done;  /* no need to goto after_assign */
 
 	__split_expr(expr->right);
-	if (outside_of_function())
+	if (outside_of_function()) {
 		__pass_to_client(expr, GLOBAL_ASSIGNMENT_HOOK);
-	else
+	} else {
+		__pass_to_client(expr, ASSIGNMENT_HOOK_BEFORE);
 		__pass_to_client(expr, ASSIGNMENT_HOOK);
+	}
 
 	// FIXME: the ordering of this is tricky
 	__fake_struct_member_assignments(expr);

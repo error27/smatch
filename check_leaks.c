@@ -265,7 +265,7 @@ void check_leaks(int id)
 	add_hook(&match_condition, CONDITION_HOOK);
 
 	add_hook(&match_function_call, FUNCTION_CALL_HOOK);
-	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK_BEFORE);
 
 	add_hook(&match_return, RETURN_HOOK);
 	add_hook(&match_end_func, END_FUNC_HOOK);
