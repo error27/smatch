@@ -48,13 +48,13 @@ int main(int x)
  * check-command: smatch -I.. sm_ssa_ptr1.c
  *
  * check-output-start
-sm_ssa_ptr1.c:32 main() name ssa_name: 'p => &foo{0}'
-sm_ssa_ptr1.c:33 main() name ssa_name: 'a => (&foo{0})->aaa'
-sm_ssa_ptr1.c:35 main() name ssa_name: 'p->aaa => (&foo{0})->aaa'
-sm_ssa_ptr1.c:36 main() name ssa_name: 'p->a => (&foo{0})->a'
-sm_ssa_ptr1.c:37 main() name ssa_name: 'foo.a => (&foo{0})->a'
-sm_ssa_ptr1.c:38 main() name ssa_name: 'a->two => (&foo{0})->aaa->two'
-sm_ssa_ptr1.c:39 main() name ssa_name: 'one => (&foo{0})->aaa->one'
-sm_ssa_ptr1.c:40 main() name ssa_name: 'one->x => (&foo{0})->aaa->one->x'
+sm_ssa_ptr1.c:32 main() name ssa_name: 'p => &foo{}'
+sm_ssa_ptr1.c:33 main() name ssa_name: 'a => (&foo{})->aaa'
+sm_ssa_ptr1.c:35 main() name ssa_name: 'p->aaa => (&foo{})->aaa'
+sm_ssa_ptr1.c:36 main() name ssa_name: 'p->a => (&foo{})->a'
+sm_ssa_ptr1.c:37 main() name ssa_name: 'foo.a => (&foo{})->a'
+sm_ssa_ptr1.c:38 main() name ssa_name: 'a->two => (&foo{})->aaa->two'
+sm_ssa_ptr1.c:39 main() name ssa_name: 'one => (&foo{})->aaa->one'
+sm_ssa_ptr1.c:40 main() name ssa_name: 'one->x => (&foo{})->aaa->one->x'
  * check-output-end
  */

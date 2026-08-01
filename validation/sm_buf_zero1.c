@@ -36,9 +36,9 @@ void func(struct foo *p, struct foo *q)
  * check-command: smatch -I.. sm_buf_zero1.c
  *
  * check-output-start
-sm_buf_zero1.c:25 func() name ssa_name: 'foo.a => (&foo{0})->a'
-sm_buf_zero1.c:26 func() name ssa_name: 'p->a => (&foo{0})->a'
-sm_buf_zero1.c:27 func() name ssa_name: 'p => &foo{0}'
+sm_buf_zero1.c:25 func() name ssa_name: 'foo.a => (&foo{})->a'
+sm_buf_zero1.c:26 func() name ssa_name: 'p->a => (&foo{})->a'
+sm_buf_zero1.c:27 func() name ssa_name: 'p => &foo{}'
 sm_buf_zero1.c:29 func() implied: foo.a = '0'
 sm_buf_zero1.c:30 func() implied: p->a = '0'
 sm_buf_zero1.c:31 func() implied: q->a = '0'
