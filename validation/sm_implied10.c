@@ -7,14 +7,14 @@ int offset;
 void func(int *y)
 {
 	if (({int test2 = !!(!y || !*y); frob(); frob(); frob(); test2;}))
-		__smatch_value("y");
+		__smatch_implied(y);
 	else
-		__smatch_value("y");
+		__smatch_implied(y);
 
 	if (({int test2 = !!(offset >= 10u || x[offset] == 1); frob(); frob(); frob(); test2;}))
-		__smatch_value("offset");
+		__smatch_implied(offset);
 	else
-		__smatch_value("offset");
+		__smatch_implied(offset);
 
 }
 /*
@@ -22,9 +22,9 @@ void func(int *y)
  * check-command: smatch -I.. -m64 sm_implied10.c
  *
  * check-output-start
-sm_implied10.c:10 func() y = 0,4096-ptr_max
-sm_implied10.c:12 func() y = 4096-ptr_max
-sm_implied10.c:15 func() offset = s32min-s32max
-sm_implied10.c:17 func() offset = 0-9
+sm_implied10.c:10 func() implied: y = '0,4096-ptr_max'
+sm_implied10.c:12 func() implied: y = '4096-ptr_max'
+sm_implied10.c:15 func() implied: offset = 's32min-s32max'
+sm_implied10.c:17 func() implied: offset = '0-9'
  * check-output-end
  */
