@@ -16,10 +16,12 @@
  */
 
 #include <ctype.h>
+#include <stdlib.h>
+
 #include "smatch.h"
 
 static int my_id;
-static struct stree *has_ssa;
+static struct stree *has_ssa, *ssa_to_vs;
 static char *disable_ssa;
 
 static struct smatch_state *ssa_ptr_member(const char *name)
@@ -288,6 +290,50 @@ const char *get_ssa_ptr_name(struct expression *expr)
 	return ret;
 }
 
+static struct var_sym_list *ssa_to_vsl(const char *ssa_name)
+{
+	struct smatch_state *state;
+
+	state = get_state_stree(ssa_to_vs, my_id, ssa_name, NULL);
+	if (!state)
+		return NULL;
+	return state->data;
+}
+
+const char *filter_ssa_names(const char *name)
+{
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+
+	vsl = ssa_to_vsl(name);
+	if (!vsl)
+		return name;
+	vs = first_ptr_list((struct ptr_list *)vsl);
+	return vs->var;
+}
+
+static void store_ssa_to_vs(const char *ssa_name, const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+	struct var_sym_list *vsl;
+	struct var_sym *vs;
+
+	if (!ssa_name || !name || !sym)
+		return;
+
+	vs = alloc_var_sym(name, sym);
+	state = get_state_stree(ssa_to_vs, my_id, ssa_name, NULL);
+	if (!state) {
+		state = __alloc_smatch_state(0);
+		state->name = alloc_sname(name);
+	}
+
+	vsl = state->data;
+	add_ptr_list(&vsl, vs);
+	state->data = vsl;
+	set_state_stree(&ssa_to_vs, my_id, ssa_name, NULL, state);
+}
+
 static struct sm_state *store_ssa_state(struct expression *expr, struct smatch_state *state)
 {
 	struct sm_state *sm;
@@ -298,6 +344,7 @@ static struct sm_state *store_ssa_state(struct expression *expr, struct smatch_s
 	if (!name)
 		return NULL;
 
+	store_ssa_to_vs(state->name, name, sym);
 	set_state_stree(&has_ssa, my_id, name, sym, state);
 	sm = set_state(my_id, name, sym, state);
 	free_string(name);
@@ -518,6 +565,7 @@ bool ssa_pointers_disabled(int owner)
 static void free_resources(struct symbol *sym)
 {
 	free_stree(&has_ssa);
+	free_stree(&ssa_to_vs);
 }
 
 void smatch_ssa_pointer(int id)
@@ -529,6 +577,7 @@ void smatch_ssa_pointer(int id)
 
 	disable_ssa_pointers(my_id);
 	add_function_data((unsigned long *)&has_ssa);
+	add_function_data((unsigned long *)&ssa_to_vs);
 
 	set_dynamic_states(my_id);
 	add_modification_hook(my_id, &match_modify);

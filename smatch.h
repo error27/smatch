@@ -577,6 +577,7 @@ const char *swap_ssa_ptr_to_name_sym(struct expression *expr, const char *name, 
 bool ssa_buf_contains(const char *container, const char *var);
 const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym);
 const char *get_ssa_ptr_name(struct expression *expr);
+const char *filter_ssa_names(const char *name);
 
 /* smatch_helper.c */
 DECLARE_PTR_LIST(int_stack, int);
