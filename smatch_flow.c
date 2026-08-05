@@ -3004,6 +3004,7 @@ void smatch_flow(int id)
 	my_id = id;
 	add_function_data(&__parse_id_cur);
 	add_function_data((unsigned long *)&__current_scope);
+	add_function_data((unsigned long *)&__in_unmatched_hook);
 
 	oo_scope_hooks = calloc(num_checks, sizeof(*oo_scope_hooks));
 }
