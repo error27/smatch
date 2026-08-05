@@ -337,6 +337,7 @@ SMATCH_OBJS += smatch_mtag_data.o
 SMATCH_OBJS += smatch_mtag_map.o
 SMATCH_OBJS += smatch_mtag.o
 SMATCH_OBJS += smatch_nul_terminator.o
+SMATCH_OBJS += smatch_oom.o
 SMATCH_OBJS += smatch_param_bits_set.o
 SMATCH_OBJS += smatch_param_bits_clear.o
 SMATCH_OBJS += smatch_param_compare_limit.o

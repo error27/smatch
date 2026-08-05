@@ -374,6 +374,7 @@ int main(int argc, char **argv)
 	sql_outfd = stdout;
 	caller_info_fd = stdout;
 
+	set_oom_killer();
 	parse_args(&argc, &argv);
 
 	if (argc < 2)
