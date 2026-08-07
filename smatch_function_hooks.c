@@ -90,6 +90,7 @@ DEFINE_FUNCTION_HASHTABLE_STATIC(callback, struct fcall_back, struct call_back_l
 static struct hashtable *func_hash;
 
 unsigned long __in_fake_parameter_assign;
+int __in_return_merge;
 
 enum fn_hook_type {
 	REGULAR_CALL_EARLY,
@@ -1174,6 +1175,19 @@ static bool func_type_mismatch(struct expression *expr, const char *value)
 	return true;
 }
 
+static struct expression *cur_fn_call;
+struct expression *get_current_fn_call(void)
+{
+	if (!__in_return_merge)
+		return NULL;
+	return cur_fn_call;
+}
+
+static void set_current_fn_call(struct expression *expr)
+{
+	cur_fn_call = expr;
+}
+
 static void process_return_states(struct db_callback_info *db_info)
 {
 	struct stree *stree;
@@ -1192,7 +1206,10 @@ static void process_return_states(struct db_callback_info *db_info)
 	}
 
 	if (!db_info->cull) {
+		set_current_fn_call(db_info->expr);
+		__in_return_merge++;
 		merge_fake_stree(&db_info->stree, stree);
+		__in_return_merge--;
 		db_info->states_merged = true;
 	}
 	free_stree(&stree);

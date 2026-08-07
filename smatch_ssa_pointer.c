@@ -492,10 +492,14 @@ static struct smatch_state *get_or_alloc_ssa_ptr(struct expression *expr)
 	return sm ? sm->state : NULL;
 }
 
+static struct expression *parsed_call;
+static struct smatch_state *prev_state;
+
 static struct expression *ignored_mod;
 static void match_assign(struct expression *expr)
 {
 	struct smatch_state *state;
+	struct smatch_state *prev;
 	struct symbol *type;
 
 	if (expr->op != '=')
@@ -529,6 +533,11 @@ static void match_assign(struct expression *expr)
 	if (!state)
 		return;
 	ignored_mod = expr;
+	if (__in_fake_parameter_assign) {
+		prev = get_state_expr(my_id, expr->left);
+		if (prev)
+			prev_state = prev;
+	}
 	store_ssa_state(expr->left, state);
 }
 
@@ -602,6 +611,14 @@ static struct smatch_state *merge_states(struct smatch_state *s1, struct smatch_
 {
 	if (strcmp(s1->name, s2->name) == 0)
 		return s1;
+	if (__in_return_merge &&
+	    get_current_fn_call() == parsed_call) {
+		if (s1 == prev_state)
+			return s1;
+		if (s2 == prev_state)
+			return s2;
+	}
+
 	return &merged;
 }
 
@@ -640,6 +657,8 @@ void smatch_ssa_pointer(int id)
 	disable_ssa_pointers(my_id);
 	add_function_data((unsigned long *)&has_ssa);
 	add_function_data((unsigned long *)&ssa_to_vs);
+	add_function_data((unsigned long *)&parsed_call);
+	add_function_data((unsigned long *)&prev_state);
 
 	set_dynamic_states(my_id);
 	add_modification_hook(my_id, &match_modify);

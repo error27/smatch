@@ -780,6 +780,7 @@ int in_condition(void);
 
 extern int __in_fake_assign;
 extern unsigned long __in_fake_parameter_assign;
+extern int __in_return_merge;
 extern int __in_fake_struct_assign;
 extern int __in_buf_clear;
 extern int __in_fake_var_assign;
@@ -1036,6 +1037,7 @@ void __call_array_initialized_hooks(struct expression *array, int nr);
 
 /* smatch_function_hooks.c */
 const char *get_fn_name(struct expression *fn);
+struct expression *get_current_fn_call(void);
 void add_fake_call_after_return(struct expression *call);
 struct expression *get_real_call(void);
 struct expression *get_this_fn_call(void);
