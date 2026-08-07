@@ -1362,9 +1362,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 
 	nullify_path();
 	__unnullify_path();
-	FOR_EACH_SM(orig_states, sm) {
-		__set_sm_cur_stree(sm);
-	} END_FOR_EACH_SM(sm);
+	__swap_cur_stree(clone_stree(orig_states));
 
 	db_info.true_side = 0;
 	db_info.stree = NULL;
@@ -1384,11 +1382,7 @@ static void compare_db_return_states_callbacks(struct expression *left, int comp
 
 	nullify_path();
 	__unnullify_path();
-	FOR_EACH_SM(orig_states, sm) {
-		__set_sm_cur_stree(sm);
-	} END_FOR_EACH_SM(sm);
-
-	free_stree(&orig_states);
+	__swap_cur_stree(orig_states);
 
 	FOR_EACH_SM(true_states, sm) {
 		__set_true_false_sm(sm, NULL);
