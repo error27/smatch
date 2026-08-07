@@ -844,11 +844,15 @@ static void clear_unfaked_call(void)
 
 void fake_param_assign_helper(struct expression *expr, struct expression *fake_assign, bool shallow)
 {
+	static int ssa_pointer_id = -1;
 	struct stree *orig, *before, *set;
 	struct expression *call;
 	struct symbol *left_sym;
 	struct sm_state *sm;
 	char *name;
+
+	if (ssa_pointer_id == -1)
+		ssa_pointer_id = id_from_name("smatch_ssa_pointer");
 
 	name = expr_to_var_sym(fake_assign->left, &left_sym);
 	if (!name || !left_sym)
@@ -880,6 +884,8 @@ void fake_param_assign_helper(struct expression *expr, struct expression *fake_a
 	__swap_cur_stree(orig);
 	FOR_EACH_SM(set, sm) {
 		if (sm->sym == left_sym && strcmp(sm->name, name) == 0)
+			__set_sm(sm);
+		if (sm->owner == ssa_pointer_id)
 			__set_sm(sm);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&set);
