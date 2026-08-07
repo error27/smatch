@@ -742,6 +742,10 @@ static bool buf_contains(const char *container, const char *var, bool parent)
 		return false;
 
 	var += i;
+	/* Exact matches aren't contained *fence and *fence should be be
+	 * both a PARAM_SET and a PARAM_CLEAR.  But (*fence)->foo is
+	 * contained.
+	 */
 	if (var[0] == '\0')
 		return false;
 	if (var[0] != '.' && var[0] != '-')
