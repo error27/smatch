@@ -183,7 +183,6 @@ bool debug_on(const char *check_name, const char *var)
 	return false;
 }
 
-#if 0
 const char *get_ssa_name(int owner, const char *name, struct symbol *sym)
 {
 	if (SSA_POINTER_DISABLED)
@@ -192,11 +191,6 @@ const char *get_ssa_name(int owner, const char *name, struct symbol *sym)
 	if (ssa_pointers_disabled(owner))
 		return NULL;
 	return get_ssa_ptr_name_sym(name, sym);
-}
-#endif
-const char *get_ssa_name(int owner, const char *name, struct symbol *sym)
-{
-	return NULL;
 }
 
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
