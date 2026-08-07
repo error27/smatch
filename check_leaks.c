@@ -234,7 +234,7 @@ static void check_for_allocated(void)
 	FOR_EACH_MY_SM(my_id, stree, tmp) {
 		if (!slist_has_state(tmp->possible, &allocated))
 			continue;
-		sm_warning("possible memory leak of '%s'", tmp->name);
+		sm_warning("possible memory leak of '%s'", filter_ssa_names(tmp->name));
 	} END_FOR_EACH_SM(tmp);
 }
 
