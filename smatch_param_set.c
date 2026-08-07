@@ -111,7 +111,6 @@ static void extra_mod_hook(const char *name, struct symbol *sym, struct expressi
 	 *
 	 */
 
-
 	param_name = get_param_var_sym_var_sym(name, sym, NULL, &param_sym);
 	if (!param_name || !param_sym)
 		goto free;
@@ -499,6 +498,7 @@ void smatch_param_set(int id)
 	my_id = id;
 
 	set_dynamic_states(my_id);
+	disable_ssa_pointers(my_id);
 	add_extra_mod_hook(&extra_mod_hook);
 	add_hook(match_array_assignment, ASSIGNMENT_HOOK);
 	add_unmatched_state_hook(my_id, &unmatched_state);

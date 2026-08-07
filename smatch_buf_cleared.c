@@ -829,6 +829,7 @@ void smatch_buf_cleared(int id)
 
 	add_merge_hook(my_id, &merge_hook);
 	add_modification_hook(my_id, &set_undefined);
+	disable_ssa_pointers(my_id);
 
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_hook(&match_zero_buf_assign, ASSIGNMENT_HOOK);

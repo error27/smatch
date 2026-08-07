@@ -2819,6 +2819,7 @@ static void free_data(struct symbol *sym)
 void smatch_comparison(int id)
 {
 	comparison_id = id;
+	disable_ssa_pointers(comparison_id);
 	set_dynamic_states(comparison_id);
 	add_hook(&save_start_states, AFTER_DEF_HOOK);
 	add_unmatched_state_hook(comparison_id, unmatched_comparison);
@@ -2845,6 +2846,7 @@ void smatch_comparison_late(int id)
 void smatch_comparison_links(int id)
 {
 	link_id = id;
+	disable_ssa_pointers(link_id);
 	db_ignore_states(link_id);
 	set_dynamic_states(link_id);
 	add_merge_hook(link_id, &merge_links);

@@ -178,6 +178,7 @@ void smatch_param_filter(int id)
 {
 	my_id = id;
 
+	disable_ssa_pointers(my_id);
 	set_dynamic_states(my_id);
 
 	add_extra_mod_hook(&extra_mod_hook);

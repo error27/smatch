@@ -209,7 +209,7 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 
 		if (estate_is_whole(state) || estate_is_empty(state))
 			continue;
-		old = get_state_stree(get_start_states(), SMATCH_EXTRA, orig_name, sym);
+		old = get_state_stree(get_start_states(), SMATCH_EXTRA, tmp->name, sym);
 		if (old && rl_equiv(estate_rl(old), estate_rl(state)))
 			continue;
 
@@ -288,6 +288,7 @@ void smatch_param_limit(int id)
 
 	db_ignore_states(my_id);
 	set_dynamic_states(my_id);
+	disable_ssa_pointers(my_id);
 
 	add_extra_mod_hook(&extra_mod_hook);
 	add_extra_nomod_hook(&extra_nomod_hook);
