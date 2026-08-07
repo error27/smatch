@@ -79,7 +79,7 @@ static bool ignored_function(struct expression *expr)
 	if (!expr || expr->type != EXPR_CALL)
 		return false;
 
-	func = get_fn_name(expr);
+	func = get_fn_name(expr->fn);
 	if (!func)
 		return false;
 	if (search_func(ignored_funcs, (char *)func))
@@ -89,7 +89,7 @@ static bool ignored_function(struct expression *expr)
 
 static void match_assign_call(struct expression *expr)
 {
-	struct expression *left;
+	struct expression *left, *right;
 	struct assignment *assign;
 
 	if (pass_cnt)
@@ -113,6 +113,10 @@ static void match_assign_call(struct expression *expr)
 	if (left->symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
 		return;
 
+	right = strip_expr(expr->right);
+	if (!right || right->type != EXPR_CALL)
+		return;
+
 	skip_this = left;
 
 	set_state_expr(my_id, left, alloc_state_num(assign_id));
@@ -120,7 +124,7 @@ static void match_assign_call(struct expression *expr)
 	assign = __alloc_assignment(0);
 	assign->assign_id = assign_id++;
 	assign->name = expr_to_var(left);
-	assign->function = alloc_sname(get_fn_name(expr->right));
+	assign->function = alloc_sname(get_fn_name(right->fn));
 	assign->line = get_lineno();
 	add_ptr_list(&assignment_list, assign);
 }
