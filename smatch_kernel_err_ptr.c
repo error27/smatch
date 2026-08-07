@@ -22,6 +22,21 @@ static int my_id;
 static unsigned long returns_err_ptr;
 STATE(err_ptr);
 
+bool possible_err_ptr_name_sym(const char *name, struct symbol *sym)
+{
+	struct smatch_state *state;
+
+	state = get_extra_name_sym(name, sym);
+	if (state && estate_is_empty(state))
+		return false;
+
+	if (state && !rl_intersection(estate_rl(state), alloc_rl(ptr_err_min, ptr_err_max)))
+		return false;
+	if (!has_possible_state(my_id, name, sym, &err_ptr))
+		return false;
+	return true;
+}
+
 bool possible_err_ptr(struct expression *expr)
 {
 	struct smatch_state *state;

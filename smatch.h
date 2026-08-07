@@ -1676,6 +1676,7 @@ void add_ssa_state_assigned_hook(int owner, sm_hook *call_back);
 /* check_returns_negative_error_code.c */
 bool holds_kernel_error_codes_name_sym(const char *name, struct symbol *sym);
 bool holds_kernel_error_codes(struct expression *expr);
+bool possible_err_ptr_name_sym(const char *name, struct symbol *sym);
 bool possible_err_ptr(struct expression *expr);
 bool reasonable_err_ptr(struct expression *expr);
 bool is_err_ptr_name_sym(const char *name, struct symbol *sym);
