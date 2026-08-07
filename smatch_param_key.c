@@ -640,6 +640,7 @@ static char *get_param_var_sym_var_sym_helper(enum early_late el, const char *na
 {
 	struct smatch_state *state;
 	struct var_sym *var_sym;
+	char *ret;
 	int param;
 
 	if (!name)
@@ -648,6 +649,10 @@ static char *get_param_var_sym_var_sym_helper(enum early_late el, const char *na
 	*sym_p = NULL;
 
 	// FIXME was modified...
+
+	ret = get_param_from_ssa_name(name, sym, sym_p);
+	if (ret)
+		return ret;
 
 	if (el == LATE || !param_was_set_var_sym(name, sym)) {
 		param = get_param_num_from_sym(sym);

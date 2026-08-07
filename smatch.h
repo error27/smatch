@@ -574,6 +574,7 @@ struct smatch_state *get_ssa_state_expr(int owner, struct expression *expr);
 void disable_ssa_pointers(int id);
 bool ssa_pointers_disabled(int owner);
 const char *swap_ssa_ptr_to_name_sym(struct expression *expr, const char *name, struct symbol **sym);
+char *get_param_from_ssa_name(const char *name, struct symbol *sym, struct symbol **sym_p);
 bool ssa_buf_contains(const char *container, const char *var);
 const char *get_ssa_ptr_name_sym(const char *name, struct symbol *sym);
 const char *get_ssa_ptr_name(struct expression *expr);

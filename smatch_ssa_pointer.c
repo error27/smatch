@@ -235,6 +235,66 @@ const char *swap_ssa_ptr_to_name_sym(struct expression *expr, const char *name, 
 	return alloc_sname(buf);
 }
 
+const int ssa_to_param(const char *ssa_name, const char **start, const char **end)
+{
+	const char *p;
+	int param;
+
+	p = ssa_name;
+	while (*p == '&' || *p == '*' || *p == '(')
+		p++;
+	*start = p;
+	while (isalpha(*p) || *p == '_')
+		p++;
+	if (*p++ != '{')
+		return -1;
+	if (!isdigit(*p))
+		return -1;
+	param = atoi(p);
+	p++;
+	if (*p != '}')
+		return -1;
+	*end = p + 1;
+	return param;
+}
+
+static struct symbol *get_param_symbol(int param)
+{
+	struct symbol *tmp;
+	int i;
+
+	i = 0;
+	FOR_EACH_PTR(cur_func_sym->ctype.base_type->arguments, tmp) {
+		if (i++ == param)
+			return tmp;
+	} END_FOR_EACH_PTR(tmp);
+
+	return NULL;
+}
+
+char *get_param_from_ssa_name(const char *name, struct symbol *sym, struct symbol **sym_p)
+{
+	const char *start, *end;
+	char buf[64];
+	int param;
+
+	/* If *sym is set it's not an SSA pointer state */
+	if (sym || !name || !strchr(name, '{'))
+		return NULL;
+
+	param = ssa_to_param(name, &start, &end);
+	if (param < 0)
+		return NULL;
+
+	sym = get_param_symbol(param);
+	if (!sym || !sym->ident)
+		return NULL;
+
+	snprintf(buf, sizeof(buf), "%.*s%s%s", (int)(start - name), name, sym->ident->name, end);
+	*sym_p = sym;
+	return alloc_string(buf);
+}
+
 bool ssa_buf_contains(const char *container, const char *var)
 {
 	int skip = 0;
