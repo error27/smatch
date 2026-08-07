@@ -530,10 +530,11 @@ static struct smatch_state *unmatched_state(struct sm_state *sm)
 static void pre_merge_hook(struct sm_state *cur, struct sm_state *other)
 {
 	struct smatch_state *state;
-	sval_t sval;
 
 	state = get_extra_name_sym(cur->name, cur->sym);
-	if (estate_get_single_value(state, &sval) && sval.value == 0)
+	if (!state)
+		return;
+	if (!rl_intersection(valid_ptr_rl, estate_rl(state)))
 		set_state(my_id, cur->name, cur->sym, other->state);
 }
 
