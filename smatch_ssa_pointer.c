@@ -440,9 +440,7 @@ static void match_assign(struct expression *expr)
 
 	if (expr->op != '=')
 		return;
-	if (__in_fake_struct_assign)
-		return;
-	if (__in_fake_parameter_assign)
+	if (__in_fake_assign || __in_fake_struct_assign)
 		return;
 
 	if (expr->left->smatch_flags & Fake)
@@ -450,6 +448,9 @@ static void match_assign(struct expression *expr)
 
 	type = get_type(expr->left);
 	if (!is_ptr_type(type))
+		return;
+
+	if (expr_equiv(expr->left, expr->right))
 		return;
 
 	state = get_or_alloc_ssa_ptr(expr->right);
