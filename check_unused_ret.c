@@ -206,6 +206,7 @@ void check_unused_ret(int id)
 {
 	my_id = id;
 
+	disable_ssa_pointers(my_id);
 	set_dynamic_states(my_id);
 	add_function_data((unsigned long *)&assignment_list);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
