@@ -87,19 +87,28 @@ static int shared_cnt(const char *one, const char *two)
 bool is_sub_member(const char *name, struct symbol *sym, struct sm_state *sm)
 {
 	const char *sm_name;
+	bool amp = false;
 	int len;
 
 	if (sym != sm->sym)
 		return false;
 
 	sm_name = sm->name;
-	if (sm_name[0] == '&')
+	if (sm_name[0] == '&') {
+		amp = true;
 		sm_name++;
+	}
 
 	len = shared_cnt(sm_name, name);
+	// This code is to handle the no db sitution
+	// the problem is foo.b is modified and this code works but
+	// smatch extra doesn't use the modification_hooks.
 	if (name[len] == '\0') {
-		if (sm_name[len] == '\0')
+		if (sm_name[len] == '\0') {
+			if (amp)
+				return false;
 			return true;
+		}
 		if (sm_name[len] == '-' || sm_name[len] == '.')
 			return true;
 	}
