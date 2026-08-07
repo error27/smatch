@@ -2082,7 +2082,6 @@ void estate_set_assigned(struct smatch_state *state);
 bool estate_new(struct smatch_state *state);
 void estate_set_new(struct smatch_state *state);
 
-int estate_get_single_value(struct smatch_state *state, sval_t *sval);
 struct smatch_state *get_implied_estate(struct expression *expr);
 
 struct smatch_state *estate_filter_sval(struct smatch_state *orig, sval_t filter);
