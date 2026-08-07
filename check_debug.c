@@ -723,6 +723,7 @@ static void mtag_info(struct expression *expr)
 void debug_print_about(struct expression *expr)
 {
 	struct range_list *rl;
+	const char *ssa_name;
 	struct sm_state *sm;
 	char *name;
 	int len;
@@ -757,6 +758,18 @@ void debug_print_about(struct expression *expr)
 			goto print;
 		continue;
 print:
+		dbg("%s", show_sm(sm));
+	} END_FOR_EACH_SM(sm);
+
+	ssa_name = get_ssa_ptr_name(expr);
+	if (!ssa_name)
+		return;
+
+	FOR_EACH_SM(__get_cur_stree(), sm) {
+		if (sm->sym)
+			continue;
+		if (strcmp(sm->name, ssa_name) != 0)
+			continue;
 		dbg("%s", show_sm(sm));
 	} END_FOR_EACH_SM(sm);
 }
