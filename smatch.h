@@ -809,6 +809,7 @@ void __split_label_stmt(struct statement *stmt);
 void __split_stmt(struct statement *stmt);
 extern int __in_function_def;
 extern int __in_unmatched_hook;
+extern int __in_pre_merge_hook;
 extern int option_assume_loops;
 extern int option_no_db;
 extern int option_file_output;
@@ -951,8 +952,8 @@ void restore_all_states(void);
 void free_goto_stack(void);
 void clear_all_states(void);
 
-struct sm_state *get_sm_state(int owner, const char *name,
-				struct symbol *sym);
+struct sm_state *__get_sm_state(int owner, const char *name, struct symbol *sym);
+struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym);
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr);
 void __push_true_states(void);
 void __use_false_states(void);

@@ -54,6 +54,7 @@ static unsigned int loop_count;
 int __expr_stmt_count;
 int __in_function_def;
 int __in_unmatched_hook;
+int __in_pre_merge_hook;
 static struct expression_list *switch_expr_stack = NULL;
 static struct expression_list *post_op_stack = NULL;
 
@@ -3005,6 +3006,7 @@ void smatch_flow(int id)
 	add_function_data(&__parse_id_cur);
 	add_function_data((unsigned long *)&__current_scope);
 	add_function_data((unsigned long *)&__in_unmatched_hook);
+	add_function_data((unsigned long *)&__in_pre_merge_hook);
 
 	oo_scope_hooks = calloc(num_checks, sizeof(*oo_scope_hooks));
 }

@@ -183,12 +183,32 @@ bool debug_on(const char *check_name, const char *var)
 	return false;
 }
 
+#if 0
+const char *get_ssa_name(int owner, const char *name, struct symbol *sym)
+{
+	if (SSA_POINTER_DISABLED)
+		return NULL;
+
+	if (ssa_pointers_disabled(owner))
+		return NULL;
+	return get_ssa_ptr_name_sym(name, sym);
+}
+#endif
+const char *get_ssa_name(int owner, const char *name, struct symbol *sym)
+{
+	return NULL;
+}
+
 struct sm_state *set_state(int owner, const char *name, struct symbol *sym, struct smatch_state *state)
 {
 	struct sm_state *ret;
+	const char *ssa_name = NULL;
 
 	if (!name || !state || !state->name)
 		return NULL;
+
+	if (!__in_pre_merge_hook)
+		ssa_name = get_ssa_name(owner, name, sym);
 
 	if (read_only)
 		sm_perror("cur_stree is read only.");
@@ -198,11 +218,11 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 		s = __get_state(owner, name, sym);
 		if (!s)
-			sm_msg("%s new [%s] '%s' %s", __func__,
-			       check_name(owner), name, show_state(state));
+			sm_msg("%s new [%s] '%s' (ssa=%s) %s", __func__,
+			       check_name(owner), name, ssa_name, show_state(state));
 		else
-			sm_msg("%s change [%s] '%s' %s => %s",
-				__func__, check_name(owner), name, show_state(s),
+			sm_msg("%s change [%s] '%s' (ssa=%s) %s => %s",
+				__func__, check_name(owner), name, ssa_name, show_state(s),
 				show_state(state));
 	}
 
@@ -210,6 +230,11 @@ struct sm_state *set_state(int owner, const char *name, struct symbol *sym, stru
 
 	if (owner != -1 && is_unreachable())
 		return NULL;
+
+	if (ssa_name) {
+		name = ssa_name;
+		sym = NULL;
+	}
 
 	if (fake_cur_stree_stack)
 		set_state_stree_stack(&fake_cur_stree_stack, owner, name, sym, state);
@@ -224,6 +249,9 @@ struct sm_state *set_state_expr(int owner, struct expression *expr, struct smatc
 	char *name;
 	struct symbol *sym;
 	struct sm_state *ret = NULL;
+
+	if (__in_pre_merge_hook)
+		sm_msg("calling set_state_expr() in pre_merge_hook(): %s", check_name(owner));
 
 	expr = strip_expr(expr);
 	name = expr_to_var_sym(expr, &sym);
@@ -517,7 +545,7 @@ static struct sm_state *get_scope_sm_state(int owner, const char *name, struct s
 	return get_sm_state_stree(stree, owner, name, sym);
 }
 
-struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
+struct sm_state *__get_sm_state(int owner, const char *name, struct symbol *sym)
 {
 	struct sm_state *ret;
 
@@ -529,6 +557,25 @@ struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
 	if (ret)
 		return ret;
 	return get_scope_sm_state(owner, name, sym);
+}
+
+struct sm_state *get_sm_state(int owner, const char *name, struct symbol *sym)
+{
+	const char *ssa_name;
+	struct sm_state *ret;
+
+	ssa_name = get_ssa_name(owner, name, sym);
+	if (ssa_name) {
+		ret = get_sm_state_stree(fast_overlay, owner, ssa_name, NULL);
+		if (ret)
+			return ret;
+
+		ret = get_sm_state_stree(cur_stree, owner, ssa_name, NULL);
+		if (ret)
+			return ret;
+	}
+
+	return __get_sm_state(owner, name, sym);
 }
 
 struct sm_state *get_sm_state_expr(int owner, struct expression *expr)
@@ -642,6 +689,8 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 			   struct smatch_state *true_state,
 			   struct smatch_state *false_state)
 {
+	const char *ssa_name;
+
 	if (read_only)
 		sm_perror("cur_stree is read only.");
 
@@ -653,12 +702,16 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	    (false_state && !false_state->name))
 		return;
 
+	ssa_name = get_ssa_name(owner, name, sym);
+
 	if (debug_on(check_name(owner), name)) {
-		struct smatch_state *tmp;
+		struct smatch_state *tmp, *ssa_state;
 
 		tmp = __get_state(owner, name, sym);
-		sm_msg("%s [%s] '%s'.  Was %s.  Now T:%s F:%s", __func__,
-		       check_name(owner),  name, show_state(tmp),
+		ssa_state = __get_state(owner, ssa_name, NULL);
+		sm_msg("%s [%s] '%s' (ssa=%s %s) Was %s.  Now T:%s F:%s", __func__,
+		       check_name(owner),  name,
+		       ssa_name, show_state(ssa_state), show_state(tmp),
 		       show_state(true_state), show_state(false_state));
 	}
 
@@ -668,6 +721,11 @@ void set_true_false_states(int owner, const char *name, struct symbol *sym,
 	if (!cond_false_stack || !cond_true_stack) {
 		sm_perror("missing true/false stacks");
 		return;
+	}
+
+	if (ssa_name) {
+		name = ssa_name;
+		sym = NULL;
 	}
 
 	if (true_state)

@@ -795,11 +795,12 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 	struct stree *new;
 
 	__in_unmatched_hook++;
+	__in_pre_merge_hook++;
 
 	__set_fake_cur_stree_fast(*one);
 	__push_fake_cur_stree();
 	FOR_EACH_SM(*two, sm) {
-		cur = get_sm_state(sm->owner, sm->name, sm->sym);
+		cur = __get_sm_state(sm->owner, sm->name, sm->sym);
 		if (cur == sm)
 			continue;
 		call_pre_merge_hook(cur, sm);
@@ -812,7 +813,7 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 	__set_fake_cur_stree_fast(*two);
 	__push_fake_cur_stree();
 	FOR_EACH_SM(*one, sm) {
-		cur = get_sm_state(sm->owner, sm->name, sm->sym);
+		cur = __get_sm_state(sm->owner, sm->name, sm->sym);
 		if (cur == sm)
 			continue;
 		call_pre_merge_hook(cur, sm);
@@ -822,6 +823,7 @@ static void call_pre_merge_hooks(struct stree **one, struct stree **two)
 	free_stree(&new);
 	__pop_fake_cur_stree_fast();
 
+	__in_pre_merge_hook--;
 	__in_unmatched_hook--;
 }
 
@@ -973,8 +975,8 @@ void merge_fake_stree(struct stree **to, struct stree *stree)
 		if (!one_iter.sm && !two_iter.sm)
 			break;
 		if (cmp_tracker(one_iter.sm, two_iter.sm) < 0) {
-			sm = get_sm_state(one_iter.sm->owner, one_iter.sm->name,
-					  one_iter.sm->sym);
+			sm = __get_sm_state(one_iter.sm->owner, one_iter.sm->name,
+					    one_iter.sm->sym);
 			if (sm)
 				add_ptr_list(&add_to_two, sm);
 			avl_iter_next(&one_iter);
@@ -982,8 +984,8 @@ void merge_fake_stree(struct stree **to, struct stree *stree)
 			avl_iter_next(&one_iter);
 			avl_iter_next(&two_iter);
 		} else {
-			sm = get_sm_state(two_iter.sm->owner, two_iter.sm->name,
-					  two_iter.sm->sym);
+			sm = __get_sm_state(two_iter.sm->owner, two_iter.sm->name,
+					    two_iter.sm->sym);
 			if (sm)
 				add_ptr_list(&add_to_one, sm);
 			avl_iter_next(&two_iter);
