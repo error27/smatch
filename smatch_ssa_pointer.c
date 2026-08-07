@@ -20,6 +20,8 @@
 
 #include "smatch.h"
 
+bool SSA_POINTER_DISABLED = 1;
+
 static int my_id;
 static struct stree *has_ssa, *ssa_to_vs;
 static char *disable_ssa;
@@ -422,6 +424,9 @@ static void promote_states_to_ssa(struct sm_state *sm)
 	struct state_list *slist = NULL;
 	struct sm_state *tmp, *new;
 	const char *ssa_name;
+
+	if (SSA_POINTER_DISABLED)
+		return;
 
 	if (!sm)
 		return;

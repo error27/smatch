@@ -84,7 +84,10 @@ static bool in_buf_zero_name_sym_helper(const char *name, struct symbol *sym)
 		else
 			return false;
 	} else {
-		ssa_name = get_ssa_ptr_name_sym(name, sym);
+		if (SSA_POINTER_DISABLED)
+			ssa_name = NULL;
+		else
+			ssa_name = get_ssa_ptr_name_sym(name, sym);
 	}
 
 	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
