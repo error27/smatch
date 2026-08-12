@@ -983,10 +983,8 @@ struct range_list *db_return_vals(struct expression *expr)
 	cached_rl = NULL;
 
 	sm = get_extra_sm_state(expr);
-	if (sm) {
-		cached_rl = clone_rl(estate_rl(sm->state));
+	if (sm)
 		return clone_rl(estate_rl(sm->state));
-	}
 	ret_info.static_returns_call = expr;
 	ret_info.return_type = get_type(expr);
 	if (!ret_info.return_type)
