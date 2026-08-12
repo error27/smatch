@@ -1757,6 +1757,7 @@ static void match_return_info(int return_id, char *return_ranges, struct express
 static bool call_return_state_hooks_conditional(struct expression *expr)
 {
 	int output_enabled_orig = output_enabled;
+	struct expression *condition, *fake_parent;
 	static int recurse;
 	sval_t sval;
 
@@ -1782,11 +1783,18 @@ static bool call_return_state_hooks_conditional(struct expression *expr)
 
 	__push_fake_cur_stree();
 
+	condition = expr->conditional;
+	if (!expr->cond_true) {
+		fake_parent = expr_get_fake_parent_expr(expr->conditional);
+		if (fake_parent && fake_parent->type == EXPR_ASSIGNMENT)
+			condition = fake_parent->left;
+	}
+
 	output_enabled = 0;
-	__split_whole_condition(expr->conditional);
+	__split_whole_condition(condition);
 	output_enabled = output_enabled_orig;
 
-	call_return_state_hooks(expr->cond_true ?: expr->conditional);
+	call_return_state_hooks(expr->cond_true ?: condition);
 
 	__push_true_states();
 	__use_false_states();
