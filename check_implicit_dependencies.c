@@ -246,21 +246,21 @@ static void match_condition(struct expression *expr)
 static void match_call_info(struct expression *expr)
 {
 	struct expression *arg;
-	int i;
+	// int i;
 
 	if (!__inline_fn || !cur_syscall)
 		return;
 
 	// prefix(); printf("fn: %s\n", expr->fn->symbol->ident->name);
 
-	i = 0;
+	// i = 0;
 	FOR_EACH_PTR(expr->args, arg) {
 		/*
 		   if (arg->type == EXPR_DEREF)
 		   printf("arg %d is deref\n", i);
 		 */
 		print_read_member_type(arg);
-		i++;
+		// i++;
 	} END_FOR_EACH_PTR(arg);
 }
 

@@ -102,7 +102,6 @@ static int print_call_is_linked(struct expression *call)
 	struct expression *arg;
 	struct symbol *fn_sym;
 	struct symbol *arg_sym = NULL;
-	int i;
 
 	fn = strip_expr(call->fn);
 	tmp = get_assigned_expr(fn);
@@ -115,9 +114,7 @@ static int print_call_is_linked(struct expression *call)
 	if (!fn_sym)
 		return 0;
 
-	i = -1;
 	FOR_EACH_PTR(call->args, arg) {
-		i++;
 		tmp = get_assigned_expr(arg);
 		if (tmp)
 			arg = tmp;
