@@ -1815,7 +1815,7 @@ static bool handle_forced_split(const char *return_ranges, struct expression *ex
 	struct range_list *rl;
 	static bool recurse;
 	char buf[64];
-	char *math;
+	const char *math;
 	sval_t sval;
 	bool undo;
 	int i;

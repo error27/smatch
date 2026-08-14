@@ -571,7 +571,7 @@ static void match_kernel_param(struct symbol *sym)
 
 bool is_ignored_kernel_data(const char *name)
 {
-	char *p;
+	const char *p;
 
 	if (option_project != PROJ_KERNEL)
 		return false;

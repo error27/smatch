@@ -168,7 +168,7 @@ static void mark_partial_matches_as_undefined(const char *key)
 {
 	struct sm_state *sm;
 	int start_pos, state_len, key_len;
-	char *p;
+	const char *p;
 
 	while ((p = strchr(key, '-'))) {
 		if (p[1] != '>')

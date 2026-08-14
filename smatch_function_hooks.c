@@ -895,20 +895,21 @@ static struct expression *get_arg_from_ret_string(struct expression *call, const
 {
 	struct expression *arg, *tmp;
 	char *str;
+	const char *p;
 	char buf[64];
 	int param;
 
-	str = strchr(ret_string, '[');
-	if (!str)
+	p = strchr(ret_string, '[');
+	if (!p)
 		return NULL;
-	str++;
-	if (strncmp(str, "== ", 3) == 0)
-		str += 3;
+	p++;
+	if (strncmp(p, "== ", 3) == 0)
+		p += 3;
 
-	if (str[0] != '$' || !isdigit(str[1]))
+	if (p[0] != '$' || !isdigit(p[1]))
 		return NULL;
 
-	param = atoi(str + 1);
+	param = atoi(p + 1);
 	arg = get_argument_from_call_expr(call->args, param);
 	if (!arg)
 		return NULL;
@@ -921,7 +922,7 @@ static struct expression *get_arg_from_ret_string(struct expression *call, const
 		arg = tmp;
 	}
 
-	snprintf(buf, sizeof(buf), "$%s", str + 2);
+	snprintf(buf, sizeof(buf), "$%s", p + 2);
 	str = strchr(buf, ']');
 	if (!str)
 		return NULL;

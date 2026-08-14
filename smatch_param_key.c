@@ -276,7 +276,7 @@ struct expression *map_netdev_priv_to_simpler_expr_key(struct expression *expr, 
 	struct expression *priv;
 	char buf[64];
 	int diff;
-	char *p;
+	const char *p;
 
 	priv = get_netdev_priv(expr);
 	if (!priv)
