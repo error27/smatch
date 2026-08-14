@@ -134,7 +134,7 @@ void mark_call_params_untracked(struct expression *call)
 	int i = 0;
 
 	FOR_EACH_PTR(call->args, arg) {
-		mark_untracked(call, i++, "$", NULL);
+		mark_untracked(call, i++, (char *)"$", NULL);
 	} END_FOR_EACH_PTR(arg);
 }
 
