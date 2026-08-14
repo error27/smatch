@@ -2636,7 +2636,7 @@ void select_caller_info(const char *name, struct symbol *sym, char *value)
 	struct symbol *right_sym;
 	char comparison_name[128];
 	char right_buf[128];
-	int op, right_param;
+	int op, right_param, cnt;
 
 	if (!split_op_param_key(value, &op, &right_param, &right_key))
 		return;
@@ -2667,7 +2667,9 @@ void select_caller_info(const char *name, struct symbol *sym, char *value)
 	add_var_sym(&left_vsl, name, sym);
 	add_var_sym(&right_vsl, right_name, right_sym);
 
-	snprintf(comparison_name, sizeof(comparison_name), "%s vs %s", name, right_name);
+	cnt = snprintf(comparison_name, sizeof(comparison_name), "%s vs %s", name, right_name);
+	if (cnt >= sizeof(comparison_name))
+		return;
 
 	set_state(comparison_id, comparison_name, NULL,
 		  alloc_compare_state(NULL, name, left_vsl,
