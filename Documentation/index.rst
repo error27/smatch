@@ -92,6 +92,7 @@ Some interesting external documentation:
    doc-guide
    TODO
    smatch
+   smatch-devel
 
 .. toctree::
    :caption: Release Notes
