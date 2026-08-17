@@ -1189,7 +1189,7 @@ static void set_param_user_data(const char *name, struct symbol *sym, char *key,
 	state = alloc_estate_rl(rl);
 	if (param_data_capped(value) || is_capped(expr))
 		estate_set_capped(state);
-	if (param_data_treat_untagged(value) || sym->ctype.as == 5)
+	if (param_data_treat_untagged(value))
 		estate_set_treat_untagged(state);
 	set_state(my_id, fullname, sym, state);
 }
