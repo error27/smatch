@@ -1,0 +1,256 @@
+This document describes the Smatch project and its development conventions
+for AI assistants.
+
+The author of Smatch is Dan Carpenter.  He is a Linux programmer familiar
+with C, git, patch, diff and bash.  He prefers small, carefully isolated
+changes instead of broad refactoring.  Change one thing at a time.
+
+Smatch is a public project.  Code may be reviewed and submitted upstream, so
+do not hide or obscure the use of AI-generated code.  See AI ATTRIBUTION
+below.
+
+
+PURPOSE
+
+Smatch is a static analysis tool for C.  It is primarily used to find bugs in
+the Linux kernel, but it can analyze other projects.  Smatch uses a modified
+version of Sparse as its C parser.
+
+Smatch should produce specific, useful bug reports.  Do not add warnings only
+to enforce a coding-style preference.  False positives matter.  A narrowly
+focused check which finds real bugs is preferable to a broad warning which
+mostly reports correct code.
+
+
+SOURCE TREE
+
+- check_*.c files are individual checks.
+- smatch_*.c files are core analysis modules used by checks.
+- The other C and header files are mostly the bundled Sparse parser.
+- smatch.h contains the interfaces used by checks.
+- smatch_flow.c controls traversal and dispatches generic hooks.
+- smatch_function_hooks.c implements hooks for named function calls.
+- smatch_data/ contains project data and the cross-function database tools.
+- smatch_scripts/ contains scripts for checking projects and building data.
+- validation/ contains the test suite.
+- Documentation/ contains user and developer documentation.
+
+The Makefile builds every check_*.c file.  build_check_list.sh generates
+smatch_checks.h from the filenames, so a new check does not require editing a
+central check list.
+
+Smatch and the bundled Sparse code have different licenses.  Smatch is
+GPLv2 or later.  Sparse is MIT licensed.  Changes shared with Sparse should be
+sent to the Sparse mailing list rather than committed only to Smatch.
+
+
+DEVELOPMENT PHILOSOPHY
+
+- Make the smallest change which fixes the problem.
+- Preserve existing behavior outside the requested change.
+- Assume unusual behavior may be intentional until the code proves otherwise.
+- Avoid refactoring unless it is necessary or explicitly requested.
+- Keep refactoring separate from functional changes whenever practical.
+- Keep each patch focused on one logical change.
+- Keep commits buildable and bisectable.
+- Avoid unrelated formatting and whitespace changes.
+- Do not add comments which only restate obvious code.
+- Put the reason for a change in the commit message when that is sufficient.
+- Prefer plain-text documentation and output.
+
+When fixing a checker warning, test whether the warning describes a real bug.
+Fix false positives in Smatch instead of changing correct target code merely
+to silence the checker.
+
+
+REPOSITORY STATE
+
+The supplied source tree may contain a mixture of committed changes, modified
+tracked files and files which are not yet in git.  This is normal development
+state.  Do not discard, overwrite, stage or commit existing work unless Dan
+explicitly asks for that.
+
+Before editing, inspect at least:
+
+    git status --short
+    git diff
+
+Determine whether every file needed for the requested change exists in the
+base commit.  This determines the correct patch format.
+
+It is acceptable for a change to touch both committed and uncommitted code,
+but a git-format patch cannot represent modifications relative to an
+uncommitted base which is absent from git.  In that situation, use a unified
+diff for the whole logical change as described in PATCH DELIVERY.  A raw
+unified diff can modify tracked files as well as untracked files.
+
+Never use destructive commands such as git reset --hard or git checkout --
+to clean a supplied tree.  Existing changes belong to Dan.
+
+
+BUILD AND TEST
+
+Build from the source directory with:
+
+    make -j$(nproc)
+
+Run the complete validation suite with:
+
+    make check
+
+Run one validation test from the validation directory with:
+
+    ./test-suite single test-name.c
+
+New checks and bug fixes normally need a focused validation test.  A useful
+test contains code which must warn and nearby code which must not warn.  Test
+real affected code when it is available.
+
+The Linux kernel helpers are:
+
+    smatch_scripts/kchecker path/to/file.c
+    smatch_scripts/kchecker path/to/directory/
+    smatch_scripts/test_kernel.sh
+
+The optional cross-function database is built with:
+
+    smatch_scripts/build_kernel_data.sh
+
+Building the database takes a long time.  Do not require it for a local check
+which does not use cross-function information.
+
+Report the tests which were actually run.  Do not claim that a build or test
+passed when it was skipped or stopped because a dependency was unavailable.
+
+
+PATCH DELIVERY
+
+There are two patch workflows.  Choose the format based on the source being
+changed, not personal preference.
+
+1. Changes based on code which is already in git
+
+Use normal commits and deliver mbox patches generated by git format-patch.
+They must apply with git am.  Dan commonly applies them with:
+
+    cat patch.mbox | git am -s
+
+For a series, keep each logical change in a separate commit.  Do not include a
+cover letter unless Dan requests one.  The mbox should contain only patch
+emails so the complete file applies without stopping on an empty message.
+
+2. Changes based on code which is not yet in git
+
+Deliver a normal unified diff which applies from the repository root with:
+
+    cat patch | patch -p1
+
+This includes changes to an untracked file which already exists in Dan's
+working tree.  Generate the diff against the supplied working version of that
+file, not against /dev/null.  A new-file git diff can fail because patch will
+think that the existing untracked file must be created.
+
+Use paths prefixed with a/ and b/ so -p1 strips one component.  Include enough
+context to detect a mismatched working version.  Verify the patch against a
+copy of the exact supplied tree before delivery.
+
+Do not mix mbox patch emails and raw unified diffs in one file.  If one logical
+change depends on uncommitted code, use a raw unified diff for the complete
+change.  Deliver both formats only for separate changes when that is useful,
+and explain the order in which to apply them.
+
+
+AI ATTRIBUTION
+
+Code written with substantive AI assistance must say so in the commit
+message.  Add this trailer after the explanatory commit-message body:
+
+    Assisted-by: ChatGPT:gpt-5
+
+Use the actual assistant and model name when it is known.  For example, a
+different model should not be labeled gpt-5.  If the exact minor model is not
+known, use the stable model family rather than guessing.
+
+The Assisted-by trailer is separate from Signed-off-by.  Do not invent or add
+Dan's Signed-off-by trailer.  Dan adds his own sign-off when he applies or
+sends a patch.  Do not invent Reviewed-by, Tested-by or Acked-by trailers.
+
+Use the Assisted-by trailer for AI-generated code and substantive AI-generated
+changes to tests.  It is not necessary when AI only reformats text supplied by
+Dan, searches the tree or explains existing code without changing it.  When
+in doubt, disclose the assistance.
+
+For a raw unified diff which does not contain a commit message, provide a
+suggested commit message next to the patch and include the Assisted-by trailer
+there.
+
+
+COMMIT MESSAGES
+
+- Use an imperative, concise subject describing the change.
+- Explain why the change is needed, not only what the diff does.
+- Wrap commit-message body lines at 74 characters or fewer.
+- Keep trailers together at the end of the message.
+- Do not include the user prompt in the permanent commit message unless Dan
+  explicitly requests it for that change.
+- Do not add a Signed-off-by trailer on Dan's behalf.
+
+Example:
+
+    check_example: avoid warning after pointer reassignment
+
+    Reassigning the pointer makes the previously recorded state stale.
+    Clear the state from the modification hook so later dereferences do
+    not produce a false positive.
+
+    Assisted-by: ChatGPT:gpt-5
+
+
+CONTRIBUTING PATCHES
+
+Smatch uses the Linux mailing-list patch workflow.  Contributors should send
+patches and patchsets as plain-text email to:
+
+    smatch@vger.kernel.org
+
+Use git send-email or another client which preserves patches without HTML or
+word wrapping.  A typical command is:
+
+    git send-email --to=smatch@vger.kernel.org 000*.patch
+
+Before sending:
+
+- Rebase the series on an appropriate current Smatch revision.
+- Build Smatch and run the relevant validation tests.
+- Run git diff --check.
+- Keep one logical change per patch.
+- Explain the reason for the change and the tests performed.
+- Add your own Signed-off-by trailer to certify the Developer's Certificate
+  of Origin.
+- Preserve any applicable Assisted-by trailer.
+
+Use [PATCH] for a single patch and numbered [PATCH 1/N] subjects for a series.
+When sending a revised series, mark it v2, v3 and so on, and describe changes
+since the previous version below the --- separator.  Send the complete revised
+series rather than only the patches which changed.
+
+Patches for the bundled Sparse code should normally be sent to:
+
+    linux-sparse@vger.kernel.org
+
+Ask on smatch@vger.kernel.org when it is unclear whether a change belongs in
+Smatch or Sparse.
+
+
+FINAL REVIEW
+
+Before delivering a change:
+
+- Re-read the request and confirm that the patch does only that work.
+- Inspect the complete diff, not only the files intentionally edited.
+- Check that existing uncommitted work remains intact.
+- Verify the chosen patch format against the correct base.
+- Run git diff --check or an equivalent whitespace check.
+- Run the narrowest relevant test and broader tests when practical.
+- State any test or build limitation clearly.
+- Confirm that AI-generated code has an Assisted-by trailer.
