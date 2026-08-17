@@ -58,6 +58,19 @@ DEVELOPMENT PHILOSOPHY
 - Put the reason for a change in the commit message when that is sufficient.
 - Prefer plain-text documentation and output.
 
+When adding an item to a list which is logically an unordered set, keep the
+list in alphabetical order.  Examples include object lists in the Makefile,
+tables of unrelated functions or macros, and lists in documentation.  This is
+a guideline, not a reason to reorder unrelated existing code in a functional
+patch.
+
+Do not alphabetize a list when its order expresses behavior, dependencies or
+relationships.  Preserve initialization and hook ordering, priority order,
+and paired entries such as the do/undo pairs in pairs.h.  Follow an existing
+semantic pattern when it is more useful than alphabetical order.  Historical
+lists are not always sorted; when adding an independent item, place it
+alphabetically when that does not obscure the local structure.
+
 When fixing a checker warning, test whether the warning describes a real bug.
 Fix false positives in Smatch instead of changing correct target code merely
 to silence the checker.
@@ -191,8 +204,10 @@ COMMIT MESSAGES
 - Explain why the change is needed, not only what the diff does.
 - Wrap commit-message body lines at 74 characters or fewer.
 - Keep trailers together at the end of the message.
-- Do not include the user prompt in the permanent commit message unless Dan
-  explicitly requests it for that change.
+- Include the user request which led to the patch, either verbatim or as a
+  concise paraphrase.  Prefer a paraphrase when the original prompt is long,
+  conversational or includes details which are not useful in the permanent
+  history.  Preserve the technical intent and important constraints.
 - Do not add a Signed-off-by trailer on Dan's behalf.
 
 Example:
@@ -202,6 +217,8 @@ Example:
     Reassigning the pointer makes the previously recorded state stale.
     Clear the state from the modification hook so later dereferences do
     not produce a false positive.
+
+    Prompt: Clear stale state after a pointer is reassigned.
 
     Assisted-by: ChatGPT:gpt-5
 
