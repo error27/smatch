@@ -101,6 +101,40 @@ Never use destructive commands such as git reset --hard or git checkout --
 to clean a supplied tree.  Existing changes belong to Dan.
 
 
+SYNCHRONIZING SOURCE
+
+Dan actively develops Smatch, so an older source archive or working tree may
+quickly become stale.  Before requesting work against materially changed
+code, create a private work-in-progress commit containing the relevant
+tracked and untracked source files.  Do not include build products or other
+unrelated files merely to make the tree clean.
+
+A typical update is:
+
+    git status --short
+    git add path/to/changed-file.c path/to/new-file.c
+    git commit -m "WIP: current Smatch development"
+    git bundle create smatch-ai.bundle HEAD
+
+Upload smatch-ai.bundle and state that it supersedes the previously supplied
+copy.  Git bundles contain committed objects only, so modified and untracked
+files must be included in the WIP commit if the AI should see or modify them.
+The WIP commit is private development history and may be squashed, reordered
+or rewritten before changes are published.
+
+When a new bundle is supplied, the AI must:
+
+- Verify that the bundle is readable and records complete history.
+- Clone it into a new working directory instead of updating a stale copy.
+- Record the bundled HEAD commit and use it as the base for new patches.
+- Treat the new bundle as authoritative over all earlier source copies.
+- Inspect git status and git diff before making changes.
+
+There is no need to upload the bundle again for follow-up work against the
+same revision.  Upload a replacement whenever intervening development could
+change the files, interfaces or context involved in the next request.
+
+
 BUILD AND TEST
 
 Build from the source directory with:
