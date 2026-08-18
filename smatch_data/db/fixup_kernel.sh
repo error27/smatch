@@ -96,10 +96,10 @@ delete from caller_info where function = '(struct timer_list)->function' and par
  * wrapping on 32 bits.
  */
 delete from return_states where function = 'rw_verify_area';
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 0,   -1,      '', '');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 104,  2, '*\$', '0-1000000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 1, '0-1000000000[<=\$3]', 0, 103, 3,  '\$', '0-1000000000');
-insert into return_states values ('faked', 'rw_verify_area', 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 0, 1, '0-1000000000[<=\$3]', 0, 0,   -1,      '', '');
+insert into return_states values ('faked', 'rw_verify_area', 0, 0, 1, '0-1000000000[<=\$3]', 0, 104,  2, '*\$', '0-1000000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 0, 1, '0-1000000000[<=\$3]', 0, 103, 3,  '\$', '0-1000000000');
+insert into return_states values ('faked', 'rw_verify_area', 0, 0, 2, '(-4095)-(-1)',     0, 0,   -1,      '', '');
 update caller_info set value = '1-4096' where caller='sysfs_kf_bin_read' and function = '(struct bin_attribute)->read' and parameter = 5 and (type = 1001 or type = 8017 or type = 7016);
 update caller_info set value = '1-4096' where caller='sysfs_kf_bin_write' and function = '(struct bin_attribute)->write' and parameter = 5 and (type = 1001 or type = 8017 or type = 7016);
 update caller_info set value = '0-4095' where caller='sysfs_kf_bin_read' and function = '(struct bin_attribute)->read' and parameter = 4 and (type = 1001 or type = 8017 or type = 7016);
@@ -107,22 +107,22 @@ update caller_info set value = '0-4095' where caller='sysfs_kf_bin_write' and fu
 
 
 delete from return_states where function = 'is_kernel_rodata';
-insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 0,   -1,  '', '');
-insert into return_states values ('faked', 'is_kernel_rodata', 0, 1, '1', 0, 103,  0,  '\$', '4096-ptr_max');
-insert into return_states values ('faked', 'is_kernel_rodata', 0, 2, '0', 0, 0,   -1,  '', '');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 0, 1, '1', 0, 0,   -1,  '', '');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 0, 1, '1', 0, 103,  0,  '\$', '4096-ptr_max');
+insert into return_states values ('faked', 'is_kernel_rodata', 0, 0, 2, '0', 0, 0,   -1,  '', '');
 
 /*
  * Other kmalloc hacking.
  */
 delete from return_states where function = 'vmalloc';
-insert into return_states values ('faked', 'vmalloc', 0, 1, '4096-ptr_max', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'vmalloc', 0, 1, '4096-ptr_max', 0, 103,  0, '\$', '1-128000000');
-insert into return_states values ('faked', 'vmalloc', 0, 2, '0', 0,    0,  -1, '', '');
+insert into return_states values ('faked', 'vmalloc', 0, 0, 1, '4096-ptr_max', 0,    0, -1, '', '');
+insert into return_states values ('faked', 'vmalloc', 0, 0, 1, '4096-ptr_max', 0, 103,  0, '\$', '1-128000000');
+insert into return_states values ('faked', 'vmalloc', 0, 0, 2, '0', 0,    0,  -1, '', '');
 
 delete from return_states where function = 'ksize';
-insert into return_states values ('faked', 'ksize', 0, 1, '0', 0,    0, -1, '', '');
-insert into return_states values ('faked', 'ksize', 0, 1, '0', 0, 103,  0, '\$', '16');
-insert into return_states values ('faked', 'ksize', 0, 2, '1-4000000', 0,    0,  -1, '', '');
+insert into return_states values ('faked', 'ksize', 0, 0, 1, '0', 0,    0, -1, '', '');
+insert into return_states values ('faked', 'ksize', 0, 0, 1, '0', 0, 103,  0, '\$', '16');
+insert into return_states values ('faked', 'ksize', 0, 0, 2, '1-4000000', 0,    0,  -1, '', '');
 
 update return_states set return = '0-8' where function = '__arch_hweight8';
 update return_states set return = '0-16' where function = '__arch_hweight16';
@@ -290,17 +290,16 @@ for func in __kmalloc __kmalloc_track_caller __kmalloc_noprof __kmalloc_node_tra
 
     cat << EOF | sqlite3 $db_file
 delete from return_states where function = '$func';
-insert into return_states values ($FILE_SLUB, '$func', 0, 1, '16', $IS_STATIC,    0,  -1, '', '');
-insert into return_states values ($FILE_SLUB, '$func', 0, 1, '16', $IS_STATIC, 103,   0, '\$', '0');
-insert into return_states values ($FILE_SLUB, '$func', 0, 2, '4096-ptr_max', $IS_STATIC,    0, -1, '', '');
-insert into return_states values ($FILE_SLUB, '$func', 0, 2, '4096-ptr_max', $IS_STATIC, 103,  0, '\$', '1-4000000');
-insert into return_states values ($FILE_SLUB, '$func', 0, 2, '4096-ptr_max', $IS_STATIC, 1037,  -1, '', 400);
-insert into return_states values ($FILE_SLUB, '$func', 0, 3, '0', $IS_STATIC,    0,  -1, '', '');
-insert into return_states values ($FILE_SLUB, '$func', 0, 3, '0', $IS_STATIC,    103,  0, '\$', '1-long_max');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 1, '16', $IS_STATIC,    0,  -1, '', '');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 1, '16', $IS_STATIC, 103,   0, '\$', '0');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 2, '4096-ptr_max', $IS_STATIC,    0, -1, '', '');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 2, '4096-ptr_max', $IS_STATIC, 103,  0, '\$', '1-4000000');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 2, '4096-ptr_max', $IS_STATIC, 1037,  -1, '', 400);
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 3, '0', $IS_STATIC,    0,  -1, '', '');
+insert into return_states values ($FILE_SLUB, '$func', 0, 0, 3, '0', $IS_STATIC,    103,  0, '\$', '1-long_max');
 EOF
 done
 
 # it's easiest to pretend that invalid kobjects don't exist
 ID=$(echo "select distinct(return_id) from return_states where function = 'kobject_init' order by return_id desc limit 1;" | sqlite3 $db_file)
 echo "delete from return_states where function = 'kobject_init' and return_id = '$ID';" | sqlite3 $db_file
-

@@ -298,8 +298,8 @@ void sql_insert_return_states(int return_id, const char *return_ranges,
 	else
 		id = __fn_mtag;
 
-	sql_insert(return_states, "0x%llx, '%s', %llu, %d, '%s', %d, %d, %d, '%s', '%s'",
-		   get_base_file_id(), get_function(), id, return_id,
+	sql_insert(return_states, "0x%llx, '%s', %llu, %d, %d, '%s', %d, %d, %d, '%s', '%s'",
+		   get_base_file_id(), get_function(), id, get_lineno(), return_id,
 		   return_ranges, is_local(cur_func_sym), type, param, key, value);
 }
 
