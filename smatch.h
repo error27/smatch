@@ -345,6 +345,7 @@ extern int option_info;
 extern int option_spammy;
 extern int option_pedantic;
 extern int option_print_names;
+extern int option_ai;
 extern char *trace_variable;
 extern struct stree *global_states;
 void set_function_skipped(void);
@@ -418,14 +419,18 @@ static inline void sm_prefix(void)
 }
 
 static inline void print_implied_debug_msg();
+void __print_cur_stree(void);
 
 #define sm_print_msg(type, msg...) \
 do {                                                           \
+	int __this_warn = sm_nr_checks;			       \
 	print_implied_debug_msg();                             \
 	if (!__output_enabled())			       \
 		break;					       \
 	if (ignored_warning(__CHECKNAME__))		       \
 		break;					       \
+	if (option_ai)					       \
+		sm_printf("start report: %d\n", __this_warn);  \
 	sm_prefix();					       \
 	if (type == 1) {				       \
 		sm_printf("warn: ");			       \
@@ -441,6 +446,10 @@ do {                                                           \
 	}						       \
         sm_printf(msg);                                        \
         sm_printf("\n");                                       \
+	if (option_ai) {				       \
+		__print_cur_stree();			       \
+		sm_printf("end report: %d\n", __this_warn);    \
+	}						       \
 } while (0)
 
 #define sm_msg(msg...) do { sm_print_msg(0, msg); } while (0)
@@ -1013,7 +1022,6 @@ void __merge_gotos(const char *name, struct symbol *sym);
 
 void __discard_fake_states(struct expression *call);
 
-void __print_cur_stree(void);
 bool __print_states(const char *owner);
 bool __print_state(const char *owner, const char *name);
 typedef void (check_tracker_hook)(int owner, const char *name, struct symbol *sym, struct smatch_state *state);

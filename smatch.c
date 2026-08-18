@@ -50,6 +50,7 @@ int option_mem;
 char *option_datadir_str;
 int option_fatal_checks;
 int option_succeed;
+int option_ai;
 int SMATCH_EXTRA;
 
 FILE *sm_outfd;
@@ -266,6 +267,7 @@ void parse_args(int *argcp, char ***argvp)
 			found = 1;
 		}
 
+		OPTION(ai);
 		OPTION(fatal_checks);
 		OPTION(spammy);
 		OPTION(pedantic);
