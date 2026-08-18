@@ -475,17 +475,18 @@ def type_to_int(type_string):
 def display_caller_info(printed, cur, param_names):
     for txt in cur:
         if not printed:
-            print("file | caller | function | type | parameter | key | value |")
+            print("file | line | caller | function | type | parameter | key | value |")
         printed = 1
 
-        parameter = int(txt[6])
-        key = txt[7]
+        parameter = int(txt[5])
+        key = txt[6]
         if len(param_names) and parameter in param_names:
             key = key.replace("$", param_names[parameter])
 
-        print("%20s | %20s | %20s |" %(hash_to_string(txt[0]), txt[1], txt[2]), end = '')
-        print(" %18s |" %(type_to_str(txt[5])), end = '')
-        print(" %2d | %15s | %s" %(parameter, key, txt[8]))
+        print("%20s | %5d | %20s | %20s |" %
+              (hash_to_string(txt[0]), int(txt[1]), txt[2], txt[3]), end = '')
+        print(" %18s |" %(type_to_str(txt[4])), end = '')
+        print(" %2d | %15s | %s" %(parameter, key, txt[7]))
     return printed
 
 def get_caller_info(filename, ptrs, my_type):
@@ -496,7 +497,9 @@ def get_caller_info(filename, ptrs, my_type):
     if my_type != "":
         type_filter = "and type = %d" %(type_to_int(my_type))
     for ptr in ptrs:
-        cur.execute("select * from caller_info where function = '%s' %s;" %(ptr, type_filter))
+        cur.execute("select file, line, caller, function, type, parameter, key, value "
+                    "from caller_info where function = '%s' %s;" %
+                    (ptr, type_filter))
         printed = display_caller_info(printed, cur, param_names)
 
 def print_caller_info(filename, func, my_type = ""):
