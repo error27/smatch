@@ -84,9 +84,9 @@ delete from caller_info where caller = 'ecryptfs_mkdir' and type = 8017;
 delete from caller_info where caller = 'rpm_suspend' and type = 8017;
 delete from return_states where function = 'rpm_resume' and type = 8017;
 
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 0, '\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 1, '\$', '1');
-insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 8017, 2, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 0, 8017, 0, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 0, 8017, 1, '\$', '1');
+insert into caller_info values ('userspace', '', 'compat_sys_ioctl', 0, 0, 0, 8017, 2, '\$', '1');
 
 delete from caller_info where function = '(struct timer_list)->function' and parameter = 0;
 
@@ -159,10 +159,10 @@ delete from caller_info where caller='amdgpu_ucode_sys_visible' and function='(s
 
 /* and let's fake the next dev_attr_show() call entirely */
 delete from caller_info where caller='sysfs_kf_seq_show' and function='(struct sysfs_ops)->show';
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 0, '\$', '4096-ptr_max');
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1002, 2, '\$', '4096');
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 1001, 2, '\$', '4096-ptr_max');
-insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0,   -1, ''  , '');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0, 1001, 0, '\$', '4096-ptr_max');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0, 1002, 2, '\$', '4096');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0, 1001, 2, '\$', '4096-ptr_max');
+insert into caller_info values ('fake', 'sysfs_kf_seq_show', '(struct sysfs_ops)->show', 0, 0, 0, 0,   -1, ''  , '');
 /* config fs confuses smatch a little */
 update caller_info set value = 4096 where caller='fill_read_buffer' and function='(struct configfs_item_operations)->show_attribute' and type = 1002 and parameter = 2;
 
@@ -303,5 +303,4 @@ done
 # it's easiest to pretend that invalid kobjects don't exist
 ID=$(echo "select distinct(return_id) from return_states where function = 'kobject_init' order by return_id desc limit 1;" | sqlite3 $db_file)
 echo "delete from return_states where function = 'kobject_init' and return_id = '$ID';" | sqlite3 $db_file
-
 

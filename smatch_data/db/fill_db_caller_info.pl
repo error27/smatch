@@ -60,7 +60,7 @@ $db->do("PRAGMA temp_store = MEMORY");
 $db->do("PRAGMA locking = EXCLUSIVE");
 
 foreach my $func (keys %too_common_funcs) {
-    $db->do("insert into common_caller_info values ('unknown', 'too common', '$func', 0, 0, 0, -1, '', '');");
+    $db->do("insert into common_caller_info values ('unknown', 'too common', '$func', 0, 0, 0, 0, -1, '', '');");
 }
 
 my $call_id = 0;
@@ -68,7 +68,7 @@ my ($fn, $dummy, $sql);
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
-    # net/mac80211/util.c:1857 ieee80211_send_auth() SQL_caller_info: insert into caller_info values (0x1e4debd9f09b1007, 'ieee80211_send_auth', 'fortify_memcpy_chk', %CALL_ID%, 0, 0, -1, '%call_marker%', 'bool(*)(ulong, ulong, ulong, ulong, ulong, char*)');
+    # net/mac80211/util.c:1857 ieee80211_send_auth() SQL_caller_info: insert into caller_info values (0x1e4debd9f09b1007, 'ieee80211_send_auth', 'fortify_memcpy_chk', %CALL_ID%, 1857, 0, 0, -1, '%call_marker%', 'bool(*)(ulong, ulong, ulong, ulong, ulong, char*)');
 
     if (!($_ =~ /^.*? \w+\(\) SQL_caller_info: /)) {
         next;

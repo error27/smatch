@@ -349,9 +349,9 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	if (__inline_call) {
 		mem_sql(NULL, NULL,
-			"insert into caller_info values (0x%llx, '%s', '%s', %lu, %d, %d, %d, '%s', '%s');",
+			"insert into caller_info values (0x%llx, '%s', '%s', %lu, %d, %d, %d, %d, '%s', '%s');",
 			get_base_file_id(), get_function(), fn, (unsigned long)call + pass_cnt,
-			is_static(call->fn), type, param, key, value);
+			call->pos.line, is_static(call->fn), type, param, key, value);
 	}
 
 	if (!option_info)
@@ -364,9 +364,9 @@ void sql_insert_caller_info(struct expression *call, int type,
 
 	sm_outfd = caller_info_fd;
 	sm_msg("SQL_caller_info: insert into caller_info values ("
-	       "0x%llx, '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
-	       get_base_file_id(), get_function(), fn, is_static(call->fn),
-	       type, param, key, value);
+	       "0x%llx, '%s', '%s', %%CALL_ID%%, %d, %d, %d, %d, '%s', '%s');",
+	       get_base_file_id(), get_function(), fn, call->pos.line,
+	       is_static(call->fn), type, param, key, value);
 	sm_outfd = tmp_fd;
 
 	free_string(fn);
