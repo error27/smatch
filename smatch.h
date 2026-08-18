@@ -1050,6 +1050,7 @@ void __call_array_initialized_hooks(struct expression *array, int nr);
 /* smatch_function_hooks.c */
 const char *get_fn_name(struct expression *fn);
 struct expression *get_current_fn_call(void);
+void print_passed_to(struct expression *expr);
 void add_fake_call_after_return(struct expression *call);
 struct expression *get_real_call(void);
 struct expression *get_this_fn_call(void);
