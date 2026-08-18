@@ -186,6 +186,8 @@ DECLARE_PTR_LIST(name_sym_fn_list, name_sym_hook);
 DECLARE_PTR_LIST(string_hook_list, string_hook);
 DECLARE_PTR_LIST(stree_func_list, stree_func);
 void call_void_fns(struct void_fn_list *list);
+void register_ai_info(void_fn *fn);
+void print_ai_info(void);
 void call_expr_fns(struct expr_fn_list *list, struct expression *expr);
 void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt);
 void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
@@ -449,7 +451,7 @@ do {                                                           \
 	if (option_ai) {				       \
 		int __saved_option_ai = option_ai;	       \
 		option_ai = 0;				       \
-		__print_cur_stree();			       \
+		print_ai_info();			       \
 		option_ai = __saved_option_ai;		       \
 		sm_printf("end report: %d\n", __this_warn);    \
 	}						       \

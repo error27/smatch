@@ -135,6 +135,17 @@ void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct
 }
 
 struct position *__hook_pos;
+static struct void_fn_list *ai_info_hooks;
+
+void register_ai_info(void_fn *fn)
+{
+	add_ptr_list(&ai_info_hooks, fn);
+}
+
+void print_ai_info(void)
+{
+	call_void_fns(ai_info_hooks);
+}
 
 static void pass_expr_to_client(expr_func *fn, void *data)
 {

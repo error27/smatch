@@ -67,7 +67,8 @@ static void match_call(struct expression *expr)
 	free_string(fn_name);
 }
 
-static void print_passed_to_sm(struct sm_state *sm, struct state_list **printed)
+static void print_passed_to_sm(struct sm_state *sm, const char *name,
+			       struct state_list **printed)
 {
 	struct smatch_state_data *data;
 	char *fn_name;
@@ -80,17 +81,20 @@ static void print_passed_to_sm(struct sm_state *sm, struct state_list **printed)
 
 	data = sm->state->data;
 	if (!data) {
-		print_passed_to_sm(sm->left, printed);
-		print_passed_to_sm(sm->right, printed);
+		print_passed_to_sm(sm->left, name, printed);
+		print_passed_to_sm(sm->right, name, printed);
 		return;
 	}
 
-	print_passed_to_sm(data->previous, printed);
+	print_passed_to_sm(data->previous, name, printed);
 
 	fn_name = expr_to_str(data->expr->fn);
 	if (!fn_name)
 		return;
-	sm_msg("passed to %s $%d", fn_name, data->param);
+	if (name)
+		sm_msg("%s passed to %s $%d", name, fn_name, data->param);
+	else
+		sm_msg("passed to %s $%d", fn_name, data->param);
 	free_string(fn_name);
 }
 
@@ -98,8 +102,20 @@ void print_passed_to(struct expression *expr)
 {
 	struct state_list *printed = NULL;
 
-	print_passed_to_sm(get_sm_state_expr(my_id, expr), &printed);
+	print_passed_to_sm(get_sm_state_expr(my_id, expr), NULL, &printed);
 	free_slist(&printed);
+}
+
+static void print_passed_to_states(void)
+{
+	struct state_list *printed;
+	struct sm_state *sm;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		printed = NULL;
+		print_passed_to_sm(sm, sm->name, &printed);
+		free_slist(&printed);
+	} END_FOR_EACH_SM(sm);
 }
 
 void smatch_passed_to(int id)
@@ -108,4 +124,5 @@ void smatch_passed_to(int id)
 
 	set_dynamic_states(my_id);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
+	register_ai_info(&print_passed_to_states);
 }
