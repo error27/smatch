@@ -597,17 +597,21 @@ def caller_info_values(filename, func):
 
 def print_return_states(func):
     cur = con.cursor()
-    cur.execute("select * from return_states where function = '%s' order by return_id, type;" %(func))
+    cur.execute("select file, line, function, return_id, return, type, "
+                "parameter, key, value from return_states "
+                "where function = '%s' order by return_id, type;" %(func))
     count = 0
     try:
         for txt in cur:
             printed = 1
             if count == 0:
-                print("file | function | return_id | return_value | type | param | key | value |")
+                print("file | line | function | return_id | return_value | type | param | key | value |")
             count += 1
-            print("%s | %s | %2s | %13s" %(hash_to_string(txt[0]), txt[1], txt[3], txt[4]), end = '')
-            print("| %15s |" %(type_to_str(txt[6])), end = '')
-            print(" %2d | %20s | %20s |" %(txt[7], txt[8], txt[9]))
+            print("%s | %5d | %s | %2s | %13s" %
+                  (hash_to_string(txt[0]), int(txt[1]), txt[2], txt[3], txt[4]),
+                  end = '')
+            print("| %15s |" %(type_to_str(txt[5])), end = '')
+            print(" %2d | %20s | %20s |" %(txt[6], txt[7], txt[8]))
     except:
         print("\n<ERROR parsing: 'select * from return_states where function = '%s';'>\n" %(func))
 
