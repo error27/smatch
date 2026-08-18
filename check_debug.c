@@ -782,6 +782,14 @@ static void match_about(const char *fn, struct expression *expr, void *info)
 	debug_print_about(arg);
 }
 
+static void match_passed_to(const char *fn, struct expression *expr, void *info)
+{
+	struct expression *arg;
+
+	arg = get_check_arg(expr, 0);
+	print_passed_to(arg);
+}
+
 static void match_intersection(const char *fn, struct expression *expr, void *info)
 {
 	struct expression *one, *two;
@@ -1173,6 +1181,7 @@ void check_debug(int id)
 	my_id = id;
 
 	add_function_hook("__smatch_about", &match_about, NULL);
+	add_function_hook("__smatch_passed_to", &match_passed_to, NULL);
 	add_function_hook("__smatch_all_values", &match_all_values, NULL);
 	add_function_hook("__smatch_state", &match_state, NULL);
 	add_function_hook("__smatch_states", &match_states, NULL);

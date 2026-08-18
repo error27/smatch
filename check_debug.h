@@ -6,6 +6,9 @@
 static inline void __smatch_about(long var){}
 #define __smatch_about(x) __smatch_about(cast_ptr(x))
 
+static inline void __smatch_passed_to(long var){}
+#define __smatch_passed_to(x) __smatch_passed_to(cast_ptr(x))
+
 static inline void __smatch_cur_stree(void){}
 static inline void __smatch_all_values(void){}
 static inline void __smatch_state(const char *check_name, const char *state_name){}
