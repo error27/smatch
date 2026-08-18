@@ -447,7 +447,10 @@ do {                                                           \
         sm_printf(msg);                                        \
         sm_printf("\n");                                       \
 	if (option_ai) {				       \
+		int __saved_option_ai = option_ai;	       \
+		option_ai = 0;				       \
 		__print_cur_stree();			       \
+		option_ai = __saved_option_ai;		       \
 		sm_printf("end report: %d\n", __this_warn);    \
 	}						       \
 } while (0)
