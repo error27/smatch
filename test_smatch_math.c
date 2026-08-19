@@ -314,9 +314,10 @@ static void print_test_case(const struct failure_ranges *failures,
 			    unsigned long range_test, unsigned long value_test)
 {
 	printf("#include <stdbool.h>\n");
+	printf("#include <sys/types.h>\n");
 	printf("#include \"check_debug.h\"\n\n");
 	printf("/*\n\n");
-	printf("./test_smatch_match %" PRIu64 "\n", seed);
+	printf("./test_smatch_math %" PRIu64 "\n", seed);
 	printf("error: result outside range\n");
 	printf("seed: %" PRIu64 "\n", seed);
 	printf("range test: %lu\n", range_test);
