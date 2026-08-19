@@ -242,6 +242,10 @@ COMMIT MESSAGES
   concise paraphrase.  Prefer a paraphrase when the original prompt is long,
   conversational or includes details which are not useful in the permanent
   history.  Preserve the technical intent and important constraints.
+- For code changes, always include Before and After sections with the exact
+  relevant validation output.  This makes the behavior change visible in the
+  commit message and makes review easier.  Use `(no output)` when one side has
+  no output.
 - Do not add a Signed-off-by trailer on Dan's behalf.
 
 Example:
