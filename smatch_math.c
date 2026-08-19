@@ -855,6 +855,29 @@ static struct range_list *handle_implied_binop(struct range_list *left_rl, int o
 	return res_rl;
 }
 
+static bool expression_has_empty_range(struct expression *expr)
+{
+	struct smatch_state *state;
+
+	state = get_extra_state(expr);
+	return state && ptr_list_empty((struct ptr_list *)estate_rl(state));
+}
+
+static bool handle_empty_binop(struct expression *expr, struct symbol *type,
+			       struct range_list *left_rl,
+			       struct range_list *right_rl,
+			       struct range_list **res)
+{
+	if (!expression_has_empty_range(expr->left) &&
+	    !expression_has_empty_range(expr->right) &&
+	    !ptr_list_empty((struct ptr_list *)left_rl) &&
+	    !ptr_list_empty((struct ptr_list *)right_rl))
+		return false;
+
+	*res = alloc_whole_rl(type);
+	return true;
+}
+
 static bool handle_binop_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct symbol *type;
@@ -882,6 +905,8 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 	case '/':
 		return handle_divide_rl(left_rl, right_rl, implied, recurse_cnt, res);
 	case '+':
+		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
+			return true;
 		return handle_add_rl(expr, left_rl, right_rl, implied, recurse_cnt, res);
 	case '-':
 		return handle_subtract_rl(expr, implied, recurse_cnt, res);
