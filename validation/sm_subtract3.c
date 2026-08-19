@@ -40,11 +40,11 @@ sm_subtract3.c:12 frob() implied: a = '0-3'
 sm_subtract3.c:13 frob() implied: b = 's32min-2'
 sm_subtract3.c:14 frob() implied: c = 's32min-3'
 sm_subtract3.c:15 frob() a > b
-sm_subtract3.c:16 frob() implied: a - b = '1-3'
+sm_subtract3.c:16 frob() implied: a - b = '1-s32max'
 sm_subtract3.c:17 frob() a >= c
-sm_subtract3.c:18 frob() implied: a - c = '0-3'
+sm_subtract3.c:18 frob() implied: a - c = '0-s32max'
 sm_subtract3.c:27 frob() implied: a = '1-3'
-sm_subtract3.c:28 frob() implied: a - d = '1-3'
-sm_subtract3.c:29 frob() implied: a - e = '0-3'
+sm_subtract3.c:28 frob() implied: a - d = '1-s32max'
+sm_subtract3.c:29 frob() implied: a - e = '0-s32max'
  * check-output-end
  */
