@@ -901,6 +901,8 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 
 	switch (expr->op) {
 	case '%':
+		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
+			return true;
 		return handle_mod_rl(expr, implied, recurse_cnt, res);
 	case '/':
 		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
