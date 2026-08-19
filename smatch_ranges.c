@@ -1793,12 +1793,36 @@ enum pos_neg {
 	NEG_NEG
 };
 
+static struct range_list *mod_rl_positive_helper(struct range_list *left,
+						 struct range_list *right)
+{
+	struct data_range *left_range, *right_range;
+	struct range_list *ret = NULL;
+	sval_t max;
+	sval_t zero = { .type = rl_type(left), .value = 0 };
+
+	FOR_EACH_PTR(left, left_range) {
+		FOR_EACH_PTR(right, right_range) {
+			if (sval_cmp(left_range->max, right_range->min) < 0) {
+				add_range(&ret, left_range->min, left_range->max);
+				continue;
+			}
+
+			max = right_range->max;
+			max.value--;
+			if (sval_cmp(left_range->max, max) < 0)
+				max = left_range->max;
+			add_range(&ret, zero, max);
+		} END_FOR_EACH_PTR(right_range);
+	} END_FOR_EACH_PTR(left_range);
+
+	return ret;
+}
+
 static struct range_list *mod_rl_helper(enum pos_neg pos_neg, struct range_list *left, struct range_list *right)
 {
-	sval_t zero = { .type = rl_type(left), .value = 0 };
 	struct range_list *minus_one = alloc_rl(int_minus_one, int_minus_one);
 	struct range_list *ret;
-	sval_t max;
 
 	/* can't divide by zero */
 	if (pos_neg == POS_POS || pos_neg == NEG_POS)
@@ -1809,11 +1833,7 @@ static struct range_list *mod_rl_helper(enum pos_neg pos_neg, struct range_list 
 
 	switch (pos_neg) {
 	case POS_POS:
-		max = rl_max(right);
-		max.value--;
-		if (sval_cmp(rl_max(left), max) < 0)
-			return left;
-		return alloc_rl(zero, max);
+		return mod_rl_positive_helper(left, right);
 	case POS_NEG:
 		right = rl_binop(right, '*', minus_one);
 		ret = mod_rl_helper(POS_POS, left, right);
