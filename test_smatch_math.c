@@ -167,6 +167,28 @@ static sval_t random_sval_from_rl(struct range_list *rl)
 	return ret;
 }
 
+static sval_t calculate_actual(sval_t left, int op, sval_t right)
+{
+	struct symbol *type;
+
+	if (op == SPECIAL_LEFTSHIFT || op == SPECIAL_RIGHTSHIFT) {
+		type = left.type;
+		if (type_positive_bits(type) < 31)
+			type = &int_ctype;
+	} else {
+		type = get_promoted_type(left.type, right.type);
+	}
+
+	left = sval_cast(type, left);
+	/*
+	 * sval_binop() selects a common type from both operands.  Shift
+	 * counts are small, so casting right prevents it from changing the
+	 * promoted left type without changing the count.
+	 */
+	right = sval_cast(type, right);
+	return sval_binop(left, op, right);
+}
+
 static struct data_range *find_data_range(struct range_list *rl, sval_t sval)
 {
 	struct data_range *drange;
@@ -217,9 +239,9 @@ static void walk_failures(struct failure_ranges *failures,
 
 		current = next_sval(current, direction);
 		if (walk_left)
-			output = sval_binop(current, math_op->op, right);
+			output = calculate_actual(current, math_op->op, right);
 		else
-			output = sval_binop(left, math_op->op, current);
+			output = calculate_actual(left, math_op->op, current);
 		if (rl_has_sval(result, output))
 			break;
 
@@ -458,7 +480,8 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	for (i = 0; i < value_tests; i++) {
 		sval_t left_sval = random_sval_from_rl(left);
 		sval_t right_sval = random_sval_from_rl(right);
-		sval_t actual = sval_binop(left_sval, math_op->op, right_sval);
+		sval_t actual = calculate_actual(left_sval, math_op->op,
+					 right_sval);
 		struct failure_ranges failures = {};
 
 		if (rl_has_sval(result, actual)) {
