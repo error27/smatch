@@ -904,6 +904,11 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 		return handle_mod_rl(expr, implied, recurse_cnt, res);
 	case '/':
 		return handle_divide_rl(left_rl, right_rl, implied, recurse_cnt, res);
+	case '*':
+		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
+			return true;
+		*res = rl_binop(left_rl, expr->op, right_rl);
+		return true;
 	case '+':
 		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
 			return true;
