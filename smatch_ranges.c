@@ -1798,7 +1798,7 @@ static struct range_list *mod_rl_positive_helper(struct range_list *left,
 {
 	struct data_range *left_range, *right_range;
 	struct range_list *ret = NULL;
-	sval_t max;
+	sval_t max, min, quotient_max, quotient_min;
 	sval_t zero = { .type = rl_type(left), .value = 0 };
 
 	FOR_EACH_PTR(left, left_range) {
@@ -1808,6 +1808,25 @@ static struct range_list *mod_rl_positive_helper(struct range_list *left,
 				continue;
 			}
 
+			/*
+			 * If every pair has the same quotient then x % y is
+			 * x - quotient * y.  This is increasing in x and
+			 * decreasing in y, so the bounds below are exact.
+			 */
+			quotient_min = sval_binop(left_range->min, '/',
+						 right_range->max);
+			quotient_max = sval_binop(left_range->max, '/',
+						 right_range->min);
+			if (sval_cmp(quotient_min, quotient_max) == 0) {
+				min = sval_binop(quotient_min, '*', right_range->max);
+				min = sval_binop(left_range->min, '-', min);
+				max = sval_binop(quotient_max, '*', right_range->min);
+				max = sval_binop(left_range->max, '-', max);
+				add_range(&ret, min, max);
+				continue;
+			}
+
+			/* x % y is no larger than x and is always less than y. */
 			max = right_range->max;
 			max.value--;
 			if (sval_cmp(left_range->max, max) < 0)
