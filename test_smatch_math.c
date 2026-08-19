@@ -325,6 +325,31 @@ static void print_range_test(const char *name, const char *type_name,
 	printf("}\n\n");
 }
 
+static void print_range_check(const char *name, struct range_list *rl)
+{
+	struct data_range *drange;
+	bool first = true;
+
+	printf("\tif (!(");
+	FOR_EACH_PTR(rl, drange) {
+		if (!first)
+			printf(" ||\n\t      ");
+		first = false;
+		if (sval_cmp(drange->min, drange->max) == 0) {
+			printf("%s == ", name);
+			print_c_sval(drange->min);
+		} else {
+			printf("(%s >= ", name);
+			print_c_sval(drange->min);
+			printf(" && %s <= ", name);
+			print_c_sval(drange->max);
+			printf(")");
+		}
+	} END_FOR_EACH_PTR(drange);
+	printf("))\n");
+	printf("\t\treturn;\n");
+}
+
 static void print_runtime_value(const char *name, struct symbol *type)
 {
 	if (type_unsigned(type))
@@ -411,8 +436,6 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("out-of-bounds outputs: %s\n", show_rl(failures->outputs));
 	printf("\n*/\n\n");
 
-	print_range_test("left", left_type->name, left);
-	print_range_test("right", right_type->name, right);
 	print_range_test("result", type_to_str(actual.type), result);
 	printf("void func(%s left, %s right, bool print)\n", left_type->name,
 	       right_type->name);
@@ -420,10 +443,9 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("\tstatic int prev = -1;\n");
 	printf("\tint correct;\n");
 	printf("\t%s result;\n\n", type_to_str(actual.type));
-	printf("\tif (!left_in_range(left))\n");
-	printf("\t\treturn;\n");
-	printf("\tif (!right_in_range(right))\n");
-	printf("\t\treturn;\n\n");
+	print_range_check("left", left);
+	print_range_check("right", right);
+	printf("\n");
 	printf("\tresult = left %s right;\n", math_op->name);
 	printf("\t/* left inputs that don't work (right = %s): %s\n",
 	       sval_to_str(right_sval), show_rl(failures->left));
@@ -432,7 +454,10 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("\t * out-of-bounds outputs: %s\n",
 	       show_rl(failures->outputs));
 	printf("\t */\n");
-	printf("\t__smatch_implied(result); /* result = '%s' */\n\n",
+	printf("\t__smatch_implied(left);\n");
+	printf("\t__smatch_implied(right);\n");
+	printf("\t__smatch_implied(left %s right); /* result = '%s' */\n\n",
+	       math_op->name,
 	       show_rl(result));
 	printf("\tcorrect = result_in_range(result);\n");
 	printf("\tif (correct != prev || print)\n");
