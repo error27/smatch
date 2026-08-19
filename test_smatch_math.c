@@ -339,27 +339,35 @@ static void print_failure_loops(struct failure_ranges *failures,
 	struct data_range *left_range, *right_range;
 
 	FOR_EACH_PTR(failures->left, left_range) {
+		printf("\tfirst = true;\n");
+		printf("\tlast = false;\n");
 		printf("\tfor (left = ");
 		print_c_sval(left_range->min);
 		printf("; ; left++) {\n");
-		printf("\t\tfunc(left, ");
-		print_c_sval(right_sval);
-		printf(");\n");
 		printf("\t\tif (left == ");
 		print_c_sval(left_range->max);
-		printf(")\n\t\t\tbreak;\n");
+		printf(")\n\t\t\tlast = true;\n");
+		printf("\t\tfunc(left, ");
+		print_c_sval(right_sval);
+		printf(", first || last);\n");
+		printf("\t\tif (last)\n\t\t\tbreak;\n");
+		printf("\t\tfirst = false;\n");
 		printf("\t}\n");
 	} END_FOR_EACH_PTR(left_range);
 	FOR_EACH_PTR(failures->right, right_range) {
+		printf("\n\tfirst = true;\n");
+		printf("\tlast = false;\n");
 		printf("\tfor (right = ");
 		print_c_sval(right_range->min);
 		printf("; ; right++) {\n");
-		printf("\t\tfunc(");
-		print_c_sval(left_sval);
-		printf(", right);\n");
 		printf("\t\tif (right == ");
 		print_c_sval(right_range->max);
-		printf(")\n\t\t\tbreak;\n");
+		printf(")\n\t\t\tlast = true;\n");
+		printf("\t\tfunc(");
+		print_c_sval(left_sval);
+		printf(", right, first || last);\n");
+		printf("\t\tif (last)\n\t\t\tbreak;\n");
+		printf("\t\tfirst = false;\n");
 		printf("\t}\n");
 	} END_FOR_EACH_PTR(right_range);
 }
@@ -379,6 +387,7 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("#include <sys/types.h>\n");
 	printf("#include <stdio.h>\n");
 	printf("#include \"check_debug.h\"\n\n");
+	printf("#define ullong unsigned long long\n\n");
 	printf("/*\n\n");
 	printf("./test_smatch_math %" PRIu64 "\n", seed);
 	printf("error: result outside range\n");
@@ -405,7 +414,7 @@ static void print_test_case(struct failure_ranges *failures,
 	print_range_test("left", left_type->name, left);
 	print_range_test("right", right_type->name, right);
 	print_range_test("result", type_to_str(actual.type), result);
-	printf("void func(%s left, %s right)\n", left_type->name,
+	printf("void func(%s left, %s right, bool print)\n", left_type->name,
 	       right_type->name);
 	printf("{\n");
 	printf("\tstatic int prev = -1;\n");
@@ -426,7 +435,7 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("\t__smatch_implied(result); /* result = '%s' */\n\n",
 	       show_rl(result));
 	printf("\tcorrect = result_in_range(result);\n");
-	printf("\tif (correct != prev)\n");
+	printf("\tif (correct != prev || print)\n");
 	printf("\t\tprintf(\"smatch was %%s for left=");
 	printf(type_unsigned(left_type->type) ? "%%llu" : "%%lld");
 	printf(" %%s right=");
@@ -449,8 +458,9 @@ static void print_test_case(struct failure_ranges *failures,
 	printf(";\n");
 	printf("\t%s right = ", right_type->name);
 	print_c_sval(right_sval);
-	printf(";\n\n");
-	printf("\tfunc(left, right);\n\n");
+	printf(";\n");
+	printf("\tbool first, last;\n\n");
+	printf("\tfunc(left, right, true);\n\n");
 	print_failure_loops(failures, left_sval, right_sval);
 	printf("\n\treturn 0;\n");
 	printf("}\n");
