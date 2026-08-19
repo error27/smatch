@@ -1836,8 +1836,7 @@ static struct range_list *mod_rl_helper(enum pos_neg pos_neg, struct range_list 
 		return mod_rl_positive_helper(left, right);
 	case POS_NEG:
 		right = rl_binop(right, '*', minus_one);
-		ret = mod_rl_helper(POS_POS, left, right);
-		return rl_binop(ret, '*', minus_one);
+		return mod_rl_helper(POS_POS, left, right);
 	case NEG_POS:
 		left = rl_binop(left, '*', minus_one);
 		ret = mod_rl_helper(POS_POS, left, right);
@@ -1845,7 +1844,8 @@ static struct range_list *mod_rl_helper(enum pos_neg pos_neg, struct range_list 
 	case NEG_NEG:
 		left = rl_binop(left, '*', minus_one);
 		right = rl_binop(right, '*', minus_one);
-		return mod_rl_helper(POS_POS, left, right);
+		ret = mod_rl_helper(POS_POS, left, right);
+		return rl_binop(ret, '*', minus_one);
 	}
 	return NULL;
 }
