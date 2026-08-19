@@ -2385,45 +2385,91 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 	return ret;
 }
 
-static struct range_list *rl_handle_AND(struct range_list *left, struct range_list *right)
+static unsigned long long min_AND(unsigned long long a,
+				  unsigned long long b,
+				  unsigned long long c,
+				  unsigned long long d,
+				  unsigned long long mask)
 {
-	sval_t zero = { .type = rl_type(left), .value = 0 };
-	sval_t bits = { .type = rl_type(left) };
-	struct bit_info *one, *two;
-	struct range_list *ret;
-	sval_t sval, min, max, left_sval, right_sval;
-	bool left_known = false;
-	bool right_known = false;
+	unsigned long long tmp;
 
-	if (rl_to_sval(left, &left_sval))
-		left_known = true;
-	if (rl_to_sval(right, &right_sval))
-		right_known = true;
-
-	if (left_known && right_known) {
-		sval = sval_binop(left_sval, '&', right_sval);
-		return alloc_rl(sval, sval);
+	while (mask) {
+		if (~a & ~c & mask) {
+			tmp = (a | mask) & -mask;
+			if (tmp <= b) {
+				a = tmp;
+				break;
+			}
+			tmp = (c | mask) & -mask;
+			if (tmp <= d) {
+				c = tmp;
+				break;
+			}
+		}
+		mask >>= 1;
 	}
 
-	if (left_known)
-		return rl_AND_mask(right, left_sval.uvalue);
-	if (right_known)
-		return rl_AND_mask(left, right_sval.uvalue);
+	return a & c;
+}
 
-	one = rl_to_binfo(left);
-	two = rl_to_binfo(right);
-	bits.uvalue = one->possible & two->possible;
+static unsigned long long max_AND(unsigned long long a,
+				  unsigned long long b,
+				  unsigned long long c,
+				  unsigned long long d,
+				  unsigned long long mask)
+{
+	unsigned long long tmp;
 
-	min = sval_lowest_set_bit(bits);
-	max = sval_min_nonneg(rl_max(left), rl_max(right));
+	while (mask) {
+		if (b & ~d & mask) {
+			tmp = (b & ~mask) | (mask - 1);
+			if (tmp >= a) {
+				b = tmp;
+				break;
+			}
+		} else if (~b & d & mask) {
+			tmp = (d & ~mask) | (mask - 1);
+			if (tmp >= c) {
+				d = tmp;
+				break;
+			}
+		}
+		mask >>= 1;
+	}
 
-	if (!sval_is_max(max) || (sm_fls64(max.uvalue) > sm_fls64(bits.uvalue)))
-		max.value &= bits.uvalue;
+	return b & d;
+}
 
-	ret = alloc_rl(min, max);
-	add_range(&ret, zero, zero);
+static struct range_list *rl_handle_AND(struct range_list *left,
+					struct range_list *right)
+{
+	struct symbol *orig_type = rl_type(left);
+	struct data_range *left_range, *right_range;
+	struct range_list *ret = NULL;
+	unsigned long long mask;
+	sval_t max, min;
 
-	return ret;
+	left = cast_to_unsigned(left);
+	right = cast_to_unsigned(right);
+	mask = 1ULL << (type_bits(rl_type(left)) - 1);
+
+	FOR_EACH_PTR(left, left_range) {
+		FOR_EACH_PTR(right, right_range) {
+			min = left_range->min;
+			min.uvalue = min_AND(left_range->min.uvalue,
+					   left_range->max.uvalue,
+					   right_range->min.uvalue,
+					   right_range->max.uvalue, mask);
+			max = left_range->max;
+			max.uvalue = max_AND(left_range->min.uvalue,
+					   left_range->max.uvalue,
+					   right_range->min.uvalue,
+					   right_range->max.uvalue, mask);
+			add_range(&ret, min, max);
+		} END_FOR_EACH_PTR(right_range);
+	} END_FOR_EACH_PTR(left_range);
+
+	return cast_rl(orig_type, ret);
 }
 
 static struct range_list *rl_handle_lshift(struct range_list *left_orig, struct range_list *right_orig)
