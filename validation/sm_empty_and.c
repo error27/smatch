@@ -22,7 +22,7 @@ int test(int x)
  * check-command: smatch -I.. sm_empty_and.c
  *
  * check-output-start
-sm_empty_and.c:13 test() implied: left = 's32min-s32max'
-sm_empty_and.c:14 test() implied: right = 's32min-s32max'
+sm_empty_and.c:13 test() implied: left = '0-1'
+sm_empty_and.c:14 test() implied: right = '0-1'
  * check-output-end
  */

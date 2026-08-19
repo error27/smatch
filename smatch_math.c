@@ -863,19 +863,24 @@ static bool expression_has_empty_range(struct expression *expr)
 	return state && ptr_list_empty((struct ptr_list *)estate_rl(state));
 }
 
-static bool handle_empty_binop(struct expression *expr, struct symbol *type,
-			       struct range_list *left_rl,
-			       struct range_list *right_rl,
-			       struct range_list **res)
+static bool convert_empty_binop(struct expression *expr, struct symbol *type,
+				struct range_list **left_rl,
+				struct range_list **right_rl)
 {
-	if (!expression_has_empty_range(expr->left) &&
-	    !expression_has_empty_range(expr->right) &&
-	    !ptr_list_empty((struct ptr_list *)left_rl) &&
-	    !ptr_list_empty((struct ptr_list *)right_rl))
-		return false;
+	bool converted = false;
 
-	*res = alloc_whole_rl(type);
-	return true;
+	if (expression_has_empty_range(expr->left) ||
+	    ptr_list_empty((struct ptr_list *)*left_rl)) {
+		*left_rl = alloc_whole_rl(type);
+		converted = true;
+	}
+	if (expression_has_empty_range(expr->right) ||
+	    ptr_list_empty((struct ptr_list *)*right_rl)) {
+		*right_rl = alloc_whole_rl(type);
+		converted = true;
+	}
+
+	return converted;
 }
 
 static bool handle_binop_rl_helper(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
@@ -884,6 +889,7 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 	struct range_list *left_rl = NULL;
 	struct range_list *right_rl = NULL;
 	struct range_list *rl;
+	bool converted;
 
 	type = get_promoted_type(get_type(expr->left), get_type(expr->right));
 	if (!get_rl_internal(expr->left, implied, recurse_cnt, &left_rl))
@@ -892,6 +898,18 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 	if (!get_rl_internal(expr->right, implied, recurse_cnt, &right_rl))
 		right_rl = alloc_whole_rl(type);
 	right_rl = cast_rl(type, right_rl);
+	converted = convert_empty_binop(expr, type, &left_rl, &right_rl);
+	if (converted) {
+		*res = NULL;
+		if (expr->op != '/' &&
+		    expr->op != SPECIAL_LEFTSHIFT &&
+		    expr->op != SPECIAL_RIGHTSHIFT &&
+		    expr->op != '^' && expr->op != '|')
+			*res = rl_binop(left_rl, expr->op, right_rl);
+		if (!*res)
+			*res = alloc_whole_rl(type);
+		return true;
+	}
 
 	rl = handle_implied_binop(left_rl, expr->op, right_rl);
 	if (rl) {
@@ -901,45 +919,25 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 
 	switch (expr->op) {
 	case '%':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_mod_rl(expr, implied, recurse_cnt, res);
 	case '/':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_divide_rl(left_rl, right_rl, implied, recurse_cnt, res);
 	case '*':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		*res = rl_binop(left_rl, expr->op, right_rl);
 		return true;
 	case '+':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_add_rl(expr, left_rl, right_rl, implied, recurse_cnt, res);
 	case '-':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_subtract_rl(expr, implied, recurse_cnt, res);
 	case SPECIAL_RIGHTSHIFT:
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_right_shift(expr, implied, recurse_cnt, res);
 	case SPECIAL_LEFTSHIFT:
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_left_shift(expr, implied, recurse_cnt, res);
 	case '&':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_bitwise_AND(expr, implied, recurse_cnt, res);
 	case '^':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return use_rl_binop(expr, implied, recurse_cnt, res);
 	case '|':
-		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
-			return true;
 		return handle_bitwise_OR(expr, implied, recurse_cnt, res);
 	}
 
