@@ -303,7 +303,46 @@ static void print_range_test(const char *name, const char *type_name,
 	printf("}\n\n");
 }
 
-static void print_test_case(const struct failure_ranges *failures,
+static void print_runtime_value(const char *name, struct symbol *type)
+{
+	if (type_unsigned(type))
+		printf("(unsigned long long)%s", name);
+	else
+		printf("(long long)%s", name);
+}
+
+static void print_failure_loops(struct failure_ranges *failures,
+				sval_t left_sval, sval_t right_sval)
+{
+	struct data_range *left_range, *right_range;
+
+	FOR_EACH_PTR(failures->left, left_range) {
+		printf("\tfor (left = ");
+		print_c_sval(left_range->min);
+		printf("; ; left++) {\n");
+		printf("\t\tfunc(left, ");
+		print_c_sval(right_sval);
+		printf(");\n");
+		printf("\t\tif (left == ");
+		print_c_sval(left_range->max);
+		printf(")\n\t\t\tbreak;\n");
+		printf("\t}\n");
+	} END_FOR_EACH_PTR(left_range);
+	FOR_EACH_PTR(failures->right, right_range) {
+		printf("\tfor (right = ");
+		print_c_sval(right_range->min);
+		printf("; ; right++) {\n");
+		printf("\t\tfunc(");
+		print_c_sval(left_sval);
+		printf(", right);\n");
+		printf("\t\tif (right == ");
+		print_c_sval(right_range->max);
+		printf(")\n\t\t\tbreak;\n");
+		printf("\t}\n");
+	} END_FOR_EACH_PTR(right_range);
+}
+
+static void print_test_case(struct failure_ranges *failures,
 			    const struct basic_type *left_type,
 			    struct range_list *left,
 			    const struct math_op *math_op,
@@ -311,15 +350,18 @@ static void print_test_case(const struct failure_ranges *failures,
 			    const struct basic_type *right_type,
 			    struct range_list *right, sval_t left_sval,
 			    sval_t right_sval, sval_t actual, uint64_t seed,
-			    unsigned long range_test, unsigned long value_test)
+			    uint64_t iterations, unsigned long range_test,
+			    unsigned long value_test)
 {
 	printf("#include <stdbool.h>\n");
 	printf("#include <sys/types.h>\n");
+	printf("#include <stdio.h>\n");
 	printf("#include \"check_debug.h\"\n\n");
 	printf("/*\n\n");
 	printf("./test_smatch_math %" PRIu64 "\n", seed);
 	printf("error: result outside range\n");
 	printf("seed: %" PRIu64 "\n", seed);
+	printf("iterations before failure: %" PRIu64 "\n", iterations);
 	printf("range test: %lu\n", range_test);
 	printf("value test: %lu\n", value_test);
 	printf("operation: %s\n", math_op->name);
@@ -340,9 +382,12 @@ static void print_test_case(const struct failure_ranges *failures,
 
 	print_range_test("left", left_type->name, left);
 	print_range_test("right", right_type->name, right);
-	printf("int func(%s left, %s right)\n", left_type->name,
+	print_range_test("result", type_to_str(actual.type), result);
+	printf("void func(%s left, %s right)\n", left_type->name,
 	       right_type->name);
 	printf("{\n");
+	printf("\tstatic int prev = -1;\n");
+	printf("\tint correct;\n");
 	printf("\t%s result;\n\n", type_to_str(actual.type));
 	printf("\tif (!left_in_range(left))\n");
 	printf("\t\treturn;\n");
@@ -356,12 +401,42 @@ static void print_test_case(const struct failure_ranges *failures,
 	printf("\t * out-of-bounds outputs: %s\n",
 	       show_rl(failures->outputs));
 	printf("\t */\n");
-	printf("\t__smatch_implied(result);\n");
+	printf("\t__smatch_implied(result); /* result = '%s' */\n\n",
+	       show_rl(result));
+	printf("\tcorrect = result_in_range(result);\n");
+	printf("\tif (correct != prev)\n");
+	printf("\t\tprintf(\"smatch was %%s for left=");
+	printf(type_unsigned(left_type->type) ? "%%llu" : "%%lld");
+	printf(" %%s right=");
+	printf(type_unsigned(right_type->type) ? "%%llu" : "%%lld");
+	printf(" result=");
+	printf(type_unsigned(actual.type) ? "%%llu\\n\",\n" : "%%lld\\n\",\n");
+	printf("\t\t       correct ? \"correct\" : \"wrong\", ");
+	print_runtime_value("left", left_type->type);
+	printf(", \"%s\", ", math_op->name);
+	print_runtime_value("right", right_type->type);
+	printf(", ");
+	print_runtime_value("result", actual.type);
+	printf(");\n");
+	printf("\tprev = correct;\n");
+	printf("}\n\n");
+	printf("int main(void)\n");
+	printf("{\n");
+	printf("\t%s left = ", left_type->name);
+	print_c_sval(left_sval);
+	printf(";\n");
+	printf("\t%s right = ", right_type->name);
+	print_c_sval(right_sval);
+	printf(";\n\n");
+	printf("\tfunc(left, right);\n\n");
+	print_failure_loops(failures, left_sval, right_sval);
+	printf("\n\treturn 0;\n");
 	printf("}\n");
 }
 
 static int check_one(const struct math_op *math_op, uint64_t seed,
-		     unsigned long range_test, unsigned long value_tests)
+		     uint64_t *iterations, unsigned long range_test,
+		     unsigned long value_tests)
 {
 	struct basic_type *left_type;
 	struct basic_type *right_type;
@@ -386,14 +461,16 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 		sval_t actual = sval_binop(left_sval, math_op->op, right_sval);
 		struct failure_ranges failures = {};
 
-		if (rl_has_sval(result, actual))
+		if (rl_has_sval(result, actual)) {
+			(*iterations)++;
 			continue;
+		}
 
 		find_failure_ranges(&failures, left, math_op, result, right,
 				    left_sval, right_sval, actual);
 		print_test_case(&failures, left_type, left, math_op, result,
 				right_type, right, left_sval, right_sval,
-				actual, seed, range_test, i);
+				actual, seed, *iterations, range_test, i);
 		return -1;
 	}
 
@@ -420,6 +497,7 @@ int main(int argc, char **argv)
 {
 	struct string_list *filelist = NULL;
 	uint64_t seed = time(NULL);
+	uint64_t iterations = 0;
 	unsigned long range_tests = DEFAULT_RANGE_TESTS;
 	unsigned long value_tests = DEFAULT_VALUE_TESTS;
 	unsigned long i;
@@ -445,12 +523,14 @@ int main(int argc, char **argv)
 
 	for (op = 0; op < ARRAY_SIZE(math_ops); op++) {
 		for (i = 0; i < range_tests; i++) {
-			if (check_one(&math_ops[op], seed, i, value_tests))
+			if (check_one(&math_ops[op], seed, &iterations, i,
+				      value_tests))
 				return EXIT_FAILURE;
 		}
 	}
 
 	printf("seed: %" PRIu64 "\n", seed);
+	printf("iterations tested: %" PRIu64 "\n", iterations);
 	printf("all tests passed\n");
 	return EXIT_SUCCESS;
 }
