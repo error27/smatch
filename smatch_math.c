@@ -922,6 +922,8 @@ static bool handle_binop_rl_helper(struct expression *expr, int implied, int *re
 			return true;
 		return handle_subtract_rl(expr, implied, recurse_cnt, res);
 	case SPECIAL_RIGHTSHIFT:
+		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
+			return true;
 		return handle_right_shift(expr, implied, recurse_cnt, res);
 	case SPECIAL_LEFTSHIFT:
 		if (handle_empty_binop(expr, type, left_rl, right_rl, res))
