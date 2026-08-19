@@ -597,6 +597,10 @@ static bool handle_subtract_rl(struct expression *expr, int implied, int *recurs
 	right_rl = cast_rl(type, right_rl);
 
 	if (is_whole_rl(left_rl) || is_whole_rl(right_rl)) {
+		if (type_is_ptr(type)) {
+			*res = alloc_whole_rl(type);
+			return true;
+		}
 		if (implied != RL_ABSOLUTE &&
 		    implied != RL_REAL_ABSOLUTE)
 			return false;
