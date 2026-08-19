@@ -108,6 +108,7 @@ PROGRAMS += test-linearize
 PROGRAMS += test-parsing
 PROGRAMS += test-show-type
 PROGRAMS += test-unssa
+PROGRAMS += test_smatch_match
 
 INST_PROGRAMS = smatch sparse cgcc
 INST_MAN1 = sparse.1 cgcc.1
@@ -429,6 +430,16 @@ smatch_checks.h: FORCE
 smatch: smatch.o $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) smatch_checks.h
 	$(Q)$(LD) -o $@ $< $(SMATCH_OBJS) $(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
+test_smatch_match: test_smatch_match.o test-smatch.o $(SMATCH_OBJS) \
+		   $(SMATCH_CHECKS) $(LIBS) smatch_checks.h
+	$(Q)$(LD) -o $@ test_smatch_match.o test-smatch.o $(SMATCH_OBJS) \
+		$(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
+
+test-smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h \
+	       smatch_modules.h smatch_modules_late.h smatch_checks.h
+	$(CC) $(CFLAGS) -c smatch.c -o $@ -Dmain=smatch_main \
+		-DSMATCHDATADIR='"$(smatch_datadir)"'
+
 smatch_data/db/sm_hash: sm_hash.o $(SMATCH_OBJS)
 	$(Q)$(LD) -o smatch_data/db/sm_hash sm_hash.o smatch_hash.o $(SMATCH_LDFLAGS)
 
@@ -449,7 +460,7 @@ all: $(PROGRAMS) smatch smatch_data/db/sm_hash
 
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS) -lm
-$(PROGRAMS): % : %.o $(LIBS)
+$(filter-out test_smatch_match,$(PROGRAMS)): % : %.o $(LIBS)
 	@echo "  LD      $@"
 	$(Q)$(LD) $(ldflags) $^ $(ldlibs) -o $@
 
