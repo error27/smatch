@@ -11,6 +11,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "smatch.h"
@@ -414,7 +415,8 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("#include \"check_debug.h\"\n\n");
 	printf("#define ullong unsigned long long\n\n");
 	printf("/*\n\n");
-	printf("./test_smatch_math %" PRIu64 "\n", seed);
+	printf("./test_smatch_math '%s' %" PRIu64 "\n", math_op->name,
+	       seed);
 	printf("error: result outside range\n");
 	printf("seed: %" PRIu64 "\n", seed);
 	printf("iterations before failure: %" PRIu64 "\n", iterations);
@@ -551,27 +553,37 @@ static unsigned long parse_count(const char *str, const char *name)
 	return ret;
 }
 
+static struct math_op *parse_operation(const char *str)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(math_ops); i++) {
+		if (!strcmp(str, math_ops[i].name))
+			return &math_ops[i];
+	}
+
+	fprintf(stderr, "invalid operation: %s\n", str);
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char **argv)
 {
 	struct string_list *filelist = NULL;
+	struct math_op *math_op = NULL;
 	uint64_t seed = time(NULL);
 	uint64_t iterations = 0;
-	unsigned long range_tests = DEFAULT_RANGE_TESTS;
-	unsigned long value_tests = DEFAULT_VALUE_TESTS;
 	unsigned long i;
 	unsigned int op;
 
-	if (argc > 4) {
-		fprintf(stderr, "usage: %s [seed [range-tests [value-tests]]]\n",
+	if (argc > 3) {
+		fprintf(stderr, "usage: %s [operation [seed]]\n",
 			argv[0]);
 		return EXIT_FAILURE;
 	}
 	if (argc > 1)
-		seed = parse_count(argv[1], "seed");
+		math_op = parse_operation(argv[1]);
 	if (argc > 2)
-		range_tests = parse_count(argv[2], "range test count");
-	if (argc > 3)
-		value_tests = parse_count(argv[3], "value test count");
+		seed = parse_count(argv[2], "seed");
 	if (!seed)
 		seed = 1;
 	random_state = seed;
@@ -580,9 +592,11 @@ int main(int argc, char **argv)
 	sparse_initialize(1, argv, &filelist);
 
 	for (op = 0; op < ARRAY_SIZE(math_ops); op++) {
-		for (i = 0; i < range_tests; i++) {
+		if (math_op && math_op != &math_ops[op])
+			continue;
+		for (i = 0; i < DEFAULT_RANGE_TESTS; i++) {
 			if (check_one(&math_ops[op], seed, &iterations, i,
-				      value_tests))
+				      DEFAULT_VALUE_TESTS))
 				return EXIT_FAILURE;
 		}
 	}
