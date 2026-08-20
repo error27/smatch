@@ -1702,6 +1702,13 @@ const char *get_return_ranges_str(struct expression *expr, struct range_list **r
 		return return_ranges;
 	}
 
+	if (is_impossible_path()) {
+		get_absolute_rl(expr, &rl);
+		rl = cast_rl(cur_func_return_type(), rl);
+		*rl_p = rl;
+		return alloc_sname(show_rl(rl));
+	}
+
 	fn_param_str = get_fn_param_str(expr);
 	math_str = get_param_key_swap_dollar(expr);
 	compare_str = expr_equal_to_param(expr, -1);
