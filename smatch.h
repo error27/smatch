@@ -1111,6 +1111,7 @@ const char *get_mtag_name_expr(struct expression *expr);
 char *get_data_info_name(struct expression *expr);
 char *sm_to_arg_name(struct expression *expr, struct sm_state *sm);
 int is_recursive_member(const char *param_name);
+bool is_local(struct symbol *sym);
 
 char *escape_newlines(const char *str);
 void sql_exec(struct sqlite3 *db, int (*callback)(void*, int, char**, char**), void *data, const char *sql);
@@ -1216,6 +1217,7 @@ int mtag_map_select_container(mtag_t tag, int container_offset, mtag_t *containe
 int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag);
 struct smatch_state *get_mtag_return(struct expression *expr, struct smatch_state *state);
 struct range_list *swap_mtag_seed(struct expression *expr, struct range_list *rl);
+void sql_insert_ptracker(mtag_t tag, int type, const char *value);
 
 bool is_fn_ptr(struct expression *fn);
 void sql_select_return_states(const char *cols, struct expression *call,
@@ -1611,6 +1613,9 @@ bool get_symbol_mtag(struct symbol *sym, mtag_t *tag);
 int create_mtag_alias(mtag_t tag, struct expression *expr, mtag_t *new);
 int expr_to_mtag_offset(struct expression *expr, mtag_t *tag, int *offset);
 void update_mtag_data(struct expression *expr, struct smatch_state *state);
+
+/* smatch_ptracker_old.c */
+bool get_old_ptracker(struct expression *expr, sval_t *sval);
 
 /* Trinity fuzzer stuff */
 const char *get_syscall_arg_type(struct symbol *sym);

@@ -245,7 +245,7 @@ static bool in_base_file(struct symbol *sym)
 	return sym->pos.stream == base_file_stream;
 }
 
-static bool is_local(struct symbol *sym)
+bool is_local(struct symbol *sym)
 {
 	if (sym->ctype.modifiers & MOD_STATIC)
 		return true;
@@ -562,6 +562,11 @@ int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag)
 		return 0;
 	*tag = tmp;
 	return 1;
+}
+
+void sql_insert_ptracker(mtag_t tag, int type, const char *value)
+{
+	sql_insert_cache(ptracker, "%lld, %d, '%s'", tag, type, value);
 }
 
 char *get_static_filter(struct symbol *sym)
@@ -2853,6 +2858,7 @@ static void init_cachedb(void)
 		"db/mtag_info.schema",
 		"db/sink_info.schema",
 		"db/hash_string.schema",
+		"db/ptracker.schema",
 	};
 	static char buf[4096];
 	int fd;
@@ -2919,6 +2925,7 @@ static void dump_cache(struct symbol_list *sym_list)
 	const char *cache_tables[] = {
 		"type_info", "return_implies", "call_implies", "mtag_data",
 		"mtag_info", "mtag_about", "sink_info", "hash_string",
+		"ptracker",
 	};
 	char buf[64];
 	int i;

@@ -1,0 +1,8 @@
+CREATE TABLE ptracker (
+	id big int,
+	type integer,
+	value varchar(80),
+
+	CONSTRAINT ptracker_row UNIQUE (id, type, value)
+);
+

@@ -116,6 +116,9 @@ enum info_type {
 	PARAM_INC	= 2536,
 	PARAM_DEC	= 2537,
 
+	PTRACKER	= 2538,
+	PTRACKER_MERGE	= 2539,
+
 	/* put random temporary stuff in the 7000-7999 range for testing */
 	HOST_DATA	= 7016,
 	HOST_DATA_SET	= 7017,

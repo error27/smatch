@@ -79,7 +79,7 @@ static char *get_parent_from_expr(struct expression *expr, struct symbol **sym)
 	return alloc_parent_str(*sym);
 }
 
-static int is_local(struct expression *expr)
+static int expr_is_local(struct expression *expr)
 {
 	char *name;
 	struct symbol *sym;
@@ -121,7 +121,7 @@ static void match_alloc(const char *fn, struct expression *expr, void *unused)
 {
 	if (is_fake_var_assign(expr))
 		return;
-	if (!is_local(expr->left))
+	if (!expr_is_local(expr->left))
 		return;
 	if (is_param(expr->left))
 		return;
