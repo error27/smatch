@@ -86,11 +86,8 @@ static void match_allocation(struct expression *expr,
 
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
-
-	call = expr;
-	while (call && call->type == EXPR_ASSIGNMENT)
-		call = strip_expr(expr->right);
-	if (!call || call->type != EXPR_CALL)
+	call = get_rightmost_call(expr);
+	if (!call)
 		return;
 
 	size_arg = get_argument_from_call_expr(call->args, 0);
