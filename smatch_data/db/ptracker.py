@@ -128,7 +128,6 @@ def main():
         print("error: %s" % error, file=sys.stderr)
         return 1
 
-    con.set_trace_callback(lambda query: print("SQL: %s" % query))
     try:
         tracker_ids = list(select_caller_ptrackers(
             con, file_id, function, static, parameter))
