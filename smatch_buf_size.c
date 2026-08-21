@@ -871,6 +871,9 @@ static void struct_member_callback(struct expression *call, int param, char *pri
 {
 	sval_t sval;
 
+	if (strcmp(printed_name, "$") == 0)
+		return;
+
 	if (!estate_rl(sm->state))
 		return;
 	if (estate_get_single_value(sm->state, &sval) &&
