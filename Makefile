@@ -102,6 +102,7 @@ PROGRAMS += example
 PROGRAMS += graph
 PROGRAMS += obfuscate
 PROGRAMS += sparse
+PROGRAMS += tagger
 PROGRAMS += test-dissect
 PROGRAMS += test-lexing
 PROGRAMS += test-linearize
