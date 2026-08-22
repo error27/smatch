@@ -29,6 +29,7 @@
 #include "options.h"
 
 enum destination_type {
+	BASE,
 	NORMAL,
 	LOOKUP,
 };
@@ -95,6 +96,12 @@ static int seen_macro(struct position *pos, const char *name)
 	return 0;
 }
 
+static int same_position(struct position *one, struct position *two)
+{
+	return one->stream == two->stream && one->line == two->line &&
+	       one->pos == two->pos;
+}
+
 static int show_macro(struct position *pos)
 {
 	struct symbol *sym;
@@ -108,6 +115,12 @@ static int show_macro(struct position *pos)
 		return 0;
 	if (seen_macro(pos, name))
 		return 1;
+	if (same_position(pos, &sym->pos)) {
+		printf("%llu %s %d %d %d\n",
+		       str_to_llu_hash_helper(stream_name(pos->stream)), name,
+		       pos->line, pos->pos, BASE);
+		return 1;
+	}
 
 	printf("%llu %s %d %d %d %llu %d %d\n",
 	       str_to_llu_hash_helper(stream_name(pos->stream)), name,
@@ -168,11 +181,11 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	struct symbol *implementation;
 	struct ident *ident;
 
-	if (!source_position(pos))
+	if (!sym)
+		return;
+	if (!source_position(pos) && !function_was_called(sym))
 		return;
 	if (show_macro(pos))
-		return;
-	if (!sym)
 		return;
 	ident = sym->ident;
 	if (!ident || ident->reserved)
@@ -184,6 +197,12 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 		       ident->len, ident->name,
 		       pos->line, pos->pos, LOOKUP,
 		       str_to_llu_hash_helper(ident->name));
+		return;
+	}
+	if (same_position(pos, &implementation->pos)) {
+		printf("%llu %.*s %d %d %d\n",
+		       str_to_llu_hash_helper(stream_name(pos->stream)),
+		       ident->len, ident->name, pos->line, pos->pos, BASE);
 		return;
 	}
 

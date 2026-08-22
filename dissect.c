@@ -639,6 +639,8 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 	struct symbol *dctx = dissect_ctx;
 	struct statement *stmt;
 
+	if (type->type == SYM_FN && reporter->r_follow && sym->inspected)
+		return type;
 	reporter->r_symdef(sym);
 
 	switch (type->type) {
@@ -653,7 +655,7 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 
 	break; case SYM_FN:
 		if (reporter->r_follow) {
-			if (sym->inspected || !reporter->r_follow(sym))
+			if (!reporter->r_follow(sym))
 				break;
 			sym->inspected = 1;
 		}
