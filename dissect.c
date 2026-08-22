@@ -392,13 +392,10 @@ again:
 			do_expression(u_lval(base_type(arg)), val));
 		ret = ret->type == SYM_FN ? base_type(ret)
 			: &bad_ctype;
-		if (reporter->follow_inline && fn) {
+		if (reporter->r_follow && fn) {
 			fn = fn->definition;
-			if (fn && fn->ctype.modifiers & MOD_INLINE &&
-			    !fn->inspected) {
-				fn->inspected = 1;
+			if (fn && !fn->inspected)
 				do_symbol(fn);
-			}
 		}
 	}
 
@@ -655,15 +652,17 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 		dissect_ctx = dctx;
 
 	break; case SYM_FN:
-		if (reporter->follow_inline &&
-		    sym->ctype.modifiers & MOD_INLINE && !sym->inspected)
-			break;
+		if (reporter->r_follow) {
+			if (sym->inspected || !reporter->r_follow(sym))
+				break;
+			sym->inspected = 1;
+		}
 		stmt = sym->ctype.modifiers & MOD_INLINE
 			? type->inline_stmt : type->stmt;
 		if (!stmt)
 			break;
 
-		if (dctx && !reporter->follow_inline)
+		if (dctx && !reporter->r_follow)
 			sparse_error(dctx->pos, "dissect_ctx change %s -> %s",
 				show_ident(dctx->ident), show_ident(sym->ident));
 
