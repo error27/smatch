@@ -197,10 +197,8 @@ struct expression *get_kmalloc_pointer(struct expression *pointer)
 	if (!stmt)
 		return pointer;
 	if (stmt->type == STMT_IF) {
-		while (stmt && stmt->type != STMT_COMPOUND) {
-			sm_local("stmt=%d", stmt ? stmt->type : -1);
+		while (stmt && stmt->type != STMT_COMPOUND)
 			stmt = stmt_get_parent_stmt(stmt);
-		}
 	}
 	if (!stmt || stmt->type != STMT_COMPOUND)
 		return pointer;
