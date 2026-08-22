@@ -28,6 +28,11 @@
 #include "dissect.h"
 #include "options.h"
 
+enum destination_type {
+	NORMAL,
+	LOOKUP,
+};
+
 struct macro_use {
 	struct position pos;
 	const char *name;
@@ -36,6 +41,8 @@ struct macro_use {
 
 static struct string_list *source_files;
 static struct macro_use *macro_uses;
+
+unsigned long long str_to_llu_hash_helper(const char *str);
 
 static int source_position(struct position *pos)
 {
@@ -87,14 +94,34 @@ static int show_macro(struct position *pos)
 	if (seen_macro(pos, name))
 		return 1;
 
-	printf("%s %s %d %d %s %d %d\n",
+	printf("%s %s %d %d %d %llu %d %d\n",
 	       stream_name(pos->stream), name, pos->line, pos->pos,
-	       stream_name(sym->pos.stream), sym->pos.line, sym->pos.pos);
+	       NORMAL, str_to_llu_hash_helper(stream_name(sym->pos.stream)),
+	       sym->pos.line, sym->pos.pos);
 	return 1;
+}
+
+static struct symbol *get_implementation(struct symbol *sym)
+{
+	struct symbol *type;
+
+	type = sym->ctype.base_type;
+	if (!type || type->type != SYM_FN)
+		return sym;
+	return sym->definition;
+}
+
+static int symbol_is_function(struct symbol *sym)
+{
+	struct symbol *type;
+
+	type = sym->ctype.base_type;
+	return type && type->type == SYM_FN;
 }
 
 static void show_identifier(struct position *pos, struct symbol *sym)
 {
+	struct symbol *implementation;
 	struct ident *ident;
 
 	if (!source_position(pos))
@@ -106,11 +133,22 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	ident = sym->ident;
 	if (!ident || ident->reserved)
 		return;
+	implementation = get_implementation(sym);
+	if (!implementation ||
+	    (symbol_is_function(sym) &&
+	     implementation->pos.stream != pos->stream)) {
+		printf("%s %.*s %d %d %d %llu\n",
+		       stream_name(pos->stream), ident->len, ident->name,
+		       pos->line, pos->pos, LOOKUP,
+		       str_to_llu_hash_helper(ident->name));
+		return;
+	}
 
-	printf("%s %.*s %d %d %s %d %d\n",
+	printf("%s %.*s %d %d %d %llu %d %d\n",
 	       stream_name(pos->stream), ident->len, ident->name,
-	       pos->line, pos->pos, stream_name(sym->pos.stream),
-	       sym->pos.line, sym->pos.pos);
+	       pos->line, pos->pos, NORMAL,
+	       str_to_llu_hash_helper(stream_name(implementation->pos.stream)),
+	       implementation->pos.line, implementation->pos.pos);
 }
 
 static void report_symbol_definition(struct symbol *sym)
