@@ -25,6 +25,72 @@
 
 static int my_id;
 
+static struct smatch_state *alloc_expr_state(struct expression *expr)
+{
+	struct smatch_state *state;
+	char *name;
+
+	expr = strip_expr(expr);
+	name = expr_to_str(expr);
+	if (!name)
+		return NULL;
+
+	state = __alloc_smatch_state(0);
+	state->name = alloc_sname(name);
+	free_string(name);
+	state->data = expr;
+	return state;
+}
+
+struct smatch_state *merge_expr_states(struct smatch_state *s1, struct smatch_state *s2)
+{
+	struct symbol *sym1, *sym2;
+	char *str1, *str2;
+
+	if (!s1->data || !s2->data)
+		return &merged;
+
+	if (s1->data == s2->data)
+		return s1;
+
+	str1 = expr_to_var_sym(s1->data, &sym1);
+	str2 = expr_to_var_sym(s1->data, &sym2);
+	if (!str1 || !str2)
+		return &merged;
+
+	if (sym1 == sym2 &&
+	    strcmp(str1, str2) == 0)
+		return s1;
+
+	return &merged;
+}
+
+struct smatch_state *unmatched_buf_size_comparison(struct sm_state *sm)
+{
+	struct compare_data *data;
+	sval_t sval;
+
+	data = sm->state->data;
+	if (!data)
+		return &undefined;
+	if (!get_implied_value(data->left, &sval) || sval.value != 0)
+		return &undefined;
+
+	return sm->state;
+}
+
+static struct smatch_state *unmatched_state(struct sm_state *sm)
+{
+	sval_t sval;
+
+	if (!sm->state->data ||
+	    !get_implied_value(sm->state->data, &sval) ||
+	    sval.value != 0)
+		return &undefined;
+
+	return sm->state;
+}
+
 bool buf_comp2_has_bytes(struct expression *buf_expr, struct expression *var)
 {
 	char *buffer_name, *var_name;
@@ -71,33 +137,28 @@ static void record_size(struct expression *buffer, struct expression *size, stru
 	free_string(buffer_name);
 	add_comparison_var_sym(buffer, buf, buffer_vsl, SPECIAL_EQUAL,
 			       size, size_name, size_vsl, mod_expr);
+	set_state(my_id, buf, NULL, alloc_expr_state(size));
 }
 
+static struct expression *ignored_assign;
 static void match_allocation(struct expression *expr,
 			     const char *name, struct symbol *sym,
 			     struct allocation_info *info)
 {
-	struct expression *call, *size_arg;
 	sval_t sval;
-
-	/* FIXME: hack for testing */
-	if (strcmp(info->size_str, "$0") != 0)
-		return;
 
 	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
 		return;
-	call = get_rightmost_call(expr);
-	if (!call)
+	if (!info->total_size)
 		return;
 
-	size_arg = get_argument_from_call_expr(call->args, 0);
-	if (!size_arg)
+	/* fixed size buffers are handled by smatch_buf_size.c */
+	if (get_implied_value(info->total_size, &sval))
 		return;
 
-	if (get_implied_value(size_arg, &sval))
-		return;
-
-	record_size(expr->left, size_arg, expr);
+	record_size(expr->left, info->total_size, expr);
+	ignored_assign = expr;
+	// FIXME: info->nr_elems as well
 }
 
 static int get_param(int param, char **name, struct symbol **sym)
@@ -138,11 +199,39 @@ static void set_param_compare(const char *buffer_name, struct symbol *buffer_sym
 	record_size(buffer, size, NULL);
 }
 
+static void match_assign(struct expression *expr)
+{
+	struct smatch_state *state;
+	char buf[64];
+	char *name;
+
+	if (expr->op != '=')
+		return;
+	if (expr == ignored_assign)
+		return;
+	if (__in_fake_assign || is_fake_var_assign(expr))
+		return;
+
+	name = expr_to_str(expr->right);
+	if (!name)
+		return;
+	snprintf(buf, sizeof(buf), "$size %s", name);
+	state = get_state(my_id, buf, NULL);
+	if (!state || !state->data)
+		return;
+
+	record_size(expr->left, state->data, expr);
+}
+
 void smatch_buf_comparison2(int id)
 {
 	my_id = id;
 
+	set_dynamic_states(my_id);
+	add_unmatched_state_hook(my_id, unmatched_state);
+	add_merge_hook(my_id, &merge_expr_states);
 	add_allocation_hook(&match_allocation);
 	select_caller_info_hook(set_param_compare, BYTE_COUNT);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
 }
 
