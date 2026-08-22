@@ -19,6 +19,8 @@
 
 struct reporter
 {
+	bool follow_inline;
+
 	void (*r_symdef)(struct symbol *);
 	void (*r_memdef)(struct symbol *, struct symbol *);
 

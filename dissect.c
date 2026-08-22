@@ -56,6 +56,7 @@ struct symbol *dissect_ctx;
 static struct reporter *reporter;
 
 static void do_sym_list(struct symbol_list *list);
+static inline struct symbol *do_symbol(struct symbol *sym);
 
 static struct symbol
 	*base_type(struct symbol *sym),
@@ -377,15 +378,29 @@ again:
 		ret = do_expression(mode, expr->cond_false);
 
 	break; case EXPR_CALL:
+	{
+		struct symbol *fn = NULL;
+
 		if (expr->fn->type == EXPR_SYMBOL)
 			expr->fn->op = 'f'; /* for expr_symbol() */
 		ret = do_expression(U_R_PTR, expr->fn);
+		if (expr->fn->type == EXPR_SYMBOL)
+			fn = expr_symbol(expr->fn);
 		if (is_ptr(ret))
 			ret = ret->ctype.base_type;
 		DO_2_LIST(ret->arguments, expr->args, arg, val,
 			do_expression(u_lval(base_type(arg)), val));
 		ret = ret->type == SYM_FN ? base_type(ret)
 			: &bad_ctype;
+		if (reporter->follow_inline && fn) {
+			fn = fn->definition;
+			if (fn && fn->ctype.modifiers & MOD_INLINE &&
+			    !fn->inspected) {
+				fn->inspected = 1;
+				do_symbol(fn);
+			}
+		}
+	}
 
 	break; case EXPR_ASSIGNMENT:
 		mode |= U_W_VAL | U_R_VAL;
@@ -640,12 +655,15 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 		dissect_ctx = dctx;
 
 	break; case SYM_FN:
+		if (reporter->follow_inline &&
+		    sym->ctype.modifiers & MOD_INLINE && !sym->inspected)
+			break;
 		stmt = sym->ctype.modifiers & MOD_INLINE
 			? type->inline_stmt : type->stmt;
 		if (!stmt)
 			break;
 
-		if (dctx)
+		if (dctx && !reporter->follow_inline)
 			sparse_error(dctx->pos, "dissect_ctx change %s -> %s",
 				show_ident(dctx->ident), show_ident(sym->ident));
 

@@ -40,9 +40,22 @@ struct macro_use {
 };
 
 static struct string_list *source_files;
+static struct symbol_list *called_inlines;
 static struct macro_use *macro_uses;
 
 unsigned long long str_to_llu_hash_helper(const char *str);
+
+static int inline_was_called(struct symbol *sym)
+{
+	struct symbol *tmp;
+
+	FOR_EACH_PTR(called_inlines, tmp) {
+		if (tmp == sym)
+			return 1;
+	} END_FOR_EACH_PTR(tmp);
+
+	return 0;
+}
 
 static int source_position(struct position *pos)
 {
@@ -54,6 +67,8 @@ static int source_position(struct position *pos)
 		if (!strcmp(file, source))
 			return 1;
 	} END_FOR_EACH_PTR(source);
+	if (dissect_ctx && inline_was_called(dissect_ctx))
+		return 1;
 
 	return 0;
 }
@@ -94,8 +109,9 @@ static int show_macro(struct position *pos)
 	if (seen_macro(pos, name))
 		return 1;
 
-	printf("%s %s %d %d %d %llu %d %d\n",
-	       stream_name(pos->stream), name, pos->line, pos->pos,
+	printf("%llu %s %d %d %d %llu %d %d\n",
+	       str_to_llu_hash_helper(stream_name(pos->stream)), name,
+	       pos->line, pos->pos,
 	       NORMAL, str_to_llu_hash_helper(stream_name(sym->pos.stream)),
 	       sym->pos.line, sym->pos.pos);
 	return 1;
@@ -119,6 +135,20 @@ static int symbol_is_function(struct symbol *sym)
 	return type && type->type == SYM_FN;
 }
 
+static void record_inline_call(unsigned mode, struct symbol *sym)
+{
+	struct symbol *implementation;
+
+	if (!(mode & U_R_PTR) || !sym || !symbol_is_function(sym))
+		return;
+	implementation = get_implementation(sym);
+	if (!implementation ||
+	    !(implementation->ctype.modifiers & MOD_INLINE) ||
+	    inline_was_called(implementation))
+		return;
+	add_symbol(&called_inlines, implementation);
+}
+
 static void show_identifier(struct position *pos, struct symbol *sym)
 {
 	struct symbol *implementation;
@@ -134,18 +164,18 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	if (!ident || ident->reserved)
 		return;
 	implementation = get_implementation(sym);
-	if (!implementation ||
-	    (symbol_is_function(sym) &&
-	     implementation->pos.stream != pos->stream)) {
-		printf("%s %.*s %d %d %d %llu\n",
-		       stream_name(pos->stream), ident->len, ident->name,
+	if (!implementation) {
+		printf("%llu %.*s %d %d %d %llu\n",
+		       str_to_llu_hash_helper(stream_name(pos->stream)),
+		       ident->len, ident->name,
 		       pos->line, pos->pos, LOOKUP,
 		       str_to_llu_hash_helper(ident->name));
 		return;
 	}
 
-	printf("%s %.*s %d %d %d %llu %d %d\n",
-	       stream_name(pos->stream), ident->len, ident->name,
+	printf("%llu %.*s %d %d %d %llu %d %d\n",
+	       str_to_llu_hash_helper(stream_name(pos->stream)),
+	       ident->len, ident->name,
 	       pos->line, pos->pos, NORMAL,
 	       str_to_llu_hash_helper(stream_name(implementation->pos.stream)),
 	       implementation->pos.line, implementation->pos.pos);
@@ -164,6 +194,7 @@ static void report_member_definition(struct symbol *sym, struct symbol *member)
 static void report_symbol(unsigned mode, struct position *pos,
 			  struct symbol *sym)
 {
+	record_inline_call(mode, sym);
 	show_identifier(pos, sym);
 }
 
@@ -176,6 +207,7 @@ static void report_member(unsigned mode, struct position *pos,
 int main(int argc, char **argv)
 {
 	static struct reporter reporter = {
+		.follow_inline = 1,
 		.r_memdef = report_member_definition,
 		.r_member = report_member,
 		.r_symdef = report_symbol_definition,
