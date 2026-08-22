@@ -6,6 +6,7 @@ import sys
 
 MTAG_ALIAS_BIT = 1 << 63
 
+FUNC_TIME = 1047
 PARAM_VALUE = 1001
 PTRACKER = 2538
 PTRACKER_MERGE = 2539
@@ -55,7 +56,7 @@ def select_caller_ptrackers(con, file_id, function, static, parameter):
                 "and key = '$' and type = ?;",
                 (pointer, parameter, PTRACKER),
             )
-        elif file_id:
+        elif file_id and static:
             rows = con.execute(
                 "select distinct value from caller_info "
                 "where file = ? and function = ? and static = ? "
@@ -80,6 +81,16 @@ def select_caller_ptrackers(con, file_id, function, static, parameter):
             if tracker_id not in seen:
                 seen.add(tracker_id)
                 yield tracker_id
+
+
+def select_function_info(con, function):
+    rows = con.execute(
+        "select distinct file, function, static from return_implies "
+        "where function = ? and type = ?;",
+        (function, FUNC_TIME),
+    )
+    for row in rows:
+        yield int(row[0]), row[1], int(row[2])
 
 
 def string_to_hash(value):
@@ -135,15 +146,15 @@ def usage():
 
 def main():
     if len(sys.argv) == 3:
-        file_id = 0
+        function_info = None
         function = sys.argv[1]
         parameter = sys.argv[2]
-        static = 0
     elif len(sys.argv) == 4:
         file_id = string_to_hash(sys.argv[1])
         function = sys.argv[2]
         parameter = sys.argv[3]
         static = 1
+        function_info = [(file_id, function, static)]
     else:
         usage()
 
@@ -164,8 +175,19 @@ def main():
         return 1
 
     try:
-        tracker_ids = list(select_caller_ptrackers(
-            con, file_id, function, static, parameter))
+        if function_info is None:
+            function_info = list(select_function_info(con, function))
+            if not function_info:
+                print("error: no function information for %s" % function,
+                      file=sys.stderr)
+                return 1
+
+        tracker_ids = []
+        for file_id, selected_function, static in function_info:
+            for tracker_id in select_caller_ptrackers(
+                    con, file_id, selected_function, static, parameter):
+                if tracker_id not in tracker_ids:
+                    tracker_ids.append(tracker_id)
         if not tracker_ids:
             print("error: no ptracker information for %s parameter %d" %
                   (function, parameter), file=sys.stderr)
