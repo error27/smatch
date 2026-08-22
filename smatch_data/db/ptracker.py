@@ -11,6 +11,27 @@ PTRACKER = 2538
 PTRACKER_MERGE = 2539
 
 
+def get_function_pointers(con, function):
+    function_ptrs = [function]
+    searched_ptrs = {function}
+
+    def add_function_pointers(current):
+        rows = con.execute(
+            "select distinct ptr from function_ptr where function = ?;",
+            (current,),
+        ).fetchall()
+        for row in rows:
+            pointer = row[0]
+            if pointer not in function_ptrs:
+                function_ptrs.append(pointer)
+            if pointer not in searched_ptrs:
+                searched_ptrs.add(pointer)
+                add_function_pointers(pointer)
+
+    add_function_pointers(function)
+    return function_ptrs
+
+
 def parse_ptracker(value):
     fields = value.split(",", 3)
     if len(fields) != 4:
@@ -24,27 +45,41 @@ def parse_ptracker(value):
 
 
 def select_caller_ptrackers(con, file_id, function, static, parameter):
-    if file_id:
-        rows = con.execute(
-            "select distinct value from caller_info "
-            "where file = ? and function = ? and static = ? "
-            "and parameter = ? and key = '$' and type = ?;",
-            (file_id, function, static, parameter, PTRACKER),
-        )
-    else:
-        rows = con.execute(
-            "select distinct value from caller_info "
-            "where function = ? and static = ? and parameter = ? "
-            "and key = '$' and type = ?;",
-            (function, static, parameter, PTRACKER),
-        )
+    seen = set()
 
-    for row in rows:
-        try:
-            yield int(row[0], 0)
-        except ValueError:
-            print("error: invalid ptracker ID: %s" % row[0],
-                  file=sys.stderr)
+    for pointer in get_function_pointers(con, function):
+        if pointer != function:
+            rows = con.execute(
+                "select distinct value from caller_info "
+                "where function = ? and parameter = ? "
+                "and key = '$' and type = ?;",
+                (pointer, parameter, PTRACKER),
+            )
+        elif file_id:
+            rows = con.execute(
+                "select distinct value from caller_info "
+                "where file = ? and function = ? and static = ? "
+                "and parameter = ? and key = '$' and type = ?;",
+                (file_id, function, static, parameter, PTRACKER),
+            )
+        else:
+            rows = con.execute(
+                "select distinct value from caller_info "
+                "where function = ? and static = ? and parameter = ? "
+                "and key = '$' and type = ?;",
+                (function, static, parameter, PTRACKER),
+            )
+
+        for row in rows:
+            try:
+                tracker_id = int(row[0], 0)
+            except ValueError:
+                print("error: invalid ptracker ID: %s" % row[0],
+                      file=sys.stderr)
+                continue
+            if tracker_id not in seen:
+                seen.add(tracker_id)
+                yield tracker_id
 
 
 def string_to_hash(value):
