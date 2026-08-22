@@ -185,6 +185,9 @@ They must apply with git am.  Dan commonly applies them with:
 For a series, keep each logical change in a separate commit.  Do not include a
 cover letter unless Dan requests one.  The mbox should contain only patch
 emails so the complete file applies without stopping on an empty message.
+Deliver a single patch as an mbox file with its commit message included.  When
+delivering multiple patches, combine all patch emails into one mbox file in
+the order in which they should be applied.
 
 2. Changes based on code which is not yet in git
 
@@ -245,7 +248,9 @@ COMMIT MESSAGES
 - For code changes, always include Before and After sections with the exact
   relevant validation output.  This makes the behavior change visible in the
   commit message and makes review easier.  Use `(no output)` when one side has
-  no output.
+  no output.  If the change cannot be tested, include this sentence instead:
+
+      Unable to test so no before/after text.
 - Do not add a Signed-off-by trailer on Dan's behalf.
 
 Example:
