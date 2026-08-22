@@ -58,9 +58,9 @@ static bool alloc_new_ptracker(struct expression *expr, sval_t *sval)
 				 get_function(), is_local(cur_func_sym));
 			*sval = str_to_new_ptracker(PTRACKER, buf);
 		} else {
-			snprintf(buf, sizeof(buf), "%s %s() %d %s",
-				 is_local(cur_func_sym) ? get_filename() : "extern",
-				 get_function(), param, key);
+			snprintf(buf, sizeof(buf), "%s:%d %s() %d %s",
+				 get_filename(), get_lineno(), get_function(),
+				 param, key);
 			*sval = str_to_new_ptracker(PARAM_VALUE, buf);
 		}
 		return true;
@@ -74,9 +74,8 @@ static bool alloc_new_ptracker(struct expression *expr, sval_t *sval)
 	if (!str)
 		return false;
 
-	snprintf(buf, sizeof(buf), "%s %s() %s",
-		 is_local(cur_func_sym) ? get_filename() : "extern",
-		 get_function(), str);
+	snprintf(buf, sizeof(buf), "%s:%d %s() %s",
+		 get_filename(), get_lineno(), get_function(), str);
 
 	*sval = str_to_new_ptracker(PARAM_VALUE, buf);
 	return true;
