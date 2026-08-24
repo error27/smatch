@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <db.h>
 
 #include "dissect.h"
 #include "options.h"
@@ -40,11 +41,56 @@ struct macro_use {
 	struct macro_use *next;
 };
 
+struct tag {
+	unsigned long long file;
+	unsigned long long dest;
+	unsigned int line;
+	unsigned int pos;
+	unsigned int dest_line;
+	unsigned int dest_pos;
+	enum destination_type type;
+	char *identifier;
+	struct tag *next;
+};
+
+#define TAG_BATCH_SIZE 1000
+
 static struct string_list *source_files;
 static struct symbol_list *called_functions;
 static struct macro_use *macro_uses;
+static struct tag *tags;
+static struct tag **next_tag = &tags;
 
 unsigned long long str_to_llu_hash_helper(const char *str);
+
+static void save_tag(struct position *pos, const char *name,
+		     enum destination_type type, unsigned long long dest,
+		     unsigned int dest_line, unsigned int dest_pos)
+{
+	struct tag *tag;
+
+	tag = calloc(1, sizeof(*tag));
+	if (!tag)
+		die("out of memory\n");
+	tag->identifier = strdup(name);
+	if (!tag->identifier)
+		die("out of memory\n");
+	tag->file = str_to_llu_hash_helper(stream_name(pos->stream));
+	tag->line = pos->line;
+	tag->pos = pos->pos;
+	tag->type = type;
+	if (type == BASE) {
+		tag->dest = tag->file;
+		tag->dest_line = tag->line;
+		tag->dest_pos = tag->pos;
+	} else {
+		tag->dest = dest;
+		tag->dest_line = dest_line;
+		tag->dest_pos = dest_pos;
+	}
+	*next_tag = tag;
+	next_tag = &tag->next;
+}
 
 static int function_was_called(struct symbol *sym)
 {
@@ -116,17 +162,13 @@ static int show_macro(struct position *pos)
 	if (seen_macro(pos, name))
 		return 1;
 	if (same_position(pos, &sym->pos)) {
-		printf("%llu %s %d %d %d\n",
-		       str_to_llu_hash_helper(stream_name(pos->stream)), name,
-		       pos->line, pos->pos, BASE);
+		save_tag(pos, name, BASE, 0, 0, 0);
 		return 1;
 	}
 
-	printf("%llu %s %d %d %d %llu %d %d\n",
-	       str_to_llu_hash_helper(stream_name(pos->stream)), name,
-	       pos->line, pos->pos,
-	       NORMAL, str_to_llu_hash_helper(stream_name(sym->pos.stream)),
-	       sym->pos.line, sym->pos.pos);
+	save_tag(pos, name, NORMAL,
+		 str_to_llu_hash_helper(stream_name(sym->pos.stream)),
+		 sym->pos.line, sym->pos.pos);
 	return 1;
 }
 
@@ -192,26 +234,152 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 		return;
 	implementation = get_implementation(sym);
 	if (!implementation) {
-		printf("%llu %.*s %d %d %d %llu\n",
-		       str_to_llu_hash_helper(stream_name(pos->stream)),
-		       ident->len, ident->name,
-		       pos->line, pos->pos, LOOKUP,
-		       str_to_llu_hash_helper(ident->name));
+		save_tag(pos, show_ident(ident), LOOKUP,
+			 str_to_llu_hash_helper(ident->name), 0, 0);
 		return;
 	}
 	if (same_position(pos, &implementation->pos)) {
-		printf("%llu %.*s %d %d %d\n",
-		       str_to_llu_hash_helper(stream_name(pos->stream)),
-		       ident->len, ident->name, pos->line, pos->pos, BASE);
+		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
 		return;
 	}
 
-	printf("%llu %.*s %d %d %d %llu %d %d\n",
-	       str_to_llu_hash_helper(stream_name(pos->stream)),
-	       ident->len, ident->name,
-	       pos->line, pos->pos, NORMAL,
-	       str_to_llu_hash_helper(stream_name(implementation->pos.stream)),
-	       implementation->pos.line, implementation->pos.pos);
+	save_tag(pos, show_ident(ident), NORMAL,
+		 str_to_llu_hash_helper(stream_name(implementation->pos.stream)),
+		 implementation->pos.line, implementation->pos.pos);
+}
+
+static void encode_key(unsigned char *buf, unsigned long long file,
+		       unsigned int line, unsigned int pos)
+{
+	int i;
+
+	for (i = 0; i < 8; i++)
+		buf[i] = file >> (56 - i * 8);
+	for (i = 0; i < 4; i++) {
+		buf[8 + i] = line >> (24 - i * 8);
+		buf[12 + i] = pos >> (24 - i * 8);
+	}
+}
+
+static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
+{
+	unsigned char source_key_buf[16];
+	unsigned char dest_key_buf[16];
+	char source_value_buf[256];
+	char dest_value_buf[256];
+	DBT source_key = { 0 };
+	DBT source_value = { 0 };
+	DBT dest_key = { 0 };
+	DBT dest_value = { 0 };
+	int ret;
+
+	encode_key(source_key_buf, tag->file, tag->line, tag->pos);
+	encode_key(dest_key_buf, tag->dest, tag->dest_line, tag->dest_pos);
+	snprintf(source_value_buf, sizeof(source_value_buf),
+		 "%d %s %llu %u %u", tag->type, tag->identifier,
+		 tag->dest, tag->dest_line, tag->dest_pos);
+	snprintf(dest_value_buf, sizeof(dest_value_buf),
+		 "%d %s %llu %u %u", tag->type, tag->identifier,
+		 tag->file, tag->line, tag->pos);
+	source_key.data = source_key_buf;
+	source_key.size = sizeof(source_key_buf);
+	source_value.data = source_value_buf;
+	source_value.size = strlen(source_value_buf) + 1;
+	dest_key.data = dest_key_buf;
+	dest_key.size = sizeof(dest_key_buf);
+	dest_value.data = dest_value_buf;
+	dest_value.size = strlen(dest_value_buf) + 1;
+
+	ret = source->put(source, txn, &source_key, &source_value, 0);
+	if (ret)
+		return ret;
+	ret = destination->put(destination, txn, &dest_key, &dest_value,
+			       DB_NODUPDATA);
+	if (ret == DB_KEYEXIST)
+		return 0;
+	return ret;
+}
+
+static int write_batch(DB_ENV *env, DB *source, DB *destination,
+		       struct tag *first, struct tag *end)
+{
+	DB_TXN *txn;
+	struct tag *tag;
+	int ret;
+
+retry:
+	ret = env->txn_begin(env, NULL, &txn, 0);
+	if (ret)
+		return ret;
+	for (tag = first; tag != end; tag = tag->next) {
+		ret = put_tag(txn, source, destination, tag);
+		if (ret)
+			break;
+	}
+	if (!ret)
+		ret = txn->commit(txn, 0);
+	else
+		txn->abort(txn);
+	if (ret == DB_LOCK_DEADLOCK || ret == DB_LOCK_NOTGRANTED)
+		goto retry;
+	return ret;
+}
+
+static int write_tags(const char *db_dir)
+{
+	DB_ENV *env = NULL;
+	DB *source = NULL;
+	DB *destination = NULL;
+	struct tag *first;
+	struct tag *end;
+	int count;
+	int flags;
+	int ret;
+
+	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN |
+		DB_THREAD;
+	ret = db_env_create(&env, 0);
+	if (ret)
+		goto out;
+	env->set_lk_detect(env, DB_LOCK_DEFAULT);
+	ret = env->open(env, db_dir, flags, 0);
+	if (ret)
+		goto out;
+	ret = db_create(&source, env, 0);
+	if (ret)
+		goto out;
+	ret = source->open(source, NULL, "source.db", NULL, DB_BTREE,
+			   DB_THREAD, 0);
+	if (ret)
+		goto out;
+	ret = db_create(&destination, env, 0);
+	if (ret)
+		goto out;
+	ret = destination->open(destination, NULL, "destination.db", NULL,
+				DB_BTREE, DB_THREAD, 0);
+	if (ret)
+		goto out;
+
+	first = tags;
+	while (first) {
+		end = first;
+		for (count = 0; end && count < TAG_BATCH_SIZE; count++)
+			end = end->next;
+		ret = write_batch(env, source, destination, first, end);
+		if (ret)
+			goto out;
+		first = end;
+	}
+out:
+	if (destination)
+		destination->close(destination, 0);
+	if (source)
+		source->close(source, 0);
+	if (env)
+		env->close(env, 0);
+	if (ret)
+		fprintf(stderr, "tagger: %s: %s\n", db_dir, db_strerror(ret));
+	return ret;
 }
 
 static void report_symbol_definition(struct symbol *sym)
@@ -247,11 +415,20 @@ int main(int argc, char **argv)
 		.r_symbol = report_symbol,
 	};
 	struct string_list *filelist = NULL;
+	const char *db_dir;
+	int i;
+
+	if (argc < 2)
+		die("usage: tagger <database directory> [sparse options] file.c\n");
+	db_dir = argv[1];
+	for (i = 1; i < argc - 1; i++)
+		argv[i] = argv[i + 1];
+	argc--;
 
 	sparse_initialize(argc, argv, &filelist);
 	source_files = filelist;
 	dissect_show_all_symbols = 1;
 	dissect(&reporter, filelist);
 
-	return 0;
+	return write_tags(db_dir) != 0;
 }

@@ -438,7 +438,7 @@ test_smatch_math: test_smatch_math.o test-smatch.o $(SMATCH_OBJS) \
 		$(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
 
 tagger: smatch_hash.o
-tagger-ldlibs := -lcrypto
+tagger-ldlibs := -lcrypto -ldb
 
 test-smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h \
 	       smatch_modules.h smatch_modules_late.h smatch_checks.h
