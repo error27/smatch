@@ -424,6 +424,7 @@ int main(int argc, char **argv)
 	for (i = 1; i < argc - 1; i++)
 		argv[i] = argv[i + 1];
 	argc--;
+	argv[argc] = NULL;
 
 	sparse_initialize(argc, argv, &filelist);
 	source_files = filelist;
