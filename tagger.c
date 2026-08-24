@@ -349,14 +349,14 @@ static int write_tags(const char *db_dir)
 	if (ret)
 		goto out;
 	ret = source->open(source, NULL, "source.db", NULL, DB_BTREE,
-			   DB_THREAD, 0);
+			   DB_AUTO_COMMIT | DB_THREAD, 0);
 	if (ret)
 		goto out;
 	ret = db_create(&destination, env, 0);
 	if (ret)
 		goto out;
 	ret = destination->open(destination, NULL, "destination.db", NULL,
-				DB_BTREE, DB_THREAD, 0);
+				DB_BTREE, DB_AUTO_COMMIT | DB_THREAD, 0);
 	if (ret)
 		goto out;
 

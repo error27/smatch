@@ -28,13 +28,14 @@ try:
 		 db.DB_INIT_MPOOL | db.DB_INIT_TXN | db.DB_THREAD)
 
 	source = db.DB(env)
-	source.open("source.db", None, db.DB_BTREE, db.DB_CREATE | db.DB_THREAD)
+	source.open("source.db", None, db.DB_BTREE,
+		    db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	source.close()
 
 	destination = db.DB(env)
 	destination.set_flags(db.DB_DUPSORT)
 	destination.open("destination.db", None, db.DB_BTREE,
-			 db.DB_CREATE | db.DB_THREAD)
+			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	destination.close()
 finally:
 	env.close()
