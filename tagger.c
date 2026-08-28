@@ -21,10 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <db.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <db.h>
+#include <unistd.h>
 
 #include "dissect.h"
 #include "options.h"
@@ -42,18 +44,21 @@ struct macro_use {
 };
 
 struct tag {
-	unsigned long long file;
-	unsigned long long dest;
+	unsigned int file;
+	unsigned int dest;
 	unsigned int line;
 	unsigned int pos;
 	unsigned int dest_line;
 	unsigned int dest_pos;
 	enum destination_type type;
-	char *identifier;
 	struct tag *next;
 };
 
-#define TAG_BATCH_SIZE 1000
+#define TAG_BATCH_SIZE 4096
+#define TAG_MAX_RETRIES 1000
+#define MAX_FILE_NUMBER 0xffffff
+#define MAX_LINE_NUMBER 0xffffff
+#define MAX_POSITION 0x3ff
 
 static struct string_list *source_files;
 static struct symbol_list *called_functions;
@@ -61,21 +66,81 @@ static struct macro_use *macro_uses;
 static struct tag *tags;
 static struct tag **next_tag = &tags;
 
-unsigned long long str_to_llu_hash_helper(const char *str);
+static DB *file_numbers;
+static DB_ENV *file_env;
+
+static int open_file_numbers(const char *db_dir)
+{
+	int flags;
+	int ret;
+
+	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN |
+		DB_THREAD;
+	ret = db_env_create(&file_env, 0);
+	if (ret)
+		return ret;
+	ret = file_env->open(file_env, db_dir, flags, 0);
+	if (ret)
+		return ret;
+	ret = db_create(&file_numbers, file_env, 0);
+	if (ret)
+		return ret;
+	return file_numbers->open(file_numbers, NULL, "file_numbers.db", NULL,
+				  DB_BTREE, DB_THREAD | DB_RDONLY, 0);
+}
+
+static void close_file_numbers(void)
+{
+	if (file_numbers)
+		file_numbers->close(file_numbers, 0);
+	if (file_env)
+		file_env->close(file_env, 0);
+	file_numbers = NULL;
+	file_env = NULL;
+}
+
+static int get_file_number(const char *filename, unsigned int *number)
+{
+	unsigned char value_buf[3];
+	DBT key = { 0 };
+	DBT value = { 0 };
+	int ret;
+
+	key.data = (void *)filename;
+	key.size = strlen(filename);
+	value.data = value_buf;
+	value.ulen = sizeof(value_buf);
+	value.flags = DB_DBT_USERMEM;
+	ret = file_numbers->get(file_numbers, NULL, &key, &value, 0);
+	if (ret)
+		return ret;
+	if (value.size != sizeof(value_buf))
+		return EINVAL;
+	*number = ((unsigned int)value_buf[0] << 16) |
+		  ((unsigned int)value_buf[1] << 8) | value_buf[2];
+	return 0;
+}
 
 static void save_tag(struct position *pos, const char *name,
-		     enum destination_type type, unsigned long long dest,
+		     enum destination_type type, unsigned int dest,
 		     unsigned int dest_line, unsigned int dest_pos)
 {
 	struct tag *tag;
+	unsigned int file;
+
+	(void)name;
+	if (get_file_number(stream_name(pos->stream), &file))
+		return;
+	if (file > MAX_FILE_NUMBER || pos->line > MAX_LINE_NUMBER ||
+	    pos->pos > MAX_POSITION || dest > MAX_FILE_NUMBER ||
+	    dest_line > MAX_LINE_NUMBER || dest_pos > MAX_POSITION ||
+	    type > 0x3f)
+		return;
 
 	tag = calloc(1, sizeof(*tag));
 	if (!tag)
 		die("out of memory\n");
-	tag->identifier = strdup(name);
-	if (!tag->identifier)
-		die("out of memory\n");
-	tag->file = str_to_llu_hash_helper(stream_name(pos->stream));
+	tag->file = file;
 	tag->line = pos->line;
 	tag->pos = pos->pos;
 	tag->type = type;
@@ -152,6 +217,7 @@ static int show_macro(struct position *pos)
 {
 	struct symbol *sym;
 	const char *name;
+	unsigned int dest;
 
 	name = get_macro_name(*pos);
 	if (!name)
@@ -166,9 +232,9 @@ static int show_macro(struct position *pos)
 		return 1;
 	}
 
-	save_tag(pos, name, NORMAL,
-		 str_to_llu_hash_helper(stream_name(sym->pos.stream)),
-		 sym->pos.line, sym->pos.pos);
+	if (get_file_number(stream_name(sym->pos.stream), &dest))
+		return 1;
+	save_tag(pos, name, NORMAL, dest, sym->pos.line, sym->pos.pos);
 	return 1;
 }
 
@@ -222,6 +288,7 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 {
 	struct symbol *implementation;
 	struct ident *ident;
+	unsigned int dest;
 
 	if (!sym)
 		return;
@@ -233,62 +300,60 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	if (!ident || ident->reserved)
 		return;
 	implementation = get_implementation(sym);
-	if (!implementation) {
-		save_tag(pos, show_ident(ident), LOOKUP,
-			 str_to_llu_hash_helper(ident->name), 0, 0);
+	if (!implementation)
 		return;
-	}
 	if (same_position(pos, &implementation->pos)) {
 		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
 		return;
 	}
 
-	save_tag(pos, show_ident(ident), NORMAL,
-		 str_to_llu_hash_helper(stream_name(implementation->pos.stream)),
+	if (get_file_number(stream_name(implementation->pos.stream), &dest))
+		return;
+	save_tag(pos, show_ident(ident), NORMAL, dest,
 		 implementation->pos.line, implementation->pos.pos);
 }
 
-static void encode_key(unsigned char *buf, unsigned long long file,
-		       unsigned int line, unsigned int pos)
+static void encode_position(unsigned char *buf, unsigned int file,
+			    unsigned int line, unsigned int pos,
+			    enum destination_type type)
 {
+	unsigned long long packed;
 	int i;
 
+	packed = ((unsigned long long)file << 40) |
+		 ((unsigned long long)line << 16) |
+		 ((unsigned long long)pos << 6) | type;
 	for (i = 0; i < 8; i++)
-		buf[i] = file >> (56 - i * 8);
-	for (i = 0; i < 4; i++) {
-		buf[8 + i] = line >> (24 - i * 8);
-		buf[12 + i] = pos >> (24 - i * 8);
-	}
+		buf[i] = packed >> (56 - i * 8);
 }
 
 static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
 {
-	unsigned char source_key_buf[16];
-	unsigned char dest_key_buf[16];
-	char source_value_buf[256];
-	char dest_value_buf[256];
+	unsigned char source_key_buf[8];
+	unsigned char dest_key_buf[8];
+	unsigned char source_value_buf[8];
+	unsigned char dest_value_buf[8];
 	DBT source_key = { 0 };
 	DBT source_value = { 0 };
 	DBT dest_key = { 0 };
 	DBT dest_value = { 0 };
 	int ret;
 
-	encode_key(source_key_buf, tag->file, tag->line, tag->pos);
-	encode_key(dest_key_buf, tag->dest, tag->dest_line, tag->dest_pos);
-	snprintf(source_value_buf, sizeof(source_value_buf),
-		 "%d %s %llu %u %u", tag->type, tag->identifier,
-		 tag->dest, tag->dest_line, tag->dest_pos);
-	snprintf(dest_value_buf, sizeof(dest_value_buf),
-		 "%d %s %llu %u %u", tag->type, tag->identifier,
-		 tag->file, tag->line, tag->pos);
+	encode_position(source_key_buf, tag->file, tag->line, tag->pos, 0);
+	encode_position(dest_key_buf, tag->dest, tag->dest_line,
+			tag->dest_pos, 0);
+	encode_position(source_value_buf, tag->dest, tag->dest_line,
+			tag->dest_pos, tag->type);
+	encode_position(dest_value_buf, tag->file, tag->line, tag->pos,
+			tag->type);
 	source_key.data = source_key_buf;
 	source_key.size = sizeof(source_key_buf);
 	source_value.data = source_value_buf;
-	source_value.size = strlen(source_value_buf) + 1;
+	source_value.size = sizeof(source_value_buf);
 	dest_key.data = dest_key_buf;
 	dest_key.size = sizeof(dest_key_buf);
 	dest_value.data = dest_value_buf;
-	dest_value.size = strlen(dest_value_buf) + 1;
+	dest_value.size = sizeof(dest_value_buf);
 
 	ret = source->put(source, txn, &source_key, &source_value, 0);
 	if (ret)
@@ -305,10 +370,11 @@ static int write_batch(DB_ENV *env, DB *source, DB *destination,
 {
 	DB_TXN *txn;
 	struct tag *tag;
+	int retries = 0;
 	int ret;
 
 retry:
-	ret = env->txn_begin(env, NULL, &txn, 0);
+	ret = env->txn_begin(env, NULL, &txn, DB_TXN_NOWAIT);
 	if (ret)
 		return ret;
 	for (tag = first; tag != end; tag = tag->next) {
@@ -317,11 +383,14 @@ retry:
 			break;
 	}
 	if (!ret)
-		ret = txn->commit(txn, 0);
+		ret = txn->commit(txn, DB_TXN_NOSYNC);
 	else
 		txn->abort(txn);
-	if (ret == DB_LOCK_DEADLOCK || ret == DB_LOCK_NOTGRANTED)
+	if ((ret == DB_LOCK_DEADLOCK || ret == DB_LOCK_NOTGRANTED) &&
+	    retries++ < TAG_MAX_RETRIES) {
+		usleep(1000);
 		goto retry;
+	}
 	return ret;
 }
 
@@ -421,6 +490,8 @@ int main(int argc, char **argv)
 	if (argc < 2)
 		die("usage: tagger <database directory> [sparse options] file.c\n");
 	db_dir = argv[1];
+	if (open_file_numbers(db_dir))
+		die("tagger: cannot open file number database\n");
 	for (i = 1; i < argc - 1; i++)
 		argv[i] = argv[i + 1];
 	argc--;
@@ -431,5 +502,7 @@ int main(int argc, char **argv)
 	dissect_show_all_symbols = 1;
 	dissect(&reporter, filelist);
 
-	return write_tags(db_dir) != 0;
+	i = write_tags(db_dir) != 0;
+	close_file_numbers();
+	return i;
 }
