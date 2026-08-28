@@ -23,9 +23,12 @@
  */
 #include <db.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <unistd.h>
 
 #include "dissect.h"
@@ -402,8 +405,25 @@ static int write_tags(const char *db_dir)
 	struct tag *first;
 	struct tag *end;
 	int count;
+	int lock_fd = -1;
 	int flags;
 	int ret;
+	char lock_path[PATH_MAX];
+
+	if (snprintf(lock_path, sizeof(lock_path), "%s/writer.lock", db_dir) >=
+	    (int)sizeof(lock_path)) {
+		ret = ENAMETOOLONG;
+		goto out;
+	}
+	lock_fd = open(lock_path, O_CREAT | O_RDWR, 0666);
+	if (lock_fd < 0) {
+		ret = errno;
+		goto out;
+	}
+	if (flock(lock_fd, LOCK_EX)) {
+		ret = errno;
+		goto out;
+	}
 
 	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN |
 		DB_THREAD;
@@ -446,6 +466,10 @@ out:
 		source->close(source, 0);
 	if (env)
 		env->close(env, 0);
+	if (lock_fd >= 0) {
+		flock(lock_fd, LOCK_UN);
+		close(lock_fd);
+	}
 	if (ret)
 		fprintf(stderr, "tagger: %s: %s\n", db_dir, db_strerror(ret));
 	return ret;
