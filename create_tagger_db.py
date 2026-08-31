@@ -39,6 +39,11 @@ try:
 			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	destination.close()
 
+	parsed_files = db.DB(env)
+	parsed_files.open("parsed_files.db", None, db.DB_BTREE,
+			  db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
+	parsed_files.close()
+
 	file_numbers = db.DB(env)
 	file_numbers.open("file_numbers.db", None, db.DB_BTREE,
 			  db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)

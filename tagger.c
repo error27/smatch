@@ -368,6 +368,41 @@ static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
 	return ret;
 }
 
+static int mark_parsed_files(DB_ENV *env, DB *parsed)
+{
+	unsigned char key_buf[3];
+	static const char value_buf = 1;
+	char *file;
+	unsigned int number;
+	DB_TXN *txn;
+	DBT key = { 0 };
+	DBT value = { 0 };
+	int ret;
+
+	ret = env->txn_begin(env, NULL, &txn, 0);
+	if (ret)
+		return ret;
+	FOR_EACH_PTR(source_files, file) {
+		if (get_file_number(file, &number))
+			continue;
+		key_buf[0] = number >> 16;
+		key_buf[1] = number >> 8;
+		key_buf[2] = number;
+		key.data = key_buf;
+		key.size = sizeof(key_buf);
+		value.data = (void *)&value_buf;
+		value.size = sizeof(value_buf);
+		ret = parsed->put(parsed, txn, &key, &value, 0);
+		if (ret)
+			break;
+	} END_FOR_EACH_PTR(file);
+	if (ret)
+		txn->abort(txn);
+	else
+		ret = txn->commit(txn, DB_TXN_NOSYNC);
+	return ret;
+}
+
 static int write_batch(DB_ENV *env, DB *source, DB *destination,
 		       struct tag *first, struct tag *end)
 {
@@ -402,6 +437,7 @@ static int write_tags(const char *db_dir)
 	DB_ENV *env = NULL;
 	DB *source = NULL;
 	DB *destination = NULL;
+	DB *parsed = NULL;
 	struct tag *first;
 	struct tag *end;
 	int count;
@@ -448,6 +484,13 @@ static int write_tags(const char *db_dir)
 				DB_BTREE, DB_AUTO_COMMIT | DB_THREAD, 0);
 	if (ret)
 		goto out;
+	ret = db_create(&parsed, env, 0);
+	if (ret)
+		goto out;
+	ret = parsed->open(parsed, NULL, "parsed_files.db", NULL, DB_BTREE,
+			  DB_AUTO_COMMIT | DB_THREAD, 0);
+	if (ret)
+		goto out;
 
 	first = tags;
 	while (first) {
@@ -459,7 +502,10 @@ static int write_tags(const char *db_dir)
 			goto out;
 		first = end;
 	}
+	ret = mark_parsed_files(env, parsed);
 out:
+	if (parsed)
+		parsed->close(parsed, 0);
 	if (destination)
 		destination->close(destination, 0);
 	if (source)
