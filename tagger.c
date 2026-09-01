@@ -34,6 +34,7 @@
 
 #include "dissect.h"
 #include "options.h"
+#include "scope.h"
 
 enum destination_type {
 	BASE,
@@ -188,15 +189,20 @@ static void save_tag(struct position *pos, const char *name,
 	next_tag = &tag->next;
 }
 
-static void save_global_identifier(struct symbol *sym)
+static void save_global_implementation(struct symbol *sym)
 {
 	struct global_definition *definition;
 	struct ident *ident;
 	unsigned int file;
 	unsigned int bucket;
 
-	if (!sym)
+	if (!sym || sym->scope != file_scope ||
+	    (sym->ctype.modifiers & MOD_STATIC))
 		return;
+	if (symbol_is_function(sym)) {
+		if (!sym->stmt && !sym->inline_stmt)
+			return;
+	}
 	ident = sym->ident;
 	if (!ident || ident->reserved)
 		return;
@@ -427,7 +433,6 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 		return;
 	implementation = get_implementation(sym);
 	if (sym->ctype.modifiers & MOD_EXTERN) {
-		save_global_identifier(sym);
 		save_tag(pos, show_ident(ident), LOOKUP, 0, 0, 0);
 		return;
 	}
@@ -724,6 +729,7 @@ out:
 
 static void report_symbol_definition(struct symbol *sym)
 {
+	save_global_implementation(sym);
 	show_identifier(&sym->pos, sym);
 }
 
