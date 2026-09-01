@@ -94,6 +94,7 @@ static DB *file_numbers;
 static DB_ENV *file_env;
 
 static int symbol_is_function(struct symbol *sym);
+static struct symbol *get_implementation(struct symbol *sym);
 
 static int open_file_numbers(const char *db_dir)
 {
@@ -186,18 +187,27 @@ static void save_tag(struct position *pos, const char *name,
 static void save_global_definition(struct symbol *sym)
 {
 	struct global_definition *definition;
+	struct symbol *implementation;
 	struct ident *ident;
 	unsigned int file;
 
 	if (!sym || !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
-	    (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)))
+	    (sym->ctype.modifiers & MOD_STATIC))
 		return;
+	if (symbol_is_function(sym)) {
+		implementation = get_implementation(sym);
+		if (!implementation)
+			return;
+	} else {
+		implementation = sym;
+	}
 	ident = sym->ident;
 	if (!ident || ident->reserved ||
-	    get_file_number(stream_name(sym->pos.stream), &file))
+	    get_file_number(stream_name(implementation->pos.stream), &file))
 		return;
-	if (file > MAX_FILE_NUMBER || sym->pos.line > MAX_LINE_NUMBER ||
-	    sym->pos.pos > MAX_POSITION)
+	if (file > MAX_FILE_NUMBER ||
+	    implementation->pos.line > MAX_LINE_NUMBER ||
+	    implementation->pos.pos > MAX_POSITION)
 		return;
 
 	definition = calloc(1, sizeof(*definition));
@@ -205,8 +215,8 @@ static void save_global_definition(struct symbol *sym)
 		die("out of memory\n");
 	definition->name = show_ident(ident);
 	definition->file = file;
-	definition->line = sym->pos.line;
-	definition->pos = sym->pos.pos;
+	definition->line = implementation->pos.line;
+	definition->pos = implementation->pos.pos;
 	*next_global_definition = definition;
 	next_global_definition = &definition->next;
 }
