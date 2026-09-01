@@ -345,8 +345,14 @@ again:
 		warning(expr->pos, "bad expr->type: %d", expr->type);
 
 	case EXPR_TYPE:		// [struct T]; Why ???
-	case EXPR_VALUE:
 	case EXPR_FVALUE:
+
+	break; case EXPR_VALUE:
+		if (expr->enum_symbol) {
+			ret = base_type(expr->enum_symbol);
+			reporter->r_symbol(fix_mode(ret, mode), &expr->pos,
+					   expr->enum_symbol);
+		}
 
 	break; case EXPR_LABEL:
 		ret = &label_ctype;
