@@ -65,6 +65,15 @@ struct global_definition {
 	struct global_definition *next;
 };
 
+struct source_reader {
+	const char *filename;
+	FILE *file;
+	char *line;
+	size_t capacity;
+	unsigned int line_number;
+	struct source_reader *next;
+};
+
 #define TAG_BATCH_SIZE 4096
 #define TAG_MAX_RETRIES 1000
 #define MAX_FILE_NUMBER 0xffffff
@@ -79,6 +88,7 @@ static struct tag **next_tag = &tags;
 static struct global_definition *global_definitions;
 static struct global_definition **next_global_definition =
 	&global_definitions;
+static struct source_reader *source_readers;
 
 static DB *file_numbers;
 static DB_ENV *file_env;
@@ -180,8 +190,7 @@ static void save_global_definition(struct symbol *sym)
 	unsigned int file;
 
 	if (!sym || !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
-	    (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ||
-	    symbol_is_function(sym))
+	    (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)))
 		return;
 	ident = sym->ident;
 	if (!ident || ident->reserved ||
@@ -256,6 +265,63 @@ static int same_position(struct position *one, struct position *two)
 {
 	return one->stream == two->stream && one->line == two->line &&
 	       one->pos == two->pos;
+}
+
+static struct source_reader *get_source_reader(const char *filename)
+{
+	struct source_reader *reader;
+
+	for (reader = source_readers; reader; reader = reader->next) {
+		if (!strcmp(reader->filename, filename))
+			return reader;
+	}
+	reader = calloc(1, sizeof(*reader));
+	if (!reader)
+		die("out of memory\n");
+	reader->filename = filename;
+	reader->file = fopen(filename, "r");
+	if (!reader->file) {
+		free(reader);
+		return NULL;
+	}
+	reader->next = source_readers;
+	source_readers = reader;
+	return reader;
+}
+
+static int member_operator_width(struct position *pos)
+{
+	struct source_reader *reader;
+	const char *filename;
+	unsigned int column = 1;
+	char *p;
+
+	filename = stream_name(pos->stream);
+	reader = get_source_reader(filename);
+	if (!reader)
+		return 0;
+	if (pos->line < reader->line_number) {
+		rewind(reader->file);
+		reader->line_number = 0;
+	}
+	while (reader->line_number < pos->line) {
+		if (getline(&reader->line, &reader->capacity, reader->file) < 0)
+			return 0;
+		reader->line_number++;
+	}
+	for (p = reader->line; *p && column < pos->pos; p++) {
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	if (column != pos->pos)
+		return 0;
+	if (*p == '-' && p[1] == '>')
+		return 2;
+	if (*p == '.')
+		return 1;
+	return 0;
 }
 
 static int show_macro(struct position *pos)
@@ -345,13 +411,12 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	if (!ident || ident->reserved)
 		return;
 	implementation = get_implementation(sym);
-	if (!implementation)
-		return;
-	if (!symbol_is_function(sym) &&
-	    (sym->ctype.modifiers & MOD_EXTERN)) {
+	if (sym->ctype.modifiers & MOD_EXTERN) {
 		save_tag(pos, show_ident(ident), LOOKUP, 0, 0, 0);
 		return;
 	}
+	if (!implementation)
+		return;
 	if (same_position(pos, &implementation->pos)) {
 		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
 		return;
@@ -662,7 +727,14 @@ static void report_symbol(unsigned mode, struct position *pos,
 static void report_member(unsigned mode, struct position *pos,
 			  struct symbol *sym, struct symbol *member)
 {
-	show_identifier(pos, member);
+	struct position member_pos = *pos;
+	int width;
+
+	width = member_operator_width(pos);
+	if (!width)
+		return;
+	member_pos.pos += width;
+	show_identifier(&member_pos, member);
 }
 
 int main(int argc, char **argv)
