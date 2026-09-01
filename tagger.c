@@ -40,6 +40,9 @@ enum destination_type {
 	BASE,
 	NORMAL,
 	LOOKUP,
+	BASE_FUNCTION,
+	BASE_ARGUMENT,
+	BASE_MEMBER,
 };
 
 struct macro_use {
@@ -99,6 +102,12 @@ static DB *file_numbers;
 static DB_ENV *file_env;
 
 static int symbol_is_function(struct symbol *sym);
+
+static int base_type(enum destination_type type)
+{
+	return type == BASE || type == BASE_FUNCTION ||
+	       type == BASE_ARGUMENT || type == BASE_MEMBER;
+}
 
 static unsigned int global_hash_bucket(const char *name)
 {
@@ -513,6 +522,35 @@ static int symbol_is_function(struct symbol *sym)
 	return type && type->type == SYM_FN;
 }
 
+static int argument_number(struct symbol *function, struct symbol *argument)
+{
+	struct symbol *type;
+	struct symbol *sym;
+	int number = 0;
+
+	if (!function)
+		return -1;
+	type = function->ctype.base_type;
+	if (!type || type->type != SYM_FN)
+		return -1;
+	FOR_EACH_PTR(type->arguments, sym) {
+		if (sym == argument)
+			return number;
+		number++;
+	} END_FOR_EACH_PTR(sym);
+	return -1;
+}
+
+static struct position owner_position(struct symbol *sym)
+{
+	struct position pos;
+
+	pos = identifier_position(&sym->pos, sym->ident);
+	if (in_macro(sym->pos))
+		pos.pos = MAX_POSITION;
+	return pos;
+}
+
 static void record_function_call(unsigned mode, struct symbol *sym)
 {
 	struct symbol *implementation;
@@ -624,7 +662,7 @@ static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
 	ret = source->put(source, txn, &source_key, &source_value, 0);
 	if (ret)
 		return ret;
-	if (tag->type == BASE)
+	if (base_type(tag->type))
 		return 0;
 	ret = destination->put(destination, txn, &dest_key, &dest_value,
 			       DB_NODUPDATA);
@@ -861,19 +899,43 @@ out:
 
 static void report_symbol_definition(struct symbol *sym)
 {
+	struct position function_pos;
 	struct position pos;
+	int argument;
 
 	pos = identifier_position(&sym->pos, sym->ident);
 	save_global_implementation(sym, &pos);
 	save_definition_type(sym, &pos);
+	argument = argument_number(dissect_ctx, sym);
+	if (argument >= 0 && sym->ident) {
+		function_pos = owner_position(dissect_ctx);
+		save_tag(&pos, show_ident(sym->ident), BASE_ARGUMENT,
+			 argument, function_pos.line, function_pos.pos);
+		return;
+	}
+	if (symbol_is_function(sym) && sym->ident) {
+		save_tag(&pos, show_ident(sym->ident), BASE_FUNCTION, 0, 0, 0);
+		return;
+	}
 	show_identifier(&pos, sym, 1);
 }
 
 static void report_member_definition(struct symbol *sym, struct symbol *member)
 {
+	struct position owner_pos;
 	struct position pos;
+	unsigned int file;
 
 	pos = identifier_position(&member->pos, member->ident);
+	if (sym && sym->ident && member->ident &&
+	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION)) {
+		owner_pos = owner_position(sym);
+		if (!get_file_number(stream_name(owner_pos.stream), &file)) {
+			save_tag(&pos, show_ident(member->ident), BASE_MEMBER,
+				 file, owner_pos.line, owner_pos.pos);
+			return;
+		}
+	}
 	show_identifier(&pos, member, 1);
 }
 
