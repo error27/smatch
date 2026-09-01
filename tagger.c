@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <ctype.h>
 #include <db.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -183,20 +184,15 @@ static void save_tag(struct position *pos, const char *name,
 	tag->line = pos->line;
 	tag->pos = pos->pos;
 	tag->type = type;
-	if (type == BASE) {
-		tag->dest = tag->file;
-		tag->dest_line = tag->line;
-		tag->dest_pos = tag->pos;
-	} else {
-		tag->dest = dest;
-		tag->dest_line = dest_line;
-		tag->dest_pos = dest_pos;
-	}
+	tag->dest = dest;
+	tag->dest_line = dest_line;
+	tag->dest_pos = dest_pos;
 	*next_tag = tag;
 	next_tag = &tag->next;
 }
 
-static void save_global_implementation(struct symbol *sym)
+static void save_global_implementation(struct symbol *sym,
+				       struct position *pos)
 {
 	struct global_definition *definition;
 	struct symbol *type;
@@ -222,10 +218,10 @@ static void save_global_implementation(struct symbol *sym)
 		if (!strcmp(definition->name, name))
 			return;
 	}
-	if (get_file_number(stream_name(sym->pos.stream), &file))
+	if (get_file_number(stream_name(pos->stream), &file))
 		return;
-	if (file > MAX_FILE_NUMBER || sym->pos.line > MAX_LINE_NUMBER ||
-	    sym->pos.pos > MAX_POSITION)
+	if (file > MAX_FILE_NUMBER || pos->line > MAX_LINE_NUMBER ||
+	    pos->pos > MAX_POSITION)
 		return;
 
 	definition = calloc(1, sizeof(*definition));
@@ -235,8 +231,8 @@ static void save_global_implementation(struct symbol *sym)
 	if (!definition->name)
 		die("out of memory\n");
 	definition->file = file;
-	definition->line = sym->pos.line;
-	definition->pos = sym->pos.pos;
+	definition->line = pos->line;
+	definition->pos = pos->pos;
 	definition->hash_next = global_hash[bucket];
 	global_hash[bucket] = definition;
 	*next_global_definition = definition;
@@ -321,27 +317,72 @@ static struct source_reader *get_source_reader(const char *filename)
 	return reader;
 }
 
-static int member_operator_width(struct position *pos)
+static char *get_source_line(struct position *pos)
 {
 	struct source_reader *reader;
-	const char *filename;
-	unsigned int column = 1;
-	char *p;
 
-	filename = stream_name(pos->stream);
-	reader = get_source_reader(filename);
+	reader = get_source_reader(stream_name(pos->stream));
 	if (!reader)
-		return 0;
+		return NULL;
 	if (pos->line < reader->line_number) {
 		rewind(reader->file);
 		reader->line_number = 0;
 	}
 	while (reader->line_number < pos->line) {
 		if (getline(&reader->line, &reader->capacity, reader->file) < 0)
-			return 0;
+			return NULL;
 		reader->line_number++;
 	}
-	for (p = reader->line; *p && column < pos->pos; p++) {
+	return reader->line;
+}
+
+static int identifier_char(char c)
+{
+	return isalnum((unsigned char)c) || c == '_';
+}
+
+static struct position identifier_position(struct position *pos,
+					   struct ident *ident)
+{
+	struct position result = *pos;
+	const char *name;
+	unsigned int column = 1;
+	size_t len;
+	char *line;
+	char *p;
+
+	if (!ident)
+		return result;
+	name = show_ident(ident);
+	len = strlen(name);
+	line = get_source_line(pos);
+	if (!line)
+		return result;
+	for (p = line; *p; p++) {
+		if (column >= pos->pos && !strncmp(p, name, len) &&
+		    (p == line || !identifier_char(p[-1])) &&
+		    !identifier_char(p[len])) {
+			result.pos = column;
+			return result;
+		}
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	return result;
+}
+
+static int member_operator_width(struct position *pos)
+{
+	unsigned int column = 1;
+	char *line;
+	char *p;
+
+	line = get_source_line(pos);
+	if (!line)
+		return 0;
+	for (p = line; *p && column < pos->pos; p++) {
 		if (*p == '\t')
 			column += 8 - ((column - 1) % 8);
 		else
@@ -427,7 +468,8 @@ static bool follow_function(struct symbol *sym)
 	return false;
 }
 
-static void show_identifier(struct position *pos, struct symbol *sym)
+static void show_identifier(struct position *pos, struct symbol *sym,
+			    int definition)
 {
 	struct symbol *implementation;
 	struct ident *ident;
@@ -442,6 +484,10 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	ident = sym->ident;
 	if (!ident || ident->reserved)
 		return;
+	if (definition) {
+		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
+		return;
+	}
 	implementation = get_implementation(sym);
 	if (sym->ctype.modifiers & MOD_EXTERN) {
 		save_tag(pos, show_ident(ident), LOOKUP, 0, 0, 0);
@@ -505,6 +551,8 @@ static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
 	ret = source->put(source, txn, &source_key, &source_value, 0);
 	if (ret)
 		return ret;
+	if (tag->type == BASE)
+		return 0;
 	ret = destination->put(destination, txn, &dest_key, &dest_value,
 			       DB_NODUPDATA);
 	if (ret == DB_KEYEXIST)
@@ -740,20 +788,26 @@ out:
 
 static void report_symbol_definition(struct symbol *sym)
 {
-	save_global_implementation(sym);
-	show_identifier(&sym->pos, sym);
+	struct position pos;
+
+	pos = identifier_position(&sym->pos, sym->ident);
+	save_global_implementation(sym, &pos);
+	show_identifier(&pos, sym, 1);
 }
 
 static void report_member_definition(struct symbol *sym, struct symbol *member)
 {
-	show_identifier(&member->pos, member);
+	struct position pos;
+
+	pos = identifier_position(&member->pos, member->ident);
+	show_identifier(&pos, member, 1);
 }
 
 static void report_symbol(unsigned mode, struct position *pos,
 			  struct symbol *sym)
 {
 	record_function_call(mode, sym);
-	show_identifier(pos, sym);
+	show_identifier(pos, sym, 0);
 }
 
 static void report_member(unsigned mode, struct position *pos,
@@ -766,7 +820,7 @@ static void report_member(unsigned mode, struct position *pos,
 	if (!width)
 		return;
 	member_pos.pos += width;
-	show_identifier(&member_pos, member);
+	show_identifier(&member_pos, member, 0);
 }
 
 int main(int argc, char **argv)
