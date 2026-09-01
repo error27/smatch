@@ -1077,6 +1077,10 @@ static void report_symbol_definition(struct symbol *sym)
 		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
 		return;
 	}
+	if (sym->enum_member && sym->ident) {
+		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
+		return;
+	}
 	if (sym->namespace == NS_TYPEDEF && sym->ident) {
 		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
 		return;
