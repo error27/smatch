@@ -235,8 +235,11 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 			base->inspected = 1;
 			base->kind = 's';
 
-			if (!base->symbol_list)
+			if (!base->symbol_list) {
+				if (base->ident)
+					reporter->r_symdef(base);
 				return;
+			}
 
 			dctx = dissect_ctx;
 			if (toplevel(base->scope))

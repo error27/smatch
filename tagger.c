@@ -212,19 +212,11 @@ static void save_global_implementation(struct symbol *sym,
 				       struct position *pos)
 {
 	struct global_definition *definition;
-	struct symbol *type;
 	struct ident *ident;
 	const char *name;
 	unsigned int file;
 	unsigned int bucket;
 
-	if (!sym || sym->scope != global_scope)
-		return;
-	type = sym->ctype.base_type;
-	if (type && type->type == SYM_FN) {
-		if (!type->stmt && !type->inline_stmt)
-			return;
-	}
 	ident = sym->ident;
 	if (!ident || ident->reserved)
 		return;
@@ -254,6 +246,35 @@ static void save_global_implementation(struct symbol *sym,
 	global_hash[bucket] = definition;
 	*next_global_definition = definition;
 	next_global_definition = &definition->next;
+}
+
+static void save_global_symbol(struct symbol *sym, struct position *pos)
+{
+	struct symbol *type;
+
+	if (!sym || sym->scope != global_scope)
+		return;
+	type = sym->ctype.base_type;
+	if (type && type->type == SYM_FN &&
+	    !type->stmt && !type->inline_stmt)
+		return;
+	save_global_implementation(sym, pos);
+}
+
+static int header_file(struct position *pos)
+{
+	const char *file = stream_name(pos->stream);
+	size_t len = strlen(file);
+
+	return len >= 2 && !strcmp(file + len - 2, ".h");
+}
+
+static void save_global_struct(struct symbol *sym, struct position *pos)
+{
+	if (!sym || sym->type != SYM_STRUCT || !sym->ident ||
+	    !sym->symbol_list || !header_file(pos))
+		return;
+	save_global_implementation(sym, pos);
 }
 
 static int function_was_called(struct symbol *sym)
@@ -988,13 +1009,35 @@ out:
 static void report_symbol_definition(struct symbol *sym)
 {
 	struct position function_pos;
+	struct symbol *member;
 	struct position pos;
 	int argument;
 
 	pos = identifier_position(&sym->pos, sym->ident);
 	remember_compound_definition(sym, &pos);
-	save_global_implementation(sym, &pos);
+	save_global_symbol(sym, &pos);
+	save_global_struct(sym, &pos);
 	save_definition_type(sym, &pos);
+	if ((sym->type == SYM_STRUCT || sym->type == SYM_UNION) &&
+	    sym->ident && !sym->symbol_list) {
+		save_tag(&pos, show_ident(sym->ident), LOOKUP, 0, 0, 0);
+		return;
+	}
+	if (sym->namespace == NS_TYPEDEF && sym->ident) {
+		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
+		return;
+	}
+	if (sym->type == SYM_ENUM) {
+		if (sym->ident)
+			save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
+		FOR_EACH_PTR(sym->symbol_list, member) {
+			if (!member->ident)
+				continue;
+			pos = identifier_position(&member->pos, member->ident);
+			save_tag(&pos, show_ident(member->ident), BASE, 0, 0, 0);
+		} END_FOR_EACH_PTR(member);
+		return;
+	}
 	argument = argument_number(dissect_ctx, sym);
 	if (argument >= 0 && sym->ident) {
 		function_pos = owner_position(dissect_ctx);
