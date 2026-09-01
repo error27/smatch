@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,8 +59,7 @@ struct tag {
 };
 
 struct global_definition {
-	struct ident *ident;
-	const char *name;
+	char *name;
 	unsigned int file;
 	unsigned int line;
 	unsigned int pos;
@@ -100,6 +98,15 @@ static DB *file_numbers;
 static DB_ENV *file_env;
 
 static int symbol_is_function(struct symbol *sym);
+
+static unsigned int global_hash_bucket(const char *name)
+{
+	unsigned long hash = 5381;
+
+	while (*name)
+		hash = ((hash << 5) + hash) + (unsigned char)*name++;
+	return hash % GLOBAL_HASH_SIZE;
+}
 
 static int open_file_numbers(const char *db_dir)
 {
@@ -194,6 +201,7 @@ static void save_global_implementation(struct symbol *sym)
 	struct global_definition *definition;
 	struct symbol *type;
 	struct ident *ident;
+	const char *name;
 	unsigned int file;
 	unsigned int bucket;
 
@@ -207,10 +215,11 @@ static void save_global_implementation(struct symbol *sym)
 	ident = sym->ident;
 	if (!ident || ident->reserved)
 		return;
-	bucket = ((uintptr_t)ident >> 4) % GLOBAL_HASH_SIZE;
+	name = show_ident(ident);
+	bucket = global_hash_bucket(name);
 	for (definition = global_hash[bucket]; definition;
 	     definition = definition->hash_next) {
-		if (definition->ident == ident)
+		if (!strcmp(definition->name, name))
 			return;
 	}
 	if (get_file_number(stream_name(sym->pos.stream), &file))
@@ -222,8 +231,9 @@ static void save_global_implementation(struct symbol *sym)
 	definition = calloc(1, sizeof(*definition));
 	if (!definition)
 		die("out of memory\n");
-	definition->ident = ident;
-	definition->name = show_ident(ident);
+	definition->name = strdup(name);
+	if (!definition->name)
+		die("out of memory\n");
 	definition->file = file;
 	definition->line = sym->pos.line;
 	definition->pos = sym->pos.pos;
