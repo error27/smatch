@@ -373,6 +373,79 @@ static struct position identifier_position(struct position *pos,
 	return result;
 }
 
+static int identifier_before(struct position *pos, struct ident *ident,
+			     unsigned int before, struct position *result)
+{
+	const char *name;
+	unsigned int column = 1;
+	unsigned int found = 0;
+	size_t len;
+	char *line;
+	char *p;
+
+	if (!ident)
+		return 0;
+	name = show_ident(ident);
+	len = strlen(name);
+	line = get_source_line(pos);
+	if (!line)
+		return 0;
+	for (p = line; *p && column < before; p++) {
+		if (!strncmp(p, name, len) &&
+		    (p == line || !identifier_char(p[-1])) &&
+		    !identifier_char(p[len]))
+			found = column;
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	if (!found)
+		return 0;
+	*result = *pos;
+	result->pos = found;
+	return 1;
+}
+
+static struct symbol *get_named_type(struct symbol *sym)
+{
+	struct symbol *type;
+	int depth;
+
+	type = sym ? sym->ctype.base_type : NULL;
+	for (depth = 0; type && depth < 16; depth++) {
+		if ((type->type == SYM_STRUCT || type->type == SYM_UNION ||
+		     type->type == SYM_ENUM) && type->ident)
+			return type;
+		type = type->ctype.base_type;
+	}
+	return NULL;
+}
+
+static void save_definition_type(struct symbol *sym,
+				 struct position *identifier_pos)
+{
+	struct position source_pos;
+	struct position dest_pos;
+	struct symbol *type;
+	const char *name;
+	unsigned int dest;
+
+	type = get_named_type(sym);
+	if (!type || !identifier_before(&sym->pos, type->ident,
+					identifier_pos->pos, &source_pos))
+		return;
+	dest_pos = identifier_position(&type->pos, type->ident);
+	name = show_ident(type->ident);
+	if (same_position(&source_pos, &dest_pos)) {
+		save_tag(&source_pos, name, BASE, 0, 0, 0);
+		return;
+	}
+	if (get_file_number(stream_name(dest_pos.stream), &dest))
+		return;
+	save_tag(&source_pos, name, NORMAL, dest, dest_pos.line, dest_pos.pos);
+}
+
 static int member_operator_width(struct position *pos)
 {
 	unsigned int column = 1;
@@ -792,6 +865,7 @@ static void report_symbol_definition(struct symbol *sym)
 
 	pos = identifier_position(&sym->pos, sym->ident);
 	save_global_implementation(sym, &pos);
+	save_definition_type(sym, &pos);
 	show_identifier(&pos, sym, 1);
 }
 
