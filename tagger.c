@@ -191,8 +191,9 @@ static void save_global_definition(struct symbol *sym)
 	struct ident *ident;
 	unsigned int file;
 
-	if (!sym || !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
-	    (sym->ctype.modifiers & MOD_STATIC))
+	if (!sym || (sym->ctype.modifiers & MOD_STATIC))
+		return;
+	if (dissect_ctx && dissect_ctx != sym)
 		return;
 	if (symbol_is_function(sym)) {
 		implementation = get_implementation(sym);
