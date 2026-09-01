@@ -192,15 +192,16 @@ static void save_tag(struct position *pos, const char *name,
 static void save_global_implementation(struct symbol *sym)
 {
 	struct global_definition *definition;
+	struct symbol *type;
 	struct ident *ident;
 	unsigned int file;
 	unsigned int bucket;
 
-	if (!sym || sym->scope != file_scope ||
-	    (sym->ctype.modifiers & MOD_STATIC))
+	if (!sym || sym->scope != global_scope)
 		return;
-	if (symbol_is_function(sym)) {
-		if (!sym->stmt && !sym->inline_stmt)
+	type = sym->ctype.base_type;
+	if (type && type->type == SYM_FN) {
+		if (!type->stmt && !type->inline_stmt)
 			return;
 	}
 	ident = sym->ident;
