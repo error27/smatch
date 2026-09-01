@@ -40,7 +40,6 @@ try:
 	destination.close()
 
 	globals_db = db.DB(env)
-	globals_db.set_flags(db.DB_DUPSORT)
 	globals_db.open("globals.db", None, db.DB_BTREE,
 			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	globals_db.close()

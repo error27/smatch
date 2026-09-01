@@ -33,6 +33,7 @@
 
 #include "dissect.h"
 #include "options.h"
+#include "scope.h"
 
 enum destination_type {
 	BASE,
@@ -191,9 +192,8 @@ static void save_global_definition(struct symbol *sym)
 	struct ident *ident;
 	unsigned int file;
 
-	if (!sym || (sym->ctype.modifiers & MOD_STATIC))
-		return;
-	if (dissect_ctx && dissect_ctx != sym)
+	if (!sym || sym->scope != file_scope ||
+	    (sym->ctype.modifiers & MOD_STATIC))
 		return;
 	if (symbol_is_function(sym)) {
 		implementation = get_implementation(sym);
@@ -497,7 +497,6 @@ static int put_global_definition(DB_TXN *txn, DB *globals,
 	unsigned char value_buf[8];
 	DBT key = { 0 };
 	DBT value = { 0 };
-	int ret;
 
 	encode_position(value_buf, definition->file, definition->line,
 			definition->pos, NORMAL);
@@ -505,10 +504,7 @@ static int put_global_definition(DB_TXN *txn, DB *globals,
 	key.size = strlen(definition->name);
 	value.data = value_buf;
 	value.size = sizeof(value_buf);
-	ret = globals->put(globals, txn, &key, &value, DB_NODUPDATA);
-	if (ret == DB_KEYEXIST)
-		return 0;
-	return ret;
+	return globals->put(globals, txn, &key, &value, 0);
 }
 
 static int mark_parsed_files(DB_ENV *env, DB *parsed)
