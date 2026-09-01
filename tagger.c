@@ -57,6 +57,14 @@ struct tag {
 	struct tag *next;
 };
 
+struct global_definition {
+	const char *name;
+	unsigned int file;
+	unsigned int line;
+	unsigned int pos;
+	struct global_definition *next;
+};
+
 #define TAG_BATCH_SIZE 4096
 #define TAG_MAX_RETRIES 1000
 #define MAX_FILE_NUMBER 0xffffff
@@ -68,9 +76,14 @@ static struct symbol_list *called_functions;
 static struct macro_use *macro_uses;
 static struct tag *tags;
 static struct tag **next_tag = &tags;
+static struct global_definition *global_definitions;
+static struct global_definition **next_global_definition =
+	&global_definitions;
 
 static DB *file_numbers;
 static DB_ENV *file_env;
+
+static int symbol_is_function(struct symbol *sym);
 
 static int open_file_numbers(const char *db_dir)
 {
@@ -158,6 +171,35 @@ static void save_tag(struct position *pos, const char *name,
 	}
 	*next_tag = tag;
 	next_tag = &tag->next;
+}
+
+static void save_global_definition(struct symbol *sym)
+{
+	struct global_definition *definition;
+	struct ident *ident;
+	unsigned int file;
+
+	if (!sym || !(sym->ctype.modifiers & MOD_TOPLEVEL) ||
+	    (sym->ctype.modifiers & (MOD_STATIC | MOD_EXTERN)) ||
+	    symbol_is_function(sym))
+		return;
+	ident = sym->ident;
+	if (!ident || ident->reserved ||
+	    get_file_number(stream_name(sym->pos.stream), &file))
+		return;
+	if (file > MAX_FILE_NUMBER || sym->pos.line > MAX_LINE_NUMBER ||
+	    sym->pos.pos > MAX_POSITION)
+		return;
+
+	definition = calloc(1, sizeof(*definition));
+	if (!definition)
+		die("out of memory\n");
+	definition->name = show_ident(ident);
+	definition->file = file;
+	definition->line = sym->pos.line;
+	definition->pos = sym->pos.pos;
+	*next_global_definition = definition;
+	next_global_definition = &definition->next;
 }
 
 static int function_was_called(struct symbol *sym)
@@ -305,6 +347,11 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 	implementation = get_implementation(sym);
 	if (!implementation)
 		return;
+	if (!symbol_is_function(sym) &&
+	    (sym->ctype.modifiers & MOD_EXTERN)) {
+		save_tag(pos, show_ident(ident), LOOKUP, 0, 0, 0);
+		return;
+	}
 	if (same_position(pos, &implementation->pos)) {
 		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
 		return;
@@ -363,6 +410,26 @@ static int put_tag(DB_TXN *txn, DB *source, DB *destination, struct tag *tag)
 		return ret;
 	ret = destination->put(destination, txn, &dest_key, &dest_value,
 			       DB_NODUPDATA);
+	if (ret == DB_KEYEXIST)
+		return 0;
+	return ret;
+}
+
+static int put_global_definition(DB_TXN *txn, DB *globals,
+				 struct global_definition *definition)
+{
+	unsigned char value_buf[8];
+	DBT key = { 0 };
+	DBT value = { 0 };
+	int ret;
+
+	encode_position(value_buf, definition->file, definition->line,
+			definition->pos, NORMAL);
+	key.data = (void *)definition->name;
+	key.size = strlen(definition->name);
+	value.data = value_buf;
+	value.size = sizeof(value_buf);
+	ret = globals->put(globals, txn, &key, &value, DB_NODUPDATA);
 	if (ret == DB_KEYEXIST)
 		return 0;
 	return ret;
@@ -432,12 +499,46 @@ retry:
 	return ret;
 }
 
+static int write_global_batch(DB_ENV *env, DB *globals,
+			      struct global_definition *first,
+			      struct global_definition *end)
+{
+	struct global_definition *definition;
+	DB_TXN *txn;
+	int retries = 0;
+	int ret;
+
+retry:
+	ret = env->txn_begin(env, NULL, &txn, DB_TXN_NOWAIT);
+	if (ret)
+		return ret;
+	for (definition = first; definition != end;
+	     definition = definition->next) {
+		ret = put_global_definition(txn, globals, definition);
+		if (ret)
+			break;
+	}
+	if (!ret)
+		ret = txn->commit(txn, DB_TXN_NOSYNC);
+	else
+		txn->abort(txn);
+	if ((ret == DB_LOCK_DEADLOCK || ret == DB_LOCK_NOTGRANTED) &&
+	    retries++ < TAG_MAX_RETRIES) {
+		usleep(1000);
+		goto retry;
+	}
+	return ret;
+}
+
 static int write_tags(const char *db_dir)
 {
 	DB_ENV *env = NULL;
 	DB *source = NULL;
 	DB *destination = NULL;
+	DB *globals = NULL;
 	DB *parsed = NULL;
+	struct global_definition *first_global;
+	struct global_definition *end_global;
 	struct tag *first;
 	struct tag *end;
 	int count;
@@ -484,6 +585,13 @@ static int write_tags(const char *db_dir)
 				DB_BTREE, DB_AUTO_COMMIT | DB_THREAD, 0);
 	if (ret)
 		goto out;
+	ret = db_create(&globals, env, 0);
+	if (ret)
+		goto out;
+	ret = globals->open(globals, NULL, "globals.db", NULL, DB_BTREE,
+			    DB_AUTO_COMMIT | DB_THREAD, 0);
+	if (ret)
+		goto out;
 	ret = db_create(&parsed, env, 0);
 	if (ret)
 		goto out;
@@ -502,10 +610,22 @@ static int write_tags(const char *db_dir)
 			goto out;
 		first = end;
 	}
+	first_global = global_definitions;
+	while (first_global) {
+		end_global = first_global;
+		for (count = 0; end_global && count < TAG_BATCH_SIZE; count++)
+			end_global = end_global->next;
+		ret = write_global_batch(env, globals, first_global, end_global);
+		if (ret)
+			goto out;
+		first_global = end_global;
+	}
 	ret = mark_parsed_files(env, parsed);
 out:
 	if (parsed)
 		parsed->close(parsed, 0);
+	if (globals)
+		globals->close(globals, 0);
 	if (destination)
 		destination->close(destination, 0);
 	if (source)
@@ -523,6 +643,7 @@ out:
 
 static void report_symbol_definition(struct symbol *sym)
 {
+	save_global_definition(sym);
 	show_identifier(&sym->pos, sym);
 }
 

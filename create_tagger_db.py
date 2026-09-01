@@ -39,6 +39,12 @@ try:
 			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	destination.close()
 
+	globals_db = db.DB(env)
+	globals_db.set_flags(db.DB_DUPSORT)
+	globals_db.open("globals.db", None, db.DB_BTREE,
+			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
+	globals_db.close()
+
 	parsed_files = db.DB(env)
 	parsed_files.open("parsed_files.db", None, db.DB_BTREE,
 			  db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
