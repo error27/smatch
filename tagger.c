@@ -564,6 +564,25 @@ static void save_definition_type(struct symbol *sym,
 	save_tag(&source_pos, name, NORMAL, dest, dest_pos.line, dest_pos.pos);
 }
 
+static void save_function_argument_types(struct symbol *sym)
+{
+	struct symbol *argument;
+	struct symbol *type;
+	struct position pos;
+
+	if (!sym)
+		return;
+	type = sym->ctype.base_type;
+	if (!type || type->type != SYM_FN)
+		return;
+	FOR_EACH_PTR(type->arguments, argument) {
+		if (!argument->ident)
+			continue;
+		pos = identifier_position(&argument->pos, argument->ident);
+		save_definition_type(argument, &pos);
+	} END_FOR_EACH_PTR(argument);
+}
+
 static int member_operator_width(struct position *pos)
 {
 	unsigned int column = 1;
@@ -1044,6 +1063,7 @@ static void report_symbol_definition(struct symbol *sym)
 	save_global_symbol(sym, &pos);
 	save_global_struct(sym, &pos);
 	save_definition_type(sym, &pos);
+	save_function_argument_types(sym);
 	if ((sym->type == SYM_STRUCT || sym->type == SYM_UNION) &&
 	    sym->ident && !sym->symbol_list) {
 		save_tag(&pos, show_ident(sym->ident), LOOKUP, 0, 0, 0);
