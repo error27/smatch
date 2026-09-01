@@ -254,6 +254,8 @@ static void save_global_symbol(struct symbol *sym, struct position *pos)
 
 	if (!sym || sym->scope != global_scope)
 		return;
+	if (sym->ctype.modifiers & MOD_EXTERN)
+		return;
 	type = sym->ctype.base_type;
 	if (type && type->type == SYM_FN &&
 	    !type->stmt && !type->inline_stmt)
