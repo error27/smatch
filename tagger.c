@@ -80,6 +80,12 @@ struct source_reader {
 	struct source_reader *next;
 };
 
+struct compound_definition {
+	struct ident *ident;
+	struct position pos;
+	struct compound_definition *next;
+};
+
 #define TAG_BATCH_SIZE 4096
 #define TAG_MAX_RETRIES 1000
 #define GLOBAL_HASH_SIZE 1024
@@ -97,11 +103,13 @@ static struct global_definition **next_global_definition =
 	&global_definitions;
 static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
 static struct source_reader *source_readers;
+static struct compound_definition *compound_definitions;
 
 static DB *file_numbers;
 static DB_ENV *file_env;
 
 static int symbol_is_function(struct symbol *sym);
+static struct position owner_position(struct symbol *sym);
 
 static int base_type(enum destination_type type)
 {
@@ -380,6 +388,86 @@ static struct position identifier_position(struct position *pos,
 			column++;
 	}
 	return result;
+}
+
+static int identifier_at_position(struct position *pos, struct ident *ident)
+{
+	const char *name;
+	unsigned int column = 1;
+	size_t len;
+	char *line;
+	char *p;
+
+	if (!ident)
+		return 0;
+	name = show_ident(ident);
+	len = strlen(name);
+	line = get_source_line(pos);
+	if (!line)
+		return 0;
+	for (p = line; *p && column < pos->pos; p++) {
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	return column == pos->pos && !strncmp(p, name, len) &&
+	       (p == line || !identifier_char(p[-1])) &&
+	       !identifier_char(p[len]);
+}
+
+static void remember_compound_definition(struct symbol *sym,
+					 struct position *pos)
+{
+	struct compound_definition *definition;
+
+	if (!sym->ident ||
+	    (sym->type != SYM_STRUCT && sym->type != SYM_UNION) ||
+	    !identifier_at_position(pos, sym->ident))
+		return;
+	for (definition = compound_definitions; definition;
+	     definition = definition->next) {
+		if (definition->ident == sym->ident) {
+			definition->pos = *pos;
+			return;
+		}
+	}
+	definition = malloc(sizeof(*definition));
+	if (!definition)
+		die("out of memory\n");
+	definition->ident = sym->ident;
+	definition->pos = *pos;
+	definition->next = compound_definitions;
+	compound_definitions = definition;
+}
+
+static int enclosing_compound_position(struct symbol *sym,
+				       struct position *pos)
+{
+	struct compound_definition *definition;
+	const char *colon;
+	const char *name;
+	size_t parent_len = 0;
+
+	*pos = owner_position(sym);
+	if (pos->pos == MAX_POSITION ||
+	    identifier_at_position(pos, sym->ident))
+		return 1;
+	name = show_ident(sym->ident);
+	colon = strchr(name, ':');
+	if (colon)
+		parent_len = colon - name;
+	for (definition = compound_definitions; definition;
+	     definition = definition->next) {
+		if (definition->ident == sym->ident ||
+		    (parent_len &&
+		     strlen(show_ident(definition->ident)) == parent_len &&
+		     !strncmp(show_ident(definition->ident), name, parent_len))) {
+			*pos = definition->pos;
+			return 1;
+		}
+	}
+	return 0;
 }
 
 static int identifier_before(struct position *pos, struct ident *ident,
@@ -904,6 +992,7 @@ static void report_symbol_definition(struct symbol *sym)
 	int argument;
 
 	pos = identifier_position(&sym->pos, sym->ident);
+	remember_compound_definition(sym, &pos);
 	save_global_implementation(sym, &pos);
 	save_definition_type(sym, &pos);
 	argument = argument_number(dissect_ctx, sym);
@@ -929,8 +1018,8 @@ static void report_member_definition(struct symbol *sym, struct symbol *member)
 	pos = identifier_position(&member->pos, member->ident);
 	if (sym && sym->ident && member->ident &&
 	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION)) {
-		owner_pos = owner_position(sym);
-		if (!get_file_number(stream_name(owner_pos.stream), &file)) {
+		if (enclosing_compound_position(sym, &owner_pos) &&
+		    !get_file_number(stream_name(owner_pos.stream), &file)) {
 			save_tag(&pos, show_ident(member->ident), BASE_MEMBER,
 				 file, owner_pos.line, owner_pos.pos);
 			return;
