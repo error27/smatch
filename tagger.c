@@ -631,6 +631,29 @@ static int symbol_is_function(struct symbol *sym)
 	return type && type->type == SYM_FN;
 }
 
+static void save_function_position(struct symbol *sym, struct position *pos)
+{
+	struct symbol *implementation;
+	struct symbol *type;
+	struct position implementation_pos;
+	unsigned int file;
+
+	implementation = get_implementation(sym);
+	type = sym->ctype.base_type;
+	if (!implementation && type &&
+	    (type->stmt || type->inline_stmt))
+		implementation = sym;
+	if (!implementation) {
+		save_tag(pos, show_ident(sym->ident), LOOKUP, 0, 0, 0);
+		return;
+	}
+	implementation_pos = owner_position(implementation);
+	if (get_file_number(stream_name(implementation_pos.stream), &file))
+		return;
+	save_tag(pos, show_ident(sym->ident), NORMAL, file,
+		 implementation_pos.line, implementation_pos.pos);
+}
+
 static int argument_number(struct symbol *function, struct symbol *argument)
 {
 	struct symbol *type;
@@ -1054,7 +1077,7 @@ static void report_symbol_definition(struct symbol *sym)
 		return;
 	}
 	if (symbol_is_function(sym) && sym->ident) {
-		save_tag(&pos, show_ident(sym->ident), BASE_FUNCTION, 0, 0, 0);
+		save_function_position(sym, &pos);
 		return;
 	}
 	show_identifier(&pos, sym, 1);
