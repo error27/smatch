@@ -692,6 +692,7 @@ static void show_identifier(struct position *pos, struct symbol *sym,
 			    int definition)
 {
 	struct symbol *implementation;
+	struct position implementation_pos;
 	struct ident *ident;
 	unsigned int dest;
 
@@ -715,15 +716,17 @@ static void show_identifier(struct position *pos, struct symbol *sym,
 	}
 	if (!implementation)
 		return;
-	if (same_position(pos, &implementation->pos)) {
+	implementation_pos = identifier_position(
+		&implementation->pos, implementation->ident);
+	if (same_position(pos, &implementation_pos)) {
 		save_tag(pos, show_ident(ident), BASE, 0, 0, 0);
 		return;
 	}
 
-	if (get_file_number(stream_name(implementation->pos.stream), &dest))
+	if (get_file_number(stream_name(implementation_pos.stream), &dest))
 		return;
 	save_tag(pos, show_ident(ident), NORMAL, dest,
-		 implementation->pos.line, implementation->pos.pos);
+		 implementation_pos.line, implementation_pos.pos);
 }
 
 static void encode_position(unsigned char *buf, unsigned int file,
