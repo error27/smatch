@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +34,6 @@
 
 #include "dissect.h"
 #include "options.h"
-#include "scope.h"
 
 enum destination_type {
 	BASE,
@@ -59,11 +59,13 @@ struct tag {
 };
 
 struct global_definition {
+	struct ident *ident;
 	const char *name;
 	unsigned int file;
 	unsigned int line;
 	unsigned int pos;
 	struct global_definition *next;
+	struct global_definition *hash_next;
 };
 
 struct source_reader {
@@ -77,6 +79,7 @@ struct source_reader {
 
 #define TAG_BATCH_SIZE 4096
 #define TAG_MAX_RETRIES 1000
+#define GLOBAL_HASH_SIZE 1024
 #define MAX_FILE_NUMBER 0xffffff
 #define MAX_LINE_NUMBER 0xffffff
 #define MAX_POSITION 0x3ff
@@ -89,13 +92,13 @@ static struct tag **next_tag = &tags;
 static struct global_definition *global_definitions;
 static struct global_definition **next_global_definition =
 	&global_definitions;
+static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
 static struct source_reader *source_readers;
 
 static DB *file_numbers;
 static DB_ENV *file_env;
 
 static int symbol_is_function(struct symbol *sym);
-static struct symbol *get_implementation(struct symbol *sym);
 
 static int open_file_numbers(const char *db_dir)
 {
@@ -185,39 +188,40 @@ static void save_tag(struct position *pos, const char *name,
 	next_tag = &tag->next;
 }
 
-static void save_global_definition(struct symbol *sym)
+static void save_global_identifier(struct symbol *sym)
 {
 	struct global_definition *definition;
-	struct symbol *implementation;
 	struct ident *ident;
 	unsigned int file;
+	unsigned int bucket;
 
-	if (!sym || sym->scope != file_scope ||
-	    (sym->ctype.modifiers & MOD_STATIC))
+	if (!sym)
 		return;
-	if (symbol_is_function(sym)) {
-		implementation = get_implementation(sym);
-		if (!implementation)
-			implementation = sym;
-	} else {
-		implementation = sym;
-	}
 	ident = sym->ident;
-	if (!ident || ident->reserved ||
-	    get_file_number(stream_name(implementation->pos.stream), &file))
+	if (!ident || ident->reserved)
 		return;
-	if (file > MAX_FILE_NUMBER ||
-	    implementation->pos.line > MAX_LINE_NUMBER ||
-	    implementation->pos.pos > MAX_POSITION)
+	bucket = ((uintptr_t)ident >> 4) % GLOBAL_HASH_SIZE;
+	for (definition = global_hash[bucket]; definition;
+	     definition = definition->hash_next) {
+		if (definition->ident == ident)
+			return;
+	}
+	if (get_file_number(stream_name(sym->pos.stream), &file))
+		return;
+	if (file > MAX_FILE_NUMBER || sym->pos.line > MAX_LINE_NUMBER ||
+	    sym->pos.pos > MAX_POSITION)
 		return;
 
 	definition = calloc(1, sizeof(*definition));
 	if (!definition)
 		die("out of memory\n");
+	definition->ident = ident;
 	definition->name = show_ident(ident);
 	definition->file = file;
-	definition->line = implementation->pos.line;
-	definition->pos = implementation->pos.pos;
+	definition->line = sym->pos.line;
+	definition->pos = sym->pos.pos;
+	definition->hash_next = global_hash[bucket];
+	global_hash[bucket] = definition;
 	*next_global_definition = definition;
 	next_global_definition = &definition->next;
 }
@@ -423,6 +427,7 @@ static void show_identifier(struct position *pos, struct symbol *sym)
 		return;
 	implementation = get_implementation(sym);
 	if (sym->ctype.modifiers & MOD_EXTERN) {
+		save_global_identifier(sym);
 		save_tag(pos, show_ident(ident), LOOKUP, 0, 0, 0);
 		return;
 	}
@@ -497,14 +502,18 @@ static int put_global_definition(DB_TXN *txn, DB *globals,
 	unsigned char value_buf[8];
 	DBT key = { 0 };
 	DBT value = { 0 };
+	int ret;
 
 	encode_position(value_buf, definition->file, definition->line,
-			definition->pos, NORMAL);
+			definition->pos, LOOKUP);
 	key.data = (void *)definition->name;
 	key.size = strlen(definition->name);
 	value.data = value_buf;
 	value.size = sizeof(value_buf);
-	return globals->put(globals, txn, &key, &value, 0);
+	ret = globals->put(globals, txn, &key, &value, DB_NOOVERWRITE);
+	if (ret == DB_KEYEXIST)
+		return 0;
+	return ret;
 }
 
 static int mark_parsed_files(DB_ENV *env, DB *parsed)
@@ -715,7 +724,6 @@ out:
 
 static void report_symbol_definition(struct symbol *sym)
 {
-	save_global_definition(sym);
 	show_identifier(&sym->pos, sym);
 }
 
