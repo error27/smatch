@@ -197,7 +197,7 @@ static void save_global_definition(struct symbol *sym)
 	if (symbol_is_function(sym)) {
 		implementation = get_implementation(sym);
 		if (!implementation)
-			return;
+			implementation = sym;
 	} else {
 		implementation = sym;
 	}
