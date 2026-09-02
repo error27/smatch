@@ -125,6 +125,15 @@ struct statement {
 	};
 };
 
+struct typedef_use {
+	struct position pos;
+	struct position definition;
+	const char *name;
+	struct typedef_use *next;
+};
+
+extern struct typedef_use *get_typedef_uses(void);
+
 extern struct symbol_list *function_computed_target_list;
 extern struct statement_list *function_computed_goto_list;
 

@@ -758,6 +758,19 @@ static void record_macro_uses(void)
 	}
 }
 
+static void record_typedef_uses(void)
+{
+	struct typedef_use *use;
+	unsigned int dest;
+
+	for (use = get_typedef_uses(); use; use = use->next) {
+		if (get_file_number(stream_name(use->definition.stream), &dest))
+			continue;
+		save_tag(&use->pos, use->name, NORMAL, dest,
+			 use->definition.line, use->definition.pos);
+	}
+}
+
 static struct symbol *get_implementation(struct symbol *sym)
 {
 	struct symbol *type;
@@ -1331,6 +1344,7 @@ int main(int argc, char **argv)
 	dissect_show_all_symbols = 1;
 	dissect(&reporter, filelist);
 	record_macro_uses();
+	record_typedef_uses();
 
 	i = write_tags(db_dir) != 0;
 	close_file_numbers();
