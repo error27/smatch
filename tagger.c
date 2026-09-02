@@ -108,6 +108,7 @@ static struct macro_definition *macro_hash[MACRO_HASH_SIZE];
 static DB *file_numbers;
 static DB_ENV *file_env;
 
+static struct symbol *get_implementation(struct symbol *sym);
 static int symbol_is_function(struct symbol *sym);
 static struct position owner_position(struct symbol *sym);
 
@@ -561,6 +562,55 @@ static void save_function_argument_types(struct symbol *sym)
 			continue;
 		pos = identifier_position(&argument->pos, argument->ident);
 		save_definition_type(argument, &pos);
+	} END_FOR_EACH_PTR(argument);
+}
+
+static struct symbol *function_argument(struct symbol *sym, int number)
+{
+	struct symbol *argument;
+	struct symbol *type;
+	int index = 0;
+
+	if (!sym)
+		return NULL;
+	type = sym->ctype.base_type;
+	if (!type || type->type != SYM_FN)
+		return NULL;
+	FOR_EACH_PTR(type->arguments, argument) {
+		if (index++ == number)
+			return argument;
+	} END_FOR_EACH_PTR(argument);
+	return NULL;
+}
+
+static void save_function_argument_positions(struct symbol *sym)
+{
+	struct symbol *implementation;
+	struct symbol *argument;
+	struct symbol *type;
+	struct symbol *destination;
+	struct position source_pos;
+	struct position dest_pos;
+	unsigned int file;
+	int number = 0;
+
+	implementation = get_implementation(sym);
+	if (!implementation || implementation == sym)
+		return;
+	type = sym->ctype.base_type;
+	if (!type || type->type != SYM_FN)
+		return;
+	FOR_EACH_PTR(type->arguments, argument) {
+		destination = function_argument(implementation, number++);
+		if (!argument->ident || !destination || !destination->ident)
+			continue;
+		source_pos = identifier_position(&argument->pos, argument->ident);
+		dest_pos = identifier_position(&destination->pos,
+					       destination->ident);
+		if (get_file_number(stream_name(dest_pos.stream), &file))
+			continue;
+		save_tag(&source_pos, show_ident(argument->ident), NORMAL, file,
+			 dest_pos.line, dest_pos.pos);
 	} END_FOR_EACH_PTR(argument);
 }
 
@@ -1069,6 +1119,7 @@ static void report_symbol_definition(struct symbol *sym)
 	save_global_struct(sym, &pos);
 	save_definition_type(sym, &pos);
 	save_function_argument_types(sym);
+	save_function_argument_positions(sym);
 	if ((sym->type == SYM_STRUCT || sym->type == SYM_UNION) &&
 	    sym->ident && !sym->symbol_list) {
 		save_tag(&pos, show_ident(sym->ident), LOOKUP, 0, 0, 0);
