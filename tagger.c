@@ -436,6 +436,38 @@ next:
 	return result;
 }
 
+static struct position argument_end_position(struct symbol *argument)
+{
+	struct position result = argument->pos;
+	unsigned int column = 1;
+	char *line;
+	char *p;
+	int depth = 0;
+
+	line = get_source_line(&argument->pos);
+	if (!line)
+		return result;
+	for (p = line; *p; p++) {
+		if (column < argument->pos.pos)
+			goto next;
+		if (depth == 0 && (*p == ',' || *p == ')')) {
+			result.pos = column;
+			return result;
+		}
+		if (*p == '(' || *p == '[')
+			depth++;
+		else if ((*p == ')' || *p == ']') && depth > 0)
+			depth--;
+next:
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	result.pos = column;
+	return result;
+}
+
 static int identifier_at_position(struct position *pos, struct ident *ident)
 {
 	const char *name;
@@ -601,9 +633,10 @@ static void save_function_argument_types(struct symbol *sym)
 	if (!type || type->type != SYM_FN)
 		return;
 	FOR_EACH_PTR(type->arguments, argument) {
-		if (!argument->ident)
-			continue;
-		pos = argument_position(argument);
+		if (argument->ident)
+			pos = argument_position(argument);
+		else
+			pos = argument_end_position(argument);
 		save_definition_type(argument, &pos);
 	} END_FOR_EACH_PTR(argument);
 }
