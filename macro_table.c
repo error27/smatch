@@ -30,6 +30,8 @@
 #include "cwchash/hashtable.h"
 
 static struct hashtable *macro_table;
+static struct macro_expansion *macro_expansions;
+static struct macro_expansion **next_macro_expansion = &macro_expansions;
 
 static DEFINE_HASHTABLE_INSERT(do_insert_macro, struct position, struct string_list);
 static DEFINE_HASHTABLE_SEARCH(do_search_macro, struct position, struct string_list);
@@ -65,17 +67,34 @@ static void insert_macro_string(struct string_list **str_list, char *new)
 	add_ptr_list(str_list, new);
 }
 
-void store_macro_pos(struct token *token)
+void store_macro_pos(struct token *token, struct symbol *sym)
 {
+	struct macro_expansion *expansion;
 	struct string_list *list;
 
 	if (!macro_table)
 		macro_table = create_hashtable(5000, position_hash, equalkeys);
 
 	list = do_search_macro(macro_table, &token->pos);
+	if (!list) {
+		expansion = malloc(sizeof(*expansion));
+		if (!expansion)
+			die("out of memory\n");
+		expansion->pos = token->pos;
+		expansion->definition = sym->pos;
+		expansion->name = token->ident->name;
+		expansion->next = NULL;
+		*next_macro_expansion = expansion;
+		next_macro_expansion = &expansion->next;
+	}
 	insert_macro_string(&list, token->ident->name);
 
 	do_insert_macro(macro_table, &token->pos, list);
+}
+
+struct macro_expansion *get_macro_expansions(void)
+{
+	return macro_expansions;
 }
 
 char *get_macro_name(struct position pos)

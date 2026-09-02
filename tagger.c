@@ -45,12 +45,6 @@ enum destination_type {
 	BASE_MEMBER,
 };
 
-struct macro_use {
-	struct position pos;
-	const char *name;
-	struct macro_use *next;
-};
-
 struct tag {
 	unsigned int file;
 	unsigned int dest;
@@ -95,7 +89,6 @@ struct compound_definition {
 
 static struct string_list *source_files;
 static struct symbol_list *called_functions;
-static struct macro_use *macro_uses;
 static struct tag *tags;
 static struct tag **next_tag = &tags;
 static struct global_definition *global_definitions;
@@ -304,28 +297,6 @@ static int source_position(struct position *pos)
 	} END_FOR_EACH_PTR(source);
 	if (dissect_ctx && function_was_called(dissect_ctx))
 		return 1;
-
-	return 0;
-}
-
-static int seen_macro(struct position *pos, const char *name)
-{
-	struct macro_use *use;
-
-	for (use = macro_uses; use; use = use->next) {
-		if (use->pos.stream == pos->stream &&
-		    use->pos.line == pos->line && use->pos.pos == pos->pos &&
-		    !strcmp(use->name, name))
-			return 1;
-	}
-
-	use = malloc(sizeof(*use));
-	if (!use)
-		die("out of memory\n");
-	use->pos = *pos;
-	use->name = name;
-	use->next = macro_uses;
-	macro_uses = use;
 
 	return 0;
 }
@@ -612,27 +583,24 @@ static int member_operator_width(struct position *pos)
 
 static int show_macro(struct position *pos)
 {
-	struct symbol *sym;
-	const char *name;
+	return !!get_macro_name(*pos);
+}
+
+static void record_macro_uses(void)
+{
+	struct macro_expansion *expansion;
 	unsigned int dest;
 
-	name = get_macro_name(*pos);
-	if (!name)
-		return 0;
-	sym = lookup_macro_symbol(name);
-	if (!sym)
-		return 0;
-	if (seen_macro(pos, name))
-		return 1;
-	if (same_position(pos, &sym->pos)) {
-		save_tag(pos, name, BASE, 0, 0, 0);
-		return 1;
+	for (expansion = get_macro_expansions(); expansion;
+	     expansion = expansion->next) {
+		if (!source_position(&expansion->pos))
+			continue;
+		if (get_file_number(stream_name(expansion->definition.stream),
+				    &dest))
+			continue;
+		save_tag(&expansion->pos, expansion->name, NORMAL, dest,
+			 expansion->definition.line, expansion->definition.pos);
 	}
-
-	if (get_file_number(stream_name(sym->pos.stream), &dest))
-		return 1;
-	save_tag(pos, name, NORMAL, dest, sym->pos.line, sym->pos.pos);
-	return 1;
 }
 
 static struct symbol *get_implementation(struct symbol *sym)
@@ -1198,6 +1166,7 @@ int main(int argc, char **argv)
 	source_files = filelist;
 	dissect_show_all_symbols = 1;
 	dissect(&reporter, filelist);
+	record_macro_uses();
 
 	i = write_tags(db_dir) != 0;
 	close_file_numbers();

@@ -209,6 +209,13 @@ struct token {
 	};
 };
 
+struct macro_expansion {
+	struct position pos;
+	struct position definition;
+	const char *name;
+	struct macro_expansion *next;
+};
+
 #define MAX_STRING 8191
 
 static inline struct token *containing_token(struct token **p)
@@ -250,11 +257,12 @@ extern void store_all_tokens(struct token *token);
 extern struct token *pos_get_token(struct position pos);
 extern char *pos_ident(struct position pos);
 
-extern void store_macro_pos(struct token *);
+extern void store_macro_pos(struct token *, struct symbol *);
 extern char *get_macro_name(struct position pos);
 extern bool in_macro(struct position pos);
 extern char *get_inner_macro(struct position pos);
 extern struct string_list *get_all_macros(struct position pos);
+extern struct macro_expansion *get_macro_expansions(void);
 
 static inline int match_op(struct token *token, unsigned int op)
 {

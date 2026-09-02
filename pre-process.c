@@ -220,7 +220,7 @@ static inline int expand_one_symbol(struct token **list)
 	sym = lookup_macro(token->ident);
 	if (!sym)
 		return 1;
-	store_macro_pos(token);
+	store_macro_pos(token, sym);
 	if (sym->expand_simple) {
 		sym->expand_simple(token);
 		return 1;
