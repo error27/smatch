@@ -1149,6 +1149,27 @@ static void report_member(unsigned mode, struct position *pos,
 	show_identifier(&member_pos, member, 0);
 }
 
+static void report_label(struct position *pos, struct symbol *label,
+			 int definition)
+{
+	struct position dest_pos;
+	unsigned int file;
+
+	if (!label || !label->ident || !source_position(pos))
+		return;
+	if (definition) {
+		save_tag(pos, show_ident(label->ident), BASE, 0, 0, 0);
+		return;
+	}
+	if (!label->stmt)
+		return;
+	dest_pos = label->stmt->pos;
+	if (get_file_number(stream_name(dest_pos.stream), &file))
+		return;
+	save_tag(pos, show_ident(label->ident), NORMAL, file,
+		 dest_pos.line, dest_pos.pos);
+}
+
 int main(int argc, char **argv)
 {
 	static struct reporter reporter = {
@@ -1157,6 +1178,7 @@ int main(int argc, char **argv)
 		.r_member = report_member,
 		.r_symdef = report_symbol_definition,
 		.r_symbol = report_symbol,
+		.r_label = report_label,
 	};
 	struct string_list *filelist = NULL;
 	const char *db_dir;

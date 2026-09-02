@@ -2525,6 +2525,7 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 	} else if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *label = label_symbol(token, 1);
 		stmt->goto_label = label;
+		stmt->goto_pos = token->pos;
 		check_label_usage(label, stmt->pos);
 		token = token->next;
 	} else {

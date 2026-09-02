@@ -254,6 +254,7 @@ struct expression {
 		// EXPR_LABEL
 		struct /* label_expr */ {
 			struct symbol *label_symbol;
+			struct position label_pos;
 		};
 		// EXPR_INITIALIZER
 		struct expression_list *expr_list;

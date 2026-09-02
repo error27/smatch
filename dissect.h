@@ -26,6 +26,7 @@ struct reporter
 
 	void (*r_symbol)(unsigned, struct position *, struct symbol *);
 	void (*r_member)(unsigned, struct position *, struct symbol *, struct symbol *);
+	void (*r_label)(struct position *, struct symbol *, int);
 };
 
 extern struct symbol *dissect_ctx;

@@ -104,6 +104,7 @@ struct statement {
 		};
 		struct /* goto_struct */ {
 			struct symbol *goto_label;
+			struct position goto_pos;
 
 			/* computed gotos have these: */
 			struct expression *goto_expression;

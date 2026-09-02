@@ -356,6 +356,8 @@ again:
 
 	break; case EXPR_LABEL:
 		ret = &label_ctype;
+		if (reporter->r_label)
+			reporter->r_label(&expr->label_pos, expr->label_symbol, 0);
 
 	break; case EXPR_STRING:
 		ret = &string_ctype;
@@ -575,9 +577,13 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 		do_statement(U_VOID, stmt->case_statement);
 
 	break; case STMT_GOTO:
+		if (stmt->goto_label && reporter->r_label)
+			reporter->r_label(&stmt->goto_pos, stmt->goto_label, 0);
 		do_expression(U_R_PTR, stmt->goto_expression);
 
 	break; case STMT_LABEL:
+		if (stmt->label_identifier && reporter->r_label)
+			reporter->r_label(&stmt->pos, stmt->label_identifier, 1);
 		do_statement(mode, stmt->label_statement);
 
 	}

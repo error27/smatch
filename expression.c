@@ -746,6 +746,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			check_label_usage(sym, token->pos);
 			label->flags = CEF_ADDR;
 			label->label_symbol = sym;
+			label->label_pos = token->next->pos;
 			*tree = label;
 			return token->next->next;
 		}
@@ -974,4 +975,3 @@ struct token *parse_expression(struct token *token, struct expression **tree)
 {
 	return comma_expression(token,tree);
 }
-
