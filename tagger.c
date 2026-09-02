@@ -766,6 +766,7 @@ static void record_typedef_uses(void)
 	for (use = get_typedef_uses(); use; use = use->next) {
 		if (get_file_number(stream_name(use->definition.stream), &dest))
 			continue;
+		save_tag(&use->definition, use->name, BASE, 0, 0, 0);
 		save_tag(&use->pos, use->name, NORMAL, dest,
 			 use->definition.line, use->definition.pos);
 	}
@@ -1223,7 +1224,7 @@ static void report_symbol_definition(struct symbol *sym)
 		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
 		return;
 	}
-	if (sym->namespace == NS_TYPEDEF && sym->ident) {
+	if ((sym->namespace & NS_TYPEDEF) && sym->ident) {
 		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
 		return;
 	}
