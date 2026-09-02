@@ -668,6 +668,10 @@ static void save_function_position(struct symbol *sym, struct position *pos)
 		return;
 	}
 	implementation_pos = owner_position(implementation);
+	if (same_position(pos, &implementation_pos)) {
+		save_tag(pos, show_ident(sym->ident), BASE_FUNCTION, 0, 0, 0);
+		return;
+	}
 	if (get_file_number(stream_name(implementation_pos.stream), &file))
 		return;
 	save_tag(pos, show_ident(sym->ident), NORMAL, file,
