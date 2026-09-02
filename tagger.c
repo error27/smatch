@@ -1119,6 +1119,8 @@ static void report_member_definition(struct symbol *sym, struct symbol *member)
 	unsigned int file;
 
 	pos = identifier_position(&member->pos, member->ident);
+	if (member->ident)
+		save_definition_type(member, &pos);
 	if (sym && sym->ident && member->ident &&
 	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION)) {
 		if (enclosing_compound_position(sym, &owner_pos) &&
