@@ -393,6 +393,49 @@ static struct position identifier_position(struct position *pos,
 	return result;
 }
 
+static struct position argument_position(struct symbol *argument)
+{
+	struct position result;
+	const char *name;
+	unsigned int column = 1;
+	unsigned int found = 0;
+	size_t len;
+	char *line;
+	char *p;
+	int depth = 0;
+
+	result = identifier_position(&argument->pos, argument->ident);
+	if (!argument->ident)
+		return result;
+	name = show_ident(argument->ident);
+	len = strlen(name);
+	line = get_source_line(&argument->pos);
+	if (!line)
+		return result;
+	for (p = line; *p; p++) {
+		if (column < argument->pos.pos)
+			goto next;
+		if (depth == 0 && (*p == ',' || *p == ')'))
+			break;
+		if (!strncmp(p, name, len) &&
+		    (p == line || !identifier_char(p[-1])) &&
+		    !identifier_char(p[len]))
+			found = column;
+		if (*p == '(' || *p == '[')
+			depth++;
+		else if ((*p == ')' || *p == ']') && depth > 0)
+			depth--;
+next:
+		if (*p == '\t')
+			column += 8 - ((column - 1) % 8);
+		else
+			column++;
+	}
+	if (found)
+		result.pos = found;
+	return result;
+}
+
 static int identifier_at_position(struct position *pos, struct ident *ident)
 {
 	const char *name;
@@ -560,7 +603,7 @@ static void save_function_argument_types(struct symbol *sym)
 	FOR_EACH_PTR(type->arguments, argument) {
 		if (!argument->ident)
 			continue;
-		pos = identifier_position(&argument->pos, argument->ident);
+		pos = argument_position(argument);
 		save_definition_type(argument, &pos);
 	} END_FOR_EACH_PTR(argument);
 }
@@ -604,9 +647,8 @@ static void save_function_argument_positions(struct symbol *sym)
 		destination = function_argument(implementation, number++);
 		if (!argument->ident || !destination || !destination->ident)
 			continue;
-		source_pos = identifier_position(&argument->pos, argument->ident);
-		dest_pos = identifier_position(&destination->pos,
-					       destination->ident);
+		source_pos = argument_position(argument);
+		dest_pos = argument_position(destination);
 		if (get_file_number(stream_name(dest_pos.stream), &file))
 			continue;
 		save_tag(&source_pos, show_ident(argument->ident), NORMAL, file,
@@ -1151,6 +1193,7 @@ static void report_symbol_definition(struct symbol *sym)
 	}
 	argument = argument_number(dissect_ctx, sym);
 	if (argument >= 0 && sym->ident) {
+		pos = argument_position(sym);
 		function_pos = owner_position(dissect_ctx);
 		save_tag(&pos, show_ident(sym->ident), BASE_ARGUMENT,
 			 argument, function_pos.line, function_pos.pos);
