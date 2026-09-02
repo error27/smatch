@@ -273,10 +273,10 @@ static int header_file(struct position *pos)
 	return len >= 2 && !strcmp(file + len - 2, ".h");
 }
 
-static void save_global_struct(struct symbol *sym, struct position *pos)
+static void save_global_compound(struct symbol *sym, struct position *pos)
 {
-	if (!sym || sym->type != SYM_STRUCT || !sym->ident ||
-	    !sym->symbol_list || !header_file(pos))
+	if (!sym || !sym->ident || !sym->symbol_list || !header_file(pos) ||
+	    (sym->type != SYM_STRUCT && sym->type != SYM_UNION))
 		return;
 	save_global_implementation(sym, pos);
 }
@@ -1191,7 +1191,7 @@ static void report_symbol_definition(struct symbol *sym)
 	pos = identifier_position(&sym->pos, sym->ident);
 	remember_compound_definition(sym, &pos);
 	save_global_symbol(sym, &pos);
-	save_global_struct(sym, &pos);
+	save_global_compound(sym, &pos);
 	save_definition_type(sym, &pos);
 	save_function_argument_types(sym);
 	save_function_argument_positions(sym);
@@ -1200,7 +1200,8 @@ static void report_symbol_definition(struct symbol *sym)
 		save_tag(&pos, show_ident(sym->ident), LOOKUP, 0, 0, 0);
 		return;
 	}
-	if (sym->type == SYM_STRUCT && sym->ident && sym->symbol_list &&
+	if ((sym->type == SYM_STRUCT || sym->type == SYM_UNION) &&
+	    sym->ident && sym->symbol_list &&
 	    header_file(&pos)) {
 		save_tag(&pos, show_ident(sym->ident), BASE, 0, 0, 0);
 		return;
