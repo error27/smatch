@@ -80,9 +80,15 @@ struct compound_definition {
 	struct compound_definition *next;
 };
 
+struct macro_definition {
+	struct position pos;
+	struct macro_definition *next;
+};
+
 #define TAG_BATCH_SIZE 4096
 #define TAG_MAX_RETRIES 1000
 #define GLOBAL_HASH_SIZE 1024
+#define MACRO_HASH_SIZE 1024
 #define MAX_FILE_NUMBER 0xffffff
 #define MAX_LINE_NUMBER 0xffffff
 #define MAX_POSITION 0x3ff
@@ -97,6 +103,7 @@ static struct global_definition **next_global_definition =
 static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
 static struct source_reader *source_readers;
 static struct compound_definition *compound_definitions;
+static struct macro_definition *macro_hash[MACRO_HASH_SIZE];
 
 static DB *file_numbers;
 static DB_ENV *file_env;
@@ -586,6 +593,28 @@ static int show_macro(struct position *pos)
 	return !!get_macro_name(*pos);
 }
 
+static void record_macro_definition(struct macro_expansion *expansion)
+{
+	struct macro_definition *definition;
+	struct position *pos = &expansion->definition;
+	unsigned int bucket;
+
+	bucket = (pos->stream * 31 + pos->line * 17 + pos->pos) %
+		 MACRO_HASH_SIZE;
+	for (definition = macro_hash[bucket]; definition;
+	     definition = definition->next) {
+		if (same_position(&definition->pos, pos))
+			return;
+	}
+	definition = malloc(sizeof(*definition));
+	if (!definition)
+		die("out of memory\n");
+	definition->pos = *pos;
+	definition->next = macro_hash[bucket];
+	macro_hash[bucket] = definition;
+	save_tag(pos, expansion->name, BASE, 0, 0, 0);
+}
+
 static void record_macro_uses(void)
 {
 	struct macro_expansion *expansion;
@@ -598,6 +627,7 @@ static void record_macro_uses(void)
 		if (get_file_number(stream_name(expansion->definition.stream),
 				    &dest))
 			continue;
+		record_macro_definition(expansion);
 		save_tag(&expansion->pos, expansion->name, NORMAL, dest,
 			 expansion->definition.line, expansion->definition.pos);
 	}
