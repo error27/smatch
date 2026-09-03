@@ -16,8 +16,8 @@ PRAGMA locking = EXCLUSIVE;
 CREATE INDEX type_size_idx on type_size (type);
 CREATE INDEX type_val_idx on type_value (type);
 CREATE INDEX type_info_idx on type_info (type);
+CREATE INDEX type_info_key_idx on type_info (key);
 CREATE INDEX function_ptrs_return_idx on function_ptrs_return (ptr);
 
 EOF
-
 
