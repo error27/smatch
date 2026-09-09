@@ -245,10 +245,12 @@ static int get_arg_count(struct expression *fn)
 	return ptr_list_size((struct ptr_list *)fn_type->arguments);
 }
 
+static int can_hold_function_ptr(struct expression *expr);
+static int is_known_function_ptr(struct expression *expr, const char *name);
+
 static void match_passes_function_pointer(struct expression *expr)
 {
 	struct expression *arg, *tmp;
-	struct symbol *type;
 	char *called_name;
 	char *fn_name;
 	char ptr_name[256];
@@ -267,10 +269,7 @@ static void match_passes_function_pointer(struct expression *expr)
 		if (tmp->type == EXPR_PREOP && tmp->op == '&')
 			tmp = strip_expr(tmp->unop);
 
-		type = get_type(tmp);
-		if (type && type->type == SYM_PTR)
-			type = get_real_base_type(type);
-		if (!type || type->type != SYM_FN)
+		if (!can_hold_function_ptr(tmp))
 			continue;
 
 		called_name = expr_to_var(expr->fn);
@@ -278,6 +277,8 @@ static void match_passes_function_pointer(struct expression *expr)
 			return;
 		fn_name = get_fnptr_name(tmp);
 		if (!fn_name)
+			goto free;
+		if (!is_known_function_ptr(tmp, fn_name))
 			goto free;
 
 		snprintf(ptr_name, sizeof(ptr_name), "%s param %d", called_name, i);
@@ -315,10 +316,30 @@ static int can_hold_function_ptr(struct expression *expr)
 	return 0;
 }
 
+static int is_known_function_ptr(struct expression *expr, const char *name)
+{
+	struct symbol *type;
+	int count = 0;
+
+	type = get_type(expr);
+	if (!type)
+		return 0;
+	if (type->type == SYM_PTR || type->type == SYM_ARRAY) {
+		type = get_real_base_type(type);
+		if (!type)
+			return 0;
+	}
+	if (type->type == SYM_FN)
+		return 1;
+
+	run_sql(get_row_count, &count,
+		"select count(*) from function_ptr where ptr = '%s'", name);
+	return count != 0;
+}
+
 static void match_function_assign(struct expression *expr)
 {
 	struct expression *right;
-	struct symbol *type;
 	char *fn_name;
 	char *ptr_name;
 
@@ -348,24 +369,8 @@ static void match_function_assign(struct expression *expr)
 		goto free;
 
 
-	type = get_type(right);
-	if (!type)
-		return;
-	if (type->type == SYM_PTR || type->type == SYM_ARRAY) {
-		type = get_real_base_type(type);
-		if (!type)
-			return;
-	}
-	if (type->type != SYM_FN) {
-		int count = 0;
-
-		/* look it up in function_ptr */
-		run_sql(get_row_count, &count,
-			"select count(*) from function_ptr where ptr = '%s'",
-			fn_name);
-		if (count == 0)
-			goto free;
-	}
+	if (!is_known_function_ptr(right, fn_name))
+		goto free;
 
 	sql_insert_function_ptr(fn_name, ptr_name);
 free:
