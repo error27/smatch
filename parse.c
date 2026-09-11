@@ -47,6 +47,8 @@
 static struct symbol_list **function_symbol_list;
 struct symbol_list *function_computed_target_list;
 struct statement_list *function_computed_goto_list;
+static struct typedef_use *typedef_uses;
+static struct typedef_use **next_typedef_use = &typedef_uses;
 
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *handle_attributes(struct token *token, struct decl_state *ctx);
@@ -1625,8 +1627,19 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 		if (!s || !(s->namespace & NS_TYPEDEF))
 			break;
 		if (s->type != SYM_KEYWORD) {
+			struct typedef_use *use;
+
 			if (seen & Set_Any)
 				break;
+			use = malloc(sizeof(*use));
+			if (!use)
+				die("out of memory\n");
+			use->pos = token->pos;
+			use->definition = s->pos;
+			use->name = token->ident->name;
+			use->next = NULL;
+			*next_typedef_use = use;
+			next_typedef_use = &use->next;
 			seen |= Set_S | Set_T;
 			ctx->ctype.base_type = s->ctype.base_type;
 			apply_ctype(token->pos, &ctx->ctype, &s->ctype);
@@ -1690,6 +1703,11 @@ static struct token *declaration_specifiers(struct token *token, struct decl_sta
 		create_fouled(type);
 	}
 	return token;
+}
+
+struct typedef_use *get_typedef_uses(void)
+{
+	return typedef_uses;
 }
 
 static struct token *abstract_array_declarator(struct token *token, struct symbol *sym)
@@ -2525,6 +2543,7 @@ static struct token *parse_goto_statement(struct token *token, struct statement 
 	} else if (token_type(token) == TOKEN_IDENT) {
 		struct symbol *label = label_symbol(token, 1);
 		stmt->goto_label = label;
+		stmt->goto_pos = token->pos;
 		check_label_usage(label, stmt->pos);
 		token = token->next;
 	} else {

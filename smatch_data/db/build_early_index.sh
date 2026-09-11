@@ -37,6 +37,7 @@ CREATE INDEX parameter_name_file_idx on parameter_name (file, function);
 CREATE INDEX parameter_name_idx on parameter_name (function);
 CREATE INDEX str_idx on constraints (str);
 CREATE INDEX required_idx on constraints_required (data);
+CREATE INDEX required_bound_idx on constraints_required (bound);
 CREATE INDEX mtag_about_idx on mtag_about (tag);
 CREATE INDEX mtag_info_idx on mtag_info (tag);
 CREATE INDEX mtag_data_idx on mtag_data (tag);
@@ -46,4 +47,3 @@ CREATE INDEX sink_index on sink_info (file, sink_name);
 CREATE INDEX hash_index on hash_string (hash);
 
 EOF
-

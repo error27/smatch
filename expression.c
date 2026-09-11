@@ -478,6 +478,7 @@ struct token *primary_expression(struct token *token, struct expression **tree)
 			*expr = *sym->initializer;
 			/* we want the right position reported, thus the copy */
 			expr->pos = token->pos;
+			expr->enum_symbol = sym;
 			expr->flags = CEF_SET_ENUM;
 			token = next;
 			break;
@@ -745,6 +746,7 @@ static struct token *unary_expression(struct token *token, struct expression **t
 			check_label_usage(sym, token->pos);
 			label->flags = CEF_ADDR;
 			label->label_symbol = sym;
+			label->label_pos = token->next->pos;
 			*tree = label;
 			return token->next->next;
 		}
@@ -973,5 +975,3 @@ struct token *parse_expression(struct token *token, struct expression **tree)
 {
 	return comma_expression(token,tree);
 }
-
-

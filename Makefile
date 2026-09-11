@@ -102,6 +102,7 @@ PROGRAMS += example
 PROGRAMS += graph
 PROGRAMS += obfuscate
 PROGRAMS += sparse
+PROGRAMS += tagger
 PROGRAMS += test-dissect
 PROGRAMS += test-lexing
 PROGRAMS += test-linearize
@@ -435,6 +436,9 @@ test_smatch_math: test_smatch_math.o test-smatch.o $(SMATCH_OBJS) \
 		   $(SMATCH_CHECKS) $(LIBS) smatch_checks.h
 	$(Q)$(LD) -o $@ test_smatch_math.o test-smatch.o $(SMATCH_OBJS) \
 		$(SMATCH_CHECKS) $(LIBS) $(SMATCH_LDFLAGS)
+
+tagger: smatch_hash.o
+tagger-ldlibs := -lcrypto -ldb
 
 test-smatch.o: smatch.c $(LIB_H) smatch.h smatch_dbtypes.h \
 	       smatch_modules.h smatch_modules_late.h smatch_checks.h

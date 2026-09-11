@@ -184,6 +184,8 @@ struct expression {
 	int op;
 	struct position pos;
 	struct symbol *ctype;
+	/* Original symbol when an enum constant is folded to EXPR_VALUE. */
+	struct symbol *enum_symbol;
 	unsigned long parent;
 	struct stree *stree;
 	union {
@@ -252,6 +254,7 @@ struct expression {
 		// EXPR_LABEL
 		struct /* label_expr */ {
 			struct symbol *label_symbol;
+			struct position label_pos;
 		};
 		// EXPR_INITIALIZER
 		struct expression_list *expr_list;

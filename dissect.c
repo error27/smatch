@@ -56,6 +56,7 @@ struct symbol *dissect_ctx;
 static struct reporter *reporter;
 
 static void do_sym_list(struct symbol_list *list);
+static inline struct symbol *do_symbol(struct symbol *sym);
 
 static struct symbol
 	*base_type(struct symbol *sym),
@@ -234,8 +235,11 @@ static void examine_sym_node(struct symbol *node, struct symbol *parent)
 			base->inspected = 1;
 			base->kind = 's';
 
-			if (!base->symbol_list)
+			if (!base->symbol_list) {
+				if (base->ident)
+					reporter->r_symdef(base);
 				return;
+			}
 
 			dctx = dissect_ctx;
 			if (toplevel(base->scope))
@@ -341,11 +345,19 @@ again:
 		warning(expr->pos, "bad expr->type: %d", expr->type);
 
 	case EXPR_TYPE:		// [struct T]; Why ???
-	case EXPR_VALUE:
 	case EXPR_FVALUE:
+
+	break; case EXPR_VALUE:
+		if (expr->enum_symbol) {
+			ret = base_type(expr->enum_symbol);
+			reporter->r_symbol(fix_mode(ret, mode), &expr->pos,
+					   expr->enum_symbol);
+		}
 
 	break; case EXPR_LABEL:
 		ret = &label_ctype;
+		if (reporter->r_label)
+			reporter->r_label(&expr->label_pos, expr->label_symbol, 0);
 
 	break; case EXPR_STRING:
 		ret = &string_ctype;
@@ -377,15 +389,26 @@ again:
 		ret = do_expression(mode, expr->cond_false);
 
 	break; case EXPR_CALL:
+	{
+		struct symbol *fn = NULL;
+
 		if (expr->fn->type == EXPR_SYMBOL)
 			expr->fn->op = 'f'; /* for expr_symbol() */
 		ret = do_expression(U_R_PTR, expr->fn);
+		if (expr->fn->type == EXPR_SYMBOL)
+			fn = expr_symbol(expr->fn);
 		if (is_ptr(ret))
 			ret = ret->ctype.base_type;
 		DO_2_LIST(ret->arguments, expr->args, arg, val,
 			do_expression(u_lval(base_type(arg)), val));
 		ret = ret->type == SYM_FN ? base_type(ret)
 			: &bad_ctype;
+		if (reporter->r_follow && fn) {
+			fn = fn->definition;
+			if (fn && !fn->inspected)
+				do_symbol(fn);
+		}
+	}
 
 	break; case EXPR_ASSIGNMENT:
 		mode |= U_W_VAL | U_R_VAL;
@@ -554,9 +577,13 @@ static struct symbol *do_statement(usage_t mode, struct statement *stmt)
 		do_statement(U_VOID, stmt->case_statement);
 
 	break; case STMT_GOTO:
+		if (stmt->goto_label && reporter->r_label)
+			reporter->r_label(&stmt->goto_pos, stmt->goto_label, 0);
 		do_expression(U_R_PTR, stmt->goto_expression);
 
 	break; case STMT_LABEL:
+		if (stmt->label_identifier && reporter->r_label)
+			reporter->r_label(&stmt->pos, stmt->label_identifier, 1);
 		do_statement(mode, stmt->label_statement);
 
 	}
@@ -627,6 +654,8 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 	struct symbol *dctx = dissect_ctx;
 	struct statement *stmt;
 
+	if (type->type == SYM_FN && reporter->r_follow && sym->inspected)
+		return type;
 	reporter->r_symdef(sym);
 
 	switch (type->type) {
@@ -640,12 +669,17 @@ static inline struct symbol *do_symbol(struct symbol *sym)
 		dissect_ctx = dctx;
 
 	break; case SYM_FN:
+		if (reporter->r_follow) {
+			if (!reporter->r_follow(sym))
+				break;
+			sym->inspected = 1;
+		}
 		stmt = sym->ctype.modifiers & MOD_INLINE
 			? type->inline_stmt : type->stmt;
 		if (!stmt)
 			break;
 
-		if (dctx)
+		if (dctx && !reporter->r_follow)
 			sparse_error(dctx->pos, "dissect_ctx change %s -> %s",
 				show_ident(dctx->ident), show_ident(sym->ident));
 
