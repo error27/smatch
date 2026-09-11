@@ -1264,12 +1264,6 @@ static void report_member_definition(struct symbol *sym, struct symbol *member)
 	if (member->ident)
 		save_definition_type(member, &pos);
 	if (sym && sym->ident && member->ident &&
-	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION) &&
-	    !identifier_at_position(&sym->pos, sym->ident)) {
-		save_tag(&pos, show_ident(member->ident), BASE, 0, 0, 0);
-		return;
-	}
-	if (sym && sym->ident && member->ident &&
 	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION)) {
 		if (enclosing_compound_position(sym, &owner_pos) &&
 		    !get_file_number(stream_name(owner_pos.stream), &file)) {
