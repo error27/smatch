@@ -568,21 +568,6 @@ bool buf_comp_has_bytes(struct expression *buf, struct expression *var)
 	return false;
 }
 
-bool buf_has_bytes(struct expression *buf, struct expression *var)
-{
-	struct range_list *rl;
-	int size;
-
-	size = get_array_size_bytes_max(buf);
-	get_absolute_rl(var, &rl);
-	if (size > 0 &&
-	    get_implied_rl(var, &rl) &&
-	    rl_min(rl).value <= size)
-		return true;
-
-	return buf_comp_has_bytes(buf, var);
-}
-
 static int is_sizeof(struct expression *expr)
 {
 	const char *name;
