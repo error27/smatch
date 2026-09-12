@@ -125,6 +125,42 @@ struct expression *get_assigned_call(struct expression *expr)
 	return ret;
 }
 
+struct expression *get_assigned_alloc(struct expression *expr)
+{
+	struct expression *ret;
+	struct smatch_state *state;
+	struct sm_state *sm, *possible;
+	struct symbol *sym;
+	char *name;
+
+	ret = get_assigned_call(expr);
+	if (ret || option_project != PROJ_KERNEL)
+		return ret;
+
+	sm = get_assigned_sm(expr);
+	if (!sm || sm->state != &merged)
+		return NULL;
+
+	name = expr_to_var_sym(expr, &sym);
+	if (!name || !sym)
+		goto free;
+	if (strcmp(name, "_res") != 0 || !is_void_ptr(get_type(expr)))
+		goto free;
+
+	FOR_EACH_PTR(sm->possible, possible) {
+		state = possible->state;
+		if (!state || state == &merged || !state->data)
+			continue;
+		ret = strip_expr(state->data);
+		if (ret && ret->type == EXPR_CALL)
+			break;
+		ret = NULL;
+	} END_FOR_EACH_PTR(possible);
+free:
+	free_string(name);
+	return ret;
+}
+
 static struct expression *strip_useless_scope(struct expression *right)
 {
 	struct expression *orig;

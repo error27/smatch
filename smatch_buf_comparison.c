@@ -822,7 +822,7 @@ static int match_assign_array(struct expression *expr)
 	if (!type_is_ptr(get_type(expr->left)))
 		return 0;
 
-	call = get_assigned_call(expr->right);
+	call = get_assigned_alloc(expr->right);
 	if (call) {
 		struct allocation_info info;
 		struct symbol *sym;
