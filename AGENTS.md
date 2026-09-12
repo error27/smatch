@@ -238,6 +238,8 @@ there.
 COMMIT MESSAGES
 
 - Use an imperative, concise subject describing the change.
+- Write function names with trailing parentheses, such as `foo()`, in prose,
+  documentation and commit messages.
 - Explain why the change is needed, not only what the diff does.
 - Wrap commit-message body lines at 74 characters or fewer.
 - Keep trailers together at the end of the message.

@@ -607,6 +607,7 @@ struct smatch_state *alloc_state_str(const char *name);
 struct smatch_state *merge_str_state(struct smatch_state *s1, struct smatch_state *s2);
 struct smatch_state *alloc_state_expr(struct expression *expr);
 struct expression *get_assigned_call(struct expression *expr);
+struct expression *get_assigned_alloc(struct expression *expr);
 struct expression *get_rightmost_call(struct expression *expr);
 struct expression *get_argument_from_call_expr(struct expression_list *args,
 					       int num);
@@ -1271,6 +1272,8 @@ int get_array_size_bytes_max(struct expression *expr);
 struct range_list *get_array_size_bytes_rl(struct expression *expr);
 int get_real_array_size(struct expression *expr);
 int last_member_is_resizable(struct symbol *type);
+/* smatch_buf_size_helper.c */
+bool buf_size_ok(struct expression *buf, struct expression *size);
 /* smatch_strlen.c */
 bool is_strlen(struct expression *expr);
 int get_implied_strlen(struct expression *expr, struct range_list **rl);
@@ -1542,7 +1545,6 @@ struct expression *get_array_variable(struct expression *size);
 int buf_comparison_index_ok(struct expression *expr);
 bool buf_comp_has_bytes(struct expression *buf, struct expression *var);
 bool buf_comp2_has_bytes(struct expression *buf_expr, struct expression *var);
-bool buf_has_bytes(struct expression *buf, struct expression *var);
 
 /* smatch_untracked_param.c */
 void mark_untracked(struct expression *expr, int param, char *key, char *value);

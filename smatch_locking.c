@@ -460,6 +460,8 @@ static struct lock_info lock_table[] = {
 
 	{"uart_unlock_and_check_sysrq_irqrestore", UNLOCK, spin_lock, 0, "&$->lock"},
 	{"uart_unlock_and_check_sysrq_irqrestore", RESTORE, irq, 1, "$"},
+	{"vgic_queue_irq_unlock", UNLOCK, spin_lock, 1, "&$->irq_lock"},
+	{"vgic_queue_irq_unlock", RESTORE, irq, 2, "$"},
 
 	{"mt7530_mutex_lock",	LOCK,	mutex, 0, "&$->bus->mdio_lock"},
 	{"mt7530_mutex_unlock",	UNLOCK,	mutex, 0, "&$->bus->mdio_lock"},
