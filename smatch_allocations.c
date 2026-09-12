@@ -61,12 +61,17 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"kmalloc", "$0"},
 	{"kmalloc_node", "$0"},
 	{"kmalloc_noprof", "$0"},
+	{"_kmalloc_noprof", "$0"},
+	{"_kmalloc_node_noprof", "$0"},
 	{"kzalloc", "$0", .zeroed=true},
 	{"kzalloc_node", "$0", .zeroed=true},
 	{"kzalloc_noprof", "$0", .zeroed=true},
+	{"_kzalloc_noprof", "$0", .zeroed=true},
 
 	{"kmalloc_array", "$0 * $1"},
 	{"kmalloc_array_noprof", "$0 * $1"},
+	{"_kmalloc_array_noprof", "$0 * $1"},
+	{"_kmalloc_array_node_noprof", "$0 * $1"},
 	{"kcalloc", "$0 * $1", .zeroed=true},
 
 	{"vmalloc", "$0"},
