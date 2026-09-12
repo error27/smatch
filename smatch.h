@@ -1271,6 +1271,8 @@ int get_array_size_bytes_max(struct expression *expr);
 struct range_list *get_array_size_bytes_rl(struct expression *expr);
 int get_real_array_size(struct expression *expr);
 int last_member_is_resizable(struct symbol *type);
+/* smatch_buf_size_helper.c */
+bool buf_size_ok(struct expression *buf, struct expression *size);
 /* smatch_strlen.c */
 bool is_strlen(struct expression *expr);
 int get_implied_strlen(struct expression *expr, struct range_list **rl);
