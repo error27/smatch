@@ -329,6 +329,41 @@ static struct expression *get_variable_struct_member(struct expression *expr)
 	return member_expression(expr, '*', last_member->ident);
 }
 
+static void match_variable_length_array_helper(struct expression *pointer,
+					       struct expression *size,
+					       struct expression *mod_expr)
+{
+	struct expression *member_size, *member;
+	struct smatch_state *state;
+	struct sm_state *sm;
+	sval_t lsize, dummy;
+
+	pointer = strip_expr(pointer);
+	member = get_variable_struct_member(pointer);
+	if (!member)
+		return;
+
+	size = strip_expr(size);
+	if (size->type != EXPR_BINOP || size->op != '+')
+		return;
+
+	if (!get_implied_value(size->left, &lsize) ||
+	    lsize.value != type_bytes(get_type(pointer)))
+		return;
+
+	member_size = size->right;
+	/* Handled by smatch_buf_size.c */
+	if (get_implied_value(member_size, &dummy))
+		return;
+
+	db_save_type_links(member, BYTE_COUNT, member_size);
+	state = alloc_compare_size(BYTE_COUNT, member_size);
+	sm = set_state_expr(size_id, member, state);
+	if (!sm)
+		return;
+	add_link(member_size, member, mod_expr);
+}
+
 static void match_struct_size_helper(struct expression *pointer, struct expression *size, struct expression *mod_expr)
 {
 	struct expression *tmp, *count, *member;
@@ -369,6 +404,7 @@ static void match_allocation(struct expression *expr,
 
 	pointer = strip_expr(expr->left);
 	match_alloc_helper(pointer, info->total_size, expr);
+	match_variable_length_array_helper(pointer, info->total_size, expr);
 	match_struct_size_helper(pointer, info->total_size, expr);
 }
 
