@@ -161,3 +161,5 @@ __kvmalloc_node_noprof 1-u64max 4096-ptr_max
 _kmalloc_noprof 0-u64max 0,4096-ptr_max
 _kzalloc_noprof 0-u64max 0,4096-ptr_max
 _kmalloc_array_noprof 0-u64max 0,4096-ptr_max
+tty_kopen_exclusive 0,4096-ptr_max 4096-ptr_max
+kho_alloc_preserve 0,1048576-u64max 4096-ptr_max
