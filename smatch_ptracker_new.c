@@ -109,6 +109,9 @@ static void match_call_info(struct expression *expr)
 
 void smatch_ptracker_new(int id)
 {
+	if (!option_info)
+		return;
+
 	my_id = id;
 
 	add_hook(&match_call_info, FUNCTION_CALL_HOOK);
