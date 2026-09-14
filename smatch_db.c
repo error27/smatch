@@ -566,7 +566,10 @@ int mtag_map_select_tag(mtag_t container, int offset, mtag_t *tag)
 
 void sql_insert_ptracker(mtag_t tag, int type, const char *value)
 {
-	sql_insert_cache(ptracker, "%lld, %d, '%s'", tag, type, value);
+	char escaped[1024];
+
+	sqlite3_snprintf(sizeof(escaped), escaped, "%q", value);
+	sql_insert_cache(ptracker, "%lld, %d, '%s'", tag, type, escaped);
 }
 
 char *get_static_filter(struct symbol *sym)
