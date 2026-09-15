@@ -1,0 +1,11 @@
+drivers/platform/x86/samsung-galaxybook.c:1402 galaxybook_probe()
+
+Calling galaxybook_platform_profile_init() changes Smatch's implied range for
+galaxybook->platform from 4096-ptr_max to 0,4096-ptr_max.  There is no matching
+cross-function database entry, and the small same-file function is analyzed
+inline.  The precise cause has not been determined.
+
+Warning:
+
+drivers/platform/x86/samsung-galaxybook.c:1402 galaxybook_probe() warn: address
+of NULL pointer 'galaxybook->platform'
