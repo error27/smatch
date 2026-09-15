@@ -164,3 +164,4 @@ _kmalloc_array_noprof 0-u64max 0,4096-ptr_max
 tty_kopen_exclusive 0,4096-ptr_max 4096-ptr_max
 kho_alloc_preserve 0,1048576-u64max 4096-ptr_max
 request_key 0,4096-ptr_max 4096-ptr_max
+of_clk_get_by_name 0,(-4095)-(-1) (-4095)-(-1)
