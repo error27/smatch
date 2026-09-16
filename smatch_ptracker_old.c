@@ -78,11 +78,35 @@ bool get_old_ptracker(struct expression *expr, sval_t *sval)
 	return true;
 }
 
+static void match_assign(struct expression *expr)
+{
+	sval_t sval;
+
+	if (!get_old_ptracker(expr->right, &sval))
+		return;
+	set_state_expr(my_id, expr->left, alloc_estate_sval(sval));
+}
+
+static void caller_info_callback(struct expression *call, int param, char *printed_name, struct sm_state *sm)
+{
+	if (sm->state == &undefined || sm->state == &merged)
+		return;
+
+	/* handled in smatch_ptracker_new.c */
+	if (strcmp(printed_name, "$") == 0)
+		return;
+
+	sql_insert_caller_info(call, PTRACKER, param, printed_name, "");
+}
+
 void smatch_ptracker_old(int id)
 {
 	my_id = id;
 
 	set_dynamic_states(my_id);
+	add_modification_hook(my_id, &set_undefined);
 	select_caller_name_sym(&select_ptracker, PTRACKER);
 	add_hook(&after_def_hook, AFTER_DEF_HOOK);
+	add_hook(&match_assign, ASSIGNMENT_HOOK);
+	add_caller_info_callback(my_id, caller_info_callback);
 }
