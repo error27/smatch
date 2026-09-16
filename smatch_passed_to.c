@@ -106,7 +106,7 @@ void print_passed_to(struct expression *expr)
 	free_slist(&printed);
 }
 
-static void print_passed_to_states(void)
+void print_passed_to_states(void)
 {
 	struct state_list *printed;
 	struct sm_state *sm;
@@ -124,5 +124,4 @@ void smatch_passed_to(int id)
 
 	set_dynamic_states(my_id);
 	add_hook(&match_call, FUNCTION_CALL_HOOK);
-	register_ai_info(&print_passed_to_states);
 }

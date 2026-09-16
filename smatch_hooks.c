@@ -135,16 +135,21 @@ void add_pre_merge_hook(int client_id, void (*hook)(struct sm_state *cur, struct
 }
 
 struct position *__hook_pos;
-static struct void_fn_list *ai_info_hooks;
+static void_fn **ai_info;
 
-void register_ai_info(void_fn *fn)
+void register_ai_info(int id, void_fn *fn)
 {
-	add_ptr_list(&ai_info_hooks, fn);
+	ai_info[id] = fn;
 }
 
-void print_ai_info(void)
+void print_ai_info(const char *check_name)
 {
-	call_void_fns(ai_info_hooks);
+	int id = id_from_name(check_name);
+
+	if (id < 0)
+		return;
+	if (ai_info[id])
+		(ai_info[id])();
 }
 
 static void pass_expr_to_client(expr_func *fn, void *data)
@@ -361,6 +366,9 @@ void allocate_hook_memory(void)
 {
 	pre_merge_hooks = malloc(num_checks * sizeof(*pre_merge_hooks));
 	memset(pre_merge_hooks, 0, num_checks * sizeof(*pre_merge_hooks));
+
+	ai_info = malloc(num_checks * sizeof(*ai_info));
+	memset(ai_info, 0, num_checks * sizeof(*ai_info));
 }
 
 void smatch_hooks(int id)

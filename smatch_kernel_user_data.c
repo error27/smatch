@@ -1396,6 +1396,21 @@ static void match_capped(struct expression *expr,
 	set_state(my_id, name, sym, new);
 }
 
+void ai_user_data_info(void)
+{
+	static struct position *prev;
+	struct sm_state *sm;
+
+	if (prev == __hook_pos)
+		return;
+	prev = __hook_pos;
+
+	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
+		sm_msg("%s %s%s full='%s'", sm->name, sm->state->name,
+		       estate_capped(sm->state) ? "[c]" : "", show_sm(sm));
+	} END_FOR_EACH_SM(sm);
+}
+
 void smatch_kernel_user_data(int id)
 {
 	struct user_fn_info *info;

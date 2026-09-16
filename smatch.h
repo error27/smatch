@@ -186,8 +186,8 @@ DECLARE_PTR_LIST(name_sym_fn_list, name_sym_hook);
 DECLARE_PTR_LIST(string_hook_list, string_hook);
 DECLARE_PTR_LIST(stree_func_list, stree_func);
 void call_void_fns(struct void_fn_list *list);
-void register_ai_info(void_fn *fn);
-void print_ai_info(void);
+void register_ai_info(int id, void_fn *fn);
+void print_ai_info(const char *check_name);
 void call_expr_fns(struct expr_fn_list *list, struct expression *expr);
 void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt);
 void call_sym_fns(struct sym_fn_list *list, struct symbol *sym);
@@ -451,7 +451,7 @@ do {                                                           \
 	if (option_ai) {				       \
 		int __saved_option_ai = option_ai;	       \
 		option_ai = 0;				       \
-		print_ai_info();			       \
+		print_ai_info(__CHECKNAME__);		       \
 		option_ai = __saved_option_ai;		       \
 		sm_printf("end report: %d\n", __this_warn);    \
 	}						       \
@@ -2193,5 +2193,8 @@ struct smatch_state *get_real_absolute_state_var_sym(const char *name, struct sy
 void __save_imaginary_state(struct expression *expr, struct range_list *true_rl, struct range_list *false_rl);
 int get_imaginary_absolute(struct expression *expr, struct range_list **rl);
 
+/* ai things */
+void ai_user_data_info(void);
+void print_passed_to_states(void);
 
 #endif 	    /* !SMATCH_H_ */
