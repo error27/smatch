@@ -46,8 +46,10 @@ static void match_check_params(struct expression *call)
 		if (param->type != EXPR_PREOP || param->op != '&')
 			continue;
 		cast_type = get_pointer_type(arg);
-		if (!cast_type || cast_type->type != SYM_BASETYPE ||
-		    type_bits(cast_type) == 8)
+		if (!cast_type ||
+		    cast_type->type != SYM_BASETYPE ||
+		    type_bits(cast_type) == 8 ||
+		    cast_type == &void_ctype)
 			continue;
 		type = get_pointer_type(param);
 		if (!type || type->type != SYM_BASETYPE)
