@@ -43,9 +43,14 @@ void add_dereference_hook(expr_func *fn)
 
 static void call_deref_hooks(struct expression *expr)
 {
+	struct symbol *type;
+
 	if (__in_fake_assign || __in_fake_parameter_assign)
 		return;
 	if (!expr)
+		return;
+	type = get_type(expr);
+	if (!type || type->type != SYM_PTR)
 		return;
 
 	call_expr_fns(deref_hooks, expr);
@@ -202,4 +207,3 @@ void smatch_dereferences(int id)
 		add_param_key_expr_hook(info->name, &param_deref, info->param, info->key, info);
 	}
 }
-
