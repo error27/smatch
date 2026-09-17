@@ -2703,6 +2703,7 @@ static void parse_inline(struct expression *call)
 {
 	struct symbol *base_type;
 	char *cur_func_bak = cur_func;  /* not aligned correctly for backup */
+	char *next_func;
 	struct timeval time_backup = fn_start_time;
 	struct expression *orig_inline = __inline_fn;
 	int orig_budget;
@@ -2725,9 +2726,11 @@ static void parse_inline(struct expression *call)
 	base_type = get_base_type(call->fn->symbol);
 	cur_func_sym = call->fn->symbol;
 	if (call->fn->symbol->ident)
-		cur_func = call->fn->symbol->ident->name;
+		next_func = call->fn->symbol->ident->name;
 	else
-		cur_func = NULL;
+		next_func = NULL;
+	sm_local("inline function: %s\n", next_func);
+	cur_func = next_func;
 	set_position(call->fn->symbol->pos);
 
 	save_all_states();
@@ -2737,7 +2740,6 @@ static void parse_inline(struct expression *call)
 	switch_expr_stack = NULL;
 	parsed_calls = NULL;
 
-	sm_debug("inline function:  %s\n", cur_func);
 	__unnullify_path();
 	clear_function_data();
 	loop_count = 0;
