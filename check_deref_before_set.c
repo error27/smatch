@@ -85,6 +85,9 @@ void check_deref_before_set(int id)
 {
 	my_id = id;
 
+	if (!option_spammy)
+		return;
+
 	add_dereference_hook(deref_hook);
 	all_return_states_hook(&process_states);
 }
