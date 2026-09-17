@@ -40,6 +40,7 @@ int silence_output;
 int __inline_call;
 bool __reparsing_code;
 struct expression  *__inline_fn;
+int __inline_all;
 
 int __smatch_lineno = 0;
 static struct position current_pos;
@@ -369,6 +370,8 @@ int inlinable(struct expression *expr)
 		return 0;
 	if (is_no_inline_function(expr->symbol->ident->name))
 		return 0;
+	if (__inline_all)
+		return 1;
 	sym = get_base_type(expr->symbol);
 	if (sym->stmt && sym->stmt->type == STMT_COMPOUND) {
 		if (ptr_list_size((struct ptr_list *)sym->stmt->stmts) > 10)

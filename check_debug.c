@@ -1067,6 +1067,16 @@ static void match_force_off(const char *fn, struct expression *expr, void *info)
 	force_output = 0;
 }
 
+static void match_inline_on(const char *fn, struct expression *expr, void *info)
+{
+	__inline_all = 1;
+}
+
+static void match_inline_off(const char *fn, struct expression *expr, void *info)
+{
+	__inline_all = 0;
+}
+
 static void match_debug_passes(const char *fn, struct expression *expr, void *info)
 {
 	debug_passes = true;
@@ -1243,6 +1253,8 @@ void check_debug(int id)
 	add_function_hook("__smatch_force_on", &match_force_on, NULL);
 	add_function_hook("__smatch_force_off", &match_force_off, NULL);
 	add_function_hook("__smatch_debug_passes", &match_debug_passes, NULL);
+	add_function_hook("__smatch_inline_on", &match_inline_on, NULL);
+	add_function_hook("__smatch_inline_off", &match_inline_off, NULL);
 
 	add_function_hook("__smatch_debug_state_cnt", &match_debug_state_cnt, NULL);
 	add_hook(print_state_count, STMT_HOOK_AFTER);

@@ -846,6 +846,7 @@ int inlinable(struct expression *expr);
 extern int __inline_call;
 extern bool __reparsing_code;
 extern struct expression *__inline_fn;
+extern int __inline_all;
 extern int __in_pre_condition;
 extern int __bail_on_rest_of_function;
 extern struct statement *__prev_stmt;
