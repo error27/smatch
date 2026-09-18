@@ -459,6 +459,87 @@ bool split_param_key(const char *value, int *param, char *key, int len)
 	return true;
 }
 
+static int parse_comparison(char **value, int *op)
+{
+
+	*op = **value;
+
+	switch (*op) {
+	case '<':
+		(*value)++;
+		if (**value == '=') {
+			(*value)++;
+			*op = SPECIAL_LTE;
+		}
+		break;
+	case '=':
+		(*value)++;
+		if (**value != '=') {
+			sm_perror("parsing comparison. expected ==");
+			return 0;
+		}
+		(*value)++;
+		*op = SPECIAL_EQUAL;
+		break;
+	case '!':
+		(*value)++;
+		if (**value != '=') {
+			sm_perror("parsing comparison. expected !=");
+			return 0;
+		}
+		(*value)++;
+		*op = SPECIAL_NOTEQUAL;
+		break;
+	case '>':
+		(*value)++;
+		if (**value == '=') {
+			(*value)++;
+			*op = SPECIAL_GTE;
+		}
+		break;
+	default:
+		return 0;
+	}
+
+	if (**value != ' ') {
+		sm_perror("parsing comparison.  %s", *value);
+		return 0;
+	}
+
+	(*value)++;
+	return 1;
+}
+
+/*
+ * This parses "== $0" into "SPECIAL_EQUAL and $0"
+ */
+int split_op_param_key(char *value, int *op, int *param, char **key)
+{
+	static char buf[256];
+	char *p;
+
+	if (!parse_comparison(&value, op))
+		return 0;
+
+	snprintf(buf, sizeof(buf), "%s", value);
+
+	p = buf;
+	if (*p++ != '$')
+		return 0;
+
+	*param = atoi(p);
+	if (*param < 0 || *param > 99)
+		return 0;
+	p++;
+	if (*param > 9)
+		p++;
+	p--;
+	*p = '$';
+	*key = p;
+
+	return 1;
+}
+
 bool get_implied_rl_from_call_str(struct expression *expr, const char *data, struct range_list **rl)
 {
 	struct smatch_state *state;
