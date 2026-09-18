@@ -2573,11 +2573,19 @@ static int parse_comparison(char **value, int *op)
 		break;
 	case '=':
 		(*value)++;
+		if (**value != '=') {
+			sm_perror("parsing comparison. expected ==");
+			return 0;
+		}
 		(*value)++;
 		*op = SPECIAL_EQUAL;
 		break;
 	case '!':
 		(*value)++;
+		if (**value != '=') {
+			sm_perror("parsing comparison. expected !=");
+			return 0;
+		}
 		(*value)++;
 		*op = SPECIAL_NOTEQUAL;
 		break;
