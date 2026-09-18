@@ -324,6 +324,7 @@ SMATCH_OBJS += smatch_kernel_put_device_info.o
 SMATCH_OBJS += smatch_kernel_rcu_assign_pointer.o
 SMATCH_OBJS += smatch_kernel_task_state.o
 SMATCH_OBJS += smatch_kernel_task_state_info.o
+SMATCH_OBJS += smatch_kernel_test_bit.o
 SMATCH_OBJS += smatch_kernel_user_data.o
 SMATCH_OBJS += smatch_kernel_host_data.o
 SMATCH_OBJS += smatch_kernel_xa_err.o
