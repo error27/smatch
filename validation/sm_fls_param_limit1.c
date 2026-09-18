@@ -23,7 +23,6 @@ static struct cache *kmalloc_slab(unsigned long size, struct cache **b)
 /*
  * check-name: smatch: DB parameter limit after fls()
  * check-command: validation/smatch_fls_param_limit.sh sm_fls_param_limit1.c
- * check-known-to-fail
  *
  * check-output-start
 slub.i:18 kmalloc_slab() implied: size = '193-8192'
