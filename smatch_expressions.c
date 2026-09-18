@@ -497,13 +497,8 @@ struct expression *gen_expr_from_dollar_key(struct expression *expr, const char 
 	struct expression *call, *arg, *ret;
 	int param;
 
-	if (!expr)
-		return NULL;
-
-	call = expr;
-	while (call->type == EXPR_ASSIGNMENT)
-		call = strip_expr(call->right);
-	if (call->type != EXPR_CALL)
+	call = get_rightmost_call(expr);
+	if (!call)
 		return NULL;
 
 	if (key[0] != '$')
