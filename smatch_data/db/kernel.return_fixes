@@ -3,8 +3,6 @@ adin1110_read_reg s32min-(-1),1-s32max (-4095)-(-1)
 ahd_probe_stack_size 0 0-s32max
 alloc_pages 1-u64max 4096-ptr_max
 alloc_pages_exact_nid 1-u64max 4096-ptr_max
-array_index_mask_nospec 0-u32max u32max
-array_index_mask_nospec 0-u64max u64max
 atomic_read s32min-s32max s32min-s32max[==$0->counter]
 bitmap_find_free_region 0 0-s32max
 __bitmap_weight 0-s32max 0-s32max[<=$1]
