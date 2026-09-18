@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sqlite3
 import sys
 
@@ -25,7 +26,8 @@ def main():
 	function, old_return, first_return, second_return = sys.argv[1:]
 
 	try:
-		con = sqlite3.connect("smatch_db.sqlite")
+		con = sqlite3.connect(
+			os.environ.get("SMATCH_DB_FILE", "smatch_db.sqlite"))
 	except sqlite3.Error as error:
 		print("error: %s" % error, file=sys.stderr)
 		return 1

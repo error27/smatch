@@ -4,6 +4,7 @@ set -e
 
 db_file=$1
 bin_dir=$(dirname $0)
+export SMATCH_DB_FILE=$db_file
 
 FS_READ_WRITE=$(${bin_dir}/sm_hash 'fs/read_write.c')
 DRIVERS_PCI_ACCESS=$(${bin_dir}/sm_hash 'drivers/pci/access.c')
@@ -256,6 +257,13 @@ delete from caller_info where caller = 'sctp_inq_push' and function = '(struct w
 delete from return_states where function = '__dev_printk' and type = 103;
 
 EOF
+
+ARRAY_INDEX_MASK_NOSPEC=$(echo "select 1 from return_states where function = 'array_index_mask_nospec' and return = '0-u64max' limit 1;" | sqlite3 $db_file)
+if [ "$ARRAY_INDEX_MASK_NOSPEC" != "" ] ; then
+    ${bin_dir}/split_return.py array_index_mask_nospec '0-u64max' 0 ulong_max
+    ${bin_dir}/add_entry.py array_index_mask_nospec 0 1028 0 '$' '>= $1'
+    ${bin_dir}/add_entry.py array_index_mask_nospec ulong_max 1028 0 '$' '< $1'
+fi
 
 for i in $(echo "select distinct return from return_states where function = 'clear_user';" | sqlite3 $db_file | grep -v '\[' ) ; do
     echo "update return_states set return = '$i[<=\$1]' where return = '$i' and function = 'clear_user';" | sqlite3 $db_file

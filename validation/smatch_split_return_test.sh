@@ -21,8 +21,6 @@ cd "$tmp_dir"
 	"$test_file" > warns.txt
 "$smatch_dir/smatch_data/db/create_db.sh" -p=kernel warns.txt \
 	>/dev/null 2>&1
-"$smatch_dir/smatch_data/db/split_return.py" \
-	array_index_mask_nospec 0-u64max 0 u64max
 
 sqlite3 smatch_db.sqlite <<'EOF'
 select 'return: ' || distinct_return
@@ -32,6 +30,12 @@ from (
 	where function = 'array_index_mask_nospec'
 )
 order by distinct_return;
+
+select 'entry: ' || return || '|' || type || '|' || parameter || '|' ||
+       key || '|' || value
+from return_states
+where function = 'array_index_mask_nospec' and type = 1028
+order by return;
 EOF
 
 cp "$test_source" "$tmp_dir/$test_file"

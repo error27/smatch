@@ -18,7 +18,9 @@ void frob(unsigned int x)
  *
  * check-output-start
 return: 0
-return: u64max
+return: ulong_max
+entry: 0|1028|0|$|>= $1
+entry: ulong_max|1028|0|$|< $1
 sm_split_return1.c:9 frob() implied: x = '0-3'
 sm_split_return1.c:11 frob() implied: x = '4-u32max'
  * check-output-end
