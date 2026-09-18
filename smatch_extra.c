@@ -2900,7 +2900,7 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	struct sm_state *sm;
 	struct symbol *compare_type, *var_type;
 	struct range_list *rl;
-	struct range_list *limit;
+	struct range_list *limit = NULL;
 	struct range_list *new;
 	char *other_name;
 	struct symbol *other_sym;
@@ -2922,6 +2922,8 @@ static void db_param_limit_filter(struct expression *expr, int param, char *key,
 	call_results_to_rl(expr, compare_type, value, &limit);
 	if (strcmp(key, "$") == 0)
 		move_known_to_rl(&arg, &limit);
+	if (!limit)
+		return;
 	name = get_chunk_from_key(arg, key, &sym, &vsl);
 	if (!name)
 		return;
