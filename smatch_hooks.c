@@ -395,6 +395,18 @@ void call_expr_fns(struct expr_fn_list *list, struct expression *expr)
 	} END_FOR_EACH_PTR(fn);
 }
 
+void call_expr3_fns(struct expr3_fn_list *list,
+		    struct expression *expr1,
+		    struct expression *expr2,
+		    struct expression *expr3)
+{
+	expr3_func *fn;
+
+	FOR_EACH_PTR(list, fn) {
+		(fn)(expr1, expr2, expr3);
+	} END_FOR_EACH_PTR(fn);
+}
+
 void call_stmt_fns(struct stmt_fn_list *list, struct statement *stmt)
 {
 	stmt_func *fn;
