@@ -176,9 +176,11 @@ static void free_already_recorded(void)
 static void print_return_value_param(int return_id, char *return_ranges, struct expression *expr)
 {
 	struct smatch_state *state, *old;
+	struct expression *orig_expr;
 	struct sm_state *tmp;
 	struct range_list *rl;
 	const char *orig_name, *key;
+	struct symbol *type;
 	struct symbol *sym;
 	char buf[64];
 	int param;
@@ -219,6 +221,14 @@ static void print_return_value_param(int return_id, char *return_ranges, struct 
 		rl = generify_mtag_range(state);
 		if (is_boring_pointer_info(key, rl))
 			continue;
+
+		orig_expr = gen_expression_from_name_sym(orig_name, sym);
+		if (!orig_expr)
+			continue;
+		type = get_type(orig_expr);
+		if (!type)
+			continue;
+		rl = cast_rl(type, rl);
 
 		snprintf(buf, sizeof(buf), "%s%s", show_rl(rl), estate_has_hard_max(state) ? "[h]" : "");
 		if (already_recorded(param, key, buf))
