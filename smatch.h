@@ -698,7 +698,7 @@ int get_param_key_from_sm(struct sm_state *sm, struct expression *ret_expr,
 int get_param_key_from_expr(struct expression *expr, struct expression *ret_expr,
 			    const char **key);
 const char *get_param_key_swap_dollar(struct expression *expr);
-int split_op_param_key(char *value, int *op, int *param, char **key);
+bool split_op_param_key(char *value, int *op, int *param, char **key);
 int map_to_param(const char *name, struct symbol *sym);
 int get_param_num_from_sym(struct symbol *sym);
 int get_param_num(struct expression *expr);

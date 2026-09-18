@@ -513,23 +513,23 @@ static int parse_comparison(char **value, int *op)
 /*
  * This parses "== $0" into "SPECIAL_EQUAL and $0"
  */
-int split_op_param_key(char *value, int *op, int *param, char **key)
+bool split_op_param_key(char *value, int *op, int *param, char **key)
 {
 	static char buf[256];
 	char *p;
 
 	if (!parse_comparison(&value, op))
-		return 0;
+		return false;
 
 	snprintf(buf, sizeof(buf), "%s", value);
 
 	p = buf;
 	if (*p++ != '$')
-		return 0;
+		return false;
 
 	*param = atoi(p);
 	if (*param < 0 || *param > 99)
-		return 0;
+		return false;
 	p++;
 	if (*param > 9)
 		p++;
@@ -537,7 +537,7 @@ int split_op_param_key(char *value, int *op, int *param, char **key)
 	*p = '$';
 	*key = p;
 
-	return 1;
+	return true;
 }
 
 bool get_implied_rl_from_call_str(struct expression *expr, const char *data, struct range_list **rl)
