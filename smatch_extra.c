@@ -2996,6 +2996,44 @@ static void db_param_filter(struct expression *expr, int param, char *key, char 
 	db_param_limit_filter(expr, param, key, value, PARAM_FILTER);
 }
 
+static void db_return_comparison(struct expression *expr, int left_param, char *key, char *value)
+{
+	struct smatch_state *left_orig, *right_orig, *left_state, *right_state;
+	struct expression *left, *right;
+	int right_param;
+	int op;
+	char *right_key;
+
+	if (left_param < 0)
+		return;
+
+	if (!split_op_param_key(value, &op, &right_param, &right_key))
+		return;
+
+	left = gen_expr_from_param_key(expr, left_param, key);
+	if (!left)
+		return;
+
+	right = gen_expr_from_param_key(expr, right_param, right_key);
+	if (!right)
+		return;
+
+	left_orig = get_extra_state(left);
+	right_orig = get_extra_state(right);
+
+	if (!assume(compare_expression(left, op, right)))
+		return;
+	left_state = get_extra_state(left);
+	right_state = get_extra_state(right);
+	end_assume();
+
+	if (left_state && !estates_equiv(left_orig, left_state))
+		set_extra_expr_nomod(left, left_state);
+
+	if (right_state && !estates_equiv(right_orig, right_state))
+		set_extra_expr_nomod(right, right_state);
+}
+
 static struct expression *get_star_pointer_hack(struct expression *arg, const char *key)
 {
 	/* if we are setting *(p + offset) then we are setting *p */
@@ -3442,6 +3480,7 @@ void smatch_extra(int id)
 	select_return_states_before(&db_limited_before);
 	select_return_states_hook(PARAM_LIMIT, &db_param_limit);
 	select_return_states_hook(PARAM_FILTER, &db_param_filter);
+	select_return_states_hook(COMPARE_LIMIT, &db_return_comparison);
 	select_return_states_hook(PARAM_ADD, &db_param_add);
 	select_return_states_hook(PARAM_SET, &db_param_set);
 	add_lost_param_hook(&match_lost_param);
