@@ -125,6 +125,23 @@ def tracker_ids_for_call(con, row, parameter):
     return tracker_ids
 
 
+def deduplicate_candidates(con, candidates, parameter):
+    unique = []
+    seen = set()
+
+    for row in candidates:
+        tracker_ids = tuple(tracker_ids_for_call(con, row, parameter))
+        if tracker_ids:
+            identity = ("ptracker", tracker_ids)
+        else:
+            identity = ("call",) + row[:4]
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(row)
+    return unique
+
+
 def user_range_for_call(con, row, parameter):
     file_id, caller, function, call_id, _line, _value = row
     rows = con.execute(
@@ -229,6 +246,7 @@ def main():
     try:
         parameter = get_parameter(con, function, parameter_name)
         candidates = caller_rows(con, 0, function, None, parameter, USER_DATA)
+        candidates = deduplicate_candidates(con, candidates, parameter)
         if not candidates:
             raise ValueError("no callers pass user data to %s(%s)" %
                              (function, parameter_name))
