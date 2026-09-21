@@ -122,7 +122,7 @@ def tracker_ids_for_call(con, row, parameter):
         try:
             tracker_ids.append(int(item[0], 0))
         except ValueError:
-            print("error: invalid ptracker ID: %s" % item[0], file=sys.stderr)
+            continue
     return tracker_ids
 
 
@@ -152,65 +152,63 @@ def user_range_for_call(con, row, parameter):
         (file_id, caller, function, call_id, parameter, USER_DATA),
     ).fetchall()
     if not rows:
-        return "unknown"
+        return None
     return ",".join(item[0] for item in rows)
 
 
-def print_call(con, row, parameter, indent):
+def format_call(con, row, parameter, indent):
     file_id, caller, function, _call_id, line, value = row
     name = get_parameter_name(con, function, parameter)
-    if value == "unknown":
+    if value is None:
         value = user_range_for_call(con, row, parameter)
-    print("%s%s:%d %s() %s=%s" %
-          (" " * indent, filename(con, file_id), line, caller, name, value))
+    if value is None:
+        return None
+    return "%s%s:%d %s() %s=%s" % (
+        " " * indent, filename(con, file_id), line, caller, name, value)
 
 
 def trace_tracker(con, tracker_id, indent, path):
     if tracker_id in path:
-        print("%s[ptracker cycle at %d]" % (" " * indent, tracker_id))
-        return
+        return []
 
     rows = con.execute(
         "select type, value from ptracker where id = ? order by type, value",
         (tracker_id,),
     ).fetchall()
     if not rows:
-        print("%s[ptracker %d not found]" % (" " * indent, tracker_id))
-        return
+        return []
 
+    output = []
     next_path = path | {tracker_id}
     for tracker_type, value in rows:
         if tracker_type == PARAM_VALUE:
-            print("%ssource: %s" % (" " * indent, value))
+            output.append("%ssource: %s" % (" " * indent, value))
         elif tracker_type == PTRACKER_MERGE:
             try:
                 merged_id = int(value, 0)
             except ValueError:
-                print("%s[invalid merged ptracker ID: %s]" %
-                      (" " * indent, value))
                 continue
-            trace_tracker(con, merged_id, indent, next_path)
+            output.extend(trace_tracker(con, merged_id, indent, next_path))
         elif tracker_type == PTRACKER:
             try:
                 parameter, file_id, function, static = parse_ptracker(value)
-            except ValueError as error:
-                print("%s[%s]" % (" " * indent, error))
+            except ValueError:
                 continue
             callers = caller_rows(con, file_id, function, static, parameter,
                                   PTRACKER)
-            if not callers:
-                name = get_parameter_name(con, function, parameter)
-                print("%s%s() %s [no earlier caller]" %
-                      (" " * indent, function, name))
-                continue
             for caller in callers:
-                caller = caller[:-1] + ("unknown",)
-                print_call(con, caller, parameter, indent)
+                caller = caller[:-1] + (None,)
+                call = format_call(con, caller, parameter, indent)
+                if call is None:
+                    continue
+                branch = []
                 for next_id in tracker_ids_for_call(con, caller, parameter):
-                    trace_tracker(con, next_id, indent + 2, next_path)
-        else:
-            print("%s[unknown ptracker type %d]" %
-                  (" " * indent, tracker_type))
+                    branch.extend(trace_tracker(con, next_id, indent + 2,
+                                                next_path))
+                if branch:
+                    output.append(call)
+                    output.extend(branch)
+    return output
 
 
 def print_options(candidates, con, function, parameter_name):
@@ -236,13 +234,16 @@ def select_candidate(candidates, option):
 
 
 def print_trace(con, function, parameter_name, parameter, selected):
+    output = []
+    for tracker_id in tracker_ids_for_call(con, selected, parameter):
+        output.extend(trace_tracker(con, tracker_id, 4, set()))
+    if not output:
+        return
+
     print("%s(%s)" % (function, parameter_name))
-    print_call(con, selected, parameter, 2)
-    tracker_ids = tracker_ids_for_call(con, selected, parameter)
-    if not tracker_ids:
-        print("    [no ptracker information]")
-    for tracker_id in tracker_ids:
-        trace_tracker(con, tracker_id, 4, set())
+    print(format_call(con, selected, parameter, 2))
+    for line in output:
+        print(line)
 
 
 def main():
