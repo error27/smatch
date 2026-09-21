@@ -12,7 +12,8 @@ USER_DATA = 8017
 
 
 def usage():
-    print("usage: %s function parameter_name" % sys.argv[0], file=sys.stderr)
+    print("usage: %s function parameter_name [option]" % sys.argv[0],
+          file=sys.stderr)
     sys.exit(1)
 
 
@@ -194,27 +195,29 @@ def trace_tracker(con, tracker_id, indent, path):
                   (" " * indent, tracker_type))
 
 
-def choose(candidates, con):
+def print_options(candidates, con):
     for number, row in enumerate(candidates, 1):
         file_id, caller, _function, _call_id, _line, value = row
         print("[%d] %s, %s, %s" %
               (number, filename(con, file_id), caller, value))
 
+
+def select_candidate(candidates, option):
     try:
-        selected = input("Select a caller: ")
-        number = int(selected, 10)
-    except (EOFError, ValueError):
-        raise ValueError("invalid selection")
+        number = int(option, 10)
+    except ValueError:
+        raise ValueError("invalid option: %s" % option)
     if number < 1 or number > len(candidates):
-        raise ValueError("selection must be between 1 and %d" % len(candidates))
+        raise ValueError("option must be between 1 and %d" % len(candidates))
     return candidates[number - 1]
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         usage()
     function = sys.argv[1]
     parameter_name = sys.argv[2]
+    option = sys.argv[3] if len(sys.argv) == 4 else None
     db_file = os.environ.get("SMATCH_DB_FILE", "smatch_db.sqlite")
 
     try:
@@ -229,8 +232,11 @@ def main():
         if not candidates:
             raise ValueError("no callers pass user data to %s(%s)" %
                              (function, parameter_name))
-        selected = choose(candidates, con)
-        print("\n%s(%s)" % (function, parameter_name))
+        if option is None:
+            print_options(candidates, con)
+            return 0
+        selected = select_candidate(candidates, option)
+        print("%s(%s)" % (function, parameter_name))
         print_call(con, selected, parameter, 2)
         tracker_ids = tracker_ids_for_call(con, selected, parameter)
         if not tracker_ids:
