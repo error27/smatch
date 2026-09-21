@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import shlex
 import sqlite3
 import sys
 
@@ -212,11 +213,16 @@ def trace_tracker(con, tracker_id, indent, path):
                   (" " * indent, tracker_type))
 
 
-def print_options(candidates, con):
+def print_options(candidates, con, function, parameter_name):
+    print("Callers passing USER_DATA to %s(%s):\n" %
+          (function, parameter_name))
     for number, row in enumerate(candidates, 1):
         file_id, caller, _function, _call_id, _line, value = row
-        print("[%d] %s, %s, %s" %
+        print("[%d] file: %s, caller: %s(), range: %s" %
               (number, filename(con, file_id), caller, value))
+    command = shlex.join((sys.argv[0], function, parameter_name))
+    print("\nTrace one option by running:")
+    print("  %s <option>" % command)
 
 
 def select_candidate(candidates, option):
@@ -227,6 +233,16 @@ def select_candidate(candidates, option):
     if number < 1 or number > len(candidates):
         raise ValueError("option must be between 1 and %d" % len(candidates))
     return candidates[number - 1]
+
+
+def print_trace(con, function, parameter_name, parameter, selected):
+    print("%s(%s)" % (function, parameter_name))
+    print_call(con, selected, parameter, 2)
+    tracker_ids = tracker_ids_for_call(con, selected, parameter)
+    if not tracker_ids:
+        print("    [no ptracker information]")
+    for tracker_id in tracker_ids:
+        trace_tracker(con, tracker_id, 4, set())
 
 
 def main():
@@ -251,16 +267,13 @@ def main():
             raise ValueError("no callers pass user data to %s(%s)" %
                              (function, parameter_name))
         if option is None:
-            print_options(candidates, con)
-            return 0
-        selected = select_candidate(candidates, option)
-        print("%s(%s)" % (function, parameter_name))
-        print_call(con, selected, parameter, 2)
-        tracker_ids = tracker_ids_for_call(con, selected, parameter)
-        if not tracker_ids:
-            print("    [no ptracker information]")
-        for tracker_id in tracker_ids:
-            trace_tracker(con, tracker_id, 4, set())
+            if len(candidates) > 1:
+                print_options(candidates, con, function, parameter_name)
+                return 0
+            selected = candidates[0]
+        else:
+            selected = select_candidate(candidates, option)
+        print_trace(con, function, parameter_name, parameter, selected)
     except (sqlite3.Error, ValueError) as error:
         print("error: %s" % error, file=sys.stderr)
         return 1
