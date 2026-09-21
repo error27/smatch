@@ -41,19 +41,26 @@ def get_function_pointers(con, function):
 
 def get_parameter(con, function, name):
     rows = con.execute(
-        "select distinct parameter from parameter_name "
-        "where function = ? and value = ? order by parameter",
-        (function, name),
+        "select distinct parameter, value from parameter_name "
+        "where function = ? order by parameter",
+        (function,),
     ).fetchall()
-    parameters = [int(row[0]) for row in rows]
-    if not parameters:
+    matches = []
+    for parameter, parameter_name in rows:
+        if (name == parameter_name or
+                name.startswith(parameter_name + "->") or
+                name.startswith(parameter_name + ".")):
+            matches.append((int(parameter),
+                            "$" + name[len(parameter_name):]))
+    matches = sorted(set(matches))
+    if not matches:
         raise ValueError("no parameter named '%s' for %s()" %
                          (name, function))
-    if len(parameters) != 1:
+    if len(matches) != 1:
         raise ValueError("parameter '%s' has conflicting numbers for %s(): %s" %
                          (name, function,
-                          ", ".join(str(param) for param in parameters)))
-    return parameters[0]
+                          ", ".join(str(param) for param, _key in matches)))
+    return matches[0]
 
 
 def get_parameter_name(con, function, parameter):
@@ -84,12 +91,12 @@ def parse_ptracker(value):
     return int(fields[0], 0), int(fields[1], 0), fields[2], int(fields[3], 0)
 
 
-def caller_rows(con, file_id, function, static, parameter, data_type):
+def caller_rows(con, file_id, function, static, parameter, data_type, key="$"):
     rows = []
     seen = set()
     for pointer in get_function_pointers(con, function):
-        args = [pointer, parameter, data_type]
-        where = "function = ? and parameter = ? and key = '$' and type = ?"
+        args = [pointer, parameter, key, data_type]
+        where = "function = ? and parameter = ? and key = ? and type = ?"
         if pointer == function and file_id and static:
             where += " and file = ? and static = ?"
             args.extend((file_id, static))
@@ -143,31 +150,31 @@ def deduplicate_candidates(con, candidates, parameter):
     return unique
 
 
-def user_range_for_call(con, row, parameter):
+def user_range_for_call(con, row, parameter, key):
     file_id, caller, function, call_id, _line, _value = row
     rows = con.execute(
         "select distinct value from caller_info "
         "where file = ? and caller = ? and function = ? and call_id = ? "
-        "and parameter = ? and key = '$' and type = ? order by value",
-        (file_id, caller, function, call_id, parameter, USER_DATA),
+        "and parameter = ? and key = ? and type = ? order by value",
+        (file_id, caller, function, call_id, parameter, key, USER_DATA),
     ).fetchall()
     if not rows:
         return None
     return ",".join(item[0] for item in rows)
 
 
-def format_call(con, row, parameter, indent):
+def format_call(con, row, parameter, key, indent):
     file_id, caller, function, _call_id, line, value = row
-    name = get_parameter_name(con, function, parameter)
+    name = key.replace("$", get_parameter_name(con, function, parameter), 1)
     if value is None:
-        value = user_range_for_call(con, row, parameter)
+        value = user_range_for_call(con, row, parameter, key)
     if value is None:
         return None
     return "%s%s:%d %s() %s=%s" % (
         " " * indent, filename(con, file_id), line, caller, name, value)
 
 
-def trace_tracker(con, tracker_id, indent, path):
+def trace_tracker(con, tracker_id, key, indent, path):
     if tracker_id in path:
         return []
 
@@ -188,7 +195,8 @@ def trace_tracker(con, tracker_id, indent, path):
                 merged_id = int(value, 0)
             except ValueError:
                 continue
-            output.extend(trace_tracker(con, merged_id, indent, next_path))
+            output.extend(trace_tracker(con, merged_id, key, indent,
+                                        next_path))
         elif tracker_type == PTRACKER:
             try:
                 parameter, file_id, function, static = parse_ptracker(value)
@@ -198,12 +206,12 @@ def trace_tracker(con, tracker_id, indent, path):
                                   PTRACKER)
             for caller in callers:
                 caller = caller[:-1] + (None,)
-                call = format_call(con, caller, parameter, indent)
+                call = format_call(con, caller, parameter, key, indent)
                 if call is None:
                     continue
                 branch = []
                 for next_id in tracker_ids_for_call(con, caller, parameter):
-                    branch.extend(trace_tracker(con, next_id, indent + 2,
+                    branch.extend(trace_tracker(con, next_id, key, indent + 2,
                                                 next_path))
                 if branch:
                     output.append(call)
@@ -233,15 +241,15 @@ def select_candidate(candidates, option):
     return candidates[number - 1]
 
 
-def print_trace(con, function, parameter_name, parameter, selected):
+def print_trace(con, function, parameter_name, parameter, key, selected):
     output = []
     for tracker_id in tracker_ids_for_call(con, selected, parameter):
-        output.extend(trace_tracker(con, tracker_id, 4, set()))
+        output.extend(trace_tracker(con, tracker_id, key, 4, set()))
     if not output:
         return
 
     print("%s(%s)" % (function, parameter_name))
-    print(format_call(con, selected, parameter, 2))
+    print(format_call(con, selected, parameter, key, 2))
     for line in output:
         print(line)
 
@@ -261,8 +269,9 @@ def main():
         return 1
 
     try:
-        parameter = get_parameter(con, function, parameter_name)
-        candidates = caller_rows(con, 0, function, None, parameter, USER_DATA)
+        parameter, key = get_parameter(con, function, parameter_name)
+        candidates = caller_rows(con, 0, function, None, parameter, USER_DATA,
+                                 key)
         candidates = deduplicate_candidates(con, candidates, parameter)
         if not candidates:
             raise ValueError("no callers pass user data to %s(%s)" %
@@ -274,7 +283,7 @@ def main():
             selected = candidates[0]
         else:
             selected = select_candidate(candidates, option)
-        print_trace(con, function, parameter_name, parameter, selected)
+        print_trace(con, function, parameter_name, parameter, key, selected)
     except (sqlite3.Error, ValueError) as error:
         print("error: %s" % error, file=sys.stderr)
         return 1
