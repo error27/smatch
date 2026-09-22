@@ -13,6 +13,8 @@ USER_DATA = 8017
 
 # Retain the path to recursion in --full mode without printing a fake source.
 RECURSION_MARKER = object()
+SOURCE_MARKER = object()
+SOURCE_LINE = object()
 
 
 def usage():
@@ -179,6 +181,28 @@ def format_call(con, row, parameter, key, indent, full=False):
         " " * indent, filename(con, file_id), line, caller, name, value)
 
 
+def source_expression(value):
+    fields = value.split(") ", 1)
+    if len(fields) == 2:
+        return fields[1]
+    return value
+
+
+def attach_sources(call, branch):
+    output = []
+    remaining = []
+
+    for item in branch:
+        if isinstance(item, tuple) and item[0] is SOURCE_MARKER:
+            output.append((SOURCE_LINE, call, source_expression(item[1])))
+        else:
+            remaining.append(item)
+    if remaining:
+        output.append(call)
+        output.extend(remaining)
+    return output
+
+
 def trace_tracker(con, tracker_id, key, indent, path, full=False):
     if tracker_id in path:
         if full:
@@ -199,7 +223,7 @@ def trace_tracker(con, tracker_id, key, indent, path, full=False):
     next_path = path | {tracker_id}
     for tracker_type, value in rows:
         if tracker_type == PARAM_VALUE:
-            output.append("%ssource: %s" % (" " * indent, value))
+            output.append((SOURCE_MARKER, value))
         elif tracker_type == PTRACKER_MERGE:
             try:
                 merged_id = int(value, 0)
@@ -238,8 +262,7 @@ def trace_tracker(con, tracker_id, key, indent, path, full=False):
                     branch.append("%s[no ptracker information]" %
                                   (" " * (indent + 2)))
                 if branch:
-                    output.append(call)
-                    output.extend(branch)
+                    output.extend(attach_sources(call, branch))
     return output
 
 
@@ -278,11 +301,19 @@ def print_trace(con, function, parameter_name, parameter, key, selected, full):
     if not output:
         return
 
+    call = format_call(con, selected, parameter, key, 2)
+    output = attach_sources(call, output)
     print("%s(%s)" % (function, parameter_name))
-    print(format_call(con, selected, parameter, key, 2))
-    for line in output:
-        if line is not RECURSION_MARKER:
-            print(line)
+    source_count = 0
+    for item in output:
+        if item is RECURSION_MARKER:
+            continue
+        if isinstance(item, tuple) and item[0] is SOURCE_LINE:
+            source_count += 1
+            print("[ %d ] %s (source %s)" %
+                  (source_count, item[1].lstrip(), item[2]))
+        else:
+            print(item)
 
 
 def main():
