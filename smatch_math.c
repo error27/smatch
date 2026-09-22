@@ -1553,28 +1553,20 @@ int smatch_fls(unsigned long long value)
 
 static bool handle_ffs(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
+	struct range_list *dummy;
 	struct expression *arg;
 	struct bit_info *bits;
-	sval_t high = { .type = &int_ctype };
-	sval_t low = { .type = &int_ctype };
 
 	arg = get_argument_from_call_expr(expr->args, 0);
+	if (!arg)
+		return false;
+	if (implied == RL_EXACT &&
+	    !get_rl_internal(arg, implied, recurse_cnt, &dummy))
+		return false;
 
 	bits = get_bit_info(arg);
-	if (bits->possible == 0) {
-		high.value = 0;
-		*res_sval = high;
-		return true;
-	}
-
-	high.value = ffsll(bits->set);
-	if (!high.value)
-		high.value = smatch_fls(bits->possible);
-
-	low.value = ffsll(bits->possible);
-
-	*res = alloc_rl(low, high);
-	return false;
+	*res = smatch_ffs(bits);
+	return true;
 }
 
 static bool handle_clzg(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)

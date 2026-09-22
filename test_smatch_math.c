@@ -28,6 +28,7 @@ struct math_op {
 	const char *name;
 	int op;
 	bool unary;
+	const char *builtin;
 };
 
 struct failure_ranges {
@@ -65,6 +66,7 @@ static struct math_op math_ops[] = {
 	{ "|", '|' },
 	{ "clzg", 0, true },
 	{ "ctzg", 0, true },
+	{ "ffs", 0, true, "ffsll" },
 };
 
 static uint64_t random_state;
@@ -206,6 +208,14 @@ static sval_t calculate_ctzg(sval_t left)
 	sval_t ret = { .type = &int_ctype };
 
 	ret.value = ffsll(left.uvalue) - 1;
+	return ret;
+}
+
+static sval_t calculate_ffs(sval_t left)
+{
+	sval_t ret = { .type = &int_ctype };
+
+	ret.value = ffsll(left.uvalue);
 	return ret;
 }
 
@@ -566,7 +576,8 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	return 0;
 }
 
-static void print_bit_count_failure(const char *name, struct range_list *left,
+static void print_bit_count_failure(const char *name, const char *builtin,
+			       struct range_list *left,
 			       struct range_list *result, sval_t left_sval,
 			       sval_t actual, uint64_t seed,
 			       uint64_t iterations, unsigned long range_test,
@@ -596,10 +607,10 @@ static void print_bit_count_failure(const char *name, struct range_list *left,
 	printf("\tint result;\n\n");
 	print_range_check("left", left);
 	printf("\n");
-	printf("\tresult = __builtin_%s(left);\n", name);
+	printf("\tresult = __builtin_%s(left);\n", builtin);
 	printf("\t/* result range: %s */\n", show_rl(result));
 	printf("\t__smatch_implied(left);\n");
-	printf("\t__smatch_implied(__builtin_%s(left));\n\n", name);
+	printf("\t__smatch_implied(__builtin_%s(left));\n\n", builtin);
 	printf("\tcorrect = result_in_range(result);\n");
 	printf("\tif (correct != prev || print)\n");
 	printf("\t\tprintf(\"smatch was %%s for left=%%llu result=%%d\\n\",\n");
@@ -621,14 +632,17 @@ static int check_bit_count_one(const struct math_op *math_op,
 	unsigned long i;
 
 	left = random_rl(&ullong_ctype, 0, false, 0);
-	left = remove_range(left, zero, zero);
+	if (strcmp(math_op->name, "ffs"))
+		left = remove_range(left, zero, zero);
 	if (!left)
 		return check_bit_count_one(math_op, seed, iterations, range_test,
 					   value_tests);
 	if (!strcmp(math_op->name, "clzg"))
 		result = smatch_clzg(rl_to_binfo(left));
-	else
+	else if (!strcmp(math_op->name, "ctzg"))
 		result = smatch_ctzg(rl_to_binfo(left));
+	else
+		result = smatch_ffs(rl_to_binfo(left));
 
 	for (i = 0; i < value_tests; i++) {
 		sval_t left_sval = random_sval_from_rl(left);
@@ -636,15 +650,18 @@ static int check_bit_count_one(const struct math_op *math_op,
 
 		if (!strcmp(math_op->name, "clzg"))
 			actual = calculate_clzg(left_sval);
-		else
+		else if (!strcmp(math_op->name, "ctzg"))
 			actual = calculate_ctzg(left_sval);
+		else
+			actual = calculate_ffs(left_sval);
 
 		if (rl_has_sval(result, actual)) {
 			(*iterations)++;
 			continue;
 		}
 
-		print_bit_count_failure(math_op->name, left, result, left_sval, actual, seed,
+		print_bit_count_failure(math_op->name, math_op->builtin ?: math_op->name,
+					left, result, left_sval, actual, seed,
 				   *iterations, range_test, i);
 		return -1;
 	}
