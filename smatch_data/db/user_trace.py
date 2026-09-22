@@ -310,8 +310,10 @@ def print_trace(con, function, parameter_name, parameter, key, selected, full):
             continue
         if isinstance(item, tuple) and item[0] is SOURCE_LINE:
             source_count += 1
-            print("[ %d ] %s (source %s)" %
-                  (source_count, item[1].lstrip(), item[2]))
+            call = item[1]
+            indentation = call[:-len(call.lstrip())]
+            print("%s[ %d ] %s (source %s)" %
+                  (indentation, source_count, call.lstrip(), item[2]))
         else:
             print(item)
 
