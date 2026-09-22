@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import re
 import shlex
 import sqlite3
 import sys
@@ -10,6 +11,7 @@ PARAM_VALUE = 1001
 PTRACKER = 2538
 PTRACKER_MERGE = 2539
 USER_DATA = 8017
+USER_PTR = 9018
 
 # Retain the path to recursion in --full mode without printing a fake source.
 RECURSION_MARKER = object()
@@ -76,6 +78,14 @@ def get_parameter_name(con, function, parameter):
     ).fetchone()
     if row:
         return row[0]
+    row = con.execute(
+        "select pn.value from parameter_name pn "
+        "join function_ptr fp on fp.function = pn.function "
+        "where fp.ptr = ? and pn.parameter = ? limit 1",
+        (function, parameter),
+    ).fetchone()
+    if row:
+        return row[0]
     return "param%d" % parameter
 
 
@@ -121,6 +131,33 @@ def caller_rows(con, file_id, function, static, parameter, data_type, key="$"):
     return rows
 
 
+def user_pointer_keys(key):
+    keys = []
+    if key.startswith("*$") or key.startswith("$->"):
+        keys.append("$")
+    if key.startswith("$->"):
+        fields = key.split("->")
+        for end in range(2, len(fields)):
+            keys.append("->".join(fields[:end]))
+    return keys
+
+
+def user_caller_rows(con, file_id, function, static, parameter, key):
+    rows = caller_rows(con, file_id, function, static, parameter, USER_DATA,
+                       key)
+    seen = {row[:4] for row in rows}
+
+    for pointer_key in user_pointer_keys(key):
+        pointer_rows = caller_rows(con, file_id, function, static, parameter,
+                                   USER_PTR, pointer_key)
+        for row in pointer_rows:
+            if row[:4] in seen:
+                continue
+            seen.add(row[:4])
+            rows.append(row[:-1] + ("USER_PTR",))
+    return rows
+
+
 def tracker_ids_for_call(con, row, parameter):
     file_id, caller, function, call_id, _line, _value = row
     rows = con.execute(
@@ -163,9 +200,20 @@ def user_range_for_call(con, row, parameter, key):
         "and parameter = ? and key = ? and type = ? order by value",
         (file_id, caller, function, call_id, parameter, key, USER_DATA),
     ).fetchall()
-    if not rows:
-        return None
-    return ",".join(item[0] for item in rows)
+    if rows:
+        return ",".join(item[0] for item in rows)
+
+    for pointer_key in user_pointer_keys(key):
+        row = con.execute(
+            "select 1 from caller_info "
+            "where file = ? and caller = ? and function = ? and call_id = ? "
+            "and parameter = ? and key = ? and type = ? limit 1",
+            (file_id, caller, function, call_id, parameter, pointer_key,
+             USER_PTR),
+        ).fetchone()
+        if row:
+            return "USER_PTR"
+    return None
 
 
 def format_call(con, row, parameter, key, indent, full=False):
@@ -203,6 +251,56 @@ def attach_sources(call, branch):
     return output
 
 
+def parse_parameter_source(con, value):
+    match = re.match(r"^([^:]+):[0-9]+ ([^(]+)\(\) ([0-9]+) (.+)$",
+                     value)
+    if not match:
+        return None
+
+    filename_value, function, parameter, key = match.groups()
+    row = con.execute(
+        "select hash from hash_string where value = ? limit 1",
+        (filename_value,),
+    ).fetchone()
+    if not row:
+        return None
+    file_id = int(row[0])
+    static_rows = con.execute(
+        "select distinct static from parameter_name "
+        "where file = ? and function = ? and parameter = ?",
+        (file_id, function, int(parameter)),
+    ).fetchall()
+    if len(static_rows) != 1:
+        return None
+    return int(parameter), file_id, function, int(static_rows[0][0]), key
+
+
+def trace_parameter_callers(con, parameter, file_id, function, static, key,
+                            indent, path, full):
+    output = []
+    callers = caller_rows(con, file_id, function, static, parameter, PTRACKER)
+    if not callers and full:
+        name = key.replace(
+            "$", get_parameter_name(con, function, parameter), 1)
+        output.append("%s%s() %s [no earlier caller]" %
+                      (" " * indent, function, name))
+    for caller in callers:
+        caller = caller[:-1] + (None,)
+        call = format_call(con, caller, parameter, key, indent, full)
+        if call is None:
+            continue
+        branch = []
+        for next_id in tracker_ids_for_call(con, caller, parameter):
+            branch.extend(trace_tracker(con, next_id, key, indent + 2, path,
+                                        full))
+        if not branch and full:
+            branch.append("%s[no ptracker information]" %
+                          (" " * (indent + 2)))
+        if branch:
+            output.extend(attach_sources(call, branch))
+    return output
+
+
 def trace_tracker(con, tracker_id, key, indent, path, full=False):
     if tracker_id in path:
         if full:
@@ -223,7 +321,15 @@ def trace_tracker(con, tracker_id, key, indent, path, full=False):
     next_path = path | {tracker_id}
     for tracker_type, value in rows:
         if tracker_type == PARAM_VALUE:
-            output.append((SOURCE_MARKER, value))
+            parameter_source = parse_parameter_source(con, value)
+            if parameter_source:
+                parameter, file_id, function, static, source_key = \
+                    parameter_source
+                output.extend(trace_parameter_callers(
+                    con, parameter, file_id, function, static, source_key,
+                    indent, next_path, full))
+            else:
+                output.append((SOURCE_MARKER, value))
         elif tracker_type == PTRACKER_MERGE:
             try:
                 merged_id = int(value, 0)
@@ -242,27 +348,9 @@ def trace_tracker(con, tracker_id, key, indent, path, full=False):
                     output.append("%s[invalid PTRACKER value: %s]" %
                                   (" " * indent, value))
                 continue
-            callers = caller_rows(con, file_id, function, static, parameter,
-                                  PTRACKER)
-            if not callers and full:
-                name = key.replace(
-                    "$", get_parameter_name(con, function, parameter), 1)
-                output.append("%s%s() %s [no earlier caller]" %
-                              (" " * indent, function, name))
-            for caller in callers:
-                caller = caller[:-1] + (None,)
-                call = format_call(con, caller, parameter, key, indent, full)
-                if call is None:
-                    continue
-                branch = []
-                for next_id in tracker_ids_for_call(con, caller, parameter):
-                    branch.extend(trace_tracker(con, next_id, key, indent + 2,
-                                                next_path, full))
-                if not branch and full:
-                    branch.append("%s[no ptracker information]" %
-                                  (" " * (indent + 2)))
-                if branch:
-                    output.extend(attach_sources(call, branch))
+            output.extend(trace_parameter_callers(
+                con, parameter, file_id, function, static, key, indent,
+                next_path, full))
     return output
 
 
@@ -339,8 +427,7 @@ def main():
 
     try:
         parameter, key = get_parameter(con, function, parameter_name)
-        candidates = caller_rows(con, 0, function, None, parameter, USER_DATA,
-                                 key)
+        candidates = user_caller_rows(con, 0, function, None, parameter, key)
         candidates = deduplicate_candidates(con, candidates, parameter)
         if not candidates:
             raise ValueError("no callers pass user data to %s(%s)" %
