@@ -103,6 +103,17 @@ struct bit_info *rl_to_binfo(struct range_list *rl)
 	return ret;
 }
 
+struct range_list *smatch_clzg(struct bit_info *binfo)
+{
+	sval_t min = { .type = &int_ctype };
+	sval_t max = { .type = &int_ctype };
+
+	min.value = 64 - sm_fls64(binfo->possible);
+	max.value = binfo->set ? 64 - sm_fls64(binfo->set) : 64;
+
+	return alloc_rl(min, max);
+}
+
 static bool is_unknown_binfo(struct symbol *type, struct bit_info *binfo)
 {
 	if (!type)

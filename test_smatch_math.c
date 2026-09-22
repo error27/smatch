@@ -27,6 +27,7 @@ struct basic_type {
 struct math_op {
 	const char *name;
 	int op;
+	bool unary;
 };
 
 struct failure_ranges {
@@ -62,6 +63,7 @@ static struct math_op math_ops[] = {
 	{ ">>", SPECIAL_RIGHTSHIFT },
 	{ "^", '^' },
 	{ "|", '|' },
+	{ "clzg", 0, true },
 };
 
 static uint64_t random_state;
@@ -188,6 +190,14 @@ static sval_t calculate_actual(sval_t left, int op, sval_t right)
 	 */
 	right = sval_cast(type, right);
 	return sval_binop(left, op, right);
+}
+
+static sval_t calculate_clzg(sval_t left)
+{
+	sval_t ret = { .type = &int_ctype };
+
+	ret.value = 64 - sm_fls64(left.uvalue);
+	return ret;
 }
 
 static struct data_range *find_data_range(struct range_list *rl, sval_t sval)
@@ -493,6 +503,9 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("}\n");
 }
 
+static int check_clzg_one(uint64_t seed, uint64_t *iterations,
+			  unsigned long range_test, unsigned long value_tests);
+
 static int check_one(const struct math_op *math_op, uint64_t seed,
 		     uint64_t *iterations, unsigned long range_test,
 		     unsigned long value_tests)
@@ -504,6 +517,9 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	struct range_list *result;
 	unsigned int shift_limit;
 	unsigned long i;
+
+	if (math_op->unary)
+		return check_clzg_one(seed, iterations, range_test, value_tests);
 
 	left_type = &basic_types[random_below(ARRAY_SIZE(basic_types))];
 	right_type = &basic_types[random_below(ARRAY_SIZE(basic_types))];
@@ -531,6 +547,84 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 		print_test_case(&failures, left_type, left, math_op, result,
 				right_type, right, left_sval, right_sval,
 				actual, seed, *iterations, range_test, i);
+		return -1;
+	}
+
+	free_all_rl();
+	clear_data_range_alloc();
+	return 0;
+}
+
+static void print_clzg_failure(struct range_list *left,
+			       struct range_list *result, sval_t left_sval,
+			       sval_t actual, uint64_t seed,
+			       uint64_t iterations, unsigned long range_test,
+			       unsigned long value_test)
+{
+	printf("#include <stdbool.h>\n");
+	printf("#include <stdio.h>\n");
+	printf("#include \"check_debug.h\"\n\n");
+	printf("/*\n\n");
+	printf("./test_smatch_math clzg %" PRIu64 "\n", seed);
+	printf("error: result outside range\n");
+	printf("seed: %" PRIu64 "\n", seed);
+	printf("iterations before failure: %" PRIu64 "\n", iterations);
+	printf("range test: %lu\n", range_test);
+	printf("value test: %lu\n", value_test);
+	printf("left range: %s\n", show_rl(left));
+	printf("left value: %s\n", sval_to_str(left_sval));
+	printf("result range: %s\n", show_rl(result));
+	printf("actual result: %s\n", sval_to_str(actual));
+	printf("\n*/\n\n");
+
+	print_range_test("result", "int", result);
+	printf("void func(unsigned long long left, bool print)\n");
+	printf("{\n");
+	printf("\tstatic int prev = -1;\n");
+	printf("\tint correct;\n");
+	printf("\tint result;\n\n");
+	print_range_check("left", left);
+	printf("\n");
+	printf("\tresult = __builtin_clzg(left);\n");
+	printf("\t/* result range: %s */\n", show_rl(result));
+	printf("\t__smatch_implied(left);\n");
+	printf("\t__smatch_implied(__builtin_clzg(left));\n\n");
+	printf("\tcorrect = result_in_range(result);\n");
+	printf("\tif (correct != prev || print)\n");
+	printf("\t\tprintf(\"smatch was %%s for left=%%llu result=%%d\\n\",\n");
+	printf("\t\t       correct ? \"correct\" : \"wrong\", left, result);\n");
+	printf("\tprev = correct;\n");
+	printf("}\n\n");
+	printf("int main(void)\n{\n\tfunc(");
+	print_c_sval(left_sval);
+	printf(", true);\n\treturn 0;\n}\n");
+}
+
+static int check_clzg_one(uint64_t seed, uint64_t *iterations,
+			  unsigned long range_test, unsigned long value_tests)
+{
+	struct range_list *left;
+	struct range_list *result;
+	sval_t zero = sval_type_val(&ullong_ctype, 0);
+	unsigned long i;
+
+	left = random_rl(&ullong_ctype, 0, false, 0);
+	left = remove_range(left, zero, zero);
+	if (!left)
+		return check_clzg_one(seed, iterations, range_test, value_tests);
+	result = smatch_clzg(rl_to_binfo(left));
+
+	for (i = 0; i < value_tests; i++) {
+		sval_t left_sval = random_sval_from_rl(left);
+		sval_t actual = calculate_clzg(left_sval);
+
+		if (rl_has_sval(result, actual)) {
+			(*iterations)++;
+			continue;
+		}
+
+		print_clzg_failure(left, result, left_sval, actual, seed,
+				   *iterations, range_test, i);
 		return -1;
 	}
 
