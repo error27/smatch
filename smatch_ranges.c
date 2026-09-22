@@ -2328,7 +2328,16 @@ struct range_list *rl_handle_sub(struct range_list *left, struct range_list *rig
 
 static unsigned long long rl_bits_always_set(struct range_list *rl)
 {
-	return sval_fls_mask(rl_min(rl));
+	struct data_range *tmp;
+	unsigned long long bits = ~0ULL;
+
+	FOR_EACH_PTR(rl, tmp) {
+		/* Bits below the first differing bit are not fixed. */
+		bits &= tmp->min.uvalue &
+			~fls_mask(tmp->min.uvalue ^ tmp->max.uvalue);
+	} END_FOR_EACH_PTR(tmp);
+
+	return bits;
 }
 
 static unsigned long long rl_bits_maybe_set(struct range_list *rl)
@@ -2371,8 +2380,11 @@ static struct range_list *rl_handle_OR(struct range_list *left, struct range_lis
 	return ret;
 }
 
+struct range_list *cast_to_unsigned(struct range_list *rl);
+
 static struct range_list *rl_handle_XOR(struct range_list *left, struct range_list *right)
 {
+	struct symbol *orig_type = rl_type(left);
 	unsigned long long left_set, left_maybe;
 	unsigned long long right_set, right_maybe;
 	sval_t sval, zero, max;
@@ -2381,6 +2393,9 @@ static struct range_list *rl_handle_XOR(struct range_list *left, struct range_li
 		return right;
 	if (rl_to_sval(right, &sval) && sval.value == 0)
 		return left;
+
+	left = cast_to_unsigned(left);
+	right = cast_to_unsigned(right);
 
 	left_set = rl_bits_always_set(left);
 	left_maybe = rl_bits_maybe_set(left);
@@ -2392,7 +2407,7 @@ static struct range_list *rl_handle_XOR(struct range_list *left, struct range_li
 	zero.uvalue = 0;
 	max.uvalue = fls_mask((left_maybe | right_maybe) ^ (left_set & right_set));
 
-	return cast_rl(rl_type(left), alloc_rl(zero, max));
+	return cast_rl(orig_type, alloc_rl(zero, max));
 }
 
 static sval_t sval_lowest_set_bit(sval_t sval)
