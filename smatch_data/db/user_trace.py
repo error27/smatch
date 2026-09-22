@@ -11,9 +11,12 @@ PTRACKER = 2538
 PTRACKER_MERGE = 2539
 USER_DATA = 8017
 
+# Retain the path to recursion in --full mode without printing a fake source.
+RECURSION_MARKER = object()
+
 
 def usage():
-    print("usage: %s function parameter_name [option]" % sys.argv[0],
+    print("usage: %s [--full] function parameter_name [option]" % sys.argv[0],
           file=sys.stderr)
     sys.exit(1)
 
@@ -163,19 +166,23 @@ def user_range_for_call(con, row, parameter, key):
     return ",".join(item[0] for item in rows)
 
 
-def format_call(con, row, parameter, key, indent):
+def format_call(con, row, parameter, key, indent, full=False):
     file_id, caller, function, _call_id, line, value = row
     name = key.replace("$", get_parameter_name(con, function, parameter), 1)
     if value is None:
         value = user_range_for_call(con, row, parameter, key)
     if value is None:
-        return None
+        if not full:
+            return None
+        value = "unknown"
     return "%s%s:%d %s() %s=%s" % (
         " " * indent, filename(con, file_id), line, caller, name, value)
 
 
-def trace_tracker(con, tracker_id, key, indent, path):
+def trace_tracker(con, tracker_id, key, indent, path, full=False):
     if tracker_id in path:
+        if full:
+            return [RECURSION_MARKER]
         return []
 
     rows = con.execute(
@@ -183,6 +190,9 @@ def trace_tracker(con, tracker_id, key, indent, path):
         (tracker_id,),
     ).fetchall()
     if not rows:
+        if full:
+            return ["%s[ptracker %d not found]" %
+                    (" " * indent, tracker_id)]
         return []
 
     output = []
@@ -194,39 +204,57 @@ def trace_tracker(con, tracker_id, key, indent, path):
             try:
                 merged_id = int(value, 0)
             except ValueError:
+                if full:
+                    output.append("%s[invalid merged ptracker ID: %s]" %
+                                  (" " * indent, value))
                 continue
             output.extend(trace_tracker(con, merged_id, key, indent,
-                                        next_path))
+                                        next_path, full))
         elif tracker_type == PTRACKER:
             try:
                 parameter, file_id, function, static = parse_ptracker(value)
             except ValueError:
+                if full:
+                    output.append("%s[invalid PTRACKER value: %s]" %
+                                  (" " * indent, value))
                 continue
             callers = caller_rows(con, file_id, function, static, parameter,
                                   PTRACKER)
+            if not callers and full:
+                name = key.replace(
+                    "$", get_parameter_name(con, function, parameter), 1)
+                output.append("%s%s() %s [no earlier caller]" %
+                              (" " * indent, function, name))
             for caller in callers:
                 caller = caller[:-1] + (None,)
-                call = format_call(con, caller, parameter, key, indent)
+                call = format_call(con, caller, parameter, key, indent, full)
                 if call is None:
                     continue
                 branch = []
                 for next_id in tracker_ids_for_call(con, caller, parameter):
                     branch.extend(trace_tracker(con, next_id, key, indent + 2,
-                                                next_path))
+                                                next_path, full))
+                if not branch and full:
+                    branch.append("%s[no ptracker information]" %
+                                  (" " * (indent + 2)))
                 if branch:
                     output.append(call)
                     output.extend(branch)
     return output
 
 
-def print_options(candidates, con, function, parameter_name):
+def print_options(candidates, con, function, parameter_name, full):
     print("Callers passing USER_DATA to %s(%s):\n" %
           (function, parameter_name))
     for number, row in enumerate(candidates, 1):
         file_id, caller, _function, _call_id, _line, value = row
         print("[%d] file: %s, caller: %s(), range: %s" %
               (number, filename(con, file_id), caller, value))
-    command = shlex.join((sys.argv[0], function, parameter_name))
+    command_args = [sys.argv[0]]
+    if full:
+        command_args.append("--full")
+    command_args.extend((function, parameter_name))
+    command = shlex.join(command_args)
     print("\nTrace one option by running:")
     print("  %s <option>" % command)
 
@@ -241,25 +269,33 @@ def select_candidate(candidates, option):
     return candidates[number - 1]
 
 
-def print_trace(con, function, parameter_name, parameter, key, selected):
+def print_trace(con, function, parameter_name, parameter, key, selected, full):
     output = []
     for tracker_id in tracker_ids_for_call(con, selected, parameter):
-        output.extend(trace_tracker(con, tracker_id, key, 4, set()))
+        output.extend(trace_tracker(con, tracker_id, key, 4, set(), full))
+    if not output and full:
+        output.append("    [no ptracker information]")
     if not output:
         return
 
     print("%s(%s)" % (function, parameter_name))
     print(format_call(con, selected, parameter, key, 2))
     for line in output:
-        print(line)
+        if line is not RECURSION_MARKER:
+            print(line)
 
 
 def main():
-    if len(sys.argv) not in (3, 4):
+    args = sys.argv[1:]
+    full = False
+    if "--full" in args:
+        args.remove("--full")
+        full = True
+    if len(args) not in (2, 3):
         usage()
-    function = sys.argv[1]
-    parameter_name = sys.argv[2]
-    option = sys.argv[3] if len(sys.argv) == 4 else None
+    function = args[0]
+    parameter_name = args[1]
+    option = args[2] if len(args) == 3 else None
     db_file = os.environ.get("SMATCH_DB_FILE", "smatch_db.sqlite")
 
     try:
@@ -278,12 +314,13 @@ def main():
                              (function, parameter_name))
         if option is None:
             if len(candidates) > 1:
-                print_options(candidates, con, function, parameter_name)
+                print_options(candidates, con, function, parameter_name, full)
                 return 0
             selected = candidates[0]
         else:
             selected = select_candidate(candidates, option)
-        print_trace(con, function, parameter_name, parameter, key, selected)
+        print_trace(con, function, parameter_name, parameter, key, selected,
+                    full)
     except (sqlite3.Error, ValueError) as error:
         print("error: %s" % error, file=sys.stderr)
         return 1
