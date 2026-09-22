@@ -1540,17 +1540,6 @@ static bool handle__builtin_choose_expr(struct expression *expr, int implied, in
 		return get_rl_sval(expr2, implied, recurse_cnt, res, res_sval);
 }
 
-int smatch_fls(unsigned long long value)
-{
-	int i;
-
-	for (i = 63; i >= 0; i--) {
-		if (value & 1ULL << i)
-			return i + 1;
-	}
-	return 0;
-}
-
 static bool handle_ffs(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
 {
 	struct range_list *dummy;

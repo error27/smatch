@@ -29,6 +29,7 @@ struct math_op {
 	int op;
 	bool unary;
 	const char *builtin;
+	bool kernel_function;
 };
 
 struct failure_ranges {
@@ -67,6 +68,7 @@ static struct math_op math_ops[] = {
 	{ "clzg", 0, true },
 	{ "ctzg", 0, true },
 	{ "ffs", 0, true, "ffsll" },
+	{ "fls", 0, true, NULL, true },
 };
 
 static uint64_t random_state;
@@ -216,6 +218,14 @@ static sval_t calculate_ffs(sval_t left)
 	sval_t ret = { .type = &int_ctype };
 
 	ret.value = ffsll(left.uvalue);
+	return ret;
+}
+
+static sval_t calculate_fls(sval_t left)
+{
+	sval_t ret = { .type = &int_ctype };
+
+	ret.value = sm_fls64(left.uvalue);
 	return ret;
 }
 
@@ -576,7 +586,7 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	return 0;
 }
 
-static void print_bit_count_failure(const char *name, const char *builtin,
+static void print_bit_count_failure(const struct math_op *math_op,
 			       struct range_list *left,
 			       struct range_list *result, sval_t left_sval,
 			       sval_t actual, uint64_t seed,
@@ -585,9 +595,13 @@ static void print_bit_count_failure(const char *name, const char *builtin,
 {
 	printf("#include <stdbool.h>\n");
 	printf("#include <stdio.h>\n");
+	if (math_op->kernel_function)
+		printf("#include <linux/bitops.h>\n");
 	printf("#include \"check_debug.h\"\n\n");
 	printf("/*\n\n");
-	printf("./test_smatch_math %s %" PRIu64 "\n", name, seed);
+	printf("./test_smatch_math %s %" PRIu64 "\n", math_op->name, seed);
+	if (math_op->kernel_function)
+		printf("smatch -p=kernel -I. test.c\n");
 	printf("error: result outside range\n");
 	printf("seed: %" PRIu64 "\n", seed);
 	printf("iterations before failure: %" PRIu64 "\n", iterations);
@@ -607,10 +621,18 @@ static void print_bit_count_failure(const char *name, const char *builtin,
 	printf("\tint result;\n\n");
 	print_range_check("left", left);
 	printf("\n");
-	printf("\tresult = __builtin_%s(left);\n", builtin);
+	if (math_op->kernel_function)
+		printf("\tresult = %s(left);\n", math_op->name);
+	else
+		printf("\tresult = __builtin_%s(left);\n",
+		       math_op->builtin ?: math_op->name);
 	printf("\t/* result range: %s */\n", show_rl(result));
 	printf("\t__smatch_implied(left);\n");
-	printf("\t__smatch_implied(__builtin_%s(left));\n\n", builtin);
+	if (math_op->kernel_function)
+		printf("\t__smatch_implied(%s(left));\n\n", math_op->name);
+	else
+		printf("\t__smatch_implied(__builtin_%s(left));\n\n",
+		       math_op->builtin ?: math_op->name);
 	printf("\tcorrect = result_in_range(result);\n");
 	printf("\tif (correct != prev || print)\n");
 	printf("\t\tprintf(\"smatch was %%s for left=%%llu result=%%d\\n\",\n");
@@ -631,8 +653,9 @@ static int check_bit_count_one(const struct math_op *math_op,
 	sval_t zero = sval_type_val(&ullong_ctype, 0);
 	unsigned long i;
 
-	left = random_rl(&ullong_ctype, 0, false, 0);
-	if (strcmp(math_op->name, "ffs"))
+	left = random_rl(math_op->kernel_function ? &uint_ctype :
+			 &ullong_ctype, 0, false, 0);
+	if (strcmp(math_op->name, "ffs") && strcmp(math_op->name, "fls"))
 		left = remove_range(left, zero, zero);
 	if (!left)
 		return check_bit_count_one(math_op, seed, iterations, range_test,
@@ -641,8 +664,10 @@ static int check_bit_count_one(const struct math_op *math_op,
 		result = smatch_clzg(rl_to_binfo(left));
 	else if (!strcmp(math_op->name, "ctzg"))
 		result = smatch_ctzg(rl_to_binfo(left));
-	else
+	else if (!strcmp(math_op->name, "ffs"))
 		result = smatch_ffs(rl_to_binfo(left));
+	else
+		result = smatch_fls(rl_to_binfo(left));
 
 	for (i = 0; i < value_tests; i++) {
 		sval_t left_sval = random_sval_from_rl(left);
@@ -652,16 +677,17 @@ static int check_bit_count_one(const struct math_op *math_op,
 			actual = calculate_clzg(left_sval);
 		else if (!strcmp(math_op->name, "ctzg"))
 			actual = calculate_ctzg(left_sval);
-		else
+		else if (!strcmp(math_op->name, "ffs"))
 			actual = calculate_ffs(left_sval);
+		else
+			actual = calculate_fls(left_sval);
 
 		if (rl_has_sval(result, actual)) {
 			(*iterations)++;
 			continue;
 		}
 
-		print_bit_count_failure(math_op->name, math_op->builtin ?: math_op->name,
-					left, result, left_sval, actual, seed,
+		print_bit_count_failure(math_op, left, result, left_sval, actual, seed,
 				   *iterations, range_test, i);
 		return -1;
 	}

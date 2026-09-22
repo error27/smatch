@@ -140,6 +140,17 @@ struct range_list *smatch_ffs(struct bit_info *binfo)
 	return alloc_rl(min, max);
 }
 
+struct range_list *smatch_fls(struct bit_info *binfo)
+{
+	sval_t min = { .type = &int_ctype };
+	sval_t max = { .type = &int_ctype };
+
+	min.value = sm_fls64(binfo->set);
+	max.value = sm_fls64(binfo->possible);
+
+	return alloc_rl(min, max);
+}
+
 static bool is_unknown_binfo(struct symbol *type, struct bit_info *binfo)
 {
 	if (!type)

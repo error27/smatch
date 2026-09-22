@@ -1650,6 +1650,7 @@ struct bit_info *rl_to_binfo(struct range_list *rl);
 struct range_list *smatch_clzg(struct bit_info *binfo);
 struct range_list *smatch_ctzg(struct bit_info *binfo);
 struct range_list *smatch_ffs(struct bit_info *binfo);
+struct range_list *smatch_fls(struct bit_info *binfo);
 struct bit_info *get_bit_info(struct expression *expr);
 bool get_implied_bit_info(struct expression *expr, struct bit_info **binfo);
 struct bit_info *get_bit_info_var_sym(const char *name, struct symbol *sym);

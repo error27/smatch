@@ -316,15 +316,8 @@ static int match_fls(struct expression *call, void *unused, struct range_list **
 {
 	struct expression *arg;
 	struct range_list *arg_rl;
+	struct bit_info *bits;
 	sval_t zero = {};
-	sval_t start = {
-		.type = &int_ctype,
-		.value = 0,
-	};
-	sval_t end = {
-		.type = &int_ctype,
-		.value = 32,
-	};
 	sval_t sval;
 
 	arg = get_argument_from_call_expr(call->args, 0);
@@ -341,10 +334,13 @@ static int match_fls(struct expression *call, void *unused, struct range_list **
 		*rl = alloc_rl(sval, sval);
 		return 1;
 	}
+	bits = get_bit_info(arg);
+	*rl = smatch_fls(bits);
 	zero.type = rl_type(arg_rl);
-	if (!rl_has_sval(arg_rl, zero))
-		start.value = 1;
-	*rl = alloc_rl(start, end);
+	if (!rl_has_sval(arg_rl, zero)) {
+		zero.type = &int_ctype;
+		*rl = rl_filter(*rl, alloc_rl(zero, zero));
+	}
 	return 1;
 }
 
@@ -771,6 +767,7 @@ void smatch_kernel(int id)
 	add_implied_return_hook("array_size", &match_array_size, NULL);
 
 	add_implied_return_hook("fls", &match_fls, NULL);
+	add_implied_return_hook("generic_fls", &match_fls, NULL);
 	add_implied_return_hook("__fls", &match_fls, NULL);
 	add_implied_return_hook("fls64", &match_fls, NULL);
 
