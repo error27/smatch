@@ -26,7 +26,6 @@ static bool get_rl_internal(struct expression *expr, int implied, int *recurse_c
 static bool handle_variable(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval);
 static struct range_list *(*custom_handle_variable)(struct expression *expr);
 
-static bool get_implied_value_internal(struct expression *expr, int *recurse_cnt, sval_t *res_sval);
 static int get_absolute_rl_internal(struct expression *expr, struct range_list **rl, int *recurse_cnt);
 
 static sval_t zero  = {.type = &int_ctype, {.value = 0} };
@@ -780,13 +779,12 @@ static bool handle_right_shift(struct expression *expr, int implied, int *recurs
 
 static bool handle_left_shift(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
 {
-	struct range_list *left_rl, *rl;
-	sval_t right;
+	struct range_list *left_rl, *right_rl, *rl;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
 		return false;
-	/* this is hopeless without the right side */
-	if (!get_implied_value_internal(expr->right, recurse_cnt, &right))
+	if (!get_rl_internal(expr->right, implied, recurse_cnt, &right_rl) ||
+	    sval_is_negative(rl_min(right_rl)))
 		return false;
 	if (!get_rl_internal(expr->left, implied, recurse_cnt, &left_rl)) {
 		if (implied == RL_FUZZY)
@@ -794,7 +792,7 @@ static bool handle_left_shift(struct expression *expr, int implied, int *recurse
 		left_rl = alloc_whole_rl(get_type(expr->left));
 	}
 
-	rl = rl_binop(left_rl, SPECIAL_LEFTSHIFT, alloc_rl(right, right));
+	rl = rl_binop(left_rl, SPECIAL_LEFTSHIFT, right_rl);
 	if (!rl)
 		return false;
 	*res = rl;
@@ -1978,19 +1976,6 @@ int get_value(struct expression *expr, sval_t *res_sval)
 
 	*res_sval = sval;
 	return 1;
-}
-
-static bool get_implied_value_internal(struct expression *expr, int *recurse_cnt, sval_t *res_sval)
-{
-	struct range_list *rl;
-
-	res_sval->type = NULL;
-
-	if (!get_rl_sval(expr, RL_IMPLIED, recurse_cnt, &rl, res_sval))
-		return false;
-	if (!res_sval->type && !rl_to_sval(rl, res_sval))
-		return false;
-	return true;
 }
 
 int get_implied_value(struct expression *expr, sval_t *sval)

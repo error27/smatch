@@ -2566,17 +2566,16 @@ static struct range_list *rl_handle_AND(struct range_list *left,
 	return cast_rl(orig_type, ret);
 }
 
-static struct range_list *rl_handle_lshift(struct range_list *left_orig, struct range_list *right_orig)
+static struct range_list *rl_handle_lshift_one(struct range_list *left_orig,
+						sval_t shift)
 {
 	struct range_list *left;
 	struct data_range *tmp;
 	struct range_list *ret = NULL;
 	sval_t zero = { .type = rl_type(left_orig), };
-	sval_t shift, min, max;
+	sval_t min, max;
 	bool add_zero = false;
 
-	if (!rl_to_sval(right_orig, &shift) || sval_is_negative(shift))
-		return NULL;
 	if (shift.value == 0)
 		return left_orig;
 
@@ -2586,7 +2585,9 @@ static struct range_list *rl_handle_lshift(struct range_list *left_orig, struct 
 		min = tmp->min;
 		max = tmp->max;
 
-		if (min.value == 0 || max.value > sval_type_max(max.type).uvalue >> shift.uvalue)
+		if (max.value > sval_type_max(max.type).uvalue >> shift.uvalue)
+			return alloc_whole_rl(rl_type(left_orig));
+		if (min.value == 0)
 			add_zero = true;
 		if (min.value == 0 && max.value == 0)
 			continue;
@@ -2604,6 +2605,17 @@ static struct range_list *rl_handle_lshift(struct range_list *left_orig, struct 
 		add_range(&ret, zero, zero);
 
 	return ret;
+}
+
+static struct range_list *rl_handle_lshift(struct range_list *left,
+					    struct range_list *right)
+{
+	sval_t shift;
+
+	if (!rl_to_sval(right, &shift) || sval_is_negative(shift))
+		return alloc_whole_rl(rl_type(left));
+
+	return rl_handle_lshift_one(left, shift);
 }
 
 static struct range_list *rl_handle_rshift(struct range_list *left_orig, struct range_list *right_orig)
