@@ -2455,6 +2455,8 @@ struct range_list *rl_AND_mask(struct range_list *rl, unsigned long long mask)
 		return NULL;
 	if (mask == 0 || rl_is_zero(rl))
 		return alloc_rl(zero, zero);
+	if (mask == ~0ULL)
+		return rl;
 
 	rl = cast_to_unsigned(rl);
 	min = rl_min_non_zero(rl);
