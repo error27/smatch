@@ -2092,29 +2092,70 @@ static struct range_list *rl_handle_mult(struct range_list *left, struct range_l
 	return rl_union(ret, pos_pos);
 }
 
+/*
+ * The sum of two integer intervals is an interval before it is cast back to
+ * the result type.  A cast can wrap that interval over one end of the type,
+ * in which case its image is two intervals.  Keep those intervals separate:
+ * using the min and max of a range list joins gaps which are still useful to
+ * callers of the range code.
+ */
+static void add_rl_pair(struct range_list **ret, sval_t left_min,
+				sval_t left_max, sval_t right_min,
+				sval_t right_max)
+{
+	struct symbol *type = left_min.type;
+	sval_t min, max;
+	bool min_overflow, max_overflow;
+
+	min_overflow = sval_binop_overflows(left_min, '+', right_min);
+	max_overflow = sval_binop_overflows(left_max, '+', right_max);
+	min = sval_binop(left_min, '+', right_min);
+	max = sval_binop(left_max, '+', right_max);
+
+	/* The interval covers an entire trip around the result type. */
+	if (min_overflow && max_overflow) {
+		add_range(ret, sval_type_min(type), sval_type_max(type));
+		return;
+	}
+
+	if (min_overflow) {
+		add_range(ret, sval_type_min(type), max);
+		add_range(ret, min, sval_type_max(type));
+		return;
+	}
+
+	if (max_overflow) {
+		add_range(ret, min, sval_type_max(type));
+		add_range(ret, sval_type_min(type), max);
+		return;
+	}
+
+	add_range(ret, min, max);
+}
+
 static struct range_list *rl_handle_add(struct range_list *left, struct range_list *right)
 {
-	sval_t sval, min, max;
+	struct data_range *left_range, *right_range;
+	struct range_list *ret = NULL;
+	sval_t sval;
 
 	if (rl_to_sval(left, &sval) && sval.value == 0)
 		return right;
 	if (rl_to_sval(right, &sval) && sval.value == 0)
 		return left;
 
+	/* Pointer arithmetic deliberately does not model address wraparound. */
 	if (type_is_ptr(rl_type(left)) || type_is_ptr(rl_type(right)))
 		return ptr_add_mult(left, '+', right);
 
-	// FIXME: when it's a 0-2,4-5 + 2, that should be 2-4,6-7
+	FOR_EACH_PTR(left, left_range) {
+		FOR_EACH_PTR(right, right_range) {
+			add_rl_pair(&ret, left_range->min, left_range->max,
+				    right_range->min, right_range->max);
+		} END_FOR_EACH_PTR(right_range);
+	} END_FOR_EACH_PTR(left_range);
 
-	if (sval_binop_overflows(rl_min(left), '+', rl_min(right)))
-		return NULL;
-	min = sval_binop(rl_min(left), '+', rl_min(right));
-
-	if (sval_binop_overflows(rl_max(left), '+', rl_max(right)))
-		return NULL;
-	max = sval_binop(rl_max(left), '+', rl_max(right));
-
-	return alloc_rl(min, max);
+	return ret;
 }
 
 static struct symbol *get_signed_equivalent(struct symbol *type)

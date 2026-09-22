@@ -51,11 +51,11 @@ int frob(int a, int b, int c, int d, int e, int f)
  *
  * check-output-start
 sm_addition.c:16 frob() test: unknown
-sm_addition.c:17 frob() implied: a + b = ''
+sm_addition.c:17 frob() implied: a + b = 's32min-s32max'
 sm_addition.c:18 frob() test: absolute unknown
 sm_addition.c:19 frob() real absolute: a + b = 's32min-s32max'
 sm_addition.c:20 frob() real absolute: a + c = 's32min-s32max'
-sm_addition.c:21 frob() implied: b + a = ''
+sm_addition.c:21 frob() implied: b + a = 's32min-s32max'
 sm_addition.c:22 frob() test: zero tests
 sm_addition.c:23 frob() implied: 0 + a = '(-10)-10'
 sm_addition.c:24 frob() implied: 0 + b = 's32min-s32max'
@@ -63,7 +63,7 @@ sm_addition.c:25 frob() implied: 0 + c = 's32min-s32max'
 sm_addition.c:26 frob() test: (-10)-10 + (-2)-2 = (-12)-12
 sm_addition.c:27 frob() implied: a + d = '(-12)-12'
 sm_addition.c:28 frob() test: unknown
-sm_addition.c:29 frob() implied: b + d = ''
+sm_addition.c:29 frob() implied: b + d = 's32min-s32max'
 sm_addition.c:30 frob() test: (-10)-10 + 2-5 = (-8)-15
 sm_addition.c:31 frob() implied: a + e = '(-8)-15'
 sm_addition.c:32 frob() test: (-2)-2 + 2-5 = 0-7

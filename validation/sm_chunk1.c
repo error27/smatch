@@ -17,6 +17,6 @@ static void perf_calculate_period(unsigned long nsec, unsigned long count)
  *
  * check-output-start
 sm_chunk1.c:8 perf_calculate_period() implied: nsec + count = '0-64'
-sm_chunk1.c:10 perf_calculate_period() implied: nsec + count = ''
+sm_chunk1.c:10 perf_calculate_period() implied: nsec + count = '0-u64max'
  * check-output-end
  */
