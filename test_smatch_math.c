@@ -64,6 +64,7 @@ static struct math_op math_ops[] = {
 	{ "^", '^' },
 	{ "|", '|' },
 	{ "clzg", 0, true },
+	{ "ctzg", 0, true },
 };
 
 static uint64_t random_state;
@@ -197,6 +198,14 @@ static sval_t calculate_clzg(sval_t left)
 	sval_t ret = { .type = &int_ctype };
 
 	ret.value = 64 - sm_fls64(left.uvalue);
+	return ret;
+}
+
+static sval_t calculate_ctzg(sval_t left)
+{
+	sval_t ret = { .type = &int_ctype };
+
+	ret.value = ffsll(left.uvalue) - 1;
 	return ret;
 }
 
@@ -503,8 +512,9 @@ static void print_test_case(struct failure_ranges *failures,
 	printf("}\n");
 }
 
-static int check_clzg_one(uint64_t seed, uint64_t *iterations,
-			  unsigned long range_test, unsigned long value_tests);
+static int check_bit_count_one(const struct math_op *math_op,
+			       uint64_t seed, uint64_t *iterations,
+			       unsigned long range_test, unsigned long value_tests);
 
 static int check_one(const struct math_op *math_op, uint64_t seed,
 		     uint64_t *iterations, unsigned long range_test,
@@ -519,7 +529,8 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	unsigned long i;
 
 	if (math_op->unary)
-		return check_clzg_one(seed, iterations, range_test, value_tests);
+		return check_bit_count_one(math_op, seed, iterations, range_test,
+					   value_tests);
 
 	left_type = &basic_types[random_below(ARRAY_SIZE(basic_types))];
 	right_type = &basic_types[random_below(ARRAY_SIZE(basic_types))];
@@ -555,7 +566,7 @@ static int check_one(const struct math_op *math_op, uint64_t seed,
 	return 0;
 }
 
-static void print_clzg_failure(struct range_list *left,
+static void print_bit_count_failure(const char *name, struct range_list *left,
 			       struct range_list *result, sval_t left_sval,
 			       sval_t actual, uint64_t seed,
 			       uint64_t iterations, unsigned long range_test,
@@ -565,7 +576,7 @@ static void print_clzg_failure(struct range_list *left,
 	printf("#include <stdio.h>\n");
 	printf("#include \"check_debug.h\"\n\n");
 	printf("/*\n\n");
-	printf("./test_smatch_math clzg %" PRIu64 "\n", seed);
+	printf("./test_smatch_math %s %" PRIu64 "\n", name, seed);
 	printf("error: result outside range\n");
 	printf("seed: %" PRIu64 "\n", seed);
 	printf("iterations before failure: %" PRIu64 "\n", iterations);
@@ -585,10 +596,10 @@ static void print_clzg_failure(struct range_list *left,
 	printf("\tint result;\n\n");
 	print_range_check("left", left);
 	printf("\n");
-	printf("\tresult = __builtin_clzg(left);\n");
+	printf("\tresult = __builtin_%s(left);\n", name);
 	printf("\t/* result range: %s */\n", show_rl(result));
 	printf("\t__smatch_implied(left);\n");
-	printf("\t__smatch_implied(__builtin_clzg(left));\n\n");
+	printf("\t__smatch_implied(__builtin_%s(left));\n\n", name);
 	printf("\tcorrect = result_in_range(result);\n");
 	printf("\tif (correct != prev || print)\n");
 	printf("\t\tprintf(\"smatch was %%s for left=%%llu result=%%d\\n\",\n");
@@ -600,8 +611,9 @@ static void print_clzg_failure(struct range_list *left,
 	printf(", true);\n\treturn 0;\n}\n");
 }
 
-static int check_clzg_one(uint64_t seed, uint64_t *iterations,
-			  unsigned long range_test, unsigned long value_tests)
+static int check_bit_count_one(const struct math_op *math_op,
+			       uint64_t seed, uint64_t *iterations,
+			       unsigned long range_test, unsigned long value_tests)
 {
 	struct range_list *left;
 	struct range_list *result;
@@ -611,19 +623,28 @@ static int check_clzg_one(uint64_t seed, uint64_t *iterations,
 	left = random_rl(&ullong_ctype, 0, false, 0);
 	left = remove_range(left, zero, zero);
 	if (!left)
-		return check_clzg_one(seed, iterations, range_test, value_tests);
-	result = smatch_clzg(rl_to_binfo(left));
+		return check_bit_count_one(math_op, seed, iterations, range_test,
+					   value_tests);
+	if (!strcmp(math_op->name, "clzg"))
+		result = smatch_clzg(rl_to_binfo(left));
+	else
+		result = smatch_ctzg(rl_to_binfo(left));
 
 	for (i = 0; i < value_tests; i++) {
 		sval_t left_sval = random_sval_from_rl(left);
-		sval_t actual = calculate_clzg(left_sval);
+		sval_t actual;
+
+		if (!strcmp(math_op->name, "clzg"))
+			actual = calculate_clzg(left_sval);
+		else
+			actual = calculate_ctzg(left_sval);
 
 		if (rl_has_sval(result, actual)) {
 			(*iterations)++;
 			continue;
 		}
 
-		print_clzg_failure(left, result, left_sval, actual, seed,
+		print_bit_count_failure(math_op->name, left, result, left_sval, actual, seed,
 				   *iterations, range_test, i);
 		return -1;
 	}

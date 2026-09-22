@@ -1595,6 +1595,24 @@ static bool handle_clzg(struct expression *expr, int implied, int *recurse_cnt, 
 	return true;
 }
 
+static bool handle_ctzg(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res, sval_t *res_sval)
+{
+	struct range_list *dummy;
+	struct expression *arg;
+	struct bit_info *bits;
+
+	arg = get_argument_from_call_expr(expr->args, 0);
+	if (!arg)
+		return false;
+	if (implied == RL_EXACT &&
+	    !get_rl_internal(arg, implied, recurse_cnt, &dummy))
+		return false;
+
+	bits = get_bit_info(arg);
+	*res = smatch_ctzg(bits);
+	return true;
+}
+
 static bool inline_return_literal(struct expression *expr, sval_t *res_sval)
 {
 	struct statement *stmt;
@@ -1663,6 +1681,13 @@ static bool handle_call_rl(struct expression *expr, int implied, int *recurse_cn
 	    sym_name_is(expr->fn, "__builtin_clzs") ||
 	    sym_name_is(expr->fn, "__builtin_clzg"))
 		return handle_clzg(expr, implied, recurse_cnt, res, res_sval);
+
+	if (sym_name_is(expr->fn, "__builtin_ctz") ||
+	    sym_name_is(expr->fn, "__builtin_ctzl") ||
+	    sym_name_is(expr->fn, "__builtin_ctzll") ||
+	    sym_name_is(expr->fn, "__builtin_ctzs") ||
+	    sym_name_is(expr->fn, "__builtin_ctzg"))
+		return handle_ctzg(expr, implied, recurse_cnt, res, res_sval);
 
 	if (is_strlen(expr))
 		return handle_strlen(expr, implied, recurse_cnt, res, res_sval);
