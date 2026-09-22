@@ -49,6 +49,14 @@ void test_both_negative(int left, int right)
 	__smatch_implied(result);
 }
 
+void test_max_divisor(unsigned int left)
+{
+	if (left < 4294967294U)
+		return;
+
+	__smatch_implied(left % 4294967295U);
+}
+
 /*
  * check-name: smatch mod ranges
  * check-command: smatch -I.. sm_mod3.c
@@ -58,5 +66,6 @@ sm_mod3.c:10 test_positive() implied: result = '0-5,9-11,30-31'
 sm_mod3.c:23 test_stable_quotient() implied: result = '3-5'
 sm_mod3.c:36 test_negative_right() implied: result = '0-5'
 sm_mod3.c:49 test_both_negative() implied: result = '(-5)-0'
+sm_mod3.c:57 test_max_divisor() implied: left % 4294967295 = '0-4294967294'
  * check-output-end
  */

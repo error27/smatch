@@ -1875,7 +1875,7 @@ static struct range_list *rl_handle_mod(struct range_list *left, struct range_li
 	struct range_list *neg_neg, *neg_pos, *pos_neg, *pos_pos, *ret;
 	sval_t left_sval;
 	sval_t zero = { .type = rl_type(left), .value = 0 };
-	sval_t min, max;
+	sval_t min;
 
 	if (rl_to_sval(left, &left_sval) && left_sval.value == 0)
 		return alloc_rl(left_sval, left_sval);
@@ -1894,10 +1894,6 @@ static struct range_list *rl_handle_mod(struct range_list *left, struct range_li
 			min = zero;
 		return alloc_rl(min, rl_max(left));
 	}
-
-	max = rl_max(right);
-	if (sval_is_max(max))
-		return left;
 
 	left_neg = get_neg_rl(left);
 	left_pos = get_pos_rl(left);
