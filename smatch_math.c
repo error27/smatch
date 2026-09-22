@@ -758,6 +758,7 @@ static bool handle_right_shift(struct expression *expr, int implied, int *recurs
 	} else {
 		if (implied == RL_FUZZY)
 			return false;
+		left_rl = alloc_whole_rl(get_type(expr->left));
 		max = sval_type_max(get_type(expr->left));
 		min = sval_type_val(get_type(expr->left), 0);
 	}
