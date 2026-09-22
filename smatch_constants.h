@@ -27,6 +27,8 @@ static const sval_t ulong_one	= { .type = &ulong_ctype, .value = 1 };
 static const sval_t ulong_INT_MAX = { .type = &ulong_ctype, .value = INT_MAX };
 extern sval_t ulong_ULONG_MAX;
 
+extern sval_t PAGE_SIZE;
+
 #define MTAG_ALIAS_BIT (1ULL << 63)
 #define MTAG_OFFSET_MASK 0xfffULL
 #define MTAG_SEED 0xdead << 12

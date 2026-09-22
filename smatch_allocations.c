@@ -24,6 +24,8 @@
 
 static int my_id;
 
+sval_t PAGE_SIZE = { .type = &ulong_ctype };
+
 DECLARE_PTR_LIST(alloc_hook_list, alloc_hook);
 static struct alloc_hook_list *hook_funcs_early;
 static struct alloc_hook_list *hook_funcs;
@@ -102,9 +104,9 @@ static struct alloc_fn_info kernel_alloc_funcs[] = {
 	{"bitmap_alloc", "bits($0)"},
 	{"bitmap_zalloc", "bits($0)", .zeroed=true},
 
+	{"get_zeroed_page", "PAGE_SIZE", .zeroed=true},
+	{"alloc_page", "PAGE_SIZE" },
 #if 0
-	{"get_zeroed_page", {"PAGE_SIZE", zeroed=true}},
-	{"alloc_page", {"PAGE_SIZE"}},
 	{"alloc_pages", {"(1 < $0) * PAGE_SIZE"}},
 	{"alloc_pages_current", {"(1 < $0) * PAGE_SIZE"}},
 	{"__get_free_pages", {"(1 < $0) * PAGE_SIZE"}},
@@ -272,6 +274,11 @@ static void load_size_data(struct allocation_info *data, struct expression *expr
 
 	if (strncmp(size_str, "bits(", 5) == 0)
 		return load_bits(data, expr, size_str);
+
+	if (strcmp(size_str, "PAGE_SIZE") == 0) {
+		data->size_rl = alloc_rl(PAGE_SIZE, PAGE_SIZE);
+		return;
+	}
 
 	p = size_str;
 	if (*p != '$')
@@ -496,11 +503,29 @@ static void match_assign_call(struct expression *expr)
 	match_assign_call_helper(expr, false);
 }
 
+static void config_PAGE_SIZE(void)
+{
+	struct ident *id;
+	struct symbol *shift;
+	int PAGE_SHIFT = 12;
+
+	id = built_in_ident("CONFIG_PAGE_SHIFT");
+	shift = lookup_symbol(id, NS_MACRO);
+
+	if (shift && shift->expansion &&
+	    token_type(shift->expansion) == TOKEN_NUMBER)
+		PAGE_SHIFT = atoi(shift->expansion->number);
+
+	PAGE_SIZE.value = 1 << PAGE_SHIFT;
+}
+
 void smatch_allocations(int id)
 {
 	struct alloc_fn_info *info;
 
 	my_id = id;
+
+	config_PAGE_SIZE();
 
 	add_hook(&match_assign_call_early, CALL_ASSIGNMENT_HOOK);
 	add_hook(&match_assign_call, CALL_ASSIGNMENT_HOOK);
