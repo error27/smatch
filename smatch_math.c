@@ -746,7 +746,7 @@ static bool handle_bitwise_OR(struct expression *expr, int implied, int *recurse
 
 static bool handle_right_shift(struct expression *expr, int implied, int *recurse_cnt, struct range_list **res)
 {
-	struct range_list *left_rl, *right_rl;
+	struct range_list *left_rl, *right_rl, *rl;
 	sval_t min, max;
 
 	if (implied == RL_EXACT || implied == RL_HARD)
@@ -764,8 +764,11 @@ static bool handle_right_shift(struct expression *expr, int implied, int *recurs
 
 	if (get_rl_internal(expr->right, implied, recurse_cnt, &right_rl) &&
 	    !sval_is_negative(rl_min(right_rl))) {
-		min = sval_binop(min, SPECIAL_RIGHTSHIFT, rl_max(right_rl));
-		max = sval_binop(max, SPECIAL_RIGHTSHIFT, rl_min(right_rl));
+		rl = rl_binop(left_rl, SPECIAL_RIGHTSHIFT, right_rl);
+		if (!rl)
+			return false;
+		*res = rl;
+		return true;
 	} else if (!sval_is_negative(min)) {
 		min.value = 0;
 		max = sval_type_max(max.type);

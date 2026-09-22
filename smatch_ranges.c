@@ -2625,7 +2625,7 @@ static struct range_list *rl_handle_rshift(struct range_list *left_orig, struct 
 	sval_t shift, min, max;
 
 	if (!rl_to_sval(right_orig, &shift) || sval_is_negative(shift))
-		return NULL;
+		return alloc_whole_rl(rl_type(left_orig));
 	if (shift.value == 0)
 		return left_orig;
 
@@ -2684,6 +2684,7 @@ struct range_list *rl_binop(struct range_list *left, int op, struct range_list *
 	    op == SPECIAL_LEFTSHIFT) {
 		if (type_positive_bits(rl_type(left)) < 31)
 			left = cast_rl(&int_ctype, left);
+		right = cast_rl(rl_type(left), right);
 	} else {
 		struct symbol *cast_type = get_binop_type(left, right);
 
