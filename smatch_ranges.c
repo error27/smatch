@@ -2108,9 +2108,11 @@ static void add_rl_pair(struct range_list **ret, sval_t left_min,
 	min = sval_binop(left_min, '+', right_min);
 	max = sval_binop(left_max, '+', right_max);
 
-	/* The interval covers an entire trip around the result type. */
 	if (min_overflow && max_overflow) {
-		add_range(ret, sval_type_min(type), sval_type_max(type));
+		if (sval_cmp(min, max) <= 0)
+			add_range(ret, min, max);
+		else
+			add_range(ret, sval_type_min(type), sval_type_max(type));
 		return;
 	}
 
@@ -2165,6 +2167,58 @@ static struct symbol *get_signed_equivalent(struct symbol *type)
 	return NULL;
 }
 
+static void sub_rl_pair(struct range_list **ret, sval_t left_min,
+				sval_t left_max, sval_t right_min,
+				sval_t right_max)
+{
+	struct symbol *type = left_min.type;
+	sval_t min, max;
+	bool min_overflow, max_overflow;
+
+	min_overflow = sval_binop_overflows(left_min, '-', right_max);
+	max_overflow = sval_binop_overflows(left_max, '-', right_min);
+	min = sval_binop(left_min, '-', right_max);
+	max = sval_binop(left_max, '-', right_min);
+
+	if (min_overflow && max_overflow) {
+		if (sval_cmp(min, max) <= 0)
+			add_range(ret, min, max);
+		else
+			add_range(ret, sval_type_min(type), sval_type_max(type));
+		return;
+	}
+
+	if (min_overflow) {
+		add_range(ret, sval_type_min(type), max);
+		add_range(ret, min, sval_type_max(type));
+		return;
+	}
+
+	if (max_overflow) {
+		add_range(ret, min, sval_type_max(type));
+		add_range(ret, sval_type_min(type), max);
+		return;
+	}
+
+	add_range(ret, min, max);
+}
+
+static struct range_list *rl_handle_sub_no_comparison(struct range_list *left,
+						struct range_list *right)
+{
+	struct data_range *left_range, *right_range;
+	struct range_list *ret = NULL;
+
+	FOR_EACH_PTR(left, left_range) {
+		FOR_EACH_PTR(right, right_range) {
+			sub_rl_pair(&ret, left_range->min, left_range->max,
+				    right_range->min, right_range->max);
+		} END_FOR_EACH_PTR(right_range);
+	} END_FOR_EACH_PTR(left_range);
+
+	return ret;
+}
+
 static struct range_list *sub_rl_helper(struct range_list *left, struct range_list *right, int comparison)
 {
 	sval_t high_left, high_right, low_left, low_right;
@@ -2206,6 +2260,9 @@ struct range_list *rl_handle_sub(struct range_list *left, struct range_list *rig
 
 	if (rl_to_sval(right, &sval) && sval.value == 0)
 		return left;
+	if (!comparison && !type_is_ptr(rl_type(left)) &&
+	    !type_is_ptr(rl_type(right)))
+		return rl_handle_sub_no_comparison(left, right);
 
 	if (is_whole_rl(left) || is_whole_rl(right))
 		return NULL;

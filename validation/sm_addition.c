@@ -45,6 +45,14 @@ int frob(int a, int b, int c, int d, int e, int f)
 	return 0;
 }
 
+void test_wrapped_sum(unsigned int left)
+{
+	if (left < 4294967294U)
+		return;
+
+	__smatch_implied(left + 2U);
+}
+
 /*
  * check-name: smatch: addition
  * check-command: ./smatch -I.. sm_addition.c
@@ -78,5 +86,6 @@ sm_addition.c:40 frob() test: 2-5 + (-5)-(-2) = (-3)-3
 sm_addition.c:41 frob() implied: e + f = '(-3)-3'
 sm_addition.c:42 frob() test: (-2)-(-1),1-2 + 2 = 0-1,3-4
 sm_addition.c:43 frob() implied: d + 2 = '0-1,3-4'
+sm_addition.c:53 test_wrapped_sum() implied: left + 2 = '0-1'
  * check-output-end
  */

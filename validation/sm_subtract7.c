@@ -22,7 +22,7 @@ int frob(unsigned int remained, unsigned int max_count)
  * check-output-start
 sm_subtract7.c:10 frob() implied: remained = '0-255'
 sm_subtract7.c:11 frob() implied: max_count = '1-u32max'
-sm_subtract7.c:12 frob() implied: max_count - remained = '1-s32max'
-sm_subtract7.c:13 frob() real absolute: max_count - remained = '1-s32max'
+sm_subtract7.c:12 frob() implied: max_count - remained = '1-4294967294'
+sm_subtract7.c:13 frob() real absolute: max_count - remained = '1-4294967294'
  * check-output-end
  */
