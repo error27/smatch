@@ -465,6 +465,16 @@ $(SMATCH_OBJS) $(SMATCH_CHECKS): smatch.h smatch_dbtypes.h \
 ########################################################################
 all: $(PROGRAMS) smatch smatch_data/db/sm_hash
 
+check-submodules:
+	@if test ! -f smatch_data/kernel/ioctls; then \
+		echo "error: smatch_data/kernel is not populated."; \
+		echo "Run:"; \
+		echo "  git submodule update --init --recursive"; \
+		exit 1; \
+	fi
+
+$(PROGRAMS) smatch smatch_data/db/sm_hash: | check-submodules
+
 ldflags += $($(@)-ldflags) $(LDFLAGS)
 ldlibs  += $($(@)-ldlibs)  $(LDLIBS) -lm
 $(filter-out test_smatch_math,$(PROGRAMS)): % : %.o $(LIBS)
@@ -527,7 +537,7 @@ $(man1dir)/% $(smatch_datadir)/%: %
 	@echo "  INSTALL $@"
 	$(Q)install -D -m 644 $< $@ || exit 1;
 
-.PHONY: FORCE
+.PHONY: FORCE check-submodules
 
 # GCC's dependencies
 -include $(OBJS:%.o=.%.o.d)
