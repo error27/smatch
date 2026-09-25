@@ -881,10 +881,9 @@ static int match_assign_array(struct expression *expr)
 	limit_type = state_to_limit(state);
 	if (limit_type < 0)
 		return 0;
-	if (limit_type != BYTE_COUNT) {
-		// FIXME: check the the sizes match and continue
+	if (limit_type != BYTE_COUNT &&
+	    !types_equiv(get_type(expr->left), get_type(strip_expr(expr->right))))
 		return 0;
-	}
 
 	tmp = set_state_expr(size_id, expr->left, alloc_compare_size(limit_type, state->data));
 	if (!tmp)
