@@ -219,14 +219,19 @@ def user_range_for_call(con, row, parameter, key):
 def format_call(con, row, parameter, key, indent, full=False):
     file_id, caller, function, _call_id, line, value = row
     name = key.replace("$", get_parameter_name(con, function, parameter), 1)
+    pointer = ""
+
+    if ")->" in function:
+        pointer = " " + function + "()"
     if value is None:
         value = user_range_for_call(con, row, parameter, key)
     if value is None:
         if not full:
             return None
         value = "unknown"
-    return "%s%s:%d %s() %s=%s" % (
-        " " * indent, filename(con, file_id), line, caller, name, value)
+    return "%s%s:%d %s() %s=%s%s" % (
+        " " * indent, filename(con, file_id), line, caller, name, value,
+        pointer)
 
 
 def source_expression(value):
