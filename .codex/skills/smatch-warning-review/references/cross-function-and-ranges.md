@@ -51,3 +51,12 @@ available, use the narrow kernel data entry
 `<function> <zero-based-parameter>` in `smatch_data/kernel/ignore_uninitialized_param`.
 Do not suppress a genuinely unsafe output merely because one caller omitted
 error handling.
+
+For an uninitialized scalar passed to a helper, a guard inside the helper does
+not ordinarily make the call safe: evaluating the argument is undefined in C
+even if the helper would return before using its parameter.  The kernel may
+accept this pattern only when the helper is declared `inline` and the guard
+proves that the inlined body never reads the value on that path.  A plain
+`inline` declaration is sufficient for this review convention, although
+`__always_inline` would make that reliance stronger.  Do not apply the
+exception to a non-inline or out-of-line helper.
