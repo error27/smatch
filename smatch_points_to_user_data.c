@@ -353,6 +353,21 @@ static void fake_assign_helper(struct expression *expr, void *data)
 		set_array_user_ptr(left, set);
 }
 
+static void set_zero_offset_user_ptr(struct expression *expr)
+{
+	struct range_list *rl;
+
+	expr = strip_expr(expr);
+	if (!expr || expr->type != EXPR_BINOP || expr->op != '+')
+		return;
+	if (!is_pointer(expr->left))
+		return;
+	if (get_implied_rl(expr->right, &rl) &&
+	    !rl_intersection(rl, alloc_rl(int_zero, int_zero)))
+		return;
+	set_state_expr(my_id, expr->left, &user_data_set);
+}
+
 static void returns_user_ptr_helper(struct expression *expr, const char *name, struct symbol *sym, bool set)
 {
 	struct expression *call, *arg;
@@ -381,6 +396,8 @@ static void returns_user_ptr_helper(struct expression *expr, const char *name, s
 	}
 
 	set_state_expr(my_id, arg, set ? &user_data_set : &user_data);
+	if (set)
+		set_zero_offset_user_ptr(arg);
 }
 
 static void returns_user_ptr(struct expression *expr,
