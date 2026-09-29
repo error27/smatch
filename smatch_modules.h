@@ -129,11 +129,14 @@ CK(smatch_strings)
 CK(smatch_strlen)
 CK(smatch_strlen_equiv)
 CK(smatch_struct_assignment)
+CK(smatch_terminator_xfun)
+CK(smatch_terminate_string)
 CK(smatch_type_info)
 CK(smatch_type_links)
 CK(smatch_type_val)
 CK(smatch_unconstant_macros)
 CK(smatch_units)
+CK(smatch_unterminated_user_string)
 
 /* normally checks have one register function but sometimes they can have
  * more than one.  So I guess add them here until I can think of a nicer

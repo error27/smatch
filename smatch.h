@@ -1675,6 +1675,12 @@ bool is_array_size_units(struct expression *expr);
 bool is_nul_terminated_var_sym(const char *name, struct symbol *sym);
 bool is_nul_terminated(struct expression *expr);
 
+/* smatch_terminate_string.c */
+void add_nul_terminate_callback(expr_func *fn);
+
+/* smatch_unterminated_user_string.c */
+bool is_unterminated_user_string(struct expression *expr);
+
 /* smatch_leaf_fn.c */
 bool call_is_leaf_fn(struct expression *call);
 
