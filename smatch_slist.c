@@ -344,8 +344,14 @@ int out_of_memory(void)
 	 * It works out OK for the kernel and so it should work
 	 * for most other projects as well.
 	 */
-	if (sm_state_counter * sizeof(struct sm_state) >= 100000000)
+	if (sm_state_counter * sizeof(struct sm_state) >= 100000000) {
+		oom_func = cur_func_sym;
+		force_output++;
+		sm_perror("OOM: sm_state_counter = %d", sm_state_counter);
+		force_output--;
+		__bail_on_rest_of_function = 1;
 		return 1;
+	}
 
 	/*
 	 * We're reading from statm to figure out how much memory we
@@ -362,6 +368,7 @@ int out_of_memory(void)
 		force_output++;
 		sm_perror("OOM: %luKb sm_state_count = %d", get_mem_kb(), sm_state_counter);
 		force_output--;
+		__bail_on_rest_of_function = 1;
 		return 1;
 	}
 
