@@ -415,6 +415,13 @@ static void print_initializer_list(struct expression_list *expr_list,
 	char struct_name[256];
 
 	FOR_EACH_PTR(expr_list, expr) {
+		if (expr->type == EXPR_CAST &&
+		    expr->cast_expression &&
+		    expr->cast_expression->type == EXPR_INITIALIZER) {
+			print_initializer_list(expr->cast_expression->expr_list,
+					       struct_type);
+			continue;
+		}
 		if (expr->type == EXPR_INDEX && expr->idx_expression && expr->idx_expression->type == EXPR_INITIALIZER) {
 			print_initializer_list(expr->idx_expression->expr_list, struct_type);
 			continue;
