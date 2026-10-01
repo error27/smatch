@@ -19,6 +19,73 @@
 
 static int my_id;
 
+#define NLA_NUL_STRING_TYPE 10
+
+struct nla_size_info {
+	struct range_list *rl;
+	bool found;
+};
+
+static int get_nla_size(void *_info, int argc, char **argv, char **azColName)
+{
+	struct nla_size_info *info = _info;
+	sval_t min = { .type = &int_ctype };
+	sval_t max = { .type = &int_ctype };
+	char *end;
+	long type, len;
+
+	info->found = true;
+	if (!argv[1])
+		goto unknown;
+	len = strtol(argv[1], &end, 10);
+	if (*end || len < 0 || len >= INT_MAX)
+		goto unknown;
+	type = strtol(argv[0], &end, 10);
+	if (*end)
+		goto unknown;
+	if (type == NLA_NUL_STRING_TYPE) {
+		min.value = 1;
+		max.value = len + 1;
+	} else {
+		min.value = 0;
+		max.value = len;
+	}
+	add_range(&info->rl, min, max);
+	return 0;
+unknown:
+	max.value = -1;
+	add_range(&info->rl, max, max);
+	return 0;
+}
+
+bool get_nl_data_size(struct expression *expr, struct range_list **rl)
+{
+	struct expression *call;
+	struct expression *attr;
+	struct nla_size_info info = {};
+	const char *name;
+
+	*rl = NULL;
+	call = get_rightmost_call(expr);
+	if (!call)
+		return false;
+	attr = get_argument_from_call_expr(call->args, 0);
+	if (!attr)
+		return false;
+	attr = strip_expr(attr);
+	if (attr && attr->type == EXPR_PREOP && attr->op == '*')
+		attr = strip_expr(attr->unop);
+	if (!attr || attr->type != EXPR_BINOP)
+		return false;
+	name = pos_ident(attr->right->pos);
+	if (!name)
+		return false;
+	run_sql(get_nla_size, &info,
+		"select type, len from nla_policy where attribute = '%s';", name);
+	*rl = info.rl;
+	return info.found;
+}
+
 static const char *expr_value(struct expression *expr)
 {
 	sval_t sval;

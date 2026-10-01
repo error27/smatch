@@ -999,6 +999,17 @@ static void match_allocation(struct expression *expr,
 	match_struct_size_helper(expr->left, info->size_rl);
 }
 
+static void match_nla_data_size(const char *fn, struct expression *expr,
+				void *unused)
+{
+	struct range_list *rl;
+
+	if (expr->type != EXPR_ASSIGNMENT || expr->op != '=')
+		return;
+	if (get_nl_data_size(expr->right, &rl))
+		store_alloc(expr->left, rl);
+}
+
 void smatch_buf_size(int id)
 {
 	my_id = id;
@@ -1014,6 +1025,8 @@ void smatch_buf_size(int id)
 	add_split_return_callback(print_returned_allocations);
 
 	add_modification_hook(my_id, &set_size_undefined);
+	if (option_project == PROJ_KERNEL)
+		add_function_assign_hook("nla_data", &match_nla_data_size, NULL);
 
 	add_merge_hook(my_id, &merge_size_func);
 

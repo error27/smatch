@@ -1328,6 +1328,9 @@ bool is_host_data_fn(struct symbol *fn);
 bool points_to_host_data(struct expression *expr);
 void set_points_to_host_data(struct expression *expr, bool is_new);
 bool is_fn_points_to_host_data(const char *fn);
+
+/* smatch_kernel_nla_policy.c */
+bool get_nl_data_size(struct expression *expr, struct range_list **rl);
 /* check_locking.c */
 enum lock_type {
 	spin_lock,
