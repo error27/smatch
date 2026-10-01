@@ -1,0 +1,11 @@
+CREATE TABLE nla_policy (
+	file big int,
+	attribute varchar(80),
+	type varchar(80),
+	len integer,
+	validation_type smallint,
+	value varchar(80),
+
+	CONSTRAINT nla_policy_row UNIQUE
+		(file, attribute, type, len, validation_type, value)
+);

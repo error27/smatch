@@ -318,6 +318,7 @@ SMATCH_OBJS += smatch_kernel_kref_put.o
 SMATCH_OBJS += smatch_kernel_list_add_entry.o
 SMATCH_OBJS += smatch_kernel_list_del.o
 SMATCH_OBJS += smatch_kernel_netdev_priv.o
+SMATCH_OBJS += smatch_kernel_nla_policy.o
 SMATCH_OBJS += smatch_kernel_NOT_ENABLED.o
 SMATCH_OBJS += smatch_kernel_put_device.o
 SMATCH_OBJS += smatch_kernel_put_device_info.o
