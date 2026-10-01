@@ -60,6 +60,12 @@ static void nul_terminate(struct expression *string)
 	call_expr_fns(nul_terminate_hooks, string);
 }
 
+static void match_nla_data(const char *fn, struct expression *expr, void *unused)
+{
+	if (is_nl_data_nul_string(expr))
+		nul_terminate(expr->left);
+}
+
 static bool is_char_string(struct expression *expr)
 {
 	struct symbol *type;
@@ -158,6 +164,8 @@ void smatch_terminate_string(int id)
 	add_hook(&match_nul_assign, ASSIGNMENT_HOOK);
 	add_function_hook("memset", &match_memset, NULL);
 	add_function_hook("__memset", &match_memset, NULL);
+	if (option_project == PROJ_KERNEL)
+		add_function_assign_hook("nla_data", &match_nla_data, NULL);
 
 	for (i = 0; i < ARRAY_SIZE(terminates_string); i++) {
 		info = &terminates_string[i];

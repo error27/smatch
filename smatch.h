@@ -1331,6 +1331,7 @@ bool is_fn_points_to_host_data(const char *fn);
 
 /* smatch_kernel_nla_policy.c */
 bool get_nl_data_size(struct expression *expr, struct range_list **rl);
+bool is_nl_data_nul_string(struct expression *expr);
 /* check_locking.c */
 enum lock_type {
 	spin_lock,

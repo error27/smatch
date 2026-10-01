@@ -26,6 +26,25 @@ struct nla_size_info {
 	bool found;
 };
 
+static const char *get_nl_data_attribute(struct expression *expr)
+{
+	struct expression *call;
+	struct expression *attr;
+
+	call = get_rightmost_call(expr);
+	if (!call)
+		return NULL;
+	attr = get_argument_from_call_expr(call->args, 0);
+	if (!attr)
+		return NULL;
+	attr = strip_expr(attr);
+	if (attr && attr->type == EXPR_PREOP && attr->op == '*')
+		attr = strip_expr(attr->unop);
+	if (!attr || attr->type != EXPR_BINOP)
+		return NULL;
+	return pos_ident(attr->right->pos);
+}
+
 static int get_nla_size(void *_info, int argc, char **argv, char **azColName)
 {
 	struct nla_size_info *info = _info;
@@ -60,30 +79,43 @@ unknown:
 
 bool get_nl_data_size(struct expression *expr, struct range_list **rl)
 {
-	struct expression *call;
-	struct expression *attr;
 	struct nla_size_info info = {};
 	const char *name;
 
 	*rl = NULL;
-	call = get_rightmost_call(expr);
-	if (!call)
-		return false;
-	attr = get_argument_from_call_expr(call->args, 0);
-	if (!attr)
-		return false;
-	attr = strip_expr(attr);
-	if (attr && attr->type == EXPR_PREOP && attr->op == '*')
-		attr = strip_expr(attr->unop);
-	if (!attr || attr->type != EXPR_BINOP)
-		return false;
-	name = pos_ident(attr->right->pos);
+	name = get_nl_data_attribute(expr);
 	if (!name)
 		return false;
 	run_sql(get_nla_size, &info,
 		"select type, len from nla_policy where attribute = '%s';", name);
 	*rl = info.rl;
 	return info.found;
+}
+
+static int is_nla_nul_string(void *data, int argc, char **argv,
+				     char **azColName)
+{
+	bool *result = data;
+	char *end;
+	long type;
+
+	type = strtol(argv[0], &end, 10);
+	if (!*end && type == NLA_NUL_STRING_TYPE)
+		*result = true;
+	return 0;
+}
+
+bool is_nl_data_nul_string(struct expression *expr)
+{
+	const char *name;
+	bool result = false;
+
+	name = get_nl_data_attribute(expr);
+	if (!name)
+		return false;
+	run_sql(is_nla_nul_string, &result,
+		"select type from nla_policy where attribute = '%s';", name);
+	return result;
 }
 
 static const char *expr_value(struct expression *expr)
