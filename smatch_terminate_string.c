@@ -42,6 +42,7 @@ static struct terminates_string terminates_string[] = {
 	{ "scnprintf", 0, "$" },
 	{ "btrfs_check_ioctl_vol_args_path", 0, "$->name",
 	  &int_zero, &int_zero },
+	{ "elem_id_matches", 0, "$->name", &int_one, &int_one },
 	{ "memchr", 0, "$", NULL, NULL, &match_memchr },
 };
 
