@@ -133,7 +133,7 @@ def caller_rows(con, file_id, function, static, parameter, data_type, key="$"):
 
 def user_pointer_keys(key):
     keys = []
-    if key.startswith("*$") or key.startswith("$->"):
+    if key == "$" or key.startswith("*$") or key.startswith("$->"):
         keys.append("$")
     if key.startswith("$->"):
         fields = key.split("->")

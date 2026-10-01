@@ -33,6 +33,29 @@ def get_function_pointers(con, function):
     return function_ptrs
 
 
+def get_parameter(con, function, name):
+    rows = con.execute(
+        "select distinct parameter, value from parameter_name "
+        "where function = ? order by parameter",
+        (function,),
+    ).fetchall()
+    matches = []
+    for parameter, parameter_name in rows:
+        if (name == parameter_name or
+                name.startswith(parameter_name + "->") or
+                name.startswith(parameter_name + ".")):
+            matches.append(int(parameter))
+    matches = sorted(set(matches))
+    if not matches:
+        raise ValueError("no parameter named '%s' for %s()" %
+                         (name, function))
+    if len(matches) != 1:
+        raise ValueError("parameter '%s' has conflicting numbers for %s(): %s" %
+                         (name, function,
+                          ", ".join(str(param) for param in matches)))
+    return matches[0]
+
+
 def parse_ptracker(value):
     fields = value.split(",", 3)
     if len(fields) != 4:
@@ -139,7 +162,7 @@ def trace_ptracker(con, tracker_id, visited):
 
 
 def usage():
-    print("usage: %s [filename] function parameter" % sys.argv[0],
+    print("usage: %s [filename] function parameter_name" % sys.argv[0],
           file=sys.stderr)
     sys.exit(1)
 
@@ -148,21 +171,14 @@ def main():
     if len(sys.argv) == 3:
         function_info = None
         function = sys.argv[1]
-        parameter = sys.argv[2]
+        parameter_name = sys.argv[2]
     elif len(sys.argv) == 4:
         file_id = string_to_hash(sys.argv[1])
         function = sys.argv[2]
-        parameter = sys.argv[3]
+        parameter_name = sys.argv[3]
         static = 1
         function_info = [(file_id, function, static)]
     else:
-        usage()
-
-    try:
-        parameter = int(parameter, 0)
-    except ValueError:
-        usage()
-    if parameter < 0:
         usage()
 
     try:
@@ -175,6 +191,7 @@ def main():
         return 1
 
     try:
+        parameter = get_parameter(con, function, parameter_name)
         if function_info is None:
             function_info = list(select_function_info(con, function))
             if not function_info:
@@ -196,7 +213,7 @@ def main():
         visited = set()
         for tracker_id in tracker_ids:
             trace_ptracker(con, tracker_id, visited)
-    except sqlite3.Error as error:
+    except (sqlite3.Error, ValueError) as error:
         print("error: %s" % error, file=sys.stderr)
         return 1
     finally:
