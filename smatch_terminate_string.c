@@ -35,6 +35,7 @@ static struct terminates_string terminates_string[] = {
 	{ "nla_strdup", -1, "$" },
 	{ "nla_strscpy", 0, "$", NULL, NULL, &match_terminates_destination },
 	{ "strscpy", 0, "$" },
+	{ "strscpy_pad", 0, "$" },
 	{ "sized_strscpy", 0, "$", NULL, NULL, &match_terminates_destination },
 	{ "strndup_user", -1, "$" },
 	{ "snprintf", 0, "$" },
