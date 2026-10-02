@@ -1664,6 +1664,12 @@ extern int option_mem;
 unsigned long get_mem_kb(void);
 unsigned long get_max_memory(void);
 
+/* smatch_memcpy.c */
+void add_memcpy_hook(expr3_func *fn);
+
+/* smatch_user_len.c */
+bool get_user_len(struct expression *expr, struct range_list **rl);
+
 /* smatch_goto_tracker.c */
 struct sm_state *get_goto_sm_state(void);
 

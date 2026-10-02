@@ -335,6 +335,7 @@ SMATCH_OBJS += smatch_locking.o
 SMATCH_OBJS += smatch_locking_info.o
 SMATCH_OBJS += smatch_locking_type.o
 SMATCH_OBJS += smatch_math.o
+SMATCH_OBJS += smatch_memcpy.o
 SMATCH_OBJS += smatch_mem_tracker.o
 SMATCH_OBJS += smatch_modification_hooks.o
 SMATCH_OBJS += smatch_mtag_data.o
