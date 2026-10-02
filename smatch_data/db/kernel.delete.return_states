@@ -33,3 +33,5 @@ alloc_frame_masks 0
 hmm_range_fault 1
 get_net_ns_by_pid 0
 rtnl_link_get_net_by_nlattr 0
+ntfs_rl_realloc_nofail (-22)
+ntfs_rl_realloc_nofail (-12)
