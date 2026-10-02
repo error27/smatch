@@ -159,6 +159,11 @@ The Linux kernel helpers are:
     smatch_scripts/kchecker path/to/directory/
     smatch_scripts/test_kernel.sh
 
+If a Linux kernel repository is available, check each commit with its
+`scripts/checkpatch.pl` before delivery.  For example:
+
+    git format-patch -1 --stdout | ~/progs/kernel/devel/scripts/checkpatch.pl --no-signoff -
+
 The optional cross-function database is built with:
 
     smatch_scripts/build_kernel_data.sh
