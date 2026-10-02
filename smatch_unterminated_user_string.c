@@ -86,6 +86,9 @@ bool is_unterminated_user_string(struct expression *expr)
 {
 	struct sm_state *sm;
 
+	if (__in_fake_parameter_assign)
+		return false;
+
 	sm = get_sm_state_expr(my_id, expr);
 	if (sm)
 		return slist_has_state(sm->possible, &unterminated);
