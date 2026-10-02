@@ -69,3 +69,12 @@ place it inside the `if (rx_mask)` block after that assignment.  A framework
 invariant which happens to initialize `chan` from `tx_mask` can make the
 existing code safe, but the mismatched provenance is a code-quality issue and
 the tighter scope makes the intended dependency clear.
+
+For an API whose successful return is a Linux IRQ number, zero is never a
+valid IRQ on a supported architecture.  Treat a `zero error code` warning on
+`if (irq <= 0) return irq;` as a source bug even when zero is unreachable: the
+code falsely models zero as an error and returning it reports success.  Use a
+negative-error test such as `irq < 0`.  Do not infer an IRQ-zero exception from
+generic allocator implementation details.  This rule does not apply to APIs
+documented to use zero as an error sentinel, such as some legacy IRQ-mapping
+helpers.
