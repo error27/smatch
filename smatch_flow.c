@@ -1898,9 +1898,13 @@ void __split_stmt(struct statement *stmt)
 
 		__bail_on_rest_of_function = 1;
 		force_output++;
-		if (option_spammy)
-			sm_perror("Function too hairy.  Giving up. %lu seconds",
-			       start.tv_sec - fn_start_time.tv_sec);
+		if (option_spammy) {
+			sm_perror("Function too hairy.  Giving up. %lu seconds:%s%s",
+			       start.tv_sec - fn_start_time.tv_sec,
+			       out_of_memory() ? " OOM" : "",
+			       taking_too_long() ? " Too slow" : "");
+			show_smatch_allocations();
+		}
 		fake_a_return();
 		force_output--;
 		output_enabled = 0;  /* turn off sm_msg() from here */
@@ -2753,6 +2757,7 @@ static void parse_inline(struct expression *call)
 		__pass_to_client(NULL, RETURN_HOOK);
 		nullify_path();
 	}
+	sm_local("Done inline: %s\n", cur_func);
 	__pass_to_client(call->fn->symbol, END_FUNC_HOOK);
 	__free_scope_hooks();
 	__current_scope = NULL;
