@@ -44,6 +44,7 @@ static struct terminates_string terminates_string[] = {
 	  &int_zero, &int_zero },
 	{ "elem_id_matches", 0, "$->name", &int_one, &int_one },
 	{ "memchr", 0, "$", NULL, NULL, &match_memchr },
+	{ "kmemdup_nul", -1, "$" },
 };
 
 void add_nul_terminate_callback(expr_func *fn)
