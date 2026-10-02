@@ -18,27 +18,15 @@ static void match_nul_terminate(struct expression *expr)
 	set_state_expr(my_id, expr, &terminated);
 }
 
-static void save_terminators(int return_id, char *return_ranges,
-			     struct expression *returned_expr)
+static void return_info_callback(int return_id, char *return_ranges,
+				 struct expression *returned_expr, int param,
+				 const char *printed_name, struct sm_state *sm)
 {
-	struct sm_state *sm;
-	const char *param_name;
-	int param;
+	if (!slist_has_state(sm->possible, &terminated))
+		return;
 
-	FOR_EACH_MY_SM(my_id, __get_cur_stree(), sm) {
-		if (sm->state != &terminated)
-			continue;
-
-		param = get_param_num_from_sym(sm->sym);
-		if (param < 0)
-			continue;
-		param_name = get_param_name(sm);
-		if (!param_name)
-			continue;
-
-		sql_insert_return_states(return_id, return_ranges,
-					 ADDS_TERMINATOR, param, param_name, "");
-	} END_FOR_EACH_SM(sm);
+	sql_insert_return_states(return_id, return_ranges,
+				 ADDS_TERMINATOR, param, printed_name, "");
 }
 
 void smatch_terminator_xfun(int id)
@@ -49,5 +37,5 @@ void smatch_terminator_xfun(int id)
 		return;
 
 	add_nul_terminate_callback(&match_nul_terminate);
-	add_split_return_callback(&save_terminators);
+	add_return_info_callback(my_id, &return_info_callback);
 }
