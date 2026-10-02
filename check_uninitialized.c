@@ -123,22 +123,15 @@ static void warn_about_special_assign(struct expression *expr)
 
 static void extra_mod_hook(const char *name, struct symbol *sym, struct expression *expr, struct smatch_state *state)
 {
-	struct expression *parent = expr_get_parent_expr(expr);
-
 	if (!cur_func_sym)
 		return;
 
-	if (__in_fake_struct_assign && parent &&
-	    parent->type == EXPR_ASSIGNMENT &&
-	    is_fake_call(parent->right))
-		return;
-	if (expr && expr->smatch_flags & Fake)
-		return;
 	if (!sym || !sym->ident)
 		return;
-	if (strcmp(name, sym->ident->name) != 0)
-		return;
+
 	warn_about_special_assign(expr);
+	if (!get_state(my_id, name, sym))
+		return;
 	set_state(my_id, name, sym, &initialized);
 }
 
