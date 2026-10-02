@@ -106,6 +106,8 @@ static void match_assign(struct expression *expr)
 
 static void match_nul_terminate(struct expression *expr)
 {
+	if (!get_state_expr(my_id, expr))
+		return;
 	set_state_expr(my_id, expr, &undefined);
 }
 
