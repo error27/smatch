@@ -108,7 +108,7 @@ static void match_assign_call(struct expression *expr)
 	if (ignored_function(expr->right))
 		return;
 	left = strip_expr(expr->left);
-	if (!left || left->type != EXPR_SYMBOL)
+	if (!left || left->type != EXPR_SYMBOL || !left->symbol)
 		return;
 	if (left->symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN | MOD_STATIC))
 		return;
