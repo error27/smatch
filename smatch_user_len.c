@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Oracle.
+ * Copyright (C) 2026 Dan Carpenter.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
