@@ -23,25 +23,6 @@ static int loop_id;
 
 STATE(loop_end);
 
-static int definitely_just_used_as_limiter(struct expression *array, struct expression *offset)
-{
-	sval_t sval;
-	struct expression *tmp;
-
-	if (!get_implied_value(offset, &sval))
-		return 0;
-	if (get_array_size(array) != sval.value)
-		return 0;
-
-	tmp = array;
-	while ((tmp = expr_get_parent_expr(tmp))) {
-		if (tmp->type == EXPR_PREOP && tmp->op == '&')
-			return 1;
-	}
-
-	return 0;
-}
-
 static int fake_get_hard_max(struct expression *expr, sval_t *sval)
 {
 	struct range_list *implied_rl;
@@ -100,64 +81,6 @@ static int get_the_max(struct expression *expr, sval_t *sval)
 	return 1;
 }
 
-static int common_false_positives(struct expression *array, sval_t max)
-{
-	char *name;
-	int ret;
-
-	name = expr_to_str(array);
-
-	/* Smatch can't figure out glibc's strcmp __strcmp_cg()
-	 * so it prints an error every time you compare to a string
-	 * literal array with 4 or less chars.
-	 */
-	if (name &&
-	    (strcmp(name, "__s1") == 0 || strcmp(name, "__s2") == 0)) {
-		ret = 1;
-		goto free;
-	}
-
-	/* Ugh... People are saying that Smatch still barfs on glibc strcmp()
-	 * functions.
-	 */
-	if (array) {
-		char *macro;
-
-		/* why is this again??? */
-		if (array->type == EXPR_STRING &&
-		    max.value == array->string->length) {
-			ret = 1;
-			goto free;
-		}
-
-		macro = get_macro_name(array->pos);
-		if (macro && max.uvalue < 4 &&
-		    (strcmp(macro, "strcmp")  == 0 ||
-		     strcmp(macro, "strncmp") == 0 ||
-		     strcmp(macro, "streq")   == 0 ||
-		     strcmp(macro, "strneq")  == 0 ||
-		     strcmp(macro, "strsep")  == 0)) {
-			ret = 1;
-			goto free;
-		}
-	}
-
-	/*
-	 * passing WORK_CPU_UNBOUND is idiomatic but Smatch doesn't understand
-	 * how it's used so it causes a bunch of false positives.
-	 */
-	if (option_project == PROJ_KERNEL && name &&
-	    strcmp(name, "__per_cpu_offset") == 0) {
-		ret = 1;
-		goto free;
-	}
-	ret = 0;
-
-free:
-	free_string(name);
-	return ret;
-}
-
 static int is_subtract(struct expression *expr)
 {
 	struct expression *tmp;
@@ -175,70 +98,6 @@ static int is_subtract(struct expression *expr)
 	return 0;
 }
 
-static int constraint_met(struct expression *array_expr, struct expression *offset)
-{
-	char *data_str, *required, *unmet;
-	int ret = 0;
-
-	data_str = get_constraint_str(array_expr);
-	if (!data_str)
-		return 0;
-
-	required = get_required_constraint(data_str);
-	if (!required)
-		goto free_data_str;
-
-	unmet = unmet_constraint(array_expr, offset);
-	if (!unmet)
-		ret = 1;
-	free_string(unmet);
-	free_string(required);
-
-free_data_str:
-	free_string(data_str);
-	return ret;
-}
-
-static bool is_zero_size_memcpy(struct expression *expr, int size, struct range_list *rl)
-{
-	struct expression *parent;
-
-	/*
-	 * Often times we have code like this:
-	 * 	memcpy(array[idx], src, size)
-	 * In this example if "idx == ARRAY_SIZE()" then "size" is zero so
-	 * nothing is copied and the code is fine and Smatch should not
-	 * print a warning even though the idx is one element out of bounds.
-	 *
-	 * TODO: if we wanted to be very accurate we could find the length
-	 * expression and assume() that offset == rl_max() and then test that
-	 * the length expression is zero.  But that seems like a lot of work.
-	 * HashtagLazy.
-	 */
-
-	if (rl_max(rl).value != size)
-		return false;
-
-	parent = expr;
-	while ((parent = expr_get_parent_expr(parent))) {
-		if (parent->type == EXPR_PREOP &&
-		    (parent->op == '(' || parent->op == '&'))
-			continue;
-		if (parent->type == EXPR_CAST)
-			continue;
-		break;
-	}
-	if (!parent || parent->type != EXPR_CALL ||
-	    parent->fn->type != EXPR_SYMBOL || !parent->fn->symbol_name)
-		return false;
-
-	if (strstr(parent->fn->symbol_name->name, "memcpy") ||
-	    strstr(parent->fn->symbol_name->name, "memset"))
-		return true;
-
-	return false;
-}
-
 static int should_warn(struct expression *expr)
 {
 	struct expression *array_expr;
@@ -248,6 +107,9 @@ static int should_warn(struct expression *expr)
 	int array_size;
 	struct expression *offset;
 	sval_t max;
+
+	if (array_safe_expr(expr))
+		return 0;
 
 	expr = strip_expr(expr);
 	if (!is_array(expr))
@@ -271,24 +133,15 @@ static int should_warn(struct expression *expr)
 		return 0;
 	if (buf_comparison_index_ok(expr))
 		return 0;
-	if (constraint_met(array_expr, offset))
-		return 0;
 
 	if (array_size > rl_max(abs_rl).uvalue)
 		return 0;
 
-	if (definitely_just_used_as_limiter(array_expr, offset))
-		return 0;
-
 	array_expr = strip_expr(array_expr);
-	if (common_false_positives(array_expr, max))
-		return 0;
 
 	if (impossibly_high_comparison(offset))
 		return 0;
 
-	if (is_zero_size_memcpy(expr, array_size, abs_rl))
-		return 0;
 	return 1;
 
 }
