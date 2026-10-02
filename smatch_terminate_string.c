@@ -63,7 +63,8 @@ static void nul_terminate(struct expression *string)
 	call_expr_fns(nul_terminate_hooks, string);
 }
 
-static void set_false_nul_terminate(struct expression *string)
+static void set_conditional_nul_terminate(struct expression *string,
+					  bool true_path)
 {
 	struct stree *false_stree;
 	struct sm_state *sm;
@@ -73,7 +74,8 @@ static void set_false_nul_terminate(struct expression *string)
 	false_stree = __pop_fake_cur_stree();
 	FOR_EACH_SM(false_stree, sm) {
 		set_true_false_states(sm->owner, sm->name, sm->sym,
-				      NULL, sm->state);
+				      true_path ? sm->state : NULL,
+				      true_path ? NULL : sm->state);
 	} END_FOR_EACH_SM(sm);
 	free_stree(&false_stree);
 }
@@ -86,7 +88,44 @@ static void match_condition(struct expression *expr)
 	if (!string || !is_char_string(string))
 		return;
 
-	set_false_nul_terminate(string);
+	set_conditional_nul_terminate(string, false);
+}
+
+static void match_strnlen_condition(struct expression *expr)
+{
+	struct expression *call, *string;
+	bool true_path;
+
+	if (expr->type != EXPR_COMPARE)
+		return;
+
+	switch (expr->op) {
+	case SPECIAL_EQUAL:
+	case SPECIAL_GTE:
+	case SPECIAL_UNSIGNED_GTE:
+		true_path = false;
+		break;
+	case SPECIAL_NOTEQUAL:
+	case '<':
+	case SPECIAL_UNSIGNED_LT:
+		true_path = true;
+		break;
+	default:
+		return;
+	}
+
+	call = get_assigned_expr_recurse(expr->left);
+	if (!call)
+		call = strip_expr(expr->left);
+	if (!call || call->type != EXPR_CALL ||
+	    !sym_name_is(call->fn, "strnlen"))
+		return;
+
+	string = get_argument_from_call_expr(call->args, 0);
+	if (!string)
+		return;
+
+	set_conditional_nul_terminate(string, true_path);
 }
 
 static void match_nla_data(const char *fn, struct expression *expr, void *unused)
@@ -213,4 +252,5 @@ void smatch_terminate_string(int id)
 
 	select_return_states_hook(ADDS_TERMINATOR, &return_adds_terminator);
 	add_hook(&match_condition, CONDITION_HOOK);
+	add_hook(&match_strnlen_condition, CONDITION_HOOK);
 }
