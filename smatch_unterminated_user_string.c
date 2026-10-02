@@ -114,7 +114,12 @@ static void match_nul_terminate(struct expression *expr)
 static void insert_caller_info(struct expression *call, int param,
 				char *printed_name, struct sm_state *sm)
 {
+	struct expression *arg;
+
 	if (!slist_has_state(sm->possible, &unterminated))
+		return;
+	arg = gen_expr_from_param_key(call, param, printed_name);
+	if (arg && is_skb_data(arg))
 		return;
 
 	sql_insert_caller_info(call, UNTERMINATED, param, printed_name, "");
