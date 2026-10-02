@@ -586,18 +586,27 @@ int buf_comparison_index_ok(struct expression *expr)
 bool buf_comp_has_bytes(struct expression *buf, struct expression *var)
 {
 	struct expression *size;
+	int elem_size;
 	int limit_type;
 	int comparison;
 
 	size = get_size_variable(buf, &limit_type);
 	if (!size)
 		return false;
+	if (limit_type == ELEM_COUNT || limit_type == ELEM_LAST) {
+		elem_size = bytes_per_element(buf);
+		if (!elem_size)
+			return false;
+		if (limit_type == ELEM_LAST)
+			size = binop_expression(size, '+', value_expr(1));
+		size = binop_expression(size, '*', value_expr(elem_size));
+	}
 	comparison = get_comparison(size, var);
 	if (comparison == UNKNOWN_COMPARISON ||
 	    comparison == IMPOSSIBLE_COMPARISON)
 		return false;
 
-	if (show_special(comparison)[0] == '<' ||
+	if (show_special(comparison)[0] == '>' ||
 	    show_special(comparison)[0] == '=')
 		return true;
 
