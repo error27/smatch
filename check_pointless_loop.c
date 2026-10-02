@@ -28,6 +28,8 @@ static void check_reachable(struct expression *expr)
 		return;
 	if (!__path_is_null())
 		return;
+	if (__bail_on_rest_of_function)
+		return;
 
 	stmt = last_ptr_list((struct ptr_list *)big_statement_stack);
 	if (!stmt)
