@@ -79,6 +79,7 @@ enum info_type {
 	ZERO_ERROR	= 1067,
 	LEAF_FN		= 1068,
 	CASTED_TO	= 1069,
+	USER_LEN	= 1070,
 
 	SPLIT_LIMIT	= 2000,
 	NEXT_LIMIT	= 2001,

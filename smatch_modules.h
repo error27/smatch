@@ -138,6 +138,7 @@ CK(smatch_type_val)
 CK(smatch_unconstant_macros)
 CK(smatch_units)
 CK(smatch_unterminated_user_string)
+CK(smatch_user_len)
 
 /* normally checks have one register function but sometimes they can have
  * more than one.  So I guess add them here until I can think of a nicer
