@@ -22,6 +22,7 @@ static struct expr_fn_list *nul_terminate_hooks;
 static void match_memchr(const char *fn, struct expression *expr, void *unused);
 static void match_terminates_destination(const char *fn,
 					 struct expression *expr, void *data);
+static bool is_char_string(struct expression *expr);
 
 struct terminates_string {
 	const char *fn;
@@ -60,6 +61,32 @@ static void nul_terminate(struct expression *string)
 	if (base)
 		string = base;
 	call_expr_fns(nul_terminate_hooks, string);
+}
+
+static void set_false_nul_terminate(struct expression *string)
+{
+	struct stree *false_stree;
+	struct sm_state *sm;
+
+	__push_fake_cur_stree();
+	nul_terminate(string);
+	false_stree = __pop_fake_cur_stree();
+	FOR_EACH_SM(false_stree, sm) {
+		set_true_false_states(sm->owner, sm->name, sm->sym,
+				      NULL, sm->state);
+	} END_FOR_EACH_SM(sm);
+	free_stree(&false_stree);
+}
+
+static void match_condition(struct expression *expr)
+{
+	struct expression *string;
+
+	string = get_array_base(expr);
+	if (!string || !is_char_string(string))
+		return;
+
+	set_false_nul_terminate(string);
 }
 
 static void match_nla_data(const char *fn, struct expression *expr, void *unused)
@@ -185,4 +212,5 @@ void smatch_terminate_string(int id)
 	}
 
 	select_return_states_hook(ADDS_TERMINATOR, &return_adds_terminator);
+	add_hook(&match_condition, CONDITION_HOOK);
 }
