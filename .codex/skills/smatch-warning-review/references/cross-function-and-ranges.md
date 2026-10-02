@@ -60,3 +60,12 @@ proves that the inlined body never reads the value on that path.  A plain
 `inline` declaration is sufficient for this review convention, although
 `__always_inline` would make that reliance stronger.  Do not apply the
 exception to a non-inline or out-of-line helper.
+
+When a function reuses one local to hold values extracted from separate masks
+or inputs, distinguish merely being initialized from holding the value required
+by a later condition.  If a condition involving (for example) `rx_mask` and
+`BIT(chan)` is meaningful only after `chan` has been derived from `rx_mask`,
+place it inside the `if (rx_mask)` block after that assignment.  A framework
+invariant which happens to initialize `chan` from `tx_mask` can make the
+existing code safe, but the mismatched provenance is a code-quality issue and
+the tighter scope makes the intended dependency clear.
