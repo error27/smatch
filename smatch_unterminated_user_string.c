@@ -201,6 +201,18 @@ static void set_return_user_ptr(struct expression *expr, const char *name,
 	set_struct_char_members(arg, type);
 }
 
+static void set_return_user_data(struct expression *expr, const char *name,
+				 struct symbol *sym, const char *value, void *data)
+{
+	struct expression *call;
+
+	call = get_rightmost_call(expr);
+	if (call && sym_name_is(call->fn, "copy_from_sockptr"))
+		return;
+
+	set_return_user_ptr(expr, name, sym, value, data);
+}
+
 void smatch_unterminated_user_string(int id)
 {
 	my_id = id;
@@ -211,9 +223,11 @@ void smatch_unterminated_user_string(int id)
 	add_function_assign_hook("memdup_user", &match_memdup_user, NULL);
 	add_function_hook("copy_from_user", &match_copy_from_user, NULL);
 	add_function_hook("__copy_from_user", &match_copy_from_user, NULL);
+	add_function_hook("copy_from_sockptr", &match_copy_from_user, NULL);
 	add_hook(&match_assign, ASSIGNMENT_HOOK);
 	add_nul_terminate_callback(&match_nul_terminate);
 	select_return_param_key(USER_PTR_SET, &set_return_user_ptr);
+	select_return_param_key(USER_DATA_SET, &set_return_user_data);
 	add_caller_info_callback(my_id, &insert_caller_info);
 	select_caller_info_hook(&select_caller_info, UNTERMINATED);
 }
