@@ -463,34 +463,33 @@ static void match_alloc(struct expression *expr,
 static void match_assign_call_helper(struct expression *expr, bool early)
 {
 	struct alloc_fn_info info = {};
-	struct expression *left;
+	struct alloc_fn_info *fn_info;
+	struct expression *left, *parent;
 	char buf[SIZE_STR_MAX];
 	struct symbol *sym;
 	char *name;
 
 	info.size = buf;
-	if (!load_alloc_fn_info_from_attribute(expr, &info))
-		return;
-
-	if (early) {
-		struct expression *parent;
-
-		parent = expr;
-		while (parent && parent->type != EXPR_ASSIGNMENT)
-			parent = expr_get_parent_expr(parent);
-		if (!parent)
+	fn_info = get_info_from_table(expr);
+	if (!fn_info) {
+		if (!load_alloc_fn_info_from_attribute(expr, &info))
 			return;
-		left = parent->left;
-	} else {
-		left = expr->left;
+		fn_info = &info;
 	}
+
+	parent = expr;
+	while (parent && parent->type != EXPR_ASSIGNMENT)
+		parent = expr_get_parent_expr(parent);
+	if (!parent)
+		return;
+	left = parent->left;
 
 	name = expr_to_str_sym(left, &sym);
 	if (!name || !sym)
 		return;
 
-	match_alloc_helper(early ? hook_funcs_early : hook_funcs, expr,
-			   name, sym, &info);
+	match_alloc_helper(early ? hook_funcs_early : hook_funcs, parent,
+			   name, sym, fn_info);
 }
 
 static void match_assign_call_early(struct expression *expr)
