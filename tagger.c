@@ -89,6 +89,7 @@ struct macro_definition {
 #define TAG_MAX_RETRIES 1000
 #define GLOBAL_HASH_SIZE 1024
 #define MACRO_HASH_SIZE 1024
+#define MAX_SOURCE_READERS 64
 #define MAX_FILE_NUMBER 0xffffff
 #define MAX_LINE_NUMBER 0xffffff
 #define MAX_POSITION 0x3ff
@@ -102,6 +103,7 @@ static struct global_definition **next_global_definition =
 	&global_definitions;
 static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
 static struct source_reader *source_readers;
+static unsigned int nr_source_readers;
 static struct compound_definition *compound_definitions;
 static struct macro_definition *macro_hash[MACRO_HASH_SIZE];
 
@@ -318,10 +320,16 @@ static int same_position(struct position *one, struct position *two)
 static struct source_reader *get_source_reader(const char *filename)
 {
 	struct source_reader *reader;
+	struct source_reader **prev;
+	struct source_reader **last;
 
-	for (reader = source_readers; reader; reader = reader->next) {
-		if (!strcmp(reader->filename, filename))
+	for (prev = &source_readers; (reader = *prev); prev = &reader->next) {
+		if (!strcmp(reader->filename, filename)) {
+			*prev = reader->next;
+			reader->next = source_readers;
+			source_readers = reader;
 			return reader;
+		}
 	}
 	reader = calloc(1, sizeof(*reader));
 	if (!reader)
@@ -334,6 +342,18 @@ static struct source_reader *get_source_reader(const char *filename)
 	}
 	reader->next = source_readers;
 	source_readers = reader;
+	nr_source_readers++;
+	if (nr_source_readers <= MAX_SOURCE_READERS)
+		return reader;
+
+	last = &source_readers;
+	while ((*last)->next)
+		last = &(*last)->next;
+	fclose((*last)->file);
+	free((*last)->line);
+	free(*last);
+	*last = NULL;
+	nr_source_readers--;
 	return reader;
 }
 

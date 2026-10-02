@@ -164,6 +164,11 @@ If a Linux kernel repository is available, check each commit with its
 
     git format-patch -1 --stdout | ~/progs/kernel/devel/scripts/checkpatch.pl --no-signoff -
 
+For a small, self-contained change, commit it after validation without
+waiting for a separate request.  Follow the standard commit process: include
+a concise paraphrase of the user's request and exact Before and After
+validation output in the commit message, and run checkpatch before delivery.
+
 The optional cross-function database is built with:
 
     smatch_scripts/build_kernel_data.sh
