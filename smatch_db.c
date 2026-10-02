@@ -584,11 +584,11 @@ char *get_static_filter(struct symbol *sym)
 
 	if (is_local(sym)) {
 		snprintf(sql_filter, sizeof(sql_filter),
-			 "file = 0x%llx and function = '%s' and static = '1'",
+			 "file = 0x%llx and function = '%s' and static = 1",
 			 get_base_file_id(), sym->ident->name);
 	} else {
 		snprintf(sql_filter, sizeof(sql_filter),
-			 "function = '%s' and static = '0'", sym->ident->name);
+			 "function = '%s' and static = 0", sym->ident->name);
 	}
 
 	return sql_filter;
