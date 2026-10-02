@@ -69,6 +69,10 @@ bool implied_debug;
 #define full_debug 0
 #define DIMPLIED(msg...) do { if (full_debug) printf(msg); } while (0)
 
+#define dbg_implied(msg...) do { if (implied_debug) { \
+	local_debug++ ; sm_local(msg); local_debug--; \
+}} while (0)
+
 bool debug_implied(void)
 {
 	return option_debug || implied_debug || full_debug;
@@ -115,18 +119,18 @@ static void print_debug_tf(struct sm_state *sm, int istrue, int isfalse)
 		return;
 
 	if (istrue && isfalse) {
-		printf("%s: %d: does not exist.\n", show_sm(sm), sm->line);
+		printf("%s: %s: %d: does not exist.\n", __func__, show_sm(sm), sm->line);
 	} else if (istrue) {
-		printf("'%s = %s' from %d is true. %s[stree %d]\n", sm->name, show_state(sm->state),
+		printf("%s: '%s = %s' from %d is true. %s[stree %d]\n", __func__, sm->name, show_state(sm->state),
 			sm->line, is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
 	} else if (isfalse) {
-		printf("'%s = %s' from %d is false. %s[stree %d]\n", sm->name, show_state(sm->state),
+		printf("%s: '%s = %s' from %d is false. %s[stree %d]\n", __func__, sm->name, show_state(sm->state),
 			sm->line,
 			is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
 	} else {
-		printf("'%s = %s' from %d could be true or false. %s[stree %d]\n", sm->name,
+		printf("%s: '%s = %s' from %d could be true or false. %s[stree %d]\n", __func__, sm->name,
 			show_state(sm->state), sm->line,
 			is_leaf(sm) ? "[leaf]" : "[merged]",
 			get_stree_id(sm->pool));
@@ -371,10 +375,8 @@ static void __separate_pools(struct sm_state *sm, int comparison, struct range_l
 	gettimeofday(&now, NULL);
 	timersub(&now, start_time, &diff);
 	if (diff.tv_sec >= 1) {
-		if (full_debug) {
-			sm_msg("debug: %s: implications taking too long.  (%s %s %s)",
-			       __func__, sm->state->name, show_comparison(comparison), show_rl(rl));
-		}
+		sm_msg("debug: implications taking too long.  (%s %s %s)",
+		       sm->state->name, show_comparison(comparison), show_rl(rl));
 		if (mixed)
 			*mixed = 1;
 	}
@@ -649,8 +651,8 @@ static void separate_and_filter(struct sm_state *sm, int comparison, struct rang
 
 	gettimeofday(&time_before, NULL);
 
-	DIMPLIED("checking implications: (%s (%s) %s %s)\n",
-		 sm->name, sm->state->name, show_comparison(comparison), show_rl(rl));
+	dbg_implied("checking implications: (%s (%s) %s %s)",
+		    sm->name, sm->state->name, show_comparison(comparison), show_rl(rl));
 
 	if (!is_merged(sm)) {
 		DIMPLIED("%d '%s' from line %d is not merged.\n", get_lineno(), sm->name, sm->line);
@@ -924,23 +926,30 @@ static void get_tf_states(struct expression *expr,
 		expr = strip_parens(expr->left);
 
 	sm = parsed_condition_implication_hook(expr, &true_stack, &false_stack);
-	if (sm)
+	if (sm) {
+		dbg_implied("parsed condition: sm='%s'", show_sm(sm));
 		goto filter;
+	}
 
 	if (handled_by_comparison_hook(expr, implied_true, implied_false)) {
+		dbg_implied("handled_by_comparison_hook()");
 		separate_implication_states(implied_true, implied_false, comparison_id);
 		return;
 	}
 
 	if (handled_by_extra_states(expr, implied_true, implied_false)) {
+		dbg_implied("handled_by_extra_states()");
 		separate_implication_states(implied_true, implied_false, SMATCH_EXTRA);
 		return;
 	}
 
 	sm = stored_condition_implication_hook(expr, &true_stack, &false_stack);
-	if (sm)
+	if (sm) {
+		dbg_implied("stored implication: sm='%s'", show_sm(sm));
 		goto filter;
+	}
 
+	dbg_implied("no implications for: %s", expr_to_str(expr));
 	return;
 filter:
 	pre_stree = clone_stree(__get_cur_stree());
@@ -969,9 +978,9 @@ static void set_implied_states(struct expression *expr)
 		char *name;
 
 		name = expr_to_str(expr);
-		printf("These are the implied states for the true path: (%s) pass=%d\n", name, pass_cnt);
+		dbg_implied("These are the implied states for the true path: (%s) pass=%d", name, pass_cnt);
 		__print_stree(saved_implied_true);
-		printf("These are the implied states for the false path: (%s) pass=%d\n", name, pass_cnt);
+		dbg_implied("These are the implied states for the false path: (%s) pass=%d", name, pass_cnt);
 		__print_stree(saved_implied_false);
 		free_string(name);
 	}
