@@ -53,7 +53,6 @@ static int get_nla_size(void *_info, int argc, char **argv, char **azColName)
 	char *end;
 	long type, len;
 
-	info->found = true;
 	if (!argv[1])
 		goto unknown;
 	len = strtol(argv[1], &end, 10);
@@ -69,11 +68,10 @@ static int get_nla_size(void *_info, int argc, char **argv, char **azColName)
 		min.value = 0;
 		max.value = len;
 	}
+	info->found = true;
 	add_range(&info->rl, min, max);
 	return 0;
 unknown:
-	max.value = -1;
-	add_range(&info->rl, max, max);
 	return 0;
 }
 
