@@ -933,6 +933,8 @@ int __handle_expr_statement_assigns(struct expression *expr)
 	struct statement *stmt;
 
 	right = strip_expr_cast(expr->right, &cast);
+	if (!right)
+		return 0;
 	if (right->type == EXPR_PREOP && right->op == '(')
 		right = right->unop;
 	if (right->type != EXPR_STATEMENT)

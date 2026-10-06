@@ -65,6 +65,7 @@ enum expression_type {
 	EXPR_SLICE,
 	EXPR_OFFSETOF,
 	EXPR_GENERIC,
+	NUM_EXPRESSION
 };
 
 

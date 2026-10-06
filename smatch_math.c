@@ -69,6 +69,8 @@ static bool last_stmt_rl(struct statement *stmt, int implied, int *recurse_cnt, 
 		return false;
 
 	stmt = last_ptr_list((struct ptr_list *)stmt->stmts);
+	if (!stmt)
+		return false;
 	if (stmt->type == STMT_LABEL) {
 		if (stmt->label_statement &&
 		    stmt->label_statement->type == STMT_EXPRESSION)
@@ -1978,6 +1980,9 @@ int get_value(struct expression *expr, sval_t *res_sval)
 	int recurse_cnt = 0;
 	sval_t sval = {};
 	int i;
+
+	if (!expr || expr->type >= NUM_EXPRESSION)
+		return 0;
 
 	if (get_value_literal(expr, res_sval))
 		return 1;

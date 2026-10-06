@@ -1016,6 +1016,10 @@ struct expression *strip_expr_cast(struct expression *expr, struct expression **
 	ret = strip_no_cast(expr);
 	while (ret && (ret->type == EXPR_CAST || ret->type == EXPR_FORCE_CAST)) {
 		new = cast_expression(ret->cast_expression, ret->cast_type);
+
+		if (!new)
+			return ret;
+
 		new->cast_expression = NULL;
 		if (!last)
 			*cast = new;

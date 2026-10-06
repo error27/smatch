@@ -380,6 +380,9 @@ static inline int valid_type(const struct symbol *ctype)
 
 static inline struct symbol *get_base_type(const struct symbol *sym)
 {
+	if (!sym)
+		return NULL;
+
 	return examine_symbol_type(sym->ctype.base_type);
 }
 
