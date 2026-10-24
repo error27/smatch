@@ -359,16 +359,14 @@ deeper:
 	switch (sym->type) {
 	case SYM_PTR:
 	{
-		unsigned long ptr_mod =
-			(mod & (MOD_QUALIFIER | MOD_ATOMIC)) |
-			(sym->ctype.modifiers & MOD_RESTRICT);
+		unsigned long ptr_mod = mod & (MOD_QUALIFIER | MOD_ATOMIC);
 
 		if (ptr_mod)
 			prepend(name, "*%s", show_modifiers(ptr_mod, 1, checker));
 		else
 			prepend(name, "*");
 		mod &= ~ptr_mod;
-		mod |= sym->ctype.modifiers & ~ptr_mod;
+		mod |= sym->ctype.modifiers;
 	}
 		as = sym->ctype.as;
 		was_ptr = 1;
