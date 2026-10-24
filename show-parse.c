@@ -110,7 +110,7 @@ void debug_symbol(struct symbol *sym)
  */
 static const char *show_modifiers(unsigned long mod, int term, bool checker)
 {
-	static char buffer[100];
+	static char buffer[1024];
 	int len = 0;
 	int i;
 	struct mod_name {
