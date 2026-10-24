@@ -613,7 +613,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 	switch (e->type) {
 	case EXPR_VALUE: show_value(out, e); break;
 	case EXPR_FVALUE: show_fvalue(out, e); break;
-	case EXPR_STRING: append(out, "%s", show_string(e->string)); break;
+	case EXPR_STRING:
+		append(out, "%s%s", e->wide ? "L" : "", show_string(e->string));
+		break;
 	case EXPR_TYPE: show_type_expression(out, e); break;
 	case EXPR_SYMBOL:
 		if (e->symbol && e->symbol->ident)
