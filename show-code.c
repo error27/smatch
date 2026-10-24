@@ -76,6 +76,8 @@ static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
 static bool tag_has_definition(struct symbol *tag);
 static void show_local_tag_definition(struct code_buffer *out,
 				      struct symbol *tag);
+static bool expression_references_symbol(struct expression *e,
+					 struct symbol *symbol, unsigned int depth);
 static bool output_whole_file;
 
 void set_show_code_whole_file(bool whole_file)
@@ -104,6 +106,207 @@ static struct symbol *find_type_expression(struct symbol *type)
 		type = type->ctype.base_type;
 	}
 	return NULL;
+}
+
+static bool type_references_symbol(struct symbol *type, struct symbol *symbol,
+				   unsigned int depth)
+{
+	if (depth >= 256)
+		return false;
+	while (type) {
+		if (type != symbol &&
+		    (expression_references_symbol(type->initializer, symbol,
+						  depth + 1) ||
+		     expression_references_symbol(type->type_expression, symbol,
+						  depth + 1)))
+			return true;
+		type = type->ctype.base_type;
+	}
+	return false;
+}
+
+static bool statement_references_symbol(struct statement *s,
+					struct symbol *symbol, unsigned int depth);
+
+static bool expression_references_symbol(struct expression *e,
+					 struct symbol *symbol, unsigned int depth)
+{
+	struct expression *item;
+	struct type_expression *map;
+
+	if (!e || depth >= 256)
+		return false;
+	switch (e->type) {
+	case EXPR_SYMBOL:
+		return e->symbol == symbol;
+	case EXPR_TYPE:
+		return type_references_symbol(e->symbol, symbol, depth + 1);
+	case EXPR_PREOP:
+	case EXPR_POSTOP:
+		return expression_references_symbol(e->unop, symbol, depth + 1);
+	case EXPR_BINOP:
+	case EXPR_ASSIGNMENT:
+	case EXPR_LOGICAL:
+	case EXPR_COMMA:
+	case EXPR_COMPARE:
+		return expression_references_symbol(e->left, symbol, depth + 1) ||
+		       expression_references_symbol(e->right, symbol, depth + 1);
+	case EXPR_DEREF:
+		return expression_references_symbol(e->deref, symbol, depth + 1);
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
+	case EXPR_PTRSIZEOF:
+		return type_references_symbol(e->cast_type, symbol, depth + 1) ||
+		       expression_references_symbol(e->cast_expression, symbol,
+					    depth + 1);
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		return expression_references_symbol(e->conditional, symbol, depth + 1) ||
+		       expression_references_symbol(e->cond_true, symbol, depth + 1) ||
+		       expression_references_symbol(e->cond_false, symbol, depth + 1);
+	case EXPR_STATEMENT:
+		return statement_references_symbol(e->statement, symbol, depth + 1);
+	case EXPR_CALL:
+		if (expression_references_symbol(e->fn, symbol, depth + 1))
+			return true;
+		FOR_EACH_PTR(e->args, item) {
+			if (expression_references_symbol(item, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(item);
+		return false;
+	case EXPR_INITIALIZER:
+		FOR_EACH_PTR(e->expr_list, item) {
+			if (expression_references_symbol(item, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(item);
+		return false;
+	case EXPR_IDENTIFIER:
+		return expression_references_symbol(e->ident_expression, symbol,
+					    depth + 1);
+	case EXPR_INDEX:
+		return expression_references_symbol(e->idx_expression, symbol,
+					    depth + 1);
+	case EXPR_POS:
+		return expression_references_symbol(e->init_expr, symbol, depth + 1);
+	case EXPR_SLICE:
+		return expression_references_symbol(e->base, symbol, depth + 1);
+	case EXPR_OFFSETOF:
+		for (item = e; item; item = item->down) {
+			if (item->op != '.' &&
+			    expression_references_symbol(item->index, symbol, depth + 1))
+				return true;
+		}
+		return false;
+	case EXPR_GENERIC:
+		if (expression_references_symbol(e->control, symbol, depth + 1) ||
+		    expression_references_symbol(e->def, symbol, depth + 1))
+			return true;
+		for (map = e->map; map; map = map->next) {
+			if (type_references_symbol(map->type, symbol, depth + 1) ||
+			    expression_references_symbol(map->expr, symbol, depth + 1))
+				return true;
+		}
+		return false;
+	default:
+		return false;
+	}
+}
+
+static bool statement_references_symbol(struct statement *s,
+					struct symbol *symbol, unsigned int depth)
+{
+	struct statement *child;
+	struct expression *clobber;
+	struct symbol *declaration;
+	struct asm_operand *operand;
+
+	if (!s || depth >= 256)
+		return false;
+	switch (s->type) {
+	case STMT_COMPOUND:
+		FOR_EACH_PTR(s->stmts, child) {
+			if (statement_references_symbol(child, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(child);
+		return false;
+	case STMT_DECLARATION:
+		FOR_EACH_PTR(s->declaration, declaration) {
+			if (type_references_symbol(declaration, symbol, depth + 1) ||
+			    expression_references_symbol(declaration->initializer, symbol,
+						 depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(declaration);
+		return false;
+	case STMT_EXPRESSION:
+	case STMT_CONTEXT:
+		return expression_references_symbol(s->expression, symbol, depth + 1) ||
+		       expression_references_symbol(s->context, symbol, depth + 1);
+	case STMT_RETURN:
+		return expression_references_symbol(s->ret_value, symbol, depth + 1);
+	case STMT_IF:
+		return expression_references_symbol(s->if_conditional, symbol, depth + 1) ||
+		       statement_references_symbol(s->if_true, symbol, depth + 1) ||
+		       statement_references_symbol(s->if_false, symbol, depth + 1);
+	case STMT_SWITCH:
+		return expression_references_symbol(s->switch_expression, symbol,
+					    depth + 1) ||
+		       statement_references_symbol(s->switch_statement, symbol,
+					   depth + 1);
+	case STMT_CASE:
+		return expression_references_symbol(s->case_expression, symbol,
+					    depth + 1) ||
+		       expression_references_symbol(s->case_to, symbol, depth + 1) ||
+		       statement_references_symbol(s->case_statement, symbol, depth + 1);
+	case STMT_ITERATOR:
+		FOR_EACH_PTR(s->iterator_syms, declaration) {
+			if (type_references_symbol(declaration, symbol, depth + 1) ||
+			    expression_references_symbol(declaration->initializer, symbol,
+						 depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(declaration);
+		return statement_references_symbol(s->iterator_pre_statement, symbol,
+						   depth + 1) ||
+		       expression_references_symbol(s->iterator_pre_condition, symbol,
+						    depth + 1) ||
+		       statement_references_symbol(s->iterator_statement, symbol,
+						   depth + 1) ||
+		       statement_references_symbol(s->iterator_post_statement, symbol,
+						   depth + 1) ||
+		       expression_references_symbol(s->iterator_post_condition, symbol,
+						    depth + 1);
+	case STMT_LABEL:
+		return statement_references_symbol(s->label_statement, symbol,
+					   depth + 1);
+	case STMT_GOTO:
+		return expression_references_symbol(s->goto_expression, symbol,
+					    depth + 1);
+	case STMT_ASM:
+		if (expression_references_symbol(s->asm_string, symbol, depth + 1))
+			return true;
+		FOR_EACH_PTR(s->asm_outputs, operand) {
+			if (expression_references_symbol(operand->expr, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(operand);
+		FOR_EACH_PTR(s->asm_inputs, operand) {
+			if (expression_references_symbol(operand->expr, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(operand);
+		FOR_EACH_PTR(s->asm_clobbers, clobber) {
+			if (expression_references_symbol(clobber, symbol, depth + 1))
+				return true;
+		} END_FOR_EACH_PTR(clobber);
+		return false;
+	case STMT_RANGE:
+		return expression_references_symbol(s->range_expression, symbol,
+					    depth + 1) ||
+		       expression_references_symbol(s->range_low, symbol, depth + 1) ||
+		       expression_references_symbol(s->range_high, symbol, depth + 1);
+	default:
+		return false;
+	}
 }
 
 static struct symbol *base_type_for_output(struct symbol *type,
@@ -569,7 +772,8 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	if (anonymous_tag && s->initializer &&
 	    (!type_expression ||
 	     type_expression->type_expression->type == EXPR_INITIALIZER) &&
-	    tag && tag->type == SYM_PTR) {
+	    tag && tag->type == SYM_PTR &&
+	    !expression_references_symbol(s->initializer, s, 0)) {
 		show_type_expression_storage(out, s);
 		append(out, "typeof(");
 		expr(out, s->initializer);
