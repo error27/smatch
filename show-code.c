@@ -115,7 +115,8 @@ static struct symbol *base_type_for_output(struct symbol *type,
 
 	if (!type || type->type == SYM_BASETYPE)
 		return type;
-	if (type->type_expression) {
+	if (type->type_expression &&
+	    type->type_expression->type != EXPR_INITIALIZER) {
 		if (*count >= 64)
 			return type;
 		copy = &copies[(*count)++];
@@ -166,7 +167,8 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 		type = s->ctype.base_type;
 	else
 		type = s;
-	if (type && type->type_expression) {
+	if (type && type->type_expression &&
+	    type->type_expression->type != EXPR_INITIALIZER) {
 		show_type_expression_storage(out, s);
 		append(out, "%s(", type->typeof_is_unqual ? "__typeof_unqual__" :
 		       "typeof");
@@ -178,6 +180,8 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 	}
 	if (!type || (type->type != SYM_TYPEOF &&
 		      type->type != SYM_TYPEOF_UNQUAL))
+		return false;
+	if (type->initializer && type->initializer->type == EXPR_INITIALIZER)
 		return false;
 	show_type_expression_storage(out, s);
 	append(out, "%s(", type->type == SYM_TYPEOF ? "typeof" :
@@ -537,6 +541,7 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *anonymous_tag = find_anonymous_tag(s);
 	struct symbol *tag = s;
+	struct symbol *type_expression;
 	unsigned int i;
 
 	while (tag) {
@@ -556,14 +561,22 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 			out->local_tags[out->local_tag_count++] = tag;
 	}
 
-	if (anonymous_tag && s->initializer && !find_type_expression(s)) {
+	type_expression = find_type_expression(s);
+	for (tag = s; tag && (tag->type == SYM_NODE ||
+			 tag->type == SYM_RESTRICT);
+	     tag = tag->ctype.base_type)
+		;
+	if (anonymous_tag && s->initializer &&
+	    (!type_expression ||
+	     type_expression->type_expression->type == EXPR_INITIALIZER) &&
+	    tag && tag->type == SYM_PTR) {
 		show_type_expression_storage(out, s);
 		append(out, "typeof(");
 		expr(out, s->initializer);
 		append(out, ")");
 		if (s->ident)
 			append(out, " %s", show_ident(s->ident));
-	} else if (find_type_expression(s)) {
+	} else if (type_expression) {
 		show_c_typename(out, s);
 	} else if (anonymous_tag) {
 		show_anonymous_c_typename(out, s, anonymous_tag);
