@@ -1292,6 +1292,8 @@ static void handle_functions(struct struct_types *types, struct symbol *type)
 
 		if (struct_type && !type_needs_forward(arg_type))
 			collect_struct_types(types, struct_type);
+		if (type_is_ptr(arg_type) || type_is_array(arg_type))
+			handle_functions(types, arg_type);
 	} END_FOR_EACH_PTR(arg);
 }
 
