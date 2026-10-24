@@ -1913,9 +1913,12 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
-	if (is_typedef_tag(type))
-		append(out, "} %s;\n", show_ident(type->ident));
-	else
+	if (is_typedef_tag(type)) {
+		append(out, "} %s", show_ident(type->ident));
+		if (type->transparent_union)
+			append(out, " __attribute__((__transparent_union__))");
+		append(out, ";\n");
+	} else
 		append(out, "};\n");
 	if (output->definition_count < ARRAY_SIZE(output->definitions))
 		output->definitions[output->definition_count++] = type;
