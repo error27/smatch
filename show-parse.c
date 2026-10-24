@@ -358,8 +358,18 @@ deeper:
 	/* Prepend */
 	switch (sym->type) {
 	case SYM_PTR:
-		prepend(name, "*");
-		mod |= sym->ctype.modifiers;
+	{
+		unsigned long ptr_mod =
+			(mod & (MOD_QUALIFIER | MOD_ATOMIC)) |
+			(sym->ctype.modifiers & MOD_RESTRICT);
+
+		if (ptr_mod)
+			prepend(name, "*%s", show_modifiers(ptr_mod, 1, checker));
+		else
+			prepend(name, "*");
+		mod &= ~ptr_mod;
+		mod |= sym->ctype.modifiers & ~ptr_mod;
+	}
 		as = sym->ctype.as;
 		was_ptr = 1;
 		examine_pointer_target(sym);
