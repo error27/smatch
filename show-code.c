@@ -1849,8 +1849,9 @@ static void show_function_dependencies(struct code_buffer *out,
 		if (type->type == SYM_FN) {
 			show_function_forwards(out, dependency->ctype.base_type);
 			copy = *dependency;
-			copy.ctype.modifiers &= ~(MOD_STATIC | MOD_INLINE | MOD_GNU_INLINE);
-			copy.ctype.modifiers |= MOD_EXTERN;
+			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE | MOD_EXTERN);
+			if (!(copy.ctype.modifiers & MOD_STATIC))
+				copy.ctype.modifiers |= MOD_EXTERN;
 			dependency = &copy;
 		} else {
 			copy = *dependency;
