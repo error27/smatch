@@ -61,6 +61,206 @@ static int match_oplist(int op, ...)
 }
 
 static struct token *comma_expression(struct token *, struct expression **);
+static struct statement *copy_type_statement(struct statement *old);
+
+static struct symbol *copy_type_symbol(struct symbol *old)
+{
+	struct symbol *new;
+
+	if (!old)
+		return NULL;
+	new = alloc_symbol(old->pos, old->type);
+	*new = *old;
+	new->initializer = copy_type_expression(old->initializer);
+	return new;
+}
+
+static struct symbol_list *copy_type_symbol_list(struct symbol_list *old)
+{
+	struct symbol_list *new = NULL;
+	struct symbol *symbol;
+
+	FOR_EACH_PTR(old, symbol)
+		add_symbol(&new, copy_type_symbol(symbol));
+	END_FOR_EACH_PTR(symbol);
+	return new;
+}
+
+static struct expression_list *copy_type_expression_list(struct expression_list *old)
+{
+	struct expression_list *new = NULL;
+	struct expression *expression;
+
+	FOR_EACH_PTR(old, expression)
+		add_expression(&new, copy_type_expression(expression));
+	END_FOR_EACH_PTR(expression);
+	return new;
+}
+
+static struct asm_operand_list *copy_type_asm_operands(
+		struct asm_operand_list *old)
+{
+	struct asm_operand_list *new = NULL;
+	struct asm_operand *operand;
+
+	FOR_EACH_PTR(old, operand) {
+		struct asm_operand *copy = __alloc_asm_operand(0);
+
+		*copy = *operand;
+		copy->constraint = copy_type_expression(operand->constraint);
+		copy->expr = copy_type_expression(operand->expr);
+		add_ptr_list(&new, copy);
+	} END_FOR_EACH_PTR(operand);
+	return new;
+}
+
+static struct statement_list *copy_type_statement_list(
+		struct statement_list *old)
+{
+	struct statement_list *new = NULL;
+	struct statement *statement;
+
+	FOR_EACH_PTR(old, statement)
+		add_statement(&new, copy_type_statement(statement));
+	END_FOR_EACH_PTR(statement);
+	return new;
+}
+
+static struct statement *copy_type_statement(struct statement *old)
+{
+	struct statement *new;
+
+	if (!old)
+		return NULL;
+	new = alloc_statement(old->pos, old->type);
+	*new = *old;
+	switch (old->type) {
+	case STMT_DECLARATION:
+		new->declaration = copy_type_symbol_list(old->declaration);
+		break;
+	case STMT_CONTEXT:
+	case STMT_EXPRESSION:
+		new->context = copy_type_expression(old->context);
+		new->expression = copy_type_expression(old->expression);
+		break;
+	case STMT_RETURN:
+		new->ret_value = copy_type_expression(old->ret_value);
+		break;
+	case STMT_COMPOUND:
+		new->stmts = copy_type_statement_list(old->stmts);
+		new->local_labels = copy_type_symbol_list(old->local_labels);
+		new->args = copy_type_statement(old->args);
+		break;
+	case STMT_LABEL:
+		new->label_statement = copy_type_statement(old->label_statement);
+		break;
+	case STMT_CASE:
+		new->case_expression = copy_type_expression(old->case_expression);
+		new->case_to = copy_type_expression(old->case_to);
+		new->case_statement = copy_type_statement(old->case_statement);
+		break;
+	case STMT_SWITCH:
+		new->switch_expression = copy_type_expression(old->switch_expression);
+		new->switch_statement = copy_type_statement(old->switch_statement);
+		break;
+	case STMT_ITERATOR:
+		new->iterator_syms = copy_type_symbol_list(old->iterator_syms);
+		new->iterator_pre_statement =
+			copy_type_statement(old->iterator_pre_statement);
+		new->iterator_pre_condition =
+			copy_type_expression(old->iterator_pre_condition);
+		new->iterator_statement =
+			copy_type_statement(old->iterator_statement);
+		new->iterator_post_statement =
+			copy_type_statement(old->iterator_post_statement);
+		new->iterator_post_condition =
+			copy_type_expression(old->iterator_post_condition);
+		break;
+	case STMT_GOTO:
+		new->goto_expression = copy_type_expression(old->goto_expression);
+		break;
+	case STMT_ASM:
+		new->asm_string = copy_type_expression(old->asm_string);
+		new->asm_outputs = copy_type_asm_operands(old->asm_outputs);
+		new->asm_inputs = copy_type_asm_operands(old->asm_inputs);
+		new->asm_clobbers = copy_type_expression_list(old->asm_clobbers);
+		break;
+	case STMT_RANGE:
+		new->range_expression = copy_type_expression(old->range_expression);
+		new->range_low = copy_type_expression(old->range_low);
+		new->range_high = copy_type_expression(old->range_high);
+		break;
+	default:
+		break;
+	}
+	return new;
+}
+
+struct expression *copy_type_expression(struct expression *old)
+{
+	struct expression *new;
+
+	if (!old)
+		return NULL;
+	new = alloc_expression(old->pos, old->type);
+	*new = *old;
+	switch (old->type) {
+	case EXPR_PREOP:
+	case EXPR_POSTOP:
+		new->unop = copy_type_expression(old->unop);
+		break;
+	case EXPR_DEREF:
+		new->deref = copy_type_expression(old->deref);
+		break;
+	case EXPR_BINOP:
+	case EXPR_ASSIGNMENT:
+	case EXPR_LOGICAL:
+	case EXPR_COMMA:
+	case EXPR_COMPARE:
+		new->left = copy_type_expression(old->left);
+		new->right = copy_type_expression(old->right);
+		break;
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
+	case EXPR_PTRSIZEOF:
+		new->cast_expression = copy_type_expression(old->cast_expression);
+		break;
+	case EXPR_CALL:
+		new->fn = copy_type_expression(old->fn);
+		new->args = copy_type_expression_list(old->args);
+		break;
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		new->conditional = copy_type_expression(old->conditional);
+		new->cond_true = copy_type_expression(old->cond_true);
+		new->cond_false = copy_type_expression(old->cond_false);
+		break;
+	case EXPR_INITIALIZER:
+		new->expr_list = copy_type_expression_list(old->expr_list);
+		break;
+	case EXPR_IDENTIFIER:
+		new->ident_expression = copy_type_expression(old->ident_expression);
+		break;
+	case EXPR_INDEX:
+		new->idx_expression = copy_type_expression(old->idx_expression);
+		break;
+	case EXPR_POS:
+		new->init_expr = copy_type_expression(old->init_expr);
+		break;
+	case EXPR_SLICE:
+		new->base = copy_type_expression(old->base);
+		break;
+	case EXPR_STATEMENT:
+		new->statement = copy_type_statement(old->statement);
+		break;
+	default:
+		break;
+	}
+	return new;
+}
 
 struct token *parens_expression(struct token *token, struct expression **expr, const char *where)
 {
@@ -155,6 +355,14 @@ static struct token *parse_type(struct token *token, struct expression **tree)
 			     "type expression should not include identifier "
 			     "\"%s\"", sym->ident->name);
 	(*tree)->symbol = sym;
+	if (sym->ctype.base_type &&
+	    (sym->ctype.base_type->type == SYM_TYPEOF ||
+	     sym->ctype.base_type->type == SYM_TYPEOF_UNQUAL))
+		sym->type_expression =
+			copy_type_expression(sym->ctype.base_type->initializer);
+	if (sym->ctype.base_type &&
+	    sym->ctype.base_type->type == SYM_TYPEOF_UNQUAL)
+		sym->typeof_is_unqual = 1;
 	return token;
 }
 
