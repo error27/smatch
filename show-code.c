@@ -1453,14 +1453,19 @@ struct tag_output {
 	struct code_buffer *out;
 	struct symbol *definitions[8192];
 	struct symbol *forwards[8192];
+	struct symbol *typedefs[8192];
+	struct symbol_list *dependency_types;
 	unsigned int definition_count;
 	unsigned int forward_count;
+	unsigned int typedef_count;
 };
 
 static void show_struct_definition(struct tag_output *output,
 				   struct symbol *type);
 static void show_type_definition(struct tag_output *output,
 				 struct symbol *type);
+static void show_typedef_dependencies(struct tag_output *output,
+				      struct symbol *type);
 
 static bool tag_was_output(struct symbol **tags, unsigned int count,
 			   struct symbol *type)
@@ -1893,6 +1898,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct symbol *member;
 	struct symbol *anonymous_tag;
 
+	show_typedef_dependencies(output, type);
 	show_required_forwards(output, type);
 	if (is_typedef_tag(type)) {
 		append(out, "typedef %s%s%s {\n", tag_type_name(type),
@@ -1955,6 +1961,18 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 
 static void show_type_definition(struct tag_output *output, struct symbol *type)
 {
+	struct symbol *typedef_symbol;
+
+	if (is_typedef_tag(type)) {
+		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+		if (typedef_symbol &&
+		    tag_was_output(output->typedefs, output->typedef_count,
+				   typedef_symbol))
+			return;
+		if (typedef_symbol &&
+		    output->typedef_count < ARRAY_SIZE(output->typedefs))
+			output->typedefs[output->typedef_count++] = typedef_symbol;
+	}
 	if (type->type == SYM_ENUM)
 		show_enum_definition(output, type);
 	else
@@ -1967,6 +1985,57 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 	append(out, "typedef ");
 	show_c_typename(out, type);
 	append(out, ";\n");
+}
+
+static void show_typedef_dependency(struct tag_output *output,
+				    struct symbol *type)
+{
+	struct symbol *typedef_symbol;
+	struct symbol *tag;
+
+	if (!type || !type->ident)
+		return;
+	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+	if (!typedef_symbol || typedef_symbol == type)
+		return;
+	if (is_type_definition(typedef_symbol, &tag)) {
+		if (!tag_was_output(output->definitions,
+					output->definition_count, tag))
+			show_type_definition(output, tag);
+		return;
+	}
+	if (tag_was_output(output->typedefs, output->typedef_count,
+			   typedef_symbol))
+		return;
+	if (output->typedef_count < ARRAY_SIZE(output->typedefs))
+		output->typedefs[output->typedef_count++] = typedef_symbol;
+	show_typedef_dependencies(output, typedef_symbol->ctype.base_type);
+	show_typedef_definition(output->out, typedef_symbol);
+}
+
+static void show_typedef_dependencies(struct tag_output *output,
+				      struct symbol *type)
+{
+	struct symbol *arg;
+	struct symbol *member;
+
+	for (; type; type = type->ctype.base_type) {
+		if (lookup_ptr_list_entry((struct ptr_list *)
+					  output->dependency_types, type))
+			continue;
+		add_ptr_list(&output->dependency_types, type);
+		show_typedef_dependency(output, type);
+		if (type->type == SYM_FN) {
+			FOR_EACH_PTR(type->arguments, arg) {
+				show_typedef_dependencies(output, arg);
+			} END_FOR_EACH_PTR(arg);
+		}
+		if (!is_struct_or_union(type) && type->type != SYM_ENUM)
+			continue;
+		FOR_EACH_PTR(type->symbol_list, member) {
+			show_typedef_dependencies(output, member);
+		} END_FOR_EACH_PTR(member);
+	}
 }
 
 void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t len)
@@ -1982,12 +2051,20 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t le
 		struct symbol *tag;
 
 		if (is_type_definition(symbol, &tag)) {
+			show_typedef_dependencies(&output, symbol);
 			if (!tag_was_output(output.definitions,
 					    output.definition_count, tag))
 				show_type_definition(&output, tag);
 		} else if (symbol->namespace == NS_TYPEDEF && symbol->ident &&
 			   lookup_symbol(symbol->ident, NS_TYPEDEF) == symbol) {
-			show_typedef_definition(&out, symbol);
+			if (!tag_was_output(output.typedefs, output.typedef_count,
+					   symbol)) {
+				if (output.typedef_count < ARRAY_SIZE(output.typedefs))
+					output.typedefs[output.typedef_count++] = symbol;
+				show_typedef_dependencies(&output,
+						  symbol->ctype.base_type);
+				show_typedef_definition(&out, symbol);
+			}
 		}
 	} END_FOR_EACH_PTR(symbol);
 }
