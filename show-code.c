@@ -821,22 +821,7 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	}
 
 	type_expression = find_type_expression(s);
-	for (tag = s; tag && (tag->type == SYM_NODE ||
-			 tag->type == SYM_RESTRICT);
-	     tag = tag->ctype.base_type)
-		;
-	if (anonymous_tag && s->initializer &&
-	    (!type_expression ||
-	     type_expression->type_expression->type == EXPR_INITIALIZER) &&
-	    tag && tag->type == SYM_PTR &&
-	    !expression_references_symbol(s->initializer, s, 0)) {
-		show_type_expression_storage(out, s);
-		append(out, "typeof(");
-		expr(out, s->initializer);
-		append(out, ")");
-		if (s->ident)
-			append(out, " %s", show_ident(s->ident));
-	} else if (type_expression) {
+	if (type_expression) {
 		show_c_typename(out, s);
 	} else if (anonymous_tag) {
 		show_anonymous_c_typename(out, s, anonymous_tag);
