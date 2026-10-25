@@ -108,6 +108,39 @@ static struct symbol *find_type_expression(struct symbol *type)
 	return NULL;
 }
 
+static void collect_type_expressions(struct symbol **expressions,
+					     unsigned int *count,
+					     struct symbol *type)
+{
+	struct symbol *arg;
+
+	for (; type; type = type->ctype.base_type) {
+		if ((type->type_expression &&
+		     type->type_expression->type != EXPR_INITIALIZER) ||
+		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
+		     type->initializer &&
+		     type->initializer->type != EXPR_INITIALIZER)) {
+			if (*count < 64)
+				expressions[(*count)++] = type;
+			return;
+		}
+		if (type->type != SYM_FN)
+			continue;
+		FOR_EACH_PTR(type->arguments, arg) {
+			collect_type_expressions(expressions, count, arg);
+		} END_FOR_EACH_PTR(arg);
+	}
+}
+
+static void show_typeof_expression(struct code_buffer *out, struct symbol *type)
+{
+	append(out, "%s(", type->typeof_is_unqual ||
+	       type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__" : "typeof");
+	expr(out, type->type_expression ? type->type_expression :
+	     type->initializer);
+	append(out, ")");
+}
+
 static bool type_references_symbol(struct symbol *type, struct symbol *symbol,
 				   unsigned int depth)
 {
@@ -315,11 +348,17 @@ static struct symbol *base_type_for_output(struct symbol *type,
 {
 	struct symbol *base_type;
 	struct symbol *copy;
+	struct symbol *arg;
+	struct symbol *output_arg;
+	struct symbol_list *arguments = NULL;
+	bool changed = false;
 
 	if (!type || type->type == SYM_BASETYPE)
 		return type;
-	if (type->type_expression &&
-	    type->type_expression->type != EXPR_INITIALIZER) {
+	if ((type->type_expression &&
+	     type->type_expression->type != EXPR_INITIALIZER) ||
+	    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
+	     type->initializer && type->initializer->type != EXPR_INITIALIZER)) {
 		if (*count >= 64)
 			return type;
 		copy = &copies[(*count)++];
@@ -329,14 +368,24 @@ static struct symbol *base_type_for_output(struct symbol *type,
 		copy->ctype.base_type = NULL;
 		return copy;
 	}
+	if (type->type == SYM_FN) {
+		FOR_EACH_PTR(type->arguments, arg) {
+			output_arg = base_type_for_output(arg, copies, count);
+			add_ptr_list(&arguments, output_arg);
+			changed |= output_arg != arg;
+		} END_FOR_EACH_PTR(arg);
+	}
 	base_type = base_type_for_output(type->ctype.base_type, copies, count);
-	if (type->type != SYM_RESTRICT && base_type == type->ctype.base_type)
+	if (type->type != SYM_RESTRICT && !changed &&
+	    base_type == type->ctype.base_type)
 		return type;
 	if (*count >= 64)
 		return type;
 	copy = &copies[(*count)++];
 	*copy = *type;
 	copy->ctype.base_type = base_type;
+	if (changed)
+		copy->arguments = arguments;
 	if (copy->type == SYM_RESTRICT)
 		copy->ident = NULL;
 	return copy;
@@ -400,10 +449,13 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol copies[64];
 	struct symbol copy;
-	struct symbol *type_expression;
+	struct symbol *type_expressions[64];
 	char typename[8192];
+	char *type_name;
 	char *placeholder;
 	unsigned int count = 0;
+	unsigned int expression_count = 0;
+	unsigned int expression_index = 0;
 
 	if (show_type_expression_typename(out, s))
 		return;
@@ -412,21 +464,23 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		copy.ctype.modifiers &= ~MOD_EXTERN;
 		s = &copy;
 	}
-	type_expression = find_type_expression(s);
+	collect_type_expressions(type_expressions, &expression_count, s);
 	snprintf(typename, sizeof(typename), "%s",
 		 show_typename(base_type_for_output(s, copies, &count), false));
-	if (!type_expression ||
-	    !(placeholder = strstr(typename,
-				    "struct __extract_typeof_placeholder"))) {
-		append(out, "%s", typename);
+	type_name = typename;
+	placeholder = strstr(type_name, "struct __extract_typeof_placeholder");
+	if (!placeholder || !expression_count) {
+		append(out, "%s", type_name);
 		return;
 	}
-	*placeholder = '\0';
-	append(out, "%s%s(", typename,
-	       type_expression->typeof_is_unqual ? "__typeof_unqual__" :
-	       "typeof");
-	expr(out, type_expression->type_expression);
-	append(out, ")%s", placeholder + strlen("struct __extract_typeof_placeholder"));
+	while (placeholder && expression_index < expression_count) {
+		*placeholder = '\0';
+		append(out, "%s", type_name);
+		show_typeof_expression(out, type_expressions[expression_index++]);
+		type_name = placeholder + strlen("struct __extract_typeof_placeholder");
+		placeholder = strstr(type_name, "struct __extract_typeof_placeholder");
+	}
+	append(out, "%s", type_name);
 }
 
 static void show_asm_name(struct code_buffer *out, struct symbol *s)
