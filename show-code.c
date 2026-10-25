@@ -676,6 +676,8 @@ static void expr(struct code_buffer *out, struct expression *e)
 			append(out, "%s", show_ident(e->symbol->ident));
 		else if (e->symbol_name)
 			append(out, "%s", show_ident(e->symbol_name));
+		else if (e->symbol && e->symbol->initializer)
+			expr(out, e->symbol->initializer);
 		else
 			append(out, "/* anonymous symbol */");
 		break;
