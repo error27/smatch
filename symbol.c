@@ -289,6 +289,8 @@ static struct symbol *examine_base_type(struct symbol *sym)
 			(struct ptr_list **)&sym->ctype.contexts);
 	if (base_type->type == SYM_NODE) {
 		base_type = base_type->ctype.base_type;
+		if (!sym->orig_base_type)
+			sym->orig_base_type = sym->ctype.base_type;
 		sym->ctype.base_type = base_type;
 		sym->rank = base_type->rank;
 	}

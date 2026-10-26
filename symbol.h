@@ -209,6 +209,7 @@ struct symbol {
 			struct expression *array_size;
 			struct alloc_size *alloc_size;
 			struct ctype ctype;
+			struct symbol *orig_base_type;
 			struct symbol_list *arguments;
 			struct statement *stmt;
 			struct symbol_list *symbol_list;

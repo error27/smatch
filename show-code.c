@@ -1087,6 +1087,13 @@ static bool has_type_expression(struct symbol *type)
 	       type->type_expression->type != EXPR_INITIALIZER;
 }
 
+static struct symbol *show_base_type(struct symbol *type)
+{
+	if (type && type->orig_base_type)
+		return type->orig_base_type;
+	return type ? type->ctype.base_type : NULL;
+}
+
 static bool is_typeof(struct symbol *type)
 {
 	if (type && (type->type == SYM_TYPEOF ||
@@ -1109,7 +1116,7 @@ static bool type_has_typeof(struct symbol *type)
 {
 	struct symbol *arg;
 
-	for (; type; type = type->ctype.base_type) {
+	for (; type; type = show_base_type(type)) {
 		if (is_typeof(type))
 			return true;
 		if (type->type != SYM_FN)
@@ -1284,7 +1291,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			type_name_prepend_format(name, "unknown type %d", type->type);
 			goto out;
 		}
-		type = type->ctype.base_type;
+		type = show_base_type(type);
 	}
 out:
 	if (declaration_modifiers)
@@ -1315,14 +1322,14 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 
 	if (!s)
 		return false;
-	if (s->type == SYM_NODE && s->ctype.base_type == &autotype_ctype) {
+	if (s->type == SYM_NODE && show_base_type(s) == &autotype_ctype) {
 		append(out, "__auto_type");
 		if (s->ident)
 			append(out, " %s", show_ident(s->ident));
 		return true;
 	}
 	if (s->type == SYM_NODE)
-		type = s->ctype.base_type;
+		type = show_base_type(s);
 	else
 		type = s;
 	if (is_typeof(type)) {
@@ -1351,7 +1358,7 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		copy.ctype.modifiers &= ~MOD_EXTERN;
 		s = &copy;
 	}
-	type = s->type == SYM_NODE ? s->ctype.base_type : s;
+	type = s->type == SYM_NODE ? show_base_type(s) : s;
 	if (type_has_typeof(type)) {
 		char array[C_TYPE_NAME_BUFFER_SIZE];
 		struct c_type_name name = {
@@ -2091,7 +2098,7 @@ static struct symbol *find_anonymous_tag(struct symbol *type)
 	while (type) {
 		if (is_tag_type(type) && !type->ident)
 			return type;
-		type = type->ctype.base_type;
+		type = show_base_type(type);
 	}
 	return NULL;
 }

@@ -25,7 +25,10 @@ static void initialize(struct vcpu *vcpu)
 	for (index = 0; index < 2; index++) {
 		(void)({
 			typeof(&(vcpu->fifo[index])) __tmp = &(vcpu->fifo[index]);
+			typeof((&(vcpu->fifo[index])) + 1) __tmpq =
+				&(vcpu->fifo[index]);
 			__tmp->buf[0] = 0;
+			__tmpq->buf[0] = 0;
 		});
 	}
 }
