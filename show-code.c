@@ -75,6 +75,8 @@ static struct symbol *find_anonymous_tag(struct symbol *type);
 static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag);
+static void show_c_typename(struct code_buffer *out, struct symbol *s);
+static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
@@ -87,6 +89,7 @@ static bool expression_references_symbol(struct expression *e,
 static bool is_struct_or_union(struct symbol *type);
 static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
+static bool has_type_expression(struct symbol *type);
 static void collect_statement_functions(struct symbol **functions,
 					unsigned int *count, struct statement *s);
 static void collect_type_expression_functions(struct symbol **functions,
@@ -112,6 +115,693 @@ struct c_type_name {
 
 #define C_TYPE_NAME_BUFFER_SIZE 16384
 #define C_TYPE_NAME_BUFFER_MIDDLE (C_TYPE_NAME_BUFFER_SIZE / 2)
+
+/* Dependency collection and emission. */
+
+static bool tag_has_definition(struct symbol *tag)
+{
+	return is_tag_type(tag) && tag->endpos.type;
+}
+
+static bool is_type_definition(struct symbol *s, struct symbol **tag_out)
+{
+	struct symbol *tag;
+
+	for (tag = s; tag; tag = tag->ctype.base_type) {
+		if (tag->type == SYM_FN)
+			return false;
+		if (is_tag_type(tag))
+			break;
+	}
+	if (!tag_has_definition(tag) ||
+	    (s != tag && s->definition != tag && s->namespace != NS_TYPEDEF))
+		return false;
+	*tag_out = tag;
+	return true;
+}
+
+static bool is_struct_or_union(struct symbol *type)
+{
+	return type && (type->type == SYM_STRUCT || type->type == SYM_UNION);
+}
+
+static bool is_tag_type(struct symbol *type)
+{
+	return is_struct_or_union(type) ||
+	       (type && type->type == SYM_ENUM);
+}
+
+static const char *tag_type_name(struct symbol *type)
+{
+	switch(type->type) {
+	case SYM_ENUM:
+		return "enum";
+	case SYM_UNION:
+		return "union";
+	case SYM_STRUCT:
+		return "struct";
+	}
+	return "<unknown>";
+}
+
+static bool is_typedef_tag(struct symbol *type)
+{
+	struct symbol *typedef_symbol;
+
+	if (type->namespace == NS_TYPEDEF)
+		return true;
+	if (!type->ident)
+		return false;
+	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+	while (typedef_symbol) {
+		if (typedef_symbol == type || typedef_symbol->definition == type)
+			return true;
+		typedef_symbol = typedef_symbol->ctype.base_type;
+	}
+	return false;
+}
+
+static void collect_struct_types(struct struct_types *types,
+				 struct symbol *struct_type);
+
+static struct symbol *strip_type_wrappers(struct symbol *type)
+{
+	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT))
+		type = get_base_type(type);
+	return type;
+}
+
+static struct symbol *strip_bitfield_type(struct symbol *type)
+{
+	type = strip_type_wrappers(type);
+	while (type && type->type == SYM_BITFIELD)
+		type = strip_type_wrappers(get_base_type(type));
+	return type;
+}
+
+static bool type_is_ptr(struct symbol *type)
+{
+	return type && type->type == SYM_PTR;
+}
+
+static bool type_is_array(struct symbol *type)
+{
+	return type && type->type == SYM_ARRAY;
+}
+
+static bool type_can_use_forward_declaration(struct symbol *type)
+{
+	type = strip_type_wrappers(type);
+	while (type_is_array(type))
+		type = strip_type_wrappers(get_base_type(type));
+	if (!type_is_ptr(type))
+		return false;
+	type = strip_type_wrappers(get_base_type(type));
+	return !type || type->type != SYM_ENUM;
+}
+
+static struct symbol *add_struct_type(struct struct_types *types,
+					      struct symbol *type, bool needs_forward)
+{
+	unsigned int i;
+
+	type = strip_type_wrappers(type);
+	while (type_is_ptr(type) || type_is_array(type))
+		type = strip_type_wrappers(get_base_type(type));
+	if (type && type->definition && is_tag_type(type->definition))
+		type = type->definition;
+	if (!is_tag_type(type) || !type->ident)
+		return NULL;
+	for (i = 0; i < types->count; i++) {
+		if (types->types[i] != type)
+			continue;
+		types->needs_forward[i] &= needs_forward;
+		return type;
+	}
+	if (types->count >= ARRAY_SIZE(types->types))
+		return NULL;
+	types->types[types->count] = type;
+	types->needs_forward[types->count++] = needs_forward;
+	return type;
+}
+
+static void handle_functions(struct struct_types *types, struct symbol *type)
+{
+	struct symbol *arg;
+
+	while (type_is_ptr(type) || type_is_array(type))
+		type = strip_type_wrappers(get_base_type(type));
+	if (!type || type->type != SYM_FN)
+		return;
+	FOR_EACH_PTR(type->arguments, arg) {
+		struct symbol *arg_type = strip_type_wrappers(arg);
+		struct symbol *struct_type = add_struct_type(types, arg_type,
+						     type_can_use_forward_declaration(arg_type));
+
+		if (struct_type && !type_can_use_forward_declaration(arg_type))
+			collect_struct_types(types, struct_type);
+		if (type_is_ptr(arg_type) || type_is_array(arg_type))
+			handle_functions(types, arg_type);
+	} END_FOR_EACH_PTR(arg);
+}
+
+static void collect_function_type_dependencies(struct function_dependencies *dependencies,
+					       struct symbol *type)
+{
+	handle_functions(&dependencies->types, type);
+}
+
+static void collect_struct_types(struct struct_types *types,
+				 struct symbol *struct_type)
+{
+	struct symbol *member;
+
+	if (!is_struct_or_union(struct_type) || !struct_type->symbol_list)
+		return;
+	FOR_EACH_PTR(struct_type->symbol_list, member) {
+		struct symbol *member_type = strip_bitfield_type(member);
+		struct symbol *nested_type = member_type;
+		struct symbol *struct_type = add_struct_type(types, member_type,
+						     type_can_use_forward_declaration(member_type));
+
+		while (type_is_array(nested_type))
+			nested_type = strip_type_wrappers(get_base_type(nested_type));
+		if (!struct_type &&
+		    is_struct_or_union(nested_type))
+			collect_struct_types(types, nested_type);
+		if (struct_type && !type_can_use_forward_declaration(member_type))
+			collect_struct_types(types, struct_type);
+		if (type_is_ptr(member_type) || type_is_array(member_type))
+			handle_functions(types, member_type);
+	} END_FOR_EACH_PTR(member);
+}
+
+struct output_dependencies {
+	struct symbol_list *type_definitions;
+	struct symbol_list *type_forwards;
+	struct symbol_list *typedefs;
+	struct symbol_list *function_definitions;
+	struct symbol_list *function_forwards;
+};
+
+static struct output_dependencies printed;
+
+struct tag_output {
+	struct code_buffer *out;
+	struct symbol_list *dependency_types;
+};
+
+static void show_struct_definition(struct tag_output *output,
+				   struct symbol *type);
+static void show_tag_definition(struct tag_output *output,
+				struct symbol *type);
+static void show_type_definition(struct tag_output *output,
+				 struct symbol *symbol);
+static void show_typedef_dependency(struct tag_output *output,
+				    struct symbol *type);
+static void show_type_dependencies(struct tag_output *output,
+				   struct symbol *type);
+
+static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
+{
+	struct symbol *tag;
+
+	FOR_EACH_PTR(tags, tag) {
+		if (tag == type ||
+		    (tag->type == type->type && tag->ident && type->ident &&
+		     strcmp(show_ident(tag->ident), show_ident(type->ident)) == 0))
+			return true;
+	} END_FOR_EACH_PTR(tag);
+	return false;
+}
+
+static void remember_tag(struct symbol_list **tags, struct symbol *type)
+{
+	if (!tag_was_output(*tags, type))
+		add_symbol(tags, type);
+}
+
+static bool typedef_was_output(struct symbol *type)
+{
+	return tag_was_output(printed.typedefs, type);
+}
+
+static bool symbol_was_output(struct symbol_list *symbols,
+			      struct symbol *symbol)
+{
+	struct symbol *entry;
+
+	FOR_EACH_PTR(symbols, entry) {
+		if (entry == symbol)
+			return true;
+		if (entry->ident && symbol->ident &&
+		    strcmp(show_ident(entry->ident), show_ident(symbol->ident)) == 0)
+			return true;
+	} END_FOR_EACH_PTR(entry);
+	return false;
+}
+
+static void remember_symbol(struct symbol_list **symbols,
+			    struct symbol *symbol)
+{
+	if (!symbol_was_output(*symbols, symbol))
+		add_symbol(symbols, symbol);
+}
+
+static void show_required_type(struct tag_output *output,
+				       struct symbol *needed, bool needs_forward)
+{
+	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
+		if (!tag_was_output(printed.type_forwards, needed)) {
+			append(output->out, "enum %s;\n", show_ident(needed->ident));
+			remember_tag(&printed.type_forwards, needed);
+		}
+		return;
+	}
+	if (is_typedef_tag(needed) || !needs_forward) {
+		if (!tag_was_output(printed.type_definitions, needed)) {
+			if (tag_has_definition(needed))
+				show_type_definition(output, needed);
+			else
+				fprintf(stderr, "missing definition for %s %s\n",
+					tag_type_name(needed), show_ident(needed->ident));
+		}
+		return;
+	}
+	if (!tag_was_output(printed.type_definitions, needed) &&
+	    !tag_was_output(printed.type_forwards, needed)) {
+		append(output->out, "%s %s;\n", tag_type_name(needed),
+		       show_ident(needed->ident));
+		remember_tag(&printed.type_forwards, needed);
+	}
+}
+
+static void show_function_forwards(struct code_buffer *out, struct symbol *type)
+{
+	struct function_dependencies dependencies = { };
+	unsigned int i;
+
+	collect_function_type_dependencies(&dependencies, type);
+	for (i = 0; i < dependencies.types.count; i++) {
+		struct symbol *needed = dependencies.types.types[i];
+
+		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
+			if (!tag_was_output(printed.type_forwards, needed)) {
+				append(out, "enum %s;\n", show_ident(needed->ident));
+				remember_tag(&printed.type_forwards, needed);
+			}
+			continue;
+		}
+		if (dependencies.types.needs_forward[i] &&
+		    !tag_was_output(printed.type_definitions, needed) &&
+		    !tag_was_output(printed.type_forwards, needed)) {
+			append(out, "%s %s;\n", tag_type_name(needed),
+			       show_ident(needed->ident));
+			remember_tag(&printed.type_forwards, needed);
+		}
+		if (!dependencies.types.needs_forward[i] && !tag_has_definition(needed))
+			fprintf(stderr, "missing definition for %s %s\n",
+				tag_type_name(needed), show_ident(needed->ident));
+	}
+}
+
+static void add_symbol_dependency(struct symbol **functions, unsigned int *count,
+				  struct symbol *symbol)
+{
+	struct symbol *type;
+	unsigned int i;
+
+	if (!symbol || !symbol->ident ||
+	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
+		return;
+	type = strip_type_wrappers(symbol);
+	if (!type ||
+	    (type->type != SYM_FN &&
+	     !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
+		return;
+	for (i = 0; i < *count; i++)
+		if (functions[i] == symbol)
+			return;
+	if (*count < 8192)
+		functions[(*count)++] = symbol;
+}
+
+static void collect_expression_functions(struct symbol **functions,
+					 unsigned int *count, struct expression *e)
+{
+	struct expression *item;
+	struct type_expression *map;
+
+	if (!e)
+		return;
+	switch (e->type) {
+	case EXPR_TYPE:
+		collect_type_expression_functions(functions, count, e->symbol);
+		break;
+	case EXPR_PREOP:
+	case EXPR_POSTOP:
+		collect_expression_functions(functions, count, e->unop);
+		break;
+	case EXPR_BINOP:
+	case EXPR_ASSIGNMENT:
+	case EXPR_LOGICAL:
+	case EXPR_COMMA:
+	case EXPR_COMPARE:
+		collect_expression_functions(functions, count, e->left);
+		collect_expression_functions(functions, count, e->right);
+		break;
+	case EXPR_DEREF:
+		collect_expression_functions(functions, count, e->deref);
+		break;
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
+	case EXPR_PTRSIZEOF:
+		collect_type_expression_functions(functions, count, e->cast_type);
+		collect_expression_functions(functions, count, e->cast_expression);
+		break;
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		collect_expression_functions(functions, count, e->conditional);
+		collect_expression_functions(functions, count, e->cond_true);
+		collect_expression_functions(functions, count, e->cond_false);
+		break;
+	case EXPR_STATEMENT:
+		collect_statement_functions(functions, count, e->statement);
+		break;
+	case EXPR_CALL:
+		item = e->fn;
+		while (item && item->type == EXPR_PREOP &&
+		       (item->op == '*' || item->op == '('))
+			item = item->unop;
+		if (item && item->type == EXPR_SYMBOL)
+			add_symbol_dependency(functions, count, item->symbol);
+		collect_expression_functions(functions, count, e->fn);
+		FOR_EACH_PTR(e->args, item) {
+			collect_expression_functions(functions, count, item);
+		} END_FOR_EACH_PTR(item);
+		break;
+	case EXPR_SYMBOL:
+		add_symbol_dependency(functions, count, e->symbol);
+		break;
+	case EXPR_INITIALIZER:
+		FOR_EACH_PTR(e->expr_list, item) {
+			collect_expression_functions(functions, count, item);
+		} END_FOR_EACH_PTR(item);
+		break;
+	case EXPR_IDENTIFIER:
+		collect_expression_functions(functions, count, e->ident_expression);
+		break;
+	case EXPR_INDEX:
+		collect_expression_functions(functions, count, e->idx_expression);
+		break;
+	case EXPR_POS:
+		collect_expression_functions(functions, count, e->init_expr);
+		break;
+	case EXPR_SLICE:
+		collect_expression_functions(functions, count, e->base);
+		break;
+	case EXPR_OFFSETOF:
+		for (item = e; item; item = item->down) {
+			if (item->op != '.')
+				collect_expression_functions(functions, count, item->index);
+		}
+		break;
+	case EXPR_GENERIC:
+		collect_expression_functions(functions, count, e->control);
+		for (map = e->map; map; map = map->next) {
+			collect_expression_functions(functions, count, map->expr);
+		}
+		collect_expression_functions(functions, count, e->def);
+		break;
+	default:
+		break;
+	}
+}
+
+static void collect_type_expression_functions(struct symbol **functions,
+					      unsigned int *count,
+					      struct symbol *type)
+{
+	while (type) {
+		if (has_type_expression(type))
+			collect_expression_functions(functions, count,
+						     type->type_expression);
+		type = type->ctype.base_type;
+	}
+}
+
+static void collect_declaration_functions(struct symbol **functions,
+					  unsigned int *count,
+					  struct symbol_list *declarations)
+{
+	struct symbol *declaration;
+
+	FOR_EACH_PTR(declarations, declaration) {
+		collect_type_expression_functions(functions, count, declaration);
+		collect_expression_functions(functions, count, declaration->initializer);
+	} END_FOR_EACH_PTR(declaration);
+}
+
+static void show_initializer_dependencies_rec(struct code_buffer *out,
+					      struct symbol *symbol,
+					      struct symbol **active,
+					      unsigned int active_count)
+{
+	struct symbol *dependencies[8192];
+	struct symbol *dependency;
+	struct symbol *type;
+	struct symbol copy;
+	unsigned int count = 0;
+	unsigned int i;
+
+	for (i = 0; i < active_count; i++)
+		if (active[i] == symbol)
+			return;
+	if (active_count >= 8192)
+		return;
+	active[active_count++] = symbol;
+	collect_type_expression_functions(dependencies, &count, symbol);
+	collect_expression_functions(dependencies, &count, symbol->initializer);
+	for (i = 0; i < count; i++) {
+		dependency = dependencies[i];
+		if (dependency == symbol || find_anonymous_tag(dependency))
+			continue;
+		if (symbol_was_output(printed.function_definitions, dependency) ||
+		    symbol_was_output(printed.function_forwards, dependency))
+			continue;
+		show_initializer_dependencies_rec(out, dependency, active,
+						  active_count);
+		type = strip_type_wrappers(dependency);
+		if (type->type == SYM_FN)
+			show_function_forwards(out, dependency->ctype.base_type);
+		copy = *dependency;
+		copy.ctype.modifiers &= ~MOD_STATIC;
+		copy.ctype.modifiers |= MOD_EXTERN;
+		show_c_typename(out, &copy);
+		show_asm_name(out, &copy);
+		append(out, ";\n");
+		remember_symbol(&printed.function_forwards, dependency);
+	}
+}
+
+static void show_initializer_dependencies(struct code_buffer *out,
+					  struct symbol *symbol)
+{
+	struct symbol *active[8192];
+
+	show_initializer_dependencies_rec(out, symbol, active, 0);
+}
+
+static void collect_asm_functions(struct symbol **functions, unsigned int *count,
+				  struct asm_operand_list *operands)
+{
+	struct asm_operand *operand;
+
+	FOR_EACH_PTR(operands, operand) {
+		collect_expression_functions(functions, count, operand->expr);
+	} END_FOR_EACH_PTR(operand);
+}
+
+static void collect_statement_functions(struct symbol **functions,
+					unsigned int *count, struct statement *s)
+{
+	struct statement *child;
+	struct expression *clobber;
+
+	if (!s)
+		return;
+	switch (s->type) {
+	case STMT_COMPOUND:
+		FOR_EACH_PTR(s->stmts, child) {
+			collect_statement_functions(functions, count, child);
+		} END_FOR_EACH_PTR(child);
+		break;
+	case STMT_DECLARATION:
+		collect_declaration_functions(functions, count, s->declaration);
+		break;
+	case STMT_EXPRESSION:
+	case STMT_CONTEXT:
+		collect_expression_functions(functions, count, s->expression);
+		break;
+	case STMT_RETURN:
+		collect_expression_functions(functions, count, s->ret_value);
+		break;
+	case STMT_IF:
+		collect_expression_functions(functions, count, s->if_conditional);
+		collect_statement_functions(functions, count, s->if_true);
+		collect_statement_functions(functions, count, s->if_false);
+		break;
+	case STMT_SWITCH:
+		collect_expression_functions(functions, count, s->switch_expression);
+		collect_statement_functions(functions, count, s->switch_statement);
+		break;
+	case STMT_CASE:
+		collect_expression_functions(functions, count, s->case_expression);
+		collect_expression_functions(functions, count, s->case_to);
+		collect_statement_functions(functions, count, s->case_statement);
+		break;
+	case STMT_ITERATOR:
+		collect_declaration_functions(functions, count, s->iterator_syms);
+		collect_statement_functions(functions, count, s->iterator_pre_statement);
+		collect_expression_functions(functions, count, s->iterator_pre_condition);
+		collect_statement_functions(functions, count, s->iterator_statement);
+		collect_statement_functions(functions, count, s->iterator_post_statement);
+		collect_expression_functions(functions, count, s->iterator_post_condition);
+		break;
+	case STMT_LABEL:
+		collect_statement_functions(functions, count, s->label_statement);
+		break;
+	case STMT_GOTO:
+		collect_expression_functions(functions, count, s->goto_expression);
+		break;
+	case STMT_ASM:
+		collect_expression_functions(functions, count, s->asm_string);
+		collect_asm_functions(functions, count, s->asm_outputs);
+		collect_asm_functions(functions, count, s->asm_inputs);
+		FOR_EACH_PTR(s->asm_clobbers, clobber) {
+			collect_expression_functions(functions, count, clobber);
+		} END_FOR_EACH_PTR(clobber);
+		break;
+	case STMT_RANGE:
+		collect_expression_functions(functions, count, s->range_expression);
+		collect_expression_functions(functions, count, s->range_low);
+		collect_expression_functions(functions, count, s->range_high);
+		break;
+	default:
+		break;
+	}
+}
+
+static void collect_function_dependencies(struct function_dependencies *dependencies,
+					  struct symbol *function)
+{
+	struct symbol *type = function->ctype.base_type;
+
+	if (!type)
+		return;
+	collect_function_type_dependencies(dependencies, type);
+	collect_type_expression_functions(dependencies->functions,
+					  &dependencies->function_count, function);
+	collect_statement_functions(dependencies->functions,
+				    &dependencies->function_count,
+				    type->stmt ? type->stmt : type->inline_stmt);
+}
+
+static void show_function_dependencies(struct code_buffer *out,
+				       struct symbol *function)
+{
+	struct function_dependencies dependencies = { };
+	struct symbol *dependency;
+	struct symbol copy;
+	struct symbol *type;
+	unsigned int i;
+
+	collect_function_dependencies(&dependencies, function);
+	for (i = 0; i < dependencies.function_count; i++) {
+		struct symbol *original;
+
+		dependency = dependencies.functions[i];
+		original = dependency;
+		if (dependency == function || find_anonymous_tag(dependency))
+			continue;
+		if (symbol_was_output(printed.function_definitions, dependency) ||
+		    symbol_was_output(printed.function_forwards, dependency))
+			continue;
+		type = strip_type_wrappers(dependency);
+		access_symbol(dependency);
+		if (type->type == SYM_FN && type->inline_stmt)
+			continue;
+		show_initializer_dependencies(out, dependency);
+		if (type->type == SYM_FN) {
+			show_function_forwards(out, dependency->ctype.base_type);
+			copy = *dependency;
+			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE | MOD_EXTERN);
+			if (!(copy.ctype.modifiers & MOD_STATIC))
+				copy.ctype.modifiers |= MOD_EXTERN;
+			dependency = &copy;
+		} else {
+			copy = *dependency;
+			copy.ctype.modifiers &= ~MOD_STATIC;
+			copy.ctype.modifiers |= MOD_EXTERN;
+			dependency = &copy;
+		}
+		show_c_typename(out, dependency);
+		show_asm_name(out, dependency);
+		append(out, ";\n");
+		remember_symbol(&printed.function_forwards, original);
+	}
+}
+
+static void show_type_dependencies(struct tag_output *output,
+				   struct symbol *type)
+{
+	struct symbol *arg;
+	struct symbol *member;
+	struct symbol *member_type;
+	struct symbol *function_type;
+	struct symbol *nested_type;
+	struct struct_types types = { };
+
+	if (!is_tag_type(type))
+		return;
+	if (lookup_ptr_list_entry((struct ptr_list *)output->dependency_types,
+				  type))
+		return;
+	add_ptr_list(&output->dependency_types, type);
+	FOR_EACH_PTR(type->symbol_list, member) {
+		nested_type = strip_bitfield_type(member);
+		show_typedef_dependency(output, member->ctype.base_type);
+		member_type = add_struct_type(&types, nested_type,
+					      type_can_use_forward_declaration(member));
+		if (member_type)
+			show_required_type(output, member_type,
+				   type_can_use_forward_declaration(member));
+		if (!member_type && is_struct_or_union(nested_type) &&
+		    !nested_type->ident)
+			show_type_dependencies(output, nested_type);
+		function_type = nested_type;
+		if (!type_is_ptr(function_type) && !type_is_array(function_type))
+			continue;
+		while (type_is_ptr(function_type) || type_is_array(function_type))
+			function_type = strip_type_wrappers(get_base_type(function_type));
+		if (!function_type || function_type->type != SYM_FN)
+			continue;
+		show_typedef_dependency(output, function_type->ctype.base_type);
+		FOR_EACH_PTR(function_type->arguments, arg) {
+			show_typedef_dependency(output, arg);
+			member_type = add_struct_type(&types, arg,
+						      type_can_use_forward_declaration(arg));
+			if (member_type)
+				show_required_type(output, member_type,
+						   type_can_use_forward_declaration(arg));
+		} END_FOR_EACH_PTR(arg);
+	} END_FOR_EACH_PTR(member);
+}
+
+/* C rendering. */
 
 static void type_name_prepend(struct c_type_name *name, const char *text)
 {
@@ -1371,28 +2061,6 @@ static void function_body(struct code_buffer *out, struct statement *s)
 	append(out, "}\n");
 }
 
-static bool tag_has_definition(struct symbol *tag)
-{
-	return is_tag_type(tag) && tag->endpos.type;
-}
-
-static bool is_type_definition(struct symbol *s, struct symbol **tag_out)
-{
-	struct symbol *tag;
-
-	for (tag = s; tag; tag = tag->ctype.base_type) {
-		if (tag->type == SYM_FN)
-			return false;
-		if (is_tag_type(tag))
-			break;
-	}
-	if (!tag_has_definition(tag) ||
-	    (s != tag && s->definition != tag && s->namespace != NS_TYPEDEF))
-		return false;
-	*tag_out = tag;
-	return true;
-}
-
 static void sym(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type;
@@ -1415,162 +2083,6 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
-}
-
-static bool is_struct_or_union(struct symbol *type)
-{
-	return type && (type->type == SYM_STRUCT || type->type == SYM_UNION);
-}
-
-static bool is_tag_type(struct symbol *type)
-{
-	return is_struct_or_union(type) ||
-	       (type && type->type == SYM_ENUM);
-}
-
-static const char *tag_type_name(struct symbol *type)
-{
-	switch(type->type) {
-	case SYM_ENUM:
-		return "enum";
-	case SYM_UNION:
-		return "union";
-	case SYM_STRUCT:
-		return "struct";
-	}
-	return "<unknown>";
-}
-
-static bool is_typedef_tag(struct symbol *type)
-{
-	struct symbol *typedef_symbol;
-
-	if (type->namespace == NS_TYPEDEF)
-		return true;
-	if (!type->ident)
-		return false;
-	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
-	while (typedef_symbol) {
-		if (typedef_symbol == type || typedef_symbol->definition == type)
-			return true;
-		typedef_symbol = typedef_symbol->ctype.base_type;
-	}
-	return false;
-}
-
-static void collect_struct_types(struct struct_types *types,
-				 struct symbol *struct_type);
-
-static struct symbol *strip_type_wrappers(struct symbol *type)
-{
-	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT))
-		type = get_base_type(type);
-	return type;
-}
-
-static struct symbol *strip_bitfield_type(struct symbol *type)
-{
-	type = strip_type_wrappers(type);
-	while (type && type->type == SYM_BITFIELD)
-		type = strip_type_wrappers(get_base_type(type));
-	return type;
-}
-
-static bool type_is_ptr(struct symbol *type)
-{
-	return type && type->type == SYM_PTR;
-}
-
-static bool type_is_array(struct symbol *type)
-{
-	return type && type->type == SYM_ARRAY;
-}
-
-static bool type_can_use_forward_declaration(struct symbol *type)
-{
-	type = strip_type_wrappers(type);
-	while (type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
-	if (!type_is_ptr(type))
-		return false;
-	type = strip_type_wrappers(get_base_type(type));
-	return !type || type->type != SYM_ENUM;
-}
-
-static struct symbol *add_struct_type(struct struct_types *types,
-					      struct symbol *type, bool needs_forward)
-{
-	unsigned int i;
-
-	type = strip_type_wrappers(type);
-	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
-	if (type && type->definition && is_tag_type(type->definition))
-		type = type->definition;
-	if (!is_tag_type(type) || !type->ident)
-		return NULL;
-	for (i = 0; i < types->count; i++) {
-		if (types->types[i] != type)
-			continue;
-		types->needs_forward[i] &= needs_forward;
-		return type;
-	}
-	if (types->count >= ARRAY_SIZE(types->types))
-		return NULL;
-	types->types[types->count] = type;
-	types->needs_forward[types->count++] = needs_forward;
-	return type;
-}
-
-static void handle_functions(struct struct_types *types, struct symbol *type)
-{
-	struct symbol *arg;
-
-	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
-	if (!type || type->type != SYM_FN)
-		return;
-	FOR_EACH_PTR(type->arguments, arg) {
-		struct symbol *arg_type = strip_type_wrappers(arg);
-		struct symbol *struct_type = add_struct_type(types, arg_type,
-						     type_can_use_forward_declaration(arg_type));
-
-		if (struct_type && !type_can_use_forward_declaration(arg_type))
-			collect_struct_types(types, struct_type);
-		if (type_is_ptr(arg_type) || type_is_array(arg_type))
-			handle_functions(types, arg_type);
-	} END_FOR_EACH_PTR(arg);
-}
-
-static void collect_function_type_dependencies(struct function_dependencies *dependencies,
-					       struct symbol *type)
-{
-	handle_functions(&dependencies->types, type);
-}
-
-static void collect_struct_types(struct struct_types *types,
-				 struct symbol *struct_type)
-{
-	struct symbol *member;
-
-	if (!is_struct_or_union(struct_type) || !struct_type->symbol_list)
-		return;
-	FOR_EACH_PTR(struct_type->symbol_list, member) {
-		struct symbol *member_type = strip_bitfield_type(member);
-		struct symbol *nested_type = member_type;
-		struct symbol *struct_type = add_struct_type(types, member_type,
-						     type_can_use_forward_declaration(member_type));
-
-		while (type_is_array(nested_type))
-			nested_type = strip_type_wrappers(get_base_type(nested_type));
-		if (!struct_type &&
-		    is_struct_or_union(nested_type))
-			collect_struct_types(types, nested_type);
-		if (struct_type && !type_can_use_forward_declaration(member_type))
-			collect_struct_types(types, struct_type);
-		if (type_is_ptr(member_type) || type_is_array(member_type))
-			handle_functions(types, member_type);
-	} END_FOR_EACH_PTR(member);
 }
 
 static struct symbol *find_anonymous_tag(struct symbol *type)
@@ -1685,465 +2197,6 @@ static void show_local_tag_definition(struct code_buffer *out,
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
 	append(out, "};\n");
-}
-
-struct output_dependencies {
-	struct symbol_list *type_definitions;
-	struct symbol_list *type_forwards;
-	struct symbol_list *typedefs;
-	struct symbol_list *function_definitions;
-	struct symbol_list *function_forwards;
-};
-
-static struct output_dependencies printed;
-
-struct tag_output {
-	struct code_buffer *out;
-	struct symbol_list *dependency_types;
-};
-
-static void show_struct_definition(struct tag_output *output,
-				   struct symbol *type);
-static void show_tag_definition(struct tag_output *output,
-				struct symbol *type);
-static void show_type_definition(struct tag_output *output,
-				 struct symbol *symbol);
-static void show_typedef_dependency(struct tag_output *output,
-				    struct symbol *type);
-static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type);
-
-static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
-{
-	struct symbol *tag;
-
-	FOR_EACH_PTR(tags, tag) {
-		if (tag == type ||
-		    (tag->type == type->type && tag->ident && type->ident &&
-		     strcmp(show_ident(tag->ident), show_ident(type->ident)) == 0))
-			return true;
-	} END_FOR_EACH_PTR(tag);
-	return false;
-}
-
-static void remember_tag(struct symbol_list **tags, struct symbol *type)
-{
-	if (!tag_was_output(*tags, type))
-		add_symbol(tags, type);
-}
-
-static bool typedef_was_output(struct symbol *type)
-{
-	return tag_was_output(printed.typedefs, type);
-}
-
-static bool symbol_was_output(struct symbol_list *symbols,
-			      struct symbol *symbol)
-{
-	struct symbol *entry;
-
-	FOR_EACH_PTR(symbols, entry) {
-		if (entry == symbol)
-			return true;
-		if (entry->ident && symbol->ident &&
-		    strcmp(show_ident(entry->ident), show_ident(symbol->ident)) == 0)
-			return true;
-	} END_FOR_EACH_PTR(entry);
-	return false;
-}
-
-static void remember_symbol(struct symbol_list **symbols,
-			    struct symbol *symbol)
-{
-	if (!symbol_was_output(*symbols, symbol))
-		add_symbol(symbols, symbol);
-}
-
-static void show_required_type(struct tag_output *output,
-				       struct symbol *needed, bool needs_forward)
-{
-	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-		if (!tag_was_output(printed.type_forwards, needed)) {
-			append(output->out, "enum %s;\n", show_ident(needed->ident));
-			remember_tag(&printed.type_forwards, needed);
-		}
-		return;
-	}
-	if (is_typedef_tag(needed) || !needs_forward) {
-		if (!tag_was_output(printed.type_definitions, needed)) {
-			if (tag_has_definition(needed))
-				show_type_definition(output, needed);
-			else
-				fprintf(stderr, "missing definition for %s %s\n",
-					tag_type_name(needed), show_ident(needed->ident));
-		}
-		return;
-	}
-	if (!tag_was_output(printed.type_definitions, needed) &&
-	    !tag_was_output(printed.type_forwards, needed)) {
-		append(output->out, "%s %s;\n", tag_type_name(needed),
-		       show_ident(needed->ident));
-		remember_tag(&printed.type_forwards, needed);
-	}
-}
-
-static void show_function_forwards(struct code_buffer *out, struct symbol *type)
-{
-	struct function_dependencies dependencies = { };
-	unsigned int i;
-
-	collect_function_type_dependencies(&dependencies, type);
-	for (i = 0; i < dependencies.types.count; i++) {
-		struct symbol *needed = dependencies.types.types[i];
-
-		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-			if (!tag_was_output(printed.type_forwards, needed)) {
-				append(out, "enum %s;\n", show_ident(needed->ident));
-				remember_tag(&printed.type_forwards, needed);
-			}
-			continue;
-		}
-		if (dependencies.types.needs_forward[i] &&
-		    !tag_was_output(printed.type_definitions, needed) &&
-		    !tag_was_output(printed.type_forwards, needed)) {
-			append(out, "%s %s;\n", tag_type_name(needed),
-			       show_ident(needed->ident));
-			remember_tag(&printed.type_forwards, needed);
-		}
-		if (!dependencies.types.needs_forward[i] && !tag_has_definition(needed))
-			fprintf(stderr, "missing definition for %s %s\n",
-				tag_type_name(needed), show_ident(needed->ident));
-	}
-}
-
-static void add_symbol_dependency(struct symbol **functions, unsigned int *count,
-				  struct symbol *symbol)
-{
-	struct symbol *type;
-	unsigned int i;
-
-	if (!symbol || !symbol->ident ||
-	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
-		return;
-	type = strip_type_wrappers(symbol);
-	if (!type ||
-	    (type->type != SYM_FN &&
-	     !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
-		return;
-	for (i = 0; i < *count; i++)
-		if (functions[i] == symbol)
-			return;
-	if (*count < 8192)
-		functions[(*count)++] = symbol;
-}
-
-static void collect_expression_functions(struct symbol **functions,
-					 unsigned int *count, struct expression *e)
-{
-	struct expression *item;
-	struct type_expression *map;
-
-	if (!e)
-		return;
-	switch (e->type) {
-	case EXPR_TYPE:
-		collect_type_expression_functions(functions, count, e->symbol);
-		break;
-	case EXPR_PREOP:
-	case EXPR_POSTOP:
-		collect_expression_functions(functions, count, e->unop);
-		break;
-	case EXPR_BINOP:
-	case EXPR_ASSIGNMENT:
-	case EXPR_LOGICAL:
-	case EXPR_COMMA:
-	case EXPR_COMPARE:
-		collect_expression_functions(functions, count, e->left);
-		collect_expression_functions(functions, count, e->right);
-		break;
-	case EXPR_DEREF:
-		collect_expression_functions(functions, count, e->deref);
-		break;
-	case EXPR_CAST:
-	case EXPR_FORCE_CAST:
-	case EXPR_IMPLIED_CAST:
-	case EXPR_SIZEOF:
-	case EXPR_ALIGNOF:
-	case EXPR_PTRSIZEOF:
-		collect_type_expression_functions(functions, count, e->cast_type);
-		collect_expression_functions(functions, count, e->cast_expression);
-		break;
-	case EXPR_CONDITIONAL:
-	case EXPR_SELECT:
-		collect_expression_functions(functions, count, e->conditional);
-		collect_expression_functions(functions, count, e->cond_true);
-		collect_expression_functions(functions, count, e->cond_false);
-		break;
-	case EXPR_STATEMENT:
-		collect_statement_functions(functions, count, e->statement);
-		break;
-	case EXPR_CALL:
-		item = e->fn;
-		while (item && item->type == EXPR_PREOP &&
-		       (item->op == '*' || item->op == '('))
-			item = item->unop;
-		if (item && item->type == EXPR_SYMBOL)
-			add_symbol_dependency(functions, count, item->symbol);
-		collect_expression_functions(functions, count, e->fn);
-		FOR_EACH_PTR(e->args, item) {
-			collect_expression_functions(functions, count, item);
-		} END_FOR_EACH_PTR(item);
-		break;
-	case EXPR_SYMBOL:
-		add_symbol_dependency(functions, count, e->symbol);
-		break;
-	case EXPR_INITIALIZER:
-		FOR_EACH_PTR(e->expr_list, item) {
-			collect_expression_functions(functions, count, item);
-		} END_FOR_EACH_PTR(item);
-		break;
-	case EXPR_IDENTIFIER:
-		collect_expression_functions(functions, count, e->ident_expression);
-		break;
-	case EXPR_INDEX:
-		collect_expression_functions(functions, count, e->idx_expression);
-		break;
-	case EXPR_POS:
-		collect_expression_functions(functions, count, e->init_expr);
-		break;
-	case EXPR_SLICE:
-		collect_expression_functions(functions, count, e->base);
-		break;
-	case EXPR_OFFSETOF:
-		for (item = e; item; item = item->down) {
-			if (item->op != '.')
-				collect_expression_functions(functions, count, item->index);
-		}
-		break;
-	case EXPR_GENERIC:
-		collect_expression_functions(functions, count, e->control);
-		for (map = e->map; map; map = map->next) {
-			collect_expression_functions(functions, count, map->expr);
-		}
-		collect_expression_functions(functions, count, e->def);
-		break;
-	default:
-		break;
-	}
-}
-
-static void collect_type_expression_functions(struct symbol **functions,
-					      unsigned int *count,
-					      struct symbol *type)
-{
-	while (type) {
-		if (has_type_expression(type))
-			collect_expression_functions(functions, count,
-						     type->type_expression);
-		type = type->ctype.base_type;
-	}
-}
-
-static void collect_declaration_functions(struct symbol **functions,
-					  unsigned int *count,
-					  struct symbol_list *declarations)
-{
-	struct symbol *declaration;
-
-	FOR_EACH_PTR(declarations, declaration) {
-		collect_type_expression_functions(functions, count, declaration);
-		collect_expression_functions(functions, count, declaration->initializer);
-	} END_FOR_EACH_PTR(declaration);
-}
-
-static void show_initializer_dependencies_rec(struct code_buffer *out,
-					      struct symbol *symbol,
-					      struct symbol **active,
-					      unsigned int active_count)
-{
-	struct symbol *dependencies[8192];
-	struct symbol *dependency;
-	struct symbol *type;
-	struct symbol copy;
-	unsigned int count = 0;
-	unsigned int i;
-
-	for (i = 0; i < active_count; i++)
-		if (active[i] == symbol)
-			return;
-	if (active_count >= 8192)
-		return;
-	active[active_count++] = symbol;
-	collect_type_expression_functions(dependencies, &count, symbol);
-	collect_expression_functions(dependencies, &count, symbol->initializer);
-	for (i = 0; i < count; i++) {
-		dependency = dependencies[i];
-		if (dependency == symbol || find_anonymous_tag(dependency))
-			continue;
-		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency))
-			continue;
-		show_initializer_dependencies_rec(out, dependency, active,
-						  active_count);
-		type = strip_type_wrappers(dependency);
-		if (type->type == SYM_FN)
-			show_function_forwards(out, dependency->ctype.base_type);
-		copy = *dependency;
-		copy.ctype.modifiers &= ~MOD_STATIC;
-		copy.ctype.modifiers |= MOD_EXTERN;
-		show_c_typename(out, &copy);
-		show_asm_name(out, &copy);
-		append(out, ";\n");
-		remember_symbol(&printed.function_forwards, dependency);
-	}
-}
-
-static void show_initializer_dependencies(struct code_buffer *out,
-					  struct symbol *symbol)
-{
-	struct symbol *active[8192];
-
-	show_initializer_dependencies_rec(out, symbol, active, 0);
-}
-
-static void collect_asm_functions(struct symbol **functions, unsigned int *count,
-				  struct asm_operand_list *operands)
-{
-	struct asm_operand *operand;
-
-	FOR_EACH_PTR(operands, operand) {
-		collect_expression_functions(functions, count, operand->expr);
-	} END_FOR_EACH_PTR(operand);
-}
-
-static void collect_statement_functions(struct symbol **functions,
-					unsigned int *count, struct statement *s)
-{
-	struct statement *child;
-	struct expression *clobber;
-
-	if (!s)
-		return;
-	switch (s->type) {
-	case STMT_COMPOUND:
-		FOR_EACH_PTR(s->stmts, child) {
-			collect_statement_functions(functions, count, child);
-		} END_FOR_EACH_PTR(child);
-		break;
-	case STMT_DECLARATION:
-		collect_declaration_functions(functions, count, s->declaration);
-		break;
-	case STMT_EXPRESSION:
-	case STMT_CONTEXT:
-		collect_expression_functions(functions, count, s->expression);
-		break;
-	case STMT_RETURN:
-		collect_expression_functions(functions, count, s->ret_value);
-		break;
-	case STMT_IF:
-		collect_expression_functions(functions, count, s->if_conditional);
-		collect_statement_functions(functions, count, s->if_true);
-		collect_statement_functions(functions, count, s->if_false);
-		break;
-	case STMT_SWITCH:
-		collect_expression_functions(functions, count, s->switch_expression);
-		collect_statement_functions(functions, count, s->switch_statement);
-		break;
-	case STMT_CASE:
-		collect_expression_functions(functions, count, s->case_expression);
-		collect_expression_functions(functions, count, s->case_to);
-		collect_statement_functions(functions, count, s->case_statement);
-		break;
-	case STMT_ITERATOR:
-		collect_declaration_functions(functions, count, s->iterator_syms);
-		collect_statement_functions(functions, count, s->iterator_pre_statement);
-		collect_expression_functions(functions, count, s->iterator_pre_condition);
-		collect_statement_functions(functions, count, s->iterator_statement);
-		collect_statement_functions(functions, count, s->iterator_post_statement);
-		collect_expression_functions(functions, count, s->iterator_post_condition);
-		break;
-	case STMT_LABEL:
-		collect_statement_functions(functions, count, s->label_statement);
-		break;
-	case STMT_GOTO:
-		collect_expression_functions(functions, count, s->goto_expression);
-		break;
-	case STMT_ASM:
-		collect_expression_functions(functions, count, s->asm_string);
-		collect_asm_functions(functions, count, s->asm_outputs);
-		collect_asm_functions(functions, count, s->asm_inputs);
-		FOR_EACH_PTR(s->asm_clobbers, clobber) {
-			collect_expression_functions(functions, count, clobber);
-		} END_FOR_EACH_PTR(clobber);
-		break;
-	case STMT_RANGE:
-		collect_expression_functions(functions, count, s->range_expression);
-		collect_expression_functions(functions, count, s->range_low);
-		collect_expression_functions(functions, count, s->range_high);
-		break;
-	default:
-		break;
-	}
-}
-
-static void collect_function_dependencies(struct function_dependencies *dependencies,
-					  struct symbol *function)
-{
-	struct symbol *type = function->ctype.base_type;
-
-	if (!type)
-		return;
-	collect_function_type_dependencies(dependencies, type);
-	collect_type_expression_functions(dependencies->functions,
-					  &dependencies->function_count, function);
-	collect_statement_functions(dependencies->functions,
-				    &dependencies->function_count,
-				    type->stmt ? type->stmt : type->inline_stmt);
-}
-
-static void show_function_dependencies(struct code_buffer *out,
-				       struct symbol *function)
-{
-	struct function_dependencies dependencies = { };
-	struct symbol *dependency;
-	struct symbol copy;
-	struct symbol *type;
-	unsigned int i;
-
-	collect_function_dependencies(&dependencies, function);
-	for (i = 0; i < dependencies.function_count; i++) {
-		struct symbol *original;
-
-		dependency = dependencies.functions[i];
-		original = dependency;
-		if (dependency == function || find_anonymous_tag(dependency))
-			continue;
-		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency))
-			continue;
-		type = strip_type_wrappers(dependency);
-		access_symbol(dependency);
-		if (type->type == SYM_FN && type->inline_stmt)
-			continue;
-		show_initializer_dependencies(out, dependency);
-		if (type->type == SYM_FN) {
-			show_function_forwards(out, dependency->ctype.base_type);
-			copy = *dependency;
-			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE | MOD_EXTERN);
-			if (!(copy.ctype.modifiers & MOD_STATIC))
-				copy.ctype.modifiers |= MOD_EXTERN;
-			dependency = &copy;
-		} else {
-			copy = *dependency;
-			copy.ctype.modifiers &= ~MOD_STATIC;
-			copy.ctype.modifiers |= MOD_EXTERN;
-			dependency = &copy;
-		}
-		show_c_typename(out, dependency);
-		show_asm_name(out, dependency);
-		append(out, ";\n");
-		remember_symbol(&printed.function_forwards, original);
-	}
 }
 
 static void show_function(struct code_buffer *out, struct symbol *s)
@@ -2445,52 +2498,6 @@ static void show_typedef_dependency(struct tag_output *output,
 	remember_tag(&printed.typedefs, typedef_symbol);
 	show_type_dependencies(output, typedef_symbol->ctype.base_type);
 	show_typedef_definition(output->out, typedef_symbol);
-}
-
-static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type)
-{
-	struct symbol *arg;
-	struct symbol *member;
-	struct symbol *member_type;
-	struct symbol *function_type;
-	struct symbol *nested_type;
-	struct struct_types types = { };
-
-	if (!is_tag_type(type))
-		return;
-	if (lookup_ptr_list_entry((struct ptr_list *)output->dependency_types,
-				  type))
-		return;
-	add_ptr_list(&output->dependency_types, type);
-	FOR_EACH_PTR(type->symbol_list, member) {
-		nested_type = strip_bitfield_type(member);
-		show_typedef_dependency(output, member->ctype.base_type);
-		member_type = add_struct_type(&types, nested_type,
-					      type_can_use_forward_declaration(member));
-		if (member_type)
-			show_required_type(output, member_type,
-				   type_can_use_forward_declaration(member));
-		if (!member_type && is_struct_or_union(nested_type) &&
-		    !nested_type->ident)
-			show_type_dependencies(output, nested_type);
-		function_type = nested_type;
-		if (!type_is_ptr(function_type) && !type_is_array(function_type))
-			continue;
-		while (type_is_ptr(function_type) || type_is_array(function_type))
-			function_type = strip_type_wrappers(get_base_type(function_type));
-		if (!function_type || function_type->type != SYM_FN)
-			continue;
-		show_typedef_dependency(output, function_type->ctype.base_type);
-		FOR_EACH_PTR(function_type->arguments, arg) {
-			show_typedef_dependency(output, arg);
-			member_type = add_struct_type(&types, arg,
-						      type_can_use_forward_declaration(arg));
-			if (member_type)
-				show_required_type(output, member_type,
-						   type_can_use_forward_declaration(arg));
-		} END_FOR_EACH_PTR(arg);
-	} END_FOR_EACH_PTR(member);
 }
 
 void show_all_type_definitions(struct symbol_list *symbols, char *buf,
