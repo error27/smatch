@@ -2399,6 +2399,7 @@ static void show_type_dependencies(struct tag_output *output,
 			function_type = strip_type_wrappers(get_base_type(function_type));
 		if (!function_type || function_type->type != SYM_FN)
 			continue;
+		show_typedef_dependency(output, function_type->ctype.base_type);
 		FOR_EACH_PTR(function_type->arguments, arg) {
 			show_typedef_dependency(output, arg);
 			member_type = add_struct_type(&types, arg,
