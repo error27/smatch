@@ -29,11 +29,13 @@ static void append(struct code_buffer *out, const char *fmt, ...)
 
 	if (out->used >= out->len)
 		return;
+
 	va_start(ap, fmt);
 	ret = vsnprintf(buffer, sizeof(stack_buffer), fmt, ap);
 	va_end(ap);
 	if (ret <= 0)
 		return;
+
 	if (ret >= sizeof(stack_buffer)) {
 		buffer = malloc(ret + 1);
 		if (!buffer)
@@ -42,6 +44,7 @@ static void append(struct code_buffer *out, const char *fmt, ...)
 		vsnprintf(buffer, ret + 1, fmt, ap);
 		va_end(ap);
 	}
+
 	for (i = 0; i < ret; i++) {
 		unsigned int tab;
 
@@ -55,6 +58,7 @@ static void append(struct code_buffer *out, const char *fmt, ...)
 		out->buf[out->used++] = buffer[i];
 		out->line_start = buffer[i] == '\n';
 	}
+
 	out->buf[out->used] = '\0';
 	if (buffer != stack_buffer)
 		free(buffer);
@@ -1212,9 +1216,9 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	}
 
-	if (is_type_definition(s, &type)) {
+	if (is_type_definition(s, &type))
 		return;
-	}
+
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
 }
