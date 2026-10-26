@@ -1686,7 +1686,8 @@ static void show_anonymous_tag(struct code_buffer *out, struct symbol *type);
 
 static void declaration(struct code_buffer *out, struct symbol *s)
 {
-	struct symbol *anonymous_tag = find_anonymous_tag(s);
+	struct symbol *anonymous_tag = type_has_typeof(s) ? NULL :
+		find_anonymous_tag(s);
 	struct symbol *tag = s;
 	unsigned int i;
 
