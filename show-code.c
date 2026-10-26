@@ -2018,6 +2018,7 @@ static void show_type_dependencies(struct tag_output *output,
 	struct symbol *member;
 	struct symbol *member_type;
 	struct symbol *function_type;
+	struct symbol *nested_type;
 	struct struct_types types = { };
 
 	if (!type ||
@@ -2029,12 +2030,16 @@ static void show_type_dependencies(struct tag_output *output,
 	add_ptr_list(&output->dependency_types, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
 		show_typedef_dependency(output, member);
-		member_type = add_struct_type(&types, member,
+		nested_type = strip_bitfield_type(member);
+		member_type = add_struct_type(&types, nested_type,
 					      type_needs_forward(member));
 		if (member_type)
 			show_required_type(output, member_type,
 					   type_needs_forward(member));
-		function_type = strip_bitfield_type(member);
+		if (!member_type && is_struct_or_union(nested_type) &&
+		    !nested_type->ident)
+			show_type_dependencies(output, nested_type);
+		function_type = nested_type;
 		if (!type_is_ptr(function_type) && !type_is_array(function_type))
 			continue;
 		while (type_is_ptr(function_type) || type_is_array(function_type))
