@@ -331,7 +331,7 @@ static struct symbol *examine_bitfield_type(struct symbol *sym)
 		return sym;
 	if (sym->bit_size > base_type->bit_size) {
 		sparse_error(sym->pos, "bitfield '%s' is wider (%d) than its type (%s)",
-			show_ident(sym->ident), sym->bit_size, show_typename(base_type));
+			show_ident(sym->ident), sym->bit_size, show_typename(base_type, true));
 		sym->bit_size = -1;
 	}
 
@@ -567,6 +567,9 @@ static struct symbol *examine_typeof_helper(struct symbol *sym, bool qual)
 	}
 	if (base->type == SYM_BITFIELD)
 		warning(base->pos, "typeof applied to bitfield type");
+	if (!sym->type_expression)
+		sym->type_expression = copy_type_expression(sym->initializer);
+	sym->typeof_is_unqual = !qual;
 	sym->type = SYM_NODE;
 	sym->ctype.modifiers = mod;
 	sym->ctype.base_type = base;

@@ -112,6 +112,7 @@ struct decl_state {
 	struct ctype ctype;
 	struct ident **ident;
 	struct symbol_op *mode;
+	struct expression *asm_name;
 	struct expression *cleanup;
 	struct alloc_size *alloc_size;
 	unsigned long f_modifiers;		// function attributes
@@ -202,7 +203,8 @@ struct symbol {
 					builtin:1,
 					torename:1,
 					packed:1,
-					transparent_union:1;
+					transparent_union:1,
+					typeof_is_unqual:1;
 			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
 			struct alloc_size *alloc_size;
@@ -213,6 +215,8 @@ struct symbol {
 			struct statement *inline_stmt;
 			struct symbol_list *inline_symbol_list;
 			struct expression *initializer;
+			struct expression *type_expression;
+			struct expression *asm_name;
 			struct expression *cleanup;
 			struct entrypoint *ep;
 			struct symbol *definition;
@@ -360,6 +364,9 @@ extern void show_stmt(struct statement *stmt, char *buf, size_t len);
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
 extern void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 				      size_t len);
+extern void show_inline_function_definitions(struct symbol_list *symbols,
+					      struct symbol_list **emitted, char *buf,
+					      size_t len);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);
@@ -367,7 +374,7 @@ extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespa
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
 extern const char *show_as(struct ident *as);
-extern const char *show_typename(struct symbol *sym);
+extern const char *show_typename(struct symbol *sym, bool checker);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_type_suffix(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);
