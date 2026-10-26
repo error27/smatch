@@ -1505,8 +1505,10 @@ static void show_struct_definition(struct tag_output *output,
 				   struct symbol *type);
 static void show_type_definition(struct tag_output *output,
 				 struct symbol *type);
-static void show_typedef_dependencies(struct tag_output *output,
-				      struct symbol *type);
+static void show_typedef_dependency(struct tag_output *output,
+				    struct symbol *type);
+static void show_type_dependencies(struct tag_output *output,
+				   struct symbol *type);
 
 static bool tag_was_output(struct symbol **tags, unsigned int count,
 			   struct symbol *type)
@@ -1521,46 +1523,20 @@ static bool tag_was_output(struct symbol **tags, unsigned int count,
 	return false;
 }
 
-static void show_required_forwards(struct tag_output *output,
-				   struct symbol *type)
+static void show_required_type(struct tag_output *output,
+				       struct symbol *needed, bool needs_forward)
 {
-	struct struct_types types = { };
-	unsigned int i;
-
-	collect_struct_types(&types, type);
-	for (i = 0; i < types.count; i++) {
-		struct symbol *needed = types.types[i];
-
-		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-			if (!tag_was_output(output->forwards, output->forward_count,
-					    needed)) {
-				append(output->out, "enum %s;\n",
-				       show_ident(needed->ident));
-				if (output->forward_count < ARRAY_SIZE(output->forwards))
-					output->forwards[output->forward_count++] = needed;
-			}
-			continue;
-		}
-		if (is_typedef_tag(needed) &&
-		    !tag_was_output(output->definitions, output->definition_count,
+	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
+		if (!tag_was_output(output->forwards, output->forward_count,
 				    needed)) {
-			if (tag_has_definition(needed))
-				show_type_definition(output, needed);
-			else
-				fprintf(stderr, "missing definition for %s %s\n",
-					tag_type_name(needed), show_ident(needed->ident));
-			continue;
-		}
-		if (types.needs_forward[i] &&
-		    !tag_was_output(output->definitions, output->definition_count, needed) &&
-		    !tag_was_output(output->forwards, output->forward_count, needed)) {
-			append(output->out, "%s %s;\n", tag_type_name(needed),
-			       show_ident(needed->ident));
+			append(output->out, "enum %s;\n", show_ident(needed->ident));
 			if (output->forward_count < ARRAY_SIZE(output->forwards))
 				output->forwards[output->forward_count++] = needed;
 		}
-		if (!types.needs_forward[i] &&
-		    !tag_was_output(output->definitions, output->definition_count,
+		return;
+	}
+	if (is_typedef_tag(needed) || !needs_forward) {
+		if (!tag_was_output(output->definitions, output->definition_count,
 				    needed)) {
 			if (tag_has_definition(needed))
 				show_type_definition(output, needed);
@@ -1568,6 +1544,14 @@ static void show_required_forwards(struct tag_output *output,
 				fprintf(stderr, "missing definition for %s %s\n",
 					tag_type_name(needed), show_ident(needed->ident));
 		}
+		return;
+	}
+	if (!tag_was_output(output->definitions, output->definition_count, needed) &&
+	    !tag_was_output(output->forwards, output->forward_count, needed)) {
+		append(output->out, "%s %s;\n", tag_type_name(needed),
+		       show_ident(needed->ident));
+		if (output->forward_count < ARRAY_SIZE(output->forwards))
+			output->forwards[output->forward_count++] = needed;
 	}
 }
 
@@ -1939,8 +1923,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct symbol *member;
 	struct symbol *anonymous_tag;
 
-	show_typedef_dependencies(output, type);
-	show_required_forwards(output, type);
+	show_type_dependencies(output, type);
 	if (is_typedef_tag(type)) {
 		append(out, "typedef %s%s%s {\n", tag_type_name(type),
 		       type->namespace == NS_STRUCT ? " " : "",
@@ -2050,33 +2033,47 @@ static void show_typedef_dependency(struct tag_output *output,
 		return;
 	if (output->typedef_count < ARRAY_SIZE(output->typedefs))
 		output->typedefs[output->typedef_count++] = typedef_symbol;
-	show_typedef_dependencies(output, typedef_symbol->ctype.base_type);
+	show_type_dependencies(output, typedef_symbol->ctype.base_type);
 	show_typedef_definition(output->out, typedef_symbol);
 }
 
-static void show_typedef_dependencies(struct tag_output *output,
-				      struct symbol *type)
+static void show_type_dependencies(struct tag_output *output,
+				   struct symbol *type)
 {
 	struct symbol *arg;
 	struct symbol *member;
+	struct symbol *member_type;
+	struct struct_types types = { };
 
-	for (; type; type = type->ctype.base_type) {
-		if (lookup_ptr_list_entry((struct ptr_list *)
-					  output->dependency_types, type))
+	if (!type ||
+	    (!is_struct_or_union(type) && type->type != SYM_ENUM))
+		return;
+	if (lookup_ptr_list_entry((struct ptr_list *)output->dependency_types,
+				  type))
+		return;
+	add_ptr_list(&output->dependency_types, type);
+	FOR_EACH_PTR(type->symbol_list, member) {
+		show_typedef_dependency(output, member);
+		member_type = add_struct_type(&types, member,
+					      type_needs_forward(member));
+		if (member_type)
+			show_required_type(output, member_type,
+					   type_needs_forward(member));
+		if (!type_is_ptr(member) && !type_is_array(member))
 			continue;
-		add_ptr_list(&output->dependency_types, type);
-		show_typedef_dependency(output, type);
-		if (type->type == SYM_FN) {
-			FOR_EACH_PTR(type->arguments, arg) {
-				show_typedef_dependencies(output, arg);
-			} END_FOR_EACH_PTR(arg);
-		}
-		if (!is_struct_or_union(type) && type->type != SYM_ENUM)
+		while (type_is_ptr(member) || type_is_array(member))
+			member = strip_type_wrappers(get_base_type(member));
+		if (!member || member->type != SYM_FN)
 			continue;
-		FOR_EACH_PTR(type->symbol_list, member) {
-			show_typedef_dependencies(output, member);
-		} END_FOR_EACH_PTR(member);
-	}
+		FOR_EACH_PTR(member->arguments, arg) {
+			show_typedef_dependency(output, arg);
+			member_type = add_struct_type(&types, arg,
+						      type_needs_forward(arg));
+			if (member_type)
+				show_required_type(output, member_type,
+						   type_needs_forward(arg));
+		} END_FOR_EACH_PTR(arg);
+	} END_FOR_EACH_PTR(member);
 }
 
 void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t len)
@@ -2092,7 +2089,7 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t le
 		struct symbol *tag;
 
 		if (is_type_definition(symbol, &tag)) {
-			show_typedef_dependencies(&output, symbol);
+			show_type_dependencies(&output, symbol);
 			if (!tag_was_output(output.definitions,
 					    output.definition_count, tag))
 				show_type_definition(&output, tag);
@@ -2102,8 +2099,8 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t le
 					   symbol)) {
 				if (output.typedef_count < ARRAY_SIZE(output.typedefs))
 					output.typedefs[output.typedef_count++] = symbol;
-				show_typedef_dependencies(&output,
-						  symbol->ctype.base_type);
+				show_type_dependencies(&output,
+						       symbol->ctype.base_type);
 				show_typedef_definition(&out, symbol);
 			}
 		}
