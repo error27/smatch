@@ -476,8 +476,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 		}
 
 		switch (type->type) {
-		case SYM_PTR:
-		{
+		case SYM_PTR: {
 			unsigned long pointer_modifiers =
 				modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
 
@@ -489,13 +488,12 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			}
 			modifiers &= ~pointer_modifiers;
 			modifiers |= type->ctype.modifiers;
-		}
 			as = type->ctype.as;
 			was_pointer = true;
 			examine_pointer_target(type);
 			break;
-		case SYM_FN:
-		{
+		}
+		case SYM_FN: {
 			struct symbol *arg;
 			bool comma = false;
 
