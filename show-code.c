@@ -1849,13 +1849,18 @@ static void show_function_dependencies(struct code_buffer *out,
 
 	collect_type_expression_functions(functions, &count, function);
 	collect_statement_functions(functions, &count,
-					function->ctype.base_type->stmt);
+					function->ctype.base_type->stmt ?
+					function->ctype.base_type->stmt :
+					function->ctype.base_type->inline_stmt);
 	for (i = 0; i < count; i++) {
 		dependency = functions[i];
 		if (dependency == function || find_anonymous_tag(dependency))
 			continue;
-		show_initializer_dependencies(out, dependency);
 		type = strip_type_wrappers(dependency);
+		access_symbol(dependency);
+		if (type->type == SYM_FN && type->inline_stmt)
+			continue;
+		show_initializer_dependencies(out, dependency);
 		if (type->type == SYM_FN) {
 			show_function_forwards(out, dependency->ctype.base_type);
 			copy = *dependency;
@@ -1881,10 +1886,10 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 
 	show_function_forwards(out, type);
 	show_function_dependencies(out, s);
-	if (type->stmt) {
+	if (type->stmt || type->inline_stmt) {
 		show_c_typename(out, s);
 		append(out, "\n");
-		function_body(out, type->stmt);
+		function_body(out, type->stmt ? type->stmt : type->inline_stmt);
 	} else {
 		show_c_typename(out, s);
 		append(out, ";\n");
