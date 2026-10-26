@@ -2382,8 +2382,8 @@ static void show_type_dependencies(struct tag_output *output,
 		return;
 	add_ptr_list(&output->dependency_types, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
-		show_typedef_dependency(output, member);
 		nested_type = strip_bitfield_type(member);
+		show_typedef_dependency(output, member->ctype.base_type);
 		member_type = add_struct_type(&types, nested_type,
 					      type_can_use_forward_declaration(member));
 		if (member_type)
