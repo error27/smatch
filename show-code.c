@@ -96,16 +96,6 @@ struct struct_types {
 	unsigned int count;
 };
 
-static struct symbol *find_type_expression(struct symbol *type)
-{
-	while (type) {
-		if (type->type_expression)
-			return type;
-		type = type->ctype.base_type;
-	}
-	return NULL;
-}
-
 static void collect_type_expressions(struct symbol **expressions,
 					     unsigned int *count,
 					     struct symbol *type)
@@ -800,7 +790,6 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *anonymous_tag = find_anonymous_tag(s);
 	struct symbol *tag = s;
-	struct symbol *type_expression;
 	unsigned int i;
 
 	while (tag) {
@@ -820,10 +809,7 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 			out->local_tags[out->local_tag_count++] = tag;
 	}
 
-	type_expression = find_type_expression(s);
-	if (type_expression) {
-		show_c_typename(out, s);
-	} else if (anonymous_tag) {
+	if (anonymous_tag) {
 		show_anonymous_c_typename(out, s, anonymous_tag);
 	} else {
 		show_c_typename(out, s);
