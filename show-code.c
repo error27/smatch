@@ -2066,8 +2066,7 @@ static void show_type_dependencies(struct tag_output *output,
 	} END_FOR_EACH_PTR(member);
 }
 
-static void show_all_type_definitions(struct symbol_list *symbols, char *buf,
-				      size_t len)
+void show_code_whole_file(struct symbol_list *symbols, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 	struct tag_output output = { .out = &out };
@@ -2123,9 +2122,5 @@ void show_sym(struct symbol *s, char *buf, size_t len)
 
 	if (len)
 		buf[0] = 0;
-	if (!s) {
-		show_all_type_definitions(file_scope->symbols, buf, len);
-		return;
-	}
 	sym(&out, s);
 }
