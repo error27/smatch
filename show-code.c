@@ -2066,7 +2066,8 @@ static void show_type_dependencies(struct tag_output *output,
 	} END_FOR_EACH_PTR(member);
 }
 
-void show_code_whole_file(struct symbol_list *symbols, char *buf, size_t len)
+void show_all_type_definitions(struct symbol_list *symbols, char *buf,
+				       size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 	struct tag_output output = { .out = &out };
