@@ -2505,6 +2505,7 @@ void show_expr(struct expression *e, char *buf, size_t len)
 
 	if (!len)
 		return;
+	buf[0] = '\0';
 	expr(&out, e);
 }
 
@@ -2514,6 +2515,7 @@ void show_stmt(struct statement *s, char *buf, size_t len)
 
 	if (!len)
 		return;
+	buf[0] = '\0';
 	stmt(&out, s);
 }
 
