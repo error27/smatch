@@ -2142,6 +2142,20 @@ static bool symbol_was_output(struct symbol **symbols, unsigned int count,
 	return false;
 }
 
+static struct symbol *find_inline_function_definition(struct symbol *function)
+{
+	unsigned int i;
+
+	for (i = 0; function && i < 8192; i++) {
+		struct symbol *type = strip_type_wrappers(function);
+
+		if (type && type->type == SYM_FN && type->inline_stmt)
+			return function;
+		function = function->same_symbol;
+	}
+	return NULL;
+}
+
 static void show_inline_function_definition(struct inline_function_output *output,
 					    struct symbol *function);
 
@@ -2180,18 +2194,19 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 {
 	struct function_dependencies dependencies = { };
 	struct symbol *dependency;
-	struct symbol *type;
 	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
 	for (i = 0; i < dependencies.function_count; i++) {
+		struct symbol *inline_function;
+
 		dependency = dependencies.functions[i];
 		if (dependency == function || find_anonymous_tag(dependency))
 			continue;
-		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
-		if (type && type->type == SYM_FN && type->inline_stmt)
-			show_inline_function_definition(output, dependency);
+		inline_function = find_inline_function_definition(dependency);
+		if (inline_function)
+			show_inline_function_definition(output, inline_function);
 		else
 			show_inline_data_dependency(output, dependency);
 	}
@@ -2230,6 +2245,10 @@ void show_inline_function_definitions(struct symbol_list *symbols,
 	if (!len)
 		return;
 	FOR_EACH_PTR(symbols, symbol) {
+		struct symbol *type = strip_type_wrappers(symbol);
+
+		if (type && type->type == SYM_FN)
+			show_inline_function_dependencies(&output, symbol);
 		show_inline_function_definition(&output, symbol);
 	} END_FOR_EACH_PTR(symbol);
 }
