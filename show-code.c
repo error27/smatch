@@ -1704,8 +1704,10 @@ struct tag_output {
 
 static void show_struct_definition(struct tag_output *output,
 				   struct symbol *type);
+static void show_tag_definition(struct tag_output *output,
+				struct symbol *type);
 static void show_type_definition(struct tag_output *output,
-				 struct symbol *type);
+				 struct symbol *symbol);
 static void show_typedef_dependency(struct tag_output *output,
 				    struct symbol *type);
 static void show_type_dependencies(struct tag_output *output,
@@ -2365,7 +2367,7 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 	remember_tag(&printed.type_definitions, type);
 }
 
-static void show_type_definition(struct tag_output *output, struct symbol *type)
+static void show_tag_definition(struct tag_output *output, struct symbol *type)
 {
 	struct symbol *typedef_symbol;
 
@@ -2399,6 +2401,27 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 	}
 	show_c_typename(out, type);
 	append(out, ";\n");
+}
+
+static void show_type_definition(struct tag_output *output,
+				 struct symbol *symbol)
+{
+	struct symbol *tag;
+
+	if (is_type_definition(symbol, &tag)) {
+		show_type_dependencies(output, symbol);
+		if (!tag_was_output(printed.type_definitions, tag))
+			show_tag_definition(output, tag);
+		return;
+	}
+	if (symbol->namespace != NS_TYPEDEF || !symbol->ident ||
+	    lookup_symbol(symbol->ident, NS_TYPEDEF) != symbol)
+		return;
+	if (tag_was_output(printed.typedefs, symbol))
+		return;
+	remember_tag(&printed.typedefs, symbol);
+	show_type_dependencies(output, symbol->ctype.base_type);
+	show_typedef_definition(output->out, symbol);
 }
 
 static void show_typedef_dependency(struct tag_output *output,
@@ -2483,21 +2506,7 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 	printed = (struct output_dependencies) { };
 
 	FOR_EACH_PTR(symbols, symbol) {
-		struct symbol *tag;
-
-		if (is_type_definition(symbol, &tag)) {
-			show_type_dependencies(&output, symbol);
-			if (!tag_was_output(printed.type_definitions, tag))
-				show_type_definition(&output, tag);
-		} else if (symbol->namespace == NS_TYPEDEF && symbol->ident &&
-			   lookup_symbol(symbol->ident, NS_TYPEDEF) == symbol) {
-			if (!tag_was_output(printed.typedefs, symbol)) {
-				remember_tag(&printed.typedefs, symbol);
-				show_type_dependencies(&output,
-						       symbol->ctype.base_type);
-				show_typedef_definition(&out, symbol);
-			}
-		}
+		show_type_definition(&output, symbol);
 	} END_FOR_EACH_PTR(symbol);
 }
 
