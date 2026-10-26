@@ -390,15 +390,18 @@ static bool statement_references_symbol(struct statement *s,
 	}
 }
 
+static bool has_type_expression(struct symbol *type)
+{
+	return type && type->type_expression &&
+	       type->type_expression->type != EXPR_INITIALIZER;
+}
+
 static bool type_has_typeof(struct symbol *type)
 {
 	struct symbol *arg;
 
 	for (; type; type = type->ctype.base_type) {
-		if ((type->type_expression &&
-		     type->type_expression->type != EXPR_INITIALIZER) ||
-		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
-		     type->initializer && type->initializer->type != EXPR_INITIALIZER))
+		if (has_type_expression(type))
 			return true;
 		if (type->type != SYM_FN)
 			continue;
@@ -424,10 +427,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	while (type) {
 		const char *typename;
 
-		if ((type->type_expression &&
-		     type->type_expression->type != EXPR_INITIALIZER) ||
-		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
-		     type->initializer && type->initializer->type != EXPR_INITIALIZER)) {
+		if (has_type_expression(type)) {
 			char expression[8192];
 			struct code_buffer expression_out = {
 				.buf = expression,
@@ -437,8 +437,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			const char *modifier_string;
 
 			expression[0] = '\0';
-			expr(&expression_out, type->type_expression ?
-			     type->type_expression : type->initializer);
+			expr(&expression_out, type->type_expression);
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s(%s)",
@@ -619,8 +618,7 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 		type = s->ctype.base_type;
 	else
 		type = s;
-	if (type && type->type_expression &&
-	    type->type_expression->type != EXPR_INITIALIZER) {
+	if (has_type_expression(type)) {
 		show_type_expression_storage(out, s);
 		append(out, "%s(", type->typeof_is_unqual ? "__typeof_unqual__" :
 		       "typeof");
@@ -630,19 +628,7 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 			append(out, " %s", show_ident(s->ident));
 		return true;
 	}
-	if (!type || (type->type != SYM_TYPEOF &&
-		      type->type != SYM_TYPEOF_UNQUAL))
-		return false;
-	if (type->initializer && type->initializer->type == EXPR_INITIALIZER)
-		return false;
-	show_type_expression_storage(out, s);
-	append(out, "%s(", type->type == SYM_TYPEOF ? "typeof" :
-	       "__typeof_unqual__");
-	expr(out, type->initializer);
-	append(out, ")");
-	if (s->ident)
-		append(out, " %s", show_ident(s->ident));
-	return true;
+	return false;
 }
 
 static void show_c_typename(struct code_buffer *out, struct symbol *s)
@@ -735,17 +721,17 @@ static void show_type_expression(struct code_buffer *out, struct expression *e)
 {
 	struct symbol *type = e->symbol ? e->symbol->ctype.base_type : NULL;
 
-	if (e->symbol && e->symbol->type_expression) {
+	if (has_type_expression(e->symbol)) {
 		append(out, "%s(", e->symbol->typeof_is_unqual ?
 		       "__typeof_unqual__" : "typeof");
 		expr(out, e->symbol->type_expression);
 		append(out, ")");
 		return;
 	}
-	if (type && (type->type == SYM_TYPEOF ||
-		     type->type == SYM_TYPEOF_UNQUAL)) {
-		append(out, type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__(" : "typeof(");
-		expr(out, type->initializer);
+	if (has_type_expression(type)) {
+		append(out, type->typeof_is_unqual ? "__typeof_unqual__(" :
+		       "typeof(");
+		expr(out, type->type_expression);
 		append(out, ")");
 		return;
 	}
@@ -1928,11 +1914,7 @@ static void collect_type_expression_functions(struct symbol **functions,
 					      struct symbol *type)
 {
 	while (type) {
-		if (type->type == SYM_TYPEOF ||
-		    type->type == SYM_TYPEOF_UNQUAL)
-			collect_expression_functions(functions, count,
-						     type->initializer);
-		if (type->type_expression)
+		if (has_type_expression(type))
 			collect_expression_functions(functions, count,
 						     type->type_expression);
 		type = type->ctype.base_type;
