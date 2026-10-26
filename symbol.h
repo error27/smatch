@@ -360,7 +360,6 @@ extern void show_stmt(struct statement *stmt, char *buf, size_t len);
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
 extern void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 				      size_t len);
-extern void set_show_code_whole_file(bool whole_file);
 extern void add_symbol(struct symbol_list **, struct symbol *);
 extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);

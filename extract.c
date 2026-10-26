@@ -58,7 +58,6 @@ int main(int argc, char **argv)
 	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
-	set_show_code_whole_file(whole_file);
 	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
 	FOR_EACH_PTR(list, sym) {

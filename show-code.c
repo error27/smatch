@@ -78,12 +78,6 @@ static void show_local_tag_definition(struct code_buffer *out,
 				      struct symbol *tag);
 static bool expression_references_symbol(struct expression *e,
 					 struct symbol *symbol, unsigned int depth);
-static bool output_whole_file;
-
-void set_show_code_whole_file(bool whole_file)
-{
-	output_whole_file = whole_file;
-}
 static bool is_struct_or_union(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static void collect_statement_functions(struct symbol **functions,
@@ -1888,17 +1882,11 @@ static void show_function_dependencies(struct code_buffer *out,
 static void show_function(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type = s->ctype.base_type;
-	struct symbol copy;
 
 	show_function_forwards(out, type);
 	show_function_dependencies(out, s);
 	if (type->stmt) {
-		copy = *s;
-		if (!output_whole_file) {
-			copy.ctype.modifiers &= ~MOD_EXTERN;
-			copy.ctype.modifiers |= MOD_STATIC;
-		}
-		show_c_typename(out, &copy);
+		show_c_typename(out, s);
 		append(out, "\n");
 		function_body(out, type->stmt);
 	} else {
