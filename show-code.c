@@ -1195,15 +1195,14 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	}
 
-	type = s->ctype.base_type;
+	if (is_type_definition(s, &type))
+		return;
 
+	type = s->ctype.base_type;
 	if (type && type->type == SYM_FN) {
 		show_function(out, s);
 		return;
 	}
-
-	if (is_type_definition(s, &type))
-		return;
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
