@@ -16,15 +16,6 @@ static bool is_inline_function(struct symbol *symbol)
 	return type && type->type == SYM_FN && type->inline_stmt;
 }
 
-static void collect_symbol_dependencies(struct symbol_list *symbols, char *buf)
-{
-	struct symbol *symbol;
-
-	FOR_EACH_PTR(symbols, symbol) {
-		show_sym(symbol, buf, EXTRACT_BUFFER_SIZE);
-	} END_FOR_EACH_PTR(symbol);
-}
-
 int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
@@ -75,8 +66,6 @@ int main(int argc, char **argv)
 	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
-	collect_symbol_dependencies(list, buf);
-	buf[0] = '\0';
 	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
 	show_inline_function_definitions(list, &inline_dependencies, buf,
