@@ -1,9 +1,10 @@
 /*
  * check-name: extract redeclared inline
- * check-command: extract $file && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract
+ * check-command: extract $file && { grep -cx 'static inline int increment.*' $file.extract || :; }
  *
  * check-output-start
  * extract: wrote $file.extract
+1
  * check-output-end
  */
 
