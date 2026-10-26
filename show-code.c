@@ -396,12 +396,27 @@ static bool has_type_expression(struct symbol *type)
 	       type->type_expression->type != EXPR_INITIALIZER;
 }
 
+static bool is_typeof(struct symbol *type)
+{
+	return type && (type->type == SYM_TYPEOF ||
+			type->type == SYM_TYPEOF_UNQUAL);
+}
+
+static void show_typeof_expression(struct code_buffer *out,
+				   struct symbol *type)
+{
+	if (type->type_expression)
+		expr(out, type->type_expression);
+	else
+		append(out, "<empty type>");
+}
+
 static bool type_has_typeof(struct symbol *type)
 {
 	struct symbol *arg;
 
 	for (; type; type = type->ctype.base_type) {
-		if (has_type_expression(type))
+		if (has_type_expression(type) || is_typeof(type))
 			return true;
 		if (type->type != SYM_FN)
 			continue;
@@ -427,7 +442,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	while (type) {
 		const char *typename;
 
-		if (has_type_expression(type)) {
+		if (has_type_expression(type) || is_typeof(type)) {
 			char expression[8192];
 			struct code_buffer expression_out = {
 				.buf = expression,
@@ -437,7 +452,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			const char *modifier_string;
 
 			expression[0] = '\0';
-			expr(&expression_out, type->type_expression);
+			show_typeof_expression(&expression_out, type);
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s(%s)",
@@ -618,11 +633,12 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 		type = s->ctype.base_type;
 	else
 		type = s;
-	if (has_type_expression(type)) {
+	if (has_type_expression(type) || is_typeof(type)) {
 		show_type_expression_storage(out, s);
-		append(out, "%s(", type->typeof_is_unqual ? "__typeof_unqual__" :
+		append(out, "%s(", type->typeof_is_unqual ||
+		       type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__" :
 		       "typeof");
-		expr(out, type->type_expression);
+		show_typeof_expression(out, type);
 		append(out, ")");
 		if (s->ident)
 			append(out, " %s", show_ident(s->ident));
@@ -721,17 +737,19 @@ static void show_type_expression(struct code_buffer *out, struct expression *e)
 {
 	struct symbol *type = e->symbol ? e->symbol->ctype.base_type : NULL;
 
-	if (has_type_expression(e->symbol)) {
-		append(out, "%s(", e->symbol->typeof_is_unqual ?
+	if (has_type_expression(e->symbol) || is_typeof(e->symbol)) {
+		append(out, "%s(", e->symbol->typeof_is_unqual ||
+		       e->symbol->type == SYM_TYPEOF_UNQUAL ?
 		       "__typeof_unqual__" : "typeof");
-		expr(out, e->symbol->type_expression);
+		show_typeof_expression(out, e->symbol);
 		append(out, ")");
 		return;
 	}
-	if (has_type_expression(type)) {
-		append(out, type->typeof_is_unqual ? "__typeof_unqual__(" :
+	if (has_type_expression(type) || is_typeof(type)) {
+		append(out, type->typeof_is_unqual ||
+		       type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__(" :
 		       "typeof(");
-		expr(out, type->type_expression);
+		show_typeof_expression(out, type);
 		append(out, ")");
 		return;
 	}
