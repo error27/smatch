@@ -1215,9 +1215,15 @@ static bool is_struct_or_union(struct symbol *type)
 
 static const char *tag_type_name(struct symbol *type)
 {
-	if (type->type == SYM_ENUM)
+	switch(type->type) {
+	case SYM_ENUM:
 		return "enum";
-	return type->type == SYM_UNION ? "union" : "struct";
+	case SYM_UNION:
+		return "union";
+	case SYM_STRUCT:
+		return "struct";
+	}
+	return "<unknown>";
 }
 
 static bool is_typedef_tag(struct symbol *type)
