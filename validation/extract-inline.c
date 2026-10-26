@@ -2,15 +2,14 @@
 
 static int call_f(int value)
 {
-	return f(value);
+	return f(value) + g(value);
 }
 
 /*
  * check-name: extract inline definition
- * check-command: extract $file&& PATH=.. extract $file.extract && grep -q 0x1 $file.extract.extract
+ * check-command: extract $file && gcc -Werror -x c -fsyntax-only $file.extract
  *
  * check-output-start
 extract: wrote extract-inline.c.extract
-extract: wrote extract-inline.c.extract.extract
  * check-output-end
  */

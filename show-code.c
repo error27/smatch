@@ -70,6 +70,7 @@ static void show_statement_expression(struct code_buffer *out,
 				      struct statement *s);
 static void sym(struct code_buffer *out, struct symbol *s);
 static void show_function(struct code_buffer *out, struct symbol *s);
+static bool is_typedef_tag(struct symbol *type);
 static struct symbol *find_anonymous_tag(struct symbol *type);
 static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
@@ -96,37 +97,95 @@ struct struct_types {
 	unsigned int count;
 };
 
-static void collect_typename_type_expressions(struct symbol **expressions,
-						      unsigned int *count,
-						      struct symbol *type)
-{
-	struct symbol *arg;
+struct function_dependencies {
+	struct struct_types types;
+	struct symbol *functions[8192];
+	unsigned int function_count;
+};
 
-	for (; type; type = type->ctype.base_type) {
-		if ((type->type_expression &&
-		     type->type_expression->type != EXPR_INITIALIZER) ||
-		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
-		     type->initializer &&
-		     type->initializer->type != EXPR_INITIALIZER)) {
-			if (*count < 64)
-				expressions[(*count)++] = type;
-			return;
-		}
-		if (type->type != SYM_FN)
-			continue;
-		FOR_EACH_PTR(type->arguments, arg) {
-			collect_typename_type_expressions(expressions, count, arg);
-		} END_FOR_EACH_PTR(arg);
-	}
+struct c_type_name {
+	char *start;
+	char *end;
+};
+
+#define C_TYPE_NAME_BUFFER_SIZE 16384
+#define C_TYPE_NAME_BUFFER_MIDDLE (C_TYPE_NAME_BUFFER_SIZE / 2)
+
+static void type_name_prepend(struct c_type_name *name, const char *text)
+{
+	size_t len = strlen(text);
+
+	name->start -= len;
+	memcpy(name->start, text, len);
 }
 
-static void show_typeof_expression(struct code_buffer *out, struct symbol *type)
+static void type_name_append(struct c_type_name *name, const char *text)
 {
-	append(out, "%s(", type->typeof_is_unqual ||
-	       type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__" : "typeof");
-	expr(out, type->type_expression ? type->type_expression :
-	     type->initializer);
-	append(out, ")");
+	size_t len = strlen(text);
+
+	memcpy(name->end, text, len);
+	name->end += len;
+}
+
+static void type_name_prepend_format(struct c_type_name *name,
+					     const char *format, ...)
+{
+	char buffer[1024];
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf(buffer, sizeof(buffer), format, args);
+	va_end(args);
+	type_name_prepend(name, buffer);
+}
+
+static void type_name_append_format(struct c_type_name *name,
+					    const char *format, ...)
+{
+	char buffer[1024];
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf(buffer, sizeof(buffer), format, args);
+	va_end(args);
+	type_name_append(name, buffer);
+}
+
+static const char *show_gcc_modifiers(unsigned long modifiers)
+{
+	static char buffer[1024];
+	static const struct {
+		unsigned long modifier;
+		const char *name;
+	} names[] = {
+		{ MOD_AUTO, "auto" },
+		{ MOD_EXTERN, "extern" },
+		{ MOD_REGISTER, "register" },
+		{ MOD_STATIC, "static" },
+		{ MOD_INLINE, "inline" },
+		{ MOD_CONST, "const" },
+		{ MOD_ATOMIC, "_Atomic" },
+		{ MOD_GNU_INLINE, "__attribute__((__gnu_inline__))" },
+		{ MOD_NORETURN, "__attribute__((__noreturn__))" },
+		{ MOD_PURE, "__attribute__((__pure__))" },
+		{ MOD_SIGNED, "signed" },
+		{ MOD_TLS, "__thread" },
+		{ MOD_UNSIGNED, "unsigned" },
+		{ MOD_UNUSED, "__attribute__((__unused__))" },
+	};
+	unsigned int i;
+
+	buffer[0] = '\0';
+	for (i = 0; i < ARRAY_SIZE(names); i++) {
+		if (!(modifiers & names[i].modifier))
+			continue;
+		if (buffer[0])
+			strlcat(buffer, " ", sizeof(buffer));
+		strlcat(buffer, names[i].name, sizeof(buffer));
+	}
+	if (buffer[0])
+		strlcat(buffer, " ", sizeof(buffer));
+	return buffer;
 }
 
 static bool type_references_symbol(struct symbol *type, struct symbol *symbol,
@@ -330,53 +389,205 @@ static bool statement_references_symbol(struct statement *s,
 	}
 }
 
-static struct symbol *base_type_for_output(struct symbol *type,
-					   struct symbol *copies,
-					   unsigned int *count)
+static bool type_has_typeof(struct symbol *type)
 {
-	struct symbol *base_type;
-	struct symbol *copy;
 	struct symbol *arg;
-	struct symbol *output_arg;
-	struct symbol_list *arguments = NULL;
-	bool changed = false;
 
-	if (!type || type->type == SYM_BASETYPE)
-		return type;
-	if ((type->type_expression &&
-	     type->type_expression->type != EXPR_INITIALIZER) ||
-	    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
-	     type->initializer && type->initializer->type != EXPR_INITIALIZER)) {
-		if (*count >= 64)
-			return type;
-		copy = &copies[(*count)++];
-		*copy = *type;
-		copy->type = SYM_STRUCT;
-		copy->ident = built_in_ident("__extract_typeof_placeholder");
-		copy->ctype.base_type = NULL;
-		return copy;
-	}
-	if (type->type == SYM_FN) {
+	for (; type; type = type->ctype.base_type) {
+		if ((type->type_expression &&
+		     type->type_expression->type != EXPR_INITIALIZER) ||
+		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
+		     type->initializer && type->initializer->type != EXPR_INITIALIZER))
+			return true;
+		if (type->type != SYM_FN)
+			continue;
 		FOR_EACH_PTR(type->arguments, arg) {
-			output_arg = base_type_for_output(arg, copies, count);
-			add_ptr_list(&arguments, output_arg);
-			changed |= output_arg != arg;
+			if (type_has_typeof(arg))
+				return true;
 		} END_FOR_EACH_PTR(arg);
 	}
-	base_type = base_type_for_output(type->ctype.base_type, copies, count);
-	if (type->type != SYM_RESTRICT && !changed &&
-	    base_type == type->ctype.base_type)
-		return type;
-	if (*count >= 64)
-		return type;
-	copy = &copies[(*count)++];
-	*copy = *type;
-	copy->ctype.base_type = base_type;
-	if (changed)
-		copy->arguments = arguments;
-	if (copy->type == SYM_RESTRICT)
-		copy->ident = NULL;
-	return copy;
+	return false;
+}
+
+static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbol,
+					   struct c_type_name *name)
+{
+	struct symbol *type = symbol;
+	struct ident *as = NULL;
+	unsigned long modifiers = 0;
+	unsigned long declaration_modifiers = 0;
+	bool was_pointer = false;
+	bool restricted = false;
+	bool fouled = false;
+
+	while (type) {
+		const char *typename;
+
+		if ((type->type_expression &&
+		     type->type_expression->type != EXPR_INITIALIZER) ||
+		    ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
+		     type->initializer && type->initializer->type != EXPR_INITIALIZER)) {
+			char expression[8192];
+			struct code_buffer expression_out = {
+				.buf = expression,
+				.len = sizeof(expression),
+				.line_start = true,
+			};
+			const char *modifier_string;
+
+			expression[0] = '\0';
+			expr(&expression_out, type->type_expression ?
+			     type->type_expression : type->initializer);
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			type_name_prepend_format(name, "%s(%s)",
+				type->typeof_is_unqual ||
+				type->type == SYM_TYPEOF_UNQUAL ?
+				"__typeof_unqual__" : "typeof", expression);
+			modifier_string = show_gcc_modifiers(modifiers);
+			type_name_prepend(name, modifier_string);
+			break;
+		}
+		if ((typename = builtin_typename(type))) {
+			const char *modifier_string;
+
+			modifiers &= ~MOD_SPECIFIER;
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			type_name_prepend(name, typename);
+			modifier_string = show_gcc_modifiers(modifiers);
+			type_name_prepend(name, modifier_string);
+			break;
+		}
+
+		switch (type->type) {
+		case SYM_PTR:
+		{
+			unsigned long pointer_modifiers =
+				modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
+
+			if (pointer_modifiers) {
+				type_name_prepend_format(name, "*%s",
+					show_gcc_modifiers(pointer_modifiers));
+			} else {
+				type_name_prepend(name, "*");
+			}
+			modifiers &= ~pointer_modifiers;
+			modifiers |= type->ctype.modifiers;
+		}
+			as = type->ctype.as;
+			was_pointer = true;
+			examine_pointer_target(type);
+			break;
+		case SYM_FN:
+		{
+			struct symbol *arg;
+			bool comma = false;
+
+			if (was_pointer) {
+				type_name_prepend(name, "(");
+				type_name_append(name, ")");
+				was_pointer = false;
+			}
+			type_name_append(name, "(");
+			FOR_EACH_PTR(type->arguments, arg) {
+				char array[C_TYPE_NAME_BUFFER_SIZE];
+				struct c_type_name arg_name = {
+					.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
+					.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
+				};
+
+				show_direct_c_typename(out, arg, &arg_name);
+				*arg_name.end = '\0';
+				type_name_append_format(name, "%s%s", comma ? ", " : "",
+						arg_name.start);
+				comma = true;
+			} END_FOR_EACH_PTR(arg);
+			if (!comma && !type->variadic)
+				type_name_append(name, "void");
+			if (type->variadic)
+				type_name_append_format(name, "%s...", comma ? ", " : "");
+			type_name_append(name, ")");
+			break;
+		}
+		case SYM_STRUCT:
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			if (is_typedef_tag(type))
+				type_name_prepend_format(name, "%s", show_ident(type->ident));
+			else
+				type_name_prepend_format(name, "struct %s", show_ident(type->ident));
+			type_name_prepend(name, show_gcc_modifiers(modifiers));
+			goto out;
+		case SYM_UNION:
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			if (is_typedef_tag(type))
+				type_name_prepend_format(name, "%s", show_ident(type->ident));
+			else
+				type_name_prepend_format(name, "union %s", show_ident(type->ident));
+			goto out;
+		case SYM_ENUM:
+			if (is_typedef_tag(type))
+				type_name_prepend_format(name, "%s ", show_ident(type->ident));
+			else
+				type_name_prepend_format(name, "enum %s ", show_ident(type->ident));
+			goto out;
+		case SYM_NODE:
+			if (type->ident)
+				type_name_append_format(name, "%s", show_ident(type->ident));
+			declaration_modifiers |= type->ctype.modifiers & MOD_DECLARE;
+			modifiers |= type->ctype.modifiers & ~MOD_DECLARE;
+			combine_address_space(type->pos, &as, type->ctype.as);
+			break;
+		case SYM_BITFIELD:
+			modifiers |= type->ctype.modifiers;
+			combine_address_space(type->pos, &as, type->ctype.as);
+			type_name_append_format(name, ":%d", type->bit_size);
+			break;
+		case SYM_ARRAY:
+			modifiers |= type->ctype.modifiers;
+			combine_address_space(type->pos, &as, type->ctype.as);
+			if (was_pointer) {
+				type_name_prepend(name, "(");
+				type_name_append(name, ")");
+				was_pointer = false;
+			}
+			if (type->array_size)
+				type_name_append_format(name, "[%lld]",
+						get_expression_value(type->array_size));
+			else
+				type_name_append(name, "[]");
+			break;
+		case SYM_RESTRICT:
+			if (!type->ident) {
+				restricted = true;
+				break;
+			}
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			type_name_prepend_format(name, "%s", show_ident(type->ident));
+			goto out;
+		case SYM_FOULED:
+			fouled = true;
+			break;
+		default:
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			type_name_prepend_format(name, "unknown type %d", type->type);
+			goto out;
+		}
+		type = type->ctype.base_type;
+	}
+out:
+	if (declaration_modifiers)
+		type_name_prepend(name, show_gcc_modifiers(declaration_modifiers));
+	if (restricted)
+		type_name_prepend(name, "restrict ");
+	if (fouled)
+		type_name_prepend(name, "fouled ");
+	if (name->end > name->start && name->end[-1] == ' ')
+		name->end--;
 }
 
 static void show_type_expression_storage(struct code_buffer *out,
@@ -435,15 +646,8 @@ static bool show_type_expression_typename(struct code_buffer *out, struct symbol
 
 static void show_c_typename(struct code_buffer *out, struct symbol *s)
 {
-	struct symbol copies[64];
 	struct symbol copy;
-	struct symbol *type_expressions[64];
-	char typename[8192];
-	char *type_name;
-	char *placeholder;
-	unsigned int count = 0;
-	unsigned int expression_count = 0;
-	unsigned int expression_index = 0;
+	struct symbol *type;
 
 	if (show_type_expression_typename(out, s))
 		return;
@@ -452,23 +656,20 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		copy.ctype.modifiers &= ~MOD_EXTERN;
 		s = &copy;
 	}
-	collect_typename_type_expressions(type_expressions, &expression_count, s);
-	snprintf(typename, sizeof(typename), "%s",
-		 show_typename(base_type_for_output(s, copies, &count), false));
-	type_name = typename;
-	placeholder = strstr(type_name, "struct __extract_typeof_placeholder");
-	if (!placeholder || !expression_count) {
-		append(out, "%s", type_name);
+	type = s->type == SYM_NODE ? s->ctype.base_type : s;
+	if (type_has_typeof(type)) {
+		char array[C_TYPE_NAME_BUFFER_SIZE];
+		struct c_type_name name = {
+			.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
+			.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
+		};
+
+		show_direct_c_typename(out, s, &name);
+		*name.end = '\0';
+		append(out, "%s", name.start);
 		return;
 	}
-	while (placeholder && expression_index < expression_count) {
-		*placeholder = '\0';
-		append(out, "%s", type_name);
-		show_typeof_expression(out, type_expressions[expression_index++]);
-		type_name = placeholder + strlen("struct __extract_typeof_placeholder");
-		placeholder = strstr(type_name, "struct __extract_typeof_placeholder");
-	}
-	append(out, "%s", type_name);
+	append(out, "%s", show_typename(s, false));
 }
 
 static void show_asm_name(struct code_buffer *out, struct symbol *s)
@@ -1330,6 +1531,12 @@ static void handle_functions(struct struct_types *types, struct symbol *type)
 	} END_FOR_EACH_PTR(arg);
 }
 
+static void collect_function_type_dependencies(struct function_dependencies *dependencies,
+					       struct symbol *type)
+{
+	handle_functions(&dependencies->types, type);
+}
+
 static void collect_struct_types(struct struct_types *types,
 				 struct symbol *struct_type)
 {
@@ -1537,13 +1744,13 @@ static void show_required_type(struct tag_output *output,
 
 static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
-	struct struct_types types = { };
+	struct function_dependencies dependencies = { };
 	struct tag_output output = { .out = out };
 	unsigned int i;
 
-	handle_functions(&types, type);
-	for (i = 0; i < types.count; i++) {
-		struct symbol *needed = types.types[i];
+	collect_function_type_dependencies(&dependencies, type);
+	for (i = 0; i < dependencies.types.count; i++) {
+		struct symbol *needed = dependencies.types.types[i];
 
 		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
 			if (!tag_was_output(output.forwards, output.forward_count,
@@ -1554,14 +1761,14 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 			}
 			continue;
 		}
-		if (types.needs_forward[i] &&
+		if (dependencies.types.needs_forward[i] &&
 		    !tag_was_output(output.forwards, output.forward_count, needed)) {
 			append(out, "%s %s;\n", tag_type_name(needed),
 			       show_ident(needed->ident));
 			if (output.forward_count < ARRAY_SIZE(output.forwards))
 				output.forwards[output.forward_count++] = needed;
 		}
-		if (!types.needs_forward[i] && !tag_has_definition(needed))
+		if (!dependencies.types.needs_forward[i] && !tag_has_definition(needed))
 			fprintf(stderr, "missing definition for %s %s\n",
 				tag_type_name(needed), show_ident(needed->ident));
 	}
@@ -1837,23 +2044,33 @@ static void collect_statement_functions(struct symbol **functions,
 	}
 }
 
+static void collect_function_dependencies(struct function_dependencies *dependencies,
+					  struct symbol *function)
+{
+	struct symbol *type = function->ctype.base_type;
+
+	if (!type)
+		return;
+	collect_function_type_dependencies(dependencies, type);
+	collect_type_expression_functions(dependencies->functions,
+					  &dependencies->function_count, function);
+	collect_statement_functions(dependencies->functions,
+				    &dependencies->function_count,
+				    type->stmt ? type->stmt : type->inline_stmt);
+}
+
 static void show_function_dependencies(struct code_buffer *out,
 				       struct symbol *function)
 {
-	struct symbol *functions[8192];
+	struct function_dependencies dependencies = { };
 	struct symbol *dependency;
 	struct symbol copy;
 	struct symbol *type;
-	unsigned int count = 0;
 	unsigned int i;
 
-	collect_type_expression_functions(functions, &count, function);
-	collect_statement_functions(functions, &count,
-					function->ctype.base_type->stmt ?
-					function->ctype.base_type->stmt :
-					function->ctype.base_type->inline_stmt);
-	for (i = 0; i < count; i++) {
-		dependency = functions[i];
+	collect_function_dependencies(&dependencies, function);
+	for (i = 0; i < dependencies.function_count; i++) {
+		dependency = dependencies.functions[i];
 		if (dependency == function || find_anonymous_tag(dependency))
 			continue;
 		type = strip_type_wrappers(dependency);
@@ -1894,6 +2111,127 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 		show_c_typename(out, s);
 		append(out, ";\n");
 	}
+}
+
+struct inline_function_output {
+	struct code_buffer *out;
+	struct symbol_list **emitted;
+	struct symbol *definitions[8192];
+	struct symbol *forwards[8192];
+	struct symbol *active[8192];
+	struct symbol *data[8192];
+	unsigned int definition_count;
+	unsigned int forward_count;
+	unsigned int active_count;
+	unsigned int data_count;
+};
+
+static bool symbol_was_output(struct symbol **symbols, unsigned int count,
+				      struct symbol *symbol)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		if (symbols[i] == symbol)
+			return true;
+		if (symbols[i]->ident && symbol->ident &&
+		    strcmp(show_ident(symbols[i]->ident),
+			   show_ident(symbol->ident)) == 0)
+			return true;
+	}
+	return false;
+}
+
+static void show_inline_function_definition(struct inline_function_output *output,
+					    struct symbol *function);
+
+static void show_inline_function_declaration(struct inline_function_output *output,
+					     struct symbol *function)
+{
+	if (symbol_was_output(output->definitions, output->definition_count,
+				      function) ||
+	    symbol_was_output(output->forwards, output->forward_count, function))
+		return;
+	show_function_forwards(output->out, function->ctype.base_type);
+	show_c_typename(output->out, function);
+	append(output->out, ";\n");
+	if (output->forward_count < ARRAY_SIZE(output->forwards))
+		output->forwards[output->forward_count++] = function;
+}
+
+static void show_inline_data_dependency(struct inline_function_output *output,
+						struct symbol *symbol)
+{
+	struct symbol *type = strip_type_wrappers(symbol);
+
+	if (!type || type->type == SYM_FN || !type_is_array(type) ||
+	    !(symbol->ctype.modifiers & MOD_STATIC) || !symbol->initializer ||
+	    symbol_was_output(output->data, output->data_count, symbol))
+		return;
+	sym(output->out, symbol);
+	if (output->data_count < ARRAY_SIZE(output->data))
+		output->data[output->data_count++] = symbol;
+	if (output->emitted)
+		add_symbol(output->emitted, symbol);
+}
+
+static void show_inline_function_dependencies(struct inline_function_output *output,
+					      struct symbol *function)
+{
+	struct function_dependencies dependencies = { };
+	struct symbol *dependency;
+	struct symbol *type;
+	unsigned int i;
+
+	collect_function_dependencies(&dependencies, function);
+	for (i = 0; i < dependencies.function_count; i++) {
+		dependency = dependencies.functions[i];
+		if (dependency == function || find_anonymous_tag(dependency))
+			continue;
+		type = strip_type_wrappers(dependency);
+		access_symbol(dependency);
+		if (type && type->type == SYM_FN && type->inline_stmt)
+			show_inline_function_definition(output, dependency);
+		else
+			show_inline_data_dependency(output, dependency);
+	}
+}
+
+static void show_inline_function_definition(struct inline_function_output *output,
+					    struct symbol *function)
+{
+	struct symbol *type = strip_type_wrappers(function);
+
+	if (!type || type->type != SYM_FN || !type->inline_stmt ||
+	    symbol_was_output(output->definitions, output->definition_count,
+				      function))
+		return;
+	if (symbol_was_output(output->active, output->active_count, function)) {
+		show_inline_function_declaration(output, function);
+		return;
+	}
+	if (output->active_count >= ARRAY_SIZE(output->active))
+		return;
+	output->active[output->active_count++] = function;
+	show_inline_function_dependencies(output, function);
+	output->active_count--;
+	show_function(output->out, function);
+	if (output->definition_count < ARRAY_SIZE(output->definitions))
+		output->definitions[output->definition_count++] = function;
+}
+
+void show_inline_function_definitions(struct symbol_list *symbols,
+					      struct symbol_list **emitted, char *buf, size_t len)
+{
+	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
+	struct inline_function_output output = { .out = &out, .emitted = emitted };
+	struct symbol *symbol;
+
+	if (!len)
+		return;
+	FOR_EACH_PTR(symbols, symbol) {
+		show_inline_function_definition(&output, symbol);
+	} END_FOR_EACH_PTR(symbol);
 }
 
 static void show_struct_definition(struct tag_output *output, struct symbol *type)

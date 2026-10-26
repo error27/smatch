@@ -9,11 +9,6 @@
 
 #define EXTRACT_BUFFER_SIZE (16 * 1024 * 1024)
 
-struct inline_functions {
-	struct ident *idents[8192];
-	unsigned int count;
-};
-
 static bool is_inline_function(struct symbol *symbol)
 {
 	struct symbol *type = symbol->ctype.base_type;
@@ -21,7 +16,7 @@ static bool is_inline_function(struct symbol *symbol)
 	return type && type->type == SYM_FN && type->inline_stmt;
 }
 
-static void collect_inline_functions(struct symbol_list *symbols, char *buf)
+static void collect_symbol_dependencies(struct symbol_list *symbols, char *buf)
 {
 	struct symbol *symbol;
 
@@ -30,42 +25,11 @@ static void collect_inline_functions(struct symbol_list *symbols, char *buf)
 	} END_FOR_EACH_PTR(symbol);
 }
 
-static bool inline_function_was_output(struct inline_functions *functions,
-					       struct symbol *symbol)
-{
-	unsigned int i;
-
-	if (!symbol->ident)
-		return false;
-	for (i = 0; i < functions->count; i++)
-		if (functions->idents[i] == symbol->ident ||
-		    strcmp(show_ident(functions->idents[i]),
-			   show_ident(symbol->ident)) == 0)
-			return true;
-	return false;
-}
-
-static void show_inline_function_definitions(FILE *out,
-					     struct symbol_list *symbols, char *buf,
-					     struct inline_functions *functions)
-{
-	struct symbol *symbol;
-
-	FOR_EACH_PTR_REVERSE(symbols, symbol) {
-		if (!is_inline_function(symbol) ||
-		    inline_function_was_output(functions, symbol))
-			continue;
-		if (functions->count < ARRAY_SIZE(functions->idents))
-			functions->idents[functions->count++] = symbol->ident;
-		show_sym(symbol, buf, EXTRACT_BUFFER_SIZE);
-		fprintf(out, "%s\n", buf);
-	} END_FOR_EACH_PTR_REVERSE(symbol);
-}
-
 int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
 	struct symbol_list *list;
+	struct symbol_list *inline_dependencies = NULL;
 	struct symbol *sym;
 	bool whole_file;
 	bool found;
@@ -74,7 +38,6 @@ int main(int argc, char **argv)
 	char output_file[PATH_MAX];
 	char *buf;
 	FILE *out;
-	struct inline_functions inline_functions = { };
 
 	if (argc < 2)
 		die("usage: extract [--func=FUNCTION] [sparse options] file.c");
@@ -112,16 +75,18 @@ int main(int argc, char **argv)
 	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
-	collect_inline_functions(list, buf);
+	collect_symbol_dependencies(list, buf);
 	buf[0] = '\0';
 	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
-	show_inline_function_definitions(out, list, buf, &inline_functions);
+	show_inline_function_definitions(list, &inline_dependencies, buf,
+					 EXTRACT_BUFFER_SIZE);
+	fprintf(out, "%s\n", buf);
 	FOR_EACH_PTR(list, sym) {
 		struct ident *ident = sym->ident;
 
 		if (is_inline_function(sym) ||
-		    inline_function_was_output(&inline_functions, sym))
+		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym))
 			continue;
 		show_sym(sym, buf, EXTRACT_BUFFER_SIZE);
 		fprintf(out, "%s\n", buf);
