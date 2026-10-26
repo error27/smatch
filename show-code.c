@@ -2072,8 +2072,8 @@ void show_code_whole_file(struct symbol_list *symbols, char *buf, size_t len)
 	struct tag_output output = { .out = &out };
 	struct symbol *symbol;
 
-	if (len)
-		buf[0] = '\0';
+	if (!len)
+		return;
 
 	FOR_EACH_PTR(symbols, symbol) {
 		struct symbol *tag;
@@ -2101,9 +2101,8 @@ void show_expr(struct expression *e, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 
-	if (len)
-		buf[0] = 0;
-
+	if (!len)
+		return;
 	expr(&out, e);
 }
 
@@ -2111,8 +2110,8 @@ void show_stmt(struct statement *s, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 
-	if (len)
-		buf[0] = 0;
+	if (!len)
+		return;
 	stmt(&out, s);
 }
 
@@ -2120,7 +2119,7 @@ void show_sym(struct symbol *s, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 
-	if (len)
-		buf[0] = 0;
+	if (!len)
+		return;
 	sym(&out, s);
 }
