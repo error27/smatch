@@ -2011,6 +2011,7 @@ static void show_type_dependencies(struct tag_output *output,
 	struct symbol *arg;
 	struct symbol *member;
 	struct symbol *member_type;
+	struct symbol *function_type;
 	struct struct_types types = { };
 
 	if (!type ||
@@ -2027,13 +2028,14 @@ static void show_type_dependencies(struct tag_output *output,
 		if (member_type)
 			show_required_type(output, member_type,
 					   type_needs_forward(member));
-		if (!type_is_ptr(member) && !type_is_array(member))
+		function_type = strip_bitfield_type(member);
+		if (!type_is_ptr(function_type) && !type_is_array(function_type))
 			continue;
-		while (type_is_ptr(member) || type_is_array(member))
-			member = strip_type_wrappers(get_base_type(member));
-		if (!member || member->type != SYM_FN)
+		while (type_is_ptr(function_type) || type_is_array(function_type))
+			function_type = strip_type_wrappers(get_base_type(function_type));
+		if (!function_type || function_type->type != SYM_FN)
 			continue;
-		FOR_EACH_PTR(member->arguments, arg) {
+		FOR_EACH_PTR(function_type->arguments, arg) {
 			show_typedef_dependency(output, arg);
 			member_type = add_struct_type(&types, arg,
 						      type_needs_forward(arg));
