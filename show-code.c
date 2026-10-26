@@ -2322,8 +2322,18 @@ static void show_type_definition(struct tag_output *output, struct symbol *type)
 
 static void show_typedef_definition(struct code_buffer *out, struct symbol *type)
 {
+	struct symbol copy;
+	struct symbol *base_type;
+
 	show_function_forwards(out, strip_type_wrappers(type));
 	append(out, "typedef ");
+	base_type = type->ctype.base_type;
+	if (base_type && base_type->type == SYM_RESTRICT &&
+	    base_type->ident == type->ident) {
+		copy = *type;
+		copy.ctype.base_type = base_type->ctype.base_type;
+		type = &copy;
+	}
 	show_c_typename(out, type);
 	append(out, ";\n");
 }
