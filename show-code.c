@@ -1271,7 +1271,7 @@ static bool type_is_array(struct symbol *type)
 	return type && type->type == SYM_ARRAY;
 }
 
-static bool type_needs_forward(struct symbol *type)
+static bool type_can_use_forward_declaration(struct symbol *type)
 {
 	type = strip_type_wrappers(type);
 	while (type_is_array(type))
@@ -1321,9 +1321,9 @@ static void handle_functions(struct struct_types *types, struct symbol *type)
 	FOR_EACH_PTR(type->arguments, arg) {
 		struct symbol *arg_type = strip_type_wrappers(arg);
 		struct symbol *struct_type = add_struct_type(types, arg_type,
-							     type_needs_forward(arg_type));
+						     type_can_use_forward_declaration(arg_type));
 
-		if (struct_type && !type_needs_forward(arg_type))
+		if (struct_type && !type_can_use_forward_declaration(arg_type))
 			collect_struct_types(types, struct_type);
 		if (type_is_ptr(arg_type) || type_is_array(arg_type))
 			handle_functions(types, arg_type);
@@ -1341,14 +1341,14 @@ static void collect_struct_types(struct struct_types *types,
 		struct symbol *member_type = strip_bitfield_type(member);
 		struct symbol *nested_type = member_type;
 		struct symbol *struct_type = add_struct_type(types, member_type,
-							     type_needs_forward(member_type));
+						     type_can_use_forward_declaration(member_type));
 
 		while (type_is_array(nested_type))
 			nested_type = strip_type_wrappers(get_base_type(nested_type));
 		if (!struct_type &&
 		    is_struct_or_union(nested_type))
 			collect_struct_types(types, nested_type);
-		if (struct_type && !type_needs_forward(member_type))
+		if (struct_type && !type_can_use_forward_declaration(member_type))
 			collect_struct_types(types, struct_type);
 		if (type_is_ptr(member_type) || type_is_array(member_type))
 			handle_functions(types, member_type);
@@ -2032,10 +2032,10 @@ static void show_type_dependencies(struct tag_output *output,
 		show_typedef_dependency(output, member);
 		nested_type = strip_bitfield_type(member);
 		member_type = add_struct_type(&types, nested_type,
-					      type_needs_forward(member));
+					      type_can_use_forward_declaration(member));
 		if (member_type)
 			show_required_type(output, member_type,
-					   type_needs_forward(member));
+				   type_can_use_forward_declaration(member));
 		if (!member_type && is_struct_or_union(nested_type) &&
 		    !nested_type->ident)
 			show_type_dependencies(output, nested_type);
@@ -2049,10 +2049,10 @@ static void show_type_dependencies(struct tag_output *output,
 		FOR_EACH_PTR(function_type->arguments, arg) {
 			show_typedef_dependency(output, arg);
 			member_type = add_struct_type(&types, arg,
-						      type_needs_forward(arg));
+						      type_can_use_forward_declaration(arg));
 			if (member_type)
 				show_required_type(output, member_type,
-						   type_needs_forward(arg));
+						   type_can_use_forward_declaration(arg));
 		} END_FOR_EACH_PTR(arg);
 	} END_FOR_EACH_PTR(member);
 }
