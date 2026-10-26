@@ -85,6 +85,7 @@ static void show_local_tag_definition(struct code_buffer *out,
 static bool expression_references_symbol(struct expression *e,
 					 struct symbol *symbol, unsigned int depth);
 static bool is_struct_or_union(struct symbol *type);
+static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static void collect_statement_functions(struct symbol **functions,
 					unsigned int *count, struct statement *s);
@@ -997,7 +998,7 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	unsigned int i;
 
 	while (tag) {
-		if ((is_struct_or_union(tag) || tag->type == SYM_ENUM) &&
+		if (is_tag_type(tag) &&
 		    tag->ident && tag_has_definition(tag) && tag->scope &&
 		    !toplevel(tag->scope))
 			break;
@@ -1369,8 +1370,7 @@ static void function_body(struct code_buffer *out, struct statement *s)
 
 static bool tag_has_definition(struct symbol *tag)
 {
-	return tag && (is_struct_or_union(tag) || tag->type == SYM_ENUM) &&
-		tag->endpos.type;
+	return is_tag_type(tag) && tag->endpos.type;
 }
 
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out)
@@ -1380,7 +1380,7 @@ static bool is_type_definition(struct symbol *s, struct symbol **tag_out)
 	for (tag = s; tag; tag = tag->ctype.base_type) {
 		if (tag->type == SYM_FN)
 			return false;
-		if (is_struct_or_union(tag) || tag->type == SYM_ENUM)
+		if (is_tag_type(tag))
 			break;
 	}
 	if (!tag_has_definition(tag) ||
@@ -1417,6 +1417,12 @@ static void sym(struct code_buffer *out, struct symbol *s)
 static bool is_struct_or_union(struct symbol *type)
 {
 	return type && (type->type == SYM_STRUCT || type->type == SYM_UNION);
+}
+
+static bool is_tag_type(struct symbol *type)
+{
+	return is_struct_or_union(type) ||
+	       (type && type->type == SYM_ENUM);
 }
 
 static const char *tag_type_name(struct symbol *type)
@@ -1496,12 +1502,9 @@ static struct symbol *add_struct_type(struct struct_types *types,
 	type = strip_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
-	if (type && type->definition &&
-	    (is_struct_or_union(type->definition) ||
-	     type->definition->type == SYM_ENUM))
+	if (type && type->definition && is_tag_type(type->definition))
 		type = type->definition;
-	if (!type ||
-	    (!is_struct_or_union(type) && type->type != SYM_ENUM) || !type->ident)
+	if (!is_tag_type(type) || !type->ident)
 		return NULL;
 	for (i = 0; i < types->count; i++) {
 		if (types->types[i] != type)
@@ -1570,8 +1573,7 @@ static void collect_struct_types(struct struct_types *types,
 static struct symbol *find_anonymous_tag(struct symbol *type)
 {
 	while (type) {
-		if ((is_struct_or_union(type) || type->type == SYM_ENUM) &&
-		    !type->ident)
+		if (is_tag_type(type) && !type->ident)
 			return type;
 		type = type->ctype.base_type;
 	}
@@ -2429,8 +2431,7 @@ static void show_type_dependencies(struct tag_output *output,
 	struct symbol *nested_type;
 	struct struct_types types = { };
 
-	if (!type ||
-	    (!is_struct_or_union(type) && type->type != SYM_ENUM))
+	if (!is_tag_type(type))
 		return;
 	if (lookup_ptr_list_entry((struct ptr_list *)output->dependency_types,
 				  type))
