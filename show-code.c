@@ -1365,16 +1365,6 @@ static void collect_struct_types(struct struct_types *types,
 	} END_FOR_EACH_PTR(member);
 }
 
-static bool symbol_defines_tag(struct symbol *symbol, struct symbol *tag)
-{
-	while (symbol) {
-		if (symbol == tag || symbol->definition == tag)
-			return true;
-		symbol = symbol->ctype.base_type;
-	}
-	return false;
-}
-
 static struct symbol *find_anonymous_tag(struct symbol *type)
 {
 	while (type) {
