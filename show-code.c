@@ -1268,6 +1268,7 @@ static bool type_is_array(struct symbol *type)
 
 static bool type_needs_forward(struct symbol *type)
 {
+	type = strip_type_wrappers(type);
 	while (type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
 	if (!type_is_ptr(type))
