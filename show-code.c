@@ -2076,7 +2076,8 @@ static void show_type_dependencies(struct tag_output *output,
 	} END_FOR_EACH_PTR(member);
 }
 
-void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t len)
+static void show_all_type_definitions(struct symbol_list *symbols, char *buf,
+				      size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 	struct tag_output output = { .out = &out };
@@ -2107,39 +2108,6 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf, size_t le
 	} END_FOR_EACH_PTR(symbol);
 }
 
-void show_struct_declarations(struct symbol_list *symbols, struct symbol *last,
-			      char *buf, size_t len)
-{
-	struct code_buffer out = {
-		.buf = buf,
-		.len = len,
-		.line_start = true,
-	};
-	struct struct_types types = { };
-	struct tag_output output = { .out = &out };
-	struct symbol *sym;
-	unsigned int i;
-
-	if (len)
-		buf[0] = 0;
-	FOR_EACH_PTR(symbols, sym) {
-		collect_struct_types(&types, sym);
-		if (sym == last)
-			break;
-	} END_FOR_EACH_PTR(sym);
-	FOR_EACH_PTR(symbols, sym) {
-		for (i = 0; i < types.count; i++) {
-			struct symbol *type = types.types[i];
-
-			if (!tag_has_definition(type) ||
-			    tag_was_output(output.definitions, output.definition_count, type) ||
-			    !symbol_defines_tag(sym, type))
-				continue;
-			show_struct_definition(&output, type);
-		}
-	} END_FOR_EACH_PTR(sym);
-}
-
 void show_expr(struct expression *e, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
@@ -2165,5 +2133,9 @@ void show_sym(struct symbol *s, char *buf, size_t len)
 
 	if (len)
 		buf[0] = 0;
+	if (!s) {
+		show_all_type_definitions(file_scope->symbols, buf, len);
+		return;
+	}
 	sym(&out, s);
 }

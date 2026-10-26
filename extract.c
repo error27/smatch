@@ -10,8 +10,6 @@
 #define EXTRACT_BUFFER_SIZE (16 * 1024 * 1024)
 
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
-extern void show_all_type_definitions(struct symbol_list *symbols,
-				      char *buf, size_t len);
 extern void set_show_code_whole_file(bool whole_file);
 
 int main(int argc, char **argv)
@@ -64,7 +62,7 @@ int main(int argc, char **argv)
 
 	list = sparse_keep_tokens(file);
 	set_show_code_whole_file(whole_file);
-	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
+	show_sym(NULL, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
 	FOR_EACH_PTR(list, sym) {
 		struct ident *ident = sym->ident;
