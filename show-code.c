@@ -96,9 +96,9 @@ struct struct_types {
 	unsigned int count;
 };
 
-static void collect_type_expressions(struct symbol **expressions,
-					     unsigned int *count,
-					     struct symbol *type)
+static void collect_typename_type_expressions(struct symbol **expressions,
+						      unsigned int *count,
+						      struct symbol *type)
 {
 	struct symbol *arg;
 
@@ -115,7 +115,7 @@ static void collect_type_expressions(struct symbol **expressions,
 		if (type->type != SYM_FN)
 			continue;
 		FOR_EACH_PTR(type->arguments, arg) {
-			collect_type_expressions(expressions, count, arg);
+			collect_typename_type_expressions(expressions, count, arg);
 		} END_FOR_EACH_PTR(arg);
 	}
 }
@@ -452,7 +452,7 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		copy.ctype.modifiers &= ~MOD_EXTERN;
 		s = &copy;
 	}
-	collect_type_expressions(type_expressions, &expression_count, s);
+	collect_typename_type_expressions(type_expressions, &expression_count, s);
 	snprintf(typename, sizeof(typename), "%s",
 		 show_typename(base_type_for_output(s, copies, &count), false));
 	type_name = typename;
