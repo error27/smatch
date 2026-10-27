@@ -269,6 +269,8 @@ static void collect_dependencies(struct struct_types *types,
 	case SYM_NODE:
 	case SYM_RESTRICT:
 	case SYM_BITFIELD:
+	case SYM_TYPEOF:
+	case SYM_TYPEOF_UNQUAL:
 		collect_dependencies(types, get_base_type(type), needs_forward);
 		return;
 	case SYM_PTR:
@@ -277,6 +279,9 @@ static void collect_dependencies(struct struct_types *types,
 				     type_can_use_forward_declaration(type));
 		return;
 	case SYM_FN:
+		collect_dependencies(types, type->ctype.base_type,
+				     type_can_use_forward_declaration(
+					     type->ctype.base_type));
 		FOR_EACH_PTR(type->arguments, arg) {
 			collect_dependencies(types, arg,
 					     type_can_use_forward_declaration(arg));
