@@ -1640,10 +1640,25 @@ static const char *integer_literal_suffix(struct expression *e)
 	return "";
 }
 
+static long long sign_extend_value(struct expression *e)
+{
+	struct symbol *type = strip_type_wrappers(e->ctype);
+	unsigned long long value = e->value;
+	unsigned int bits;
+
+	if (!type)
+		return value;
+	bits = type->bit_size;
+	if (bits == 0 || bits >= 64)
+		return value;
+	if (value & (1ULL << (bits - 1)))
+		value |= ~((1ULL << bits) - 1);
+	return value;
+}
+
 static void show_value(struct code_buffer *out, struct expression *e)
 {
-	long long signed_value = e->ctype == &int_ctype ?
-		(int)e->value : e->value;
+	long long signed_value = sign_extend_value(e);
 	unsigned long long value = e->value;
 	const char *suffix = integer_literal_suffix(e);
 
@@ -1651,7 +1666,8 @@ static void show_value(struct code_buffer *out, struct expression *e)
 		goto hex;
 	if (has_bitwise_parent(e))
 		goto hex;
-	if (signed_value >= -4059 && signed_value < 0) {
+	if (is_signed_type(e->ctype) &&
+	    signed_value >= -4059 && signed_value < 0) {
 		append(out, "%lld%s", signed_value, suffix);
 		return;
 	}
