@@ -1643,7 +1643,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 	case EXPR_STRING:
 		append(out, "%s%s", e->wide ? "L" : "", show_string(e->string));
 		break;
-	case EXPR_TYPE: show_type_expression(out, e); break;
+	case EXPR_TYPE:
+		show_type_expression(out, e);
+		break;
 	case EXPR_SYMBOL:
 		if (e->symbol && e->symbol->ident)
 			append(out, "%s", show_ident(e->symbol->ident));
@@ -1674,7 +1676,11 @@ static void expr(struct code_buffer *out, struct expression *e)
 			append(out, ")");
 		}
 		break;
-	case EXPR_POSTOP: append(out, "("); expr(out, e->unop); append(out, "%s)", show_special(e->op)); break;
+	case EXPR_POSTOP:
+		append(out, "(");
+		expr(out, e->unop);
+		append(out, "%s)", show_special(e->op));
+		break;
 	case EXPR_COMPARE:
 		if (e->left && e->left->type == EXPR_TYPE &&
 		    e->right && e->right->type == EXPR_TYPE) {
@@ -1686,9 +1692,16 @@ static void expr(struct code_buffer *out, struct expression *e)
 			break;
 		}
 		/* Fall through */
-	case EXPR_BINOP: case EXPR_LOGICAL:
-	case EXPR_ASSIGNMENT: case EXPR_COMMA:
-		append(out, "("); expr(out, e->left); append(out, " %s ", show_special(e->op)); expr(out, e->right); append(out, ")"); break;
+	case EXPR_BINOP:
+	case EXPR_LOGICAL:
+	case EXPR_ASSIGNMENT:
+	case EXPR_COMMA:
+		append(out, "(");
+		expr(out, e->left);
+		append(out, " %s ", show_special(e->op));
+		expr(out, e->right);
+		append(out, ")");
+		break;
 	case EXPR_DEREF:
 		append(out, "(");
 		if (e->member && e->deref && e->deref->type == EXPR_PREOP &&
@@ -1717,9 +1730,17 @@ static void expr(struct code_buffer *out, struct expression *e)
 		} else {
 			expr(out, e->fn);
 		}
-		append(out, "("); exprs(out, e->args); append(out, ")"); break;
+		append(out, "(");
+		exprs(out, e->args);
+		append(out, ")");
+		break;
 	case EXPR_CAST: case EXPR_FORCE_CAST:
-		append(out, "(("); show_c_typename(out, e->cast_type); append(out, ")"); expr(out, e->cast_expression); append(out, ")"); break;
+		append(out, "((");
+		show_c_typename(out, e->cast_type);
+		append(out, ")");
+		expr(out, e->cast_expression);
+		append(out, ")");
+		break;
 	case EXPR_IMPLIED_CAST:
 		expr(out, e->cast_expression);
 		break;
@@ -1736,7 +1757,14 @@ static void expr(struct code_buffer *out, struct expression *e)
 		show_statement_expression(out, e->statement);
 		break;
 	case EXPR_CONDITIONAL: case EXPR_SELECT:
-		append(out, "("); expr(out, e->conditional); append(out, " ? "); expr(out, e->cond_true); append(out, " : "); expr(out, e->cond_false); append(out, ")"); break;
+		append(out, "(");
+		expr(out, e->conditional);
+		append(out, " ? ");
+		expr(out, e->cond_true);
+		append(out, " : ");
+		expr(out, e->cond_false);
+		append(out, ")");
+		break;
 	case EXPR_LABEL:
 		append(out, "&&%s", show_ident(e->label_symbol->ident));
 		break;
@@ -1765,7 +1793,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 	case EXPR_GENERIC:
 		show_generic_expression(out, e);
 		break;
-	default: append(out, "/* unsupported expression %d */", e->type); break;
+	default:
+		append(out, "/* unsupported expression %d */", e->type);
+		break;
 	}
 }
 
@@ -1795,11 +1825,11 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 			out->local_tags[out->local_tag_count++] = tag;
 	}
 
-	if (anonymous_tag) {
+	if (anonymous_tag)
 		show_anonymous_c_typename(out, s, anonymous_tag);
-	} else {
+	else
 		show_c_typename(out, s);
-	}
+
 	show_asm_name(out, s);
 	if (s->initializer) {
 		append(out, " = ");
@@ -1947,7 +1977,11 @@ static void show_local_labels(struct code_buffer *out,
 static void stmt(struct code_buffer *out, struct statement *s)
 {
 	struct statement *child;
-	if (!s) { append(out, "{}\n"); return; }
+
+	if (!s) {
+		append(out, "{}\n");
+		return;
+	}
 	switch (s->type) {
 	case STMT_NONE:
 		append(out, ";\n");
@@ -1962,9 +1996,21 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		out->indent--;
 		append(out, "}\n");
 		break;
-	case STMT_DECLARATION: declarations(out, s->declaration); break;
-	case STMT_EXPRESSION: expr(out, s->expression); append(out, ";\n"); break;
-	case STMT_RETURN: append(out, "return"); if (s->ret_value) { append(out, " "); expr(out, s->ret_value); } append(out, ";\n"); break;
+	case STMT_DECLARATION:
+		declarations(out, s->declaration);
+		break;
+	case STMT_EXPRESSION:
+		expr(out, s->expression);
+		append(out, ";\n");
+		break;
+	case STMT_RETURN:
+		append(out, "return");
+		if (s->ret_value) {
+			append(out, " ");
+			expr(out, s->ret_value);
+		}
+		append(out, ";\n");
+		break;
 	case STMT_LABEL:
 		append(out, "%s:\n", show_ident(s->label_identifier->ident));
 		if (s->label_statement && s->label_statement->type != STMT_NONE)
@@ -2055,8 +2101,15 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		stmt(out, s->case_statement);
 		break;
 	case STMT_IF:
-		append(out, "if ("); expr(out, s->if_conditional); append(out, ") "); stmt(out, s->if_true);
-		if (s->if_false) { append(out, "else "); stmt(out, s->if_false); } break;
+		append(out, "if (");
+		expr(out, s->if_conditional);
+		append(out, ") ");
+		stmt(out, s->if_true);
+		if (s->if_false) {
+			append(out, "else ");
+			stmt(out, s->if_false);
+		}
+		break;
 	case STMT_ITERATOR:
 		if (s->iterator_syms || s->iterator_pre_statement ||
 		    s->iterator_post_statement) {
@@ -2101,7 +2154,9 @@ static void stmt(struct code_buffer *out, struct statement *s)
 			stmt(out, s->iterator_statement);
 		}
 		break;
-	default: append(out, "/* unsupported statement %d */\n", s->type); break;
+	default:
+		append(out, "/* unsupported statement %d */\n", s->type);
+		break;
 	}
 }
 
