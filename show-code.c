@@ -125,6 +125,11 @@ struct c_type_name {
 
 /* Dependency collection and emission. */
 
+static struct expression *symbol_initializer(struct symbol *symbol)
+{
+	return symbol->orig_initializer ?: symbol->initializer;
+}
+
 static bool tag_has_definition(struct symbol *tag)
 {
 	return is_tag_type(tag) && tag->endpos.type;
@@ -650,7 +655,8 @@ static void collect_declaration_dependencies(struct function_dependencies *depen
 		collect_dependencies(&dependencies->types, declaration,
 				     type_can_use_forward_declaration(declaration));
 		collect_type_expression_dependencies(dependencies, declaration);
-		collect_expression_dependencies(dependencies, declaration->initializer);
+		collect_expression_dependencies(dependencies,
+						symbol_initializer(declaration));
 	} END_FOR_EACH_PTR(declaration);
 }
 
@@ -672,7 +678,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		return;
 	active[active_count++] = symbol;
 	collect_type_expression_dependencies(&dependencies, symbol);
-	collect_expression_dependencies(&dependencies, symbol->initializer);
+	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
 	for (i = 0; i < dependencies.function_count; i++) {
 		dependency = dependencies.functions[i];
 		if (dependency == symbol)
@@ -689,7 +695,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		if (type->type == SYM_FN)
 			show_function_forwards(out, dependency->ctype.base_type);
 		if (type_is_array(type) && !type->array_size &&
-		    dependency->initializer) {
+		    symbol_initializer(dependency)) {
 			declaration(out, dependency);
 			remember_symbol(&printed.data_definitions, dependency);
 			continue;
@@ -1999,9 +2005,9 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 		show_c_typename(out, s);
 
 	show_asm_name(out, s);
-	if (s->initializer) {
+	if (symbol_initializer(s)) {
 		append(out, " = ");
-		expr(out, s->initializer);
+		expr(out, symbol_initializer(s));
 	}
 	append(out, ";\n");
 }

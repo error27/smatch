@@ -216,6 +216,7 @@ struct symbol {
 			struct statement *inline_stmt;
 			struct symbol_list *inline_symbol_list;
 			struct expression *initializer;
+			struct expression *orig_initializer;
 			struct expression *type_expression;
 			struct expression *asm_name;
 			struct expression *cleanup;

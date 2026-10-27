@@ -265,9 +265,12 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 static struct symbol *examine_base_type(struct symbol *sym)
 {
 	struct symbol *base_type;
+	struct symbol *type;
 
 	if (sym->ctype.base_type == &autotype_ctype) {
-		struct symbol *type = evaluate_expression(sym->initializer);
+		if (!sym->orig_initializer)
+			sym->orig_initializer = copy_type_expression(sym->initializer);
+		type = evaluate_expression(sym->initializer);
 
 		if (!sym->orig_base_type)
 			sym->orig_base_type = sym->ctype.base_type;
