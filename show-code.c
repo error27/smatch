@@ -200,6 +200,16 @@ static struct symbol *strip_bitfield_type(struct symbol *type)
 	return type;
 }
 
+static struct symbol *restricted_typedef_symbol(struct symbol *type)
+{
+	struct symbol *typedef_symbol;
+
+	if (!type || type->type != SYM_RESTRICT || !type->ident)
+		return NULL;
+	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+	return typedef_symbol == type ? NULL : typedef_symbol;
+}
+
 static bool type_is_ptr(struct symbol *type)
 {
 	return type && type->type == SYM_PTR;
@@ -793,11 +803,13 @@ static void show_type_dependencies(struct tag_output *output,
 
 	if (!type)
 		return;
+	typedef_symbol = restricted_typedef_symbol(type);
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
-	typedef_symbol = nested_type->ident ?
-		lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
+	if (!typedef_symbol)
+		typedef_symbol = nested_type->ident ?
+			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
 	if (typedef_symbol && typedef_symbol != type) {
 		if (is_type_definition(typedef_symbol, &tag)) {
 			if (!tag_was_output(printed.type_definitions, tag))
