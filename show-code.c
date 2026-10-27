@@ -97,15 +97,11 @@ static struct symbol *show_base_type(struct symbol *type);
 static void show_type_expression_storage(struct code_buffer *out,
 					 struct symbol *s);
 struct struct_types;
-static void collect_statement_functions(struct symbol **functions,
-					unsigned int *count, struct statement *s);
-static void collect_type_expression_functions(struct symbol **functions,
-					      unsigned int *count,
-					      struct symbol *type);
-static void collect_expression_type_dependencies(struct struct_types *types,
-						 struct expression *e);
-static void collect_statement_type_dependencies(struct struct_types *types,
-						struct statement *s);
+struct function_dependencies;
+static void collect_statement_dependencies(struct function_dependencies *dependencies,
+						   struct statement *s);
+static void collect_type_expression_dependencies(struct function_dependencies *dependencies,
+							   struct symbol *type);
 
 struct struct_types {
 	struct symbol *types[8192];
@@ -490,32 +486,49 @@ static void add_symbol_dependency(struct symbol **functions, unsigned int *count
 		functions[(*count)++] = symbol;
 }
 
-static void collect_expression_functions(struct symbol **functions,
-					 unsigned int *count, struct expression *e)
+static void collect_expression_dependencies(struct function_dependencies *dependencies,
+						    struct expression *e)
 {
 	struct expression *item;
 	struct type_expression *map;
+	struct symbol **functions = dependencies->functions;
+	unsigned int *count = &dependencies->function_count;
 
 	if (!e)
 		return;
 	switch (e->type) {
 	case EXPR_TYPE:
-		collect_type_expression_functions(functions, count, e->symbol);
+		collect_dependencies(&dependencies->types, e->symbol, false);
+		collect_type_expression_dependencies(dependencies, e->symbol);
 		break;
 	case EXPR_PREOP:
 	case EXPR_POSTOP:
-		collect_expression_functions(functions, count, e->unop);
+		collect_expression_dependencies(dependencies, e->unop);
 		break;
 	case EXPR_BINOP:
 	case EXPR_ASSIGNMENT:
 	case EXPR_LOGICAL:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
-		collect_expression_functions(functions, count, e->left);
-		collect_expression_functions(functions, count, e->right);
+		collect_expression_dependencies(dependencies, e->left);
+		collect_expression_dependencies(dependencies, e->right);
 		break;
 	case EXPR_DEREF:
-		collect_expression_functions(functions, count, e->deref);
+		if (e->member && e->deref) {
+			struct expression *base = e->deref;
+			struct symbol *type;
+
+			if (e->deref->type == EXPR_PREOP && e->deref->op == '*' &&
+			    e->deref->unop)
+				base = e->deref->unop;
+			if (base->type == EXPR_SYMBOL && base->symbol) {
+				type = strip_type_wrappers(base->symbol->ctype.base_type);
+				if (type_is_ptr(type))
+					type = strip_type_wrappers(get_base_type(type));
+				collect_dependencies(&dependencies->types, type, false);
+			}
+		}
+		collect_expression_dependencies(dependencies, e->deref);
 		break;
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
@@ -523,17 +536,18 @@ static void collect_expression_functions(struct symbol **functions,
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
 	case EXPR_PTRSIZEOF:
-		collect_type_expression_functions(functions, count, e->cast_type);
-		collect_expression_functions(functions, count, e->cast_expression);
+		collect_dependencies(&dependencies->types, e->cast_type, false);
+		collect_type_expression_dependencies(dependencies, e->cast_type);
+		collect_expression_dependencies(dependencies, e->cast_expression);
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
-		collect_expression_functions(functions, count, e->conditional);
-		collect_expression_functions(functions, count, e->cond_true);
-		collect_expression_functions(functions, count, e->cond_false);
+		collect_expression_dependencies(dependencies, e->conditional);
+		collect_expression_dependencies(dependencies, e->cond_true);
+		collect_expression_dependencies(dependencies, e->cond_false);
 		break;
 	case EXPR_STATEMENT:
-		collect_statement_functions(functions, count, e->statement);
+		collect_statement_dependencies(dependencies, e->statement);
 		break;
 	case EXPR_CALL:
 		item = e->fn;
@@ -542,9 +556,9 @@ static void collect_expression_functions(struct symbol **functions,
 			item = item->unop;
 		if (item && item->type == EXPR_SYMBOL)
 			add_symbol_dependency(functions, count, item->symbol);
-		collect_expression_functions(functions, count, e->fn);
+		collect_expression_dependencies(dependencies, e->fn);
 		FOR_EACH_PTR(e->args, item) {
-			collect_expression_functions(functions, count, item);
+			collect_expression_dependencies(dependencies, item);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_SYMBOL:
@@ -552,157 +566,60 @@ static void collect_expression_functions(struct symbol **functions,
 		break;
 	case EXPR_INITIALIZER:
 		FOR_EACH_PTR(e->expr_list, item) {
-			collect_expression_functions(functions, count, item);
+			collect_expression_dependencies(dependencies, item);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_IDENTIFIER:
-		collect_expression_functions(functions, count, e->ident_expression);
+		collect_expression_dependencies(dependencies, e->ident_expression);
 		break;
 	case EXPR_INDEX:
-		collect_expression_functions(functions, count, e->idx_expression);
+		collect_expression_dependencies(dependencies, e->idx_expression);
 		break;
 	case EXPR_POS:
-		collect_expression_functions(functions, count, e->init_expr);
+		collect_expression_dependencies(dependencies, e->init_expr);
 		break;
 	case EXPR_SLICE:
-		collect_expression_functions(functions, count, e->base);
+		collect_expression_dependencies(dependencies, e->base);
 		break;
 	case EXPR_OFFSETOF:
 		for (item = e; item; item = item->down) {
 			if (item->op != '.')
-				collect_expression_functions(functions, count, item->index);
+				collect_expression_dependencies(dependencies, item->index);
 		}
 		break;
 	case EXPR_GENERIC:
-		collect_expression_functions(functions, count, e->control);
+		collect_expression_dependencies(dependencies, e->control);
 		for (map = e->map; map; map = map->next) {
-			collect_expression_functions(functions, count, map->expr);
+			collect_expression_dependencies(dependencies, map->expr);
 		}
-		collect_expression_functions(functions, count, e->def);
+		collect_expression_dependencies(dependencies, e->def);
 		break;
 	default:
 		break;
 	}
 }
 
-static void collect_type_expression_functions(struct symbol **functions,
-					      unsigned int *count,
-					      struct symbol *type)
+static void collect_type_expression_dependencies(struct function_dependencies *dependencies,
+							   struct symbol *type)
 {
 	while (type) {
 		if (has_type_expression(type))
-			collect_expression_functions(functions, count,
-						     type->type_expression);
+			collect_expression_dependencies(dependencies,
+							type->type_expression);
 		type = show_base_type(type);
 	}
 }
 
-static void collect_declaration_functions(struct symbol **functions,
-					  unsigned int *count,
-					  struct symbol_list *declarations)
+static void collect_declaration_dependencies(struct function_dependencies *dependencies,
+						     struct symbol_list *declarations)
 {
 	struct symbol *declaration;
 
 	FOR_EACH_PTR(declarations, declaration) {
-		collect_type_expression_functions(functions, count, declaration);
-		collect_expression_functions(functions, count, declaration->initializer);
-	} END_FOR_EACH_PTR(declaration);
-}
-
-static void collect_expression_type_dependencies(struct struct_types *types,
-						 struct expression *e)
-{
-	struct expression *item;
-	struct type_expression *map;
-
-	if (!e)
-		return;
-	switch (e->type) {
-	case EXPR_TYPE:
-		collect_dependencies(types, e->symbol, false);
-		break;
-	case EXPR_PREOP:
-	case EXPR_POSTOP:
-		collect_expression_type_dependencies(types, e->unop);
-		break;
-	case EXPR_BINOP:
-	case EXPR_ASSIGNMENT:
-	case EXPR_LOGICAL:
-	case EXPR_COMMA:
-	case EXPR_COMPARE:
-		collect_expression_type_dependencies(types, e->left);
-		collect_expression_type_dependencies(types, e->right);
-		break;
-	case EXPR_DEREF:
-		collect_expression_type_dependencies(types, e->deref);
-		break;
-	case EXPR_CAST:
-	case EXPR_FORCE_CAST:
-	case EXPR_IMPLIED_CAST:
-	case EXPR_SIZEOF:
-	case EXPR_ALIGNOF:
-	case EXPR_PTRSIZEOF:
-		collect_dependencies(types, e->cast_type, false);
-		collect_expression_type_dependencies(types, e->cast_expression);
-		break;
-	case EXPR_CONDITIONAL:
-	case EXPR_SELECT:
-		collect_expression_type_dependencies(types, e->conditional);
-		collect_expression_type_dependencies(types, e->cond_true);
-		collect_expression_type_dependencies(types, e->cond_false);
-		break;
-	case EXPR_STATEMENT:
-		collect_statement_type_dependencies(types, e->statement);
-		break;
-	case EXPR_CALL:
-		collect_expression_type_dependencies(types, e->fn);
-		FOR_EACH_PTR(e->args, item) {
-			collect_expression_type_dependencies(types, item);
-		} END_FOR_EACH_PTR(item);
-		break;
-	case EXPR_INITIALIZER:
-		FOR_EACH_PTR(e->expr_list, item) {
-			collect_expression_type_dependencies(types, item);
-		} END_FOR_EACH_PTR(item);
-		break;
-	case EXPR_IDENTIFIER:
-		collect_expression_type_dependencies(types, e->ident_expression);
-		break;
-	case EXPR_INDEX:
-		collect_expression_type_dependencies(types, e->idx_expression);
-		break;
-	case EXPR_POS:
-		collect_expression_type_dependencies(types, e->init_expr);
-		break;
-	case EXPR_SLICE:
-		collect_expression_type_dependencies(types, e->base);
-		break;
-	case EXPR_OFFSETOF:
-		for (item = e; item; item = item->down) {
-			if (item->op != '.')
-				collect_expression_type_dependencies(types, item->index);
-		}
-		break;
-	case EXPR_GENERIC:
-		collect_expression_type_dependencies(types, e->control);
-		for (map = e->map; map; map = map->next)
-			collect_expression_type_dependencies(types, map->expr);
-		collect_expression_type_dependencies(types, e->def);
-		break;
-	default:
-		break;
-	}
-}
-
-static void collect_declaration_type_dependencies(struct struct_types *types,
-						  struct symbol_list *declarations)
-{
-	struct symbol *declaration;
-
-	FOR_EACH_PTR(declarations, declaration) {
-		collect_dependencies(types, declaration,
+		collect_dependencies(&dependencies->types, declaration,
 				     type_can_use_forward_declaration(declaration));
-		collect_expression_type_dependencies(types, declaration->initializer);
+		collect_type_expression_dependencies(dependencies, declaration);
+		collect_expression_dependencies(dependencies, declaration->initializer);
 	} END_FOR_EACH_PTR(declaration);
 }
 
@@ -711,11 +628,10 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 					      struct symbol **active,
 					      unsigned int active_count)
 {
-	struct symbol *dependencies[8192];
+	struct function_dependencies dependencies = { };
 	struct symbol *dependency;
 	struct symbol *type;
 	struct symbol copy;
-	unsigned int count = 0;
 	unsigned int i;
 
 	for (i = 0; i < active_count; i++)
@@ -724,10 +640,10 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	if (active_count >= 8192)
 		return;
 	active[active_count++] = symbol;
-	collect_type_expression_functions(dependencies, &count, symbol);
-	collect_expression_functions(dependencies, &count, symbol->initializer);
-	for (i = 0; i < count; i++) {
-		dependency = dependencies[i];
+	collect_type_expression_dependencies(&dependencies, symbol);
+	collect_expression_dependencies(&dependencies, symbol->initializer);
+	for (i = 0; i < dependencies.function_count; i++) {
+		dependency = dependencies.functions[i];
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
 		if (!dependency || find_anonymous_tag(dependency))
@@ -765,18 +681,18 @@ static void show_initializer_dependencies(struct code_buffer *out,
 	show_initializer_dependencies_rec(out, symbol, active, 0);
 }
 
-static void collect_asm_functions(struct symbol **functions, unsigned int *count,
-				  struct asm_operand_list *operands)
+static void collect_asm_dependencies(struct function_dependencies *dependencies,
+				     struct asm_operand_list *operands)
 {
 	struct asm_operand *operand;
 
 	FOR_EACH_PTR(operands, operand) {
-		collect_expression_functions(functions, count, operand->expr);
+		collect_expression_dependencies(dependencies, operand->expr);
 	} END_FOR_EACH_PTR(operand);
 }
 
-static void collect_statement_functions(struct symbol **functions,
-					unsigned int *count, struct statement *s)
+static void collect_statement_dependencies(struct function_dependencies *dependencies,
+					   struct statement *s)
 {
 	struct statement *child;
 	struct expression *clobber;
@@ -786,139 +702,59 @@ static void collect_statement_functions(struct symbol **functions,
 	switch (s->type) {
 	case STMT_COMPOUND:
 		FOR_EACH_PTR(s->stmts, child) {
-			collect_statement_functions(functions, count, child);
+			collect_statement_dependencies(dependencies, child);
 		} END_FOR_EACH_PTR(child);
 		break;
 	case STMT_DECLARATION:
-		collect_declaration_functions(functions, count, s->declaration);
+		collect_declaration_dependencies(dependencies, s->declaration);
 		break;
 	case STMT_EXPRESSION:
 	case STMT_CONTEXT:
-		collect_expression_functions(functions, count, s->expression);
+		collect_expression_dependencies(dependencies, s->expression);
 		break;
 	case STMT_RETURN:
-		collect_expression_functions(functions, count, s->ret_value);
+		collect_expression_dependencies(dependencies, s->ret_value);
 		break;
 	case STMT_IF:
-		collect_expression_functions(functions, count, s->if_conditional);
-		collect_statement_functions(functions, count, s->if_true);
-		collect_statement_functions(functions, count, s->if_false);
+		collect_expression_dependencies(dependencies, s->if_conditional);
+		collect_statement_dependencies(dependencies, s->if_true);
+		collect_statement_dependencies(dependencies, s->if_false);
 		break;
 	case STMT_SWITCH:
-		collect_expression_functions(functions, count, s->switch_expression);
-		collect_statement_functions(functions, count, s->switch_statement);
+		collect_expression_dependencies(dependencies, s->switch_expression);
+		collect_statement_dependencies(dependencies, s->switch_statement);
 		break;
 	case STMT_CASE:
-		collect_expression_functions(functions, count, s->case_expression);
-		collect_expression_functions(functions, count, s->case_to);
-		collect_statement_functions(functions, count, s->case_statement);
+		collect_expression_dependencies(dependencies, s->case_expression);
+		collect_expression_dependencies(dependencies, s->case_to);
+		collect_statement_dependencies(dependencies, s->case_statement);
 		break;
 	case STMT_ITERATOR:
-		collect_declaration_functions(functions, count, s->iterator_syms);
-		collect_statement_functions(functions, count, s->iterator_pre_statement);
-		collect_expression_functions(functions, count, s->iterator_pre_condition);
-		collect_statement_functions(functions, count, s->iterator_statement);
-		collect_statement_functions(functions, count, s->iterator_post_statement);
-		collect_expression_functions(functions, count, s->iterator_post_condition);
+		collect_declaration_dependencies(dependencies, s->iterator_syms);
+		collect_statement_dependencies(dependencies, s->iterator_pre_statement);
+		collect_expression_dependencies(dependencies, s->iterator_pre_condition);
+		collect_statement_dependencies(dependencies, s->iterator_statement);
+		collect_statement_dependencies(dependencies, s->iterator_post_statement);
+		collect_expression_dependencies(dependencies, s->iterator_post_condition);
 		break;
 	case STMT_LABEL:
-		collect_statement_functions(functions, count, s->label_statement);
+		collect_statement_dependencies(dependencies, s->label_statement);
 		break;
 	case STMT_GOTO:
-		collect_expression_functions(functions, count, s->goto_expression);
+		collect_expression_dependencies(dependencies, s->goto_expression);
 		break;
 	case STMT_ASM:
-		collect_expression_functions(functions, count, s->asm_string);
-		collect_asm_functions(functions, count, s->asm_outputs);
-		collect_asm_functions(functions, count, s->asm_inputs);
+		collect_expression_dependencies(dependencies, s->asm_string);
+		collect_asm_dependencies(dependencies, s->asm_outputs);
+		collect_asm_dependencies(dependencies, s->asm_inputs);
 		FOR_EACH_PTR(s->asm_clobbers, clobber) {
-			collect_expression_functions(functions, count, clobber);
+			collect_expression_dependencies(dependencies, clobber);
 		} END_FOR_EACH_PTR(clobber);
 		break;
 	case STMT_RANGE:
-		collect_expression_functions(functions, count, s->range_expression);
-		collect_expression_functions(functions, count, s->range_low);
-		collect_expression_functions(functions, count, s->range_high);
-		break;
-	default:
-		break;
-	}
-}
-
-static void collect_asm_type_dependencies(struct struct_types *types,
-					  struct asm_operand_list *operands)
-{
-	struct asm_operand *operand;
-
-	FOR_EACH_PTR(operands, operand) {
-		collect_expression_type_dependencies(types, operand->expr);
-	} END_FOR_EACH_PTR(operand);
-}
-
-static void collect_statement_type_dependencies(struct struct_types *types,
-						struct statement *s)
-{
-	struct statement *child;
-	struct expression *clobber;
-
-	if (!s)
-		return;
-	switch (s->type) {
-	case STMT_COMPOUND:
-		FOR_EACH_PTR(s->stmts, child) {
-			collect_statement_type_dependencies(types, child);
-		} END_FOR_EACH_PTR(child);
-		break;
-	case STMT_DECLARATION:
-		collect_declaration_type_dependencies(types, s->declaration);
-		break;
-	case STMT_EXPRESSION:
-	case STMT_CONTEXT:
-		collect_expression_type_dependencies(types, s->expression);
-		break;
-	case STMT_RETURN:
-		collect_expression_type_dependencies(types, s->ret_value);
-		break;
-	case STMT_IF:
-		collect_expression_type_dependencies(types, s->if_conditional);
-		collect_statement_type_dependencies(types, s->if_true);
-		collect_statement_type_dependencies(types, s->if_false);
-		break;
-	case STMT_SWITCH:
-		collect_expression_type_dependencies(types, s->switch_expression);
-		collect_statement_type_dependencies(types, s->switch_statement);
-		break;
-	case STMT_CASE:
-		collect_expression_type_dependencies(types, s->case_expression);
-		collect_expression_type_dependencies(types, s->case_to);
-		collect_statement_type_dependencies(types, s->case_statement);
-		break;
-	case STMT_ITERATOR:
-		collect_declaration_type_dependencies(types, s->iterator_syms);
-		collect_statement_type_dependencies(types, s->iterator_pre_statement);
-		collect_expression_type_dependencies(types, s->iterator_pre_condition);
-		collect_statement_type_dependencies(types, s->iterator_statement);
-		collect_statement_type_dependencies(types, s->iterator_post_statement);
-		collect_expression_type_dependencies(types, s->iterator_post_condition);
-		break;
-	case STMT_LABEL:
-		collect_statement_type_dependencies(types, s->label_statement);
-		break;
-	case STMT_GOTO:
-		collect_expression_type_dependencies(types, s->goto_expression);
-		break;
-	case STMT_ASM:
-		collect_expression_type_dependencies(types, s->asm_string);
-		collect_asm_type_dependencies(types, s->asm_outputs);
-		collect_asm_type_dependencies(types, s->asm_inputs);
-		FOR_EACH_PTR(s->asm_clobbers, clobber) {
-			collect_expression_type_dependencies(types, clobber);
-		} END_FOR_EACH_PTR(clobber);
-		break;
-	case STMT_RANGE:
-		collect_expression_type_dependencies(types, s->range_expression);
-		collect_expression_type_dependencies(types, s->range_low);
-		collect_expression_type_dependencies(types, s->range_high);
+		collect_expression_dependencies(dependencies, s->range_expression);
+		collect_expression_dependencies(dependencies, s->range_low);
+		collect_expression_dependencies(dependencies, s->range_high);
 		break;
 	default:
 		break;
@@ -933,13 +769,9 @@ static void collect_function_dependencies(struct function_dependencies *dependen
 	if (!type)
 		return;
 	collect_function_type_dependencies(dependencies, type);
-	collect_type_expression_functions(dependencies->functions,
-					  &dependencies->function_count, function);
-	collect_statement_type_dependencies(&dependencies->types,
-					    type->stmt ? type->stmt : type->inline_stmt);
-	collect_statement_functions(dependencies->functions,
-				    &dependencies->function_count,
-				    type->stmt ? type->stmt : type->inline_stmt);
+	collect_type_expression_dependencies(dependencies, function);
+	collect_statement_dependencies(dependencies,
+				      type->stmt ? type->stmt : type->inline_stmt);
 }
 
 static void show_function_dependencies(struct code_buffer *out,
