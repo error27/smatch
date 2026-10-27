@@ -1209,22 +1209,18 @@ static bool type_has_va_list_use(struct symbol *type)
 	return false;
 }
 
-static bool show_va_list_typename(struct code_buffer *out, struct symbol *symbol)
-{
-	if (!is_va_list_use(symbol))
-		return false;
-	show_type_expression_storage(out, symbol);
-	append(out, "va_list");
-	if (symbol->ident)
-		append(out, " %s", show_ident(symbol->ident));
-	return true;
-}
-
 static struct symbol *show_base_type(struct symbol *type)
 {
 	if (type && type->orig_base_type)
 		return type->orig_base_type;
 	return type ? type->ctype.base_type : NULL;
+}
+
+static bool is_va_list_pointer(struct symbol *type)
+{
+	struct symbol *base_type = strip_type_wrappers(show_base_type(type));
+
+	return !base_type || base_type->type != SYM_PTR;
 }
 
 static bool is_typeof(struct symbol *type)
@@ -1273,12 +1269,6 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	bool restricted = false;
 	bool fouled = false;
 
-	if (is_va_list_use(symbol)) {
-		if (symbol->ident)
-			type_name_append(name, show_ident(symbol->ident));
-		type_name_prepend(name, "va_list ");
-		return;
-	}
 	while (type) {
 		const char *typename;
 
@@ -1320,6 +1310,11 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			unsigned long pointer_modifiers =
 				modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
 
+			if (is_va_list_use(symbol) &&
+			    is_va_list_pointer(type)) {
+				type_name_prepend(name, "va_list ");
+				goto out;
+			}
 			if (pointer_modifiers) {
 				type_name_prepend_format(name, "*%s",
 					show_gcc_modifiers(pointer_modifiers));
@@ -1490,8 +1485,6 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 	struct symbol copy;
 	struct symbol *type;
 
-	if (show_va_list_typename(out, s))
-		return;
 	if (show_type_expression_typename(out, s))
 		return;
 	if (s->ctype.modifiers & MOD_REGISTER) {
@@ -1500,7 +1493,8 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		s = &copy;
 	}
 	type = s->type == SYM_NODE ? show_base_type(s) : s;
-	if (type_has_typeof(type) || type_has_va_list_use(type)) {
+	if (type_has_typeof(type) || is_va_list_use(s) ||
+	    type_has_va_list_use(type)) {
 		char array[C_TYPE_NAME_BUFFER_SIZE];
 		struct c_type_name name = {
 			.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
