@@ -915,8 +915,7 @@ static void show_type_dependencies(struct tag_output *output,
 			return;
 		remember_tag(&printed.typedefs, typedef_symbol);
 		show_type_dependencies(output, typedef_symbol->ctype.base_type,
-				       type_can_use_forward_declaration(
-					       typedef_symbol->ctype.base_type));
+				       true);
 		show_typedef_definition(output->out, typedef_symbol);
 		return;
 	}
@@ -2845,7 +2844,6 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 		append(out, "typedef __builtin_va_list va_list;\n");
 		return;
 	}
-	show_function_forwards(out, strip_type_wrappers(type));
 	append(out, "typedef ");
 	base_type = type->ctype.base_type;
 	if (base_type && base_type->type == SYM_RESTRICT &&
@@ -2876,7 +2874,7 @@ static void show_type_definition(struct tag_output *output,
 		return;
 	remember_tag(&printed.typedefs, symbol);
 	show_type_dependencies(output, symbol->ctype.base_type,
-			       type_can_use_forward_declaration(symbol->ctype.base_type));
+			       true);
 	show_typedef_definition(output->out, symbol);
 }
 
