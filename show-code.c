@@ -318,10 +318,12 @@ static void show_tag_definition(struct tag_output *output,
 				struct symbol *type);
 static void show_type_definition(struct tag_output *output,
 				 struct symbol *symbol);
-static void show_typedef_dependency(struct tag_output *output,
+static void show_typedef_definition(struct code_buffer *out,
 				    struct symbol *type);
 static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type);
+				   struct symbol *type, bool needs_forward);
+static void show_type_members(struct tag_output *output,
+			      struct symbol *type);
 
 static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
 {
@@ -760,15 +762,9 @@ static void show_function_dependencies(struct code_buffer *out,
 	}
 }
 
-static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type)
+static void show_type_members(struct tag_output *output, struct symbol *type)
 {
-	struct symbol *arg;
 	struct symbol *member;
-	struct symbol *member_type;
-	struct symbol *function_type;
-	struct symbol *nested_type;
-	struct struct_types types = { };
 
 	if (!is_tag_type(type))
 		return;
@@ -777,33 +773,65 @@ static void show_type_dependencies(struct tag_output *output,
 		return;
 	add_ptr_list(&output->dependency_types, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
-		nested_type = strip_bitfield_type(member);
-		show_typedef_dependency(output, member->ctype.base_type);
-		member_type = add_struct_type(&types, nested_type,
-					      type_can_use_forward_declaration(member));
-		if (member_type)
-			show_required_type(output, member_type,
-				   type_can_use_forward_declaration(member));
-		if (!member_type && is_struct_or_union(nested_type) &&
-		    !nested_type->ident)
-			show_type_dependencies(output, nested_type);
-		function_type = nested_type;
-		if (!type_is_ptr(function_type) && !type_is_array(function_type))
-			continue;
-		while (type_is_ptr(function_type) || type_is_array(function_type))
-			function_type = strip_type_wrappers(get_base_type(function_type));
-		if (!function_type || function_type->type != SYM_FN)
-			continue;
-		show_typedef_dependency(output, function_type->ctype.base_type);
-		FOR_EACH_PTR(function_type->arguments, arg) {
-			show_typedef_dependency(output, arg);
-			member_type = add_struct_type(&types, arg,
-						      type_can_use_forward_declaration(arg));
-			if (member_type)
-				show_required_type(output, member_type,
-						   type_can_use_forward_declaration(arg));
-		} END_FOR_EACH_PTR(arg);
+		show_type_dependencies(output, member,
+				       type_can_use_forward_declaration(member));
 	} END_FOR_EACH_PTR(member);
+}
+
+static void show_type_dependencies(struct tag_output *output,
+				   struct symbol *type, bool needs_forward)
+{
+	struct symbol *arg;
+	struct symbol *function_type;
+	struct symbol *nested_type;
+	struct symbol *needed;
+	struct symbol *tag;
+	struct symbol *typedef_symbol;
+	struct struct_types types = { };
+
+	if (!type)
+		return;
+	nested_type = strip_bitfield_type(type);
+	if (!nested_type)
+		return;
+	typedef_symbol = nested_type->ident ?
+		lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
+	if (typedef_symbol && typedef_symbol != type) {
+		if (is_type_definition(typedef_symbol, &tag)) {
+			if (!tag_was_output(printed.type_definitions, tag))
+				show_type_definition(output, tag);
+			return;
+		}
+		if (tag_was_output(printed.typedefs, typedef_symbol))
+			return;
+		remember_tag(&printed.typedefs, typedef_symbol);
+		show_type_dependencies(output, typedef_symbol->ctype.base_type,
+				       type_can_use_forward_declaration(
+					       typedef_symbol->ctype.base_type));
+		show_typedef_definition(output->out, typedef_symbol);
+		return;
+	}
+
+	needed = add_struct_type(&types, nested_type, needs_forward);
+	if (needed) {
+		show_required_type(output, needed, needs_forward);
+		return;
+	}
+	if (is_struct_or_union(nested_type) && !nested_type->ident) {
+		show_type_members(output, nested_type);
+		return;
+	}
+
+	function_type = nested_type;
+	while (type_is_ptr(function_type) || type_is_array(function_type))
+		function_type = strip_type_wrappers(get_base_type(function_type));
+	if (!function_type || function_type->type != SYM_FN)
+		return;
+	show_type_dependencies(output, function_type->ctype.base_type, false);
+	FOR_EACH_PTR(function_type->arguments, arg) {
+		show_type_dependencies(output, arg,
+				       type_can_use_forward_declaration(arg));
+	} END_FOR_EACH_PTR(arg);
 }
 
 /* C rendering. */
@@ -2417,7 +2445,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct symbol *member;
 	struct symbol *anonymous_tag;
 
-	show_type_dependencies(output, type);
+	show_type_members(output, type);
 	if (is_typedef_tag(type)) {
 		append(out, "typedef %s%s%s {\n", tag_type_name(type),
 		       type->namespace == NS_STRUCT ? " " : "",
@@ -2517,7 +2545,7 @@ static void show_type_definition(struct tag_output *output,
 	struct symbol *tag;
 
 	if (is_type_definition(symbol, &tag)) {
-		show_type_dependencies(output, symbol);
+		show_type_members(output, tag);
 		if (!tag_was_output(printed.type_definitions, tag))
 			show_tag_definition(output, tag);
 		return;
@@ -2528,31 +2556,9 @@ static void show_type_definition(struct tag_output *output,
 	if (tag_was_output(printed.typedefs, symbol))
 		return;
 	remember_tag(&printed.typedefs, symbol);
-	show_type_dependencies(output, symbol->ctype.base_type);
+	show_type_dependencies(output, symbol->ctype.base_type,
+			       type_can_use_forward_declaration(symbol->ctype.base_type));
 	show_typedef_definition(output->out, symbol);
-}
-
-static void show_typedef_dependency(struct tag_output *output,
-				    struct symbol *type)
-{
-	struct symbol *typedef_symbol;
-	struct symbol *tag;
-
-	if (!type || !type->ident)
-		return;
-	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
-	if (!typedef_symbol || typedef_symbol == type)
-		return;
-	if (is_type_definition(typedef_symbol, &tag)) {
-		if (!tag_was_output(printed.type_definitions, tag))
-			show_type_definition(output, tag);
-		return;
-	}
-	if (tag_was_output(printed.typedefs, typedef_symbol))
-		return;
-	remember_tag(&printed.typedefs, typedef_symbol);
-	show_type_dependencies(output, typedef_symbol->ctype.base_type);
-	show_typedef_definition(output->out, typedef_symbol);
 }
 
 void show_all_type_definitions(struct symbol_list *symbols, char *buf,
