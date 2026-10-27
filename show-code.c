@@ -90,6 +90,7 @@ static bool is_struct_or_union(struct symbol *type);
 static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static bool has_type_expression(struct symbol *type);
+static struct symbol *show_base_type(struct symbol *type);
 static void collect_statement_functions(struct symbol **functions,
 					unsigned int *count, struct statement *s);
 static void collect_type_expression_functions(struct symbol **functions,
@@ -549,7 +550,7 @@ static void collect_type_expression_functions(struct symbol **functions,
 		if (has_type_expression(type))
 			collect_expression_functions(functions, count,
 						     type->type_expression);
-		type = type->ctype.base_type;
+		type = show_base_type(type);
 	}
 }
 
@@ -587,7 +588,9 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	collect_expression_functions(dependencies, &count, symbol->initializer);
 	for (i = 0; i < count; i++) {
 		dependency = dependencies[i];
-		if (dependency == symbol || find_anonymous_tag(dependency))
+		if (dependency == symbol)
+			dependency = dependency->same_symbol;
+		if (!dependency || find_anonymous_tag(dependency))
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
 		    symbol_was_output(printed.function_forwards, dependency))
@@ -724,8 +727,10 @@ static void show_function_dependencies(struct code_buffer *out,
 		struct symbol *original;
 
 		dependency = dependencies.functions[i];
+		if (dependency == function)
+			dependency = dependency->same_symbol;
 		original = dependency;
-		if (dependency == function || find_anonymous_tag(dependency))
+		if (!dependency || find_anonymous_tag(dependency))
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
 		    symbol_was_output(printed.function_forwards, dependency))
