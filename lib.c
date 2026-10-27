@@ -253,6 +253,7 @@ void die(const char *fmt, ...)
 
 static struct token *pre_buffer_begin = NULL;
 static struct token **pre_buffer_next = &pre_buffer_begin;
+bool preserve_builtin_va_calls;
 
 void add_pre_buffer(const char *fmt, ...)
 {
@@ -285,16 +286,18 @@ static void create_builtin_stream(void)
 	add_pre_buffer("#add_system \"%s/include\"\n", gcc_base_dir);
 	add_pre_buffer("#add_system \"%s/include-fixed\"\n", gcc_base_dir);
 
-	add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
-	add_pre_buffer("#define __builtin_ms_va_start(a,b) ((a) = (__builtin_ms_va_list)(&(b)))\n");
+	if (!preserve_builtin_va_calls) {
+		add_pre_buffer("#define __builtin_stdarg_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+		add_pre_buffer("#define __builtin_va_start(a,b) ((a) = (__builtin_va_list)(&(b)))\n");
+		add_pre_buffer("#define __builtin_ms_va_start(a,b) ((a) = (__builtin_ms_va_list)(&(b)))\n");
+		add_pre_buffer("#define __builtin_va_end(arg)\n");
+		add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
+	}
 	add_pre_buffer("#define __builtin_va_arg(arg,type)  ({ type __va_arg_ret = *(type *)(arg); arg += sizeof(type); __va_arg_ret; })\n");
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 	add_pre_buffer("#define __builtin_ms_va_copy(dest, src) ({ dest = src; (void)0; })\n");
-	add_pre_buffer("#define __builtin_va_end(arg)\n");
-	add_pre_buffer("#define __builtin_ms_va_end(arg)\n");
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");
 }
 

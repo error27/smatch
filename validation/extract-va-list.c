@@ -13,7 +13,5 @@ extern int render(va_list args);
 
 int call(va_list args)
 {
-	va_list copy = args;
-
-	return render(copy);
+	return render(args);
 }

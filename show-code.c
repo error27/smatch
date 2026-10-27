@@ -1173,12 +1173,12 @@ static bool is_va_list_use(struct symbol *symbol)
 {
 	struct typedef_use *use;
 
-	if (!symbol)
+	if (!symbol || show_base_type(symbol) != &ptr_ctype)
 		return false;
 	for (use = get_typedef_uses(); use; use = use->next) {
 		if (use->pos.stream != symbol->pos.stream ||
 		    use->pos.line != symbol->pos.line ||
-		    use->pos.pos != symbol->pos.pos)
+		    use->pos.pos > symbol->pos.pos)
 			continue;
 		return strcmp(use->name, "va_list") == 0;
 	}

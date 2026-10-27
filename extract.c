@@ -47,6 +47,7 @@ int main(int argc, char **argv)
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
 	if (!buf)
 		die("out of memory");
+	preserve_builtin_va_calls = true;
 	sparse_initialize(argc, argv, &files);
 	file = first_ptr_list((struct ptr_list *)files);
 	if (!file)
