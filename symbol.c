@@ -268,6 +268,9 @@ static struct symbol *examine_base_type(struct symbol *sym)
 
 	if (sym->ctype.base_type == &autotype_ctype) {
 		struct symbol *type = evaluate_expression(sym->initializer);
+
+		if (!sym->orig_base_type)
+			sym->orig_base_type = sym->ctype.base_type;
 		if (!type)
 			type = &bad_ctype;
 		if (is_bitfield_type(type)) {
