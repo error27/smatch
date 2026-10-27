@@ -862,6 +862,7 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 		{ MOD_INLINE, "inline" },
 		{ MOD_CONST, "const" },
 		{ MOD_ATOMIC, "_Atomic" },
+		{ MOD_ALWAYS_INLINE, "__attribute__((__always_inline__))" },
 		{ MOD_GNU_INLINE, "__attribute__((__gnu_inline__))" },
 		{ MOD_NORETURN, "__attribute__((__noreturn__))" },
 		{ MOD_PURE, "__attribute__((__pure__))" },
@@ -2074,6 +2075,23 @@ static void function_body(struct code_buffer *out, struct statement *s)
 	append(out, "}\n");
 }
 
+static bool statement_has_asm_goto(struct statement *s)
+{
+	struct statement *child;
+
+	if (!s)
+		return false;
+	if (s->type == STMT_ASM && (s->asm_modifiers & MOD_ASM_GOTO))
+		return true;
+	if (s->type != STMT_COMPOUND)
+		return false;
+	FOR_EACH_PTR(s->stmts, child) {
+		if (statement_has_asm_goto(child))
+			return true;
+	} END_FOR_EACH_PTR(child);
+	return false;
+}
+
 static void sym(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type;
@@ -2215,11 +2233,13 @@ static void show_local_tag_definition(struct code_buffer *out,
 static void show_function(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type = s->ctype.base_type;
+	struct statement *body;
 	bool has_definition;
 
 	if (!type)
 		return;
-	has_definition = type->stmt || type->inline_stmt;
+	body = type->stmt ? type->stmt : type->inline_stmt;
+	has_definition = body != NULL;
 	if (has_definition &&
 	    symbol_was_output(printed.function_definitions, s))
 		return;
@@ -2231,9 +2251,16 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 	show_function_forwards(out, type);
 	show_function_dependencies(out, s);
 	if (has_definition) {
-		show_c_typename(out, s);
+		if (statement_has_asm_goto(body)) {
+			struct symbol copy = *s;
+
+			copy.ctype.modifiers |= MOD_ALWAYS_INLINE;
+			show_c_typename(out, &copy);
+		} else {
+			show_c_typename(out, s);
+		}
 		append(out, "\n");
-		function_body(out, type->stmt ? type->stmt : type->inline_stmt);
+		function_body(out, body);
 		remember_symbol(&printed.function_definitions, s);
 	} else {
 		show_c_typename(out, s);

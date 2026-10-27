@@ -134,6 +134,8 @@ static const char *show_modifiers(unsigned long mod, int term, bool checker)
 		{MOD_BITWISE,		"[bitwise]"},
 		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
 		{MOD_GNU_INLINE,	"[gnu_inline]",		"__attribute__((__gnu_inline__))"},
+		{MOD_ALWAYS_INLINE,	"[always_inline]",
+					"__attribute__((__always_inline__))"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
 		{MOD_NORETURN,		"[noreturn]",		"__attribute__((__noreturn__))"},
