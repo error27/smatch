@@ -82,6 +82,8 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
+static bool show_inline_function_for_symbol(struct code_buffer *out,
+					    struct symbol *function);
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
 static bool typedef_was_output(struct symbol *type);
 static bool tag_has_definition(struct symbol *tag);
@@ -688,6 +690,8 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		if (symbol_was_output(printed.function_definitions, dependency) ||
 		    symbol_was_output(printed.function_forwards, dependency) ||
 		    symbol_was_output(printed.data_definitions, dependency))
+			continue;
+		if (show_inline_function_for_symbol(out, dependency))
 			continue;
 		show_initializer_dependencies_rec(out, dependency, active,
 						  active_count);
@@ -2716,6 +2720,19 @@ static void show_inline_function_definition(struct inline_function_output *outpu
 	show_inline_function_dependencies(output, function);
 	output->active_count--;
 	show_function(output->out, function);
+}
+
+static bool show_inline_function_for_symbol(struct code_buffer *out,
+					    struct symbol *function)
+{
+	struct inline_function_output output = { .out = out };
+	struct symbol *inline_function;
+
+	inline_function = find_inline_function_definition(function);
+	if (!inline_function)
+		return false;
+	show_inline_function_definition(&output, inline_function);
+	return true;
 }
 
 void show_inline_function_definitions(struct symbol_list *symbols,
