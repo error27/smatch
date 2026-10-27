@@ -1172,15 +1172,20 @@ static bool has_type_expression(struct symbol *type)
 static bool is_va_list_use(struct symbol *symbol)
 {
 	struct typedef_use *use;
+	struct symbol *base_type;
 
-	if (!symbol || show_base_type(symbol) != &ptr_ctype)
+	if (!symbol)
+		return false;
+	base_type = show_base_type(symbol);
+	if (!base_type || base_type->type != SYM_PTR)
 		return false;
 	for (use = get_typedef_uses(); use; use = use->next) {
 		if (use->pos.stream != symbol->pos.stream ||
 		    use->pos.line != symbol->pos.line ||
 		    use->pos.pos > symbol->pos.pos)
 			continue;
-		return strcmp(use->name, "va_list") == 0;
+		if (strcmp(use->name, "va_list") == 0)
+			return true;
 	}
 	return false;
 }
