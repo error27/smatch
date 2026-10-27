@@ -19,6 +19,8 @@ struct code_buffer {
 	unsigned int local_tag_count;
 };
 
+static struct expression *rendering_expression;
+
 static void append(struct code_buffer *out, const char *fmt, ...)
 {
 	char stack_buffer[4096];
@@ -1551,13 +1553,42 @@ static void show_literal_type(struct code_buffer *out, struct symbol *type)
 
 static void show_value(struct code_buffer *out, struct expression *e)
 {
-	if (!e->ctype) {
-		append(out, "0x%llx", e->value);
+	struct expression *parent;
+	long long signed_value = e->value;
+	unsigned long long value = e->value;
+
+	if (!e->ctype || e->ctype != &int_ctype)
+		goto hex;
+	parent = e->parent & 0x1UL ?
+		(struct expression *)(e->parent & ~0x1UL) : NULL;
+	for (; parent; parent = parent->parent & 0x1UL ?
+		(struct expression *)(parent->parent & ~0x1UL) : NULL) {
+		if ((parent->type == EXPR_BINOP || parent->type == EXPR_COMPARE ||
+		     parent->type == EXPR_ASSIGNMENT) &&
+		    (parent->op == '|' || parent->op == '&' || parent->op == '^' ||
+		     parent->op == SPECIAL_EQUAL || parent->op == SPECIAL_NOTEQUAL ||
+		     parent->op == SPECIAL_AND_ASSIGN || parent->op == SPECIAL_OR_ASSIGN ||
+		     parent->op == SPECIAL_XOR_ASSIGN || parent->op == SPECIAL_LEFTSHIFT ||
+		     parent->op == SPECIAL_RIGHTSHIFT || parent->op == SPECIAL_SHL_ASSIGN ||
+		     parent->op == SPECIAL_SHR_ASSIGN))
+			goto hex;
+	}
+	if (signed_value >= -4059 && signed_value < 0) {
+		append(out, "%lld", signed_value);
 		return;
 	}
-	append(out, "((");
-	show_literal_type(out, e->ctype);
-	append(out, ")0x%llx)", e->value);
+	if (value > 16) {
+		unsigned long long bits = value;
+
+		while (!(bits & 1))
+			bits >>= 1;
+		if (!(bits & (bits + 1)))
+			goto hex;
+	}
+	append(out, "%llu", value);
+	return;
+hex:
+	append(out, "0x%llx", value);
 }
 
 static void show_fvalue(struct code_buffer *out, struct expression *e)
@@ -1695,7 +1726,13 @@ static void show_initializer_designator(struct code_buffer *out,
 
 static void expr(struct code_buffer *out, struct expression *e)
 {
+	struct expression *previous;
+
 	if (!e) { append(out, "/* null */"); return; }
+	previous = rendering_expression;
+	if (!e->parent && previous)
+		e->parent = (unsigned long)previous | 0x1UL;
+	rendering_expression = e;
 	switch (e->type) {
 	case EXPR_VALUE: show_value(out, e); break;
 	case EXPR_FVALUE: show_fvalue(out, e); break;
@@ -1856,6 +1893,7 @@ static void expr(struct code_buffer *out, struct expression *e)
 		append(out, "/* unsupported expression %d */", e->type);
 		break;
 	}
+	rendering_expression = previous;
 }
 
 static void show_anonymous_tag(struct code_buffer *out, struct symbol *type);
