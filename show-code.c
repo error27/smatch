@@ -1642,7 +1642,8 @@ static const char *integer_literal_suffix(struct expression *e)
 
 static void show_value(struct code_buffer *out, struct expression *e)
 {
-	long long signed_value = e->value;
+	long long signed_value = e->ctype == &int_ctype ?
+		(int)e->value : e->value;
 	unsigned long long value = e->value;
 	const char *suffix = integer_literal_suffix(e);
 
