@@ -601,8 +601,8 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		if (type->type == SYM_FN)
 			show_function_forwards(out, dependency->ctype.base_type);
 		copy = *dependency;
-		copy.ctype.modifiers &= ~MOD_STATIC;
-		copy.ctype.modifiers |= MOD_EXTERN;
+		if (!(copy.ctype.modifiers & MOD_STATIC))
+			copy.ctype.modifiers |= MOD_EXTERN;
 		show_c_typename(out, &copy);
 		show_asm_name(out, &copy);
 		append(out, ";\n");
