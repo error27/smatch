@@ -827,7 +827,9 @@ static void show_type_dependencies(struct tag_output *output,
 		function_type = strip_type_wrappers(get_base_type(function_type));
 	if (!function_type || function_type->type != SYM_FN)
 		return;
-	show_type_dependencies(output, function_type->ctype.base_type, false);
+	show_type_dependencies(output, function_type->ctype.base_type,
+			       type_can_use_forward_declaration(
+				       function_type->ctype.base_type));
 	FOR_EACH_PTR(function_type->arguments, arg) {
 		show_type_dependencies(output, arg,
 				       type_can_use_forward_declaration(arg));
