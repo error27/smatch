@@ -2234,12 +2234,16 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type = s->ctype.base_type;
 	struct statement *body;
-	bool has_definition;
+	bool has_definition, asm_goto, external_inline;
 
 	if (!type)
 		return;
 	body = type->stmt ? type->stmt : type->inline_stmt;
 	has_definition = body != NULL;
+	asm_goto = statement_has_asm_goto(body);
+	external_inline = has_definition &&
+		(s->ctype.modifiers & MOD_INLINE) &&
+		!(s->ctype.modifiers & MOD_STATIC);
 	if (has_definition &&
 	    symbol_was_output(printed.function_definitions, s))
 		return;
@@ -2251,10 +2255,21 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 	show_function_forwards(out, type);
 	show_function_dependencies(out, s);
 	if (has_definition) {
-		if (statement_has_asm_goto(body)) {
+		if (external_inline) {
 			struct symbol copy = *s;
 
-			copy.ctype.modifiers |= MOD_ALWAYS_INLINE;
+			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE);
+			copy.ctype.modifiers |= MOD_EXTERN;
+			show_c_typename(out, &copy);
+			append(out, ";\n");
+		}
+		if (asm_goto || external_inline) {
+			struct symbol copy = *s;
+
+			if (asm_goto)
+				copy.ctype.modifiers |= MOD_ALWAYS_INLINE;
+			if (external_inline)
+				copy.ctype.modifiers &= ~MOD_EXTERN;
 			show_c_typename(out, &copy);
 		} else {
 			show_c_typename(out, s);
