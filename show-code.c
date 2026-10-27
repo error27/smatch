@@ -182,8 +182,8 @@ static bool is_typedef_tag(struct symbol *type)
 	return false;
 }
 
-static void collect_struct_types(struct struct_types *types,
-				 struct symbol *struct_type);
+static void collect_dependencies(struct struct_types *types,
+				 struct symbol *type, bool needs_forward);
 
 static struct symbol *strip_type_wrappers(struct symbol *type)
 {
@@ -246,55 +246,57 @@ static struct symbol *add_struct_type(struct struct_types *types,
 	return type;
 }
 
-static void handle_functions(struct struct_types *types, struct symbol *type)
+static void collect_dependencies(struct struct_types *types,
+				 struct symbol *type, bool needs_forward)
 {
+	struct symbol *struct_type;
+	struct symbol *member;
 	struct symbol *arg;
 
-	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
-	if (!type || type->type != SYM_FN)
+	if (!type)
 		return;
-	FOR_EACH_PTR(type->arguments, arg) {
-		struct symbol *arg_type = strip_type_wrappers(arg);
-		struct symbol *struct_type = add_struct_type(types, arg_type,
-						     type_can_use_forward_declaration(arg_type));
-
-		if (struct_type && !type_can_use_forward_declaration(arg_type))
-			collect_struct_types(types, struct_type);
-		if (type_is_ptr(arg_type) || type_is_array(arg_type))
-			handle_functions(types, arg_type);
-	} END_FOR_EACH_PTR(arg);
+	switch (type->type) {
+	case SYM_NODE:
+	case SYM_RESTRICT:
+	case SYM_BITFIELD:
+		collect_dependencies(types, get_base_type(type), needs_forward);
+		return;
+	case SYM_PTR:
+	case SYM_ARRAY:
+		collect_dependencies(types, get_base_type(type),
+				     type_can_use_forward_declaration(type));
+		return;
+	case SYM_FN:
+		FOR_EACH_PTR(type->arguments, arg) {
+			collect_dependencies(types, arg,
+					     type_can_use_forward_declaration(arg));
+		} END_FOR_EACH_PTR(arg);
+		return;
+	case SYM_ENUM:
+		add_struct_type(types, type, needs_forward);
+		return;
+	case SYM_STRUCT:
+	case SYM_UNION:
+		struct_type = add_struct_type(types, type, needs_forward);
+		if (!struct_type)
+			struct_type = type;
+		if (needs_forward || !struct_type->symbol_list)
+			return;
+		FOR_EACH_PTR(struct_type->symbol_list, member) {
+			collect_dependencies(types, member,
+					     type_can_use_forward_declaration(member));
+		} END_FOR_EACH_PTR(member);
+		return;
+	default:
+		return;
+	}
 }
 
 static void collect_function_type_dependencies(struct function_dependencies *dependencies,
 					       struct symbol *type)
 {
-	handle_functions(&dependencies->types, type);
-}
-
-static void collect_struct_types(struct struct_types *types,
-				 struct symbol *struct_type)
-{
-	struct symbol *member;
-
-	if (!is_struct_or_union(struct_type) || !struct_type->symbol_list)
-		return;
-	FOR_EACH_PTR(struct_type->symbol_list, member) {
-		struct symbol *member_type = strip_bitfield_type(member);
-		struct symbol *nested_type = member_type;
-		struct symbol *struct_type = add_struct_type(types, member_type,
-						     type_can_use_forward_declaration(member_type));
-
-		while (type_is_array(nested_type))
-			nested_type = strip_type_wrappers(get_base_type(nested_type));
-		if (!struct_type &&
-		    is_struct_or_union(nested_type))
-			collect_struct_types(types, nested_type);
-		if (struct_type && !type_can_use_forward_declaration(member_type))
-			collect_struct_types(types, struct_type);
-		if (type_is_ptr(member_type) || type_is_array(member_type))
-			handle_functions(types, member_type);
-	} END_FOR_EACH_PTR(member);
+	collect_dependencies(&dependencies->types, type,
+			     type_can_use_forward_declaration(type));
 }
 
 struct output_dependencies {
