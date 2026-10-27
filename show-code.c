@@ -781,8 +781,10 @@ static void show_function_dependencies(struct code_buffer *out,
 			dependency = &copy;
 		} else {
 			copy = *dependency;
-			copy.ctype.modifiers &= ~MOD_STATIC;
-			copy.ctype.modifiers |= MOD_EXTERN;
+			if (copy.ctype.modifiers & MOD_STATIC)
+				copy.ctype.modifiers &= ~MOD_EXTERN;
+			else
+				copy.ctype.modifiers |= MOD_EXTERN;
 			dependency = &copy;
 		}
 		show_c_typename(out, dependency);
