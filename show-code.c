@@ -69,6 +69,7 @@ static void stmt(struct code_buffer *out, struct statement *s);
 static void show_statement_expression(struct code_buffer *out,
 				      struct statement *s);
 static void sym(struct code_buffer *out, struct symbol *s);
+static void declaration(struct code_buffer *out, struct symbol *s);
 static void show_function(struct code_buffer *out, struct symbol *s);
 static bool is_typedef_tag(struct symbol *type);
 static struct symbol *find_anonymous_tag(struct symbol *type);
@@ -333,6 +334,7 @@ struct output_dependencies {
 	struct symbol_list *typedefs;
 	struct symbol_list *function_definitions;
 	struct symbol_list *function_forwards;
+	struct symbol_list *data_definitions;
 };
 
 static struct output_dependencies printed;
@@ -625,13 +627,20 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		if (!dependency || find_anonymous_tag(dependency))
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency))
+		    symbol_was_output(printed.function_forwards, dependency) ||
+		    symbol_was_output(printed.data_definitions, dependency))
 			continue;
 		show_initializer_dependencies_rec(out, dependency, active,
 						  active_count);
 		type = strip_type_wrappers(dependency);
 		if (type->type == SYM_FN)
 			show_function_forwards(out, dependency->ctype.base_type);
+		if (type_is_array(type) && !type->array_size &&
+		    dependency->initializer) {
+			declaration(out, dependency);
+			remember_symbol(&printed.data_definitions, dependency);
+			continue;
+		}
 		copy = *dependency;
 		if (!(copy.ctype.modifiers & MOD_STATIC))
 			copy.ctype.modifiers |= MOD_EXTERN;
@@ -765,7 +774,8 @@ static void show_function_dependencies(struct code_buffer *out,
 		if (!dependency || find_anonymous_tag(dependency))
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency))
+		    symbol_was_output(printed.function_forwards, dependency) ||
+		    symbol_was_output(printed.data_definitions, dependency))
 			continue;
 		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
@@ -2169,6 +2179,8 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	if (s->namespace == NS_TYPEDEF && typedef_was_output(s))
 		return;
+	if (symbol_was_output(printed.data_definitions, s))
+		return;
 
 	type = s->ctype.base_type;
 	if (type && type->type == SYM_FN) {
@@ -2178,6 +2190,8 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
+	if (!(s->ctype.modifiers & MOD_EXTERN))
+		remember_symbol(&printed.data_definitions, s);
 }
 
 static struct symbol *find_anonymous_tag(struct symbol *type)
