@@ -483,7 +483,8 @@ static void add_symbol_dependency(struct symbol **functions, unsigned int *count
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
 		return;
 	type = strip_type_wrappers(symbol);
-	if (!type || (type->type != SYM_FN && symbol->scope != file_scope))
+	if (!type || (type->type != SYM_FN && symbol->scope != file_scope &&
+		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
 		return;
 	for (i = 0; i < *count; i++)
 		if (functions[i] == symbol)
@@ -2665,12 +2666,20 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 						struct symbol *symbol)
 {
 	struct symbol *type = strip_type_wrappers(symbol);
+	struct symbol copy;
 
 	if (!type || type->type == SYM_FN ||
-	    !(symbol->ctype.modifiers & MOD_STATIC) ||
 	    symbol_in_array(output->data, output->data_count, symbol))
 		return;
-	sym(output->out, symbol);
+	if (symbol->ctype.modifiers & MOD_STATIC)
+		sym(output->out, symbol);
+	else {
+		copy = *symbol;
+		copy.ctype.modifiers |= MOD_EXTERN;
+		show_c_typename(output->out, &copy);
+		show_asm_name(output->out, &copy);
+		append(output->out, ";\n");
+	}
 	if (output->data_count < ARRAY_SIZE(output->data))
 		output->data[output->data_count++] = symbol;
 	if (output->emitted)
