@@ -9,6 +9,7 @@
 #include "scope.h"
 #include "symbol.h"
 #include "token.h"
+#include "utils.h"
 
 struct code_buffer {
 	char *buf;
@@ -965,11 +966,11 @@ static void type_name_append(struct c_type_name *name, const char *text)
 static void type_name_prepend_format(struct c_type_name *name,
 					     const char *format, ...)
 {
-	char buffer[1024];
 	va_list args;
+	char *buffer;
 
 	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args);
+	buffer = xvasprintf(format, args);
 	va_end(args);
 	type_name_prepend(name, buffer);
 }
@@ -977,11 +978,11 @@ static void type_name_prepend_format(struct c_type_name *name,
 static void type_name_append_format(struct c_type_name *name,
 					    const char *format, ...)
 {
-	char buffer[1024];
 	va_list args;
+	char *buffer;
 
 	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args);
+	buffer = xvasprintf(format, args);
 	va_end(args);
 	type_name_append(name, buffer);
 }
@@ -1333,7 +1334,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 		const char *typename;
 
 		if (is_typeof(type)) {
-			char expression[8192];
+			char expression[C_TYPE_NAME_BUFFER_SIZE];
 			struct code_buffer expression_out = {
 				.buf = expression,
 				.len = sizeof(expression),
