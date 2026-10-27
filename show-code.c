@@ -1730,6 +1730,8 @@ static void show_offsetof_expression(struct code_buffer *out,
 	show_c_typename(out, e->in);
 	append(out, ", ");
 	for (part = e; part; part = part->down) {
+		if (!part->op)
+			break;
 		if (part->op == '[' && !part->index) {
 			dereference = true;
 			continue;
