@@ -486,6 +486,46 @@ static void add_symbol_dependency(struct symbol **functions, unsigned int *count
 		functions[(*count)++] = symbol;
 }
 
+static struct symbol *member_type(struct symbol *type, struct ident *ident)
+{
+	struct symbol *member;
+
+	type = strip_type_wrappers(type);
+	if (type && type->definition && is_tag_type(type->definition))
+		type = type->definition;
+	if (!is_tag_type(type))
+		return NULL;
+	FOR_EACH_PTR(type->symbol_list, member) {
+		if (member->ident && ident &&
+		    strcmp(show_ident(member->ident), show_ident(ident)) == 0)
+			return member->ctype.base_type;
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
+/* Return the type named by an unevaluated member-access expression. */
+static struct symbol *member_access_type(struct expression *e)
+{
+	struct symbol *type;
+
+	if (!e)
+		return NULL;
+	switch (e->type) {
+	case EXPR_SYMBOL:
+		return e->symbol ? e->symbol->ctype.base_type : NULL;
+	case EXPR_PREOP:
+		if (e->op != '*')
+			return NULL;
+		type = strip_type_wrappers(member_access_type(e->unop));
+		return type_is_ptr(type) ? get_base_type(type) : NULL;
+	case EXPR_DEREF:
+		type = member_access_type(e->deref);
+		return e->member ? member_type(type, e->member) : type;
+	default:
+		return NULL;
+	}
+}
+
 static void collect_expression_dependencies(struct function_dependencies *dependencies,
 						    struct expression *e)
 {
@@ -515,18 +555,9 @@ static void collect_expression_dependencies(struct function_dependencies *depend
 		break;
 	case EXPR_DEREF:
 		if (e->member && e->deref) {
-			struct expression *base = e->deref;
-			struct symbol *type;
+			struct symbol *type = member_access_type(e->deref);
 
-			if (e->deref->type == EXPR_PREOP && e->deref->op == '*' &&
-			    e->deref->unop)
-				base = e->deref->unop;
-			if (base->type == EXPR_SYMBOL && base->symbol) {
-				type = strip_type_wrappers(base->symbol->ctype.base_type);
-				if (type_is_ptr(type))
-					type = strip_type_wrappers(get_base_type(type));
-				collect_dependencies(&dependencies->types, type, false);
-			}
+			collect_dependencies(&dependencies->types, type, false);
 		}
 		collect_expression_dependencies(dependencies, e->deref);
 		break;
