@@ -92,6 +92,8 @@ static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static bool has_type_expression(struct symbol *type);
 static struct symbol *show_base_type(struct symbol *type);
+static void show_type_expression_storage(struct code_buffer *out,
+					 struct symbol *s);
 static void collect_statement_functions(struct symbol **functions,
 					unsigned int *count, struct statement *s);
 static void collect_type_expression_functions(struct symbol **functions,
@@ -1167,6 +1169,50 @@ static bool has_type_expression(struct symbol *type)
 	       type->type_expression->type != EXPR_INITIALIZER;
 }
 
+static bool is_va_list_use(struct symbol *symbol)
+{
+	struct typedef_use *use;
+
+	if (!symbol)
+		return false;
+	for (use = get_typedef_uses(); use; use = use->next) {
+		if (use->pos.stream != symbol->pos.stream ||
+		    use->pos.line != symbol->pos.line ||
+		    use->pos.pos != symbol->pos.pos)
+			continue;
+		return strcmp(use->name, "va_list") == 0;
+	}
+	return false;
+}
+
+static bool type_has_va_list_use(struct symbol *type)
+{
+	struct symbol *arg;
+
+	for (; type; type = show_base_type(type)) {
+		if (is_va_list_use(type))
+			return true;
+		if (type->type != SYM_FN)
+			continue;
+		FOR_EACH_PTR(type->arguments, arg) {
+			if (type_has_va_list_use(arg))
+				return true;
+		} END_FOR_EACH_PTR(arg);
+	}
+	return false;
+}
+
+static bool show_va_list_typename(struct code_buffer *out, struct symbol *symbol)
+{
+	if (!is_va_list_use(symbol))
+		return false;
+	show_type_expression_storage(out, symbol);
+	append(out, "va_list");
+	if (symbol->ident)
+		append(out, " %s", show_ident(symbol->ident));
+	return true;
+}
+
 static struct symbol *show_base_type(struct symbol *type)
 {
 	if (type && type->orig_base_type)
@@ -1220,6 +1266,12 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	bool restricted = false;
 	bool fouled = false;
 
+	if (is_va_list_use(symbol)) {
+		if (symbol->ident)
+			type_name_append(name, show_ident(symbol->ident));
+		type_name_prepend(name, "va_list ");
+		return;
+	}
 	while (type) {
 		const char *typename;
 
@@ -1431,6 +1483,8 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 	struct symbol copy;
 	struct symbol *type;
 
+	if (show_va_list_typename(out, s))
+		return;
 	if (show_type_expression_typename(out, s))
 		return;
 	if (s->ctype.modifiers & MOD_REGISTER) {
@@ -1439,7 +1493,7 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s)
 		s = &copy;
 	}
 	type = s->type == SYM_NODE ? show_base_type(s) : s;
-	if (type_has_typeof(type)) {
+	if (type_has_typeof(type) || type_has_va_list_use(type)) {
 		char array[C_TYPE_NAME_BUFFER_SIZE];
 		struct c_type_name name = {
 			.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
@@ -2631,6 +2685,10 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 	struct symbol copy;
 	struct symbol *base_type;
 
+	if (type->ident && strcmp(show_ident(type->ident), "va_list") == 0) {
+		append(out, "typedef __builtin_va_list va_list;\n");
+		return;
+	}
 	show_function_forwards(out, strip_type_wrappers(type));
 	append(out, "typedef ");
 	base_type = type->ctype.base_type;
