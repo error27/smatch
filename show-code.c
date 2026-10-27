@@ -1586,17 +1586,35 @@ static bool has_bitwise_parent(struct expression *e)
 	return false;
 }
 
+static const char *integer_literal_suffix(struct expression *e)
+{
+	struct symbol *type = strip_type_wrappers(e->ctype);
+
+	if (type == &uint_ctype)
+		return "U";
+	if (type == &long_ctype)
+		return "L";
+	if (type == &ulong_ctype)
+		return "UL";
+	if (type == &llong_ctype)
+		return "LL";
+	if (type == &ullong_ctype)
+		return "ULL";
+	return "";
+}
+
 static void show_value(struct code_buffer *out, struct expression *e)
 {
 	long long signed_value = e->value;
 	unsigned long long value = e->value;
+	const char *suffix = integer_literal_suffix(e);
 
 	if (!e->ctype || e->ctype != &int_ctype)
 		goto hex;
 	if (has_bitwise_parent(e))
 		goto hex;
 	if (signed_value >= -4059 && signed_value < 0) {
-		append(out, "%lld", signed_value);
+		append(out, "%lld%s", signed_value, suffix);
 		return;
 	}
 	if (value > 16) {
@@ -1607,10 +1625,10 @@ static void show_value(struct code_buffer *out, struct expression *e)
 		if (!(bits & (bits + 1)))
 			goto hex;
 	}
-	append(out, "%llu", value);
+	append(out, "%llu%s", value, suffix);
 	return;
 hex:
-	append(out, "0x%llx", value);
+	append(out, "0x%llx%s", value, suffix);
 }
 
 static void show_fvalue(struct code_buffer *out, struct expression *e)
