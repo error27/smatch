@@ -200,14 +200,27 @@ static struct symbol *strip_bitfield_type(struct symbol *type)
 	return type;
 }
 
-static struct symbol *restricted_typedef_symbol(struct symbol *type)
+static struct symbol *type_typedef_symbol(struct symbol *type)
 {
 	struct symbol *typedef_symbol;
 
-	if (!type || type->type != SYM_RESTRICT || !type->ident)
+	if (!type)
 		return NULL;
-	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
-	return typedef_symbol == type ? NULL : typedef_symbol;
+	if (type->type == SYM_RESTRICT && type->ident) {
+		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+		if (typedef_symbol != type)
+			return typedef_symbol;
+	}
+	for (type = get_base_type(type); type &&
+	     (type->type == SYM_NODE || type->type == SYM_RESTRICT ||
+	      type->type == SYM_BITFIELD); type = get_base_type(type)) {
+		if (type->type == SYM_RESTRICT && type->ident) {
+			typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+			if (typedef_symbol)
+				return typedef_symbol;
+		}
+	}
+	return NULL;
 }
 
 static bool type_is_ptr(struct symbol *type)
@@ -808,7 +821,7 @@ static void show_type_dependencies(struct tag_output *output,
 
 	if (!type)
 		return;
-	typedef_symbol = restricted_typedef_symbol(type);
+	typedef_symbol = type_typedef_symbol(type);
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
