@@ -483,9 +483,7 @@ static void add_symbol_dependency(struct symbol **functions, unsigned int *count
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
 		return;
 	type = strip_type_wrappers(symbol);
-	if (!type ||
-	    (type->type != SYM_FN &&
-	     !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
+	if (!type || (type->type != SYM_FN && symbol->scope != file_scope))
 		return;
 	for (i = 0; i < *count; i++)
 		if (functions[i] == symbol)
@@ -686,7 +684,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		dependency = dependencies.functions[i];
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
-		if (!dependency || find_anonymous_tag(dependency))
+		if (!dependency)
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
 		    symbol_was_output(printed.function_forwards, dependency) ||
@@ -837,7 +835,7 @@ static void show_function_dependencies(struct code_buffer *out,
 		if (dependency == function)
 			dependency = dependency->same_symbol;
 		original = dependency;
-		if (!dependency || find_anonymous_tag(dependency))
+		if (!dependency)
 			continue;
 		if (symbol_was_output(printed.function_definitions, dependency) ||
 		    symbol_was_output(printed.function_forwards, dependency) ||
@@ -2668,8 +2666,8 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 {
 	struct symbol *type = strip_type_wrappers(symbol);
 
-	if (!type || type->type == SYM_FN || !type_is_array(type) ||
-	    !(symbol->ctype.modifiers & MOD_STATIC) || !symbol->initializer ||
+	if (!type || type->type == SYM_FN ||
+	    !(symbol->ctype.modifiers & MOD_STATIC) ||
 	    symbol_in_array(output->data, output->data_count, symbol))
 		return;
 	sym(output->out, symbol);
@@ -2691,7 +2689,7 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 		struct symbol *inline_function;
 
 		dependency = dependencies.functions[i];
-		if (dependency == function || find_anonymous_tag(dependency))
+		if (dependency == function)
 			continue;
 		access_symbol(dependency);
 		inline_function = find_inline_function_definition(dependency);
