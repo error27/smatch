@@ -1551,14 +1551,10 @@ static void show_literal_type(struct code_buffer *out, struct symbol *type)
 	append(out, "%s", buf);
 }
 
-static void show_value(struct code_buffer *out, struct expression *e)
+static bool has_bitwise_parent(struct expression *e)
 {
 	struct expression *parent;
-	long long signed_value = e->value;
-	unsigned long long value = e->value;
 
-	if (!e->ctype || e->ctype != &int_ctype)
-		goto hex;
 	parent = e->parent & 0x1UL ?
 		(struct expression *)(e->parent & ~0x1UL) : NULL;
 	for (; parent; parent = parent->parent & 0x1UL ?
@@ -1571,8 +1567,20 @@ static void show_value(struct code_buffer *out, struct expression *e)
 		     parent->op == SPECIAL_XOR_ASSIGN || parent->op == SPECIAL_LEFTSHIFT ||
 		     parent->op == SPECIAL_RIGHTSHIFT || parent->op == SPECIAL_SHL_ASSIGN ||
 		     parent->op == SPECIAL_SHR_ASSIGN))
-			goto hex;
+			return true;
 	}
+	return false;
+}
+
+static void show_value(struct code_buffer *out, struct expression *e)
+{
+	long long signed_value = e->value;
+	unsigned long long value = e->value;
+
+	if (!e->ctype || e->ctype != &int_ctype)
+		goto hex;
+	if (has_bitwise_parent(e))
+		goto hex;
 	if (signed_value >= -4059 && signed_value < 0) {
 		append(out, "%lld", signed_value);
 		return;
