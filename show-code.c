@@ -520,6 +520,12 @@ static struct symbol *member_access_type(struct expression *e)
 	switch (e->type) {
 	case EXPR_SYMBOL:
 		return e->symbol ? e->symbol->ctype.base_type : NULL;
+	case EXPR_CALL:
+		type = strip_type_wrappers(member_access_type(e->fn));
+		while (type_is_ptr(type))
+			type = strip_type_wrappers(get_base_type(type));
+		return type && type->type == SYM_FN ? type->ctype.base_type :
+			e->ctype;
 	case EXPR_PREOP:
 		if (e->op == '(')
 			return member_access_type(e->unop);
