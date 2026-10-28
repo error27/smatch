@@ -49,10 +49,19 @@ static void show_function(FILE *out, struct symbol *function, char *buf)
 	fprintf(out, "%s\n", buf);
 }
 
-static struct symbol *find_function(struct symbol_list *list, const char *name)
+static struct symbol *find_function(struct symbol_list *list, const char *name,
+				    const char *file)
 {
 	struct symbol *sym;
 
+	if (file) {
+		FOR_EACH_PTR_REVERSE(list, sym) {
+			if (is_function_definition(sym) && sym->ident &&
+			    strcmp(stream_name(sym->pos.stream), file) == 0)
+				return sym;
+		} END_FOR_EACH_PTR_REVERSE(sym);
+		return NULL;
+	}
 	FOR_EACH_PTR(list, sym) {
 		if (is_function_definition(sym) && sym->ident &&
 		    strcmp(sym->ident->name, name) == 0)
@@ -65,8 +74,6 @@ int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
 	struct symbol_list *list;
-	struct symbol *sym;
-	struct symbol *last_function = NULL;
 	struct symbol *function;
 	bool whole_file;
 	bool last_func;
@@ -118,24 +125,15 @@ int main(int argc, char **argv)
 	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
-	if (last_func) {
-		FOR_EACH_PTR_REVERSE(list, sym) {
-			if (!last_function && is_function_definition(sym) && sym->ident &&
-			    strcmp(stream_name(sym->pos.stream), file) == 0) {
-				last_function = sym;
-				break;
-			}
-		} END_FOR_EACH_PTR_REVERSE(sym);
-		if (!last_function)
-			die("no function was found");
-		root_name = last_function->ident->name;
-	}
 	if (whole_file)
 		show_all(out, list, buf);
 	else {
-		function = last_function ?: find_function(list, root_name);
-		if (!function)
+		function = find_function(list, root_name, last_func ? file : NULL);
+		if (!function) {
+			if (last_func)
+				die("no function was found");
 			die("function %s was not found", root_name);
+		}
 		show_function(out, function, buf);
 	}
 	fclose(out);
