@@ -447,8 +447,10 @@ static void show_required_type(struct tag_output *output,
 static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
 	struct symbol_dependencies dependencies = { };
+	struct tag_output output = { .out = out };
 	unsigned int i;
 
+	show_type_dependencies(&output, type, true);
 	collect_function_type_dependencies(&dependencies, type);
 	for (i = 0; i < dependencies.types.count; i++) {
 		struct symbol *needed = dependencies.types.types[i];
