@@ -672,7 +672,7 @@ static void collect_declaration_dependencies(struct symbol_dependencies *depende
 	struct symbol *declaration;
 
 	FOR_EACH_PTR(declarations, declaration) {
-		collect_dependencies(&dependencies->types, declaration,
+		collect_dependencies(&dependencies->types, declaration->ctype.base_type,
 				     type_can_use_forward_declaration(declaration));
 		collect_type_expression_dependencies(dependencies, declaration);
 		collect_expression_dependencies(dependencies,
