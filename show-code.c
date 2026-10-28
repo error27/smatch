@@ -315,10 +315,14 @@ static void collect_dependencies(struct struct_types *types,
 		} END_FOR_EACH_PTR(arg);
 		return;
 	case SYM_ENUM:
+		if (!type->scope || !toplevel(type->scope))
+			return;
 		add_struct_type(types, type, needs_forward);
 		return;
 	case SYM_STRUCT:
 	case SYM_UNION:
+		if (!type->scope || !toplevel(type->scope))
+			return;
 		struct_type = add_struct_type(types, type, needs_forward);
 		if (!struct_type)
 			struct_type = type;
