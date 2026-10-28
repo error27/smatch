@@ -374,7 +374,6 @@ static void add_type_dependency(struct symbol_dependencies *dependencies,
 struct output_dependencies {
 	struct symbol_list *definitions;
 	struct symbol_list *declarations;
-	struct symbol_list *necessary;
 };
 
 static struct output_dependencies printed;
@@ -465,16 +464,9 @@ static bool symbol_was_declared(struct symbol *symbol)
 		symbol_was_output(printed.declarations, symbol);
 }
 
-static void require_symbol(struct symbol *symbol)
-{
-	if (!symbol_was_declared(symbol))
-		remember_symbol(&printed.necessary, symbol);
-}
-
 static void show_required_type(struct tag_output *output,
 				       struct symbol *needed, bool needs_forward)
 {
-	require_symbol(needed);
 	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
 		if (!tag_was_declared(needed)) {
 			append(output->out, "enum %s;\n", show_ident(needed->ident));
@@ -796,7 +788,6 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			dependency = dependency->same_symbol;
 		if (!dependency)
 			continue;
-		require_symbol(dependency);
 		if (symbol_was_declared(dependency))
 			continue;
 		if (show_inline_function_for_symbol(out, dependency))
@@ -944,7 +935,6 @@ static void show_function_dependencies(struct code_buffer *out,
 		original = dependency;
 		if (!dependency)
 			continue;
-		require_symbol(dependency);
 		if (symbol_was_declared(dependency))
 			continue;
 		type = strip_type_wrappers(dependency);
