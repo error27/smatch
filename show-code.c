@@ -521,6 +521,8 @@ static struct symbol *member_access_type(struct expression *e)
 	case EXPR_SYMBOL:
 		return e->symbol ? e->symbol->ctype.base_type : NULL;
 	case EXPR_PREOP:
+		if (e->op == '(')
+			return member_access_type(e->unop);
 		if (e->op != '*')
 			return NULL;
 		type = strip_type_wrappers(member_access_type(e->unop));
@@ -531,6 +533,16 @@ static struct symbol *member_access_type(struct expression *e)
 	default:
 		return NULL;
 	}
+}
+
+/* Return the aggregate whose member access requires its definition. */
+static struct symbol *member_access_container_type(struct expression *e)
+{
+	struct symbol *type = strip_type_wrappers(member_access_type(e));
+
+	if (type_is_ptr(type))
+		type = get_base_type(type);
+	return type;
 }
 
 static void collect_expression_dependencies(struct symbol_dependencies *dependencies,
@@ -562,7 +574,7 @@ static void collect_expression_dependencies(struct symbol_dependencies *dependen
 		break;
 	case EXPR_DEREF:
 		if (e->member && e->deref) {
-			struct symbol *type = member_access_type(e->deref);
+			struct symbol *type = member_access_container_type(e->deref);
 
 			collect_dependencies(&dependencies->types, type, false);
 		}
@@ -2716,10 +2728,14 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 					      struct symbol *function)
 {
 	struct symbol_dependencies dependencies = { };
+	struct tag_output type_output = { .out = output->out };
 	struct symbol *dependency;
 	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
+	for (i = 0; i < dependencies.types.count; i++)
+		show_required_type(&type_output, dependencies.types.types[i],
+				   dependencies.types.needs_forward[i]);
 	for (i = 0; i < dependencies.symbol_count; i++) {
 		struct symbol *inline_function;
 
