@@ -112,6 +112,9 @@ struct struct_types {
 
 struct symbol_dependencies {
 	struct struct_types types;
+	struct symbol *type_symbols[8192];
+	bool type_needs_forward[8192];
+	unsigned int type_symbol_count;
 	struct symbol *symbols[8192];
 	unsigned int symbol_count;
 };
@@ -218,14 +221,15 @@ static struct symbol *type_typedef_symbol(struct symbol *type)
 
 	if (!type)
 		return NULL;
-	if (type->type == SYM_RESTRICT && type->ident) {
+	if ((type->type == SYM_NODE || type->type == SYM_RESTRICT) &&
+	    type->ident) {
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 		if (typedef_symbol != type)
 			return typedef_symbol;
 	}
-	for (type = get_base_type(type); type &&
+	for (type = show_base_type(type); type &&
 	     (type->type == SYM_NODE || type->type == SYM_RESTRICT ||
-	      type->type == SYM_BITFIELD); type = get_base_type(type)) {
+	      type->type == SYM_BITFIELD); type = show_base_type(type)) {
 		if (type->type == SYM_RESTRICT && type->ident) {
 			typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 			if (typedef_symbol)
@@ -341,6 +345,32 @@ static void collect_function_type_dependencies(struct symbol_dependencies *depen
 			     type_can_use_forward_declaration(type));
 }
 
+static void add_type_dependency(struct symbol_dependencies *dependencies,
+				struct symbol *type, bool needs_forward)
+{
+	struct symbol *typedef_symbol;
+	unsigned int i;
+
+	if (!type)
+		return;
+	typedef_symbol = type_typedef_symbol(type);
+	collect_dependencies(&dependencies->types, show_base_type(type),
+			     needs_forward);
+	if (!typedef_symbol)
+		return;
+	for (i = 0; i < dependencies->type_symbol_count; i++) {
+		if (dependencies->type_symbols[i] != typedef_symbol)
+			continue;
+		dependencies->type_needs_forward[i] &= needs_forward;
+		return;
+	}
+	if (dependencies->type_symbol_count >= ARRAY_SIZE(dependencies->type_symbols))
+		return;
+	i = dependencies->type_symbol_count++;
+	dependencies->type_symbols[i] = typedef_symbol;
+	dependencies->type_needs_forward[i] = needs_forward;
+}
+
 struct output_dependencies {
 	struct symbol_list *type_definitions;
 	struct symbol_list *type_forwards;
@@ -444,6 +474,19 @@ static void show_required_type(struct tag_output *output,
 	}
 }
 
+static void show_collected_type_dependencies(struct tag_output *output,
+					     struct symbol_dependencies *dependencies)
+{
+	unsigned int i;
+
+	for (i = 0; i < dependencies->type_symbol_count; i++)
+		show_type_dependencies(output, dependencies->type_symbols[i],
+				       dependencies->type_needs_forward[i]);
+	for (i = 0; i < dependencies->types.count; i++)
+		show_required_type(output, dependencies->types.types[i],
+				   dependencies->types.needs_forward[i]);
+}
+
 static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
 	struct symbol_dependencies dependencies = { };
@@ -528,6 +571,10 @@ static struct symbol *member_access_type(struct expression *e)
 			type = strip_type_wrappers(get_base_type(type));
 		return type && type->type == SYM_FN ? type->ctype.base_type :
 			e->ctype;
+	case EXPR_CAST:
+	case EXPR_FORCE_CAST:
+	case EXPR_IMPLIED_CAST:
+		return e->cast_type;
 	case EXPR_PREOP:
 		if (e->op == '(')
 			return member_access_type(e->unop);
@@ -538,6 +585,21 @@ static struct symbol *member_access_type(struct expression *e)
 	case EXPR_DEREF:
 		type = member_access_type(e->deref);
 		return e->member ? member_type(type, e->member) : type;
+	case EXPR_BINOP:
+		type = member_access_type(e->left);
+		if (type_is_ptr(strip_type_wrappers(type)))
+			return type;
+		type = member_access_type(e->right);
+		return type_is_ptr(strip_type_wrappers(type)) ? type : e->ctype;
+	case EXPR_ASSIGNMENT:
+		return member_access_type(e->left);
+	case EXPR_COMMA:
+		return member_access_type(e->right);
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		return e->ctype ?: member_access_type(e->cond_true);
+	case EXPR_IDENTIFIER:
+		return member_access_type(e->ident_expression);
 	default:
 		return NULL;
 	}
@@ -565,7 +627,7 @@ static void collect_expression_dependencies(struct symbol_dependencies *dependen
 		return;
 	switch (e->type) {
 	case EXPR_TYPE:
-		collect_dependencies(&dependencies->types, e->symbol, false);
+		add_type_dependency(dependencies, e->symbol, false);
 		collect_type_expression_dependencies(dependencies, e->symbol);
 		break;
 	case EXPR_PREOP:
@@ -594,7 +656,7 @@ static void collect_expression_dependencies(struct symbol_dependencies *dependen
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
 	case EXPR_PTRSIZEOF:
-		collect_dependencies(&dependencies->types, e->cast_type, false);
+		add_type_dependency(dependencies, e->cast_type, false);
 		collect_type_expression_dependencies(dependencies, e->cast_type);
 		collect_expression_dependencies(dependencies, e->cast_expression);
 		break;
@@ -620,6 +682,9 @@ static void collect_expression_dependencies(struct symbol_dependencies *dependen
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_SYMBOL:
+		if (e->symbol)
+			add_type_dependency(dependencies, e->symbol,
+					    type_can_use_forward_declaration(e->symbol));
 		add_dependency_symbol(symbols, count, e->symbol);
 		break;
 	case EXPR_INITIALIZER:
@@ -674,8 +739,8 @@ static void collect_declaration_dependencies(struct symbol_dependencies *depende
 	struct symbol *declaration;
 
 	FOR_EACH_PTR(declarations, declaration) {
-		collect_dependencies(&dependencies->types, declaration->ctype.base_type,
-				     type_can_use_forward_declaration(declaration));
+		add_type_dependency(dependencies, declaration->ctype.base_type,
+				    type_can_use_forward_declaration(declaration));
 		collect_type_expression_dependencies(dependencies, declaration);
 		collect_expression_dependencies(dependencies,
 						symbol_initializer(declaration));
@@ -846,9 +911,7 @@ static void show_function_dependencies(struct code_buffer *out,
 	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
-	for (i = 0; i < dependencies.types.count; i++)
-		show_required_type(&type_output, dependencies.types.types[i],
-				   dependencies.types.needs_forward[i]);
+	show_collected_type_dependencies(&type_output, &dependencies);
 	for (i = 0; i < dependencies.symbol_count; i++) {
 		struct symbol *original;
 
@@ -932,6 +995,10 @@ static void show_type_dependencies(struct tag_output *output,
 
 	if (!type)
 		return;
+	if (type->namespace == NS_TYPEDEF) {
+		show_type_definition(output, type);
+		return;
+	}
 	typedef_symbol = type_typedef_symbol(type);
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
@@ -2691,9 +2758,7 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
-	for (i = 0; i < dependencies.types.count; i++)
-		show_required_type(&type_output, dependencies.types.types[i],
-				   dependencies.types.needs_forward[i]);
+	show_collected_type_dependencies(&type_output, &dependencies);
 	for (i = 0; i < dependencies.symbol_count; i++) {
 		struct symbol *inline_function;
 
