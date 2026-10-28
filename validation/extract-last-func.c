@@ -1,7 +1,4 @@
-static int first(void)
-{
-	return 1;
-}
+extern int first(void);
 
 int last(void)
 {

@@ -16,16 +16,54 @@ static bool is_inline_function(struct symbol *symbol)
 	return type && type->type == SYM_FN && type->inline_stmt;
 }
 
+static void show_all(FILE *out, struct symbol_list *list, char *buf)
+{
+	struct symbol_list *inline_dependencies = NULL;
+	struct symbol *sym;
+
+	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
+	fprintf(out, "%s\n", buf);
+	show_inline_function_definitions(list, &inline_dependencies, buf,
+					 EXTRACT_BUFFER_SIZE);
+	fprintf(out, "%s\n", buf);
+	FOR_EACH_PTR(list, sym) {
+		if (is_inline_function(sym) ||
+		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym))
+			continue;
+		show_sym(sym, buf, EXTRACT_BUFFER_SIZE);
+		fprintf(out, "%s\n", buf);
+	} END_FOR_EACH_PTR(sym);
+}
+
+static void show_function(FILE *out, struct symbol *function, char *buf)
+{
+	show_sym(function, buf, EXTRACT_BUFFER_SIZE);
+	fprintf(out, "%s\n", buf);
+}
+
+static struct symbol *find_function(struct symbol_list *list, const char *name)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		struct symbol *type = sym->ctype.base_type;
+
+		if (type && type->type == SYM_FN && sym->ident &&
+		    strcmp(sym->ident->name, name) == 0)
+			return sym;
+	} END_FOR_EACH_PTR(sym);
+	return NULL;
+}
+
 int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
 	struct symbol_list *list;
-	struct symbol_list *inline_dependencies = NULL;
 	struct symbol *sym;
 	struct symbol *last_function = NULL;
+	struct symbol *function;
 	bool whole_file;
 	bool last_func;
-	bool found;
 	char *file;
 	char *root_name;
 	char output_file[PATH_MAX];
@@ -49,8 +87,6 @@ int main(int argc, char **argv)
 		argv[argc] = NULL;
 	}
 	whole_file = root_name == NULL && !last_func;
-	found = whole_file;
-
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
 	if (!buf)
 		die("out of memory");
@@ -89,36 +125,16 @@ int main(int argc, char **argv)
 			die("no function was found");
 		root_name = last_function->ident->name;
 	}
-	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
-	fprintf(out, "%s\n", buf);
-	show_inline_function_definitions(list, &inline_dependencies, buf,
-					 EXTRACT_BUFFER_SIZE);
-	fprintf(out, "%s\n", buf);
-	FOR_EACH_PTR(list, sym) {
-		struct ident *ident = sym->ident;
-		bool is_target = !whole_file && ident &&
-			strcmp(ident->name, root_name) == 0;
-
-		if (is_inline_function(sym) ||
-		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym)) {
-			if (is_target) {
-				found = true;
-				goto output_done;
-			}
-			continue;
-		}
-		show_sym(sym, buf, EXTRACT_BUFFER_SIZE);
-		fprintf(out, "%s\n", buf);
-		if (is_target) {
-			found = true;
-			goto output_done;
-		}
-	} END_FOR_EACH_PTR(sym);
-output_done:
+	if (whole_file)
+		show_all(out, list, buf);
+	else {
+		function = last_function ?: find_function(list, root_name);
+		if (!function)
+			die("function %s was not found", root_name);
+		show_function(out, function, buf);
+	}
 	fclose(out);
 	free(buf);
-	if (!found)
-		die("function %s was not found", root_name);
 	printf("extract: wrote %s\n", output_file);
 	return 0;
 }
