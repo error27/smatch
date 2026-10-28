@@ -2643,8 +2643,7 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 	external_inline = has_definition &&
 		(s->ctype.modifiers & MOD_INLINE) &&
 		!(s->ctype.modifiers & MOD_STATIC);
-	if (has_definition &&
-	    symbol_was_defined(s))
+	if (symbol_was_defined(s))
 		return;
 	if (!has_definition &&
 	    symbol_was_declared(s))
