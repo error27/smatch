@@ -22,7 +22,9 @@ int main(int argc, char **argv)
 	struct symbol_list *list;
 	struct symbol_list *inline_dependencies = NULL;
 	struct symbol *sym;
+	struct symbol *last_function = NULL;
 	bool whole_file;
+	bool last_func;
 	bool found;
 	char *file;
 	char *root_name;
@@ -31,9 +33,14 @@ int main(int argc, char **argv)
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION|--last-func] [sparse options] file.c");
 	root_name = NULL;
-	if (strncmp(argv[1], "--func=", 7) == 0) {
+	last_func = strcmp(argv[1], "--last-func") == 0;
+	if (last_func) {
+		memmove(argv + 1, argv + 2, (argc - 2) * sizeof(*argv));
+		argc--;
+		argv[argc] = NULL;
+	} else if (strncmp(argv[1], "--func=", 7) == 0) {
 		if (argv[1][7] == '\0')
 			die("function name is empty");
 		root_name = argv[1] + 7;
@@ -41,7 +48,7 @@ int main(int argc, char **argv)
 		argc--;
 		argv[argc] = NULL;
 	}
-	whole_file = root_name == NULL;
+	whole_file = root_name == NULL && !last_func;
 	found = whole_file;
 
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
@@ -58,6 +65,8 @@ int main(int argc, char **argv)
 	}
 	if (whole_file)
 		snprintf(output_file, sizeof(output_file), "%s.extract", file);
+	else if (last_func)
+		snprintf(output_file, sizeof(output_file), "%s.extract.last", file);
 	else
 		snprintf(output_file, sizeof(output_file), "%s.extract.%s", file,
 			 root_name);
@@ -67,6 +76,17 @@ int main(int argc, char **argv)
 	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
+	if (last_func) {
+		FOR_EACH_PTR(list, sym) {
+			struct symbol *type = sym->ctype.base_type;
+
+			if (type && type->type == SYM_FN && sym->ident)
+				last_function = sym;
+		} END_FOR_EACH_PTR(sym);
+		if (!last_function)
+			die("no function was found");
+		root_name = last_function->ident->name;
+	}
 	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
 	show_inline_function_definitions(list, &inline_dependencies, buf,
@@ -74,13 +94,20 @@ int main(int argc, char **argv)
 	fprintf(out, "%s\n", buf);
 	FOR_EACH_PTR(list, sym) {
 		struct ident *ident = sym->ident;
+		bool is_target = !whole_file && ident &&
+			strcmp(ident->name, root_name) == 0;
 
 		if (is_inline_function(sym) ||
-		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym))
+		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym)) {
+			if (is_target) {
+				found = true;
+				goto output_done;
+			}
 			continue;
+		}
 		show_sym(sym, buf, EXTRACT_BUFFER_SIZE);
 		fprintf(out, "%s\n", buf);
-		if (!whole_file && ident && strcmp(ident->name, root_name) == 0) {
+		if (is_target) {
 			found = true;
 			goto output_done;
 		}
