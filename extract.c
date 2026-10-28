@@ -77,12 +77,14 @@ int main(int argc, char **argv)
 
 	list = sparse_keep_tokens(file);
 	if (last_func) {
-		FOR_EACH_PTR(list, sym) {
+		FOR_EACH_PTR_REVERSE(list, sym) {
 			struct symbol *type = sym->ctype.base_type;
 
-			if (type && type->type == SYM_FN && sym->ident)
+			if (type && type->type == SYM_FN && sym->ident) {
 				last_function = sym;
-		} END_FOR_EACH_PTR(sym);
+				break;
+			}
+		} END_FOR_EACH_PTR_REVERSE(sym);
 		if (!last_function)
 			die("no function was found");
 		root_name = last_function->ident->name;
