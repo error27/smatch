@@ -844,8 +844,15 @@ static void show_function_dependencies(struct code_buffer *out,
 			continue;
 		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
-		if (type->type == SYM_FN && type->inline_stmt)
+		if (type->type == SYM_FN && type->inline_stmt) {
+			show_inline_function_for_symbol(out, dependency);
 			continue;
+		}
+		if (type->type == SYM_FN && type->stmt &&
+		    (dependency->ctype.modifiers & MOD_STATIC)) {
+			sym(out, dependency);
+			continue;
+		}
 		show_type_dependencies(&type_output, dependency,
 				       type_can_use_forward_declaration(dependency));
 		show_initializer_dependencies(out, dependency);
