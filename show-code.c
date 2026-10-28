@@ -2667,10 +2667,24 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 {
 	struct symbol *type = strip_type_wrappers(symbol);
 	struct symbol copy;
+	struct function_dependencies dependencies = { };
+	struct symbol *dependency;
+	unsigned int i;
 
 	if (!type || type->type == SYM_FN ||
 	    symbol_in_array(output->data, output->data_count, symbol))
 		return;
+	if (output->data_count >= ARRAY_SIZE(output->data))
+		return;
+	output->data[output->data_count++] = symbol;
+	collect_type_expression_dependencies(&dependencies, symbol);
+	for (i = 0; i < dependencies.function_count; i++) {
+		dependency = dependencies.functions[i];
+		if (dependency == symbol)
+			dependency = dependency->same_symbol;
+		if (dependency)
+			show_inline_data_dependency(output, dependency);
+	}
 	if (symbol->ctype.modifiers & MOD_STATIC)
 		sym(output->out, symbol);
 	else {
@@ -2680,8 +2694,6 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 		show_asm_name(output->out, &copy);
 		append(output->out, ";\n");
 	}
-	if (output->data_count < ARRAY_SIZE(output->data))
-		output->data[output->data_count++] = symbol;
 	if (output->emitted)
 		add_symbol(output->emitted, symbol);
 }
