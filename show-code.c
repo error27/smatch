@@ -97,8 +97,6 @@ static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static bool has_type_expression(struct symbol *type);
 static struct symbol *show_base_type(struct symbol *type);
-static void show_type_expression_storage(struct code_buffer *out,
-					 struct symbol *s);
 struct struct_types;
 struct symbol_dependencies;
 static void collect_statement_dependencies(struct symbol_dependencies *dependencies,
@@ -1027,6 +1025,8 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 		{ MOD_STATIC, "static" },
 		{ MOD_INLINE, "inline" },
 		{ MOD_CONST, "const" },
+		{ MOD_RESTRICT, "restrict" },
+		{ MOD_VOLATILE, "volatile" },
 		{ MOD_ATOMIC, "_Atomic" },
 		{ MOD_ALWAYS_INLINE, "__attribute__((__always_inline__))" },
 		{ MOD_GNU_INLINE, "__attribute__((__gnu_inline__))" },
@@ -1294,23 +1294,6 @@ static bool is_va_list_use(struct symbol *symbol)
 	return false;
 }
 
-static bool type_has_va_list_use(struct symbol *type)
-{
-	struct symbol *arg;
-
-	for (; type; type = show_base_type(type)) {
-		if (is_va_list_use(type))
-			return true;
-		if (type->type != SYM_FN)
-			continue;
-		FOR_EACH_PTR(type->arguments, arg) {
-			if (type_has_va_list_use(arg))
-				return true;
-		} END_FOR_EACH_PTR(arg);
-	}
-	return false;
-}
-
 static struct symbol *show_base_type(struct symbol *type)
 {
 	if (type && type->orig_base_type)
@@ -1334,15 +1317,6 @@ static bool is_typeof(struct symbol *type)
 	return has_type_expression(type);
 }
 
-static void show_typeof_expression(struct code_buffer *out,
-				   struct symbol *type)
-{
-	if (type->type_expression)
-		expr(out, type->type_expression);
-	else
-		append(out, "<empty type>");
-}
-
 static bool type_has_typeof(struct symbol *type)
 {
 	struct symbol *arg;
@@ -1360,10 +1334,20 @@ static bool type_has_typeof(struct symbol *type)
 	return false;
 }
 
+static void show_typeof_expression(struct code_buffer *out,
+				   struct symbol *type)
+{
+	if (type->type_expression)
+		expr(out, type->type_expression);
+	else
+		append(out, "<empty type>");
+}
+
 static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbol,
 					   struct c_type_name *name)
 {
-	struct symbol *type = symbol;
+	struct symbol copy;
+	struct symbol *type;
 	struct ident *as = NULL;
 	unsigned long modifiers = 0;
 	unsigned long declaration_modifiers = 0;
@@ -1371,9 +1355,22 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	bool restricted = false;
 	bool fouled = false;
 
+	if (symbol->ctype.modifiers & MOD_REGISTER) {
+		copy = *symbol;
+		copy.ctype.modifiers &= ~MOD_EXTERN;
+		symbol = &copy;
+	}
+	type = symbol;
 	while (type) {
 		const char *typename;
 
+		if (type == &autotype_ctype) {
+			modifiers &= ~MOD_SPECIFIER;
+			if (name->start != name->end)
+				type_name_prepend(name, " ");
+			type_name_prepend(name, "__auto_type");
+			goto out;
+		}
 		if (is_typeof(type)) {
 			char expression[C_TYPE_NAME_BUFFER_SIZE];
 			struct code_buffer expression_out = {
@@ -1524,75 +1521,17 @@ out:
 		name->end--;
 }
 
-static void show_type_expression_storage(struct code_buffer *out,
-					 struct symbol *s)
-{
-	if (s->ctype.modifiers & MOD_STATIC)
-		append(out, "static ");
-	else if ((s->ctype.modifiers & MOD_EXTERN) &&
-		 !(s->ctype.modifiers & MOD_REGISTER))
-		append(out, "extern ");
-	if (s->ctype.modifiers & MOD_REGISTER)
-		append(out, "register ");
-}
-
-static bool show_type_expression_typename(struct code_buffer *out, struct symbol *s)
-{
-	struct symbol *type;
-
-	if (!s)
-		return false;
-	if (s->type == SYM_NODE && show_base_type(s) == &autotype_ctype) {
-		append(out, "__auto_type");
-		if (s->ident)
-			append(out, " %s", show_ident(s->ident));
-		return true;
-	}
-	if (s->type == SYM_NODE)
-		type = show_base_type(s);
-	else
-		type = s;
-	if (is_typeof(type)) {
-		show_type_expression_storage(out, s);
-		append(out, "%s(", type->typeof_is_unqual ||
-		       type->type == SYM_TYPEOF_UNQUAL ? "__typeof_unqual__" :
-		       "typeof");
-		show_typeof_expression(out, type);
-		append(out, ")");
-		if (s->ident)
-			append(out, " %s", show_ident(s->ident));
-		return true;
-	}
-	return false;
-}
-
 static void show_c_typename(struct code_buffer *out, struct symbol *s)
 {
-	struct symbol copy;
-	struct symbol *type;
+	char array[C_TYPE_NAME_BUFFER_SIZE];
+	struct c_type_name name = {
+		.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
+		.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
+	};
 
-	if (show_type_expression_typename(out, s))
-		return;
-	if (s->ctype.modifiers & MOD_REGISTER) {
-		copy = *s;
-		copy.ctype.modifiers &= ~MOD_EXTERN;
-		s = &copy;
-	}
-	type = s->type == SYM_NODE ? show_base_type(s) : s;
-	if (type_has_typeof(type) || is_va_list_use(s) ||
-	    type_has_va_list_use(type)) {
-		char array[C_TYPE_NAME_BUFFER_SIZE];
-		struct c_type_name name = {
-			.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
-			.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
-		};
-
-		show_direct_c_typename(out, s, &name);
-		*name.end = '\0';
-		append(out, "%s", name.start);
-		return;
-	}
-	append(out, "%s", show_typename(s, false));
+	show_direct_c_typename(out, s, &name);
+	*name.end = '\0';
+	append(out, "%s", name.start);
 }
 
 static void show_asm_name(struct code_buffer *out, struct symbol *s)
