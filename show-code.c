@@ -228,13 +228,14 @@ static struct symbol *type_typedef_symbol(struct symbol *type)
 	if ((type->type == SYM_NODE || type->type == SYM_RESTRICT) &&
 	    type->ident) {
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
-		if (typedef_symbol != type)
+		if (typedef_symbol && typedef_symbol != type)
 			return typedef_symbol;
 	}
 	for (type = show_base_type(type); type &&
 	     (type->type == SYM_NODE || type->type == SYM_RESTRICT ||
 	      type->type == SYM_BITFIELD); type = show_base_type(type)) {
-		if (type->type == SYM_RESTRICT && type->ident) {
+		if ((type->type == SYM_NODE || type->type == SYM_RESTRICT) &&
+		    type->ident) {
 			typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 			if (typedef_symbol)
 				return typedef_symbol;
