@@ -18,6 +18,8 @@ struct code_buffer {
 	bool line_start;
 	struct symbol *local_tags[1024];
 	unsigned int local_tag_count;
+	struct symbol *printing[8192];
+	unsigned int printing_count;
 };
 
 static struct expression *rendering_expression;
@@ -74,6 +76,8 @@ static void show_statement_expression(struct code_buffer *out,
 static void sym(struct code_buffer *out, struct symbol *s);
 static void declaration(struct code_buffer *out, struct symbol *s);
 static void show_function(struct code_buffer *out, struct symbol *s);
+static void show_symbol_declaration(struct code_buffer *out, struct symbol *s);
+static struct symbol *function_definition(struct symbol *s);
 static bool is_typedef_tag(struct symbol *type);
 static struct symbol *find_anonymous_tag(struct symbol *type);
 static void show_anonymous_c_typename(struct code_buffer *out,
@@ -927,6 +931,7 @@ static void show_function_dependencies(struct code_buffer *out,
 	collect_function_dependencies(&dependencies, function);
 	show_collected_type_dependencies(&type_output, &dependencies);
 	for (i = 0; i < dependencies.symbol_count; i++) {
+		struct symbol *definition;
 		struct symbol *original;
 
 		dependency = dependencies.symbols[i];
@@ -943,9 +948,10 @@ static void show_function_dependencies(struct code_buffer *out,
 		    show_inline_function_for_symbol(out, dependency)) {
 			continue;
 		}
-		if (type->type == SYM_FN && type->stmt &&
-		    (dependency->ctype.modifiers & MOD_STATIC)) {
-			sym(out, dependency);
+		definition = function_definition(dependency);
+		if (definition &&
+		    (definition->ctype.modifiers & MOD_STATIC)) {
+			sym(out, definition);
 			continue;
 		}
 		show_type_dependencies(&type_output, dependency,
@@ -2477,14 +2483,84 @@ static bool statement_has_asm_goto(struct statement *s)
 	return false;
 }
 
+static bool symbol_is_being_printed(struct code_buffer *out, struct symbol *s)
+{
+	unsigned int i;
+
+	for (i = 0; i < out->printing_count; i++)
+		if (out->printing[i] == s)
+			return true;
+	return false;
+}
+
+static struct symbol *function_definition(struct symbol *s)
+{
+	unsigned int i;
+
+	if (s && s->definition)
+		return s->definition;
+	for (i = 0; s && i < 8192; i++) {
+		struct symbol *type = strip_type_wrappers(s);
+
+		if (type && type->type == SYM_FN &&
+		    (type->stmt || type->inline_stmt))
+			return s;
+		s = s->same_symbol;
+	}
+	return NULL;
+}
+
+static bool push_printing_symbol(struct code_buffer *out, struct symbol *s)
+{
+	if (out->printing_count >= ARRAY_SIZE(out->printing))
+		return false;
+	out->printing[out->printing_count++] = s;
+	return true;
+}
+
+static void pop_printing_symbol(struct code_buffer *out, struct symbol *s)
+{
+	if (out->printing_count && out->printing[out->printing_count - 1] == s)
+		out->printing_count--;
+}
+
+static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
+{
+	struct symbol copy = *s;
+	struct symbol *type = s->ctype.base_type;
+
+	if (symbol_was_declared(s))
+		return;
+	if (type && type->type == SYM_FN)
+		show_function_forwards(out, type);
+	if (!(copy.ctype.modifiers & MOD_STATIC))
+		copy.ctype.modifiers |= MOD_EXTERN;
+	show_c_typename(out, &copy);
+	show_asm_name(out, &copy);
+	append(out, ";\n");
+	remember_symbol(&printed.declarations, s);
+}
+
+static void show_printing_declarations(struct code_buffer *out)
+{
+	unsigned int i;
+
+	for (i = 0; i < out->printing_count; i++)
+		show_symbol_declaration(out, out->printing[i]);
+}
+
 static void sym(struct code_buffer *out, struct symbol *s)
 {
+	struct symbol *definition;
 	struct symbol *type;
 
 	if (!s) {
 		append(out, "/* null symbol */");
 		return;
 	}
+	definition = function_definition(s);
+	if (definition)
+		s = definition;
 
 	if (is_type_definition(s, &type))
 		return;
@@ -2492,17 +2568,27 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	if (symbol_was_defined(s))
 		return;
+	if (symbol_is_being_printed(out, s)) {
+		show_printing_declarations(out);
+		return;
+	}
+	if (!push_printing_symbol(out, s)) {
+		show_symbol_declaration(out, s);
+		return;
+	}
 
 	type = s->ctype.base_type;
 	if (type && type->type == SYM_FN) {
 		show_function(out, s);
-		return;
+		goto out;
 	}
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
 	if (!(s->ctype.modifiers & MOD_EXTERN))
 		remember_symbol(&printed.definitions, s);
+out:
+	pop_printing_symbol(out, s);
 }
 
 static struct symbol *find_anonymous_tag(struct symbol *type)
