@@ -16,6 +16,14 @@ static bool is_inline_function(struct symbol *symbol)
 	return type && type->type == SYM_FN && type->inline_stmt;
 }
 
+static bool is_function_definition(struct symbol *symbol)
+{
+	struct symbol *type = symbol->ctype.base_type;
+
+	return type && type->type == SYM_FN &&
+		(type->stmt || type->inline_stmt);
+}
+
 static void show_all(FILE *out, struct symbol_list *list, char *buf)
 {
 	struct symbol_list *inline_dependencies = NULL;
@@ -46,9 +54,7 @@ static struct symbol *find_function(struct symbol_list *list, const char *name)
 	struct symbol *sym;
 
 	FOR_EACH_PTR(list, sym) {
-		struct symbol *type = sym->ctype.base_type;
-
-		if (type && type->type == SYM_FN && sym->ident &&
+		if (is_function_definition(sym) && sym->ident &&
 		    strcmp(sym->ident->name, name) == 0)
 			return sym;
 	} END_FOR_EACH_PTR(sym);
@@ -114,9 +120,8 @@ int main(int argc, char **argv)
 	list = sparse_keep_tokens(file);
 	if (last_func) {
 		FOR_EACH_PTR_REVERSE(list, sym) {
-			struct symbol *type = sym->ctype.base_type;
-
-			if (type && type->type == SYM_FN && sym->ident) {
+			if (!last_function && is_function_definition(sym) && sym->ident &&
+			    strcmp(stream_name(sym->pos.stream), file) == 0) {
 				last_function = sym;
 				break;
 			}
