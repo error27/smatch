@@ -936,6 +936,8 @@ static void show_type_dependencies(struct tag_output *output,
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
+	while (type_is_ptr(nested_type) || type_is_array(nested_type))
+		nested_type = strip_type_wrappers(get_base_type(nested_type));
 	if (!typedef_symbol)
 		typedef_symbol = nested_type->ident ?
 			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
@@ -2647,6 +2649,7 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 	struct symbol *type = strip_type_wrappers(symbol);
 	struct symbol copy;
 	struct symbol_dependencies dependencies = { };
+	struct tag_output type_output = { .out = output->out };
 	struct symbol *dependency;
 	unsigned int i;
 
@@ -2656,6 +2659,8 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 	if (output->data_count >= ARRAY_SIZE(output->data))
 		return;
 	output->data[output->data_count++] = symbol;
+	show_type_dependencies(&type_output, symbol,
+			       type_can_use_forward_declaration(symbol));
 	collect_type_expression_dependencies(&dependencies, symbol);
 	for (i = 0; i < dependencies.symbol_count; i++) {
 		dependency = dependencies.symbols[i];
