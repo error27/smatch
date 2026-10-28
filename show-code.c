@@ -1052,6 +1052,20 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 	return buffer;
 }
 
+static void show_direct_tag_typename(struct c_type_name *name,
+				     struct symbol *type, unsigned long modifiers)
+{
+	if (name->start != name->end)
+		type_name_prepend(name, " ");
+	if (is_typedef_tag(type))
+		type_name_prepend_format(name, "%s", show_ident(type->ident));
+	else
+		type_name_prepend_format(name, "%s %s", tag_type_name(type),
+					show_ident(type->ident));
+	type_name_prepend(name, show_gcc_modifiers(modifiers &
+		(MOD_QUALIFIER | MOD_ATOMIC)));
+}
+
 static bool type_references_symbol(struct symbol *type, struct symbol *symbol,
 				   unsigned int depth)
 {
@@ -1447,31 +1461,9 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			break;
 		}
 		case SYM_STRUCT:
-			if (name->start != name->end)
-				type_name_prepend(name, " ");
-			if (is_typedef_tag(type))
-				type_name_prepend_format(name, "%s", show_ident(type->ident));
-			else
-				type_name_prepend_format(name, "struct %s", show_ident(type->ident));
-			type_name_prepend(name, show_gcc_modifiers(modifiers));
-			goto out;
 		case SYM_UNION:
-			if (name->start != name->end)
-				type_name_prepend(name, " ");
-			if (is_typedef_tag(type))
-				type_name_prepend_format(name, "%s", show_ident(type->ident));
-			else
-				type_name_prepend_format(name, "union %s", show_ident(type->ident));
-			type_name_prepend(name, show_gcc_modifiers(modifiers &
-				(MOD_QUALIFIER | MOD_ATOMIC)));
-			goto out;
 		case SYM_ENUM:
-			if (is_typedef_tag(type))
-				type_name_prepend_format(name, "%s ", show_ident(type->ident));
-			else
-				type_name_prepend_format(name, "enum %s ", show_ident(type->ident));
-			type_name_prepend(name, show_gcc_modifiers(modifiers &
-				(MOD_QUALIFIER | MOD_ATOMIC)));
+			show_direct_tag_typename(name, type, modifiers);
 			goto out;
 		case SYM_NODE:
 			if (type->ident)
@@ -1507,6 +1499,8 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s", show_ident(type->ident));
+			type_name_prepend(name, show_gcc_modifiers(modifiers &
+				(MOD_QUALIFIER | MOD_ATOMIC)));
 			goto out;
 		case SYM_FOULED:
 			fouled = true;

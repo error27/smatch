@@ -227,6 +227,20 @@ struct type_name {
 	char *end;
 };
 
+static void prepend_modifiers(struct type_name *name, unsigned long mod,
+				      bool checker)
+{
+	const char *s;
+	size_t len;
+
+	if (!mod)
+		return;
+	s = show_modifiers(mod, 1, checker);
+	len = strlen(s);
+	name->start -= len;
+	memcpy(name->start, s, len);
+}
+
 #define TYPE_NAME_BUFFER_SIZE 16384
 #define TYPE_NAME_BUFFER_MIDDLE (TYPE_NAME_BUFFER_SIZE / 2)
 
@@ -415,13 +429,7 @@ deeper:
 			prepend(name, "struct %s", show_ident(sym->ident));
 		if (checker && as)
 			prepend(name, "%s ", show_as(as));
-		if (mod) {
-			const char *s = show_modifiers(mod, 1, checker);
-			size_t len = strlen(s);
-
-			name->start -= len;
-			memcpy(name->start, s, len);
-		}
+		prepend_modifiers(name, mod, checker);
 		goto out;
 
 	case SYM_UNION:
@@ -431,14 +439,7 @@ deeper:
 			prepend(name, "%s", show_ident(sym->ident));
 		else
 			prepend(name, "union %s", show_ident(sym->ident));
-		if (mod & (MOD_QUALIFIER | MOD_ATOMIC)) {
-			const char *s = show_modifiers(mod &
-				(MOD_QUALIFIER | MOD_ATOMIC), 1, checker);
-			size_t len = strlen(s);
-
-			name->start -= len;
-			memcpy(name->start, s, len);
-		}
+		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
 		goto out;
 
 	case SYM_ENUM:
@@ -446,14 +447,7 @@ deeper:
 			prepend(name, "%s ", show_ident(sym->ident));
 		else
 			prepend(name, "enum %s ", show_ident(sym->ident));
-		if (mod & (MOD_QUALIFIER | MOD_ATOMIC)) {
-			const char *s = show_modifiers(mod &
-				(MOD_QUALIFIER | MOD_ATOMIC), 1, checker);
-			size_t len = strlen(s);
-
-			name->start -= len;
-			memcpy(name->start, s, len);
-		}
+		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
 		goto out;
 
 	case SYM_NODE:
@@ -499,6 +493,7 @@ deeper:
 			prepend(name, "restricted %s", show_ident(sym->ident));
 		else
 			prepend(name, "%s", show_ident(sym->ident));
+		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
 		goto out;
 
 	case SYM_FOULED:
