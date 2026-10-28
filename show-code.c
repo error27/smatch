@@ -114,8 +114,8 @@ struct struct_types {
 
 struct function_dependencies {
 	struct struct_types types;
-	struct symbol *functions[8192];
-	unsigned int function_count;
+	struct symbol *symbols[8192];
+	unsigned int symbol_count;
 };
 
 struct c_type_name {
@@ -473,7 +473,7 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 	}
 }
 
-static void add_symbol_dependency(struct symbol **functions, unsigned int *count,
+static void add_dependency_symbol(struct symbol **symbols, unsigned int *count,
 				  struct symbol *symbol)
 {
 	struct symbol *type;
@@ -487,10 +487,10 @@ static void add_symbol_dependency(struct symbol **functions, unsigned int *count
 		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
 		return;
 	for (i = 0; i < *count; i++)
-		if (functions[i] == symbol)
+		if (symbols[i] == symbol)
 			return;
 	if (*count < 8192)
-		functions[(*count)++] = symbol;
+		symbols[(*count)++] = symbol;
 }
 
 static struct symbol *member_type(struct symbol *type, struct ident *ident)
@@ -538,8 +538,8 @@ static void collect_expression_dependencies(struct function_dependencies *depend
 {
 	struct expression *item;
 	struct type_expression *map;
-	struct symbol **functions = dependencies->functions;
-	unsigned int *count = &dependencies->function_count;
+	struct symbol **symbols = dependencies->symbols;
+	unsigned int *count = &dependencies->symbol_count;
 
 	if (!e)
 		return;
@@ -593,14 +593,14 @@ static void collect_expression_dependencies(struct function_dependencies *depend
 		       (item->op == '*' || item->op == '('))
 			item = item->unop;
 		if (item && item->type == EXPR_SYMBOL)
-			add_symbol_dependency(functions, count, item->symbol);
+			add_dependency_symbol(symbols, count, item->symbol);
 		collect_expression_dependencies(dependencies, e->fn);
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies(dependencies, item);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_SYMBOL:
-		add_symbol_dependency(functions, count, e->symbol);
+		add_dependency_symbol(symbols, count, e->symbol);
 		break;
 	case EXPR_INITIALIZER:
 		FOR_EACH_PTR(e->expr_list, item) {
@@ -681,8 +681,8 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	active[active_count++] = symbol;
 	collect_type_expression_dependencies(&dependencies, symbol);
 	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
-	for (i = 0; i < dependencies.function_count; i++) {
-		dependency = dependencies.functions[i];
+	for (i = 0; i < dependencies.symbol_count; i++) {
+		dependency = dependencies.symbols[i];
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
 		if (!dependency)
@@ -829,10 +829,10 @@ static void show_function_dependencies(struct code_buffer *out,
 	for (i = 0; i < dependencies.types.count; i++)
 		show_required_type(&type_output, dependencies.types.types[i],
 				   dependencies.types.needs_forward[i]);
-	for (i = 0; i < dependencies.function_count; i++) {
+	for (i = 0; i < dependencies.symbol_count; i++) {
 		struct symbol *original;
 
-		dependency = dependencies.functions[i];
+		dependency = dependencies.symbols[i];
 		if (dependency == function)
 			dependency = dependency->same_symbol;
 		original = dependency;
@@ -2678,8 +2678,8 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 		return;
 	output->data[output->data_count++] = symbol;
 	collect_type_expression_dependencies(&dependencies, symbol);
-	for (i = 0; i < dependencies.function_count; i++) {
-		dependency = dependencies.functions[i];
+	for (i = 0; i < dependencies.symbol_count; i++) {
+		dependency = dependencies.symbols[i];
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
 		if (dependency)
@@ -2706,10 +2706,10 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
-	for (i = 0; i < dependencies.function_count; i++) {
+	for (i = 0; i < dependencies.symbol_count; i++) {
 		struct symbol *inline_function;
 
-		dependency = dependencies.functions[i];
+		dependency = dependencies.symbols[i];
 		if (dependency == function)
 			continue;
 		access_symbol(dependency);
