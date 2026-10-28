@@ -431,6 +431,14 @@ deeper:
 			prepend(name, "%s", show_ident(sym->ident));
 		else
 			prepend(name, "union %s", show_ident(sym->ident));
+		if (mod & (MOD_QUALIFIER | MOD_ATOMIC)) {
+			const char *s = show_modifiers(mod &
+				(MOD_QUALIFIER | MOD_ATOMIC), 1, checker);
+			size_t len = strlen(s);
+
+			name->start -= len;
+			memcpy(name->start, s, len);
+		}
 		goto out;
 
 	case SYM_ENUM:
@@ -438,6 +446,14 @@ deeper:
 			prepend(name, "%s ", show_ident(sym->ident));
 		else
 			prepend(name, "enum %s ", show_ident(sym->ident));
+		if (mod & (MOD_QUALIFIER | MOD_ATOMIC)) {
+			const char *s = show_modifiers(mod &
+				(MOD_QUALIFIER | MOD_ATOMIC), 1, checker);
+			size_t len = strlen(s);
+
+			name->start -= len;
+			memcpy(name->start, s, len);
+		}
 		goto out;
 
 	case SYM_NODE:

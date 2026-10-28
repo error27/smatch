@@ -1462,12 +1462,16 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 				type_name_prepend_format(name, "%s", show_ident(type->ident));
 			else
 				type_name_prepend_format(name, "union %s", show_ident(type->ident));
+			type_name_prepend(name, show_gcc_modifiers(modifiers &
+				(MOD_QUALIFIER | MOD_ATOMIC)));
 			goto out;
 		case SYM_ENUM:
 			if (is_typedef_tag(type))
 				type_name_prepend_format(name, "%s ", show_ident(type->ident));
 			else
 				type_name_prepend_format(name, "enum %s ", show_ident(type->ident));
+			type_name_prepend(name, show_gcc_modifiers(modifiers &
+				(MOD_QUALIFIER | MOD_ATOMIC)));
 			goto out;
 		case SYM_NODE:
 			if (type->ident)
