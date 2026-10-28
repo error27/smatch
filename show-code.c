@@ -372,12 +372,9 @@ static void add_type_dependency(struct symbol_dependencies *dependencies,
 }
 
 struct output_dependencies {
-	struct symbol_list *type_definitions;
-	struct symbol_list *type_forwards;
-	struct symbol_list *typedefs;
-	struct symbol_list *function_definitions;
-	struct symbol_list *function_forwards;
-	struct symbol_list *data_definitions;
+	struct symbol_list *definitions;
+	struct symbol_list *declarations;
+	struct symbol_list *necessary;
 };
 
 static struct output_dependencies printed;
@@ -421,7 +418,7 @@ static void remember_tag(struct symbol_list **tags, struct symbol *type)
 
 static bool typedef_was_output(struct symbol *type)
 {
-	return tag_was_output(printed.typedefs, type);
+	return tag_was_output(printed.definitions, type);
 }
 
 static bool symbol_was_output(struct symbol_list *symbols,
@@ -446,18 +443,26 @@ static void remember_symbol(struct symbol_list **symbols,
 		add_symbol(symbols, symbol);
 }
 
+static void require_symbol(struct symbol *symbol)
+{
+	if (!symbol_was_output(printed.definitions, symbol) &&
+	    !symbol_was_output(printed.declarations, symbol))
+		remember_symbol(&printed.necessary, symbol);
+}
+
 static void show_required_type(struct tag_output *output,
 				       struct symbol *needed, bool needs_forward)
 {
+	require_symbol(needed);
 	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-		if (!tag_was_output(printed.type_forwards, needed)) {
+		if (!tag_was_output(printed.declarations, needed)) {
 			append(output->out, "enum %s;\n", show_ident(needed->ident));
-			remember_tag(&printed.type_forwards, needed);
+			remember_tag(&printed.declarations, needed);
 		}
 		return;
 	}
 	if (is_typedef_tag(needed) || !needs_forward) {
-		if (!tag_was_output(printed.type_definitions, needed)) {
+		if (!tag_was_output(printed.definitions, needed)) {
 			if (tag_has_definition(needed))
 				show_type_definition(output, needed);
 			else
@@ -466,11 +471,11 @@ static void show_required_type(struct tag_output *output,
 		}
 		return;
 	}
-	if (!tag_was_output(printed.type_definitions, needed) &&
-	    !tag_was_output(printed.type_forwards, needed)) {
+	if (!tag_was_output(printed.definitions, needed) &&
+	    !tag_was_output(printed.declarations, needed)) {
 		append(output->out, "%s %s;\n", tag_type_name(needed),
 		       show_ident(needed->ident));
-		remember_tag(&printed.type_forwards, needed);
+		remember_tag(&printed.declarations, needed);
 	}
 }
 
@@ -499,18 +504,18 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 		struct symbol *needed = dependencies.types.types[i];
 
 		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-			if (!tag_was_output(printed.type_forwards, needed)) {
+			if (!tag_was_output(printed.declarations, needed)) {
 				append(out, "enum %s;\n", show_ident(needed->ident));
-				remember_tag(&printed.type_forwards, needed);
+				remember_tag(&printed.declarations, needed);
 			}
 			continue;
 		}
 		if (dependencies.types.needs_forward[i] &&
-		    !tag_was_output(printed.type_definitions, needed) &&
-		    !tag_was_output(printed.type_forwards, needed)) {
+		    !tag_was_output(printed.definitions, needed) &&
+		    !tag_was_output(printed.declarations, needed)) {
 			append(out, "%s %s;\n", tag_type_name(needed),
 			       show_ident(needed->ident));
-			remember_tag(&printed.type_forwards, needed);
+			remember_tag(&printed.declarations, needed);
 		}
 		if (!dependencies.types.needs_forward[i] && !tag_has_definition(needed))
 			fprintf(stderr, "missing definition for %s %s\n",
@@ -772,9 +777,9 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			dependency = dependency->same_symbol;
 		if (!dependency)
 			continue;
-		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency) ||
-		    symbol_was_output(printed.data_definitions, dependency))
+		require_symbol(dependency);
+		if (symbol_was_output(printed.definitions, dependency) ||
+		    symbol_was_output(printed.declarations, dependency))
 			continue;
 		if (show_inline_function_for_symbol(out, dependency))
 			continue;
@@ -786,7 +791,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		if (type_is_array(type) && !type->array_size &&
 		    symbol_initializer(dependency)) {
 			declaration(out, dependency);
-			remember_symbol(&printed.data_definitions, dependency);
+			remember_symbol(&printed.definitions, dependency);
 			continue;
 		}
 		copy = *dependency;
@@ -795,7 +800,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		show_c_typename(out, &copy);
 		show_asm_name(out, &copy);
 		append(out, ";\n");
-		remember_symbol(&printed.function_forwards, dependency);
+		remember_symbol(&printed.declarations, dependency);
 	}
 }
 
@@ -921,9 +926,9 @@ static void show_function_dependencies(struct code_buffer *out,
 		original = dependency;
 		if (!dependency)
 			continue;
-		if (symbol_was_output(printed.function_definitions, dependency) ||
-		    symbol_was_output(printed.function_forwards, dependency) ||
-		    symbol_was_output(printed.data_definitions, dependency))
+		require_symbol(dependency);
+		if (symbol_was_output(printed.definitions, dependency) ||
+		    symbol_was_output(printed.declarations, dependency))
 			continue;
 		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
@@ -962,7 +967,7 @@ static void show_function_dependencies(struct code_buffer *out,
 		show_c_typename(out, dependency);
 		show_asm_name(out, dependency);
 		append(out, ";\n");
-		remember_symbol(&printed.function_forwards, original);
+		remember_symbol(&printed.declarations, original);
 	}
 }
 
@@ -1010,13 +1015,13 @@ static void show_type_dependencies(struct tag_output *output,
 			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
 	if (typedef_symbol && typedef_symbol != type) {
 		if (is_type_definition(typedef_symbol, &tag)) {
-			if (!tag_was_output(printed.type_definitions, tag))
+			if (!tag_was_output(printed.definitions, tag))
 				show_type_definition(output, tag);
 			return;
 		}
-		if (tag_was_output(printed.typedefs, typedef_symbol))
+		if (tag_was_output(printed.definitions, typedef_symbol))
 			return;
-		remember_tag(&printed.typedefs, typedef_symbol);
+		remember_tag(&printed.definitions, typedef_symbol);
 		show_type_dependencies(output, typedef_symbol->ctype.base_type,
 				       true);
 		show_typedef_definition(output->out, typedef_symbol);
@@ -2478,7 +2483,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	if (s->namespace == NS_TYPEDEF && typedef_was_output(s))
 		return;
-	if (symbol_was_output(printed.data_definitions, s))
+	if (symbol_was_output(printed.definitions, s))
 		return;
 
 	type = s->ctype.base_type;
@@ -2490,7 +2495,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
 	if (!(s->ctype.modifiers & MOD_EXTERN))
-		remember_symbol(&printed.data_definitions, s);
+		remember_symbol(&printed.definitions, s);
 }
 
 static struct symbol *find_anonymous_tag(struct symbol *type)
@@ -2622,11 +2627,11 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 		(s->ctype.modifiers & MOD_INLINE) &&
 		!(s->ctype.modifiers & MOD_STATIC);
 	if (has_definition &&
-	    symbol_was_output(printed.function_definitions, s))
+	    symbol_was_output(printed.definitions, s))
 		return;
 	if (!has_definition &&
-	    (symbol_was_output(printed.function_definitions, s) ||
-	     symbol_was_output(printed.function_forwards, s)))
+	    (symbol_was_output(printed.definitions, s) ||
+	     symbol_was_output(printed.declarations, s)))
 		return;
 
 	show_function_forwards(out, type);
@@ -2653,11 +2658,11 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 		}
 		append(out, "\n");
 		function_body(out, body);
-		remember_symbol(&printed.function_definitions, s);
+		remember_symbol(&printed.definitions, s);
 	} else {
 		show_c_typename(out, s);
 		append(out, ";\n");
-		remember_symbol(&printed.function_forwards, s);
+		remember_symbol(&printed.declarations, s);
 	}
 }
 
@@ -2701,13 +2706,13 @@ static void show_inline_function_definition(struct inline_function_output *outpu
 static void show_inline_function_declaration(struct inline_function_output *output,
 					     struct symbol *function)
 {
-	if (symbol_was_output(printed.function_definitions, function) ||
-	    symbol_was_output(printed.function_forwards, function))
+	if (symbol_was_output(printed.definitions, function) ||
+	    symbol_was_output(printed.declarations, function))
 		return;
 	show_function_forwards(output->out, function->ctype.base_type);
 	show_c_typename(output->out, function);
 	append(output->out, ";\n");
-	remember_symbol(&printed.function_forwards, function);
+	remember_symbol(&printed.declarations, function);
 }
 
 static void show_inline_data_dependency(struct inline_function_output *output,
@@ -2780,7 +2785,7 @@ static void show_inline_function_definition(struct inline_function_output *outpu
 	struct symbol *type = strip_type_wrappers(function);
 
 	if (!type || type->type != SYM_FN || !type->inline_stmt ||
-	    symbol_was_output(printed.function_definitions, function))
+	    symbol_was_output(printed.definitions, function))
 		return;
 	if (symbol_in_array(output->active, output->active_count, function)) {
 		show_inline_function_declaration(output, function);
@@ -2859,7 +2864,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		append(out, ";\n");
 	} else
 		append(out, "};\n");
-	remember_tag(&printed.type_definitions, type);
+	remember_tag(&printed.definitions, type);
 }
 
 static void show_enum_definition(struct tag_output *output, struct symbol *type)
@@ -2887,7 +2892,7 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 		append(out, "} %s;\n", show_ident(type->ident));
 	else
 		append(out, "};\n");
-	remember_tag(&printed.type_definitions, type);
+	remember_tag(&printed.definitions, type);
 }
 
 static void show_tag_definition(struct tag_output *output, struct symbol *type)
@@ -2897,10 +2902,10 @@ static void show_tag_definition(struct tag_output *output, struct symbol *type)
 	if (is_typedef_tag(type)) {
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 		if (typedef_symbol &&
-		    tag_was_output(printed.typedefs, typedef_symbol))
+		    tag_was_output(printed.definitions, typedef_symbol))
 			return;
 		if (typedef_symbol)
-			remember_tag(&printed.typedefs, typedef_symbol);
+			remember_tag(&printed.definitions, typedef_symbol);
 	}
 	if (type->type == SYM_ENUM)
 		show_enum_definition(output, type);
@@ -2936,16 +2941,16 @@ static void show_type_definition(struct tag_output *output,
 
 	if (is_type_definition(symbol, &tag)) {
 		show_type_members(output, tag);
-		if (!tag_was_output(printed.type_definitions, tag))
+		if (!tag_was_output(printed.definitions, tag))
 			show_tag_definition(output, tag);
 		return;
 	}
 	if (symbol->namespace != NS_TYPEDEF || !symbol->ident ||
 	    lookup_symbol(symbol->ident, NS_TYPEDEF) != symbol)
 		return;
-	if (tag_was_output(printed.typedefs, symbol))
+	if (tag_was_output(printed.definitions, symbol))
 		return;
-	remember_tag(&printed.typedefs, symbol);
+	remember_tag(&printed.definitions, symbol);
 	show_type_dependencies(output, symbol->ctype.base_type,
 			       true);
 	show_typedef_definition(output->out, symbol);
