@@ -1343,6 +1343,12 @@ static void show_typeof_expression(struct code_buffer *out,
 		append(out, "<empty type>");
 }
 
+/*
+ * Based on show_c_typename(), but emit compilable GCC code rather than
+ * Sparse checker types.  Keep source-preservation workarounds here for
+ * evaluated types, including typeof(), __typeof_unqual__(), va_list, and
+ * original base types.
+ */
 static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbol,
 					   struct c_type_name *name)
 {
