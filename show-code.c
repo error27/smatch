@@ -100,10 +100,10 @@ static struct symbol *show_base_type(struct symbol *type);
 static void show_type_expression_storage(struct code_buffer *out,
 					 struct symbol *s);
 struct struct_types;
-struct function_dependencies;
-static void collect_statement_dependencies(struct function_dependencies *dependencies,
+struct symbol_dependencies;
+static void collect_statement_dependencies(struct symbol_dependencies *dependencies,
 						   struct statement *s);
-static void collect_type_expression_dependencies(struct function_dependencies *dependencies,
+static void collect_type_expression_dependencies(struct symbol_dependencies *dependencies,
 							   struct symbol *type);
 
 struct struct_types {
@@ -112,7 +112,7 @@ struct struct_types {
 	unsigned int count;
 };
 
-struct function_dependencies {
+struct symbol_dependencies {
 	struct struct_types types;
 	struct symbol *symbols[8192];
 	unsigned int symbol_count;
@@ -334,7 +334,7 @@ static void collect_dependencies(struct struct_types *types,
 	}
 }
 
-static void collect_function_type_dependencies(struct function_dependencies *dependencies,
+static void collect_function_type_dependencies(struct symbol_dependencies *dependencies,
 					       struct symbol *type)
 {
 	collect_dependencies(&dependencies->types, type,
@@ -446,7 +446,7 @@ static void show_required_type(struct tag_output *output,
 
 static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
-	struct function_dependencies dependencies = { };
+	struct symbol_dependencies dependencies = { };
 	unsigned int i;
 
 	collect_function_type_dependencies(&dependencies, type);
@@ -533,7 +533,7 @@ static struct symbol *member_access_type(struct expression *e)
 	}
 }
 
-static void collect_expression_dependencies(struct function_dependencies *dependencies,
+static void collect_expression_dependencies(struct symbol_dependencies *dependencies,
 						    struct expression *e)
 {
 	struct expression *item;
@@ -637,7 +637,7 @@ static void collect_expression_dependencies(struct function_dependencies *depend
 	}
 }
 
-static void collect_type_expression_dependencies(struct function_dependencies *dependencies,
+static void collect_type_expression_dependencies(struct symbol_dependencies *dependencies,
 							   struct symbol *type)
 {
 	while (type) {
@@ -648,7 +648,7 @@ static void collect_type_expression_dependencies(struct function_dependencies *d
 	}
 }
 
-static void collect_declaration_dependencies(struct function_dependencies *dependencies,
+static void collect_declaration_dependencies(struct symbol_dependencies *dependencies,
 						     struct symbol_list *declarations)
 {
 	struct symbol *declaration;
@@ -667,7 +667,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 					      struct symbol **active,
 					      unsigned int active_count)
 {
-	struct function_dependencies dependencies = { };
+	struct symbol_dependencies dependencies = { };
 	struct symbol *dependency;
 	struct symbol *type;
 	struct symbol copy;
@@ -722,7 +722,7 @@ static void show_initializer_dependencies(struct code_buffer *out,
 	show_initializer_dependencies_rec(out, symbol, active, 0);
 }
 
-static void collect_asm_dependencies(struct function_dependencies *dependencies,
+static void collect_asm_dependencies(struct symbol_dependencies *dependencies,
 				     struct asm_operand_list *operands)
 {
 	struct asm_operand *operand;
@@ -732,7 +732,7 @@ static void collect_asm_dependencies(struct function_dependencies *dependencies,
 	} END_FOR_EACH_PTR(operand);
 }
 
-static void collect_statement_dependencies(struct function_dependencies *dependencies,
+static void collect_statement_dependencies(struct symbol_dependencies *dependencies,
 					   struct statement *s)
 {
 	struct statement *child;
@@ -802,7 +802,7 @@ static void collect_statement_dependencies(struct function_dependencies *depende
 	}
 }
 
-static void collect_function_dependencies(struct function_dependencies *dependencies,
+static void collect_function_dependencies(struct symbol_dependencies *dependencies,
 					  struct symbol *function)
 {
 	struct symbol *type = function->ctype.base_type;
@@ -818,7 +818,7 @@ static void collect_function_dependencies(struct function_dependencies *dependen
 static void show_function_dependencies(struct code_buffer *out,
 				       struct symbol *function)
 {
-	struct function_dependencies dependencies = { };
+	struct symbol_dependencies dependencies = { };
 	struct tag_output type_output = { .out = out };
 	struct symbol *dependency;
 	struct symbol copy;
@@ -2667,7 +2667,7 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 {
 	struct symbol *type = strip_type_wrappers(symbol);
 	struct symbol copy;
-	struct function_dependencies dependencies = { };
+	struct symbol_dependencies dependencies = { };
 	struct symbol *dependency;
 	unsigned int i;
 
@@ -2701,7 +2701,7 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 static void show_inline_function_dependencies(struct inline_function_output *output,
 					      struct symbol *function)
 {
-	struct function_dependencies dependencies = { };
+	struct symbol_dependencies dependencies = { };
 	struct symbol *dependency;
 	unsigned int i;
 
