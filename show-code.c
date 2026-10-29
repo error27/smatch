@@ -92,8 +92,6 @@ static bool show_inline_function_for_symbol(struct code_buffer *out,
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
 static bool typedef_was_output(struct symbol *type);
 static bool tag_has_definition(struct symbol *tag);
-static void show_local_tag_definition(struct code_buffer *out,
-				      struct symbol *tag);
 static bool expression_references_symbol(struct expression *e,
 					 struct symbol *symbol, unsigned int depth);
 static bool is_struct_or_union(struct symbol *type);
@@ -2065,7 +2063,9 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 			break;
 	}
 	if (tag && i == out->local_tag_count) {
-		show_local_tag_definition(out, tag);
+		struct tag_output output = { .out = out };
+
+		show_tag_definition(&output, tag);
 		if (out->local_tag_count < ARRAY_SIZE(out->local_tags))
 			out->local_tags[out->local_tag_count++] = tag;
 	}
@@ -2613,44 +2613,6 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 	append(out, "%s", buf);
 	show_tag_definition(&output, anonymous_tag);
 	append(out, "%s", tag + strlen(placeholder));
-}
-
-static void show_local_tag_definition(struct code_buffer *out,
-				      struct symbol *tag)
-{
-	struct symbol *member;
-
-	if (tag->type == SYM_ENUM) {
-		append(out, "enum %s {\n", show_ident(tag->ident));
-		out->indent++;
-		FOR_EACH_PTR(tag->symbol_list, member) {
-			append(out, "%s", show_ident(member->ident));
-			if (member->initializer) {
-				append(out, " = ");
-				expr(out, member->initializer);
-			}
-			append(out, ",\n");
-		} END_FOR_EACH_PTR(member);
-		out->indent--;
-		append(out, "};\n");
-		return;
-	}
-
-	append(out, "%s %s {\n", tag_type_name(tag), show_ident(tag->ident));
-	out->indent++;
-	FOR_EACH_PTR(tag->symbol_list, member) {
-		struct symbol *anonymous_tag = find_anonymous_tag(member);
-
-		if (anonymous_tag) {
-			show_anonymous_c_typename(out, member, anonymous_tag);
-			append(out, ";\n");
-			continue;
-		}
-		show_c_typename(out, member);
-		append(out, ";\n");
-	} END_FOR_EACH_PTR(member);
-	out->indent--;
-	append(out, "};\n");
 }
 
 static void show_function(struct code_buffer *out, struct symbol *s)
