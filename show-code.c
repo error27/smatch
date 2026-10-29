@@ -387,6 +387,7 @@ static struct output_dependencies printed;
 struct tag_output {
 	struct code_buffer *out;
 	struct symbol_list *dependency_types;
+	bool inline_tag;
 };
 
 static void show_struct_definition(struct tag_output *output,
@@ -2588,7 +2589,7 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag)
 {
-	struct tag_output output = { .out = out };
+	struct tag_output output = { .out = out, .inline_tag = true };
 	char buf[4096];
 	char placeholder[64];
 	struct code_buffer type_out = {
@@ -2859,6 +2860,10 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
+	if (output->inline_tag) {
+		append(out, "}");
+		return;
+	}
 	if (is_typedef_tag(type)) {
 		append(out, "} %s", show_ident(type->ident));
 		if (type->transparent_union)
@@ -2893,6 +2898,10 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 		append(out, ",\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
+	if (output->inline_tag) {
+		append(out, "}");
+		return;
+	}
 	if (is_typedef_tag(type))
 		append(out, "} %s;\n", show_ident(type->ident));
 	else
