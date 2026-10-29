@@ -256,6 +256,9 @@ static bool type_is_array(struct symbol *type)
 
 static bool type_can_use_forward_declaration(struct symbol *type)
 {
+	if (type && type->namespace == NS_SYMBOL &&
+	    (type->ctype.modifiers & MOD_EXTERN))
+		return true;
 	type = strip_type_wrappers(type);
 	while (type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
