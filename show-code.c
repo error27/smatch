@@ -426,12 +426,6 @@ static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
 	return false;
 }
 
-static void remember_tag(struct symbol_list **tags, struct symbol *type)
-{
-	if (!tag_was_output(*tags, type))
-		add_symbol(tags, type);
-}
-
 static bool tag_was_defined(struct symbol *type)
 {
 	return tag_was_output(printed.definitions, type);
@@ -488,7 +482,7 @@ static void show_type_declaration(struct tag_output *output,
 		return;
 	append(output->out, "%s %s;\n", tag_type_name(symbol),
 	       show_ident(symbol->ident));
-	remember_tag(&printed.declarations, symbol);
+	remember_symbol(&printed.declarations, symbol);
 }
 
 static void show_required_type(struct tag_output *output,
@@ -1054,7 +1048,7 @@ static void show_type_dependencies(struct tag_output *output,
 		}
 		if (tag_was_defined(typedef_symbol))
 			return;
-		remember_tag(&printed.definitions, typedef_symbol);
+		remember_symbol(&printed.definitions, typedef_symbol);
 		show_type_dependencies(output, typedef_symbol->ctype.base_type,
 				       true);
 		show_typedef_definition(output->out, typedef_symbol);
@@ -2523,7 +2517,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		append(out, "}");
 	}
 	if (type->ident)
-		remember_tag(&printed.definitions, type);
+		remember_symbol(&printed.definitions, type);
 }
 
 static void show_enum_definition(struct tag_output *output, struct symbol *type)
@@ -2554,7 +2548,7 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 	else
 		append(out, "}");
 	if (type->ident)
-		remember_tag(&printed.definitions, type);
+		remember_symbol(&printed.definitions, type);
 }
 
 static bool show_tag_definition(struct tag_output *output, struct symbol *type)
@@ -2567,7 +2561,7 @@ static bool show_tag_definition(struct tag_output *output, struct symbol *type)
 		    tag_was_defined(typedef_symbol))
 			return false;
 		if (typedef_symbol)
-			remember_tag(&printed.definitions, typedef_symbol);
+			remember_symbol(&printed.definitions, typedef_symbol);
 	}
 	if (type->type == SYM_ENUM)
 		show_enum_definition(output, type);
@@ -2614,7 +2608,7 @@ static void show_type_definition(struct tag_output *output,
 		return;
 	if (tag_was_defined(symbol))
 		return;
-	remember_tag(&printed.definitions, symbol);
+	remember_symbol(&printed.definitions, symbol);
 	show_type_dependencies(output, symbol->ctype.base_type,
 			       true);
 	show_typedef_definition(output->out, symbol);
