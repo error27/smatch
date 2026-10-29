@@ -774,6 +774,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 					      unsigned int active_count)
 {
 	struct symbol_dependencies dependencies = { };
+	struct tag_output type_output = { .out = out };
 	struct symbol *dependency;
 	struct symbol *definition;
 	struct symbol *type;
@@ -798,6 +799,8 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			continue;
 		if (show_inline_function_for_symbol(out, dependency))
 			continue;
+		show_type_dependencies(&type_output, dependency,
+				       type_can_use_forward_declaration(dependency));
 		show_initializer_dependencies_rec(out, dependency, active,
 						  active_count);
 		type = strip_type_wrappers(dependency);
@@ -806,14 +809,12 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			sym(out, definition);
 			continue;
 		}
-		if (type->type == SYM_FN)
-			show_function_forwards(out, dependency->ctype.base_type);
-		if (type_is_array(type) && !type->array_size &&
-		    symbol_initializer(dependency)) {
-			declaration(out, dependency);
-			remember_symbol(&printed.definitions, dependency);
+		if (symbol_initializer(dependency)) {
+			sym(out, dependency);
 			continue;
 		}
+		if (type->type == SYM_FN)
+			show_function_forwards(out, dependency->ctype.base_type);
 		copy = *dependency;
 		if (!(copy.ctype.modifiers & MOD_STATIC))
 			copy.ctype.modifiers |= MOD_EXTERN;
