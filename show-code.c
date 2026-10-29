@@ -1032,8 +1032,11 @@ static void show_type_dependencies(struct tag_output *output,
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
-	while (type_is_ptr(nested_type) || type_is_array(nested_type))
-		nested_type = strip_type_wrappers(get_base_type(nested_type));
+	if (type_is_ptr(nested_type) || type_is_array(nested_type)) {
+		show_type_dependencies(output, get_base_type(nested_type),
+				       type_can_use_forward_declaration(nested_type));
+		return;
+	}
 	if (!typedef_symbol)
 		typedef_symbol = nested_type->ident ?
 			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
