@@ -600,6 +600,58 @@ static void collect_function_return_type_dependency(struct sym_dependency_list *
 		collect_complete_type_dependency(dependencies, type->ctype.base_type);
 }
 
+static struct symbol *expression_symbol_type(struct expression *e)
+{
+	if (!e)
+		return NULL;
+	if (e->ctype)
+		return e->ctype;
+	if (e->type == EXPR_SYMBOL && e->symbol)
+		return e->symbol->ctype.base_type;
+	return NULL;
+}
+
+static struct symbol *find_member_symbol(struct symbol *type,
+					 struct ident *ident)
+{
+	struct symbol *member;
+	struct symbol *nested;
+
+	FOR_EACH_PTR(type->symbol_list, member) {
+		if (member->ident == ident)
+			return member;
+		nested = strip_type_wrappers(member);
+		if (nested && nested->definition && is_tag_type(nested->definition))
+			nested = nested->definition;
+		if (is_struct_or_union(nested) && !nested->ident) {
+			member = find_member_symbol(nested, ident);
+			if (member)
+				return member;
+		}
+	} END_FOR_EACH_PTR(member);
+	return NULL;
+}
+
+static void collect_member_type_dependency(struct sym_dependency_list **dependencies,
+					   struct expression *e)
+{
+	struct expression *base;
+	struct symbol *tag;
+	struct symbol *member;
+
+	if (!e->member)
+		return;
+	base = e->deref;
+	if (base && base->type == EXPR_PREOP && base->op == '*')
+		base = base->unop;
+	tag = tag_dependency_symbol(expression_symbol_type(base));
+	if (!tag)
+		return;
+	member = find_member_symbol(tag, e->member);
+	if (member)
+		collect_complete_type_dependency(dependencies, member->ctype.base_type);
+}
+
 static void collect_expression_dependencies_rec(struct sym_dependency_list **dependencies,
 						struct expression *e,
 						bool complete_type)
@@ -634,6 +686,8 @@ static void collect_expression_dependencies_rec(struct sym_dependency_list **dep
 						    complete_type);
 		break;
 	case EXPR_DEREF:
+		if (complete_type)
+			collect_member_type_dependency(dependencies, e);
 		collect_expression_dependencies_rec(dependencies, e->deref,
 						    complete_type || e->member);
 		break;
