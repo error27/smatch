@@ -107,7 +107,8 @@ static void collect_type_expression_dependencies(struct sym_dependency_list **de
 
 struct sym_dependency {
 	struct symbol *sym;
-	bool needs_forward;
+	/* Define it if possible but a declaration is enough. */
+	bool decl_enough;
 };
 DECLARE_PTR_LIST(sym_dependency_list, struct sym_dependency);
 
@@ -190,7 +191,7 @@ static bool is_typedef_tag(struct symbol *type)
 }
 
 static void collect_dependencies(struct sym_dependency_list **dependencies,
-				 struct symbol *type, bool needs_forward);
+				 struct symbol *type, bool decl_enough);
 
 static struct symbol *strip_type_wrappers(struct symbol *type)
 {
@@ -275,7 +276,7 @@ static struct sym_dependency *find_dependency(struct sym_dependency_list *depend
 }
 
 static void add_dependency(struct sym_dependency_list **dependencies,
-				   struct symbol *symbol, bool needs_forward)
+				   struct symbol *symbol, bool decl_enough)
 {
 	struct sym_dependency *dependency;
 
@@ -283,14 +284,14 @@ static void add_dependency(struct sym_dependency_list **dependencies,
 		return;
 	dependency = find_dependency(*dependencies, symbol);
 	if (dependency) {
-		dependency->needs_forward &= needs_forward;
+		dependency->decl_enough &= decl_enough;
 		return;
 	}
 	dependency = malloc(sizeof(*dependency));
 	if (!dependency)
 		return;
 	dependency->sym = symbol;
-	dependency->needs_forward = needs_forward;
+	dependency->decl_enough = decl_enough;
 	add_ptr_list(dependencies, dependency);
 }
 
@@ -316,16 +317,16 @@ static struct symbol *tag_dependency_symbol(struct symbol *type)
 }
 
 static struct symbol *add_tag_dependency(struct sym_dependency_list **dependencies,
-				 struct symbol *type, bool needs_forward)
+				 struct symbol *type, bool decl_enough)
 {
 	type = tag_dependency_symbol(type);
 	if (type)
-		add_dependency(dependencies, type, needs_forward);
+		add_dependency(dependencies, type, decl_enough);
 	return type;
 }
 
 static void collect_dependencies(struct sym_dependency_list **dependencies,
-				 struct symbol *type, bool needs_forward)
+				 struct symbol *type, bool decl_enough)
 {
 	struct symbol *struct_type;
 	struct symbol *member;
@@ -337,7 +338,7 @@ static void collect_dependencies(struct sym_dependency_list **dependencies,
 	if (is_va_list_use(type)) {
 		typedef_symbol = lookup_symbol(built_in_ident("va_list"),
 					      NS_TYPEDEF);
-		add_dependency(dependencies, typedef_symbol, needs_forward);
+		add_dependency(dependencies, typedef_symbol, decl_enough);
 	}
 	if (type->scope && !toplevel(type->scope))
 		return;
@@ -347,7 +348,7 @@ static void collect_dependencies(struct sym_dependency_list **dependencies,
 	case SYM_BITFIELD:
 	case SYM_TYPEOF:
 	case SYM_TYPEOF_UNQUAL:
-		collect_dependencies(dependencies, get_base_type(type), needs_forward);
+		collect_dependencies(dependencies, get_base_type(type), decl_enough);
 		return;
 	case SYM_PTR:
 	case SYM_ARRAY:
@@ -364,14 +365,14 @@ static void collect_dependencies(struct sym_dependency_list **dependencies,
 		} END_FOR_EACH_PTR(arg);
 		return;
 	case SYM_ENUM:
-		add_tag_dependency(dependencies, type, needs_forward);
+		add_tag_dependency(dependencies, type, decl_enough);
 		return;
 	case SYM_STRUCT:
 	case SYM_UNION:
-		struct_type = add_tag_dependency(dependencies, type, needs_forward);
+		struct_type = add_tag_dependency(dependencies, type, decl_enough);
 		if (!struct_type)
 			struct_type = type;
-		if (needs_forward || !struct_type->symbol_list)
+		if (decl_enough || !struct_type->symbol_list)
 			return;
 		FOR_EACH_PTR(struct_type->symbol_list, member) {
 			collect_dependencies(dependencies, member,
@@ -391,17 +392,17 @@ static void collect_function_type_dependencies(struct sym_dependency_list **depe
 }
 
 static void add_type_dependency(struct sym_dependency_list **dependencies,
-				struct symbol *type, bool needs_forward)
+				struct symbol *type, bool decl_enough)
 {
 	struct symbol *typedef_symbol;
 
 	if (!type)
 		return;
 	typedef_symbol = type_typedef_symbol(type);
-	collect_dependencies(dependencies, show_base_type(type), needs_forward);
+	collect_dependencies(dependencies, show_base_type(type), decl_enough);
 	if (!typedef_symbol)
 		return;
-	add_dependency(dependencies, typedef_symbol, needs_forward);
+	add_dependency(dependencies, typedef_symbol, decl_enough);
 }
 
 struct output_dependencies {
@@ -421,7 +422,7 @@ static bool show_tag_definition(struct tag_output *output, struct symbol *type);
 static void show_type_definition(struct tag_output *output, struct symbol *symbol);
 static void show_type_declaration(struct tag_output *output, struct symbol *symbol);
 static void show_typedef_definition(struct code_buffer *out, struct symbol *type);
-static void show_type_dependencies(struct tag_output *output, struct symbol *type, bool needs_forward);
+static void show_type_dependencies(struct tag_output *output, struct symbol *type, bool decl_enough);
 static void show_type_members(struct tag_output *output, struct symbol *type);
 
 static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
@@ -496,13 +497,13 @@ static void show_type_declaration(struct tag_output *output,
 }
 
 static void show_required_type(struct tag_output *output,
-			       struct symbol *needed, bool needs_forward)
+			       struct symbol *needed, bool decl_enough)
 {
 	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
 		show_type_declaration(output, needed);
 		return;
 	}
-	if (is_typedef_tag(needed) || !needs_forward) {
+	if (is_typedef_tag(needed) || !decl_enough) {
 		if (!tag_was_defined(needed)) {
 			if (tag_has_definition(needed))
 				show_type_definition(output, needed);
@@ -523,13 +524,13 @@ static void show_collected_type_dependencies(struct tag_output *output,
 	FOR_EACH_PTR(dependencies, dependency) {
 		if (dependency->sym->namespace == NS_TYPEDEF)
 			show_type_dependencies(output, dependency->sym,
-					       dependency->needs_forward);
+					       dependency->decl_enough);
 	} END_FOR_EACH_PTR(dependency);
 
 	FOR_EACH_PTR(dependencies, dependency) {
 		if (is_tag_type(dependency->sym))
 			show_required_type(output, dependency->sym,
-					   dependency->needs_forward);
+					   dependency->decl_enough);
 	} END_FOR_EACH_PTR(dependency);
 }
 
@@ -1034,7 +1035,7 @@ static void show_type_members(struct tag_output *output, struct symbol *type)
 }
 
 static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type, bool needs_forward)
+				   struct symbol *type, bool decl_enough)
 {
 	struct symbol *arg;
 	struct symbol *function_type;
@@ -1074,7 +1075,7 @@ static void show_type_dependencies(struct tag_output *output,
 
 	needed = tag_dependency_symbol(nested_type);
 	if (needed) {
-		show_required_type(output, needed, needs_forward);
+		show_required_type(output, needed, decl_enough);
 		return;
 	}
 	if (is_struct_or_union(nested_type) && !nested_type->ident) {
