@@ -745,8 +745,7 @@ static void collect_declaration_dependencies(struct sym_dependency_list **depend
 
 static void show_initializer_dependencies_rec(struct code_buffer *out,
 					      struct symbol *symbol,
-					      struct symbol **active,
-					      unsigned int active_count)
+					      struct symbol_list **active)
 {
 	struct sym_dependency_list *dependencies = NULL;
 	struct tag_output type_output = { .out = out };
@@ -755,14 +754,10 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	struct symbol *definition;
 	struct symbol *type;
 	struct symbol copy;
-	unsigned int i;
 
-	for (i = 0; i < active_count; i++)
-		if (active[i] == symbol)
-			return;
-	if (active_count >= 8192)
+	if (lookup_ptr_list_entry((struct ptr_list *)*active, symbol))
 		return;
-	active[active_count++] = symbol;
+	add_symbol(active, symbol);
 	collect_type_expression_dependencies(&dependencies, symbol);
 	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
 	FOR_EACH_PTR(dependencies, entry) {
@@ -777,8 +772,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			continue;
 		show_type_dependencies(&type_output, dependency,
 				       type_can_use_forward_declaration(dependency));
-		show_initializer_dependencies_rec(out, dependency, active,
-						  active_count);
+		show_initializer_dependencies_rec(out, dependency, active);
 		type = strip_type_wrappers(dependency);
 		definition = function_definition(dependency);
 		if (definition) {
@@ -804,9 +798,9 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol)
 {
-	struct symbol *active[8192];
+	struct symbol_list *active = NULL;
 
-	show_initializer_dependencies_rec(out, symbol, active, 0);
+	show_initializer_dependencies_rec(out, symbol, &active);
 }
 
 static void collect_asm_dependencies(struct sym_dependency_list **dependencies,
