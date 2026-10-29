@@ -702,7 +702,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		while (item && item->type == EXPR_PREOP &&
 		       (item->op == '*' || item->op == '('))
 			item = item->unop;
-		if (item && item->type == EXPR_SYMBOL) {
+		if (item && item->type == EXPR_SYMBOL && item->symbol) {
 			add_symbol_dependency(dependencies, item->symbol);
 			collect_function_type_dependencies(dependencies,
 						   item->symbol->ctype.base_type);
