@@ -397,6 +397,8 @@ static void show_tag_definition(struct tag_output *output,
 				struct symbol *type);
 static void show_type_definition(struct tag_output *output,
 				 struct symbol *symbol);
+static void show_type_declaration(struct tag_output *output,
+				  struct symbol *symbol);
 static void show_typedef_definition(struct code_buffer *out,
 				    struct symbol *type);
 static void show_type_dependencies(struct tag_output *output,
@@ -472,14 +474,26 @@ static bool symbol_was_declared(struct symbol *symbol)
 		symbol_was_output(printed.declarations, symbol);
 }
 
+static void show_type_declaration(struct tag_output *output,
+				  struct symbol *symbol)
+{
+	struct symbol *tag;
+
+	if (is_type_definition(symbol, &tag))
+		symbol = tag;
+	if (!is_tag_type(symbol) || !symbol->ident ||
+	    tag_was_declared(symbol))
+		return;
+	append(output->out, "%s %s;\n", tag_type_name(symbol),
+	       show_ident(symbol->ident));
+	remember_tag(&printed.declarations, symbol);
+}
+
 static void show_required_type(struct tag_output *output,
 				       struct symbol *needed, bool needs_forward)
 {
 	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-		if (!tag_was_declared(needed)) {
-			append(output->out, "enum %s;\n", show_ident(needed->ident));
-			remember_tag(&printed.declarations, needed);
-		}
+		show_type_declaration(output, needed);
 		return;
 	}
 	if (is_typedef_tag(needed) || !needs_forward) {
@@ -492,11 +506,7 @@ static void show_required_type(struct tag_output *output,
 		}
 		return;
 	}
-	if (!tag_was_declared(needed)) {
-		append(output->out, "%s %s;\n", tag_type_name(needed),
-		       show_ident(needed->ident));
-		remember_tag(&printed.declarations, needed);
-	}
+	show_type_declaration(output, needed);
 }
 
 static void show_collected_type_dependencies(struct tag_output *output,
@@ -524,18 +534,11 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 		struct symbol *needed = dependencies.types.types[i];
 
 		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-			if (!tag_was_declared(needed)) {
-				append(out, "enum %s;\n", show_ident(needed->ident));
-				remember_tag(&printed.declarations, needed);
-			}
+			show_type_declaration(&output, needed);
 			continue;
 		}
-		if (dependencies.types.needs_forward[i] &&
-		    !tag_was_declared(needed)) {
-			append(out, "%s %s;\n", tag_type_name(needed),
-			       show_ident(needed->ident));
-			remember_tag(&printed.declarations, needed);
-		}
+		if (dependencies.types.needs_forward[i])
+			show_type_declaration(&output, needed);
 		if (!dependencies.types.needs_forward[i] && !tag_has_definition(needed))
 			fprintf(stderr, "missing definition for %s %s\n",
 				tag_type_name(needed), show_ident(needed->ident));

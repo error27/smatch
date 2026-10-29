@@ -9,6 +9,5 @@ struct container {
  *
  * check-output-start
 extract: wrote extract-pointer-forward-declaration.c.extract
-struct incomplete;
  * check-output-end
  */
