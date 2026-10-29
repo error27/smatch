@@ -607,26 +607,37 @@ static void collect_function_return_type_dependency(struct sym_dependency_list *
 		collect_complete_type_dependency(dependencies, type->ctype.base_type);
 }
 
-static struct symbol *find_member_symbol(struct symbol *type,
-					 struct ident *ident)
+static struct symbol *find_member_symbol_rec(struct symbol *type,
+					     struct ident *ident,
+					     struct symbol_list **seen)
 {
 	struct symbol *member;
 	struct symbol *nested;
 
 	type = tag_type(type);
-	if (!type || !ident)
+	if (!type || !ident ||
+	    lookup_ptr_list_entry((struct ptr_list *)*seen, type))
 		return NULL;
+	add_symbol(seen, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
 		if (member->ident == ident)
 			return member;
 		nested = tag_type(member);
 		if (nested && !nested->ident) {
-			member = find_member_symbol(nested, ident);
+			member = find_member_symbol_rec(nested, ident, seen);
 			if (member)
 				return member;
 		}
 	} END_FOR_EACH_PTR(member);
 	return NULL;
+}
+
+static struct symbol *find_member_symbol(struct symbol *type,
+					 struct ident *ident)
+{
+	struct symbol_list *seen = NULL;
+
+	return find_member_symbol_rec(type, ident, &seen);
 }
 
 static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_list **dependencies,
