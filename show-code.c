@@ -993,20 +993,14 @@ static void show_function_dependencies(struct code_buffer *out,
 			sym(out, dependency);
 			continue;
 		}
-		if (type->type == SYM_FN) {
+		if (type->type == SYM_FN)
 			show_function_forwards(out, dependency->ctype.base_type);
-			copy = *dependency;
-			if (!(copy.ctype.modifiers & MOD_STATIC))
-				copy.ctype.modifiers |= MOD_EXTERN;
-			dependency = &copy;
-		} else {
-			copy = *dependency;
-			if (copy.ctype.modifiers & MOD_STATIC)
-				copy.ctype.modifiers &= ~MOD_EXTERN;
-			else
-				copy.ctype.modifiers |= MOD_EXTERN;
-			dependency = &copy;
-		}
+
+		copy = *dependency;
+		if (!(copy.ctype.modifiers & MOD_STATIC))
+			copy.ctype.modifiers |= MOD_EXTERN;
+		dependency = &copy;
+
 		show_c_typename(out, dependency);
 		show_asm_name(out, dependency);
 		append(out, ";\n");
