@@ -457,7 +457,8 @@ static bool symbol_was_output(struct symbol_list *symbols,
 	FOR_EACH_PTR(symbols, entry) {
 		if (entry == symbol)
 			return true;
-		if (entry->ident && symbol->ident &&
+		if (entry->namespace == symbol->namespace &&
+		    entry->ident && symbol->ident &&
 		    strcmp(show_ident(entry->ident), show_ident(symbol->ident)) == 0)
 			return true;
 	} END_FOR_EACH_PTR(entry);
@@ -557,7 +558,6 @@ static void add_symbol_dependency(struct sym_dependency_list **dependencies,
 	if (!symbol || !symbol->ident ||
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
 		return;
-
 	type = strip_type_wrappers(symbol);
 	if (!type || (type->type != SYM_FN && symbol->scope != file_scope &&
 		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
