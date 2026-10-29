@@ -2365,7 +2365,7 @@ static struct symbol *function_definition(struct symbol *s)
 	for (i = 0; s && i < 8192; i++) {
 		struct symbol *type = strip_type_wrappers(s);
 
-		if (type && type->type == SYM_FN &&
+		if (type && type->type == SYM_FN && !type_has_typeof(s) &&
 		    (type->stmt || type->inline_stmt))
 			return s;
 		s = s->same_symbol;
