@@ -1345,6 +1345,8 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 
 			expression[0] = '\0';
 			show_typeof_expression(&expression_out, type);
+			/* typeof() already carries the integer specifier. */
+			modifiers &= ~MOD_SPECIFIER;
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s(%s)",
