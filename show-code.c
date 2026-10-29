@@ -83,6 +83,7 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *anonymous_tag);
 static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
+static struct symbol *expression_symbol_type(struct expression *e);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
 static void show_initializer_dependencies_rec(struct code_buffer *out,
@@ -199,8 +200,14 @@ static struct symbol *strip_type_wrappers(struct symbol *type)
 
 static struct symbol *strip_show_type_wrappers(struct symbol *type)
 {
-	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT))
-		type = show_base_type(type);
+	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT ||
+			type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL)) {
+		if ((type->type == SYM_TYPEOF || type->type == SYM_TYPEOF_UNQUAL) &&
+		    type->type_expression)
+			type = expression_symbol_type(type->type_expression);
+		else
+			type = show_base_type(type);
+	}
 	return type;
 }
 
@@ -583,15 +590,61 @@ static void collect_function_return_type_dependency(struct sym_dependency_list *
 		collect_complete_type_dependency(dependencies, type->ctype.base_type);
 }
 
+static struct symbol *statement_expression_type(struct statement *stmt)
+{
+	struct statement *last;
+
+	if (!stmt)
+		return NULL;
+	switch (stmt->type) {
+	case STMT_COMPOUND:
+		last = last_ptr_list((struct ptr_list *)stmt->stmts);
+		return statement_expression_type(last);
+	case STMT_EXPRESSION:
+	case STMT_CONTEXT:
+		return expression_symbol_type(stmt->expression);
+	case STMT_LABEL:
+		return statement_expression_type(stmt->label_statement);
+	default:
+		return NULL;
+	}
+}
+
 static struct symbol *expression_symbol_type(struct expression *e)
 {
+	struct expression *fn;
+	struct symbol *type;
+
 	if (!e)
 		return NULL;
 	if (e->ctype)
 		return e->ctype;
+	if (e->type == EXPR_PREOP) {
+		if (e->op == '(')
+			return expression_symbol_type(e->unop);
+		if (e->op == '*') {
+			type = expression_symbol_type(e->unop);
+			return strip_show_type_wrappers(show_base_type(type));
+		}
+	}
 	if (e->type == EXPR_CAST || e->type == EXPR_FORCE_CAST ||
 	    e->type == EXPR_IMPLIED_CAST)
 		return e->cast_type;
+	if (e->type == EXPR_STATEMENT)
+		return statement_expression_type(e->statement);
+	if (e->type == EXPR_CALL) {
+		fn = e->fn;
+		while (fn && fn->type == EXPR_PREOP &&
+		       (fn->op == '*' || fn->op == '('))
+			fn = fn->unop;
+		if (fn && fn->type == EXPR_SYMBOL && fn->symbol) {
+			type = strip_show_type_wrappers(fn->symbol);
+			while (type_is_ptr(type) || type_is_array(type))
+				type = strip_show_type_wrappers(show_base_type(type));
+			if (type && type->type == SYM_FN)
+				return type->ctype.base_type;
+		}
+	}
 	if (e->type == EXPR_SYMBOL && e->symbol)
 		return e->symbol->ctype.base_type;
 	return NULL;
@@ -624,6 +677,7 @@ static void collect_member_type_dependency(struct sym_dependency_list **dependen
 	struct expression *base;
 	struct symbol *tag;
 	struct symbol *member;
+	struct symbol *type;
 
 	if (!e->member)
 		return;
@@ -631,7 +685,9 @@ static void collect_member_type_dependency(struct sym_dependency_list **dependen
 	while (base && base->type == EXPR_PREOP &&
 	       (base->op == '*' || base->op == '('))
 		base = base->unop;
-	tag = tag_dependency_symbol(expression_symbol_type(base));
+	type = expression_symbol_type(base);
+	collect_type_expression_dependencies(dependencies, type);
+	tag = tag_dependency_symbol(type);
 	if (!tag)
 		return;
 	member = find_member_symbol(tag, e->member);
@@ -675,7 +731,7 @@ static void collect_expression_dependencies_rec(struct sym_dependency_list **dep
 						    complete_type);
 		break;
 	case EXPR_DEREF:
-		if (complete_type)
+		if (e->member)
 			collect_member_type_dependency(dependencies, e);
 		collect_expression_dependencies_rec(dependencies, e->deref,
 						    complete_type || e->member);
