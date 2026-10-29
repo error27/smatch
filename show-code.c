@@ -586,6 +586,20 @@ static void collect_complete_type_dependency(struct sym_dependency_list **depend
 	collect_dependencies(dependencies, type, false);
 }
 
+static void collect_function_return_type_dependency(struct sym_dependency_list **dependencies,
+						     struct symbol *function)
+{
+	struct symbol *type;
+
+	if (!function)
+		return;
+	type = strip_type_wrappers(function->ctype.base_type);
+	while (type_is_ptr(type) || type_is_array(type))
+		type = strip_type_wrappers(get_base_type(type));
+	if (type && type->type == SYM_FN)
+		collect_complete_type_dependency(dependencies, type->ctype.base_type);
+}
+
 static void collect_expression_dependencies_rec(struct sym_dependency_list **dependencies,
 						struct expression *e,
 						bool complete_type)
@@ -651,8 +665,12 @@ static void collect_expression_dependencies_rec(struct sym_dependency_list **dep
 		while (item && item->type == EXPR_PREOP &&
 		       (item->op == '*' || item->op == '('))
 			item = item->unop;
-		if (item && item->type == EXPR_SYMBOL)
+		if (item && item->type == EXPR_SYMBOL) {
 			add_symbol_dependency(dependencies, item->symbol);
+			if (complete_type)
+				collect_function_return_type_dependency(dependencies,
+								item->symbol);
+		}
 		collect_expression_dependencies_rec(dependencies, e->fn, complete_type);
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies_rec(dependencies, item,
