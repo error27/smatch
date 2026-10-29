@@ -194,6 +194,13 @@ static struct symbol *strip_type_wrappers(struct symbol *type)
 	return type;
 }
 
+static struct symbol *strip_show_type_wrappers(struct symbol *type)
+{
+	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT))
+		type = show_base_type(type);
+	return type;
+}
+
 static struct symbol *strip_bitfield_type(struct symbol *type)
 {
 	type = strip_type_wrappers(type);
@@ -286,9 +293,9 @@ static void add_dependency(struct sym_dependency_list **dependencies,
 static struct symbol *tag_dependency_symbol(struct symbol *type)
 {
 
-	type = strip_type_wrappers(type);
+	type = strip_show_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_show_type_wrappers(show_base_type(type));
 	if (type && type->definition && is_tag_type(type->definition))
 		type = type->definition;
 	if (!is_tag_type(type) || !type->ident)
@@ -579,6 +586,9 @@ static struct symbol *expression_symbol_type(struct expression *e)
 		return NULL;
 	if (e->ctype)
 		return e->ctype;
+	if (e->type == EXPR_CAST || e->type == EXPR_FORCE_CAST ||
+	    e->type == EXPR_IMPLIED_CAST)
+		return e->cast_type;
 	if (e->type == EXPR_SYMBOL && e->symbol)
 		return e->symbol->ctype.base_type;
 	return NULL;
@@ -615,14 +625,17 @@ static void collect_member_type_dependency(struct sym_dependency_list **dependen
 	if (!e->member)
 		return;
 	base = e->deref;
-	if (base && base->type == EXPR_PREOP && base->op == '*')
+	while (base && base->type == EXPR_PREOP &&
+	       (base->op == '*' || base->op == '('))
 		base = base->unop;
 	tag = tag_dependency_symbol(expression_symbol_type(base));
 	if (!tag)
 		return;
 	member = find_member_symbol(tag, e->member);
-	if (member)
+	if (member) {
+		collect_complete_type_dependency(dependencies, tag);
 		collect_complete_type_dependency(dependencies, member->ctype.base_type);
+	}
 }
 
 static void collect_expression_dependencies_rec(struct sym_dependency_list **dependencies,
