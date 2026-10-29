@@ -1,9 +1,9 @@
 /*
  * check-name: extract offsetof array index
- * check-command: extract $file && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract
+ * check-command: extract --last-func $file && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract.last
  *
  * check-output-start
-extract: wrote extract-offsetof-array-index.c.extract
+extract: wrote extract-offsetof-array-index.c.extract.last
  * check-output-end
  */
 

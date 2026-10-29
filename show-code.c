@@ -786,6 +786,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		collect_expression_dependencies_rec(dependencies, e->base, complete_type);
 		break;
 	case EXPR_OFFSETOF:
+		collect_complete_type_dependency(dependencies, e->in);
+		collect_type_expression_dependencies(dependencies, e->in);
 		for (item = e; item; item = item->down) {
 			if (item->op != '.')
 				collect_expression_dependencies_rec(dependencies, item->index,
