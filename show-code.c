@@ -86,7 +86,6 @@ static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
-static bool typedef_was_output(struct symbol *type);
 static bool tag_has_definition(struct symbol *tag);
 static bool is_struct_or_union(struct symbol *type);
 static bool is_tag_type(struct symbol *type);
@@ -435,11 +434,6 @@ static bool tag_was_declared(struct symbol *type)
 {
 	return tag_was_defined(type) ||
 		tag_was_output(printed.declarations, type);
-}
-
-static bool typedef_was_output(struct symbol *type)
-{
-	return tag_was_output(printed.definitions, type);
 }
 
 static bool symbol_was_output(struct symbol_list *symbols,
@@ -2397,10 +2391,6 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	if (definition)
 		s = definition;
 
-	if (is_type_definition(s, &type))
-		return;
-	if (s->namespace == NS_TYPEDEF && typedef_was_output(s))
-		return;
 	if (symbol_was_defined(s))
 		return;
 	if (symbol_is_being_printed(out, s)) {
