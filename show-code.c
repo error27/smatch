@@ -775,6 +775,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 {
 	struct symbol_dependencies dependencies = { };
 	struct symbol *dependency;
+	struct symbol *definition;
 	struct symbol *type;
 	struct symbol copy;
 	unsigned int i;
@@ -800,6 +801,12 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		show_initializer_dependencies_rec(out, dependency, active,
 						  active_count);
 		type = strip_type_wrappers(dependency);
+		definition = function_definition(dependency);
+		if (definition &&
+		    (definition->ctype.modifiers & MOD_STATIC)) {
+			sym(out, definition);
+			continue;
+		}
 		if (type->type == SYM_FN)
 			show_function_forwards(out, dependency->ctype.base_type);
 		if (type_is_array(type) && !type->array_size &&
