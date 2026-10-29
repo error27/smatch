@@ -117,8 +117,7 @@ struct symbol_dependencies {
 	struct symbol *type_symbols[8192];
 	bool type_needs_forward[8192];
 	unsigned int type_symbol_count;
-	struct symbol *symbols[8192];
-	unsigned int symbol_count;
+	struct symbol_list *symbols;
 };
 
 struct c_type_name {
@@ -543,11 +542,11 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 	}
 }
 
-static void add_dependency_symbol(struct symbol **symbols, unsigned int *count,
+static void add_dependency_symbol(struct symbol_list **symbols,
 				  struct symbol *symbol)
 {
 	struct symbol *type;
-	unsigned int i;
+	struct symbol *existing;
 
 	if (!symbol || !symbol->ident ||
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
@@ -556,11 +555,11 @@ static void add_dependency_symbol(struct symbol **symbols, unsigned int *count,
 	if (!type || (type->type != SYM_FN && symbol->scope != file_scope &&
 		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
 		return;
-	for (i = 0; i < *count; i++)
-		if (symbols[i] == symbol)
+	FOR_EACH_PTR(*symbols, existing) {
+		if (existing == symbol)
 			return;
-	if (*count < 8192)
-		symbols[(*count)++] = symbol;
+	} END_FOR_EACH_PTR(existing);
+	add_symbol(symbols, symbol);
 }
 
 static void collect_complete_type_dependency(struct symbol_dependencies *dependencies,
@@ -579,8 +578,7 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 {
 	struct expression *item;
 	struct type_expression *map;
-	struct symbol **symbols = dependencies->symbols;
-	unsigned int *count = &dependencies->symbol_count;
+	struct symbol_list **symbols = &dependencies->symbols;
 
 	if (!e)
 		return;
@@ -641,7 +639,7 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 		       (item->op == '*' || item->op == '('))
 			item = item->unop;
 		if (item && item->type == EXPR_SYMBOL)
-			add_dependency_symbol(symbols, count, item->symbol);
+			add_dependency_symbol(symbols, item->symbol);
 		collect_expression_dependencies_rec(dependencies, e->fn, complete_type);
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies_rec(dependencies, item,
@@ -657,7 +655,7 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 				add_type_dependency(dependencies, e->symbol,
 						type_can_use_forward_declaration(e->symbol));
 		}
-		add_dependency_symbol(symbols, count, e->symbol);
+		add_dependency_symbol(symbols, e->symbol);
 		break;
 	case EXPR_INITIALIZER:
 		FOR_EACH_PTR(e->expr_list, item) {
@@ -753,8 +751,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	active[active_count++] = symbol;
 	collect_type_expression_dependencies(&dependencies, symbol);
 	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
-	for (i = 0; i < dependencies.symbol_count; i++) {
-		dependency = dependencies.symbols[i];
+	FOR_EACH_PTR(dependencies.symbols, dependency) {
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
 		if (!dependency)
@@ -786,7 +783,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		show_asm_name(out, &copy);
 		append(out, ";\n");
 		remember_symbol(&printed.declarations, dependency);
-	}
+	} END_FOR_EACH_PTR(dependency);
 }
 
 static void show_initializer_dependencies(struct code_buffer *out,
@@ -898,15 +895,13 @@ static void show_function_dependencies(struct code_buffer *out,
 	struct symbol *dependency;
 	struct symbol copy;
 	struct symbol *type;
-	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
 	show_collected_type_dependencies(&type_output, &dependencies);
-	for (i = 0; i < dependencies.symbol_count; i++) {
+	FOR_EACH_PTR(dependencies.symbols, dependency) {
 		struct symbol *definition;
 		struct symbol *original;
 
-		dependency = dependencies.symbols[i];
 		if (dependency == function)
 			dependency = dependency->same_symbol;
 		original = dependency;
@@ -953,7 +948,7 @@ static void show_function_dependencies(struct code_buffer *out,
 		show_asm_name(out, dependency);
 		append(out, ";\n");
 		remember_symbol(&printed.declarations, original);
-	}
+	} END_FOR_EACH_PTR(dependency);
 }
 
 static void show_type_members(struct tag_output *output, struct symbol *type)
@@ -2724,7 +2719,6 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 	struct symbol_dependencies dependencies = { };
 	struct tag_output type_output = { .out = output->out };
 	struct symbol *dependency;
-	unsigned int i;
 
 	if (!type || type->type == SYM_FN ||
 	    symbol_in_array(output->data, output->data_count, symbol))
@@ -2735,13 +2729,12 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 	show_type_dependencies(&type_output, symbol,
 			       type_can_use_forward_declaration(symbol));
 	collect_type_expression_dependencies(&dependencies, symbol);
-	for (i = 0; i < dependencies.symbol_count; i++) {
-		dependency = dependencies.symbols[i];
+	FOR_EACH_PTR(dependencies.symbols, dependency) {
 		if (dependency == symbol)
 			dependency = dependency->same_symbol;
 		if (dependency)
 			show_inline_data_dependency(output, dependency);
-	}
+	} END_FOR_EACH_PTR(dependency);
 	if (symbol->ctype.modifiers & MOD_STATIC) {
 		sym(output->out, symbol);
 	} else {
@@ -2761,14 +2754,12 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 	struct symbol_dependencies dependencies = { };
 	struct tag_output type_output = { .out = output->out };
 	struct symbol *dependency;
-	unsigned int i;
 
 	collect_function_dependencies(&dependencies, function);
 	show_collected_type_dependencies(&type_output, &dependencies);
-	for (i = 0; i < dependencies.symbol_count; i++) {
+	FOR_EACH_PTR(dependencies.symbols, dependency) {
 		struct symbol *inline_function;
 
-		dependency = dependencies.symbols[i];
 		if (dependency == function)
 			continue;
 		access_symbol(dependency);
@@ -2777,7 +2768,7 @@ static void show_inline_function_dependencies(struct inline_function_output *out
 			show_inline_function_definition(output, inline_function);
 		else
 			show_inline_data_dependency(output, dependency);
-	}
+	} END_FOR_EACH_PTR(dependency);
 }
 
 static void show_inline_function_definition(struct inline_function_output *output,
