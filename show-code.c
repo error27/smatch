@@ -104,9 +104,9 @@ static struct symbol *show_base_type(struct symbol *type);
 struct struct_types;
 struct symbol_dependencies;
 static void collect_statement_dependencies(struct symbol_dependencies *dependencies,
-					   struct statement *s);
+						   struct statement *s);
 static void collect_type_expression_dependencies(struct symbol_dependencies *dependencies,
-						 struct symbol *type);
+							   struct symbol *type);
 
 struct struct_types {
 	struct symbol *types[8192];
@@ -173,7 +173,7 @@ static bool is_tag_type(struct symbol *type)
 
 static const char *tag_type_name(struct symbol *type)
 {
-	switch (type->type) {
+	switch(type->type) {
 	case SYM_ENUM:
 		return "enum";
 	case SYM_UNION:
@@ -269,7 +269,7 @@ static bool type_can_use_forward_declaration(struct symbol *type)
 }
 
 static struct symbol *add_struct_type(struct struct_types *types,
-				      struct symbol *type, bool needs_forward)
+					      struct symbol *type, bool needs_forward)
 {
 	unsigned int i;
 
@@ -490,7 +490,7 @@ static void show_type_declaration(struct tag_output *output,
 }
 
 static void show_required_type(struct tag_output *output,
-			       struct symbol *needed, bool needs_forward)
+				       struct symbol *needed, bool needs_forward)
 {
 	if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
 		show_type_declaration(output, needed);
@@ -576,8 +576,8 @@ static void collect_complete_type_dependency(struct symbol_dependencies *depende
 }
 
 static void collect_expression_dependencies_rec(struct symbol_dependencies *dependencies,
-						struct expression *e,
-						bool complete_type)
+							struct expression *e,
+							bool complete_type)
 {
 	struct expression *item;
 	struct type_expression *map;
@@ -647,24 +647,24 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 		collect_expression_dependencies_rec(dependencies, e->fn, complete_type);
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies_rec(dependencies, item,
-							    complete_type);
+						    complete_type);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_SYMBOL:
 		if (e->symbol) {
 			if (complete_type)
 				collect_complete_type_dependency(dependencies,
-								 e->symbol->ctype.base_type);
+							 e->symbol->ctype.base_type);
 			else
 				add_type_dependency(dependencies, e->symbol,
-						    type_can_use_forward_declaration(e->symbol));
+						type_can_use_forward_declaration(e->symbol));
 		}
 		add_dependency_symbol(symbols, count, e->symbol);
 		break;
 	case EXPR_INITIALIZER:
 		FOR_EACH_PTR(e->expr_list, item) {
 			collect_expression_dependencies_rec(dependencies, item,
-							    complete_type);
+						    complete_type);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_IDENTIFIER:
@@ -686,7 +686,7 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 		for (item = e; item; item = item->down) {
 			if (item->op != '.')
 				collect_expression_dependencies_rec(dependencies, item->index,
-								    complete_type);
+							    complete_type);
 		}
 		break;
 	case EXPR_GENERIC:
@@ -694,7 +694,7 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 						    complete_type);
 		for (map = e->map; map; map = map->next) {
 			collect_expression_dependencies_rec(dependencies, map->expr,
-							    complete_type);
+						    complete_type);
 		}
 		collect_expression_dependencies_rec(dependencies, e->def, complete_type);
 		break;
@@ -704,13 +704,13 @@ static void collect_expression_dependencies_rec(struct symbol_dependencies *depe
 }
 
 static void collect_expression_dependencies(struct symbol_dependencies *dependencies,
-					    struct expression *e)
+						    struct expression *e)
 {
 	collect_expression_dependencies_rec(dependencies, e, false);
 }
 
 static void collect_type_expression_dependencies(struct symbol_dependencies *dependencies,
-						 struct symbol *type)
+							   struct symbol *type)
 {
 	while (type) {
 		if (has_type_expression(type))
@@ -721,7 +721,7 @@ static void collect_type_expression_dependencies(struct symbol_dependencies *dep
 }
 
 static void collect_declaration_dependencies(struct symbol_dependencies *dependencies,
-					     struct symbol_list *declarations)
+						     struct symbol_list *declarations)
 {
 	struct symbol *declaration;
 
@@ -889,7 +889,7 @@ static void collect_function_dependencies(struct symbol_dependencies *dependenci
 	collect_function_type_dependencies(dependencies, type);
 	collect_type_expression_dependencies(dependencies, function);
 	collect_statement_dependencies(dependencies,
-				       type->stmt ? type->stmt : type->inline_stmt);
+				      type->stmt ? type->stmt : type->inline_stmt);
 }
 
 static void show_function_dependencies(struct code_buffer *out,
@@ -1061,7 +1061,7 @@ static void type_name_append(struct c_type_name *name, const char *text)
 }
 
 static void type_name_prepend_format(struct c_type_name *name,
-				     const char *format, ...)
+					     const char *format, ...)
 {
 	va_list args;
 	char *buffer;
@@ -1073,7 +1073,7 @@ static void type_name_prepend_format(struct c_type_name *name,
 }
 
 static void type_name_append_format(struct c_type_name *name,
-				    const char *format, ...)
+					    const char *format, ...)
 {
 	va_list args;
 	char *buffer;
@@ -1133,7 +1133,7 @@ static void show_direct_tag_typename(struct c_type_name *name,
 		type_name_prepend_format(name, "%s", show_ident(type->ident));
 	else
 		type_name_prepend_format(name, "%s %s", tag_type_name(type),
-					 show_ident(type->ident));
+					show_ident(type->ident));
 	type_name_prepend(name, show_gcc_modifiers(modifiers &
 		(MOD_QUALIFIER | MOD_ATOMIC)));
 }
@@ -1191,7 +1191,7 @@ static bool expression_references_symbol(struct expression *e,
 	case EXPR_PTRSIZEOF:
 		return type_references_symbol(e->cast_type, symbol, depth + 1) ||
 		       expression_references_symbol(e->cast_expression, symbol,
-						    depth + 1);
+					    depth + 1);
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
 		return expression_references_symbol(e->conditional, symbol, depth + 1) ||
@@ -1266,7 +1266,7 @@ static bool statement_references_symbol(struct statement *s,
 		FOR_EACH_PTR(s->declaration, declaration) {
 			if (type_references_symbol(declaration, symbol, depth + 1) ||
 			    expression_references_symbol(declaration->initializer, symbol,
-							 depth + 1))
+						 depth + 1))
 				return true;
 		} END_FOR_EACH_PTR(declaration);
 		return false;
@@ -1284,7 +1284,7 @@ static bool statement_references_symbol(struct statement *s,
 		return expression_references_symbol(s->switch_expression, symbol,
 					    depth + 1) ||
 		       statement_references_symbol(s->switch_statement, symbol,
-						   depth + 1);
+					   depth + 1);
 	case STMT_CASE:
 		return expression_references_symbol(s->case_expression, symbol,
 					    depth + 1) ||
@@ -1294,7 +1294,7 @@ static bool statement_references_symbol(struct statement *s,
 		FOR_EACH_PTR(s->iterator_syms, declaration) {
 			if (type_references_symbol(declaration, symbol, depth + 1) ||
 			    expression_references_symbol(declaration->initializer, symbol,
-							 depth + 1))
+						 depth + 1))
 				return true;
 		} END_FOR_EACH_PTR(declaration);
 		return statement_references_symbol(s->iterator_pre_statement, symbol,
@@ -1422,7 +1422,7 @@ static void show_typeof_expression(struct code_buffer *out,
  * original base types.
  */
 static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbol,
-				   struct c_type_name *name)
+					   struct c_type_name *name)
 {
 	struct symbol copy;
 	struct symbol *type;
@@ -1463,15 +1463,14 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s(%s)",
-						 type->typeof_is_unqual ||
+				type->typeof_is_unqual ||
 				type->type == SYM_TYPEOF_UNQUAL ?
 				"__typeof_unqual__" : "typeof", expression);
 			modifier_string = show_gcc_modifiers(modifiers);
 			type_name_prepend(name, modifier_string);
 			break;
 		}
-		typename = builtin_typename(type);
-		if (typename) {
+		if ((typename = builtin_typename(type))) {
 			const char *modifier_string;
 
 			modifiers &= ~MOD_SPECIFIER;
@@ -1495,7 +1494,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			}
 			if (pointer_modifiers) {
 				type_name_prepend_format(name, "*%s",
-							 show_gcc_modifiers(pointer_modifiers));
+					show_gcc_modifiers(pointer_modifiers));
 			} else {
 				type_name_prepend(name, "*");
 			}
@@ -1526,7 +1525,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 				show_direct_c_typename(out, arg, &arg_name);
 				*arg_name.end = '\0';
 				type_name_append_format(name, "%s%s", comma ? ", " : "",
-							arg_name.start);
+						arg_name.start);
 				comma = true;
 			} END_FOR_EACH_PTR(arg);
 			if (!comma && !type->variadic)
@@ -1563,7 +1562,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			}
 			if (type->array_size)
 				type_name_append_format(name, "[%lld]",
-							get_expression_value(type->array_size));
+						get_expression_value(type->array_size));
 			else
 				type_name_append(name, "[]");
 			break;
@@ -1784,7 +1783,7 @@ static void show_type_info_expression(struct code_buffer *out,
 }
 
 static void show_offsetof_expression(struct code_buffer *out,
-				     struct expression *e)
+				   struct expression *e)
 {
 	struct expression *part;
 	bool dereference = false;
@@ -1800,10 +1799,10 @@ static void show_offsetof_expression(struct code_buffer *out,
 			dereference = true;
 			continue;
 		}
-		if (part->op == '.') {
+		if (part->op == '.')
 			append(out, "%s%s", first ? "" : dereference ? "->" : ".",
 			       show_ident(part->ident));
-		} else {
+		else {
 			append(out, "[");
 			expr(out, part->index);
 			append(out, "]");
@@ -1859,9 +1858,9 @@ static void show_initializer_designator(struct code_buffer *out,
 		append(out, "]");
 		e = e->idx_expression;
 	}
-	if (e && (e->type == EXPR_IDENTIFIER || e->type == EXPR_INDEX)) {
+	if (e && (e->type == EXPR_IDENTIFIER || e->type == EXPR_INDEX))
 		show_initializer_designator(out, e);
-	} else {
+	else {
 		append(out, " = ");
 		expr(out, e);
 	}
@@ -1871,21 +1870,14 @@ static void expr(struct code_buffer *out, struct expression *e)
 {
 	struct expression *previous;
 
-	if (!e) {
-		append(out, "/* null */");
-		return;
-	}
+	if (!e) { append(out, "/* null */"); return; }
 	previous = rendering_expression;
 	if (!e->parent && previous)
 		e->parent = (unsigned long)previous | 0x1UL;
 	rendering_expression = e;
 	switch (e->type) {
-	case EXPR_VALUE:
-		show_value(out, e);
-		break;
-	case EXPR_FVALUE:
-		show_fvalue(out, e);
-		break;
+	case EXPR_VALUE: show_value(out, e); break;
+	case EXPR_FVALUE: show_fvalue(out, e); break;
 	case EXPR_STRING:
 		append(out, "%s%s", e->wide ? "L" : "", show_string(e->string));
 		break;
@@ -1937,7 +1929,7 @@ static void expr(struct code_buffer *out, struct expression *e)
 			append(out, ")");
 			break;
 		}
-		__attribute__((fallthrough));
+		/* Fall through */
 	case EXPR_BINOP:
 	case EXPR_LOGICAL:
 	case EXPR_ASSIGNMENT:
@@ -2791,7 +2783,7 @@ static void show_inline_function_declaration(struct inline_function_output *outp
 }
 
 static void show_inline_data_dependency(struct inline_function_output *output,
-					struct symbol *symbol)
+						struct symbol *symbol)
 {
 	struct symbol *type = strip_type_wrappers(symbol);
 	struct symbol copy;
@@ -2816,9 +2808,9 @@ static void show_inline_data_dependency(struct inline_function_output *output,
 		if (dependency)
 			show_inline_data_dependency(output, dependency);
 	}
-	if (symbol->ctype.modifiers & MOD_STATIC) {
+	if (symbol->ctype.modifiers & MOD_STATIC)
 		sym(output->out, symbol);
-	} else {
+	else {
 		copy = *symbol;
 		copy.ctype.modifiers |= MOD_EXTERN;
 		show_c_typename(output->out, &copy);
@@ -2888,7 +2880,7 @@ static bool show_inline_function_for_symbol(struct code_buffer *out,
 }
 
 void show_inline_function_definitions(struct symbol_list *symbols,
-				      struct symbol_list **emitted, char *buf, size_t len)
+					      struct symbol_list **emitted, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 	struct inline_function_output output = { .out = &out, .emitted = emitted };
@@ -2937,9 +2929,8 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		if (type->transparent_union)
 			append(out, " __attribute__((__transparent_union__))");
 		append(out, ";\n");
-	} else {
+	} else
 		append(out, "};\n");
-	}
 	remember_tag(&printed.definitions, type);
 }
 
@@ -3033,7 +3024,7 @@ static void show_type_definition(struct tag_output *output,
 }
 
 void show_all_type_definitions(struct symbol_list *symbols, char *buf,
-			       size_t len)
+				       size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
 	struct tag_output output = { .out = &out };
