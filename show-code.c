@@ -2407,7 +2407,9 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
-	if (!(s->ctype.modifiers & MOD_EXTERN))
+	if (s->ctype.modifiers & MOD_EXTERN)
+		remember_symbol(&printed.declarations, s);
+	else
 		remember_symbol(&printed.definitions, s);
 out:
 	pop_printing_symbol(out, s);
