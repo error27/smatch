@@ -122,18 +122,24 @@ int main(int argc, char **argv)
 	out = fopen(output_file, "w");
 	if (!out)
 		die("cannot write %s", output_file);
-	fprintf(out, "#define bool _Bool\n\n");
 
 	list = sparse_keep_tokens(file);
-	if (whole_file)
+	if (whole_file) {
+		fprintf(out, "#define bool _Bool\n\n");
 		show_all(out, list, buf);
-	else {
+	} else {
 		function = find_function(list, root_name, last_func ? file : NULL);
 		if (!function) {
-			if (last_func)
-				die("no function was found");
+			if (last_func) {
+				fprintf(stderr, "warning: no function was found in %s\n", file);
+				fclose(out);
+				free(buf);
+				printf("extract: wrote %s\n", output_file);
+				return 0;
+			}
 			die("function %s was not found", root_name);
 		}
+		fprintf(out, "#define bool _Bool\n\n");
 		show_function(out, function, buf);
 	}
 	fclose(out);
