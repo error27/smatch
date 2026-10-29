@@ -573,9 +573,23 @@ static void collect_complete_type_dependency(struct sym_dependency_list **depend
 	type = strip_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
-
 	add_type_dependency(dependencies, type, false);
 	collect_dependencies(dependencies, type, false);
+}
+
+static void collect_pointer_element_dependency(struct sym_dependency_list **dependencies,
+							struct symbol *type)
+{
+	type = strip_type_wrappers(type);
+	if (type_is_array(type) || type_is_ptr(type))
+		type = strip_type_wrappers(get_base_type(type));
+	else
+		return;
+
+	add_type_dependency(dependencies, type,
+			    type_can_use_forward_declaration(type));
+	collect_dependencies(dependencies, type,
+			     type_can_use_forward_declaration(type));
 }
 
 static void collect_function_return_type_dependency(struct sym_dependency_list **dependencies,
@@ -662,8 +676,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 								      e->right,
 								      complete_type);
 		if (e->type == EXPR_BINOP && (e->op == '+' || e->op == '-')) {
-			collect_complete_type_dependency(dependencies, type);
-			collect_complete_type_dependency(dependencies, expression_type);
+			collect_pointer_element_dependency(dependencies, type);
+			collect_pointer_element_dependency(dependencies, expression_type);
 		}
 		if (e->ctype)
 			type = e->ctype;
