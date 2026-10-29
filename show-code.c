@@ -16,10 +16,8 @@ struct code_buffer {
 	size_t len, used;
 	unsigned int indent;
 	bool line_start;
-	struct symbol *local_tags[1024];
-	unsigned int local_tag_count;
-	struct symbol *printing[8192];
-	unsigned int printing_count;
+	struct symbol_list *local_tags;
+	struct symbol_list *printing;
 };
 
 static struct expression *rendering_expression;
@@ -2052,7 +2050,6 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	struct symbol *anonymous_tag = type_has_typeof(s) ? NULL :
 		find_anonymous_tag(s);
 	struct symbol *tag = s;
-	unsigned int i;
 
 	while (tag) {
 		if (is_tag_type(tag) &&
@@ -2061,17 +2058,13 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 			break;
 		tag = tag->ctype.base_type;
 	}
-	for (i = 0; tag && i < out->local_tag_count; i++) {
-		if (out->local_tags[i] == tag)
-			break;
-	}
-	if (tag && i == out->local_tag_count) {
+	if (tag && !lookup_ptr_list_entry((struct ptr_list *)out->local_tags,
+					    tag)) {
 		struct tag_output output = { .out = out };
 
 		if (show_tag_definition(&output, tag))
 			append(out, ";\n");
-		if (out->local_tag_count < ARRAY_SIZE(out->local_tags))
-			out->local_tags[out->local_tag_count++] = tag;
+		add_symbol(&out->local_tags, tag);
 	}
 
 	if (anonymous_tag)
@@ -2472,12 +2465,7 @@ static bool statement_has_asm_goto(struct statement *s)
 
 static bool symbol_is_being_printed(struct code_buffer *out, struct symbol *s)
 {
-	unsigned int i;
-
-	for (i = 0; i < out->printing_count; i++)
-		if (out->printing[i] == s)
-			return true;
-	return false;
+	return lookup_ptr_list_entry((struct ptr_list *)out->printing, s);
 }
 
 static struct symbol *function_definition(struct symbol *s)
@@ -2497,18 +2485,15 @@ static struct symbol *function_definition(struct symbol *s)
 	return NULL;
 }
 
-static bool push_printing_symbol(struct code_buffer *out, struct symbol *s)
+static void push_printing_symbol(struct code_buffer *out, struct symbol *s)
 {
-	if (out->printing_count >= ARRAY_SIZE(out->printing))
-		return false;
-	out->printing[out->printing_count++] = s;
-	return true;
+	add_symbol(&out->printing, s);
 }
 
 static void pop_printing_symbol(struct code_buffer *out, struct symbol *s)
 {
-	if (out->printing_count && out->printing[out->printing_count - 1] == s)
-		out->printing_count--;
+	if (last_ptr_list((struct ptr_list *)out->printing) == s)
+		delete_ptr_list_last((struct ptr_list **)&out->printing);
 }
 
 static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
@@ -2530,10 +2515,11 @@ static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
 
 static void show_printing_declarations(struct code_buffer *out)
 {
-	unsigned int i;
+	struct symbol *symbol;
 
-	for (i = 0; i < out->printing_count; i++)
-		show_symbol_declaration(out, out->printing[i]);
+	FOR_EACH_PTR(out->printing, symbol) {
+		show_symbol_declaration(out, symbol);
+	} END_FOR_EACH_PTR(symbol);
 }
 
 static void sym(struct code_buffer *out, struct symbol *s)
@@ -2559,10 +2545,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		show_printing_declarations(out);
 		return;
 	}
-	if (!push_printing_symbol(out, s)) {
-		show_symbol_declaration(out, s);
-		return;
-	}
+	push_printing_symbol(out, s);
 
 	type = s->ctype.base_type;
 	if (type && type->type == SYM_FN) {
