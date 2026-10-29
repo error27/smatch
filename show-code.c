@@ -91,6 +91,7 @@ static bool is_struct_or_union(struct symbol *type);
 static bool is_tag_type(struct symbol *type);
 static const char *tag_type_name(struct symbol *type);
 static bool has_type_expression(struct symbol *type);
+static bool is_va_list_use(struct symbol *symbol);
 static struct symbol *show_base_type(struct symbol *type);
 struct sym_dependency;
 struct sym_dependency_list;
@@ -310,9 +311,15 @@ static void collect_dependencies(struct sym_dependency_list **dependencies,
 	struct symbol *struct_type;
 	struct symbol *member;
 	struct symbol *arg;
+	struct symbol *typedef_symbol;
 
 	if (!type)
 		return;
+	if (is_va_list_use(type)) {
+		typedef_symbol = lookup_symbol(built_in_ident("va_list"),
+					      NS_TYPEDEF);
+		add_dependency(dependencies, typedef_symbol, needs_forward);
+	}
 	if (type->scope && !toplevel(type->scope))
 		return;
 	switch (type->type) {
@@ -530,26 +537,10 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
 	struct sym_dependency_list *dependencies = NULL;
 	struct tag_output output = { .out = out };
-	struct sym_dependency *dependency;
-	struct symbol *needed;
 
 	show_type_dependencies(&output, type, true);
 	collect_function_type_dependencies(&dependencies, type);
-	FOR_EACH_PTR(dependencies, dependency) {
-		needed = dependency->sym;
-		if (!is_tag_type(needed))
-			continue;
-
-		if (needed->type == SYM_ENUM && !tag_has_definition(needed)) {
-			show_type_declaration(&output, needed);
-			continue;
-		}
-		if (dependency->needs_forward)
-			show_type_declaration(&output, needed);
-		if (!dependency->needs_forward && !tag_has_definition(needed))
-			fprintf(stderr, "missing definition for %s %s\n",
-				tag_type_name(needed), show_ident(needed->ident));
-	} END_FOR_EACH_PTR(dependency);
+	show_collected_type_dependencies(&output, dependencies);
 }
 
 static void add_symbol_dependency(struct sym_dependency_list **dependencies,
