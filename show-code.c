@@ -701,8 +701,6 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 	case EXPR_CAST:
 	case EXPR_FORCE_CAST:
 	case EXPR_IMPLIED_CAST:
-	case EXPR_SIZEOF:
-	case EXPR_ALIGNOF:
 	case EXPR_PTRSIZEOF:
 		if (!type)
 			type = e->cast_type;
@@ -712,6 +710,21 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 			collect_complete_type_dependency(dependencies, e->cast_type);
 		collect_expression_dependencies_rec(dependencies, e->cast_expression,
 						    complete_type);
+		break;
+	case EXPR_SIZEOF:
+	case EXPR_ALIGNOF:
+		if (!type)
+			type = e->cast_type;
+		add_type_dependency(dependencies, e->cast_type, false);
+		collect_type_expression_dependencies(dependencies, e->cast_type);
+		if (e->cast_type)
+			collect_complete_type_dependency(dependencies, e->cast_type);
+		expression_type = collect_expression_dependencies_rec(dependencies,
+							       e->cast_expression,
+							       complete_type);
+		if (expression_type &&
+		    !type_is_ptr(strip_type_wrappers(expression_type)))
+			collect_complete_type_dependency(dependencies, expression_type);
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
