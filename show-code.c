@@ -2046,8 +2046,6 @@ static void expr(struct code_buffer *out, struct expression *e)
 	rendering_expression = previous;
 }
 
-static void show_anonymous_tag(struct code_buffer *out, struct symbol *type);
-
 static void declaration(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *anonymous_tag = type_has_typeof(s) ? NULL :
@@ -2586,46 +2584,11 @@ static struct symbol *find_anonymous_tag(struct symbol *type)
 	return NULL;
 }
 
-static void show_anonymous_tag(struct code_buffer *out, struct symbol *type)
-{
-	struct symbol *member;
-
-	if (type->type == SYM_ENUM) {
-		append(out, "enum {\n");
-		out->indent++;
-		FOR_EACH_PTR(type->symbol_list, member) {
-			append(out, "%s", show_ident(member->ident));
-			if (member->initializer) {
-				append(out, " = ");
-				expr(out, member->initializer);
-			}
-			append(out, ",\n");
-		} END_FOR_EACH_PTR(member);
-		out->indent--;
-		append(out, "}");
-		return;
-	}
-	append(out, "%s {\n", tag_type_name(type));
-	out->indent++;
-	FOR_EACH_PTR(type->symbol_list, member) {
-		struct symbol *anonymous_tag = find_anonymous_tag(member);
-
-		if (anonymous_tag) {
-			show_anonymous_c_typename(out, member, anonymous_tag);
-			append(out, ";\n");
-			continue;
-		}
-		show_c_typename(out, member);
-		append(out, ";\n");
-	} END_FOR_EACH_PTR(member);
-	out->indent--;
-	append(out, "}");
-}
-
 static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag)
 {
+	struct tag_output output = { .out = out };
 	char buf[4096];
 	char placeholder[64];
 	struct code_buffer type_out = {
@@ -2641,14 +2604,14 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 		 tag_type_name(anonymous_tag));
 	tag = strstr(buf, placeholder);
 	if (!tag) {
-		show_anonymous_tag(out, anonymous_tag);
+		show_tag_definition(&output, anonymous_tag);
 		if (type->ident)
 			append(out, " %s", show_ident(type->ident));
 		return;
 	}
 	*tag = '\0';
 	append(out, "%s", buf);
-	show_anonymous_tag(out, anonymous_tag);
+	show_tag_definition(&output, anonymous_tag);
 	append(out, "%s", tag + strlen(placeholder));
 }
 
@@ -2973,7 +2936,43 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 
 static void show_tag_definition(struct tag_output *output, struct symbol *type)
 {
+	struct code_buffer *out = output->out;
 	struct symbol *typedef_symbol;
+	struct symbol *member;
+
+	if (!type->ident) {
+		if (type->type == SYM_ENUM) {
+			append(out, "enum {\n");
+			out->indent++;
+			FOR_EACH_PTR(type->symbol_list, member) {
+				append(out, "%s", show_ident(member->ident));
+				if (member->initializer) {
+					append(out, " = ");
+					expr(out, member->initializer);
+				}
+				append(out, ",\n");
+			} END_FOR_EACH_PTR(member);
+			out->indent--;
+			append(out, "}");
+			return;
+		}
+		append(out, "%s {\n", tag_type_name(type));
+		out->indent++;
+		FOR_EACH_PTR(type->symbol_list, member) {
+			struct symbol *anonymous_tag = find_anonymous_tag(member);
+
+			if (anonymous_tag) {
+				show_anonymous_c_typename(out, member, anonymous_tag);
+				append(out, ";\n");
+				continue;
+			}
+			show_c_typename(out, member);
+			append(out, ";\n");
+		} END_FOR_EACH_PTR(member);
+		out->indent--;
+		append(out, "}");
+		return;
+	}
 
 	if (is_typedef_tag(type)) {
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
