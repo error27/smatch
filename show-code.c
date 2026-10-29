@@ -387,12 +387,11 @@ static struct output_dependencies printed;
 struct tag_output {
 	struct code_buffer *out;
 	struct symbol_list *dependency_types;
-	bool inline_tag;
 };
 
 static void show_struct_definition(struct tag_output *output,
 				   struct symbol *type);
-static void show_tag_definition(struct tag_output *output,
+static bool show_tag_definition(struct tag_output *output,
 				struct symbol *type);
 static void show_type_definition(struct tag_output *output,
 				 struct symbol *symbol);
@@ -2066,7 +2065,8 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	if (tag && i == out->local_tag_count) {
 		struct tag_output output = { .out = out };
 
-		show_tag_definition(&output, tag);
+		if (show_tag_definition(&output, tag))
+			append(out, ";\n");
 		if (out->local_tag_count < ARRAY_SIZE(out->local_tags))
 			out->local_tags[out->local_tag_count++] = tag;
 	}
@@ -2589,7 +2589,7 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag)
 {
-	struct tag_output output = { .out = out, .inline_tag = true };
+	struct tag_output output = { .out = out };
 	char buf[4096];
 	char placeholder[64];
 	struct code_buffer type_out = {
@@ -2860,19 +2860,15 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
-	if (output->inline_tag) {
-		append(out, "}");
-		return;
-	}
 	if (is_typedef_tag(type)) {
 		append(out, "} %s", show_ident(type->ident));
 		if (type->transparent_union)
 			append(out, " __attribute__((__transparent_union__))");
-		append(out, ";\n");
 	} else {
-		append(out, "};\n");
+		append(out, "}");
 	}
-	remember_tag(&printed.definitions, type);
+	if (type->ident)
+		remember_tag(&printed.definitions, type);
 }
 
 static void show_enum_definition(struct tag_output *output, struct symbol *type)
@@ -2898,18 +2894,15 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 		append(out, ",\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
-	if (output->inline_tag) {
-		append(out, "}");
-		return;
-	}
 	if (is_typedef_tag(type))
-		append(out, "} %s;\n", show_ident(type->ident));
+		append(out, "} %s", show_ident(type->ident));
 	else
-		append(out, "};\n");
-	remember_tag(&printed.definitions, type);
+		append(out, "}");
+	if (type->ident)
+		remember_tag(&printed.definitions, type);
 }
 
-static void show_tag_definition(struct tag_output *output, struct symbol *type)
+static bool show_tag_definition(struct tag_output *output, struct symbol *type)
 {
 	struct symbol *typedef_symbol;
 
@@ -2917,7 +2910,7 @@ static void show_tag_definition(struct tag_output *output, struct symbol *type)
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 		if (typedef_symbol &&
 		    tag_was_defined(typedef_symbol))
-			return;
+			return false;
 		if (typedef_symbol)
 			remember_tag(&printed.definitions, typedef_symbol);
 	}
@@ -2925,6 +2918,7 @@ static void show_tag_definition(struct tag_output *output, struct symbol *type)
 		show_enum_definition(output, type);
 	else
 		show_struct_definition(output, type);
+	return true;
 }
 
 static void show_typedef_definition(struct code_buffer *out, struct symbol *type)
@@ -2955,8 +2949,9 @@ static void show_type_definition(struct tag_output *output,
 
 	if (is_type_definition(symbol, &tag)) {
 		show_type_members(output, tag);
-		if (!tag_was_defined(tag))
-			show_tag_definition(output, tag);
+		if (!tag_was_defined(tag) &&
+		    show_tag_definition(output, tag))
+			append(output->out, ";\n");
 		return;
 	}
 	if (symbol->namespace != NS_TYPEDEF || !symbol->ident ||
