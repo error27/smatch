@@ -1058,11 +1058,6 @@ static void show_type_dependencies(struct tag_output *output,
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
-	if (type_is_ptr(nested_type) || type_is_array(nested_type)) {
-		show_type_dependencies(output, get_base_type(nested_type),
-				       type_can_use_forward_declaration(nested_type));
-		return;
-	}
 	if (!typedef_symbol)
 		typedef_symbol = nested_type->ident ?
 			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
@@ -1094,15 +1089,19 @@ static void show_type_dependencies(struct tag_output *output,
 	function_type = nested_type;
 	while (type_is_ptr(function_type) || type_is_array(function_type))
 		function_type = strip_type_wrappers(get_base_type(function_type));
-	if (!function_type || function_type->type != SYM_FN)
+	if (function_type && function_type->type == SYM_FN) {
+		show_type_dependencies(output, function_type->ctype.base_type,
+				       type_can_use_forward_declaration(
+					       function_type->ctype.base_type));
+		FOR_EACH_PTR(function_type->arguments, arg) {
+			show_type_dependencies(output, arg,
+					       type_can_use_forward_declaration(arg));
+		} END_FOR_EACH_PTR(arg);
 		return;
-	show_type_dependencies(output, function_type->ctype.base_type,
-			       type_can_use_forward_declaration(
-				       function_type->ctype.base_type));
-	FOR_EACH_PTR(function_type->arguments, arg) {
-		show_type_dependencies(output, arg,
-				       type_can_use_forward_declaration(arg));
-	} END_FOR_EACH_PTR(arg);
+	}
+	if (type_is_ptr(nested_type) || type_is_array(nested_type))
+		show_type_dependencies(output, get_base_type(nested_type),
+				       type_can_use_forward_declaration(nested_type));
 }
 
 /* C rendering. */
