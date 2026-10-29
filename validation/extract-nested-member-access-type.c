@@ -1,9 +1,9 @@
 /*
  * check-name: extract aggregate used by nested member access
- * check-command: extract $file && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract
+ * check-command: extract --last-func $file && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract.last
  *
  * check-output-start
-extract: wrote extract-nested-member-access-type.c.extract
+extract: wrote extract-nested-member-access-type.c.extract.last
  * check-output-end
  */
 
