@@ -87,8 +87,6 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
-static bool show_inline_function_for_symbol(struct code_buffer *out,
-					    struct symbol *function);
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
 static bool typedef_was_output(struct symbol *type);
 static bool tag_has_definition(struct symbol *tag);
@@ -779,8 +777,6 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			continue;
 		if (symbol_was_declared(dependency))
 			continue;
-		if (show_inline_function_for_symbol(out, dependency))
-			continue;
 		show_type_dependencies(&type_output, dependency,
 				       type_can_use_forward_declaration(dependency));
 		show_initializer_dependencies_rec(out, dependency, active,
@@ -895,19 +891,6 @@ static void collect_statement_dependencies(struct sym_dependency_list **dependen
 	}
 }
 
-static void collect_function_dependencies(struct sym_dependency_list **dependencies,
-					  struct symbol *function)
-{
-	struct symbol *type = function->ctype.base_type;
-
-	if (!type)
-		return;
-	collect_function_type_dependencies(dependencies, type);
-	collect_type_expression_dependencies(dependencies, function);
-	collect_statement_dependencies(dependencies,
-				      type->stmt ? type->stmt : type->inline_stmt);
-}
-
 static void show_function_dependencies(struct code_buffer *out,
 				       struct symbol *function)
 {
@@ -917,8 +900,15 @@ static void show_function_dependencies(struct code_buffer *out,
 	struct symbol *dependency;
 	struct symbol copy;
 	struct symbol *type;
+	struct statement *stmt;
 
-	collect_function_dependencies(&dependencies, function);
+	type = function->ctype.base_type;
+	if (!type)
+		return;
+	stmt = type->stmt ?: type->inline_stmt;
+	collect_function_type_dependencies(&dependencies, type);
+	collect_type_expression_dependencies(&dependencies, function);
+	collect_statement_dependencies(&dependencies, stmt);
 	show_collected_type_dependencies(&type_output, dependencies);
 	FOR_EACH_PTR(dependencies, entry) {
 		struct symbol *definition;
@@ -936,13 +926,8 @@ static void show_function_dependencies(struct code_buffer *out,
 			continue;
 		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
-		if (type->type == SYM_FN &&
-		    show_inline_function_for_symbol(out, dependency)) {
-			continue;
-		}
 		definition = function_definition(dependency);
-		if (definition &&
-		    (definition->ctype.modifiers & MOD_STATIC)) {
+		if (definition) {
 			sym(out, definition);
 			continue;
 		}
@@ -957,7 +942,6 @@ static void show_function_dependencies(struct code_buffer *out,
 		if (type->type == SYM_FN) {
 			show_function_forwards(out, dependency->ctype.base_type);
 			copy = *dependency;
-			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE | MOD_EXTERN);
 			if (!(copy.ctype.modifiers & MOD_STATIC))
 				copy.ctype.modifiers |= MOD_EXTERN;
 			dependency = &copy;
@@ -2639,16 +2623,13 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *type = s->ctype.base_type;
 	struct statement *body;
-	bool has_definition, asm_goto, external_inline;
+	bool has_definition, asm_goto;
 
 	if (!type)
 		return;
 	body = type->stmt ? type->stmt : type->inline_stmt;
 	has_definition = body != NULL;
 	asm_goto = statement_has_asm_goto(body);
-	external_inline = has_definition &&
-		(s->ctype.modifiers & MOD_INLINE) &&
-		!(s->ctype.modifiers & MOD_STATIC);
 	if (symbol_was_defined(s))
 		return;
 	if (!has_definition &&
@@ -2658,21 +2639,12 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 	show_function_forwards(out, type);
 	show_function_dependencies(out, s);
 	if (has_definition) {
-		if (external_inline) {
-			struct symbol copy = *s;
-
-			copy.ctype.modifiers &= ~(MOD_INLINE | MOD_GNU_INLINE);
-			copy.ctype.modifiers |= MOD_EXTERN;
-			show_c_typename(out, &copy);
-			append(out, ";\n");
-		}
-		if (asm_goto || external_inline) {
+		if (asm_goto || (s->ctype.modifiers & MOD_EXTERN)) {
 			struct symbol copy = *s;
 
 			if (asm_goto)
 				copy.ctype.modifiers |= MOD_ALWAYS_INLINE;
-			if (external_inline)
-				copy.ctype.modifiers &= ~MOD_EXTERN;
+			copy.ctype.modifiers &= ~MOD_EXTERN;
 			show_c_typename(out, &copy);
 		} else {
 			show_c_typename(out, s);
@@ -2685,174 +2657,6 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 		append(out, ";\n");
 		remember_symbol(&printed.declarations, s);
 	}
-}
-
-struct inline_function_output {
-	struct code_buffer *out;
-	struct symbol_list **emitted;
-	struct symbol *active[8192];
-	struct symbol *data[8192];
-	unsigned int active_count;
-	unsigned int data_count;
-};
-
-static bool symbol_in_array(struct symbol **symbols, unsigned int count,
-			    struct symbol *symbol)
-{
-	unsigned int i;
-
-	for (i = 0; i < count; i++)
-		if (symbols[i] == symbol)
-			return true;
-	return false;
-}
-
-static struct symbol *find_inline_function_definition(struct symbol *function)
-{
-	unsigned int i;
-
-	for (i = 0; function && i < 8192; i++) {
-		struct symbol *type = strip_type_wrappers(function);
-
-		if (type && type->type == SYM_FN && type->inline_stmt)
-			return function;
-		function = function->same_symbol;
-	}
-	return NULL;
-}
-
-static void show_inline_function_definition(struct inline_function_output *output,
-					    struct symbol *function);
-
-static void show_inline_function_declaration(struct inline_function_output *output,
-					     struct symbol *function)
-{
-	if (symbol_was_declared(function))
-		return;
-	show_function_forwards(output->out, function->ctype.base_type);
-	show_c_typename(output->out, function);
-	append(output->out, ";\n");
-	remember_symbol(&printed.declarations, function);
-}
-
-static void show_inline_data_dependency(struct inline_function_output *output,
-					struct symbol *symbol)
-{
-	struct symbol *type = strip_type_wrappers(symbol);
-	struct symbol copy;
-	struct sym_dependency_list *dependencies = NULL;
-	struct tag_output type_output = { .out = output->out };
-	struct sym_dependency *entry;
-	struct symbol *dependency;
-
-	if (!type || type->type == SYM_FN ||
-	    symbol_in_array(output->data, output->data_count, symbol))
-		return;
-	if (output->data_count >= ARRAY_SIZE(output->data))
-		return;
-	output->data[output->data_count++] = symbol;
-	show_type_dependencies(&type_output, symbol,
-			       type_can_use_forward_declaration(symbol));
-	collect_type_expression_dependencies(&dependencies, symbol);
-	FOR_EACH_PTR(dependencies, entry) {
-		dependency = entry->sym;
-		if (dependency_is_type(dependency))
-			continue;
-		if (dependency == symbol)
-			dependency = dependency->same_symbol;
-		if (dependency)
-			show_inline_data_dependency(output, dependency);
-	} END_FOR_EACH_PTR(entry);
-	if (symbol->ctype.modifiers & MOD_STATIC) {
-		sym(output->out, symbol);
-	} else {
-		copy = *symbol;
-		copy.ctype.modifiers |= MOD_EXTERN;
-		show_c_typename(output->out, &copy);
-		show_asm_name(output->out, &copy);
-		append(output->out, ";\n");
-	}
-	if (output->emitted)
-		add_symbol(output->emitted, symbol);
-}
-
-static void show_inline_function_dependencies(struct inline_function_output *output,
-					      struct symbol *function)
-{
-	struct sym_dependency_list *dependencies = NULL;
-	struct tag_output type_output = { .out = output->out };
-	struct sym_dependency *entry;
-	struct symbol *dependency;
-
-	collect_function_dependencies(&dependencies, function);
-	show_collected_type_dependencies(&type_output, dependencies);
-	FOR_EACH_PTR(dependencies, entry) {
-		struct symbol *inline_function;
-
-		dependency = entry->sym;
-		if (dependency_is_type(dependency))
-			continue;
-		if (dependency == function)
-			continue;
-		access_symbol(dependency);
-		inline_function = find_inline_function_definition(dependency);
-		if (inline_function)
-			show_inline_function_definition(output, inline_function);
-		else
-			show_inline_data_dependency(output, dependency);
-	} END_FOR_EACH_PTR(entry);
-}
-
-static void show_inline_function_definition(struct inline_function_output *output,
-					    struct symbol *function)
-{
-	struct symbol *type = strip_type_wrappers(function);
-
-	if (!type || type->type != SYM_FN || !type->inline_stmt ||
-	    symbol_was_defined(function))
-		return;
-	if (symbol_in_array(output->active, output->active_count, function)) {
-		show_inline_function_declaration(output, function);
-		return;
-	}
-	if (output->active_count >= ARRAY_SIZE(output->active))
-		return;
-	output->active[output->active_count++] = function;
-	show_inline_function_dependencies(output, function);
-	output->active_count--;
-	show_function(output->out, function);
-}
-
-static bool show_inline_function_for_symbol(struct code_buffer *out,
-					    struct symbol *function)
-{
-	struct inline_function_output output = { .out = out };
-	struct symbol *inline_function;
-
-	inline_function = find_inline_function_definition(function);
-	if (!inline_function)
-		return false;
-	show_inline_function_definition(&output, inline_function);
-	return true;
-}
-
-void show_inline_function_definitions(struct symbol_list *symbols,
-				      struct symbol_list **emitted, char *buf, size_t len)
-{
-	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
-	struct inline_function_output output = { .out = &out, .emitted = emitted };
-	struct symbol *symbol;
-
-	if (!len)
-		return;
-	buf[0] = '\0';
-	FOR_EACH_PTR(symbols, symbol) {
-		struct symbol *type = strip_type_wrappers(symbol);
-
-		if (type && type->type == SYM_FN)
-			show_inline_function_dependencies(&output, symbol);
-		show_inline_function_definition(&output, symbol);
-	} END_FOR_EACH_PTR(symbol);
 }
 
 static void show_struct_definition(struct tag_output *output, struct symbol *type)

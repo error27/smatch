@@ -9,13 +9,6 @@
 
 #define EXTRACT_BUFFER_SIZE (16 * 1024 * 1024)
 
-static bool is_inline_function(struct symbol *symbol)
-{
-	struct symbol *type = symbol->ctype.base_type;
-
-	return type && type->type == SYM_FN && type->inline_stmt;
-}
-
 static bool is_function_definition(struct symbol *symbol)
 {
 	struct symbol *type = symbol->ctype.base_type;
@@ -26,18 +19,11 @@ static bool is_function_definition(struct symbol *symbol)
 
 static void show_all(FILE *out, struct symbol_list *list, char *buf)
 {
-	struct symbol_list *inline_dependencies = NULL;
 	struct symbol *sym;
 
 	show_all_type_definitions(file_scope->symbols, buf, EXTRACT_BUFFER_SIZE);
 	fprintf(out, "%s\n", buf);
-	show_inline_function_definitions(list, &inline_dependencies, buf,
-					 EXTRACT_BUFFER_SIZE);
-	fprintf(out, "%s\n", buf);
 	FOR_EACH_PTR(list, sym) {
-		if (is_inline_function(sym) ||
-		    lookup_ptr_list_entry((struct ptr_list *)inline_dependencies, sym))
-			continue;
 		show_sym(sym, buf, EXTRACT_BUFFER_SIZE);
 		fprintf(out, "%s\n", buf);
 	} END_FOR_EACH_PTR(sym);
