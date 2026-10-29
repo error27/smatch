@@ -802,8 +802,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 						  active_count);
 		type = strip_type_wrappers(dependency);
 		definition = function_definition(dependency);
-		if (definition &&
-		    (definition->ctype.modifiers & MOD_STATIC)) {
+		if (definition) {
 			sym(out, definition);
 			continue;
 		}
