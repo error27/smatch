@@ -643,7 +643,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 	case EXPR_POSTOP:
 		item = e->unop;
 		expression_type = collect_expression_dependencies_rec(dependencies, item,
-									      complete_type);
+								      complete_type);
 		if (!type) {
 			if (e->op == '*' && expression_type)
 				type = strip_type_wrappers(get_base_type(expression_type));
@@ -659,8 +659,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		type = collect_expression_dependencies_rec(dependencies, e->left,
 							   complete_type);
 		expression_type = collect_expression_dependencies_rec(dependencies,
-									      e->right,
-									      complete_type);
+								      e->right,
+								      complete_type);
 		if (e->type == EXPR_BINOP && (e->op == '+' || e->op == '-')) {
 			collect_complete_type_dependency(dependencies, type);
 			collect_complete_type_dependency(dependencies, expression_type);
@@ -670,8 +670,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		break;
 	case EXPR_DEREF:
 		expression_type = collect_expression_dependencies_rec(dependencies,
-									   e->deref,
-									   complete_type || e->member);
+								      e->deref,
+								      complete_type || e->member);
 		if (e->member) {
 			struct symbol *tag = tag_type(expression_type);
 
