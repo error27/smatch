@@ -85,6 +85,9 @@ static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
+static void show_initializer_dependencies_rec(struct code_buffer *out,
+					      struct symbol *symbol,
+					      struct symbol_list **active);
 static bool is_type_definition(struct symbol *s, struct symbol **tag_out);
 static bool tag_has_definition(struct symbol *tag);
 static bool is_struct_or_union(struct symbol *type);
@@ -801,11 +804,11 @@ static void collect_declaration_dependencies(struct sym_dependency_list **depend
 	} END_FOR_EACH_PTR(declaration);
 }
 
-static void show_initializer_dependencies_rec(struct code_buffer *out,
-					      struct symbol *symbol,
-					      struct symbol_list **active)
+static void show_dependencies(struct code_buffer *out,
+			      struct sym_dependency_list *dependencies,
+			      struct symbol *symbol,
+			      struct symbol_list **active)
 {
-	struct sym_dependency_list *dependencies = NULL;
 	struct tag_output type_output = { .out = out };
 	struct sym_dependency *entry;
 	struct symbol *dependency;
@@ -813,11 +816,7 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 	struct symbol *type;
 	struct symbol copy;
 
-	if (lookup_ptr_list_entry((struct ptr_list *)*active, symbol))
-		return;
-	add_symbol(active, symbol);
-	collect_type_expression_dependencies(&dependencies, symbol);
-	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
+	show_collected_type_dependencies(&type_output, dependencies);
 	FOR_EACH_PTR(dependencies, entry) {
 		dependency = entry->sym;
 		if (dependency_is_type(dependency))
@@ -828,13 +827,22 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 			continue;
 		if (symbol_was_declared(dependency))
 			continue;
-		show_type_dependencies(&type_output, dependency,
-				       type_can_use_forward_declaration(dependency));
-		show_initializer_dependencies_rec(out, dependency, active);
 		type = strip_type_wrappers(dependency);
+		access_symbol(dependency);
 		definition = function_definition(dependency);
 		if (definition) {
 			sym(out, definition);
+			continue;
+		}
+		show_type_dependencies(&type_output, dependency,
+				       type_can_use_forward_declaration(dependency));
+		if (active)
+			show_initializer_dependencies_rec(out, dependency, active);
+		else
+			show_initializer_dependencies(out, dependency);
+		if (type->type != SYM_FN &&
+		    (dependency->ctype.modifiers & MOD_STATIC)) {
+			sym(out, dependency);
 			continue;
 		}
 		if (symbol_initializer(dependency)) {
@@ -851,6 +859,20 @@ static void show_initializer_dependencies_rec(struct code_buffer *out,
 		append(out, ";\n");
 		remember_symbol(&printed.declarations, dependency);
 	} END_FOR_EACH_PTR(entry);
+}
+
+static void show_initializer_dependencies_rec(struct code_buffer *out,
+					      struct symbol *symbol,
+					      struct symbol_list **active)
+{
+	struct sym_dependency_list *dependencies = NULL;
+
+	if (lookup_ptr_list_entry((struct ptr_list *)*active, symbol))
+		return;
+	add_symbol(active, symbol);
+	collect_type_expression_dependencies(&dependencies, symbol);
+	collect_expression_dependencies(&dependencies, symbol_initializer(symbol));
+	show_dependencies(out, dependencies, symbol, active);
 }
 
 static void show_initializer_dependencies(struct code_buffer *out,
@@ -946,10 +968,6 @@ static void show_function_dependencies(struct code_buffer *out,
 				       struct symbol *function)
 {
 	struct sym_dependency_list *dependencies = NULL;
-	struct tag_output type_output = { .out = out };
-	struct sym_dependency *entry;
-	struct symbol *dependency;
-	struct symbol copy;
 	struct symbol *type;
 	struct statement *stmt;
 
@@ -962,50 +980,7 @@ static void show_function_dependencies(struct code_buffer *out,
 	collect_function_type_dependencies(&dependencies, type);
 	collect_type_expression_dependencies(&dependencies, function);
 	collect_statement_dependencies(&dependencies, stmt);
-	show_collected_type_dependencies(&type_output, dependencies);
-
-	FOR_EACH_PTR(dependencies, entry) {
-		struct symbol *definition;
-		struct symbol *original;
-
-		dependency = entry->sym;
-		if (dependency_is_type(dependency))
-			continue;
-		if (dependency == function)
-			dependency = dependency->same_symbol;
-		original = dependency;
-		if (!dependency)
-			continue;
-		if (symbol_was_declared(dependency))
-			continue;
-		type = strip_type_wrappers(dependency);
-		access_symbol(dependency);
-		definition = function_definition(dependency);
-		if (definition) {
-			sym(out, definition);
-			continue;
-		}
-		show_type_dependencies(&type_output, dependency,
-				       type_can_use_forward_declaration(dependency));
-		show_initializer_dependencies(out, dependency);
-		if (type->type != SYM_FN &&
-		    (dependency->ctype.modifiers & MOD_STATIC)) {
-			sym(out, dependency);
-			continue;
-		}
-		if (type->type == SYM_FN)
-			show_function_forwards(out, dependency->ctype.base_type);
-
-		copy = *dependency;
-		if (!(copy.ctype.modifiers & MOD_STATIC))
-			copy.ctype.modifiers |= MOD_EXTERN;
-		dependency = &copy;
-
-		show_c_typename(out, dependency);
-		show_asm_name(out, dependency);
-		append(out, ";\n");
-		remember_symbol(&printed.declarations, original);
-	} END_FOR_EACH_PTR(entry);
+	show_dependencies(out, dependencies, function, NULL);
 }
 
 static void show_type_members(struct tag_output *output, struct symbol *type)
