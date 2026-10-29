@@ -656,10 +656,17 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 	case EXPR_LOGICAL:
 	case EXPR_COMMA:
 	case EXPR_COMPARE:
-		collect_expression_dependencies_rec(dependencies, e->left,
-						    complete_type);
-		collect_expression_dependencies_rec(dependencies, e->right,
-						    complete_type);
+		type = collect_expression_dependencies_rec(dependencies, e->left,
+							   complete_type);
+		expression_type = collect_expression_dependencies_rec(dependencies,
+									      e->right,
+									      complete_type);
+		if (e->type == EXPR_BINOP && (e->op == '+' || e->op == '-')) {
+			collect_complete_type_dependency(dependencies, type);
+			collect_complete_type_dependency(dependencies, expression_type);
+		}
+		if (e->ctype)
+			type = e->ctype;
 		break;
 	case EXPR_DEREF:
 		expression_type = collect_expression_dependencies_rec(dependencies,
@@ -683,6 +690,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 	case EXPR_SIZEOF:
 	case EXPR_ALIGNOF:
 	case EXPR_PTRSIZEOF:
+		if (!type)
+			type = e->cast_type;
 		add_type_dependency(dependencies, e->cast_type, false);
 		collect_type_expression_dependencies(dependencies, e->cast_type);
 		if (complete_type)
