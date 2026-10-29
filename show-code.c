@@ -379,8 +379,7 @@ static void add_type_dependency(struct sym_dependency_list **dependencies,
 	if (!type)
 		return;
 	typedef_symbol = type_typedef_symbol(type);
-	collect_dependencies(dependencies, show_base_type(type),
-			     needs_forward);
+	collect_dependencies(dependencies, show_base_type(type), needs_forward);
 	if (!typedef_symbol)
 		return;
 	add_dependency(dependencies, typedef_symbol, needs_forward);
@@ -398,20 +397,13 @@ struct tag_output {
 	struct symbol_list *dependency_types;
 };
 
-static void show_struct_definition(struct tag_output *output,
-				   struct symbol *type);
-static bool show_tag_definition(struct tag_output *output,
-				struct symbol *type);
-static void show_type_definition(struct tag_output *output,
-				 struct symbol *symbol);
-static void show_type_declaration(struct tag_output *output,
-				  struct symbol *symbol);
-static void show_typedef_definition(struct code_buffer *out,
-				    struct symbol *type);
-static void show_type_dependencies(struct tag_output *output,
-				   struct symbol *type, bool needs_forward);
-static void show_type_members(struct tag_output *output,
-			      struct symbol *type);
+static void show_struct_definition(struct tag_output *output, struct symbol *type);
+static bool show_tag_definition(struct tag_output *output, struct symbol *type);
+static void show_type_definition(struct tag_output *output, struct symbol *symbol);
+static void show_type_declaration(struct tag_output *output, struct symbol *symbol);
+static void show_typedef_definition(struct code_buffer *out, struct symbol *type);
+static void show_type_dependencies(struct tag_output *output, struct symbol *type, bool needs_forward);
+static void show_type_members(struct tag_output *output, struct symbol *type);
 
 static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
 {
@@ -434,7 +426,7 @@ static bool tag_was_defined(struct symbol *type)
 static bool tag_was_declared(struct symbol *type)
 {
 	return tag_was_defined(type) ||
-		tag_was_output(printed.declarations, type);
+	       tag_was_output(printed.declarations, type);
 }
 
 static bool symbol_was_output(struct symbol_list *symbols,
@@ -467,7 +459,7 @@ static bool symbol_was_defined(struct symbol *symbol)
 static bool symbol_was_declared(struct symbol *symbol)
 {
 	return symbol_was_defined(symbol) ||
-		symbol_was_output(printed.declarations, symbol);
+	       symbol_was_output(printed.declarations, symbol);
 }
 
 static void show_type_declaration(struct tag_output *output,
@@ -480,8 +472,7 @@ static void show_type_declaration(struct tag_output *output,
 	if (!is_tag_type(symbol) || !symbol->ident ||
 	    tag_was_declared(symbol))
 		return;
-	append(output->out, "%s %s;\n", tag_type_name(symbol),
-	       show_ident(symbol->ident));
+	append(output->out, "%s %s;\n", tag_type_name(symbol), show_ident(symbol->ident));
 	remember_symbol(&printed.declarations, symbol);
 }
 
@@ -515,6 +506,7 @@ static void show_collected_type_dependencies(struct tag_output *output,
 			show_type_dependencies(output, dependency->sym,
 					       dependency->needs_forward);
 	} END_FOR_EACH_PTR(dependency);
+
 	FOR_EACH_PTR(dependencies, dependency) {
 		if (is_tag_type(dependency->sym))
 			show_required_type(output, dependency->sym,
@@ -545,10 +537,12 @@ static void add_symbol_dependency(struct sym_dependency_list **dependencies,
 	if (!symbol || !symbol->ident ||
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
 		return;
+
 	type = strip_type_wrappers(symbol);
 	if (!type || (type->type != SYM_FN && symbol->scope != file_scope &&
 		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
 		return;
+
 	add_dependency(dependencies, symbol,
 		       type_can_use_forward_declaration(symbol));
 }
@@ -559,6 +553,7 @@ static void collect_complete_type_dependency(struct sym_dependency_list **depend
 	type = strip_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
+
 	add_type_dependency(dependencies, type, false);
 	collect_dependencies(dependencies, type, false);
 }
@@ -570,6 +565,7 @@ static void collect_function_return_type_dependency(struct sym_dependency_list *
 
 	if (!function)
 		return;
+
 	type = strip_type_wrappers(function->ctype.base_type);
 	while (type_is_ptr(type) || type_is_array(type))
 		type = strip_type_wrappers(get_base_type(type));
@@ -870,6 +866,7 @@ static void collect_statement_dependencies(struct sym_dependency_list **dependen
 
 	if (!s)
 		return;
+
 	switch (s->type) {
 	case STMT_COMPOUND:
 		FOR_EACH_PTR(s->stmts, child) {
@@ -946,11 +943,14 @@ static void show_function_dependencies(struct code_buffer *out,
 	type = function->ctype.base_type;
 	if (!type)
 		return;
+
 	stmt = type->stmt ?: type->inline_stmt;
+
 	collect_function_type_dependencies(&dependencies, type);
 	collect_type_expression_dependencies(&dependencies, function);
 	collect_statement_dependencies(&dependencies, stmt);
 	show_collected_type_dependencies(&type_output, dependencies);
+
 	FOR_EACH_PTR(dependencies, entry) {
 		struct symbol *definition;
 		struct symbol *original;
@@ -1029,6 +1029,7 @@ static void show_type_dependencies(struct tag_output *output,
 
 	if (!type)
 		return;
+
 	if (type->namespace == NS_TYPEDEF) {
 		show_type_definition(output, type);
 		return;
@@ -1068,6 +1069,7 @@ static void show_type_dependencies(struct tag_output *output,
 	function_type = nested_type;
 	while (type_is_ptr(function_type) || type_is_array(function_type))
 		function_type = strip_type_wrappers(get_base_type(function_type));
+
 	if (function_type && function_type->type == SYM_FN) {
 		show_type_dependencies(output, function_type->ctype.base_type,
 				       type_can_use_forward_declaration(
@@ -1078,6 +1080,7 @@ static void show_type_dependencies(struct tag_output *output,
 		} END_FOR_EACH_PTR(arg);
 		return;
 	}
+
 	if (type_is_ptr(nested_type) || type_is_array(nested_type))
 		show_type_dependencies(output, get_base_type(nested_type),
 				       type_can_use_forward_declaration(nested_type));
