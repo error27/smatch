@@ -1783,6 +1783,7 @@ static void show_initializer_designator(struct code_buffer *out,
 static void expr(struct code_buffer *out, struct expression *e)
 {
 	struct expression *previous;
+	struct expression *tmp;
 
 	if (!e) {
 		append(out, "/* null */");
@@ -1928,12 +1929,13 @@ static void expr(struct code_buffer *out, struct expression *e)
 		append(out, "&&%s", show_ident(e->label_symbol->ident));
 		break;
 	case EXPR_INITIALIZER:
-		append(out, "{");
-		if (e->expr_list) {
-			append(out, " ");
-			exprs(out, e->expr_list);
-			append(out, " ");
-		}
+		append(out, "{\n");
+		out->indent++;
+		FOR_EACH_PTR(e->expr_list, tmp) {
+			expr(out, tmp);
+			append(out, ",\n");
+		} END_FOR_EACH_PTR(tmp);
+		out->indent--;
 		append(out, "}");
 		break;
 	case EXPR_IDENTIFIER:
