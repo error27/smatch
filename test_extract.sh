@@ -37,8 +37,8 @@ fi
 
 "$script_dir/extract" "${extract_args[@]}"
 output_file="${source_file}.extract"
-gcc -x c -fsyntax-only -fms-extensions "$output_file"
+gcc -x c -fsyntax-only -fms-extensions -fshort-wchar "$output_file"
 
 "$script_dir/extract" --last-func "${extract_args[@]}"
 last_output_file="${source_file}.extract.last"
-gcc -x c -fsyntax-only -fms-extensions "$last_output_file"
+gcc -x c -fsyntax-only -fms-extensions -fshort-wchar "$last_output_file"
