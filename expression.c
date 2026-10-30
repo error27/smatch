@@ -253,6 +253,11 @@ struct expression *copy_type_expression(struct expression *old)
 	case EXPR_SLICE:
 		new->base = copy_type_expression(old->base);
 		break;
+	case EXPR_OFFSETOF:
+		new->down = copy_type_expression(old->down);
+		if (old->op == '[')
+			new->index = copy_type_expression(old->index);
+		break;
 	case EXPR_STATEMENT:
 		new->statement = copy_type_statement(old->statement);
 		break;
