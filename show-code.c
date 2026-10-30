@@ -669,6 +669,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		item = e->unop;
 		expression_type = collect_expression_dependencies_rec(dependencies, item,
 								      complete_type);
+		if (e->op == SPECIAL_INCREMENT || e->op == SPECIAL_DECREMENT)
+			collect_pointer_element_dependency(dependencies, expression_type);
 		if (!type) {
 			if (e->op == '*' && expression_type)
 				type = strip_type_wrappers(get_base_type(expression_type));
