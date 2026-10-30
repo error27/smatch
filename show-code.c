@@ -382,8 +382,15 @@ static void collect_dependencies(struct sym_dependency *parent,
 		if (dependency && !dependency_has_ancestor(dependency))
 			collect_symbol_dependencies(dependency);
 	}
-	if (type->scope && !toplevel(type->scope))
+	if (type->scope && !toplevel(type->scope)) {
+		if (is_tag_type(type)) {
+			FOR_EACH_PTR(type->symbol_list, member) {
+				collect_dependencies(parent, member,
+						     type_can_use_forward_declaration(member));
+			} END_FOR_EACH_PTR(member);
+		}
 		return;
+	}
 	switch (type->type) {
 	case SYM_NODE:
 	case SYM_RESTRICT:
