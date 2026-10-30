@@ -504,14 +504,23 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 static void show_type_dependencies(struct tag_output *output, struct symbol *type, bool decl_enough);
 static void show_type_members(struct tag_output *output, struct symbol *type);
 
+/* Function-local tags with the same name are different types. */
+static bool is_local_tag(struct symbol *type)
+{
+	return is_tag_type(type) && type->scope && !toplevel(type->scope);
+}
+
 static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
 {
 	struct symbol *tag;
 
 	FOR_EACH_PTR(tags, tag) {
-		if (tag == type ||
-		    (tag->type == type->type && tag->ident && type->ident &&
-		     strcmp(show_ident(tag->ident), show_ident(type->ident)) == 0))
+		if (tag == type)
+			return true;
+		if (is_local_tag(tag) || is_local_tag(type))
+			continue;
+		if (tag->type == type->type && tag->ident && type->ident &&
+		    strcmp(show_ident(tag->ident), show_ident(type->ident)) == 0)
 			return true;
 	} END_FOR_EACH_PTR(tag);
 	return false;
@@ -536,6 +545,8 @@ static bool symbol_was_output(struct symbol_list *symbols,
 	FOR_EACH_PTR(symbols, entry) {
 		if (entry == symbol)
 			return true;
+		if (is_local_tag(entry) || is_local_tag(symbol))
+			continue;
 		if (entry->namespace == symbol->namespace &&
 		    entry->ident && symbol->ident &&
 		    strcmp(show_ident(entry->ident), show_ident(symbol->ident)) == 0)
