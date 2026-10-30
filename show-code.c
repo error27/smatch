@@ -587,8 +587,9 @@ static void show_required_type(struct tag_output *output,
 			if (tag_has_definition(needed))
 				show_type_definition(output, needed);
 			else
-				fprintf(stderr, "missing definition for %s %s\n",
-					tag_type_name(needed), show_ident(needed->ident));
+				fprintf(stderr, "%s: missing definition for %s %s\n",
+					base_filename, tag_type_name(needed),
+					show_ident(needed->ident));
 		}
 		return;
 	}
