@@ -958,6 +958,9 @@ static void show_dependency_cycle(struct code_buffer *out,
 	struct tag_output output = { .out = out };
 	struct symbol *symbol = dependency->sym;
 
+	/* Anonymous tags have no declaration form; leave their definition to sym(). */
+	if (find_anonymous_tag(symbol->ctype.base_type))
+		return;
 	if (has_type_expression(symbol))
 		return;
 	if (is_tag_type(symbol)) {
