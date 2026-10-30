@@ -747,10 +747,14 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		if (e->op == SPECIAL_INCREMENT || e->op == SPECIAL_DECREMENT)
 			collect_pointer_element_dependency(dependency, expression_type);
 		if (!type) {
-			if (e->op == '*' && expression_type)
+			if (e->op == '*' && expression_type) {
 				type = strip_type_wrappers(get_base_type(expression_type));
-			else
+			} else if (e->op == '&' && expression_type) {
+				type = alloc_symbol(e->pos, SYM_PTR);
+				type->ctype.base_type = expression_type;
+			} else {
 				type = expression_type;
+			}
 		}
 		break;
 	case EXPR_BINOP:
