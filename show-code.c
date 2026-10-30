@@ -2451,6 +2451,8 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	if (symbol_was_defined(s))
 		return;
+	if (!symbol_initializer(s) && symbol_was_declared(s))
+		return;
 	if (symbol_is_being_printed(out, s)) {
 		show_printing_declarations(out);
 		return;
@@ -2465,7 +2467,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
-	if (s->ctype.modifiers & MOD_EXTERN)
+	if ((s->ctype.modifiers & MOD_EXTERN) || !symbol_initializer(s))
 		remember_symbol(&printed.declarations, s);
 	else
 		remember_symbol(&printed.definitions, s);
