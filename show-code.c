@@ -127,9 +127,29 @@ struct c_type_name {
 
 /* Dependency collection and emission. */
 
+static struct expression *find_symbol_initializer(struct symbol *symbol)
+{
+	do {
+		if (symbol->orig_initializer)
+			return symbol->orig_initializer;
+		if (symbol->initializer)
+			return symbol->initializer;
+	} while ((symbol = symbol->same_symbol) != NULL);
+	return NULL;
+}
+
 static struct expression *symbol_initializer(struct symbol *symbol)
 {
-	return symbol->orig_initializer ?: symbol->initializer;
+	struct expression *initializer;
+	struct symbol *canonical;
+
+	initializer = find_symbol_initializer(symbol);
+	if (initializer || !symbol->ident || !toplevel(symbol->scope))
+		return initializer;
+	canonical = lookup_symbol(symbol->ident, symbol->namespace);
+	if (!canonical || canonical == symbol)
+		return NULL;
+	return find_symbol_initializer(canonical);
 }
 
 static bool tag_has_definition(struct symbol *tag)
@@ -2660,7 +2680,8 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	if ((!type || type->type != SYM_FN) && !symbol_initializer(s) &&
 	    symbol_was_declared(s))
 		return;
-	if (is_incomplete_array_declaration(s) && symbol_was_declared(s))
+	if (is_incomplete_array_declaration(s) && !symbol_initializer(s) &&
+	    symbol_was_declared(s))
 		return;
 	if (symbol_is_being_printed(out, s)) {
 		show_printing_declarations(out);
