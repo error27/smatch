@@ -1038,12 +1038,7 @@ static void show_dependencies(struct code_buffer *out,
 	struct sym_dependency *dependency;
 
 	FOR_EACH_PTR(parent->depends, dependency) {
-		if (dependency_is_type(dependency->sym))
-			show_dependency(out, dependency);
-	} END_FOR_EACH_PTR(dependency);
-	FOR_EACH_PTR(parent->depends, dependency) {
-		if (!dependency_is_type(dependency->sym))
-			show_dependency(out, dependency);
+		show_dependency(out, dependency);
 	} END_FOR_EACH_PTR(dependency);
 }
 
