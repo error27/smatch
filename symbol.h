@@ -113,6 +113,7 @@ struct decl_state {
 	struct ident **ident;
 	struct symbol_op *mode;
 	struct expression *asm_name;
+	struct expression *alias;
 	struct expression *cleanup;
 	struct alloc_size *alloc_size;
 	unsigned long f_modifiers;		// function attributes
@@ -219,6 +220,7 @@ struct symbol {
 			struct expression *orig_initializer;
 			struct expression *type_expression;
 			struct expression *asm_name;
+			struct expression *alias;
 			struct expression *cleanup;
 			struct entrypoint *ep;
 			struct symbol *definition;

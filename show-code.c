@@ -1995,6 +1995,11 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 		show_c_typename(out, s);
 
 	show_asm_name(out, s);
+	if (s->alias) {
+		append(out, " __attribute__((used, alias(");
+		expr(out, s->alias);
+		append(out, "))) ");
+	}
 	if (symbol_initializer(s)) {
 		append(out, " = ");
 		expr(out, symbol_initializer(s));

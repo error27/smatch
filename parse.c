@@ -1135,6 +1135,16 @@ static struct token *ignore_attribute(struct token *token, struct symbol *attr, 
 	return token;
 }
 
+static struct token *attribute_alias(struct token *token, struct decl_state *ctx)
+{
+	struct expression *expr = NULL;
+
+	token = expect(token, '(', "after alias attribute");
+	token = string_expression(token, &expr, "alias attribute");
+	ctx->alias = expr;
+	return expect(token, ')', "after alias attribute");
+}
+
 static struct token *attribute_packed(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
 	if (!ctx->ctype.alignment) {
@@ -1429,7 +1439,10 @@ static struct token *attribute_specifier(struct token *token, struct symbol *sym
 
 	while (token_type(token) == TOKEN_IDENT) {
 		struct symbol *attr = lookup_keyword(token->ident, NS_KEYWORD);
-		if (attr && attr->op->attribute)
+		if (!strcmp(token->ident->name, "alias") ||
+		    !strcmp(token->ident->name, "__alias__"))
+			token = attribute_alias(token->next, ctx);
+		else if (attr && attr->op->attribute)
 			token = attr->op->attribute(token->next, attr, ctx);
 		else
 			token = recover_unknown_attribute(token);
@@ -3105,6 +3118,7 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 
 	decl->ctype = ctx.ctype;
 	decl->ctype.modifiers |= mod;
+	decl->alias = ctx.alias;
 	decl->cleanup = ctx.cleanup;
 	decl->endpos = token->pos;
 
