@@ -1449,6 +1449,17 @@ static bool type_has_typeof(struct symbol *type)
 	return false;
 }
 
+static bool declaration_has_typeof(struct symbol *type)
+{
+	for (; type; type = show_base_type(type)) {
+		if (is_typeof(type))
+			return true;
+		if (type->type == SYM_FN)
+			return false;
+	}
+	return false;
+}
+
 static void show_typeof_expression(struct code_buffer *out,
 				   struct symbol *type)
 {
@@ -2570,7 +2581,7 @@ static struct symbol *function_definition(struct symbol *s)
 {
 	unsigned int i;
 
-	if (s && s->definition)
+	if (s && s->definition && !declaration_has_typeof(s))
 		return s->definition;
 	for (i = 0; s && i < 8192; i++) {
 		struct symbol *type = strip_type_wrappers(s);
@@ -2657,7 +2668,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	}
 	push_printing_symbol(out, s);
 
-	if (type && type->type == SYM_FN) {
+	if (type && type->type == SYM_FN && !declaration_has_typeof(s)) {
 		show_function(out, s);
 		goto out;
 	}
