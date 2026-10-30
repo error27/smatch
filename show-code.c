@@ -936,14 +936,18 @@ static void collect_type_expression_dependencies(struct sym_dependency *dependen
 						 struct symbol *type)
 {
 	struct sym_dependency *type_dependency;
+	bool decl_enough = false;
 
 	while (type) {
 		if (has_type_expression(type)) {
-			type_dependency = add_dependency(dependency, type, false);
+			type_dependency = add_dependency(dependency, type,
+							 decl_enough);
 			if (type_dependency &&
 			    !dependency_has_ancestor(type_dependency))
 				collect_symbol_dependencies(type_dependency);
 		}
+		if (type_is_ptr(type))
+			decl_enough = true;
 		type = show_base_type(type);
 	}
 }
