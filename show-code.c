@@ -2734,7 +2734,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 		return;
 	type = s->ctype.base_type;
 	if ((!type || type->type != SYM_FN) && !symbol_initializer(s) &&
-	    symbol_was_declared(s))
+	    (s->ctype.modifiers & MOD_EXTERN) && symbol_was_declared(s))
 		return;
 	if (is_incomplete_array_declaration(s) && !symbol_initializer(s) &&
 	    symbol_was_declared(s))
