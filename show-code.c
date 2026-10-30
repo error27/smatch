@@ -735,6 +735,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency_
 		expression_type = collect_expression_dependencies_rec(dependencies,
 							       e->cast_expression,
 							       complete_type);
+		if (e->cast_expression && e->cast_expression->type == EXPR_SYMBOL)
+			add_dependency(dependencies, e->cast_expression->symbol, false);
 		if (expression_type &&
 		    !type_is_ptr(strip_type_wrappers(expression_type)))
 			collect_complete_type_dependency(dependencies, expression_type);
@@ -911,8 +913,12 @@ static void show_dependencies(struct code_buffer *out,
 			dependency = dependency->same_symbol;
 		if (!dependency)
 			continue;
-		if (symbol_was_declared(dependency))
+		if (entry->decl_enough && symbol_was_declared(dependency))
 			continue;
+		if (!entry->decl_enough) {
+			sym(out, dependency);
+			continue;
+		}
 		type = strip_type_wrappers(dependency);
 		access_symbol(dependency);
 		definition = function_definition(dependency);
@@ -2438,6 +2444,17 @@ static void show_printing_declarations(struct code_buffer *out)
 	} END_FOR_EACH_PTR(symbol);
 }
 
+static bool is_incomplete_array_declaration(struct symbol *symbol)
+{
+	struct symbol *type;
+
+	for (type = symbol->ctype.base_type; type; type = show_base_type(type)) {
+		if (type_is_array(type))
+			return !type->array_size;
+	}
+	return false;
+}
+
 static void sym(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *definition;
@@ -2453,7 +2470,7 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	if (symbol_was_defined(s))
 		return;
-	if (!symbol_initializer(s) && symbol_was_declared(s))
+	if (is_incomplete_array_declaration(s) && symbol_was_declared(s))
 		return;
 	if (symbol_is_being_printed(out, s)) {
 		show_printing_declarations(out);
@@ -2469,7 +2486,8 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
-	if ((s->ctype.modifiers & MOD_EXTERN) || !symbol_initializer(s))
+	if ((s->ctype.modifiers & MOD_EXTERN) ||
+	    is_incomplete_array_declaration(s))
 		remember_symbol(&printed.declarations, s);
 	else
 		remember_symbol(&printed.definitions, s);
