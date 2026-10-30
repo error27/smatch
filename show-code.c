@@ -1628,6 +1628,13 @@ static void show_value(struct code_buffer *out, struct expression *e)
 	unsigned long long value = e->value;
 	const char *suffix = integer_literal_suffix(e);
 
+	if ((e->flags & CEF_CHAR) && value >= ' ' && value <= '~') {
+		if (value == '\\' || value == '\'')
+			append(out, "'\\%c'", (int)value);
+		else
+			append(out, "'%c'", (int)value);
+		return;
+	}
 	if (!e->ctype || e->ctype != &int_ctype)
 		goto hex;
 	if (has_bitwise_parent(e))
