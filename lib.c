@@ -295,7 +295,13 @@ static void create_builtin_stream(void)
 		add_pre_buffer("#define __builtin_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 		add_pre_buffer("#define __builtin_ms_va_copy(dest, src) ({ dest = src; (void)0; })\n");
 	}
-	add_pre_buffer("#define __builtin_va_arg(arg,type)  ({ type __va_arg_ret = *(type *)(arg); arg += sizeof(type); __va_arg_ret; })\n");
+	if (!preserve_builtin_va_calls)
+		add_pre_buffer("%s%s%s", "#define __builtin_va_arg(arg,type)  ",
+			       "({ type __va_arg_ret = *(type *)(arg); ",
+			       "arg += sizeof(type); __va_arg_ret; })\n");
+	else
+		add_pre_buffer("%s%s", "#define __builtin_va_arg(arg,type) ",
+			       "__extract_va_arg(arg, (type *)0)\n");
 	add_pre_buffer("#define __builtin_va_alist (*(void *)0)\n");
 	add_pre_buffer("#define __builtin_va_arg_incr(x) ((x) + 1)\n");
 	add_pre_buffer("#define __builtin_va_arg_pack()\n");

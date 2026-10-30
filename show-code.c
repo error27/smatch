@@ -1950,6 +1950,43 @@ static void show_initializer_designator(struct code_buffer *out,
 	}
 }
 
+static bool show_va_arg_call(struct code_buffer *out, struct expression *e)
+{
+	struct expression *argument;
+	struct expression *va_list = NULL;
+	struct expression *type = NULL;
+	struct symbol *cast_type;
+	struct ident *ident;
+	int count = 0;
+
+	if (!e->fn || e->fn->type != EXPR_SYMBOL)
+		return false;
+	ident = e->fn->symbol ? e->fn->symbol->ident : e->fn->symbol_name;
+	if (!ident || strcmp(show_ident(ident), "__extract_va_arg") != 0)
+		return false;
+	FOR_EACH_PTR(e->args, argument) {
+		if (count == 0)
+			va_list = argument;
+		else if (count == 1)
+			type = argument;
+		count++;
+	} END_FOR_EACH_PTR(argument);
+	if (count != 2 || !type || type->type != EXPR_CAST)
+		return false;
+	cast_type = strip_type_wrappers(type->cast_type);
+	if (!type_is_ptr(cast_type))
+		return false;
+	cast_type = get_base_type(cast_type);
+	if (!cast_type)
+		return false;
+	append(out, "__builtin_va_arg(");
+	expr(out, va_list);
+	append(out, ", ");
+	show_c_typename(out, cast_type);
+	append(out, ")");
+	return true;
+}
+
 static void expr(struct code_buffer *out, struct expression *e)
 {
 	struct expression *previous;
@@ -2055,6 +2092,8 @@ static void expr(struct code_buffer *out, struct expression *e)
 		append(out, ")");
 		break;
 	case EXPR_CALL:
+		if (show_va_arg_call(out, e))
+			break;
 		if (e->fn && e->fn->type == EXPR_PREOP && e->fn->op == '*') {
 			struct expression *index = e->fn->unop;
 
