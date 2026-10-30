@@ -233,7 +233,8 @@ static struct symbol *type_typedef_symbol(struct symbol *type)
 {
 	struct symbol *typedef_symbol;
 
-	if (!type)
+	/* The base type of a __bitwise enum is not a typedef for the enum. */
+	if (!type || is_tag_type(type))
 		return NULL;
 	if ((type->type == SYM_NODE || type->type == SYM_RESTRICT) &&
 	    type->ident) {
