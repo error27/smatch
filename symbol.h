@@ -379,7 +379,7 @@ extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespa
 extern struct symbol *examine_symbol_type(struct symbol *);
 extern struct symbol *examine_pointer_target(struct symbol *);
 extern const char *show_as(struct ident *as);
-extern const char *show_typename(struct symbol *sym, bool checker);
+extern const char *show_typename(struct symbol *sym);
 extern const char *builtin_typename(struct symbol *sym);
 extern const char *builtin_type_suffix(struct symbol *sym);
 extern const char *builtin_ctypename(struct ctype *ctype);

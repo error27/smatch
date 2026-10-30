@@ -108,53 +108,49 @@ void debug_symbol(struct symbol *sym)
  * Symbol type printout. The type system is by far the most
  * complicated part of C - everything else is trivial.
  */
-static const char *show_modifiers(unsigned long mod, int term, bool checker)
+static const char *show_modifiers(unsigned long mod, int term)
 {
-	static char buffer[1024];
+	static char buffer[100];
 	int len = 0;
 	int i;
 	struct mod_name {
 		unsigned long mod;
-		const char *checker_name;
-		const char *gcc_name;
+		const char *name;
 	} *m;
 
 	static struct mod_name mod_names[] = {
-		{MOD_AUTO,		"auto",			"auto"},
-		{MOD_EXTERN,		"extern",		"extern"},
-		{MOD_REGISTER,		"register",		"register"},
-		{MOD_STATIC,		"static",		"static"},
-		{MOD_INLINE,		"inline",		"inline"},
-		{MOD_CONST,		"const",		"const"},
+		{MOD_AUTO,		"auto"},
+		{MOD_EXTERN,		"extern"},
+		{MOD_REGISTER,		"register"},
+		{MOD_STATIC,		"static"},
+		{MOD_INLINE,		"inline"},
+		{MOD_CONST,		"const"},
 		{MOD_RESTRICT,		"restrict"},
 		{MOD_VOLATILE,		"volatile"},
 		{MOD_ADDRESSABLE,	"[addressable]"},
 		{MOD_ASSIGNED,		"[assigned]"},
-		{MOD_ATOMIC,		"[atomic]",		"_Atomic"},
+		{MOD_ATOMIC,		"[atomic]"},
 		{MOD_BITWISE,		"[bitwise]"},
 		{MOD_EXPLICITLY_SIGNED,	"[explicitly-signed]"},
-		{MOD_GNU_INLINE,	"[gnu_inline]",		"__attribute__((__gnu_inline__))"},
-		{MOD_ALWAYS_INLINE,	"[always_inline]",
-					"__attribute__((__always_inline__))"},
+		{MOD_GNU_INLINE,	"[gnu_inline]"},
 		{MOD_NOCAST,		"[nocast]"},
 		{MOD_NODEREF,		"[noderef]"},
-		{MOD_NORETURN,		"[noreturn]",		"__attribute__((__noreturn__))"},
-		{MOD_PURE,		"[pure]",		"__attribute__((__pure__))"},
+		{MOD_NORETURN,		"[noreturn]"},
+		{MOD_PURE,		"[pure]"},
 		{MOD_SAFE,		"[safe]"},
-		{MOD_SIGNED,		"[signed]",		"signed"},
-		{MOD_TLS,		"[tls]",		"__thread"},
+		{MOD_SIGNED,		"[signed]"},
+		{MOD_TLS,		"[tls]"},
 		{MOD_TOPLEVEL,		"[toplevel]"},
-		{MOD_UNSIGNED,		"[unsigned]",		"unsigned"},
-		{MOD_UNUSED,		"[unused]",		"__attribute__((__unused__))"},
+		{MOD_UNSIGNED,		"[unsigned]"},
+		{MOD_UNUSED,		"[unused]"},
 		{MOD_USERTYPE,		"[usertype]"},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(mod_names); i++) {
 		m = mod_names + i;
-		const char *name = checker ? m->checker_name : m->gcc_name;
-
-		if ((mod & m->mod) && name) {
+		if (mod & m->mod) {
 			char c;
+			const char *name = m->name;
 			while ((c = *name++) != '\0' && len + 2 < sizeof buffer)
 				buffer[len++] = c;
 			buffer[len++] = ' ';
@@ -166,35 +162,18 @@ static const char *show_modifiers(unsigned long mod, int term, bool checker)
 	return buffer;
 }
 
-static bool is_typedef_tag(struct symbol *type)
-{
-	struct symbol *typedef_symbol;
-
-	if (type->namespace == NS_TYPEDEF)
-		return true;
-	if (!type->ident)
-		return false;
-	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
-	while (typedef_symbol) {
-		if (typedef_symbol == type || typedef_symbol->definition == type)
-			return true;
-		typedef_symbol = typedef_symbol->ctype.base_type;
-	}
-	return false;
-}
-
 ///
 // show the modifiers, terminated by a space if not empty
 const char *modifier_string(unsigned long mod)
 {
-	return show_modifiers(mod, 1, true);
+	return show_modifiers(mod, 1);
 }
 
 ///
 // show the modifiers, without an ending space
 const char *modifier_name(unsigned long mod)
 {
-	return show_modifiers(mod, 0, true);
+	return show_modifiers(mod, 0);
 }
 
 static void show_struct_member(struct symbol *sym)
@@ -226,23 +205,6 @@ struct type_name {
 	char *start;
 	char *end;
 };
-
-static void prepend_modifiers(struct type_name *name, unsigned long mod,
-				      bool checker)
-{
-	const char *s;
-	size_t len;
-
-	if (!mod)
-		return;
-	s = show_modifiers(mod, 1, checker);
-	len = strlen(s);
-	name->start -= len;
-	memcpy(name->start, s, len);
-}
-
-#define TYPE_NAME_BUFFER_SIZE 16384
-#define TYPE_NAME_BUFFER_MIDDLE (TYPE_NAME_BUFFER_SIZE / 2)
 
 static void FORMAT_ATTR(2) prepend(struct type_name *name, const char *fmt, ...)
 {
@@ -339,122 +301,85 @@ const char *builtin_ctypename(struct ctype *ctype)
 	return NULL;
 }
 
-static void do_show_type(struct symbol *sym, struct type_name *name, bool checker)
+static void do_show_type(struct symbol *sym, struct type_name *name)
 {
 	const char *typename;
 	unsigned long mod = 0;
-	unsigned long declaration_mod = 0;
 	struct ident *as = NULL;
 	int was_ptr = 0;
 	int restr = 0;
 	int fouled = 0;
 
 deeper:
+	if (sym && (sym->type != SYM_NODE && sym->type != SYM_ARRAY &&
+		     sym->type != SYM_BITFIELD)) {
+		const char *s;
+		size_t len;
+
+		if (as)
+			prepend(name, "%s ", show_as(as));
+
+		if (sym && (sym->type == SYM_BASETYPE || sym->type == SYM_ENUM))
+			mod &= ~MOD_SPECIFIER;
+		s = modifier_string(mod);
+		len = strlen(s);
+		name->start -= len;
+		memcpy(name->start, s, len);
+		mod = 0;
+		as = NULL;
+	}
+
 	if (!sym)
 		goto out;
 
 	if ((typename = builtin_typename(sym))) {
 		int len = strlen(typename);
-		const char *s;
-
-		mod &= ~MOD_SPECIFIER;
 		if (name->start != name->end)
 			*--name->start = ' ';
 		name->start -= len;
 		memcpy(name->start, typename, len);
-		if (checker && as)
-			prepend(name, "%s ", show_as(as));
-		s = show_modifiers(mod, 1, checker);
-		len = strlen(s);
-		name->start -= len;
-		memcpy(name->start, s, len);
 		goto out;
 	}
 
 	/* Prepend */
 	switch (sym->type) {
 	case SYM_PTR:
-	{
-		unsigned long ptr_mod = mod & (MOD_QUALIFIER | MOD_ATOMIC);
-
-		if (ptr_mod)
-			prepend(name, "*%s", show_modifiers(ptr_mod, 1, checker));
-		else
-			prepend(name, "*");
-		mod &= ~ptr_mod;
-		mod |= sym->ctype.modifiers;
-	}
+		prepend(name, "*");
+		mod = sym->ctype.modifiers;
 		as = sym->ctype.as;
 		was_ptr = 1;
 		examine_pointer_target(sym);
 		break;
 
 	case SYM_FN:
-	{
-		struct symbol *arg;
-		bool comma = false;
-
 		if (was_ptr) {
-			prepend(name, "(");
-			append(name, ")");
+			prepend(name, "( ");
+			append(name, " )");
 			was_ptr = 0;
 		}
-		append(name, "(");
-		FOR_EACH_PTR(sym->arguments, arg) {
-			char array[TYPE_NAME_BUFFER_SIZE];
-			struct type_name arg_name = {
-				array + TYPE_NAME_BUFFER_MIDDLE,
-				array + TYPE_NAME_BUFFER_MIDDLE,
-			};
-
-			do_show_type(arg, &arg_name, checker);
-			*arg_name.end = '\0';
-			append(name, "%s%s", comma ? ", " : "", arg_name.start);
-			comma = true;
-		} END_FOR_EACH_PTR(arg);
-			if (!comma && !sym->variadic)
-				append(name, "void");
-		if (sym->variadic)
-			append(name, "%s...", comma ? ", " : "");
-		append(name, ")");
+		append(name, "( ... )");
 		break;
-	}
 
 	case SYM_STRUCT:
 		if (name->start != name->end)
 			*--name->start = ' ';
-		if (is_typedef_tag(sym))
-			prepend(name, "%s", show_ident(sym->ident));
-		else
-			prepend(name, "struct %s", show_ident(sym->ident));
-		if (checker && as)
-			prepend(name, "%s ", show_as(as));
-		prepend_modifiers(name, mod, checker);
+		prepend(name, "struct %s", show_ident(sym->ident));
 		goto out;
 
 	case SYM_UNION:
 		if (name->start != name->end)
 			*--name->start = ' ';
-		if (is_typedef_tag(sym))
-			prepend(name, "%s", show_ident(sym->ident));
-		else
-			prepend(name, "union %s", show_ident(sym->ident));
-		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
+		prepend(name, "union %s", show_ident(sym->ident));
 		goto out;
 
 	case SYM_ENUM:
-		if (is_typedef_tag(sym))
-			prepend(name, "%s ", show_ident(sym->ident));
-		else
-			prepend(name, "enum %s ", show_ident(sym->ident));
-		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
-		goto out;
+		prepend(name, "enum %s ", show_ident(sym->ident));
+		break;
 
 	case SYM_NODE:
 		if (sym->ident)
 			append(name, "%s", show_ident(sym->ident));
-		declaration_mod |= sym->ctype.modifiers & MOD_DECLARE;
-		mod |= sym->ctype.modifiers & ~MOD_DECLARE;
+		mod |= sym->ctype.modifiers;
 		combine_address_space(sym->pos, &as, sym->ctype.as);
 		break;
 
@@ -472,14 +397,11 @@ deeper:
 		mod |= sym->ctype.modifiers;
 		combine_address_space(sym->pos, &as, sym->ctype.as);
 		if (was_ptr) {
-			prepend(name, "(");
-			append(name, ")");
+			prepend(name, "( ");
+			append(name, " )");
 			was_ptr = 0;
 		}
-		if (sym->array_size)
-			append(name, "[%lld]", get_expression_value(sym->array_size));
-		else
-			append(name, "[]");
+		append(name, "[%lld]", get_expression_value(sym->array_size));
 		break;
 
 	case SYM_RESTRICT:
@@ -489,11 +411,7 @@ deeper:
 		}
 		if (name->start != name->end)
 			*--name->start = ' ';
-		if (checker)
-			prepend(name, "restricted %s", show_ident(sym->ident));
-		else
-			prepend(name, "%s", show_ident(sym->ident));
-		prepend_modifiers(name, mod & (MOD_QUALIFIER | MOD_ATOMIC), checker);
+		prepend(name, "restricted %s", show_ident(sym->ident));
 		goto out;
 
 	case SYM_FOULED:
@@ -511,14 +429,7 @@ deeper:
 	goto deeper;
 
 out:
-	if (declaration_mod) {
-		const char *s = show_modifiers(declaration_mod, 1, checker);
-		size_t len = strlen(s);
-
-		name->start -= len;
-		memcpy(name->start, s, len);
-	}
-	if (checker && restr)
+	if (restr)
 		prepend(name, "restricted ");
 	if (fouled)
 		prepend(name, "fouled ");
@@ -530,22 +441,22 @@ out:
 
 void show_type(struct symbol *sym)
 {
-	char array[TYPE_NAME_BUFFER_SIZE];
+	char array[200];
 	struct type_name name;
 
-	name.start = name.end = array + TYPE_NAME_BUFFER_MIDDLE;
-	do_show_type(sym, &name, true);
+	name.start = name.end = array+100;
+	do_show_type(sym, &name);
 	*name.end = 0;
 	printf("%s", name.start);
 }
 
-const char *show_typename(struct symbol *sym, bool checker)
+const char *show_typename(struct symbol *sym)
 {
-	static char array[TYPE_NAME_BUFFER_SIZE];
+	static char array[200];
 	struct type_name name;
 
-	name.start = name.end = array + TYPE_NAME_BUFFER_MIDDLE;
-	do_show_type(sym, &name, checker);
+	name.start = name.end = array+100;
+	do_show_type(sym, &name);
 	*name.end = 0;
 	return name.start;
 }
