@@ -3007,6 +3007,11 @@ static bool show_tag_definition(struct tag_output *output, struct symbol *type)
 		show_enum_definition(output, type);
 	else
 		show_struct_definition(output, type);
+	/* A local tag nested in another definition must not be printed twice. */
+	if (type->scope && !toplevel(type->scope) &&
+	    !lookup_ptr_list_entry((struct ptr_list *)output->out->local_tags,
+				   type))
+		add_symbol(&output->out->local_tags, type);
 	return true;
 }
 
