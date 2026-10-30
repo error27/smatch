@@ -69,6 +69,7 @@ struct statement {
 		struct /* compound_struct */ {
 			struct scope *block_scope;
 			struct statement_list *stmts;
+			struct symbol_list *local_labels;
 			struct symbol *ret;
 			struct symbol *inline_fn;
 			struct statement *args;
@@ -111,6 +112,7 @@ struct statement {
 			struct symbol_list *target_list;
 		};
 		struct /* asm */ {
+			unsigned long asm_modifiers;
 			struct expression *asm_string;
 			struct asm_operand_list *asm_outputs;
 			struct asm_operand_list *asm_inputs;
