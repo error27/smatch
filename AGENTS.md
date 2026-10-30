@@ -6,8 +6,7 @@ with C, git, patch, diff and bash.  He prefers small, carefully isolated
 changes instead of broad refactoring.  Change one thing at a time.
 
 Smatch is a public project.  Code may be reviewed and submitted upstream, so
-do not hide or obscure the use of AI-generated code.  See AI ATTRIBUTION
-below.
+do not hide or obscure the use of AI-generated code.
 
 
 PURPOSE
@@ -74,6 +73,15 @@ alphabetically when that does not obscure the local structure.
 When fixing a checker warning, test whether the warning describes a real bug.
 Fix false positives in Smatch instead of changing correct target code merely
 to silence the checker.
+
+
+C STYLE
+
+- Write string comparison results explicitly.  Use `strcmp(a, b) == 0` or
+  `strcmp(a, b) != 0` (and the equivalent form for `strncmp()` and related
+  comparison functions); never write `!strcmp(a, b)`.
+- Kernel declarations must retain the explicit `int` in `signed int` and
+  `unsigned int`; do not use bare `signed` or `unsigned`.
 
 
 REPOSITORY STATE
@@ -153,6 +161,9 @@ New checks and bug fixes normally need a focused validation test.  A useful
 test contains code which must warn and nearby code which must not warn.  Test
 real affected code when it is available.
 
+Validation sources exist to exercise parser and checker behavior; they do not
+need to adhere to Linux kernel checkpatch rules.
+
 The Linux kernel helpers are:
 
     smatch_scripts/kchecker path/to/file.c
@@ -220,31 +231,6 @@ change.  Deliver both formats only for separate changes when that is useful,
 and explain the order in which to apply them.
 
 
-AI ATTRIBUTION
-
-Code written with substantive AI assistance must say so in the commit
-message.  Add this trailer after the explanatory commit-message body:
-
-    Assisted-by: ChatGPT:gpt-5
-
-Use the actual assistant and model name when it is known.  For example, a
-different model should not be labeled gpt-5.  If the exact minor model is not
-known, use the stable model family rather than guessing.
-
-The Assisted-by trailer is separate from Signed-off-by.  Do not invent or add
-Dan's Signed-off-by trailer.  Dan adds his own sign-off when he applies or
-sends a patch.  Do not invent Reviewed-by, Tested-by or Acked-by trailers.
-
-Use the Assisted-by trailer for AI-generated code and substantive AI-generated
-changes to tests.  It is not necessary when AI only reformats text supplied by
-Dan, searches the tree or explains existing code without changing it.  When
-in doubt, disclose the assistance.
-
-For a raw unified diff which does not contain a commit message, provide a
-suggested commit message next to the patch and include the Assisted-by trailer
-there.
-
-
 COMMIT MESSAGES
 
 - Use an imperative, concise subject describing the change.
@@ -263,7 +249,9 @@ COMMIT MESSAGES
   no output.  If the change cannot be tested, include this sentence instead:
 
       Unable to test so no before/after text.
-- Do not add a Signed-off-by trailer on Dan's behalf.
+- Add Dan's sign-off with `git commit -s`.  Do not add Co-Authored-By,
+  Assisted-by or any other AI attribution trailer.  Do not invent
+  Reviewed-by, Tested-by or Acked-by trailers.
 
 Example:
 
@@ -275,7 +263,7 @@ Example:
 
     Prompt: Clear stale state after a pointer is reassigned.
 
-    Assisted-by: ChatGPT:gpt-5
+    Signed-off-by: Dan Carpenter <error27@gmail.com>
 
 
 CONTRIBUTING PATCHES
@@ -299,7 +287,6 @@ Before sending:
 - Explain the reason for the change and the tests performed.
 - Add your own Signed-off-by trailer to certify the Developer's Certificate
   of Origin.
-- Preserve any applicable Assisted-by trailer.
 
 Use [PATCH] for a single patch and numbered [PATCH 1/N] subjects for a series.
 When sending a revised series, mark it v2, v3 and so on, and describe changes
@@ -325,4 +312,3 @@ Before delivering a change:
 - Run git diff --check or an equivalent whitespace check.
 - Run the narrowest relevant test and broader tests when practical.
 - State any test or build limitation clearly.
-- Confirm that AI-generated code has an Assisted-by trailer.
