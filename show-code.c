@@ -1428,7 +1428,8 @@ static void show_direct_tag_typename(struct c_type_name *name,
 {
 	if (name->start != name->end)
 		type_name_prepend(name, " ");
-	if (is_typedef_tag(type))
+	/* The typedef is not declared yet inside "typedef struct x {...} x;" */
+	if (type->namespace != NS_STRUCT && is_typedef_tag(type))
 		type_name_prepend_format(name, "%s", show_ident(type->ident));
 	else
 		type_name_prepend_format(name, "%s %s", tag_type_name(type),
