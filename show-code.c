@@ -358,7 +358,7 @@ static struct sym_dependency *add_tag_dependency(struct sym_dependency *parent,
 	struct sym_dependency *dependency;
 
 	type = tag_type(type);
-	if (!type)
+	if (!type || type == parent->sym)
 		return NULL;
 	dependency = add_dependency(parent, type, decl_enough);
 	return dependency;
@@ -2659,6 +2659,9 @@ static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
 	struct symbol *type = s->ctype.base_type;
 
 	if (symbol_was_declared(s))
+		return;
+	/* An anonymous tag can only be emitted with its complete definition. */
+	if (find_anonymous_tag(type))
 		return;
 	if (type && type->type == SYM_FN)
 		show_function_forwards(out, type);
