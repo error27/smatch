@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
 	list = sparse_keep_tokens(file);
 	if (whole_file) {
-		fprintf(out, "#define bool _Bool\n\n");
+		fprintf(out, "typedef _Bool bool;\n\n");
 		show_all(out, list, buf);
 	} else {
 		function = find_function(list, root_name, last_func ? file : NULL);
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 			}
 			die("function %s was not found", root_name);
 		}
-		fprintf(out, "#define bool _Bool\n\n");
+		fprintf(out, "typedef _Bool bool;\n\n");
 		show_function(out, function, buf);
 	}
 	fclose(out);
