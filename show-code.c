@@ -81,6 +81,9 @@ static struct symbol *find_anonymous_tag(struct symbol *type);
 static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag);
+static void show_anonymous_declarator(struct code_buffer *out,
+				      struct symbol *type,
+				      struct symbol *anonymous_tag);
 static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
@@ -2189,10 +2192,28 @@ static void expr(struct code_buffer *out, struct expression *e)
 	rendering_expression = previous;
 }
 
-static void declaration(struct code_buffer *out, struct symbol *s)
+static struct symbol *declaration_anonymous_tag(struct symbol *s)
 {
-	struct symbol *anonymous_tag = type_has_typeof(s) ? NULL :
-		find_anonymous_tag(s);
+	return type_has_typeof(s) ? NULL : find_anonymous_tag(s);
+}
+
+static void declaration_suffix(struct code_buffer *out, struct symbol *s)
+{
+	show_asm_name(out, s);
+	if (s->alias) {
+		append(out, " __attribute__((used, alias(");
+		expr(out, s->alias);
+		append(out, "))) ");
+	}
+	if (symbol_initializer(s)) {
+		append(out, " = ");
+		expr(out, symbol_initializer(s));
+	}
+}
+
+static void declaration_body(struct code_buffer *out, struct symbol *s)
+{
+	struct symbol *anonymous_tag = declaration_anonymous_tag(s);
 	struct symbol *tag = s;
 
 	while (tag) {
@@ -2216,26 +2237,45 @@ static void declaration(struct code_buffer *out, struct symbol *s)
 	else
 		show_c_typename(out, s);
 
-	show_asm_name(out, s);
-	if (s->alias) {
-		append(out, " __attribute__((used, alias(");
-		expr(out, s->alias);
-		append(out, "))) ");
-	}
-	if (symbol_initializer(s)) {
-		append(out, " = ");
-		expr(out, symbol_initializer(s));
-	}
+	declaration_suffix(out, s);
+}
+
+static void declaration(struct code_buffer *out, struct symbol *s)
+{
+	declaration_body(out, s);
 	append(out, ";\n");
 }
 
+/*
+ * Declarators which share an anonymous tag must stay in one declaration
+ * or each one gets a distinct type.
+ */
 static void declarations(struct code_buffer *out, struct symbol_list *list)
 {
+	struct symbol *prev_tag = NULL;
+	struct symbol *tag;
 	struct symbol *s;
 
 	FOR_EACH_PTR(list, s) {
-		declaration(out, s);
+		tag = declaration_anonymous_tag(s);
+		if (tag && tag == prev_tag) {
+			append(out, ", ");
+			show_anonymous_declarator(out, s, tag);
+			declaration_suffix(out, s);
+			continue;
+		}
+		if (prev_tag)
+			append(out, ";\n");
+		if (tag) {
+			declaration_body(out, s);
+			prev_tag = tag;
+		} else {
+			declaration(out, s);
+			prev_tag = NULL;
+		}
 	} END_FOR_EACH_PTR(s);
+	if (prev_tag)
+		append(out, ";\n");
 }
 
 static void iterator_statement(struct code_buffer *out, struct statement *s)
@@ -2802,6 +2842,36 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 	append(out, "%s", buf);
 	show_tag_definition(&output, anonymous_tag);
 	append(out, "%s", tag + strlen(placeholder));
+}
+
+/* Print only the declarator, such as "*ptr2", for a shared anonymous tag. */
+static void show_anonymous_declarator(struct code_buffer *out,
+				      struct symbol *type,
+				      struct symbol *anonymous_tag)
+{
+	char buf[4096];
+	char placeholder[64];
+	struct code_buffer type_out = {
+		.buf = buf,
+		.len = sizeof(buf),
+		.line_start = true,
+	};
+	char *tag;
+
+	buf[0] = '\0';
+	show_c_typename(&type_out, type);
+	snprintf(placeholder, sizeof(placeholder), "%s <noident>",
+		 tag_type_name(anonymous_tag));
+	tag = strstr(buf, placeholder);
+	if (!tag) {
+		if (type->ident)
+			append(out, "%s", show_ident(type->ident));
+		return;
+	}
+	tag += strlen(placeholder);
+	if (*tag == ' ')
+		tag++;
+	append(out, "%s", tag);
 }
 
 static void show_function(struct code_buffer *out, struct symbol *s)
