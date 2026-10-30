@@ -914,10 +914,17 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		collect_expression_dependencies_rec(dependency, e->control,
 						    complete_type);
 		for (map = e->map; map; map = map->next) {
-			collect_expression_dependencies_rec(dependency, map->expr,
-							    complete_type);
+			expression_type = collect_expression_dependencies_rec(dependency,
+									      map->expr,
+									      complete_type);
+			if (!type)
+				type = expression_type;
 		}
-		collect_expression_dependencies_rec(dependency, e->def, complete_type);
+		expression_type = collect_expression_dependencies_rec(dependency,
+								      e->def,
+								      complete_type);
+		if (!type)
+			type = expression_type;
 		break;
 	default:
 		break;
