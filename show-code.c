@@ -784,8 +784,12 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			member = find_member_symbol(tag, e->member);
 			if (tag)
 				collect_complete_type_dependency(dependency, tag);
-			if (member && !type)
+			if (member && !type) {
 				type = member->ctype.base_type;
+				if (complete_type)
+					collect_complete_type_dependency(dependency,
+									 type);
+			}
 		} else if (!type && expression_type) {
 			type = strip_type_wrappers(get_base_type(expression_type));
 		}
