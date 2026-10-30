@@ -947,14 +947,14 @@ static void show_dependency_cycle(struct code_buffer *out,
 	struct tag_output output = { .out = out };
 	struct symbol *symbol = dependency->sym;
 
-	if (!dependency->decl_enough) {
-		fprintf(stderr, "cannot forward declare dependency %s\n",
-			symbol->ident ? show_ident(symbol->ident) : "<noident>");
-		return;
-	}
 	if (has_type_expression(symbol))
 		return;
 	if (is_tag_type(symbol)) {
+		if (!dependency->decl_enough) {
+			fprintf(stderr, "cannot forward declare dependency %s\n",
+				symbol->ident ? show_ident(symbol->ident) : "<noident>");
+			return;
+		}
 		show_type_declaration(&output, symbol);
 		return;
 	}
