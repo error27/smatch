@@ -140,16 +140,7 @@ static struct expression *find_symbol_initializer(struct symbol *symbol)
 
 static struct expression *symbol_initializer(struct symbol *symbol)
 {
-	struct expression *initializer;
-	struct symbol *canonical;
-
-	initializer = find_symbol_initializer(symbol);
-	if (initializer || !symbol->ident || !toplevel(symbol->scope))
-		return initializer;
-	canonical = lookup_symbol(symbol->ident, symbol->namespace);
-	if (!canonical || canonical == symbol)
-		return NULL;
-	return find_symbol_initializer(canonical);
+	return find_symbol_initializer(symbol);
 }
 
 static bool tag_has_definition(struct symbol *tag)
@@ -2662,6 +2653,19 @@ static bool is_incomplete_array_declaration(struct symbol *symbol)
 	return false;
 }
 
+static struct symbol *initialized_definition(struct symbol *symbol)
+{
+	struct symbol *definition;
+
+	if (!symbol->ident || !toplevel(symbol->scope))
+		return NULL;
+	definition = lookup_symbol(symbol->ident, symbol->namespace);
+	if (!definition || definition == symbol ||
+	    !find_symbol_initializer(definition))
+		return NULL;
+	return definition;
+}
+
 static void sym(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *definition;
@@ -2674,6 +2678,11 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	definition = function_definition(s);
 	if (definition)
 		s = definition;
+	if (!symbol_initializer(s)) {
+		definition = initialized_definition(s);
+		if (definition)
+			s = definition;
+	}
 	if (symbol_was_defined(s))
 		return;
 	type = s->ctype.base_type;
