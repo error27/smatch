@@ -1765,6 +1765,20 @@ static bool is_implicit_dereference(struct expression *e)
 		e->pos.pos == unop->pos.pos;
 }
 
+static bool show_indexed_dereference(struct code_buffer *out,
+				     struct expression *e)
+{
+	while (e && e->type == EXPR_PREOP && e->op == '(')
+		e = e->unop;
+	if (!e || e->type != EXPR_BINOP || e->op != '+')
+		return false;
+	expr(out, e->left);
+	append(out, "[");
+	expr(out, e->right);
+	append(out, "]");
+	return true;
+}
+
 static void show_initializer_designator(struct code_buffer *out,
 					struct expression *e)
 {
@@ -1823,7 +1837,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 			append(out, "/* anonymous symbol */");
 		break;
 	case EXPR_PREOP:
-		if (e->op == '&' && e->unop && e->unop->type == EXPR_DEREF &&
+		if (e->op == '*' && show_indexed_dereference(out, e->unop)) {
+			break;
+		} else if (e->op == '&' && e->unop && e->unop->type == EXPR_DEREF &&
 		    e->unop->member && e->unop->deref &&
 		    e->unop->deref->type == EXPR_PREOP &&
 		    e->unop->deref->op == '*') {
@@ -1869,6 +1885,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 		append(out, ")");
 		break;
 	case EXPR_DEREF:
+		if (!e->member && show_indexed_dereference(out, e->deref)) {
+			break;
+		}
 		append(out, "(");
 		if (e->member && e->deref && e->deref->type == EXPR_PREOP &&
 		    e->deref->op == '*') {
