@@ -103,8 +103,8 @@ struct sym_dependency;
 struct sym_dependency_list;
 static void collect_statement_dependencies(struct sym_dependency *dependency,
 					   struct statement *s);
-static void collect_statement_result_dependencies(struct sym_dependency *dependency,
-						  struct statement *s);
+static struct symbol *collect_statement_result_dependencies(struct sym_dependency *dependency,
+							   struct statement *s);
 static void collect_type_expression_dependencies(struct sym_dependency *dependency,
 						 struct symbol *type);
 static void show_dependencies(struct code_buffer *out,
@@ -835,8 +835,12 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		break;
 	case EXPR_STATEMENT:
 		collect_statement_dependencies(dependency, e->statement);
-		if (complete_type)
-			collect_statement_result_dependencies(dependency, e->statement);
+		if (complete_type) {
+			expression_type = collect_statement_result_dependencies(dependency,
+										e->statement);
+			if (!type)
+				type = expression_type;
+		}
 		break;
 	case EXPR_CALL:
 		item = e->fn;
@@ -927,27 +931,26 @@ static void collect_expression_dependencies(struct sym_dependency *dependency,
 	collect_expression_dependencies_rec(dependency, e, false);
 }
 
-static void collect_statement_result_dependencies(struct sym_dependency *dependency,
-						  struct statement *s)
+static struct symbol *collect_statement_result_dependencies(struct sym_dependency *dependency,
+							   struct statement *s)
 {
 	struct statement *last;
 
 	if (!s)
-		return;
+		return NULL;
 	switch (s->type) {
 	case STMT_COMPOUND:
 		last = last_ptr_list((struct ptr_list *)s->stmts);
-		collect_statement_result_dependencies(dependency, last);
-		break;
+		return collect_statement_result_dependencies(dependency, last);
 	case STMT_EXPRESSION:
 	case STMT_CONTEXT:
-		collect_expression_dependencies_rec(dependency, s->expression, true);
-		break;
+		return collect_expression_dependencies_rec(dependency,
+							   s->expression, true);
 	case STMT_LABEL:
-		collect_statement_result_dependencies(dependency, s->label_statement);
-		break;
+		return collect_statement_result_dependencies(dependency,
+							     s->label_statement);
 	default:
-		break;
+		return NULL;
 	}
 }
 
