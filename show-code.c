@@ -1883,13 +1883,17 @@ static void expr(struct code_buffer *out, struct expression *e)
 		/* Fall through */
 	case EXPR_BINOP:
 	case EXPR_LOGICAL:
-	case EXPR_ASSIGNMENT:
 	case EXPR_COMMA:
 		append(out, "(");
 		expr(out, e->left);
 		append(out, " %s ", show_special(e->op));
 		expr(out, e->right);
 		append(out, ")");
+		break;
+	case EXPR_ASSIGNMENT:
+		expr(out, e->left);
+		append(out, " %s ", show_special(e->op));
+		expr(out, e->right);
 		break;
 	case EXPR_DEREF:
 		if (!e->member && show_indexed_dereference(out, e->deref)) {
