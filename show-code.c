@@ -838,9 +838,10 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 				type = expression_type->ctype.base_type;
 		}
 		collect_expression_dependencies_rec(dependency, e->fn, complete_type);
+		/* Using the result does not require complete argument types. */
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies_rec(dependency, item,
-							    complete_type);
+							    false);
 		} END_FOR_EACH_PTR(item);
 		break;
 	case EXPR_SYMBOL:
