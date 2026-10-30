@@ -2491,8 +2491,9 @@ static void sym(struct code_buffer *out, struct symbol *s)
 
 	show_initializer_dependencies(out, s);
 	declaration(out, s);
+	/* An initializer completes an array with an omitted bound. */
 	if ((s->ctype.modifiers & MOD_EXTERN) ||
-	    is_incomplete_array_declaration(s))
+	    (is_incomplete_array_declaration(s) && !symbol_initializer(s)))
 		remember_symbol(&printed.declarations, s);
 	else
 		remember_symbol(&printed.definitions, s);
