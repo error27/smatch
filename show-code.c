@@ -1435,21 +1435,12 @@ static bool has_type_expression(struct symbol *type)
 
 static bool is_va_list_use(struct symbol *symbol)
 {
-	struct typedef_use *use;
-	struct symbol *base_type;
-
-	if (!symbol)
-		return false;
-	base_type = show_base_type(symbol);
-	if (!base_type || base_type->type != SYM_PTR)
-		return false;
-	for (use = get_typedef_uses(); use; use = use->next) {
-		if (use->pos.stream != symbol->pos.stream ||
-		    use->pos.line != symbol->pos.line ||
-		    use->pos.pos > symbol->pos.pos)
-			continue;
-		if (strcmp(use->name, "va_list") == 0)
+	/* Sparse lowers __builtin_va_list to the shared ptr_ctype. */
+	for (; symbol; symbol = show_base_type(symbol)) {
+		if (symbol == &ptr_ctype)
 			return true;
+		if (symbol->type != SYM_NODE && symbol->type != SYM_PTR)
+			return false;
 	}
 	return false;
 }
@@ -1459,13 +1450,6 @@ static struct symbol *show_base_type(struct symbol *type)
 	if (type && type->orig_base_type)
 		return type->orig_base_type;
 	return type ? type->ctype.base_type : NULL;
-}
-
-static bool is_va_list_pointer(struct symbol *type)
-{
-	struct symbol *base_type = strip_type_wrappers(show_base_type(type));
-
-	return !base_type || base_type->type != SYM_PTR;
 }
 
 static bool is_typeof(struct symbol *type)
@@ -1589,8 +1573,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			unsigned long pointer_modifiers =
 				modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
 
-			if (is_va_list_use(symbol) &&
-			    is_va_list_pointer(type)) {
+			if (type == &ptr_ctype) {
 				type_name_prepend(name, "va_list ");
 				goto out;
 			}
@@ -3039,8 +3022,10 @@ static void show_typedef_definition(struct code_buffer *out, struct symbol *type
 	struct symbol copy;
 	struct symbol *base_type;
 
-	if (type->ident && strcmp(show_ident(type->ident), "va_list") == 0) {
-		append(out, "typedef __builtin_va_list va_list;\n");
+	if ((type->ident && strcmp(show_ident(type->ident), "va_list") == 0) ||
+	    type->ctype.base_type == &ptr_ctype) {
+		append(out, "typedef __builtin_va_list %s;\n",
+		       show_ident(type->ident));
 		return;
 	}
 	append(out, "typedef ");
