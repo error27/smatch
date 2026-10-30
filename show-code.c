@@ -2272,11 +2272,26 @@ static void stmt(struct code_buffer *out, struct statement *s)
 	case STMT_IF:
 		append(out, "if (");
 		expr(out, s->if_conditional);
-		append(out, ") ");
-		stmt(out, s->if_true);
+		if (s->if_true && s->if_true->type != STMT_COMPOUND) {
+			append(out, ")\n");
+			out->indent++;
+			stmt(out, s->if_true);
+			out->indent--;
+		} else {
+			append(out, ") ");
+			stmt(out, s->if_true);
+		}
 		if (s->if_false) {
-			append(out, "else ");
-			stmt(out, s->if_false);
+			if (s->if_false->type == STMT_COMPOUND ||
+			    s->if_false->type == STMT_IF) {
+				append(out, "else ");
+				stmt(out, s->if_false);
+			} else {
+				append(out, "else\n");
+				out->indent++;
+				stmt(out, s->if_false);
+				out->indent--;
+			}
 		}
 		break;
 	case STMT_ITERATOR:
