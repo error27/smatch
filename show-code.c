@@ -1533,7 +1533,6 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 	unsigned long modifiers = 0;
 	unsigned long declaration_modifiers = 0;
 	bool was_pointer = false;
-	bool restricted = false;
 	bool fouled = false;
 
 	if (symbol->ctype.modifiers & MOD_REGISTER) {
@@ -1672,10 +1671,9 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 				type_name_append(name, "[]");
 			break;
 		case SYM_RESTRICT:
-			if (!type->ident) {
-				restricted = true;
+			/* Sparse's __bitwise means nothing to GCC. */
+			if (!type->ident)
 				break;
-			}
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend_format(name, "%s", show_ident(type->ident));
@@ -1696,8 +1694,6 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 out:
 	if (declaration_modifiers)
 		type_name_prepend(name, show_gcc_modifiers(declaration_modifiers));
-	if (restricted)
-		type_name_prepend(name, "restrict ");
 	if (fouled)
 		type_name_prepend(name, "fouled ");
 	if (name->end > name->start && name->end[-1] == ' ')
