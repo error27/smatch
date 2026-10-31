@@ -784,6 +784,10 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		if (e->type == EXPR_ASSIGNMENT &&
 		    (e->op == SPECIAL_ADD_ASSIGN || e->op == SPECIAL_SUB_ASSIGN))
 			collect_pointer_element_dependency(dependency, type);
+		/* Copying a struct or union needs its layout. */
+		if (e->type == EXPR_ASSIGNMENT &&
+		    is_struct_or_union(strip_type_wrappers(type)))
+			collect_complete_type_dependency(dependency, type);
 		if (e->ctype)
 			type = e->ctype;
 		break;
