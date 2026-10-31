@@ -258,6 +258,20 @@ struct expression *copy_type_expression(struct expression *old)
 		if (old->op == '[')
 			new->index = copy_type_expression(old->index);
 		break;
+	case EXPR_GENERIC: {
+		struct type_expression *map, **next = &new->map;
+
+		new->control = copy_type_expression(old->control);
+		new->def = copy_type_expression(old->def);
+		for (map = old->map; map; map = map->next) {
+			*next = __alloc_type_expression(0);
+			**next = *map;
+			(*next)->expr = copy_type_expression(map->expr);
+			next = &(*next)->next;
+		}
+		*next = NULL;
+		break;
+	}
 	case EXPR_STATEMENT:
 		new->statement = copy_type_statement(old->statement);
 		break;
