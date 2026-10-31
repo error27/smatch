@@ -1,6 +1,6 @@
 /*
  * check-name: extract alias array
- * check-command: extract $file && grep -Fc 'target[] = {' $file.extract | grep -qx 1 && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract
+ * check-command: extract $file && grep -Fc 'target[] __attribute__((used)) = {' $file.extract | grep -qx 1 && gcc -Werror -x c -fsyntax-only -fms-extensions $file.extract
  *
  * check-output-start
 extract: wrote extract-alias-array.c.extract

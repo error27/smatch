@@ -2233,14 +2233,40 @@ static struct symbol *declaration_anonymous_tag(struct symbol *s)
 	return type_has_typeof(s) ? NULL : find_anonymous_tag(s);
 }
 
+static bool scope_has_alias_to(struct scope *scope, struct symbol *s)
+{
+	struct symbol *alias;
+
+	if (!scope)
+		return false;
+	FOR_EACH_PTR(scope->symbols, alias) {
+		if (alias->alias && alias->alias->type == EXPR_STRING &&
+		    strcmp(alias->alias->string->data, show_ident(s->ident)) == 0)
+			return true;
+	} END_FOR_EACH_PTR(alias);
+	return false;
+}
+
+static bool is_alias_target(struct symbol *s)
+{
+	if (!s->ident)
+		return false;
+	/* Non-static aliases are bound in the global scope. */
+	return scope_has_alias_to(file_scope, s) ||
+	       scope_has_alias_to(global_scope, s);
+}
+
 static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 {
 	show_asm_name(out, s);
 	if (s->alias) {
-		append(out, " __attribute__((used, alias(");
+		append(out, " __attribute__((alias(");
 		expr(out, s->alias);
 		append(out, "))) ");
 	}
+	/* GCC ignores "used" on the alias itself. */
+	if (is_alias_target(s))
+		append(out, " __attribute__((used))");
 	if (symbol_initializer(s)) {
 		append(out, " = ");
 		expr(out, symbol_initializer(s));
