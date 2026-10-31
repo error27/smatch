@@ -594,7 +594,9 @@ static void show_required_type(struct tag_output *output,
 		show_type_declaration(output, needed);
 		return;
 	}
-	if (is_typedef_tag(needed) || !decl_enough) {
+	/* Named tags are spelled "struct x", so a declaration is enough. */
+	if ((is_typedef_tag(needed) && needed->namespace != NS_STRUCT) ||
+	    !decl_enough) {
 		if (!tag_was_defined(needed)) {
 			if (tag_has_definition(needed))
 				show_type_definition(output, needed);
