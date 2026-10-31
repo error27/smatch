@@ -236,8 +236,7 @@ static struct symbol *type_typedef_symbol(struct symbol *type)
 	/* The base type of a __bitwise enum is not a typedef for the enum. */
 	if (!type || is_tag_type(type))
 		return NULL;
-	if ((type->type == SYM_NODE || type->type == SYM_RESTRICT) &&
-	    type->ident) {
+	if (type->type == SYM_RESTRICT && type->ident) {
 		typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
 		if (typedef_symbol && typedef_symbol != type)
 			return typedef_symbol;
