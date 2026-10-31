@@ -881,6 +881,9 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		break;
 	case EXPR_SYMBOL:
 		if (e->symbol) {
+			if (!type && e->symbol->ctype.base_type == &autotype_ctype)
+				type = collect_expression_dependencies_rec(dependency,
+						symbol_initializer(e->symbol), false);
 			if (!type)
 				type = e->symbol->ctype.base_type;
 			if (complete_type)
