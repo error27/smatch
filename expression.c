@@ -146,6 +146,11 @@ static struct statement *copy_type_statement(struct statement *old)
 	case STMT_RETURN:
 		new->ret_value = copy_type_expression(old->ret_value);
 		break;
+	case STMT_IF:
+		new->if_conditional = copy_type_expression(old->if_conditional);
+		new->if_true = copy_type_statement(old->if_true);
+		new->if_false = copy_type_statement(old->if_false);
+		break;
 	case STMT_COMPOUND:
 		new->stmts = copy_type_statement_list(old->stmts);
 		new->local_labels = copy_type_symbol_list(old->local_labels);
