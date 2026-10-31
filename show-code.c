@@ -1286,6 +1286,10 @@ static void show_type_members(struct tag_output *output, struct symbol *type)
 		return;
 	add_ptr_list(&output->dependency_types, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
+		struct sym_dependency root = { .sym = member };
+
+		collect_type_expression_dependencies(&root, member);
+		show_dependencies(output->out, &root);
 		show_type_dependencies(output, member,
 				       type_can_use_forward_declaration(member));
 	} END_FOR_EACH_PTR(member);
