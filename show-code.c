@@ -3005,6 +3005,26 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 	}
 }
 
+/*
+ * An __aligned() member, or one declared with an aligned typedef, keeps
+ * its alignment only in the member's ctype.  Lowering the alignment of
+ * a member needs packed as well.
+ */
+static void show_member_alignment(struct code_buffer *out, struct symbol *member)
+{
+	struct symbol *base_type = member->ctype.base_type;
+	unsigned long alignment = member->ctype.alignment;
+
+	if (!base_type || base_type->type == SYM_BITFIELD || !alignment ||
+	    !base_type->ctype.alignment ||
+	    alignment == base_type->ctype.alignment)
+		return;
+	if (alignment < base_type->ctype.alignment)
+		append(out, " __attribute__((packed, aligned(%lu)))", alignment);
+	else
+		append(out, " __attribute__((aligned(%lu)))", alignment);
+}
+
 static void show_struct_definition(struct tag_output *output, struct symbol *type)
 {
 	struct code_buffer *out = output->out;
@@ -3026,10 +3046,12 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		anonymous_tag = find_anonymous_tag(member);
 		if (anonymous_tag) {
 			show_anonymous_c_typename(out, member, anonymous_tag);
+			show_member_alignment(out, member);
 			append(out, ";\n");
 			continue;
 		}
 		show_c_typename(out, member);
+		show_member_alignment(out, member);
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
