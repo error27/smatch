@@ -780,6 +780,9 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			collect_pointer_element_dependency(dependency, type);
 			collect_pointer_element_dependency(dependency, expression_type);
 		}
+		if (e->type == EXPR_ASSIGNMENT &&
+		    (e->op == SPECIAL_ADD_ASSIGN || e->op == SPECIAL_SUB_ASSIGN))
+			collect_pointer_element_dependency(dependency, type);
 		if (e->ctype)
 			type = e->ctype;
 		break;
