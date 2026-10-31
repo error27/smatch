@@ -2833,6 +2833,63 @@ static struct symbol *find_anonymous_tag(struct symbol *type)
 	return NULL;
 }
 
+static struct symbol *anonymous_tag_owner(struct symbol_list *symbols,
+					  struct symbol *type,
+					  struct symbol *anonymous_tag)
+{
+	struct symbol *entry;
+
+	FOR_EACH_PTR(symbols, entry) {
+		if (entry != type && !is_tag_type(entry) &&
+		    entry->namespace == NS_SYMBOL &&
+		    declaration_anonymous_tag(entry) == anonymous_tag)
+			return entry;
+	} END_FOR_EACH_PTR(entry);
+	return NULL;
+}
+
+/*
+ * File scope declarators which share an anonymous tag are printed as
+ * separate declarations.  Name the tag through the symbol which already
+ * defined it, such as "__typeof__((*ptr))", so the types stay the same.
+ */
+static bool show_anonymous_tag_typeof(struct code_buffer *out,
+				      struct symbol *type,
+				      struct symbol *anonymous_tag)
+{
+	struct symbol *owner;
+	struct symbol *base;
+	char ops[16];
+	int nr = 0;
+	int i;
+
+	owner = anonymous_tag_owner(printed.definitions, type, anonymous_tag);
+	if (!owner)
+		owner = anonymous_tag_owner(printed.declarations, type,
+					    anonymous_tag);
+	if (!owner || !owner->ident)
+		return false;
+	for (base = show_base_type(owner); base && base != anonymous_tag;
+	     base = show_base_type(base)) {
+		if (base->type == SYM_NODE)
+			continue;
+		if ((base->type != SYM_PTR && base->type != SYM_ARRAY) ||
+		    nr == ARRAY_SIZE(ops))
+			return false;
+		ops[nr++] = base->type == SYM_PTR ? '*' : '[';
+	}
+	if (base != anonymous_tag)
+		return false;
+	append(out, "__typeof__(");
+	for (i = nr - 1; i >= 0; i--)
+		append(out, ops[i] == '*' ? "(*" : "(");
+	append(out, "%s", show_ident(owner->ident));
+	for (i = 0; i < nr; i++)
+		append(out, ops[i] == '*' ? ")" : ")[0]");
+	append(out, ")");
+	return true;
+}
+
 static void show_anonymous_c_typename(struct code_buffer *out,
 				      struct symbol *type,
 				      struct symbol *anonymous_tag)
@@ -2853,14 +2910,16 @@ static void show_anonymous_c_typename(struct code_buffer *out,
 		 tag_type_name(anonymous_tag));
 	tag = strstr(buf, placeholder);
 	if (!tag) {
-		show_tag_definition(&output, anonymous_tag);
+		if (!show_anonymous_tag_typeof(out, type, anonymous_tag))
+			show_tag_definition(&output, anonymous_tag);
 		if (type->ident)
 			append(out, " %s", show_ident(type->ident));
 		return;
 	}
 	*tag = '\0';
 	append(out, "%s", buf);
-	show_tag_definition(&output, anonymous_tag);
+	if (!show_anonymous_tag_typeof(out, type, anonymous_tag))
+		show_tag_definition(&output, anonymous_tag);
 	append(out, "%s", tag + strlen(placeholder));
 }
 
