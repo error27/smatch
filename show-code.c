@@ -757,7 +757,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			collect_pointer_element_dependency(dependency, expression_type);
 		if (!type) {
 			if (e->op == '*' && expression_type) {
-				type = strip_type_wrappers(get_base_type(expression_type));
+				type = strip_type_wrappers(expression_type);
+				type = strip_type_wrappers(get_base_type(type));
 			} else if (e->op == '&' && expression_type) {
 				type = alloc_symbol(e->pos, SYM_PTR);
 				type->ctype.base_type = expression_type;
