@@ -634,8 +634,15 @@ static void add_symbol_dependency(struct sym_dependency *parent,
 	    strncmp(symbol->ident->name, "__builtin_", 10) == 0)
 		return;
 	type = strip_type_wrappers(symbol);
-	if (!type || (type->type != SYM_FN && symbol->scope != file_scope &&
-		      !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
+	/*
+	 * A function-typed parameter or typeof() local is not a function
+	 * declaration.  Local function declarations are marked extern.
+	 */
+	if (!type ||
+	    ((type->type != SYM_FN ||
+	      (symbol->scope && !toplevel(symbol->scope))) &&
+	     symbol->scope != file_scope &&
+	     !(symbol->ctype.modifiers & (MOD_TOPLEVEL | MOD_EXTERN))))
 		return;
 
 	dependency = add_dependency(parent, symbol,
