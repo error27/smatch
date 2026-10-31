@@ -1313,9 +1313,13 @@ static void show_type_dependencies(struct tag_output *output,
 	nested_type = strip_bitfield_type(type);
 	if (!nested_type)
 		return;
-	if (!typedef_symbol)
-		typedef_symbol = nested_type->ident ?
-			lookup_symbol(nested_type->ident, NS_TYPEDEF) : NULL;
+	if (!typedef_symbol && nested_type->ident) {
+		typedef_symbol = lookup_symbol(nested_type->ident, NS_TYPEDEF);
+		/* "typedef string path;" is not a name for "struct path". */
+		if (typedef_symbol &&
+		    tag_type(typedef_symbol->ctype.base_type) != tag_type(nested_type))
+			typedef_symbol = NULL;
+	}
 	if (typedef_symbol && typedef_symbol != type) {
 		if (is_type_definition(typedef_symbol, &tag)) {
 			if (!tag_was_defined(tag))
