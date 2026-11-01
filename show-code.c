@@ -3303,6 +3303,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct code_buffer *out = output->out;
 	struct symbol *member;
 	struct symbol *anonymous_tag;
+	struct symbol *previous_tag = NULL;
 
 	show_type_members(output, type);
 	if (!type->ident) {
@@ -3317,16 +3318,27 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	out->indent++;
 	FOR_EACH_PTR(type->symbol_list, member) {
 		anonymous_tag = find_anonymous_tag(member);
+		/* "struct { ... } a, b;" members must share one type. */
+		if (anonymous_tag && anonymous_tag == previous_tag) {
+			append(out, ", ");
+			show_anonymous_declarator(out, member, anonymous_tag);
+			show_member_alignment(out, member);
+			continue;
+		}
+		if (previous_tag)
+			append(out, ";\n");
+		previous_tag = anonymous_tag;
 		if (anonymous_tag) {
 			show_anonymous_c_typename(out, member, anonymous_tag);
 			show_member_alignment(out, member);
-			append(out, ";\n");
 			continue;
 		}
 		show_c_typename(out, member);
 		show_member_alignment(out, member);
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
+	if (previous_tag)
+		append(out, ";\n");
 	out->indent--;
 	if (is_typedef_tag(type)) {
 		append(out, "} %s", show_ident(type->ident));
