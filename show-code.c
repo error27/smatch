@@ -2045,22 +2045,205 @@ static bool show_va_arg_call(struct code_buffer *out, struct expression *e)
 	return true;
 }
 
-/* "a + (b = c)" must not lose the parentheses around the assignment. */
-static void binop_operand(struct code_buffer *out, struct expression *e)
+static bool is_binary_expression(struct expression *e)
 {
-	if (e && e->type == EXPR_ASSIGNMENT) {
-		append(out, "(");
-		expr(out, e);
-		append(out, ")");
-		return;
+	if (!e)
+		return false;
+	if (e->type == EXPR_COMPARE &&
+	    e->left && e->left->type == EXPR_TYPE &&
+	    e->right && e->right->type == EXPR_TYPE)
+		return false;
+	return e->type == EXPR_BINOP || e->type == EXPR_COMPARE ||
+	       e->type == EXPR_LOGICAL || e->type == EXPR_COMMA ||
+	       e->type == EXPR_ASSIGNMENT;
+}
+
+static int binary_precedence(struct expression *e)
+{
+	switch (e->type) {
+	case EXPR_COMMA:
+		return 1;
+	case EXPR_ASSIGNMENT:
+		return 2;
+	case EXPR_LOGICAL:
+		if (e->op == SPECIAL_LOGICAL_OR)
+			return 4;
+		if (e->op == SPECIAL_LOGICAL_AND)
+			return 5;
+		return 0;
+	case EXPR_COMPARE:
+		switch (e->op) {
+		case SPECIAL_EQUAL:
+		case SPECIAL_NOTEQUAL:
+			return 9;
+		case '<': case '>':
+		case SPECIAL_LTE: case SPECIAL_GTE:
+		case SPECIAL_UNSIGNED_LT: case SPECIAL_UNSIGNED_GT:
+		case SPECIAL_UNSIGNED_LTE: case SPECIAL_UNSIGNED_GTE:
+			return 10;
+		}
+		return 0;
+	case EXPR_BINOP:
+		switch (e->op) {
+		case '|':
+			return 6;
+		case '^':
+			return 7;
+		case '&':
+			return 8;
+		case SPECIAL_LEFTSHIFT:
+		case SPECIAL_RIGHTSHIFT:
+			return 11;
+		case '+': case '-':
+			return 12;
+		case '*': case '/': case '%':
+			return 13;
+		}
+		return 0;
+	default:
+		return 0;
 	}
-	expr(out, e);
+}
+
+static bool is_bitwise_binop(struct expression *e)
+{
+	return e->type == EXPR_BINOP &&
+	       (e->op == '&' || e->op == '|' || e->op == '^');
+}
+
+/* Keep the parentheses which gcc -Wparentheses asks for. */
+static bool parentheses_avoid_warning(struct expression *parent,
+				      struct expression *child)
+{
+	if (parent->type == EXPR_LOGICAL && parent->op == SPECIAL_LOGICAL_OR &&
+	    child->type == EXPR_LOGICAL && child->op == SPECIAL_LOGICAL_AND)
+		return true;
+	if (parent->type == EXPR_BINOP &&
+	    (parent->op == SPECIAL_LEFTSHIFT || parent->op == SPECIAL_RIGHTSHIFT) &&
+	    child->type == EXPR_BINOP && (child->op == '+' || child->op == '-'))
+		return true;
+	if (is_bitwise_binop(parent) &&
+	    (child->type == EXPR_BINOP || child->type == EXPR_COMPARE) &&
+	    child->op != parent->op)
+		return true;
+	if (parent->type == EXPR_COMPARE && child->type == EXPR_COMPARE)
+		return true;
+	return false;
+}
+
+static bool binary_parent_needs_parenthesis(struct expression *parent,
+					    struct expression *child)
+{
+	int parent_precedence = binary_precedence(parent);
+	int child_precedence = binary_precedence(child);
+
+	if (!parent_precedence || !child_precedence)
+		return true;
+	if (child_precedence < parent_precedence)
+		return true;
+	if (child_precedence == parent_precedence) {
+		/* Assignments group right to left, everything else left to right. */
+		if (parent->type == EXPR_ASSIGNMENT)
+			return child != parent->right;
+		return child != parent->left;
+	}
+	return parentheses_avoid_warning(parent, child);
+}
+
+/* The "foo + bar" which show_indexed_dereference() prints as "foo[bar]". */
+static struct expression *subscript_binop(struct expression *e)
+{
+	while (e && e->type == EXPR_PREOP && e->op == '(')
+		e = e->unop;
+	if (!e || e->type != EXPR_BINOP || e->op != '+')
+		return NULL;
+	return e;
+}
+
+static struct expression *parent_subscript(struct expression *parent)
+{
+	struct expression *deref;
+
+	switch (parent->type) {
+	case EXPR_PREOP:
+		if (parent->op == '*')
+			return subscript_binop(parent->unop);
+		deref = parent->unop;
+		if (parent->op == '&' && deref && deref->type == EXPR_DEREF &&
+		    deref->member && deref->deref &&
+		    deref->deref->type == EXPR_PREOP && deref->deref->op == '*')
+			return subscript_binop(deref->deref->unop);
+		return NULL;
+	case EXPR_DEREF:
+		deref = parent->deref;
+		if (!parent->member)
+			return subscript_binop(deref);
+		if (deref && deref->type == EXPR_PREOP && deref->op == '*')
+			return subscript_binop(deref->unop);
+		return NULL;
+	case EXPR_CALL:
+		deref = parent->fn;
+		if (deref && deref->type == EXPR_PREOP && deref->op == '*' &&
+		    deref->unop && deref->unop->type == EXPR_BINOP &&
+		    deref->unop->op == '+')
+			return deref->unop;
+		return NULL;
+	default:
+		return NULL;
+	}
+}
+
+static bool needs_parenthesis(struct expression *e)
+{
+	struct expression *child = e;
+	struct expression *parent;
+	struct expression *subscript;
+
+	if (!is_binary_expression(e))
+		return false;
+	for (;;) {
+		if (!child->parent)
+			return true;
+		/* A statement parent prints the expression on its own. */
+		if (!(child->parent & 0x1UL))
+			return false;
+		parent = (struct expression *)(child->parent & ~0x1UL);
+		if (parent->type != EXPR_IMPLIED_CAST)
+			break;
+		child = parent;
+	}
+
+	if (is_binary_expression(parent))
+		return binary_parent_needs_parenthesis(parent, e);
+
+	subscript = parent_subscript(parent);
+	if (subscript && child == subscript->right)
+		return false;
+	if (subscript && child == subscript->left)
+		return true;
+
+	switch (parent->type) {
+	case EXPR_PREOP:
+		return parent->op != '(';
+	case EXPR_CALL:
+		return child == parent->fn || e->type == EXPR_COMMA;
+	case EXPR_CONDITIONAL:
+	case EXPR_SELECT:
+		if (child == parent->cond_true)
+			return e->type == EXPR_COMMA;
+		return e->type == EXPR_COMMA || e->type == EXPR_ASSIGNMENT;
+	case EXPR_INITIALIZER:
+		return e->type == EXPR_COMMA;
+	default:
+		return true;
+	}
 }
 
 static void expr(struct code_buffer *out, struct expression *e)
 {
 	struct expression *previous;
 	struct expression *tmp;
+	bool parenthesis;
 
 	if (!e) {
 		append(out, "/* null */");
@@ -2138,16 +2321,15 @@ static void expr(struct code_buffer *out, struct expression *e)
 	case EXPR_BINOP:
 	case EXPR_LOGICAL:
 	case EXPR_COMMA:
-		append(out, "(");
-		binop_operand(out, e->left);
-		append(out, " %s ", show_special(e->op));
-		binop_operand(out, e->right);
-		append(out, ")");
-		break;
 	case EXPR_ASSIGNMENT:
+		parenthesis = needs_parenthesis(e);
+		if (parenthesis)
+			append(out, "(");
 		expr(out, e->left);
 		append(out, " %s ", show_special(e->op));
 		expr(out, e->right);
+		if (parenthesis)
+			append(out, ")");
 		break;
 	case EXPR_DEREF:
 		if (!e->member && show_indexed_dereference(out, e->deref)) {
@@ -2369,12 +2551,21 @@ static void declarations(struct code_buffer *out, struct symbol_list *list)
 		append(out, ";\n");
 }
 
+/* The statement's own syntax separates "e" from the code around it. */
+static void stmt_expr(struct code_buffer *out, struct statement *s,
+		      struct expression *e)
+{
+	if (e && !e->parent)
+		e->parent = (unsigned long)s;
+	expr(out, e);
+}
+
 static void iterator_statement(struct code_buffer *out, struct statement *s)
 {
 	if (!s || s->type == STMT_NONE)
 		return;
 	if (s->type == STMT_EXPRESSION) {
-		expr(out, s->expression);
+		stmt_expr(out, s, s->expression);
 		return;
 	}
 	append(out, "/* unsupported iterator statement %d */", s->type);
@@ -2522,14 +2713,14 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		declarations(out, s->declaration);
 		break;
 	case STMT_EXPRESSION:
-		expr(out, s->expression);
+		stmt_expr(out, s, s->expression);
 		append(out, ";\n");
 		break;
 	case STMT_RETURN:
 		append(out, "return");
 		if (s->ret_value) {
 			append(out, " ");
-			expr(out, s->ret_value);
+			stmt_expr(out, s, s->ret_value);
 		}
 		append(out, ";\n");
 		break;
@@ -2604,7 +2795,7 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		break;
 	case STMT_SWITCH:
 		append(out, "switch (");
-		expr(out, s->switch_expression);
+		stmt_expr(out, s, s->switch_expression);
 		append(out, ") ");
 		stmt(out, s->switch_statement);
 		break;
@@ -2624,7 +2815,7 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		break;
 	case STMT_IF:
 		append(out, "if (");
-		expr(out, s->if_conditional);
+		stmt_expr(out, s, s->if_conditional);
 		if (s->if_true && s->if_true->type != STMT_COMPOUND) {
 			append(out, ")\n");
 			out->indent++;
@@ -2660,7 +2851,7 @@ static void stmt(struct code_buffer *out, struct statement *s)
 				iterator_statement(out, s->iterator_pre_statement);
 			append(out, "; ");
 			if (s->iterator_pre_condition)
-				expr(out, s->iterator_pre_condition);
+				stmt_expr(out, s, s->iterator_pre_condition);
 			append(out, "; ");
 			iterator_statement(out, s->iterator_post_statement);
 			append(out, ") ");
@@ -2671,7 +2862,7 @@ static void stmt(struct code_buffer *out, struct statement *s)
 			}
 		} else if (s->iterator_pre_condition) {
 			append(out, "while (");
-			expr(out, s->iterator_pre_condition);
+			stmt_expr(out, s, s->iterator_pre_condition);
 			append(out, ") ");
 			stmt(out, s->iterator_statement);
 		} else if (s->iterator_post_condition) {
@@ -2684,7 +2875,7 @@ static void stmt(struct code_buffer *out, struct statement *s)
 				out->line_start = false;
 			}
 			append(out, " while (");
-			expr(out, s->iterator_post_condition);
+			stmt_expr(out, s, s->iterator_post_condition);
 			append(out, ");\n");
 		} else {
 			append(out, "for(;;) ");
