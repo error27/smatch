@@ -232,6 +232,10 @@ void predefined_macros(void)
 		predefine("__pie__", 0, "%d", fpie);
 		predefine("__PIE__", 0, "%d", fpie);
 	}
+	if (fsanitize_address)
+		predefine("__SANITIZE_ADDRESS__", 1, "1");
+	if (fsanitize_hwaddress)
+		predefine("__SANITIZE_HWADDRESS__", 1, "1");
 
 	if (arch_target->predefine)
 		arch_target->predefine(arch_target);

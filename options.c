@@ -81,6 +81,8 @@ unsigned long long fmemcpy_max_count = 100000;
 unsigned long fpasses = ~0UL;
 int fpic = 0;
 int fpie = 0;
+int fsanitize_address;
+int fsanitize_hwaddress;
 int fshort_wchar = 0;
 int funsigned_bitfields = 0;
 int funsigned_char = 0;
@@ -514,6 +516,26 @@ static int handle_fmax_warnings(const char *arg, const char *opt, const struct f
 	return 1;
 }
 
+static int handle_fsanitize(const char *arg, const char *opt, const struct flag *flag, int options)
+{
+	int val = !(options & OPT_INVERSE);
+	size_t len;
+
+	while (*opt) {
+		len = strcspn(opt, ",");
+		if ((len == 7 && strncmp(opt, "address", len) == 0) ||
+		    (len == 14 && strncmp(opt, "kernel-address", len) == 0))
+			fsanitize_address = val;
+		if ((len == 9 && strncmp(opt, "hwaddress", len) == 0) ||
+		    (len == 16 && strncmp(opt, "kernel-hwaddress", len) == 0))
+			fsanitize_hwaddress = val;
+		opt += len;
+		if (*opt == ',')
+			opt++;
+	}
+	return 1;
+}
+
 static struct flag fflags[] = {
 	{ "diagnostic-prefix",	NULL,	handle_fdiagnostic_prefix },
 	{ "dump-ir",		NULL,	handle_fdump_ir },
@@ -531,6 +553,7 @@ static struct flag fflags[] = {
 	{ "PIC",		&fpic,	handle_switch_setval, 2 },
 	{ "pie",		&fpie,	handle_switch_setval, 1 },
 	{ "PIE",		&fpie,	handle_switch_setval, 2 },
+	{ "sanitize=",		NULL,	handle_fsanitize },
 	{ "signed-bitfields",	&funsigned_bitfields, NULL, OPT_INVERSE },
 	{ "unsigned-bitfields",	&funsigned_bitfields, NULL, },
 	{ "signed-char",	&funsigned_char, NULL,	OPT_INVERSE },

@@ -81,6 +81,8 @@ extern unsigned long long fmemcpy_max_count;
 extern unsigned long fpasses;
 extern int fpic;
 extern int fpie;
+extern int fsanitize_address;
+extern int fsanitize_hwaddress;
 extern int fshort_wchar;
 extern int funsigned_bitfields;
 extern int funsigned_char;
