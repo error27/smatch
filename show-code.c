@@ -1980,7 +1980,14 @@ static bool show_indexed_dereference(struct code_buffer *out,
 		e = e->unop;
 	if (!e || e->type != EXPR_BINOP || e->op != '+')
 		return false;
-	expr(out, e->left);
+	/* "&p->member" is printed without parentheses. */
+	if (e->left && e->left->type == EXPR_PREOP && e->left->op == '&') {
+		append(out, "(");
+		expr(out, e->left);
+		append(out, ")");
+	} else {
+		expr(out, e->left);
+	}
 	append(out, "[");
 	expr(out, e->right);
 	append(out, "]");
