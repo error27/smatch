@@ -933,6 +933,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		collect_expression_dependencies_rec(dependency, e->control,
 						    complete_type);
 		for (map = e->map; map; map = map->next) {
+			add_type_dependency(dependency, map->type, false);
+			collect_type_expression_dependencies(dependency, map->type);
 			expression_type = collect_expression_dependencies_rec(dependency,
 									      map->expr,
 									      complete_type);
