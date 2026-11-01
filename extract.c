@@ -90,6 +90,7 @@ int main(int argc, char **argv)
 	if (!buf)
 		die("out of memory");
 	preserve_builtin_va_calls = true;
+	preserve_unevaluated_symbols = true;
 	sparse_initialize(argc, argv, &files);
 	file = first_ptr_list((struct ptr_list *)files);
 	if (!file)

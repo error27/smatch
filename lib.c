@@ -254,6 +254,7 @@ void die(const char *fmt, ...)
 static struct token *pre_buffer_begin = NULL;
 static struct token **pre_buffer_next = &pre_buffer_begin;
 bool preserve_builtin_va_calls;
+bool preserve_unevaluated_symbols;
 
 void add_pre_buffer(const char *fmt, ...)
 {
@@ -462,7 +463,8 @@ struct symbol_list *sparse_initialize(int argc, char **argv, struct string_list 
 	 *	 and thus won't be able to be linearized correctly.
 	 *	 Hence the evaluate_symbol_list() here under.
 	 */
-	evaluate_symbol_list(list);
+	if (!preserve_unevaluated_symbols)
+		evaluate_symbol_list(list);
 	return list;
 }
 
