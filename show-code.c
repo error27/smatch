@@ -2101,8 +2101,12 @@ static void expr(struct code_buffer *out, struct expression *e)
 		    e->unop->deref->type == EXPR_PREOP &&
 		    e->unop->deref->op == '*') {
 			append(out, "&");
-			expr(out, e->unop->deref->unop);
-			append(out, "->%s", show_ident(e->unop->member));
+			if (show_indexed_dereference(out, e->unop->deref->unop)) {
+				append(out, ".%s", show_ident(e->unop->member));
+			} else {
+				expr(out, e->unop->deref->unop);
+				append(out, "->%s", show_ident(e->unop->member));
+			}
 		} else if (is_implicit_dereference(e)) {
 			expr(out, e->unop);
 		} else if (e->op == '(') {
@@ -2152,8 +2156,12 @@ static void expr(struct code_buffer *out, struct expression *e)
 		append(out, "(");
 		if (e->member && e->deref && e->deref->type == EXPR_PREOP &&
 		    e->deref->op == '*') {
-			expr(out, e->deref->unop);
-			append(out, "->%s", show_ident(e->member));
+			if (show_indexed_dereference(out, e->deref->unop)) {
+				append(out, ".%s", show_ident(e->member));
+			} else {
+				expr(out, e->deref->unop);
+				append(out, "->%s", show_ident(e->member));
+			}
 		} else {
 			expr(out, e->deref);
 			if (e->member)
