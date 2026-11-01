@@ -678,6 +678,9 @@ static struct expression *constant_symbol_value(struct symbol *sym, int offset)
 
 	if (sym->ctype.modifiers & MOD_ACCESS)
 		return NULL;
+	/* Without evaluation, MOD_ACCESS does not show later assignments. */
+	if (preserve_unevaluated_symbols && !(sym->ctype.modifiers & MOD_CONST))
+		return NULL;
 	value = sym->initializer;
 	if (!value)
 		return NULL;
