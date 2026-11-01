@@ -707,7 +707,7 @@ static struct symbol *find_member_symbol_rec(struct symbol *type,
 		if (member->ident == ident)
 			return member;
 		nested = tag_type(member);
-		if (nested && !nested->ident) {
+		if (nested && !nested->ident && !member->ident) {
 			member = find_member_symbol_rec(nested, ident, seen);
 			if (member)
 				return member;
