@@ -281,6 +281,12 @@ static bool type_can_use_forward_declaration(struct symbol *type)
 	if (!type_is_ptr(type))
 		return false;
 	type = strip_type_wrappers(get_base_type(type));
+	/* "struct foo (*p)[]" needs the array elements to be complete. */
+	if (type_is_array(type)) {
+		while (type_is_array(type))
+			type = strip_type_wrappers(get_base_type(type));
+		return type_is_ptr(type);
+	}
 	return !type || type->type != SYM_ENUM;
 }
 
