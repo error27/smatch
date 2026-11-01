@@ -2045,6 +2045,18 @@ static bool show_va_arg_call(struct code_buffer *out, struct expression *e)
 	return true;
 }
 
+/* "a + (b = c)" must not lose the parentheses around the assignment. */
+static void binop_operand(struct code_buffer *out, struct expression *e)
+{
+	if (e && e->type == EXPR_ASSIGNMENT) {
+		append(out, "(");
+		expr(out, e);
+		append(out, ")");
+		return;
+	}
+	expr(out, e);
+}
+
 static void expr(struct code_buffer *out, struct expression *e)
 {
 	struct expression *previous;
@@ -2123,9 +2135,9 @@ static void expr(struct code_buffer *out, struct expression *e)
 	case EXPR_LOGICAL:
 	case EXPR_COMMA:
 		append(out, "(");
-		expr(out, e->left);
+		binop_operand(out, e->left);
 		append(out, " %s ", show_special(e->op));
-		expr(out, e->right);
+		binop_operand(out, e->right);
 		append(out, ")");
 		break;
 	case EXPR_ASSIGNMENT:
