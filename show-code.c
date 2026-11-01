@@ -1790,6 +1790,19 @@ static bool has_bitwise_parent(struct expression *e)
 	return false;
 }
 
+static bool has_negate_parent(struct expression *e)
+{
+	struct expression *parent = e;
+
+	do {
+		if (!(parent->parent & 0x1UL))
+			return false;
+		parent = (struct expression *)(parent->parent & ~0x1UL);
+	} while (parent->type == EXPR_IMPLIED_CAST);
+
+	return parent->type == EXPR_PREOP && parent->op == '-';
+}
+
 static const char *integer_literal_suffix(struct expression *e)
 {
 	struct symbol *type = strip_type_wrappers(e->ctype);
@@ -1842,7 +1855,10 @@ static void show_value(struct code_buffer *out, struct expression *e)
 		goto hex;
 	if (is_signed_type(e->ctype) &&
 	    signed_value >= -4059 && signed_value < 0) {
-		append(out, "%lld%s", signed_value, suffix);
+		if (has_negate_parent(e))
+			append(out, "(%lld%s)", signed_value, suffix);
+		else
+			append(out, "%lld%s", signed_value, suffix);
 		return;
 	}
 	if (value > 16) {
