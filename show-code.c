@@ -426,6 +426,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 		FOR_EACH_PTR(type->arguments, arg) {
 			add_type_dependency(parent, arg,
 					    type_can_use_forward_declaration(arg));
+			collect_type_expression_dependencies(parent, arg);
 		} END_FOR_EACH_PTR(arg);
 		return;
 	case SYM_ENUM:
