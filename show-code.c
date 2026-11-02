@@ -1283,7 +1283,7 @@ static void show_minimal_declaration(struct code_buffer *out,
 		show_function_forwards(out, symbol->ctype.base_type);
 	copy = *symbol;
 	/* GCC warns about a static function which is used but not defined. */
-	copy.ctype.modifiers &= ~MOD_STATIC;
+	copy.ctype.modifiers &= ~(MOD_STATIC | MOD_USED);
 	copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
@@ -1343,6 +1343,7 @@ static void show_dependency_entry(struct code_buffer *out,
 	if (type->type == SYM_FN)
 		show_function_forwards(out, dependency->ctype.base_type);
 	copy = *dependency;
+	copy.ctype.modifiers &= ~MOD_USED;
 	if (!(copy.ctype.modifiers & MOD_STATIC))
 		copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
@@ -3361,6 +3362,8 @@ static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
 		return;
 	if (type && type->type == SYM_FN)
 		show_function_forwards(out, type);
+	/* GCC ignores "used" on an extern declaration. */
+	copy.ctype.modifiers &= ~MOD_USED;
 	if (!(copy.ctype.modifiers & MOD_STATIC))
 		copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
