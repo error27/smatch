@@ -121,6 +121,16 @@ struct sym_dependency {
 	bool collected;
 };
 DECLARE_PTR_LIST(sym_dependency_list, struct sym_dependency);
+static struct symbol *collect_expression_dependencies_rec(struct sym_dependency *dependency,
+							  struct expression *e,
+							  bool complete_type);
+
+struct typeof_type {
+	struct symbol *typeof_sym;
+	struct symbol *type;
+};
+DECLARE_PTR_LIST(typeof_type_list, struct typeof_type);
+static struct typeof_type_list *typeof_types;
 
 struct c_type_name {
 	char *start;
@@ -216,10 +226,41 @@ static void collect_dependencies(struct sym_dependency *dependency,
 static void add_type_dependency(struct sym_dependency *dependency,
 				struct symbol *type, bool decl_enough);
 
+/*
+ * Examining a typeof() evaluates the expression and changes the symbol to a
+ * SYM_NODE in place, so a later output file would see different types.
+ * Work out the type from the unevaluated expression instead.
+ */
+static struct symbol *typeof_base_type(struct symbol *type)
+{
+	struct sym_dependency root = { .sym = type };
+	struct typeof_type *entry;
+
+	FOR_EACH_PTR(typeof_types, entry) {
+		if (entry->typeof_sym == type)
+			return entry->type;
+	} END_FOR_EACH_PTR(entry);
+	entry = malloc(sizeof(*entry));
+	if (!entry)
+		return NULL;
+	entry->typeof_sym = type;
+	entry->type = NULL;
+	add_ptr_list(&typeof_types, entry);
+	entry->type = collect_expression_dependencies_rec(&root, type->initializer,
+							  false);
+	return entry->type;
+}
+
 static struct symbol *strip_type_wrappers(struct symbol *type)
 {
-	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT))
-		type = get_base_type(type);
+	while (type && (type->type == SYM_NODE || type->type == SYM_RESTRICT ||
+			type->type == SYM_TYPEOF ||
+			type->type == SYM_TYPEOF_UNQUAL)) {
+		if (type->type == SYM_NODE || type->type == SYM_RESTRICT)
+			type = show_base_type(type);
+		else
+			type = typeof_base_type(type);
+	}
 	return type;
 }
 
@@ -227,7 +268,7 @@ static struct symbol *strip_bitfield_type(struct symbol *type)
 {
 	type = strip_type_wrappers(type);
 	while (type && type->type == SYM_BITFIELD)
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	return type;
 }
 
@@ -273,20 +314,20 @@ static bool type_can_use_forward_declaration(struct symbol *type)
 		type = show_base_type(type);
 		type = strip_type_wrappers(type);
 		while (type_is_array(type))
-			type = strip_type_wrappers(get_base_type(type));
+			type = strip_type_wrappers(show_base_type(type));
 		if (is_struct_or_union(type))
 			return true;
 	}
 	type = strip_type_wrappers(type);
 	while (type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	if (!type_is_ptr(type))
 		return false;
-	type = strip_type_wrappers(get_base_type(type));
+	type = strip_type_wrappers(show_base_type(type));
 	/* "struct foo (*p)[]" needs the array elements to be complete. */
 	if (type_is_array(type)) {
 		while (type_is_array(type))
-			type = strip_type_wrappers(get_base_type(type));
+			type = strip_type_wrappers(show_base_type(type));
 		return type_is_ptr(type);
 	}
 	return !type || type->type != SYM_ENUM;
@@ -333,7 +374,7 @@ static struct symbol *tag_type(struct symbol *type)
 
 	type = strip_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	if (type && type->definition && is_tag_type(type->definition))
 		type = type->definition;
 	if (!is_tag_type(type))
@@ -414,7 +455,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 				collect_symbol_dependencies(dependency);
 			return;
 		}
-		collect_dependencies(parent, get_base_type(type), decl_enough);
+		collect_dependencies(parent, show_base_type(type), decl_enough);
 		return;
 	case SYM_TYPEOF:
 	case SYM_TYPEOF_UNQUAL:
@@ -424,7 +465,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 		return;
 	case SYM_PTR:
 	case SYM_ARRAY:
-		collect_dependencies(parent, get_base_type(type),
+		collect_dependencies(parent, show_base_type(type),
 				     type_can_use_forward_declaration(type));
 		return;
 	case SYM_FN:
@@ -683,7 +724,7 @@ static void collect_complete_type_dependency(struct sym_dependency *parent,
 {
 	type = strip_type_wrappers(type);
 	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	add_type_dependency(parent, type, false);
 	collect_dependencies(parent, type, false);
 }
@@ -693,7 +734,7 @@ static void collect_pointer_element_dependency(struct sym_dependency *parent,
 {
 	type = strip_type_wrappers(type);
 	if (type_is_array(type) || type_is_ptr(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	else
 		return;
 
@@ -713,7 +754,7 @@ static void collect_function_return_type_dependency(struct sym_dependency *paren
 
 	type = strip_type_wrappers(function->ctype.base_type);
 	while (type_is_ptr(type) || type_is_array(type))
-		type = strip_type_wrappers(get_base_type(type));
+		type = strip_type_wrappers(show_base_type(type));
 	if (type && type->type == SYM_FN)
 		collect_complete_type_dependency(parent, type->ctype.base_type);
 }
@@ -785,7 +826,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		if (!type) {
 			if (e->op == '*' && expression_type) {
 				type = strip_type_wrappers(expression_type);
-				type = strip_type_wrappers(get_base_type(type));
+				type = strip_type_wrappers(show_base_type(type));
 			} else if (e->op == '&' && expression_type) {
 				type = alloc_symbol(e->pos, SYM_PTR);
 				type->ctype.base_type = expression_type;
@@ -835,7 +876,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 									 type);
 			}
 		} else if (!type && expression_type) {
-			type = strip_type_wrappers(get_base_type(expression_type));
+			type = strip_type_wrappers(show_base_type(expression_type));
 		}
 		break;
 	case EXPR_CAST:
@@ -903,7 +944,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 								item->symbol);
 			expression_type = strip_type_wrappers(item->symbol->ctype.base_type);
 			while (type_is_ptr(expression_type))
-				expression_type = strip_type_wrappers(get_base_type(expression_type));
+				expression_type =
+					strip_type_wrappers(show_base_type(expression_type));
 			if (!type && expression_type && expression_type->type == SYM_FN)
 				type = expression_type->ctype.base_type;
 		}
@@ -915,7 +957,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			expression_type = strip_type_wrappers(expression_type);
 			while (type_is_ptr(expression_type))
 				expression_type =
-					strip_type_wrappers(get_base_type(expression_type));
+					strip_type_wrappers(show_base_type(expression_type));
 			if (expression_type && expression_type->type == SYM_FN) {
 				type = expression_type->ctype.base_type;
 				if (complete_type)
@@ -1333,7 +1375,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	if (has_type_expression(symbol)) {
 		collect_expression_dependencies_rec(dependency,
 					    symbol->type_expression, false);
-		type = get_base_type(symbol);
+		type = show_base_type(symbol);
 		if (type != symbol)
 			collect_dependencies(dependency, type,
 					     dependency->decl_enough);
@@ -1460,7 +1502,7 @@ static void show_type_dependencies(struct tag_output *output,
 
 	function_type = nested_type;
 	while (type_is_ptr(function_type) || type_is_array(function_type))
-		function_type = strip_type_wrappers(get_base_type(function_type));
+		function_type = strip_type_wrappers(show_base_type(function_type));
 
 	if (function_type && function_type->type == SYM_FN) {
 		show_type_dependencies(output, function_type->ctype.base_type,
@@ -1474,7 +1516,7 @@ static void show_type_dependencies(struct tag_output *output,
 	}
 
 	if (type_is_ptr(nested_type) || type_is_array(nested_type))
-		show_type_dependencies(output, get_base_type(nested_type),
+		show_type_dependencies(output, show_base_type(nested_type),
 				       type_can_use_forward_declaration(nested_type));
 }
 
@@ -1734,7 +1776,6 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			modifiers |= type->ctype.modifiers;
 			as = type->ctype.as;
 			was_pointer = true;
-			examine_pointer_target(type);
 			break;
 		}
 		case SYM_FN: {
@@ -2165,7 +2206,7 @@ static bool show_va_arg_call(struct code_buffer *out, struct expression *e)
 	cast_type = strip_type_wrappers(type->cast_type);
 	if (!type_is_ptr(cast_type))
 		return false;
-	cast_type = get_base_type(cast_type);
+	cast_type = show_base_type(cast_type);
 	if (!cast_type)
 		return false;
 	append(out, "__builtin_va_arg(");
