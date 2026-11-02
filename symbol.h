@@ -369,6 +369,7 @@ extern void show_type_list(struct symbol *);
 extern void show_symbol_list(struct symbol_list *);
 extern void show_expr(struct expression *expr, char *buf, size_t len);
 extern void show_stmt(struct statement *stmt, char *buf, size_t len);
+extern struct symbol *show_code_minimal_root;
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
 extern void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 				      size_t len);

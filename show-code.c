@@ -76,6 +76,8 @@ static void declaration(struct code_buffer *out, struct symbol *s);
 static void show_function(struct code_buffer *out, struct symbol *s);
 static void show_symbol_declaration(struct code_buffer *out, struct symbol *s);
 static struct symbol *function_definition(struct symbol *s);
+static bool declaration_has_typeof(struct symbol *type);
+static bool is_incomplete_array_declaration(struct symbol *symbol);
 static bool is_typedef_tag(struct symbol *type);
 static struct symbol *find_anonymous_tag(struct symbol *type);
 static void show_anonymous_c_typename(struct code_buffer *out,
@@ -1053,6 +1055,58 @@ static void show_dependency_cycle(struct code_buffer *out,
 	show_symbol_declaration(out, symbol);
 }
 
+struct symbol *show_code_minimal_root;
+
+/*
+ * With --minimal, only the root function and inline functions are
+ * defined.  Other functions and file scope variables are declared.
+ */
+static bool minimal_declaration(struct symbol *symbol)
+{
+	struct symbol *definition;
+	struct symbol *type;
+
+	if (!show_code_minimal_root || dependency_is_type(symbol))
+		return false;
+	type = strip_type_wrappers(symbol);
+	if (!type)
+		return false;
+	/* An anonymous tag can only be emitted with its complete definition. */
+	if (type->type != SYM_FN)
+		return !is_incomplete_array_declaration(symbol) &&
+		       !find_anonymous_tag(symbol->ctype.base_type);
+	definition = function_definition(symbol) ?: symbol;
+	if (declaration_has_typeof(definition))
+		return false;
+	if (definition == function_definition(show_code_minimal_root))
+		return false;
+	return !((symbol->ctype.modifiers | definition->ctype.modifiers) &
+		 MOD_INLINE);
+}
+
+static void show_minimal_declaration(struct code_buffer *out,
+				     struct symbol *symbol)
+{
+	struct symbol *type = strip_type_wrappers(symbol);
+	struct symbol copy;
+
+	/* "extern typeof(f) f;" needs the declaration of f. */
+	if (type->type == SYM_FN)
+		symbol = function_definition(symbol) ?: symbol;
+	if (symbol_was_declared(symbol) || symbol_was_defined(symbol))
+		return;
+	if (type->type == SYM_FN)
+		show_function_forwards(out, symbol->ctype.base_type);
+	copy = *symbol;
+	/* GCC warns about a static function which is used but not defined. */
+	copy.ctype.modifiers &= ~MOD_STATIC;
+	copy.ctype.modifiers |= MOD_EXTERN;
+	show_c_typename(out, &copy);
+	show_asm_name(out, &copy);
+	append(out, ";\n");
+	remember_symbol(&printed.declarations, symbol);
+}
+
 static void show_dependency(struct code_buffer *out,
 			    struct sym_dependency *entry)
 {
@@ -1074,6 +1128,10 @@ static void show_dependency(struct code_buffer *out,
 		return;
 	if (dependency_is_type(dependency)) {
 		show_type_dependencies(&type_output, dependency, entry->decl_enough);
+		return;
+	}
+	if (minimal_declaration(dependency)) {
+		show_minimal_declaration(out, dependency);
 		return;
 	}
 	if (entry->decl_enough && symbol_was_declared(dependency))
@@ -1265,6 +1323,8 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	if (type->type == SYM_FN) {
 		collect_function_type_dependencies(dependency, type);
 		collect_type_expression_dependencies(dependency, symbol);
+		if (dependency->parent && minimal_declaration(symbol))
+			return;
 		stmt = type->stmt ?: type->inline_stmt;
 		collect_statement_dependencies(dependency, stmt);
 		return;
@@ -1272,6 +1332,8 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	add_type_dependency(dependency, type,
 			    type_can_use_forward_declaration(symbol));
 	collect_type_expression_dependencies(dependency, symbol);
+	if (dependency->parent && minimal_declaration(symbol))
+		return;
 	collect_expression_dependencies(dependency, symbol_initializer(symbol));
 }
 

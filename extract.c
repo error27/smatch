@@ -63,6 +63,7 @@ int main(int argc, char **argv)
 	struct symbol *function;
 	bool whole_file;
 	bool last_func;
+	bool minimal;
 	char *file;
 	char *root_name;
 	char output_file[PATH_MAX];
@@ -70,22 +71,29 @@ int main(int argc, char **argv)
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION|--last-func] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION|--last-func] [--minimal] [sparse options] file.c");
 	root_name = NULL;
-	last_func = strcmp(argv[1], "--last-func") == 0;
-	if (last_func) {
-		memmove(argv + 1, argv + 2, (argc - 2) * sizeof(*argv));
-		argc--;
-		argv[argc] = NULL;
-	} else if (strncmp(argv[1], "--func=", 7) == 0) {
-		if (argv[1][7] == '\0')
-			die("function name is empty");
-		root_name = argv[1] + 7;
+	last_func = false;
+	minimal = false;
+	while (argc > 1) {
+		if (strcmp(argv[1], "--last-func") == 0) {
+			last_func = true;
+		} else if (strcmp(argv[1], "--minimal") == 0) {
+			minimal = true;
+		} else if (strncmp(argv[1], "--func=", 7) == 0) {
+			if (argv[1][7] == '\0')
+				die("function name is empty");
+			root_name = argv[1] + 7;
+		} else {
+			break;
+		}
 		memmove(argv + 1, argv + 2, (argc - 2) * sizeof(*argv));
 		argc--;
 		argv[argc] = NULL;
 	}
 	whole_file = root_name == NULL && !last_func;
+	if (minimal && whole_file)
+		die("--minimal needs --func=FUNCTION or --last-func");
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
 	if (!buf)
 		die("out of memory");
@@ -126,6 +134,8 @@ int main(int argc, char **argv)
 			}
 			die("function %s was not found", root_name);
 		}
+		if (minimal)
+			show_code_minimal_root = function;
 		fprintf(out, "typedef _Bool bool;\n\n");
 		show_function(out, function, buf);
 	}
