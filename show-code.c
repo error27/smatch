@@ -162,7 +162,8 @@ struct typeof_type {
 	struct symbol *type;
 };
 DECLARE_PTR_LIST(typeof_type_list, struct typeof_type);
-static struct typeof_type_list *typeof_types;
+#define TYPEOF_HASH_SIZE 4096
+static struct typeof_type_list *typeof_types[TYPEOF_HASH_SIZE];
 
 /* A type name is built outwards from the declarator, so it grows both ways. */
 struct c_type_name {
@@ -268,9 +269,12 @@ static void add_type_dependency(struct sym_dependency *dependency,
 static struct symbol *typeof_base_type(struct symbol *type)
 {
 	struct sym_dependency root = { .sym = type, .root = true };
+	struct typeof_type_list **bucket;
 	struct typeof_type *entry;
 
-	FOR_EACH_PTR(typeof_types, entry) {
+	bucket = &typeof_types[(unsigned long)type / sizeof(void *) %
+			       TYPEOF_HASH_SIZE];
+	FOR_EACH_PTR(*bucket, entry) {
 		if (entry->typeof_sym == type)
 			return entry->type;
 	} END_FOR_EACH_PTR(entry);
@@ -279,7 +283,7 @@ static struct symbol *typeof_base_type(struct symbol *type)
 		return NULL;
 	entry->typeof_sym = type;
 	entry->type = NULL;
-	add_ptr_list(&typeof_types, entry);
+	add_ptr_list(bucket, entry);
 	entry->type = collect_expression_dependencies_rec(&root, type->initializer,
 							  false);
 	return entry->type;
