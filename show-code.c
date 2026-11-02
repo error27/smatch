@@ -3347,12 +3347,13 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	if (previous_tag)
 		append(out, ";\n");
 	out->indent--;
+	append(out, "}");
+	if (type->packed)
+		append(out, " __attribute__((__packed__))");
 	if (is_typedef_tag(type)) {
-		append(out, "} %s", show_ident(type->ident));
+		append(out, " %s", show_ident(type->ident));
 		if (type->transparent_union)
 			append(out, " __attribute__((__transparent_union__))");
-	} else {
-		append(out, "}");
 	}
 	if (type->ident)
 		remember_symbol(&printed.definitions, type);
