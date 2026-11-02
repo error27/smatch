@@ -880,6 +880,23 @@ static int already_tokenized(const char *path)
 	return 0;
 }
 
+/* The same file can be included through different paths. */
+static int once_tokenized(int fd)
+{
+	struct stat st;
+	int stream;
+
+	if (fstat(fd, &st))
+		return 0;
+	for (stream = 0; stream < input_stream_nr; stream++) {
+		struct stream *s = input_streams + stream;
+
+		if (s->once && s->dev == st.st_dev && s->ino == st.st_ino)
+			return 1;
+	}
+	return 0;
+}
+
 /* Handle include of header files.
  * The relevant options are made compatible with gcc. The only options that
  * are not supported is -withprefix and friends.
@@ -962,7 +979,13 @@ static int try_include(struct position pos, const char *path, const char *filena
 		return 1;
 	fd = open(fullname, O_RDONLY);
 	if (fd >= 0) {
-		char *streamname = xmemdup(fullname, plen + flen);
+		char *streamname;
+
+		if (once_tokenized(fd)) {
+			close(fd);
+			return 1;
+		}
+		streamname = xmemdup(fullname, plen + flen);
 		*where = tokenize(&pos, streamname, fd, *where, next_path);
 		close(fd);
 		return 1;

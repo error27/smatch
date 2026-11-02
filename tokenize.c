@@ -31,6 +31,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <sys/stat.h>
 
 #include "lib.h"
 #include "allocate.h"
@@ -317,6 +318,7 @@ int init_stream(const struct position *pos, const char *name, int fd, const char
 {
 	int stream = input_stream_nr, *hash;
 	struct stream *current;
+	struct stat st;
 
 	if (stream >= input_streams_allocated) {
 		int newalloc = stream * 4 / 3 + 10;
@@ -332,6 +334,10 @@ int init_stream(const struct position *pos, const char *name, int fd, const char
 	current->next_path = next_path;
 	current->path = NULL;
 	current->constant = CONSTANT_FILE_MAYBE;
+	if (fd >= 0 && fstat(fd, &st) == 0) {
+		current->dev = st.st_dev;
+		current->ino = st.st_ino;
+	}
 	if (pos)
 		current->pos = *pos;
 	else

@@ -58,6 +58,9 @@ struct stream {
 	/* Use these to check for "already parsed" */
 	enum constantfile constant;
 	int dirty, next_stream, once;
+	/* "#pragma once" files are the same if they are the same inode. */
+	dev_t dev;
+	ino_t ino;
 	struct ident *protect;
 	struct token *ifndef;
 	struct token *top_if;
