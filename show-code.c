@@ -3598,6 +3598,13 @@ void show_stmt(struct statement *s, char *buf, size_t len)
 	stmt(&out, s);
 }
 
+/* Forget what was printed so the next output file starts empty. */
+void show_code_reset(void)
+{
+	free_ptr_list(&printed.definitions);
+	free_ptr_list(&printed.declarations);
+}
+
 void show_sym(struct symbol *s, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };

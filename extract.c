@@ -35,6 +35,44 @@ static void show_function(FILE *out, struct symbol *function, char *buf)
 	fprintf(out, "%s\n", buf);
 }
 
+static void write_function(const char *output_file, struct symbol *function,
+			   bool minimal, char *buf)
+{
+	FILE *out;
+
+	out = fopen(output_file, "w");
+	if (!out)
+		die("cannot write %s", output_file);
+	show_code_reset();
+	if (minimal)
+		show_code_minimal_root = function;
+	fprintf(out, "typedef _Bool bool;\n\n");
+	show_function(out, function, buf);
+	fclose(out);
+	printf("extract: wrote %s\n", output_file);
+}
+
+static void write_all_functions(struct symbol_list *list, const char *file,
+				bool minimal, char *buf)
+{
+	char output_file[PATH_MAX];
+	struct symbol_list *functions = NULL;
+	struct symbol *sym;
+
+	/* Printing can add inline functions to the list, so copy it first. */
+	FOR_EACH_PTR(list, sym) {
+		if (is_function_definition(sym) && sym->ident &&
+		    strcmp(stream_name(sym->pos.stream), file) == 0)
+			add_symbol(&functions, sym);
+	} END_FOR_EACH_PTR(sym);
+	FOR_EACH_PTR(functions, sym) {
+		snprintf(output_file, sizeof(output_file), "%s.extract.%s",
+			 file, show_ident(sym->ident));
+		write_function(output_file, sym, minimal, buf);
+	} END_FOR_EACH_PTR(sym);
+	free_ptr_list(&functions);
+}
+
 static struct symbol *find_function(struct symbol_list *list, const char *name,
 				    const char *file)
 {
@@ -62,6 +100,7 @@ int main(int argc, char **argv)
 	struct symbol_list *list;
 	struct symbol *function;
 	bool whole_file;
+	bool all_funcs;
 	bool last_func;
 	bool minimal;
 	char *file;
@@ -71,12 +110,15 @@ int main(int argc, char **argv)
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION|--last-func] [--minimal] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION|--last-func|--all-funcs] [--minimal] [sparse options] file.c");
 	root_name = NULL;
+	all_funcs = false;
 	last_func = false;
 	minimal = false;
 	while (argc > 1) {
-		if (strcmp(argv[1], "--last-func") == 0) {
+		if (strcmp(argv[1], "--all-funcs") == 0) {
+			all_funcs = true;
+		} else if (strcmp(argv[1], "--last-func") == 0) {
 			last_func = true;
 		} else if (strcmp(argv[1], "--minimal") == 0) {
 			minimal = true;
@@ -91,9 +133,11 @@ int main(int argc, char **argv)
 		argc--;
 		argv[argc] = NULL;
 	}
-	whole_file = root_name == NULL && !last_func;
+	if (all_funcs + last_func + (root_name != NULL) > 1)
+		die("use only one of --func=FUNCTION, --last-func and --all-funcs");
+	whole_file = root_name == NULL && !last_func && !all_funcs;
 	if (minimal && whole_file)
-		die("--minimal needs --func=FUNCTION or --last-func");
+		die("--minimal needs --func=FUNCTION, --last-func or --all-funcs");
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
 	if (!buf)
 		die("out of memory");
@@ -104,6 +148,12 @@ int main(int argc, char **argv)
 	if (!file)
 		die("no source file");
 	if (strcmp(file, "/dev/null") == 0) {
+		free(buf);
+		return 0;
+	}
+	if (all_funcs) {
+		list = sparse_keep_tokens(file);
+		write_all_functions(list, file, minimal, buf);
 		free(buf);
 		return 0;
 	}
