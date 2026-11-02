@@ -255,6 +255,8 @@ static struct token *pre_buffer_begin = NULL;
 static struct token **pre_buffer_next = &pre_buffer_begin;
 bool preserve_builtin_va_calls;
 bool preserve_unevaluated_symbols;
+/* Do not define __CHECKER__, for output which GCC will compile. */
+bool predefine_no_checker;
 
 void add_pre_buffer(const char *fmt, ...)
 {

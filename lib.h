@@ -47,6 +47,7 @@
 extern int parse_error;
 extern bool preserve_builtin_va_calls;
 extern bool preserve_unevaluated_symbols;
+extern bool predefine_no_checker;
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096			// Hurd doesn't define this

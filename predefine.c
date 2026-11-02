@@ -83,7 +83,8 @@ static void predefined_ctype(const char *name, struct symbol *type, int flags)
 
 void predefined_macros(void)
 {
-	predefine("__CHECKER__", 0, "1");
+	if (!predefine_no_checker)
+		predefine("__CHECKER__", 0, "1");
 	predefine("__GNUC__", 1, "%d", gcc_major);
 	predefine("__GNUC_MINOR__", 1, "%d", gcc_minor);
 	predefine("__GNUC_PATCHLEVEL__", 1, "%d", gcc_patchlevel);
