@@ -570,7 +570,7 @@ static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
 		if (is_local_tag(tag) || is_local_tag(type))
 			continue;
 		if (tag->type == type->type && tag->ident && type->ident &&
-		    strcmp(show_ident(tag->ident), show_ident(type->ident)) == 0)
+		    tag->ident == type->ident)
 			return true;
 	} END_FOR_EACH_PTR(tag);
 	return false;
@@ -599,7 +599,7 @@ static bool symbol_was_output(struct symbol_list *symbols,
 			continue;
 		if (entry->namespace == symbol->namespace &&
 		    entry->ident && symbol->ident &&
-		    strcmp(show_ident(entry->ident), show_ident(symbol->ident)) == 0)
+		    entry->ident == symbol->ident)
 			return true;
 	} END_FOR_EACH_PTR(entry);
 	return false;
