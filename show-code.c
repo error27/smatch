@@ -836,6 +836,18 @@ static void collect_complete_type_dependency(struct sym_dependency *parent,
 	collect_dependencies(parent, type, false);
 }
 
+/* sizeof() needs complete array elements, but the size of a pointer is known. */
+static void collect_sizeof_type_dependency(struct sym_dependency *parent,
+					   struct symbol *type)
+{
+	type = strip_type_wrappers(type);
+	while (type_is_array(type))
+		type = strip_type_wrappers(show_base_type(type));
+	if (!type || type_is_ptr(type))
+		return;
+	collect_complete_type_dependency(parent, type);
+}
+
 static void collect_pointer_element_dependency(struct sym_dependency *parent,
 							struct symbol *type)
 {
@@ -1006,7 +1018,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		add_type_dependency(dependency, e->cast_type, false);
 		collect_type_expression_dependencies(dependency, e->cast_type);
 		if (e->cast_type)
-			collect_complete_type_dependency(dependency, e->cast_type);
+			collect_sizeof_type_dependency(dependency, e->cast_type);
 		expression_type = collect_expression_dependencies_rec(dependency,
 							       e->cast_expression,
 							       complete_type);
@@ -1015,9 +1027,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			item = item->unop;
 		if (item && item->type == EXPR_SYMBOL)
 			add_symbol_dependency(dependency, item->symbol, true);
-		if (expression_type &&
-		    !type_is_ptr(strip_type_wrappers(expression_type)))
-			collect_complete_type_dependency(dependency, expression_type);
+		if (expression_type)
+			collect_sizeof_type_dependency(dependency, expression_type);
 		break;
 	case EXPR_CONDITIONAL:
 	case EXPR_SELECT:
