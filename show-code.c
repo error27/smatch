@@ -862,9 +862,11 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		expression_type = collect_expression_dependencies_rec(dependency,
 							       e->cast_expression,
 							       complete_type);
-		if (e->cast_expression && e->cast_expression->type == EXPR_SYMBOL)
-			add_symbol_dependency(dependency, e->cast_expression->symbol,
-					      true);
+		item = e->cast_expression;
+		while (item && item->type == EXPR_PREOP && item->op == '(')
+			item = item->unop;
+		if (item && item->type == EXPR_SYMBOL)
+			add_symbol_dependency(dependency, item->symbol, true);
 		if (expression_type &&
 		    !type_is_ptr(strip_type_wrappers(expression_type)))
 			collect_complete_type_dependency(dependency, expression_type);
@@ -1078,23 +1080,19 @@ static void show_dependency_cycle(struct code_buffer *out,
 struct symbol *show_code_minimal_root;
 
 /*
- * With --minimal, only the root function and inline functions are
- * defined.  Other functions and file scope variables are declared.
+ * With --minimal, everything which can be declared is declared, except the
+ * root function and inline functions.
  */
-static bool minimal_declaration(struct symbol *symbol)
+static bool minimal_declaration(struct sym_dependency *entry)
 {
+	struct symbol *symbol = entry->sym;
 	struct symbol *definition;
-	struct symbol *type;
 
-	if (!show_code_minimal_root || dependency_is_type(symbol))
+	if (!show_code_minimal_root || !entry->decl_enough ||
+	    dependency_is_type(symbol))
 		return false;
-	type = strip_type_wrappers(symbol);
-	if (!type)
-		return false;
-	/* An anonymous tag can only be emitted with its complete definition. */
-	if (type->type != SYM_FN)
-		return !is_incomplete_array_declaration(symbol) &&
-		       !find_anonymous_tag(symbol->ctype.base_type);
+	if (strip_type_wrappers(symbol)->type != SYM_FN)
+		return true;
 	definition = function_definition(symbol) ?: symbol;
 	if (declaration_has_typeof(definition))
 		return false;
@@ -1151,7 +1149,7 @@ static void show_dependency(struct code_buffer *out,
 		show_type_dependencies(&type_output, dependency, entry->decl_enough);
 		return;
 	}
-	if (minimal_declaration(dependency)) {
+	if (minimal_declaration(entry)) {
 		show_minimal_declaration(out, dependency);
 		return;
 	}
@@ -1349,7 +1347,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	if (type->type == SYM_FN) {
 		collect_function_type_dependencies(dependency, type);
 		collect_type_expression_dependencies(dependency, symbol);
-		if (dependency->parent && minimal_declaration(symbol))
+		if (dependency->parent && minimal_declaration(dependency))
 			return;
 		stmt = type->stmt ?: type->inline_stmt;
 		collect_statement_dependencies(dependency, stmt);
@@ -1358,7 +1356,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	add_type_dependency(dependency, type,
 			    type_can_use_forward_declaration(symbol));
 	collect_type_expression_dependencies(dependency, symbol);
-	if (dependency->parent && minimal_declaration(symbol))
+	if (dependency->parent && minimal_declaration(dependency))
 		return;
 	collect_expression_dependencies(dependency, symbol_initializer(symbol));
 }
