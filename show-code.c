@@ -907,7 +907,22 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 			if (!type && expression_type && expression_type->type == SYM_FN)
 				type = expression_type->ctype.base_type;
 		}
-		collect_expression_dependencies_rec(dependency, e->fn, complete_type);
+		expression_type = collect_expression_dependencies_rec(dependency,
+								      e->fn,
+								      complete_type);
+		/* A call through a function pointer has no symbol to look at. */
+		if (!type && expression_type) {
+			expression_type = strip_type_wrappers(expression_type);
+			while (type_is_ptr(expression_type))
+				expression_type =
+					strip_type_wrappers(get_base_type(expression_type));
+			if (expression_type && expression_type->type == SYM_FN) {
+				type = expression_type->ctype.base_type;
+				if (complete_type)
+					collect_complete_type_dependency(dependency,
+									 type);
+			}
+		}
 		/* Using the result does not require complete argument types. */
 		FOR_EACH_PTR(e->args, item) {
 			collect_expression_dependencies_rec(dependency, item,
