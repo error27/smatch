@@ -1210,6 +1210,7 @@ static void collect_declaration_dependencies(struct sym_dependency *dependency,
 		collect_type_expression_dependencies(dependency, declaration);
 		collect_expression_dependencies(dependency,
 						symbol_initializer(declaration));
+		collect_expression_dependencies(dependency, declaration->cleanup);
 	} END_FOR_EACH_PTR(declaration);
 }
 
@@ -2836,6 +2837,11 @@ static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 	/* GCC ignores "used" on the alias itself. */
 	if (is_alias_target(s))
 		append(out, " __attribute__((used))");
+	if (s->cleanup) {
+		append(out, " __attribute__((__cleanup__(");
+		expr(out, s->cleanup);
+		append(out, ")))");
+	}
 	if (symbol_initializer(s)) {
 		append(out, " = ");
 		expr(out, symbol_initializer(s));
