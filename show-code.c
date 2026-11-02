@@ -2666,7 +2666,10 @@ static void declaration_body(struct code_buffer *out, struct symbol *s)
 		    tag->ident && tag_has_definition(tag) && tag->scope &&
 		    !toplevel(tag->scope))
 			break;
-		tag = tag->ctype.base_type;
+		if (tag->type == SYM_TYPEOF || tag->type == SYM_TYPEOF_UNQUAL)
+			tag = typeof_base_type(tag);
+		else
+			tag = tag->ctype.base_type;
 	}
 	if (tag && !lookup_ptr_list_entry((struct ptr_list *)out->local_tags,
 					    tag)) {
