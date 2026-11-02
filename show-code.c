@@ -143,13 +143,15 @@ struct typeof_type {
 DECLARE_PTR_LIST(typeof_type_list, struct typeof_type);
 static struct typeof_type_list *typeof_types;
 
+/* A type name is built outwards from the declarator, so it grows both ways. */
 struct c_type_name {
+	char *buf;
+	size_t size;
 	char *start;
 	char *end;
 };
 
 #define C_TYPE_NAME_BUFFER_SIZE 16384
-#define C_TYPE_NAME_BUFFER_MIDDLE (C_TYPE_NAME_BUFFER_SIZE / 2)
 
 /* Dependency collection and emission. */
 
@@ -1631,10 +1633,49 @@ static void show_type_dependencies(struct tag_output *output,
 
 /* C rendering. */
 
+static void type_name_init(struct c_type_name *name)
+{
+	name->size = 1024;
+	name->buf = malloc(name->size);
+	if (!name->buf)
+		die("out of memory");
+	name->start = name->end = name->buf + name->size / 2;
+}
+
+static void type_name_free(struct c_type_name *name)
+{
+	free(name->buf);
+}
+
+/* Leave room for "before" bytes, "after" bytes and a NUL terminator. */
+static void type_name_reserve(struct c_type_name *name, size_t before,
+			      size_t after)
+{
+	size_t used = name->end - name->start;
+	size_t size;
+	char *buf;
+
+	if (name->start - name->buf >= before &&
+	    name->buf + name->size - name->end > after)
+		return;
+	size = 2 * (used + before + after + 1);
+	buf = malloc(size);
+	if (!buf)
+		die("out of memory");
+	memcpy(buf + before + (size - used - before - after - 1) / 2,
+	       name->start, used);
+	free(name->buf);
+	name->buf = buf;
+	name->size = size;
+	name->start = buf + before + (size - used - before - after - 1) / 2;
+	name->end = name->start + used;
+}
+
 static void type_name_prepend(struct c_type_name *name, const char *text)
 {
 	size_t len = strlen(text);
 
+	type_name_reserve(name, len, 0);
 	name->start -= len;
 	memcpy(name->start, text, len);
 }
@@ -1643,6 +1684,7 @@ static void type_name_append(struct c_type_name *name, const char *text)
 {
 	size_t len = strlen(text);
 
+	type_name_reserve(name, 0, len);
 	memcpy(name->end, text, len);
 	name->end += len;
 }
@@ -1898,16 +1940,14 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			}
 			type_name_append(name, "(");
 			FOR_EACH_PTR(type->arguments, arg) {
-				char array[C_TYPE_NAME_BUFFER_SIZE];
-				struct c_type_name arg_name = {
-					.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
-					.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
-				};
+				struct c_type_name arg_name;
 
+				type_name_init(&arg_name);
 				show_direct_c_typename(out, arg, &arg_name);
 				*arg_name.end = '\0';
 				type_name_append_format(name, "%s%s", comma ? ", " : "",
 							arg_name.start);
+				type_name_free(&arg_name);
 				comma = true;
 			} END_FOR_EACH_PTR(arg);
 			if (!comma && !type->variadic)
@@ -1980,15 +2020,13 @@ out:
 
 static void show_c_typename(struct code_buffer *out, struct symbol *s)
 {
-	char array[C_TYPE_NAME_BUFFER_SIZE];
-	struct c_type_name name = {
-		.start = array + C_TYPE_NAME_BUFFER_MIDDLE,
-		.end = array + C_TYPE_NAME_BUFFER_MIDDLE,
-	};
+	struct c_type_name name;
 
+	type_name_init(&name);
 	show_direct_c_typename(out, s, &name);
 	*name.end = '\0';
 	append(out, "%s", name.start);
+	type_name_free(&name);
 }
 
 static void show_asm_name(struct code_buffer *out, struct symbol *s)
