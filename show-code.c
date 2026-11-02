@@ -106,7 +106,8 @@ struct sym_dependency_list;
 static void collect_statement_dependencies(struct sym_dependency *dependency,
 					   struct statement *s);
 static struct symbol *collect_statement_result_dependencies(struct sym_dependency *dependency,
-							   struct statement *s);
+							   struct statement *s,
+							   bool complete_type);
 static void collect_type_expression_dependencies(struct sym_dependency *dependency,
 						 struct symbol *type);
 static void show_dependencies(struct code_buffer *out,
@@ -923,12 +924,11 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		break;
 	case EXPR_STATEMENT:
 		collect_statement_dependencies(dependency, e->statement);
-		if (complete_type) {
-			expression_type = collect_statement_result_dependencies(dependency,
-										e->statement);
-			if (!type)
-				type = expression_type;
-		}
+		expression_type = collect_statement_result_dependencies(dependency,
+									e->statement,
+									complete_type);
+		if (!type)
+			type = expression_type;
 		break;
 	case EXPR_CALL:
 		item = e->fn;
@@ -1048,7 +1048,8 @@ static void collect_expression_dependencies(struct sym_dependency *dependency,
 }
 
 static struct symbol *collect_statement_result_dependencies(struct sym_dependency *dependency,
-							   struct statement *s)
+							   struct statement *s,
+							   bool complete_type)
 {
 	struct statement *last;
 
@@ -1057,14 +1058,17 @@ static struct symbol *collect_statement_result_dependencies(struct sym_dependenc
 	switch (s->type) {
 	case STMT_COMPOUND:
 		last = last_ptr_list((struct ptr_list *)s->stmts);
-		return collect_statement_result_dependencies(dependency, last);
+		return collect_statement_result_dependencies(dependency, last,
+							     complete_type);
 	case STMT_EXPRESSION:
 	case STMT_CONTEXT:
 		return collect_expression_dependencies_rec(dependency,
-							   s->expression, true);
+							   s->expression,
+							   complete_type);
 	case STMT_LABEL:
 		return collect_statement_result_dependencies(dependency,
-							     s->label_statement);
+							     s->label_statement,
+							     complete_type);
 	default:
 		return NULL;
 	}
