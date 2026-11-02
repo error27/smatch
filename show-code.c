@@ -1762,6 +1762,7 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 		{ MOD_TLS, "__thread" },
 		{ MOD_UNSIGNED, "unsigned" },
 		{ MOD_UNUSED, "__attribute__((__unused__))" },
+		{ MOD_USED, "__attribute__((__used__))" },
 	};
 	unsigned int i;
 

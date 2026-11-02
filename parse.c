@@ -578,6 +578,7 @@ static struct init_keyword {
 	D("noderef",		&attr_mod_op,		.mods = MOD_NODEREF),
 	D("safe",		&attr_mod_op,		.mods = MOD_SAFE),
 	D("unused",		&attr_mod_op,		.mods = MOD_UNUSED),
+	D("used",		&attr_mod_op,		.mods = MOD_USED),
 	D("externally_visible",	&attr_mod_op,		.mods = MOD_EXT_VISIBLE),
 	D("force",		&attr_force_op),
 	D("bitwise",		&attr_bitwise_op,	.mods = MOD_BITWISE),
