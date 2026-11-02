@@ -52,6 +52,7 @@ struct statement {
 	union {
 		struct /* declaration */ {
 			struct symbol_list *declaration;
+			struct symbol *tag;
 		};
 		struct /* context */ {
 			struct expression *expression;

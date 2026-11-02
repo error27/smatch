@@ -52,6 +52,10 @@ static struct typedef_use **next_typedef_use = &typedef_uses;
 
 static struct token *statement(struct token *token, struct statement **tree);
 static struct token *handle_attributes(struct token *token, struct decl_state *ctx);
+static struct token *parse_external_declaration(struct token *token,
+						struct symbol_list **list,
+						validate_decl_t validate_decl,
+						struct symbol **tag);
 
 typedef struct token *declarator_t(struct token *, struct symbol *, struct decl_state *);
 static declarator_t
@@ -2690,7 +2694,9 @@ static struct token * statement_list(struct token *token, struct statement_list 
 				seen_statement = 0;
 			}
 			stmt = alloc_statement(token->pos, STMT_DECLARATION);
-			token = external_declaration(token, &stmt->declaration, NULL);
+			token = parse_external_declaration(token,
+							   &stmt->declaration,
+							   NULL, &stmt->tag);
 		} else {
 			seen_statement = Wdeclarationafterstatement;
 			token = statement(token, &stmt);
@@ -3079,8 +3085,10 @@ static struct token *toplevel_asm_declaration(struct token *token, struct symbol
 	return token;
 }
 
-struct token *external_declaration(struct token *token, struct symbol_list **list,
-		validate_decl_t validate_decl)
+static struct token *parse_external_declaration(struct token *token,
+						struct symbol_list **list,
+						validate_decl_t validate_decl,
+						struct symbol **tag)
 {
 	struct ident *ident = NULL;
 	struct symbol *decl;
@@ -3107,6 +3115,12 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 	/* Just a type declaration? */
 	if (match_op(token, ';')) {
 		apply_modifiers(token->pos, &ctx);
+		base_type = ctx.ctype.base_type;
+		if (tag && base_type &&
+		    (base_type->type == SYM_STRUCT ||
+		     base_type->type == SYM_UNION ||
+		     base_type->type == SYM_ENUM))
+			*tag = base_type;
 		return token->next;
 	}
 
@@ -3266,4 +3280,10 @@ struct token *external_declaration(struct token *token, struct symbol_list **lis
 		}
 	}
 	return expect(token, ';', "at end of declaration");
+}
+
+struct token *external_declaration(struct token *token, struct symbol_list **list,
+		validate_decl_t validate_decl)
+{
+	return parse_external_declaration(token, list, validate_decl, NULL);
 }
