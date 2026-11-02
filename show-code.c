@@ -2689,27 +2689,35 @@ static struct symbol *declaration_anonymous_tag(struct symbol *s)
 	return type_has_typeof(s) ? NULL : find_anonymous_tag(s);
 }
 
-static bool scope_has_alias_to(struct scope *scope, struct symbol *s)
+static struct ident_list *alias_targets;
+static bool alias_targets_collected;
+
+static void collect_alias_targets(struct scope *scope)
 {
 	struct symbol *alias;
+	struct ident *target;
 
 	if (!scope)
-		return false;
+		return;
 	FOR_EACH_PTR(scope->symbols, alias) {
-		if (alias->alias && alias->alias->type == EXPR_STRING &&
-		    strcmp(alias->alias->string->data, show_ident(s->ident)) == 0)
-			return true;
+		if (!alias->alias || alias->alias->type != EXPR_STRING)
+			continue;
+		target = built_in_ident(alias->alias->string->data);
+		add_ptr_list(&alias_targets, target);
 	} END_FOR_EACH_PTR(alias);
-	return false;
 }
 
 static bool is_alias_target(struct symbol *s)
 {
 	if (!s->ident)
 		return false;
-	/* Non-static aliases are bound in the global scope. */
-	return scope_has_alias_to(file_scope, s) ||
-	       scope_has_alias_to(global_scope, s);
+	if (!alias_targets_collected) {
+		/* Non-static aliases are bound in the global scope. */
+		collect_alias_targets(file_scope);
+		collect_alias_targets(global_scope);
+		alias_targets_collected = true;
+	}
+	return lookup_ptr_list_entry((struct ptr_list *)alias_targets, s->ident);
 }
 
 static void declaration_suffix(struct code_buffer *out, struct symbol *s)
@@ -3729,6 +3737,8 @@ void show_code_reset(void)
 	free_ptr_list(&printed.definitions);
 	free_ptr_list(&printed.declarations);
 	free_dependencies();
+	free_ptr_list(&alias_targets);
+	alias_targets_collected = false;
 }
 
 void show_sym(struct symbol *s, char *buf, size_t len)
