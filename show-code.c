@@ -632,8 +632,27 @@ static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 	show_dependencies(out, &root);
 }
 
+/*
+ * A function or variable declaration is enough unless the type cannot be
+ * spelled without the definition, or sizeof() needs an array bound which
+ * only the initializer gives.
+ */
+static bool symbol_declaration_is_enough(struct symbol *symbol, bool need_size)
+{
+	struct symbol *type = strip_type_wrappers(symbol);
+
+	/* A typeof() declaration is handled as a type. */
+	if (has_type_expression(symbol))
+		return type_can_use_forward_declaration(symbol);
+	if (type->type == SYM_FN)
+		return true;
+	if (find_anonymous_tag(symbol->ctype.base_type))
+		return false;
+	return !need_size || !is_incomplete_array_declaration(symbol);
+}
+
 static void add_symbol_dependency(struct sym_dependency *parent,
-				  struct symbol *symbol)
+				  struct symbol *symbol, bool need_size)
 {
 	struct sym_dependency *dependency;
 	struct symbol *type;
@@ -654,7 +673,7 @@ static void add_symbol_dependency(struct sym_dependency *parent,
 		return;
 
 	dependency = add_dependency(parent, symbol,
-				    type_can_use_forward_declaration(symbol));
+				    symbol_declaration_is_enough(symbol, need_size));
 	if (dependency && !dependency_has_ancestor(dependency))
 		collect_symbol_dependencies(dependency);
 }
@@ -844,7 +863,8 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 							       e->cast_expression,
 							       complete_type);
 		if (e->cast_expression && e->cast_expression->type == EXPR_SYMBOL)
-			add_symbol_dependency(dependency, e->cast_expression->symbol);
+			add_symbol_dependency(dependency, e->cast_expression->symbol,
+					      true);
 		if (expression_type &&
 		    !type_is_ptr(strip_type_wrappers(expression_type)))
 			collect_complete_type_dependency(dependency, expression_type);
@@ -873,7 +893,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		       (item->op == '*' || item->op == '('))
 			item = item->unop;
 		if (item && item->type == EXPR_SYMBOL && item->symbol) {
-			add_symbol_dependency(dependency, item->symbol);
+			add_symbol_dependency(dependency, item->symbol, false);
 			collect_function_type_dependencies(dependency,
 						   item->symbol->ctype.base_type);
 			if (complete_type)
@@ -906,7 +926,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 				add_type_dependency(dependency, e->symbol,
 						type_can_use_forward_declaration(e->symbol));
 		}
-		add_symbol_dependency(dependency, e->symbol);
+		add_symbol_dependency(dependency, e->symbol, false);
 		break;
 	case EXPR_INITIALIZER:
 		FOR_EACH_PTR(e->expr_list, item) {
@@ -1115,6 +1135,7 @@ static void show_dependency(struct code_buffer *out,
 	struct symbol *definition;
 	struct symbol *type;
 	struct symbol copy;
+	bool declare;
 
 	if (!entry || !entry->sym)
 		return;
@@ -1134,9 +1155,14 @@ static void show_dependency(struct code_buffer *out,
 		show_minimal_declaration(out, dependency);
 		return;
 	}
-	if (entry->decl_enough && symbol_was_declared(dependency))
+	/*
+	 * A declaration would be enough, but define what we can.  Only a
+	 * pointer or an extern struct without a definition is declared.
+	 */
+	declare = type_can_use_forward_declaration(dependency);
+	if (declare && symbol_was_declared(dependency))
 		return;
-	if (!entry->decl_enough) {
+	if (!declare) {
 		sym(out, dependency);
 		return;
 	}
