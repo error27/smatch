@@ -37,6 +37,7 @@
 #include "evaluate.h"
 
 #include "target.h"
+#include "bits.h"
 
 /*
  * Secondary symbol list for stuff that needs to be output because it
@@ -527,11 +528,57 @@ static struct symbol * examine_node_type(struct symbol *sym)
 	return sym;
 }
 
+/* A packed enum uses the smallest integer type which holds its values. */
+static int packed_enum_bits(struct symbol *sym, bool is_unsigned)
+{
+	long long min = 0, max = 0;
+	struct symbol *enumerator;
+	struct expression *expr;
+	long long val;
+	int bits;
+
+	FOR_EACH_PTR(sym->symbol_list, enumerator) {
+		expr = enumerator->initializer;
+		if (!expr || expr->type != EXPR_VALUE)
+			continue;
+		val = expr->value;
+		if (expr->ctype && expr->ctype->bit_size > 0)
+			val = bits_extend(val, expr->ctype->bit_size,
+					  !(expr->ctype->ctype.modifiers & MOD_UNSIGNED));
+		if (is_unsigned) {
+			if ((unsigned long long)val > (unsigned long long)max)
+				max = val;
+			continue;
+		}
+		if (val < min)
+			min = val;
+		if (val > max)
+			max = val;
+	} END_FOR_EACH_PTR(enumerator);
+
+	for (bits = 8; bits < 64; bits *= 2) {
+		if (is_unsigned || min >= 0) {
+			if ((unsigned long long)max >> bits == 0)
+				return bits;
+			continue;
+		}
+		if (min >= -(1LL << (bits - 1)) && max < (1LL << (bits - 1)))
+			return bits;
+	}
+	return 64;
+}
+
 static struct symbol *examine_enum_type(struct symbol *sym)
 {
 	struct symbol *base_type = examine_base_type(sym);
 
 	sym->ctype.modifiers |= (base_type->ctype.modifiers & MOD_SIGNEDNESS);
+	if (sym->packed) {
+		sym->bit_size = packed_enum_bits(sym,
+				base_type->ctype.modifiers & MOD_UNSIGNED);
+		sym->ctype.alignment = bits_to_bytes(sym->bit_size);
+		return sym;
+	}
 	sym->bit_size = bits_in_enum;
 	if (base_type->bit_size > sym->bit_size)
 		sym->bit_size = base_type->bit_size;
