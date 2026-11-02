@@ -113,15 +113,25 @@ static void collect_type_expression_dependencies(struct sym_dependency *dependen
 static void show_dependencies(struct code_buffer *out,
 			      struct sym_dependency *parent);
 
+/*
+ * There is one shared node for each symbol and decl_enough value so a
+ * symbol's dependencies are only collected once.  The roots are not shared.
+ */
 struct sym_dependency {
 	struct symbol *sym;
-	struct sym_dependency *parent;
 	struct sym_dependency_list *depends;
 	/* Define it if possible but a declaration is enough. */
 	bool decl_enough;
+	bool root;
 	bool collected;
+	bool shown;
 };
 DECLARE_PTR_LIST(sym_dependency_list, struct sym_dependency);
+
+#define DEPENDENCY_HASH_SIZE 4096
+static struct sym_dependency_list *dependency_hash[DEPENDENCY_HASH_SIZE];
+/* The ancestors of the dependency which is being printed. */
+static struct symbol_list *showing;
 static struct symbol *collect_expression_dependencies_rec(struct sym_dependency *dependency,
 							  struct expression *e,
 							  bool complete_type);
@@ -234,7 +244,7 @@ static void add_type_dependency(struct sym_dependency *dependency,
  */
 static struct symbol *typeof_base_type(struct symbol *type)
 {
-	struct sym_dependency root = { .sym = type };
+	struct sym_dependency root = { .sym = type, .root = true };
 	struct typeof_type *entry;
 
 	FOR_EACH_PTR(typeof_types, entry) {
@@ -346,26 +356,67 @@ static struct sym_dependency *find_dependency(struct sym_dependency *parent,
 	return NULL;
 }
 
+static struct sym_dependency *shared_dependency(struct symbol *symbol,
+						bool decl_enough)
+{
+	struct sym_dependency_list **bucket;
+	struct sym_dependency *dependency;
+
+	bucket = &dependency_hash[((unsigned long)symbol / sizeof(void *) * 2 +
+				   decl_enough) % DEPENDENCY_HASH_SIZE];
+	FOR_EACH_PTR(*bucket, dependency) {
+		if (dependency->sym == symbol &&
+		    dependency->decl_enough == decl_enough)
+			return dependency;
+	} END_FOR_EACH_PTR(dependency);
+	dependency = calloc(1, sizeof(*dependency));
+	if (!dependency)
+		return NULL;
+	dependency->sym = symbol;
+	dependency->decl_enough = decl_enough;
+	add_ptr_list(bucket, dependency);
+	return dependency;
+}
+
+static void free_dependencies(void)
+{
+	struct sym_dependency *dependency;
+	int i;
+
+	for (i = 0; i < DEPENDENCY_HASH_SIZE; i++) {
+		FOR_EACH_PTR(dependency_hash[i], dependency) {
+			free_ptr_list(&dependency->depends);
+			free(dependency);
+		} END_FOR_EACH_PTR(dependency);
+		free_ptr_list(&dependency_hash[i]);
+	}
+}
+
 static struct sym_dependency *add_dependency(struct sym_dependency *parent,
 					     struct symbol *symbol, bool decl_enough)
 {
 	struct sym_dependency *dependency;
+	struct sym_dependency *needed;
 
 	if (!parent || !symbol)
 		return NULL;
 	dependency = find_dependency(parent, symbol);
 	if (dependency) {
-		dependency->decl_enough &= decl_enough;
+		if (dependency->decl_enough && !decl_enough) {
+			needed = shared_dependency(symbol, false);
+			if (!needed)
+				return dependency;
+			FOR_EACH_PTR(parent->depends, dependency) {
+				if (dependency->sym == symbol)
+					REPLACE_CURRENT_PTR(dependency, needed);
+			} END_FOR_EACH_PTR(dependency);
+			return needed;
+		}
 		return dependency;
 	}
-	dependency = malloc(sizeof(*dependency));
+	dependency = shared_dependency(symbol, decl_enough);
 	if (!dependency)
 		return NULL;
-	dependency->sym = symbol;
-	dependency->parent = parent;
-	dependency->depends = NULL;
-	dependency->decl_enough = decl_enough;
-	dependency->collected = false;
 	add_ptr_list(&parent->depends, dependency);
 	return dependency;
 }
@@ -395,13 +446,8 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency);
 
 static bool dependency_has_ancestor(struct sym_dependency *dependency)
 {
-	struct sym_dependency *parent;
-
-	for (parent = dependency->parent; parent; parent = parent->parent) {
-		if (parent->sym == dependency->sym)
-			return true;
-	}
-	return false;
+	return lookup_ptr_list_entry((struct ptr_list *)showing,
+				     dependency->sym);
 }
 
 static struct sym_dependency *add_tag_dependency(struct sym_dependency *parent,
@@ -432,7 +478,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 		typedef_symbol = lookup_symbol(built_in_ident("va_list"),
 					      NS_TYPEDEF);
 		dependency = add_dependency(parent, typedef_symbol, decl_enough);
-		if (dependency && !dependency_has_ancestor(dependency))
+		if (dependency)
 			collect_symbol_dependencies(dependency);
 	}
 	if (type->scope && !toplevel(type->scope)) {
@@ -452,7 +498,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 		if (typedef_symbol && typedef_symbol != type) {
 			dependency = add_dependency(parent, typedef_symbol,
 						    decl_enough);
-			if (dependency && !dependency_has_ancestor(dependency))
+			if (dependency)
 				collect_symbol_dependencies(dependency);
 			return;
 		}
@@ -461,7 +507,7 @@ static void collect_dependencies(struct sym_dependency *parent,
 	case SYM_TYPEOF:
 	case SYM_TYPEOF_UNQUAL:
 		dependency = add_dependency(parent, type, decl_enough);
-		if (dependency && !dependency_has_ancestor(dependency))
+		if (dependency)
 			collect_symbol_dependencies(dependency);
 		return;
 	case SYM_PTR:
@@ -485,8 +531,9 @@ static void collect_dependencies(struct sym_dependency *parent,
 	case SYM_STRUCT:
 	case SYM_UNION:
 		dependency = add_tag_dependency(parent, type, decl_enough);
-		if (!dependency || decl_enough)
+		if (!dependency || decl_enough || dependency->collected)
 			return;
+		dependency->collected = true;
 		struct_type = dependency->sym;
 		if (!struct_type->symbol_list)
 			return;
@@ -519,7 +566,7 @@ static void add_type_dependency(struct sym_dependency *parent,
 		typedef_symbol = lookup_symbol(built_in_ident("va_list"),
 					      NS_TYPEDEF);
 		dependency = add_dependency(parent, typedef_symbol, decl_enough);
-		if (dependency && !dependency_has_ancestor(dependency))
+		if (dependency)
 			collect_symbol_dependencies(dependency);
 	}
 	typedef_symbol = type_typedef_symbol(type);
@@ -530,7 +577,7 @@ static void add_type_dependency(struct sym_dependency *parent,
 	if (!typedef_symbol)
 		return;
 	dependency = add_dependency(parent, typedef_symbol, decl_enough);
-	if (dependency && !dependency_has_ancestor(dependency))
+	if (dependency)
 		collect_symbol_dependencies(dependency);
 }
 
@@ -668,7 +715,7 @@ static bool dependency_is_type(struct symbol *symbol)
 
 static void show_function_forwards(struct code_buffer *out, struct symbol *type)
 {
-	struct sym_dependency root = { .sym = type };
+	struct sym_dependency root = { .sym = type, .root = true };
 
 	collect_function_type_dependencies(&root, type);
 	show_dependencies(out, &root);
@@ -716,7 +763,7 @@ static void add_symbol_dependency(struct sym_dependency *parent,
 
 	dependency = add_dependency(parent, symbol,
 				    symbol_declaration_is_enough(symbol, need_size));
-	if (dependency && !dependency_has_ancestor(dependency))
+	if (dependency)
 		collect_symbol_dependencies(dependency);
 }
 
@@ -1084,8 +1131,7 @@ static void collect_type_expression_dependencies(struct sym_dependency *dependen
 		if (has_type_expression(type)) {
 			type_dependency = add_dependency(dependency, type,
 							 decl_enough);
-			if (type_dependency &&
-			    !dependency_has_ancestor(type_dependency))
+			if (type_dependency)
 				collect_symbol_dependencies(type_dependency);
 		}
 		if (type_is_ptr(type))
@@ -1186,8 +1232,8 @@ static void show_minimal_declaration(struct code_buffer *out,
 	remember_symbol(&printed.declarations, symbol);
 }
 
-static void show_dependency(struct code_buffer *out,
-			    struct sym_dependency *entry)
+static void show_dependency_entry(struct code_buffer *out,
+				  struct sym_dependency *entry)
 {
 	struct tag_output type_output = { .out = out };
 	struct symbol *dependency;
@@ -1196,12 +1242,6 @@ static void show_dependency(struct code_buffer *out,
 	struct symbol copy;
 	bool declare;
 
-	if (!entry || !entry->sym)
-		return;
-	if (dependency_has_ancestor(entry)) {
-		show_dependency_cycle(out, entry);
-		return;
-	}
 	show_dependencies(out, entry);
 	dependency = entry->sym;
 	if (has_type_expression(dependency))
@@ -1252,21 +1292,49 @@ static void show_dependency(struct code_buffer *out,
 	remember_symbol(&printed.declarations, dependency);
 }
 
+static void show_dependency(struct code_buffer *out,
+			    struct sym_dependency *entry)
+{
+	if (!entry || !entry->sym)
+		return;
+	if (dependency_has_ancestor(entry)) {
+		show_dependency_cycle(out, entry);
+		return;
+	}
+	/* A shared node only needs to be printed once. */
+	if (entry->shown)
+		return;
+	show_dependency_entry(out, entry);
+	entry->shown = true;
+}
+
 static void show_dependencies(struct code_buffer *out,
 			      struct sym_dependency *parent)
 {
 	struct sym_dependency *dependency;
+	struct symbol_list *saved = NULL;
 
+	/* Each root starts a new chain of ancestors. */
+	if (parent->root) {
+		saved = showing;
+		showing = NULL;
+	}
+	add_symbol(&showing, parent->sym);
 	FOR_EACH_PTR(parent->depends, dependency) {
 		show_dependency(out, dependency);
 	} END_FOR_EACH_PTR(dependency);
+	delete_ptr_list_last((struct ptr_list **)&showing);
+	if (parent->root) {
+		free_ptr_list(&showing);
+		showing = saved;
+	}
 }
 
 static void show_initializer_dependencies_rec(struct code_buffer *out,
 					      struct symbol *symbol,
 					      struct symbol_list **active)
 {
-	struct sym_dependency root = { .sym = symbol };
+	struct sym_dependency root = { .sym = symbol, .root = true };
 
 	(void)active;
 	collect_symbol_dependencies(&root);
@@ -1371,8 +1439,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	struct symbol *member;
 	struct statement *stmt;
 
-	if (!dependency || dependency->collected ||
-	    dependency_has_ancestor(dependency))
+	if (!dependency || dependency->collected)
 		return;
 	dependency->collected = true;
 	symbol = dependency->sym;
@@ -1410,7 +1477,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	if (type->type == SYM_FN) {
 		collect_function_type_dependencies(dependency, type);
 		collect_type_expression_dependencies(dependency, symbol);
-		if (dependency->parent && minimal_declaration(dependency))
+		if (!dependency->root && minimal_declaration(dependency))
 			return;
 		stmt = type->stmt ?: type->inline_stmt;
 		collect_statement_dependencies(dependency, stmt);
@@ -1419,7 +1486,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 	add_type_dependency(dependency, type,
 			    type_can_use_forward_declaration(symbol));
 	collect_type_expression_dependencies(dependency, symbol);
-	if (dependency->parent && minimal_declaration(dependency))
+	if (!dependency->root && minimal_declaration(dependency))
 		return;
 	collect_expression_dependencies(dependency, symbol_initializer(symbol));
 }
@@ -1427,7 +1494,7 @@ static void collect_symbol_dependencies(struct sym_dependency *dependency)
 static void show_function_dependencies(struct code_buffer *out,
 				       struct symbol *function)
 {
-	struct sym_dependency root = { .sym = function };
+	struct sym_dependency root = { .sym = function, .root = true };
 
 	collect_symbol_dependencies(&root);
 	show_dependencies(out, &root);
@@ -1444,7 +1511,7 @@ static void show_type_members(struct tag_output *output, struct symbol *type)
 		return;
 	add_ptr_list(&output->dependency_types, type);
 	FOR_EACH_PTR(type->symbol_list, member) {
-		struct sym_dependency root = { .sym = member };
+		struct sym_dependency root = { .sym = member, .root = true };
 
 		collect_type_expression_dependencies(&root, member);
 		show_dependencies(output->out, &root);
@@ -3629,6 +3696,7 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 		return;
 	buf[0] = '\0';
 	printed = (struct output_dependencies) { };
+	free_dependencies();
 
 	FOR_EACH_PTR(symbols, symbol) {
 		show_type_definition(&output, symbol);
@@ -3660,6 +3728,7 @@ void show_code_reset(void)
 {
 	free_ptr_list(&printed.definitions);
 	free_ptr_list(&printed.declarations);
+	free_dependencies();
 }
 
 void show_sym(struct symbol *s, char *buf, size_t len)
