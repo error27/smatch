@@ -16,6 +16,8 @@ struct code_buffer {
 	size_t len, used;
 	unsigned int indent;
 	bool line_start;
+	/* The buffer is malloc()ed and can be reallocated when it is full. */
+	bool grow;
 	struct symbol_list *local_tags;
 	struct symbol_list *printing;
 };
@@ -46,6 +48,25 @@ static void append(struct code_buffer *out, const char *fmt, ...)
 		va_start(ap, fmt);
 		vsnprintf(buffer, ret + 1, fmt, ap);
 		va_end(ap);
+	}
+
+	if (out->grow) {
+		size_t needed = out->used + ret + 1;
+
+		/* Leave room for the indent of every line. */
+		for (i = 0; i < ret; i++) {
+			if (buffer[i] == '\n')
+				needed += out->indent;
+		}
+		needed += out->indent;
+		if (needed > out->len) {
+			char *buf = realloc(out->buf, needed * 2);
+
+			if (!buf)
+				die("out of memory");
+			out->buf = buf;
+			out->len = needed * 2;
+		}
 	}
 
 	for (i = 0; i < ret; i++) {
@@ -1696,9 +1717,11 @@ static void type_name_prepend_format(struct c_type_name *name,
 	char *buffer;
 
 	va_start(args, format);
-	buffer = xvasprintf(format, args);
+	if (vasprintf(&buffer, format, args) < 0)
+		die("out of memory");
 	va_end(args);
 	type_name_prepend(name, buffer);
+	free(buffer);
 }
 
 static void type_name_append_format(struct c_type_name *name,
@@ -1708,9 +1731,11 @@ static void type_name_append_format(struct c_type_name *name,
 	char *buffer;
 
 	va_start(args, format);
-	buffer = xvasprintf(format, args);
+	if (vasprintf(&buffer, format, args) < 0)
+		die("out of memory");
 	va_end(args);
 	type_name_append(name, buffer);
+	free(buffer);
 }
 
 static const char *show_gcc_modifiers(unsigned long modifiers)
@@ -1873,15 +1898,17 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			goto out;
 		}
 		if (is_typeof(type)) {
-			char expression[C_TYPE_NAME_BUFFER_SIZE];
 			struct code_buffer expression_out = {
-				.buf = expression,
-				.len = sizeof(expression),
+				.len = C_TYPE_NAME_BUFFER_SIZE,
 				.line_start = true,
+				.grow = true,
 			};
 			const char *modifier_string;
 
-			expression[0] = '\0';
+			expression_out.buf = malloc(expression_out.len);
+			if (!expression_out.buf)
+				die("out of memory");
+			expression_out.buf[0] = '\0';
 			show_typeof_expression(&expression_out, type);
 			/* typeof() already carries the integer specifier. */
 			modifiers &= ~MOD_SPECIFIER;
@@ -1890,7 +1917,9 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			type_name_prepend_format(name, "%s(%s)",
 				type->typeof_is_unqual ||
 				type->type == SYM_TYPEOF_UNQUAL ?
-				"__typeof_unqual__" : "typeof", expression);
+				"__typeof_unqual__" : "typeof",
+				expression_out.buf);
+			free(expression_out.buf);
 			modifier_string = show_gcc_modifiers(modifiers);
 			type_name_prepend(name, modifier_string);
 			break;
