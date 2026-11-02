@@ -588,6 +588,22 @@ struct output_dependencies {
 
 static struct output_dependencies printed;
 
+/*
+ * Named symbols are the same if they have the same name and namespace,
+ * so a redeclaration is not printed twice.  Function-local tags and
+ * anonymous symbols are looked up by pointer.
+ */
+struct printed_symbol {
+	void *key;
+	enum namespace namespace;
+	bool defined;
+	bool declared;
+};
+DECLARE_PTR_LIST(printed_symbol_list, struct printed_symbol);
+
+#define PRINTED_HASH_SIZE 4096
+static struct printed_symbol_list *printed_hash[PRINTED_HASH_SIZE];
+
 struct tag_output {
 	struct code_buffer *out;
 	struct symbol_list *dependency_types;
@@ -607,67 +623,87 @@ static bool is_local_tag(struct symbol *type)
 	return is_tag_type(type) && type->scope && !toplevel(type->scope);
 }
 
-static bool tag_was_output(struct symbol_list *tags, struct symbol *type)
+static struct printed_symbol *printed_symbol(struct symbol *symbol)
 {
-	struct symbol *tag;
+	struct printed_symbol_list **bucket;
+	struct printed_symbol *entry;
+	enum namespace namespace = NS_NONE;
+	void *key = symbol;
 
-	FOR_EACH_PTR(tags, tag) {
-		if (tag == type)
-			return true;
-		if (is_local_tag(tag) || is_local_tag(type))
-			continue;
-		if (tag->type == type->type && tag->ident && type->ident &&
-		    tag->ident == type->ident)
-			return true;
-	} END_FOR_EACH_PTR(tag);
-	return false;
-}
-
-static bool tag_was_defined(struct symbol *type)
-{
-	return tag_was_output(printed.definitions, type);
-}
-
-static bool tag_was_declared(struct symbol *type)
-{
-	return tag_was_defined(type) ||
-	       tag_was_output(printed.declarations, type);
-}
-
-static bool symbol_was_output(struct symbol_list *symbols,
-			      struct symbol *symbol)
-{
-	struct symbol *entry;
-
-	FOR_EACH_PTR(symbols, entry) {
-		if (entry == symbol)
-			return true;
-		if (is_local_tag(entry) || is_local_tag(symbol))
-			continue;
-		if (entry->namespace == symbol->namespace &&
-		    entry->ident && symbol->ident &&
-		    entry->ident == symbol->ident)
-			return true;
+	if (symbol->ident && !is_local_tag(symbol)) {
+		key = symbol->ident;
+		namespace = symbol->namespace;
+	}
+	bucket = &printed_hash[((unsigned long)key / sizeof(void *) +
+				namespace) % PRINTED_HASH_SIZE];
+	FOR_EACH_PTR(*bucket, entry) {
+		if (entry->key == key && entry->namespace == namespace)
+			return entry;
 	} END_FOR_EACH_PTR(entry);
-	return false;
+	entry = calloc(1, sizeof(*entry));
+	if (!entry)
+		die("out of memory");
+	entry->key = key;
+	entry->namespace = namespace;
+	add_ptr_list(bucket, entry);
+	return entry;
 }
 
-static void remember_symbol(struct symbol_list **symbols,
-			    struct symbol *symbol)
+static void free_printed(void)
 {
-	if (!symbol_was_output(*symbols, symbol))
-		add_symbol(symbols, symbol);
+	struct printed_symbol *entry;
+	int i;
+
+	free_ptr_list(&printed.definitions);
+	free_ptr_list(&printed.declarations);
+	for (i = 0; i < PRINTED_HASH_SIZE; i++) {
+		FOR_EACH_PTR(printed_hash[i], entry) {
+			free(entry);
+		} END_FOR_EACH_PTR(entry);
+		free_ptr_list(&printed_hash[i]);
+	}
+}
+
+static void remember_definition(struct symbol *symbol)
+{
+	struct printed_symbol *entry = printed_symbol(symbol);
+
+	if (entry->defined)
+		return;
+	entry->defined = true;
+	add_symbol(&printed.definitions, symbol);
+}
+
+static void remember_declaration(struct symbol *symbol)
+{
+	struct printed_symbol *entry = printed_symbol(symbol);
+
+	if (entry->declared)
+		return;
+	entry->declared = true;
+	add_symbol(&printed.declarations, symbol);
 }
 
 static bool symbol_was_defined(struct symbol *symbol)
 {
-	return symbol_was_output(printed.definitions, symbol);
+	return printed_symbol(symbol)->defined;
 }
 
 static bool symbol_was_declared(struct symbol *symbol)
 {
-	return symbol_was_defined(symbol) ||
-	       symbol_was_output(printed.declarations, symbol);
+	struct printed_symbol *entry = printed_symbol(symbol);
+
+	return entry->defined || entry->declared;
+}
+
+static bool tag_was_defined(struct symbol *type)
+{
+	return symbol_was_defined(type);
+}
+
+static bool tag_was_declared(struct symbol *type)
+{
+	return symbol_was_declared(type);
 }
 
 static void show_type_declaration(struct tag_output *output,
@@ -681,7 +717,7 @@ static void show_type_declaration(struct tag_output *output,
 	    tag_was_declared(symbol))
 		return;
 	append(output->out, "%s %s;\n", tag_type_name(symbol), show_ident(symbol->ident));
-	remember_symbol(&printed.declarations, symbol);
+	remember_declaration(symbol);
 }
 
 static void show_required_type(struct tag_output *output,
@@ -1229,7 +1265,7 @@ static void show_minimal_declaration(struct code_buffer *out,
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
 	append(out, ";\n");
-	remember_symbol(&printed.declarations, symbol);
+	remember_declaration(symbol);
 }
 
 static void show_dependency_entry(struct code_buffer *out,
@@ -1289,7 +1325,7 @@ static void show_dependency_entry(struct code_buffer *out,
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
 	append(out, ";\n");
-	remember_symbol(&printed.declarations, dependency);
+	remember_declaration(dependency);
 }
 
 static void show_dependency(struct code_buffer *out,
@@ -1556,7 +1592,7 @@ static void show_type_dependencies(struct tag_output *output,
 		}
 		if (tag_was_defined(typedef_symbol))
 			return;
-		remember_symbol(&printed.definitions, typedef_symbol);
+		remember_definition(typedef_symbol);
 		show_type_dependencies(output, typedef_symbol->ctype.base_type,
 				       true);
 		show_typedef_definition(output->out, typedef_symbol);
@@ -3262,7 +3298,7 @@ static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
 	append(out, ";\n");
-	remember_symbol(&printed.declarations, s);
+	remember_declaration(s);
 }
 
 static void show_printing_declarations(struct code_buffer *out)
@@ -3341,9 +3377,9 @@ static void sym(struct code_buffer *out, struct symbol *s)
 	/* An initializer completes an array with an omitted bound. */
 	if ((s->ctype.modifiers & MOD_EXTERN) ||
 	    (is_incomplete_array_declaration(s) && !symbol_initializer(s)))
-		remember_symbol(&printed.declarations, s);
+		remember_declaration(s);
 	else
-		remember_symbol(&printed.definitions, s);
+		remember_definition(s);
 out:
 	pop_printing_symbol(out, s);
 }
@@ -3510,11 +3546,11 @@ static void show_function(struct code_buffer *out, struct symbol *s)
 		}
 		append(out, "\n");
 		function_body(out, body);
-		remember_symbol(&printed.definitions, s);
+		remember_definition(s);
 	} else {
 		show_c_typename(out, s);
 		append(out, ";\n");
-		remember_symbol(&printed.declarations, s);
+		remember_declaration(s);
 	}
 }
 
@@ -3589,7 +3625,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 			append(out, " __attribute__((__transparent_union__))");
 	}
 	if (type->ident)
-		remember_symbol(&printed.definitions, type);
+		remember_definition(type);
 }
 
 static void show_enum_definition(struct tag_output *output, struct symbol *type)
@@ -3620,7 +3656,7 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 	else
 		append(out, "}");
 	if (type->ident)
-		remember_symbol(&printed.definitions, type);
+		remember_definition(type);
 }
 
 static bool show_tag_definition(struct tag_output *output, struct symbol *type)
@@ -3633,7 +3669,7 @@ static bool show_tag_definition(struct tag_output *output, struct symbol *type)
 		    tag_was_defined(typedef_symbol))
 			return false;
 		if (typedef_symbol)
-			remember_symbol(&printed.definitions, typedef_symbol);
+			remember_definition(typedef_symbol);
 	}
 	if (type->type == SYM_ENUM)
 		show_enum_definition(output, type);
@@ -3687,7 +3723,7 @@ static void show_type_definition(struct tag_output *output,
 		return;
 	if (tag_was_defined(symbol))
 		return;
-	remember_symbol(&printed.definitions, symbol);
+	remember_definition(symbol);
 	show_type_dependencies(output, symbol->ctype.base_type,
 			       true);
 	show_typedef_definition(output->out, symbol);
@@ -3703,7 +3739,7 @@ void show_all_type_definitions(struct symbol_list *symbols, char *buf,
 	if (!len)
 		return;
 	buf[0] = '\0';
-	printed = (struct output_dependencies) { };
+	free_printed();
 	free_dependencies();
 
 	FOR_EACH_PTR(symbols, symbol) {
@@ -3734,8 +3770,7 @@ void show_stmt(struct statement *s, char *buf, size_t len)
 /* Forget what was printed so the next output file starts empty. */
 void show_code_reset(void)
 {
-	free_ptr_list(&printed.definitions);
-	free_ptr_list(&printed.declarations);
+	free_printed();
 	free_dependencies();
 	free_ptr_list(&alias_targets);
 	alias_targets_collected = false;
