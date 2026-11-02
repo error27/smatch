@@ -21,7 +21,6 @@ struct code_buffer {
 };
 
 static struct expression *rendering_expression;
-static struct symbol_list *used_local_tags;
 
 static void append(struct code_buffer *out, const char *fmt, ...)
 {
@@ -438,9 +437,6 @@ static void collect_dependencies(struct sym_dependency *parent,
 	}
 	if (type->scope && !toplevel(type->scope)) {
 		if (is_tag_type(type)) {
-			if (!lookup_ptr_list_entry((struct ptr_list *)used_local_tags,
-						   type))
-				add_symbol(&used_local_tags, type);
 			FOR_EACH_PTR(type->symbol_list, member) {
 				collect_dependencies(parent, member,
 						     type_can_use_forward_declaration(member));
@@ -1311,6 +1307,8 @@ static void collect_statement_dependencies(struct sym_dependency *dependency,
 		} END_FOR_EACH_PTR(child);
 		break;
 	case STMT_DECLARATION:
+		if (s->tag)
+			collect_dependencies(dependency, s->tag, false);
 		collect_declaration_dependencies(dependency, s->declaration);
 		break;
 	case STMT_EXPRESSION:
@@ -2664,6 +2662,17 @@ static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 	}
 }
 
+static void show_local_tag(struct code_buffer *out, struct symbol *tag)
+{
+	struct tag_output output = { .out = out };
+
+	if (lookup_ptr_list_entry((struct ptr_list *)out->local_tags, tag))
+		return;
+	if (show_tag_definition(&output, tag))
+		append(out, ";\n");
+	add_symbol(&out->local_tags, tag);
+}
+
 static void declaration_body(struct code_buffer *out, struct symbol *s)
 {
 	struct symbol *anonymous_tag = declaration_anonymous_tag(s);
@@ -2679,14 +2688,8 @@ static void declaration_body(struct code_buffer *out, struct symbol *s)
 		else
 			tag = tag->ctype.base_type;
 	}
-	if (tag && !lookup_ptr_list_entry((struct ptr_list *)out->local_tags,
-					    tag)) {
-		struct tag_output output = { .out = out };
-
-		if (show_tag_definition(&output, tag))
-			append(out, ";\n");
-		add_symbol(&out->local_tags, tag);
-	}
+	if (tag)
+		show_local_tag(out, tag);
 
 	if (anonymous_tag)
 		show_anonymous_c_typename(out, s, anonymous_tag);
@@ -2694,47 +2697,6 @@ static void declaration_body(struct code_buffer *out, struct symbol *s)
 		show_c_typename(out, s);
 
 	declaration_suffix(out, s);
-}
-
-static bool position_before(struct position a, struct position b)
-{
-	if (a.stream != b.stream)
-		return false;
-	return a.line < b.line || (a.line == b.line && a.pos < b.pos);
-}
-
-/*
- * Sparse does not keep a tag-only declaration like "struct foo { ... };"
- * so print each local tag defined in "block" before the statement "s".
- */
-static void show_local_tags_before(struct code_buffer *out,
-				   struct statement *block,
-				   struct statement *s)
-{
-	struct tag_output output = { .out = out };
-	struct symbol *first;
-	struct symbol *tag;
-
-	while (1) {
-		first = NULL;
-		FOR_EACH_PTR(used_local_tags, tag) {
-			if (!tag->ident || !tag_has_definition(tag) ||
-			    lookup_ptr_list_entry((struct ptr_list *)out->local_tags,
-						  tag) ||
-			    !position_before(block->pos, tag->pos) ||
-			    !position_before(tag->pos, s->pos))
-				continue;
-			if (!first || position_before(tag->pos, first->pos))
-				first = tag;
-		} END_FOR_EACH_PTR(tag);
-		if (!first)
-			return;
-		if (show_tag_definition(&output, first))
-			append(out, ";\n");
-		if (!lookup_ptr_list_entry((struct ptr_list *)out->local_tags,
-					   first))
-			add_symbol(&out->local_tags, first);
-	}
 }
 
 static void declaration(struct code_buffer *out, struct symbol *s)
@@ -2928,13 +2890,14 @@ static void stmt(struct code_buffer *out, struct statement *s)
 		out->indent++;
 		show_local_labels(out, s->local_labels);
 		FOR_EACH_PTR(s->stmts, child) {
-			show_local_tags_before(out, s, child);
 			stmt(out, child);
 		} END_FOR_EACH_PTR(child);
 		out->indent--;
 		append(out, "}\n");
 		break;
 	case STMT_DECLARATION:
+		if (s->tag && tag_has_definition(s->tag))
+			show_local_tag(out, s->tag);
 		declarations(out, s->declaration);
 		break;
 	case STMT_EXPRESSION:
@@ -3151,7 +3114,6 @@ static void function_body(struct code_buffer *out, struct statement *s)
 			append(out, "\n");
 			initial_declarations = false;
 		}
-		show_local_tags_before(out, s, child);
 		stmt(out, child);
 	} END_FOR_EACH_PTR(child);
 	out->indent--;
@@ -3698,7 +3660,6 @@ void show_code_reset(void)
 {
 	free_ptr_list(&printed.definitions);
 	free_ptr_list(&printed.declarations);
-	free_ptr_list(&used_local_tags);
 }
 
 void show_sym(struct symbol *s, char *buf, size_t len)
