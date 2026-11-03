@@ -163,11 +163,13 @@ int main(int argc, char **argv)
 	struct string_list *files = NULL;
 	struct symbol_list *list;
 	struct symbol *function;
+	struct symbol *root;
 	bool whole_file;
 	bool all_funcs;
 	bool list_funcs;
 	bool last_func;
 	bool minimal;
+	bool want_main;
 	char *file;
 	char *root_name;
 	char *out_dir;
@@ -178,13 +180,14 @@ int main(int argc, char **argv)
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [--out-dir=DIR] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [--main] [--out-dir=DIR] [sparse options] file.c");
 	root_name = NULL;
 	out_dir = NULL;
 	all_funcs = false;
 	list_funcs = false;
 	last_func = false;
 	minimal = false;
+	want_main = false;
 	while (argc > 1) {
 		if (strcmp(argv[1], "--all-funcs") == 0) {
 			all_funcs = true;
@@ -194,6 +197,8 @@ int main(int argc, char **argv)
 			last_func = true;
 		} else if (strcmp(argv[1], "--minimal") == 0) {
 			minimal = true;
+		} else if (strcmp(argv[1], "--main") == 0) {
+			want_main = true;
 		} else if (strncmp(argv[1], "--func=", 7) == 0) {
 			if (argv[1][7] == '\0')
 				die("function name is empty");
@@ -214,6 +219,8 @@ int main(int argc, char **argv)
 	whole_file = root_name == NULL && !last_func && !all_funcs && !list_funcs;
 	if (out_dir && (all_funcs || list_funcs))
 		die("--out-dir cannot be used with --all-funcs or --list-funcs");
+	if (want_main && !root_name)
+		die("--main needs --func=FUNCTION");
 	if (minimal && root_name && strchr(root_name, ','))
 		die("--minimal takes only one function");
 	if (minimal && whole_file)
@@ -286,6 +293,7 @@ int main(int argc, char **argv)
 			show_code_minimal_root = function;
 		fprintf(out, "typedef _Bool bool;\n\n");
 		show_function(out, function, buf);
+		root = function;
 		while (next_name) {
 			name = next_name;
 			next_name = split_name(name);
@@ -293,6 +301,10 @@ int main(int argc, char **argv)
 			if (!function)
 				die("function %s was not found", name);
 			show_function(out, function, buf);
+		}
+		if (want_main) {
+			show_main(root, buf, EXTRACT_BUFFER_SIZE);
+			fprintf(out, "%s\n", buf);
 		}
 	}
 	fclose(out);

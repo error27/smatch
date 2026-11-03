@@ -3994,6 +3994,102 @@ void show_code_reset(void)
 	alias_targets_collected = false;
 }
 
+/*
+ * The object which main() passes for a parameter, or NULL if passing 0 is
+ * enough.  A pointer gets the address of a zeroed object of the type that it
+ * points to.  A struct or union is passed by value.
+ */
+static struct symbol *main_argument_type(struct symbol *arg, bool *address)
+{
+	struct symbol *type = strip_type_wrappers(arg);
+	struct symbol *base;
+
+	*address = false;
+	if (!type)
+		return NULL;
+	if (is_struct_or_union(type))
+		return show_base_type(arg);
+	/* An array parameter gets an array, which decays to the pointer. */
+	if (type_is_array(type) && type->array_size)
+		return type;
+	if (!type_is_ptr(type) && !type_is_array(type))
+		return NULL;
+	base = show_base_type(type);
+	type = strip_type_wrappers(base);
+	if (!type || type->type == SYM_FN)
+		return NULL;
+	*address = true;
+	return base;
+}
+
+/* An incomplete type or void cannot be defined, so main() uses a buffer. */
+static bool main_type_is_complete(struct symbol *type)
+{
+	type = strip_type_wrappers(type);
+	if (!type || is_void_type(type))
+		return false;
+	if (type->definition && is_tag_type(type->definition))
+		type = type->definition;
+	if (is_tag_type(type))
+		return tag_has_definition(type);
+	return true;
+}
+
+static void show_main_function(struct code_buffer *out, struct symbol *function)
+{
+	struct sym_dependency root = { .sym = function, .root = true };
+	struct symbol *fn = strip_type_wrappers(function);
+	struct symbol *arg, *type;
+	bool address;
+	int i;
+
+	FOR_EACH_PTR(fn->arguments, arg) {
+		type = main_argument_type(arg, &address);
+		if (type && main_type_is_complete(type))
+			collect_sizeof_type_dependency(&root, type);
+	} END_FOR_EACH_PTR(arg);
+	show_dependencies(out, &root);
+
+	append(out, "int main(void)\n{\n");
+	i = 0;
+	FOR_EACH_PTR(fn->arguments, arg) {
+		type = main_argument_type(arg, &address);
+		if (type && main_type_is_complete(type)) {
+			append(out, "\tstatic __typeof__(");
+			show_c_typename(out, type);
+			append(out, ") __extract_arg%d;\n", i);
+		} else if (type) {
+			append(out, "\tstatic char __extract_arg%d[4096] __attribute__((aligned(64)));\n", i);
+		}
+		i++;
+	} END_FOR_EACH_PTR(arg);
+	append(out, "\n\t%s(", show_ident(function->ident));
+	i = 0;
+	FOR_EACH_PTR(fn->arguments, arg) {
+		type = main_argument_type(arg, &address);
+		if (i)
+			append(out, ", ");
+		if (!type)
+			append(out, "0");
+		else if (!main_type_is_complete(type))
+			append(out, "(void *)__extract_arg%d", i);
+		else
+			append(out, "%s__extract_arg%d", address ? "&" : "", i);
+		i++;
+	} END_FOR_EACH_PTR(arg);
+	append(out, ");\n\treturn 0;\n}\n");
+}
+
+void show_main(struct symbol *function, char *buf, size_t len)
+{
+	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
+
+	if (!len)
+		return;
+	buf[0] = '\0';
+	show_main_function(&out, function);
+}
+
 void show_sym(struct symbol *s, char *buf, size_t len)
 {
 	struct code_buffer out = { .buf = buf, .len = len, .line_start = true };
