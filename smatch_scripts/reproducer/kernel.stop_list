@@ -1,0 +1,27 @@
+# reproducer.sh does not extract functions which match these.  They are
+# stubbed out instead.  Each line is "file REGEX" to match the source file
+# which defines the function or "func REGEX" to match its name.
+
+file ^arch/
+file ^init/
+file ^kernel/irq/
+file ^kernel/locking/
+file ^kernel/printk/
+file ^kernel/rcu/
+file ^kernel/sched/
+file ^kernel/time/
+file ^kernel/trace/
+file ^lib/
+file ^mm/
+file ^security/
+
+func ^__asan_
+func ^dump_stack
+func ^kasan_|^__kasan_
+func ^kcsan_|^__kcsan_
+func ^kmsan_|^__kmsan_
+func ^__might_
+func ^_*printk
+func ^__sanitizer_
+func ^__ubsan_
+func ^__warn
