@@ -122,6 +122,7 @@ struct decl_state {
 	unsigned char autotype;
 	unsigned char forced;
 	unsigned char packed;
+	unsigned char aligned;
 };
 
 struct pseudo;
@@ -155,6 +156,7 @@ struct symbol {
 	enum type type:8;
 	enum namespace namespace:9;
 	unsigned char used:1, attr:2, enum_member:1, bound:1, parsed:1;
+	unsigned char aligned_attr:1;	// aligned() on the declaration
 	struct position pos;		/* Where this symbol was declared */
 	struct position endpos;		/* Where this symbol ends*/
 	struct ident *ident;		/* What identifier this symbol is associated with */
@@ -380,6 +382,7 @@ extern void bind_symbol(struct symbol *, struct ident *, enum namespace);
 extern void bind_symbol_with_scope(struct symbol *, struct ident *, enum namespace, struct scope *);
 
 extern struct symbol *examine_symbol_type(struct symbol *);
+extern unsigned long member_alignment(struct symbol *member, bool packed);
 extern struct symbol *examine_pointer_target(struct symbol *);
 extern const char *show_as(struct ident *as);
 extern const char *show_typename(struct symbol *sym);

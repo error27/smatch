@@ -1268,8 +1268,10 @@ static struct token *attribute_aligned(struct token *token, struct symbol *attr,
 	if (alignment & (alignment-1)) {
 		warning(token->pos, "I don't like non-power-of-2 alignments");
 		return token;
-	} else if (alignment > ctx->ctype.alignment)
+	} else if (alignment > ctx->ctype.alignment) {
 		ctx->ctype.alignment = alignment;
+		ctx->aligned = 1;
+	}
 	return token;
 }
 
@@ -1632,8 +1634,10 @@ static struct token *alignas_specifier(struct token *token, struct symbol *sym, 
 		warning(token->pos, "non-power-of-2 alignment");
 		return token;
 	}
-	if (alignment > ctx->ctype.alignment)
+	if (alignment > ctx->ctype.alignment) {
 		ctx->ctype.alignment = alignment;
+		ctx->aligned = 1;
+	}
 	return token;
 }
 
@@ -2121,11 +2125,13 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 {
 	struct decl_state ctx = {.prefer_abstract = 0};
 	struct ctype saved;
+	unsigned char saved_aligned;
 	unsigned long mod;
 
 	token = declaration_specifiers(token, &ctx);
 	mod = decl_modifiers(&ctx);
 	saved = ctx.ctype;
+	saved_aligned = ctx.aligned;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 		ctx.cleanup = NULL;
@@ -2140,6 +2146,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
+		decl->aligned_attr = ctx.aligned;
 		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		add_symbol(list, decl);
@@ -2147,6 +2154,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 			break;
 		token = token->next;
 		ctx.ctype = saved;
+		ctx.aligned = saved_aligned;
 	}
 	return token;
 }

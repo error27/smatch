@@ -127,6 +127,17 @@ static int bitfield_base_size(struct symbol *sym)
 }
 
 /*
+ * GCC ignores the alignment of a member's type in a packed struct, but
+ * not an aligned() attribute on the member.
+ */
+unsigned long member_alignment(struct symbol *member, bool packed)
+{
+	if (packed && !member->aligned_attr)
+		return 1;
+	return member->ctype.alignment;
+}
+
+/*
  * Structures are a bit more interesting to lay out
  */
 static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
@@ -152,7 +163,10 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 
 	/* #pragma pack places bitfields the same way as packed does */
 	packed = info->packed || (info->pack_align && is_bitfield_type(sym));
-	alignment = packed ? 1 : sym->ctype.alignment;
+	if (is_bitfield_type(sym))
+		alignment = packed ? 1 : sym->ctype.alignment;
+	else
+		alignment = member_alignment(sym, info->packed);
 	if (info->pack_align && alignment > info->pack_align)
 		alignment = info->pack_align;
 	align_bit_mask = bytes_to_bits(alignment) - 1;
@@ -243,10 +257,13 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		if (!member->ident)
 			examine_anonymous_member(member);
 
-		member_align = member->ctype.alignment;
+		if (is_bitfield_type(member))
+			member_align = sym->packed ? 1 : member->ctype.alignment;
+		else
+			member_align = member_alignment(member, sym->packed);
 		if (info.pack_align && member_align > info.pack_align)
 			member_align = info.pack_align;
-		if (member_align > info.max_align && !sym->packed) {
+		if (member_align > info.max_align) {
 			// Unnamed bitfields do not affect alignment.
 			if (member->ident || !is_bitfield_type(member))
 				info.max_align = member_align;
@@ -260,6 +277,9 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 	} END_FOR_EACH_PTR(member);
 
 	if (!sym->ctype.alignment)
+		sym->ctype.alignment = info.max_align;
+	/* An aligned() member raises the alignment of a packed struct. */
+	if (sym->packed && info.max_align > sym->ctype.alignment)
 		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
 	if (info.align_size) {
