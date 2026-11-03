@@ -3719,6 +3719,22 @@ static void show_tag_attributes(struct code_buffer *out, struct symbol *type)
 		append(out, " __attribute__((aligned(%lu)))", alignment);
 }
 
+/* "typedef struct {...} name __aligned(8);" aligns only the typedef. */
+static void show_typedef_tag_name(struct code_buffer *out, struct symbol *type)
+{
+	struct symbol *typedef_symbol;
+
+	append(out, " %s", show_ident(type->ident));
+	typedef_symbol = lookup_symbol(type->ident, NS_TYPEDEF);
+	if (!typedef_symbol || typedef_symbol == type ||
+	    typedef_symbol->ctype.base_type != type)
+		return;
+	if (typedef_symbol->ctype.alignment > 1 &&
+	    typedef_symbol->ctype.alignment != type->ctype.alignment)
+		append(out, " __attribute__((aligned(%lu)))",
+		       typedef_symbol->ctype.alignment);
+}
+
 static void show_struct_definition(struct tag_output *output, struct symbol *type)
 {
 	struct code_buffer *out = output->out;
@@ -3776,7 +3792,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		show_tag_attributes(out, type);
 	}
 	if (is_typedef_tag(type)) {
-		append(out, " %s", show_ident(type->ident));
+		show_typedef_tag_name(out, type);
 		if (type->transparent_union)
 			append(out, " __attribute__((__transparent_union__))");
 	}
@@ -3810,7 +3826,7 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 	append(out, "}");
 	show_tag_attributes(out, type);
 	if (is_typedef_tag(type))
-		append(out, " %s", show_ident(type->ident));
+		show_typedef_tag_name(out, type);
 	if (type->ident)
 		remember_definition(type);
 }
