@@ -114,6 +114,18 @@ static struct symbol *find_function(struct symbol_list *list, const char *name,
 	return NULL;
 }
 
+/* Terminate the first name of a comma separated list and return the rest. */
+static char *split_name(char *names)
+{
+	char *comma = strchr(names, ',');
+
+	if (comma)
+		*comma++ = '\0';
+	if (names[0] == '\0' || (comma && comma[0] == '\0'))
+		die("function name is empty");
+	return comma;
+}
+
 int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
@@ -126,12 +138,14 @@ int main(int argc, char **argv)
 	bool minimal;
 	char *file;
 	char *root_name;
+	char *next_name;
+	char *name;
 	char output_file[PATH_MAX];
 	char *buf;
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION|--last-func|--all-funcs|--list-funcs] [--minimal] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [sparse options] file.c");
 	root_name = NULL;
 	all_funcs = false;
 	list_funcs = false;
@@ -160,6 +174,8 @@ int main(int argc, char **argv)
 	if (all_funcs + list_funcs + last_func + (root_name != NULL) > 1)
 		die("use only one of --func=FUNCTION, --last-func, --all-funcs and --list-funcs");
 	whole_file = root_name == NULL && !last_func && !all_funcs && !list_funcs;
+	if (minimal && root_name && strchr(root_name, ','))
+		die("--minimal takes only one function");
 	if (minimal && whole_file)
 		die("--minimal needs --func=FUNCTION, --last-func or --all-funcs");
 	buf = calloc(1, EXTRACT_BUFFER_SIZE);
@@ -204,6 +220,9 @@ int main(int argc, char **argv)
 		fprintf(out, "typedef _Bool bool;\n\n");
 		show_all(out, list, buf);
 	} else {
+		next_name = NULL;
+		if (root_name)
+			next_name = split_name(root_name);
 		function = find_function(list, root_name, last_func ? file : NULL);
 		if (!function) {
 			if (last_func) {
@@ -219,6 +238,14 @@ int main(int argc, char **argv)
 			show_code_minimal_root = function;
 		fprintf(out, "typedef _Bool bool;\n\n");
 		show_function(out, function, buf);
+		while (next_name) {
+			name = next_name;
+			next_name = split_name(name);
+			function = find_function(list, name, NULL);
+			if (!function)
+				die("function %s was not found", name);
+			show_function(out, function, buf);
+		}
 	}
 	fclose(out);
 	free(buf);
