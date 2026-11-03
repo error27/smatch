@@ -28,6 +28,7 @@ const struct target target_microblaze = {
 	.big_endian = true,
 
 	.bits_in_longdouble = 64,
+	.max_int_alignment = 4,
 
 	.init = init_microblaze,
 	.predefine = predefine_microblaze,

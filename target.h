@@ -90,6 +90,7 @@ struct target {
 	struct symbol	*wint;
 
 	unsigned int	bits_in_longdouble;
+	unsigned int	max_int_alignment;
 	unsigned int	max_fp_alignment;
 
 	const struct target *target_32bit;

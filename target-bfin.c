@@ -21,6 +21,8 @@ const struct target target_bfin = {
 	.mach = MACH_BFIN,
 	.bitness = ARCH_LP32,
 
+	.max_int_alignment = 4,
+
 	.predefine = predefine_bfin,
 	.builtins = builtins_bfin,
 };

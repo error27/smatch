@@ -64,6 +64,7 @@ const struct target target_i386 = {
 
 	.wchar = &long_ctype,
 	.bits_in_longdouble = 96,
+	.max_int_alignment = 4,
 	.max_fp_alignment = 4,
 
 	.target_64bit = &target_x86_64,
@@ -77,8 +78,6 @@ const struct target target_i386 = {
 static void init_x86_x32(const struct target *target)
 {
 	init_x86_common(target);
-
-	max_int_alignment = 8;
 
 	fast16_ctype = &int_ctype;
 	ufast16_ctype = &uint_ctype;

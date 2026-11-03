@@ -219,7 +219,6 @@ void target_init(void)
 		goto case_32bit;
 
 	case ARCH_LP32:
-		max_int_alignment = 4;
 		if (target->target_32bit)
 			target = target->target_32bit;
 		/* fallthrough */
@@ -262,6 +261,8 @@ void target_init(void)
 		wint_ctype = target->wint;
 	if (target->bits_in_longdouble)
 		bits_in_longdouble = target->bits_in_longdouble;
+	if (target->max_int_alignment)
+		max_int_alignment = target->max_int_alignment;
 	if (target->max_fp_alignment)
 		max_fp_alignment = target->max_fp_alignment;
 

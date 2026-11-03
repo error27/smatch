@@ -40,6 +40,7 @@ const struct target target_nios2 = {
 	.bitness = ARCH_LP32,
 
 	.bits_in_longdouble = 64,
+	.max_int_alignment = 4,
 
 	.init = init_nios2,
 	.predefine = predefine_nios2,

@@ -25,6 +25,7 @@ const struct target target_openrisc = {
 	.big_endian = true,
 
 	.bits_in_longdouble = 64,
+	.max_int_alignment = 4,
 
 	.init = init_openrisc,
 	.predefine = predefine_openrisc,

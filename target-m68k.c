@@ -25,6 +25,7 @@ const struct target target_m68k = {
 	.wchar = &long_ctype,
 
 	.bits_in_longdouble = 96,
+	.max_int_alignment = 2,
 	.max_fp_alignment = 4,
 
 	.init = init_m68k,

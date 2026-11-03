@@ -30,6 +30,7 @@ const struct target target_sh = {
 	.big_endian = false,
 
 	.bits_in_longdouble = 64,
+	.max_int_alignment = 4,
 
 	.init = init_sh,
 	.predefine = predefine_sh,
