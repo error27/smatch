@@ -109,6 +109,7 @@ static void show_anonymous_declarator(struct code_buffer *out,
 				      struct symbol *anonymous_tag);
 static void show_c_typename(struct code_buffer *out, struct symbol *s);
 static void show_asm_name(struct code_buffer *out, struct symbol *s);
+static void show_symbol_alignment(struct code_buffer *out, struct symbol *s);
 static void show_initializer_dependencies(struct code_buffer *out,
 					  struct symbol *symbol);
 static void show_initializer_dependencies_rec(struct code_buffer *out,
@@ -1303,6 +1304,7 @@ static void show_minimal_declaration(struct code_buffer *out,
 	copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
+	show_symbol_alignment(out, &copy);
 	append(out, ";\n");
 	remember_declaration(symbol);
 }
@@ -1364,6 +1366,7 @@ static void show_dependency_entry(struct code_buffer *out,
 		copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
+	show_symbol_alignment(out, &copy);
 	append(out, ";\n");
 	remember_declaration(dependency);
 }
@@ -2083,6 +2086,21 @@ static void show_asm_name(struct code_buffer *out, struct symbol *s)
 	append(out, " asm(");
 	expr(out, s->asm_name);
 	append(out, ")");
+}
+
+/*
+ * A variable's aligned() attribute is only kept in its ctype.  GCC
+ * cannot lower the alignment of a variable, so only print an increase.
+ */
+static void show_symbol_alignment(struct code_buffer *out, struct symbol *s)
+{
+	struct symbol *base_type = s->ctype.base_type;
+
+	if (!base_type || base_type->type == SYM_FN || s->ctype.alignment <= 1)
+		return;
+	if (s->ctype.alignment <= base_type->ctype.alignment)
+		return;
+	append(out, " __attribute__((aligned(%lu)))", s->ctype.alignment);
 }
 
 static void exprs(struct code_buffer *out, struct expression_list *list)
@@ -2844,6 +2862,7 @@ static bool is_alias_target(struct symbol *s)
 static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 {
 	show_asm_name(out, s);
+	show_symbol_alignment(out, s);
 	if (s->alias) {
 		append(out, " __attribute__((alias(");
 		expr(out, s->alias);
@@ -3389,6 +3408,7 @@ static void show_symbol_declaration(struct code_buffer *out, struct symbol *s)
 		copy.ctype.modifiers |= MOD_EXTERN;
 	show_c_typename(out, &copy);
 	show_asm_name(out, &copy);
+	show_symbol_alignment(out, &copy);
 	append(out, ";\n");
 	remember_declaration(s);
 }
