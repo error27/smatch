@@ -62,7 +62,7 @@ static declarator_t
 	struct_specifier, union_specifier, enum_specifier,
 	attribute_specifier, typeof_specifier, typeof_unqual_specifier,
 	storage_specifier, thread_specifier;
-static declarator_t generic_qualifier;
+static declarator_t generic_qualifier, seg_qualifier;
 static declarator_t autotype_specifier;
 
 static struct token *parse_if_statement(struct token *token, struct statement *stmt);
@@ -80,7 +80,6 @@ static struct token *parse_range_statement(struct token *token, struct statement
 static struct token *parse_asm_statement(struct token *token, struct statement *stmt);
 static struct token *toplevel_asm_declaration(struct token *token, struct symbol_list **list);
 static struct token *parse_static_assert(struct token *token, struct symbol_list **unused);
-static struct token *ignore_seg_gs(struct token *token, struct symbol_list **unused);
 
 typedef struct token *attr_t(struct token *, struct symbol *,
 			     struct decl_state *);
@@ -371,8 +370,9 @@ static struct symbol_op static_assert_op = {
 	.toplevel = parse_static_assert,
 };
 
-static struct symbol_op seg_gs = {
-	.toplevel = ignore_seg_gs,
+static struct symbol_op seg_op = {
+	.type = KW_QUALIFIER,
+	.declarator = seg_qualifier,
 };
 
 static struct symbol_op packed_op = {
@@ -548,7 +548,8 @@ static struct init_keyword {
 	N("_Float128",		&spec_op,	.type = &float128_ctype),
 	N("__float128",		&spec_op,	.type = &float128_ctype),
 
-	N("__seg_gs",		&seg_gs),
+	N("__seg_fs",		&seg_op),
+	N("__seg_gs",		&seg_op),
 
 }, keywords[] = {
 	/* Statements */
@@ -1659,6 +1660,17 @@ static struct token *generic_qualifier(struct token *next, struct symbol *sym, s
 	return next;
 }
 
+/* GCC's x86 named address spaces. */
+static struct token *seg_qualifier(struct token *next, struct symbol *sym,
+				   struct decl_state *ctx)
+{
+	if (ctx->ctype.as && ctx->ctype.as != sym->ident)
+		sparse_error(next->pos, "multiple address spaces given: %s & %s",
+			     show_as(ctx->ctype.as), show_as(sym->ident));
+	ctx->ctype.as = sym->ident;
+	return next;
+}
+
 static void apply_ctype(struct position pos, struct ctype *dst, struct ctype *src)
 {
 	unsigned long mod = src->modifiers;
@@ -2367,11 +2379,6 @@ static struct token *parse_static_assert(struct token *token, struct symbol_list
 	}
 
 	return token;
-}
-
-static struct token *ignore_seg_gs(struct token *token, struct symbol_list **unused)
-{
-	return token->next;
 }
 
 /* Make a statement out of an expression */
