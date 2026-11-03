@@ -128,12 +128,18 @@ static int bitfield_base_size(struct symbol *sym)
 
 /*
  * GCC ignores the alignment of a member's type in a packed struct, but
- * not an aligned() attribute on the member.
+ * not an aligned() attribute on the member.  Without packed, aligned()
+ * cannot lower the alignment of a member.
  */
 unsigned long member_alignment(struct symbol *member, bool packed)
 {
+	struct symbol *base_type = member->ctype.base_type;
+
 	if (packed && !member->aligned_attr)
 		return 1;
+	if (!packed && member->aligned_attr && !member->packed_attr &&
+	    base_type && member->ctype.alignment < base_type->ctype.alignment)
+		return base_type->ctype.alignment;
 	return member->ctype.alignment;
 }
 

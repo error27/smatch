@@ -2125,13 +2125,14 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 {
 	struct decl_state ctx = {.prefer_abstract = 0};
 	struct ctype saved;
-	unsigned char saved_aligned;
+	unsigned char saved_aligned, saved_packed;
 	unsigned long mod;
 
 	token = declaration_specifiers(token, &ctx);
 	mod = decl_modifiers(&ctx);
 	saved = ctx.ctype;
 	saved_aligned = ctx.aligned;
+	saved_packed = ctx.packed;
 	for (;;) {
 		struct symbol *decl = alloc_symbol(token->pos, SYM_NODE);
 		ctx.cleanup = NULL;
@@ -2147,6 +2148,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		decl->ctype = ctx.ctype;
 		decl->ctype.modifiers |= mod;
 		decl->aligned_attr = ctx.aligned;
+		decl->packed_attr = ctx.packed;
 		decl->cleanup = ctx.cleanup;
 		decl->endpos = token->pos;
 		add_symbol(list, decl);
@@ -2155,6 +2157,7 @@ static struct token *declaration_list(struct token *token, struct symbol_list **
 		token = token->next;
 		ctx.ctype = saved;
 		ctx.aligned = saved_aligned;
+		ctx.packed = saved_packed;
 	}
 	return token;
 }

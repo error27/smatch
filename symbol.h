@@ -157,6 +157,7 @@ struct symbol {
 	enum namespace namespace:9;
 	unsigned char used:1, attr:2, enum_member:1, bound:1, parsed:1;
 	unsigned char aligned_attr:1;	// aligned() on the declaration
+	unsigned char packed_attr:1;	// packed on the declaration
 	struct position pos;		/* Where this symbol was declared */
 	struct position endpos;		/* Where this symbol ends*/
 	struct ident *ident;		/* What identifier this symbol is associated with */
