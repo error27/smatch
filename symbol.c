@@ -282,10 +282,8 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		fn(member, &info);
 	} END_FOR_EACH_PTR(member);
 
-	if (!sym->ctype.alignment)
-		sym->ctype.alignment = info.max_align;
-	/* An aligned() member raises the alignment of a packed struct. */
-	if (sym->packed && info.max_align > sym->ctype.alignment)
+	/* aligned() on a struct can raise its alignment, but not lower it. */
+	if (info.max_align > sym->ctype.alignment)
 		sym->ctype.alignment = info.max_align;
 	bit_size = info.bit_size;
 	if (info.align_size) {
