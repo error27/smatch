@@ -634,8 +634,6 @@ static struct printed_symbol_list *printed_hash[PRINTED_HASH_SIZE];
 struct tag_output {
 	struct code_buffer *out;
 	struct symbol_list *dependency_types;
-	bool pack_top;		/* a #pragma pack may surround the definition */
-	bool pack_pushed;
 };
 
 static void show_struct_definition(struct tag_output *output, struct symbol *type);
@@ -2865,23 +2863,14 @@ static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 	}
 }
 
-static void show_pack_pop(struct tag_output *output)
-{
-	if (!output->pack_pushed)
-		return;
-	append(output->out, "#pragma pack(pop)\n");
-	output->pack_pushed = false;
-}
-
 static void show_local_tag(struct code_buffer *out, struct symbol *tag)
 {
-	struct tag_output output = { .out = out, .pack_top = true };
+	struct tag_output output = { .out = out };
 
 	if (lookup_ptr_list_entry((struct ptr_list *)out->local_tags, tag))
 		return;
 	if (show_tag_definition(&output, tag))
 		append(out, ";\n");
-	show_pack_pop(&output);
 	add_symbol(&out->local_tags, tag);
 }
 
@@ -3662,11 +3651,25 @@ static void show_function(struct code_buffer *out, struct symbol *s)
  * its alignment only in the member's ctype.  Lowering the alignment of
  * a member needs packed as well.
  */
-static void show_member_alignment(struct code_buffer *out, struct symbol *member)
+static void show_member_alignment(struct code_buffer *out, struct symbol *type,
+				  struct symbol *member)
 {
 	struct symbol *base_type = member->ctype.base_type;
 	unsigned long alignment = member->ctype.alignment;
 
+	/*
+	 * #pragma pack(n) caps the alignment of each member at n.  The
+	 * struct is printed as packed, so print the capped alignment.
+	 */
+	if (type->pack_align) {
+		if (base_type && base_type->type == SYM_BITFIELD)
+			return;
+		if (alignment > type->pack_align)
+			alignment = type->pack_align;
+		if (alignment > 1)
+			append(out, " __attribute__((aligned(%lu)))", alignment);
+		return;
+	}
 	if (!base_type || base_type->type == SYM_BITFIELD || !alignment ||
 	    !base_type->ctype.alignment ||
 	    alignment == base_type->ctype.alignment)
@@ -3683,14 +3686,11 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct symbol *member;
 	struct symbol *anonymous_tag;
 	struct symbol *previous_tag = NULL;
-	bool pack_top = output->pack_top;
 
-	output->pack_top = false;
+	/* #pragma pack needs the member alignments */
+	if (type->pack_align)
+		examine_symbol_type(type);
 	show_type_members(output, type);
-	if (pack_top && type->pack_align) {
-		append(out, "#pragma pack(push, %d)\n", type->pack_align);
-		output->pack_pushed = true;
-	}
 	if (!type->ident) {
 		append(out, "%s {\n", tag_type_name(type));
 	} else if (is_typedef_tag(type)) {
@@ -3707,7 +3707,7 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		if (anonymous_tag && anonymous_tag == previous_tag) {
 			append(out, ", ");
 			show_anonymous_declarator(out, member, anonymous_tag);
-			show_member_alignment(out, member);
+			show_member_alignment(out, type, member);
 			continue;
 		}
 		if (previous_tag)
@@ -3715,19 +3715,27 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 		previous_tag = anonymous_tag;
 		if (anonymous_tag) {
 			show_anonymous_c_typename(out, member, anonymous_tag);
-			show_member_alignment(out, member);
+			show_member_alignment(out, type, member);
 			continue;
 		}
 		show_c_typename(out, member);
-		show_member_alignment(out, member);
+		show_member_alignment(out, type, member);
 		append(out, ";\n");
 	} END_FOR_EACH_PTR(member);
 	if (previous_tag)
 		append(out, ";\n");
 	out->indent--;
 	append(out, "}");
-	if (type->packed)
+	if (type->pack_align) {
+		/* Bitfields under #pragma pack still add to the alignment. */
+		if (type->ctype.alignment > 1)
+			append(out, " __attribute__((__packed__, aligned(%lu)))",
+			       type->ctype.alignment);
+		else
+			append(out, " __attribute__((__packed__))");
+	} else if (type->packed) {
 		append(out, " __attribute__((__packed__))");
+	}
 	if (is_typedef_tag(type)) {
 		append(out, " %s", show_ident(type->ident));
 		if (type->transparent_union)
@@ -3822,12 +3830,9 @@ static void show_type_definition(struct tag_output *output,
 
 	if (is_type_definition(symbol, &tag)) {
 		show_type_members(output, tag);
-		output->pack_top = true;
 		if (!tag_was_defined(tag) &&
 		    show_tag_definition(output, tag))
 			append(output->out, ";\n");
-		output->pack_top = false;
-		show_pack_pop(output);
 		return;
 	}
 	if (symbol->namespace != NS_TYPEDEF || !symbol->ident ||
