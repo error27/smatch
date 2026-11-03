@@ -167,6 +167,20 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->flex_array = sym;
 	}
 
+	/*
+	 * A zero-width bitfield moves the next field to the alignment of its
+	 * type, even in a packed struct or under #pragma pack.
+	 */
+	if (is_bitfield_type(sym) && !base_size) {
+		align_bit_mask = bytes_to_bits(sym->ctype.alignment) - 1;
+		bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
+		sym->offset = bits_to_bytes(bit_size);
+		sym->bit_offset = 0;
+		sym->ctype.base_type->bit_offset = 0;
+		info->bit_size = bit_size;
+		return;
+	}
+
 	/* #pragma pack places bitfields the same way as packed does */
 	packed = info->packed || (info->pack_align && is_bitfield_type(sym));
 	if (is_bitfield_type(sym))
