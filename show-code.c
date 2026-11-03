@@ -1799,6 +1799,18 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 	return buffer;
 }
 
+/* GCC only knows the x86 named address spaces, not Sparse's __user etc. */
+static const char *show_gcc_address_space(struct ident *as)
+{
+	if (!as)
+		return "";
+	if (strcmp(as->name, "__seg_fs") == 0)
+		return "__seg_fs ";
+	if (strcmp(as->name, "__seg_gs") == 0)
+		return "__seg_gs ";
+	return "";
+}
+
 static void show_direct_tag_typename(struct c_type_name *name,
 				     struct symbol *type, unsigned long modifiers)
 {
@@ -1943,6 +1955,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			free(expression_out.buf);
 			modifier_string = show_gcc_modifiers(modifiers);
 			type_name_prepend(name, modifier_string);
+			type_name_prepend(name, show_gcc_address_space(as));
 			break;
 		}
 		typename = builtin_typename(type);
@@ -1955,6 +1968,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			type_name_prepend(name, typename);
 			modifier_string = show_gcc_modifiers(modifiers);
 			type_name_prepend(name, modifier_string);
+			type_name_prepend(name, show_gcc_address_space(as));
 			break;
 		}
 
@@ -1967,9 +1981,10 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 				type_name_prepend(name, "va_list ");
 				goto out;
 			}
-			if (pointer_modifiers) {
-				type_name_prepend_format(name, "*%s",
-					show_gcc_modifiers(pointer_modifiers));
+			if (pointer_modifiers || show_gcc_address_space(as)[0]) {
+				type_name_prepend_format(name, "*%s%s",
+					show_gcc_modifiers(pointer_modifiers),
+					show_gcc_address_space(as));
 			} else {
 				type_name_prepend(name, "*");
 			}
@@ -2011,6 +2026,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 		case SYM_UNION:
 		case SYM_ENUM:
 			show_direct_tag_typename(name, type, modifiers);
+			type_name_prepend(name, show_gcc_address_space(as));
 			goto out;
 		case SYM_NODE:
 			if (type->ident)
@@ -2027,6 +2043,32 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 		case SYM_ARRAY:
 			modifiers |= type->ctype.modifiers;
 			combine_address_space(type->pos, &as, type->ctype.as);
+			/*
+			 * "__seg_gs T x[N]" puts the elements in the address
+			 * space, but the kernel's per-cpu arrays are declared
+			 * as "__seg_gs __typeof__(T [N]) x", which puts the
+			 * array itself there.  GCC's __typeof_unqual__()
+			 * only removes it in the second case.
+			 */
+			if (show_gcc_address_space(as)[0]) {
+				struct c_type_name array_name;
+
+				copy = *type;
+				copy.ctype.as = NULL;
+				copy.ctype.modifiers = 0;
+				type_name_init(&array_name);
+				show_direct_c_typename(out, &copy, &array_name);
+				*array_name.end = '\0';
+				if (name->start != name->end)
+					type_name_prepend(name, " ");
+				type_name_prepend_format(name, "%s%s__typeof__(%s)",
+					show_gcc_modifiers(modifiers &
+						(MOD_QUALIFIER | MOD_ATOMIC)),
+					show_gcc_address_space(as),
+					array_name.start);
+				type_name_free(&array_name);
+				goto out;
+			}
 			if (was_pointer) {
 				type_name_prepend(name, "(");
 				type_name_append(name, ")");
@@ -2047,6 +2089,7 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			type_name_prepend_format(name, "%s", show_ident(type->ident));
 			type_name_prepend(name, show_gcc_modifiers(modifiers &
 				(MOD_QUALIFIER | MOD_ATOMIC)));
+			type_name_prepend(name, show_gcc_address_space(as));
 			goto out;
 		case SYM_FOULED:
 			fouled = true;
