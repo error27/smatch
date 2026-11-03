@@ -5,6 +5,8 @@
 
 static void init_m68k(const struct target *self)
 {
+	pointer_alignment = 2;
+
 	fast16_ctype = &int_ctype;
 	ufast16_ctype = &uint_ctype;
 	fast32_ctype = &int_ctype;
@@ -26,7 +28,7 @@ const struct target target_m68k = {
 
 	.bits_in_longdouble = 96,
 	.max_int_alignment = 2,
-	.max_fp_alignment = 4,
+	.max_fp_alignment = 2,
 
 	.init = init_m68k,
 	.predefine = predefine_m68k,
