@@ -795,6 +795,18 @@ static void pack_pop(struct position pos, struct ident *label)
 	}
 }
 
+/* Each file starts with the default packing. */
+void reset_pragma_pack(void)
+{
+	while (pack_stack) {
+		struct pack_entry *prev = pack_stack->prev;
+
+		free(pack_stack);
+		pack_stack = prev;
+	}
+	pack_align = 0;
+}
+
 /*
  * The preprocessor turns "#pragma pack(...)" into "__pragma_pack__(...)".
  * The forms are pack(), pack(n), pack(push[, label][, n]) and

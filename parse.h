@@ -156,6 +156,7 @@ extern struct symbol *ctype_integer(int size, int want_unsigned);
 extern int inline_function(struct expression *expr, struct symbol *sym);
 extern void uninline(struct symbol *sym);
 extern void init_parser(int);
+extern void reset_pragma_pack(void);
 
 static inline void stmt_set_parent_stmt(struct statement *stmt, struct statement *parent)
 {

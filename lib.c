@@ -478,6 +478,7 @@ struct symbol_list * sparse_keep_tokens(char *filename)
 	translation_unit_used_list = NULL;
 
 	new_file_scope();
+	reset_pragma_pack();
 	res = sparse_file(filename);
 
 	/* And return it */
