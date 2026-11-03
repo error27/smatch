@@ -634,6 +634,8 @@ static struct printed_symbol_list *printed_hash[PRINTED_HASH_SIZE];
 struct tag_output {
 	struct code_buffer *out;
 	struct symbol_list *dependency_types;
+	bool pack_top;		/* a #pragma pack may surround the definition */
+	bool pack_pushed;
 };
 
 static void show_struct_definition(struct tag_output *output, struct symbol *type);
@@ -2863,14 +2865,23 @@ static void declaration_suffix(struct code_buffer *out, struct symbol *s)
 	}
 }
 
+static void show_pack_pop(struct tag_output *output)
+{
+	if (!output->pack_pushed)
+		return;
+	append(output->out, "#pragma pack(pop)\n");
+	output->pack_pushed = false;
+}
+
 static void show_local_tag(struct code_buffer *out, struct symbol *tag)
 {
-	struct tag_output output = { .out = out };
+	struct tag_output output = { .out = out, .pack_top = true };
 
 	if (lookup_ptr_list_entry((struct ptr_list *)out->local_tags, tag))
 		return;
 	if (show_tag_definition(&output, tag))
 		append(out, ";\n");
+	show_pack_pop(&output);
 	add_symbol(&out->local_tags, tag);
 }
 
@@ -3672,8 +3683,14 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 	struct symbol *member;
 	struct symbol *anonymous_tag;
 	struct symbol *previous_tag = NULL;
+	bool pack_top = output->pack_top;
 
+	output->pack_top = false;
 	show_type_members(output, type);
+	if (pack_top && type->pack_align) {
+		append(out, "#pragma pack(push, %d)\n", type->pack_align);
+		output->pack_pushed = true;
+	}
 	if (!type->ident) {
 		append(out, "%s {\n", tag_type_name(type));
 	} else if (is_typedef_tag(type)) {
@@ -3805,9 +3822,12 @@ static void show_type_definition(struct tag_output *output,
 
 	if (is_type_definition(symbol, &tag)) {
 		show_type_members(output, tag);
+		output->pack_top = true;
 		if (!tag_was_defined(tag) &&
 		    show_tag_definition(output, tag))
 			append(output->out, ";\n");
+		output->pack_top = false;
+		show_pack_pop(output);
 		return;
 	}
 	if (symbol->namespace != NS_TYPEDEF || !symbol->ident ||
