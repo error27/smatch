@@ -3680,6 +3680,45 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
 		append(out, " __attribute__((aligned(%lu)))", alignment);
 }
 
+/*
+ * Sparse keeps an aligned() attribute on a struct or union only in its
+ * ctype.  Examining the type replaces an unset alignment with the
+ * largest member alignment, so after that, print the alignment only
+ * when it is larger than the members need.
+ */
+static unsigned long tag_alignment(struct symbol *type)
+{
+	unsigned long natural = 1;
+	struct symbol *member;
+
+	if (!type->examined || type->packed)
+		return type->ctype.alignment;
+	FOR_EACH_PTR(type->symbol_list, member) {
+		/* Unnamed bitfields do not affect alignment. */
+		if (!member->ident && is_bitfield_type(member))
+			continue;
+		if (member->ctype.alignment > natural)
+			natural = member->ctype.alignment;
+	} END_FOR_EACH_PTR(member);
+	if (type->ctype.alignment > natural)
+		return type->ctype.alignment;
+	return 0;
+}
+
+static void show_tag_attributes(struct code_buffer *out, struct symbol *type)
+{
+	unsigned long alignment = 0;
+
+	if (type->type != SYM_ENUM)
+		alignment = tag_alignment(type);
+	if (type->packed && alignment > 1)
+		append(out, " __attribute__((__packed__, aligned(%lu)))", alignment);
+	else if (type->packed)
+		append(out, " __attribute__((__packed__))");
+	else if (alignment > 1)
+		append(out, " __attribute__((aligned(%lu)))", alignment);
+}
+
 static void show_struct_definition(struct tag_output *output, struct symbol *type)
 {
 	struct code_buffer *out = output->out;
@@ -3733,8 +3772,8 @@ static void show_struct_definition(struct tag_output *output, struct symbol *typ
 			       type->ctype.alignment);
 		else
 			append(out, " __attribute__((__packed__))");
-	} else if (type->packed) {
-		append(out, " __attribute__((__packed__))");
+	} else {
+		show_tag_attributes(out, type);
 	}
 	if (is_typedef_tag(type)) {
 		append(out, " %s", show_ident(type->ident));
@@ -3768,10 +3807,10 @@ static void show_enum_definition(struct tag_output *output, struct symbol *type)
 		append(out, ",\n");
 	} END_FOR_EACH_PTR(member);
 	out->indent--;
+	append(out, "}");
+	show_tag_attributes(out, type);
 	if (is_typedef_tag(type))
-		append(out, "} %s", show_ident(type->ident));
-	else
-		append(out, "}");
+		append(out, " %s", show_ident(type->ident));
 	if (type->ident)
 		remember_definition(type);
 }
