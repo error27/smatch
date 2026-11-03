@@ -1249,10 +1249,9 @@ static struct token *attribute_alias(struct token *token, struct decl_state *ctx
 
 static struct token *attribute_packed(struct token *token, struct symbol *attr, struct decl_state *ctx)
 {
-	if (!ctx->ctype.alignment) {
+	if (!ctx->ctype.alignment)
 		ctx->ctype.alignment = 1;
-		ctx->packed = 1;
-	}
+	ctx->packed = 1;
 	return token;
 }
 
