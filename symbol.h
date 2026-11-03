@@ -205,7 +205,8 @@ struct symbol {
 					torename:1,
 					packed:1,
 					transparent_union:1,
-					typeof_is_unqual:1;
+					typeof_is_unqual:1,
+					pack_align:5;	// #pragma pack(n)
 			int		rank:3;	// arithmetic's rank
 			struct expression *array_size;
 			struct alloc_size *alloc_size;

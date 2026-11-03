@@ -753,6 +753,101 @@ struct symbol *label_symbol(struct token *token, int used)
 	return sym;
 }
 
+struct pack_entry {
+	struct pack_entry *prev;
+	struct ident *label;
+	int align;
+};
+
+/* The #pragma pack() stack and the current value, 0 is the default */
+static struct pack_entry *pack_stack;
+static int pack_align;
+
+static void pack_push(struct ident *label)
+{
+	struct pack_entry *entry = malloc(sizeof(*entry));
+
+	entry->prev = pack_stack;
+	entry->label = label;
+	entry->align = pack_align;
+	pack_stack = entry;
+}
+
+static void pack_pop(struct position pos, struct ident *label)
+{
+	struct pack_entry *entry = pack_stack;
+
+	if (label) {
+		while (entry && entry->label != label)
+			entry = entry->prev;
+	}
+	if (!entry) {
+		warning(pos, "#pragma pack(pop) without a matching push");
+		return;
+	}
+	pack_align = entry->align;
+	entry = entry->prev;
+	while (pack_stack != entry) {
+		struct pack_entry *prev = pack_stack->prev;
+
+		free(pack_stack);
+		pack_stack = prev;
+	}
+}
+
+/*
+ * The preprocessor turns "#pragma pack(...)" into "__pragma_pack__(...)".
+ * The forms are pack(), pack(n), pack(push[, label][, n]) and
+ * pack(pop[, label][, n]).
+ */
+static struct token *parse_pragma_pack(struct token *token)
+{
+	struct position pos = token->pos;
+	struct ident *action = NULL, *label = NULL;
+	struct expression *expr = NULL;
+	int align = -1;
+
+	token = token->next;
+	if (!match_op(token, '('))
+		return token;
+	token = token->next;
+	if (token_type(token) == TOKEN_IDENT &&
+	    (token->ident == &push_ident || token->ident == &pop_ident)) {
+		action = token->ident;
+		token = token->next;
+		if (match_op(token, ',') && token_type(token->next) == TOKEN_IDENT) {
+			label = token->next->ident;
+			token = token->next->next;
+		}
+		if (match_op(token, ','))
+			token = token->next;
+	}
+	if (!match_op(token, ')')) {
+		token = conditional_expression(token, &expr);
+		if (expr)
+			align = const_expression_value(expr);
+	}
+	token = expect(token, ')', "at end of #pragma pack");
+
+	switch (align) {
+	case -1: case 0: case 1: case 2: case 4: case 8: case 16:
+		break;
+	default:
+		warning(pos, "#pragma pack alignment must be a small power of two, not %d", align);
+		return token;
+	}
+
+	if (action == &push_ident)
+		pack_push(label);
+	else if (action == &pop_ident)
+		pack_pop(pos, label);
+	if (align >= 0)
+		pack_align = align;
+	else if (!action)
+		pack_align = 0;
+	return token;
+}
+
 static struct token *struct_union_enum_specifier(enum type type,
 	struct token *token, struct decl_state *ctx,
 	struct token *(*parse)(struct token *, struct symbol *))
@@ -806,6 +901,8 @@ static struct token *struct_union_enum_specifier(enum type type,
 	token = handle_attributes(token, &attr);
 	apply_ctype(token->pos, &sym->ctype, &attr.ctype);
 	sym->packed = attr.packed;
+	if (type != SYM_ENUM)
+		sym->pack_align = pack_align;
 
 	sym->endpos = token->pos;
 
@@ -2062,6 +2159,10 @@ static struct token *struct_declaration_list(struct token *token, struct symbol_
 			token = parse_static_assert(token, NULL);
 			continue;
 		}
+		if (match_ident(token, &pragma_pack_ident)) {
+			token = parse_pragma_pack(token);
+			continue;
+		}
 		if (!match_op(token, ';'))
 			token = declaration_list(token, list);
 		if (!match_op(token, ';')) {
@@ -2130,6 +2231,8 @@ static struct token *expression_statement(struct token *token, struct expression
 {
 	if (match_ident(token, &_Pragma_ident))
 		return parse_underscore_Pragma(token);
+	if (match_ident(token, &pragma_pack_ident))
+		return parse_pragma_pack(token);
 
 	token = parse_expression(token, tree);
 	return expect(token, ';', "at end of statement");
@@ -3101,6 +3204,8 @@ static struct token *parse_external_declaration(struct token *token,
 
 	if (match_ident(token, &_Pragma_ident))
 		return parse_underscore_Pragma(token);
+	if (match_ident(token, &pragma_pack_ident))
+		return parse_pragma_pack(token);
 
 	/* Top-level inline asm or static assertion? */
 	if (token_type(token) == TOKEN_IDENT) {

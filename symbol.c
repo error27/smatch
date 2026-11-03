@@ -99,6 +99,7 @@ struct struct_union_info {
 	int align_size;
 	char has_flex_array;
 	bool packed;
+	int pack_align;
 	struct symbol *flex_array;
 };
 
@@ -149,6 +150,8 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	}
 
 	alignment = info->packed ? 1 : sym->ctype.alignment;
+	if (info->pack_align && alignment > info->pack_align)
+		alignment = info->pack_align;
 	align_bit_mask = bytes_to_bits(alignment) - 1;
 
 	/*
@@ -214,6 +217,7 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 {
 	struct struct_union_info info = {
 		.packed = sym->packed,
+		.pack_align = sym->pack_align,
 		.max_align = 1,
 		.bit_size = 0,
 		.align_size = 1
@@ -224,6 +228,8 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 
 	fn = advance ? lay_out_struct : lay_out_union;
 	FOR_EACH_PTR(sym->symbol_list, member) {
+		unsigned long member_align;
+
 		if (member->ctype.base_type == &autotype_ctype) {
 			sparse_error(member->pos, "member '%s' has __auto_type", show_ident(member->ident));
 			member->ctype.base_type = &incomplete_ctype;
@@ -234,10 +240,13 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 		if (!member->ident)
 			examine_anonymous_member(member);
 
-		if (member->ctype.alignment > info.max_align && !sym->packed) {
+		member_align = member->ctype.alignment;
+		if (info.pack_align && member_align > info.pack_align)
+			member_align = info.pack_align;
+		if (member_align > info.max_align && !sym->packed) {
 			// Unnamed bitfields do not affect alignment.
 			if (member->ident || !is_bitfield_type(member))
-				info.max_align = member->ctype.alignment;
+				info.max_align = member_align;
 		}
 
 		if (has_flexible_array(member))

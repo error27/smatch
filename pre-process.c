@@ -2327,6 +2327,27 @@ static int handle_pragma(struct stream *stream, struct token **line, struct toke
 		stream->once = 1;
 		return 1;
 	}
+	if (match_ident(token->next, &pack_ident) && !preprocess_only) {
+		struct token *last;
+
+		/*
+		 * The parser handles "__pragma_pack__ ( ... )".  GCC does not
+		 * expand macros in the arguments.
+		 */
+		token->ident = &pragma_pack_ident;
+		token->next = token->next->next;
+		token->pos.newline = 1;
+		token->pos.whitespace = 1;
+		token->pos.pos = 1;
+		for (last = token; ; last = last->next) {
+			last->pos.noexpand = 1;
+			if (eof_token(last->next))
+				break;
+		}
+		last->next = next;
+		*line = token;
+		return 0;
+	}
 	token->ident = &pragma_ident;
 	token->pos.newline = 1;
 	token->pos.whitespace = 1;
