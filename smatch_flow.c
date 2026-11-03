@@ -2863,6 +2863,8 @@ static void split_inlines_in_scope(struct symbol *sym)
 			continue;
 		if (sym->type != SYM_NODE)
 			continue;
+		if (sym->namespace != NS_SYMBOL)
+			continue;
 		base = get_base_type(sym);
 		if (!base)
 			continue;
