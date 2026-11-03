@@ -283,9 +283,17 @@ static struct symbol * examine_struct_union_type(struct symbol *sym, int advance
 			member_align = member_alignment(member, sym->packed);
 		if (info.pack_align && member_align > info.pack_align)
 			member_align = info.pack_align;
+		/*
+		 * On ARM, unnamed bitfields align the struct like named ones,
+		 * and a zero-width one even in a packed struct.
+		 */
+		if (arch_target->align_anon_bitfield &&
+		    is_bitfield_type(member) && !member->bit_size)
+			member_align = member->ctype.alignment;
 		if (member_align > info.max_align) {
-			// Unnamed bitfields do not affect alignment.
-			if (member->ident || !is_bitfield_type(member))
+			// Elsewhere, unnamed bitfields do not affect alignment.
+			if (member->ident || !is_bitfield_type(member) ||
+			    arch_target->align_anon_bitfield)
 				info.max_align = member_align;
 		}
 

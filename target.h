@@ -83,6 +83,7 @@ struct target {
 	unsigned int	unsigned_char:1;
 	unsigned int	size_t_long:1;
 	unsigned int	has_int128:1;
+	unsigned int	align_anon_bitfield:1;	// unnamed bitfields align the struct
 	unsigned long	flags;
 
 	struct symbol	*wchar;

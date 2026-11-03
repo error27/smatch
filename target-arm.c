@@ -46,6 +46,7 @@ const struct target target_arm = {
 	.bitness = ARCH_LP32,
 	.big_endian = 0,
 	.unsigned_char = 1,
+	.align_anon_bitfield = 1,
 
 	.wchar = &uint_ctype,
 

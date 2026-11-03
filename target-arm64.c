@@ -36,6 +36,7 @@ const struct target target_arm64 = {
 	.big_endian = 0,
 	.unsigned_char = 1,
 	.has_int128 = 1,
+	.align_anon_bitfield = 1,
 
 	.wchar = &uint_ctype,
 
