@@ -3690,9 +3690,23 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
 			append(out, " __attribute__((aligned(%lu)))", alignment);
 		return;
 	}
-	if (!base_type || base_type->type == SYM_BITFIELD || !alignment ||
-	    !base_type->ctype.alignment ||
-	    alignment == base_type->ctype.alignment)
+	if (!base_type || base_type->type == SYM_BITFIELD || !alignment)
+		return;
+	/* A packed struct ignores the alignment of a member's typedef. */
+	if (type->packed)
+		return;
+	/*
+	 * An unexamined struct has no alignment yet, so the member's
+	 * alignment comes from a typedef or attribute.
+	 */
+	if (!base_type->ctype.alignment) {
+		if (alignment == 1)
+			append(out, " __attribute__((packed))");
+		else
+			append(out, " __attribute__((aligned(%lu)))", alignment);
+		return;
+	}
+	if (alignment == base_type->ctype.alignment)
 		return;
 	if (alignment < base_type->ctype.alignment)
 		append(out, " __attribute__((packed, aligned(%lu)))", alignment);
