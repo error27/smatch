@@ -134,6 +134,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 	unsigned long bit_size, align_bit_mask;
 	unsigned long alignment;
 	int base_size;
+	bool packed;
 
 	bit_size = info->bit_size;
 	base_size = sym->bit_size; 
@@ -149,7 +150,9 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->flex_array = sym;
 	}
 
-	alignment = info->packed ? 1 : sym->ctype.alignment;
+	/* #pragma pack places bitfields the same way as packed does */
+	packed = info->packed || (info->pack_align && is_bitfield_type(sym));
+	alignment = packed ? 1 : sym->ctype.alignment;
 	if (info->pack_align && alignment > info->pack_align)
 		alignment = info->pack_align;
 	align_bit_mask = bytes_to_bits(alignment) - 1;
@@ -163,7 +166,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		// Zero-width fields just fill up the unit.
 		int width = base_size ? : (bit_offset ? room : 0);
 
-		if (width > room && !info->packed) {
+		if (width > room && !packed) {
 			bit_size = (bit_size + align_bit_mask) & ~align_bit_mask;
 			bit_offset = 0;
 		}
@@ -173,7 +176,7 @@ static void lay_out_struct(struct symbol *sym, struct struct_union_info *info)
 		info->bit_size = bit_size + width;
 		// warning (sym->pos, "bitfield: offset=%d:%d  size=:%d", sym->offset, sym->bit_offset, width);
 
-		if (info->packed && sym->type == SYM_NODE)
+		if (packed && sym->type == SYM_NODE)
 			sym->packed = 1;
 		return;
 	}

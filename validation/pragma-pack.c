@@ -19,6 +19,11 @@ struct h { char c; int i;
 #pragma pack(1)
 };
 #pragma pack()
+#pragma pack(push, 1)
+struct i { int a:12; short b:14; char c:5; };
+#pragma pack(4)
+struct j { int a:24; int b:27; char c:6; int d[2]; };
+#pragma pack(pop)
 
 int fn(void)
 {
@@ -39,6 +44,9 @@ _Static_assert(sizeof(struct e) == 5, "e");
 _Static_assert(sizeof(struct f) == 8, "f");
 _Static_assert(sizeof(struct g) == 8, "g");
 _Static_assert(sizeof(struct h) == 5, "h");
+_Static_assert(sizeof(struct i) == 4 && _Alignof(struct i) == 1, "i");
+_Static_assert(sizeof(struct j) == 16 && _Alignof(struct j) == 4, "j");
+_Static_assert(__builtin_offsetof(struct j, d) == 8, "j.d");
 
 /*
  * check-name: pragma-pack
