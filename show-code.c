@@ -3684,6 +3684,7 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
 	if (type->pack_align) {
 		if (base_type && base_type->type == SYM_BITFIELD)
 			return;
+		alignment = member_alignment(member, type->packed);
 		if (alignment > type->pack_align)
 			alignment = type->pack_align;
 		if (alignment > 1)
@@ -3692,9 +3693,15 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
 	}
 	if (!base_type || base_type->type == SYM_BITFIELD || !alignment)
 		return;
-	/* A packed struct ignores the alignment of a member's typedef. */
-	if (type->packed)
+	/*
+	 * A packed struct ignores the alignment of a member's typedef, but
+	 * not an aligned() attribute on the member.
+	 */
+	if (type->packed) {
+		if (member->aligned_attr && alignment > 1)
+			append(out, " __attribute__((aligned(%lu)))", alignment);
 		return;
+	}
 	/*
 	 * An unexamined struct has no alignment yet, so the member's
 	 * alignment comes from a typedef or attribute.
@@ -3706,6 +3713,7 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
 			append(out, " __attribute__((aligned(%lu)))", alignment);
 		return;
 	}
+	alignment = member_alignment(member, false);
 	if (alignment == base_type->ctype.alignment)
 		return;
 	if (alignment < base_type->ctype.alignment)
@@ -3722,7 +3730,7 @@ static void show_member_alignment(struct code_buffer *out, struct symbol *type,
  */
 static unsigned long tag_alignment(struct symbol *type)
 {
-	unsigned long natural = 1;
+	unsigned long natural = 1, alignment;
 	struct symbol *member;
 
 	if (!type->examined || type->packed)
@@ -3731,8 +3739,12 @@ static unsigned long tag_alignment(struct symbol *type)
 		/* Unnamed bitfields do not affect alignment. */
 		if (!member->ident && is_bitfield_type(member))
 			continue;
-		if (member->ctype.alignment > natural)
-			natural = member->ctype.alignment;
+		if (is_bitfield_type(member))
+			alignment = member->ctype.alignment;
+		else
+			alignment = member_alignment(member, false);
+		if (alignment > natural)
+			natural = alignment;
 	} END_FOR_EACH_PTR(member);
 	if (type->ctype.alignment > natural)
 		return type->ctype.alignment;
