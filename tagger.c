@@ -65,13 +65,20 @@ struct global_definition {
 	struct global_definition *hash_next;
 };
 
-struct source_reader {
+struct source_file {
 	const char *filename;
-	FILE *file;
-	char *line;
-	size_t capacity;
-	unsigned int line_number;
-	struct source_reader *next;
+	char *data;
+	size_t size;
+	size_t *lines;
+	unsigned int nr_lines;
+	unsigned int lines_capacity;
+	struct source_file *hash_next;
+};
+
+struct stream_file_number {
+	int cached;
+	int ret;
+	unsigned int number;
 };
 
 struct compound_definition {
@@ -89,7 +96,7 @@ struct macro_definition {
 #define TAG_MAX_RETRIES 1000
 #define GLOBAL_HASH_SIZE 1024
 #define MACRO_HASH_SIZE 1024
-#define MAX_SOURCE_READERS 64
+#define SOURCE_HASH_SIZE 1024
 #define MAX_FILE_NUMBER 0xffffff
 #define MAX_LINE_NUMBER 0xffffff
 #define MAX_POSITION 0x3ff
@@ -102,8 +109,13 @@ static struct global_definition *global_definitions;
 static struct global_definition **next_global_definition =
 	&global_definitions;
 static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
-static struct source_reader *source_readers;
-static unsigned int nr_source_readers;
+static struct source_file *source_hash[SOURCE_HASH_SIZE];
+static struct source_file **stream_sources;
+static unsigned int nr_stream_sources;
+static char *source_line;
+static size_t source_line_size;
+static struct stream_file_number *stream_file_numbers;
+static unsigned int nr_stream_file_numbers;
 static struct compound_definition *compound_definitions;
 static struct macro_definition *macro_hash[MACRO_HASH_SIZE];
 
@@ -181,6 +193,40 @@ static int get_file_number(const char *filename, unsigned int *number)
 	return 0;
 }
 
+static void *grow_stream_array(void *array, unsigned int *nr, size_t size,
+			       unsigned int stream)
+{
+	unsigned int new_nr = *nr;
+
+	if (stream < *nr)
+		return array;
+	while (new_nr <= stream)
+		new_nr = new_nr ? new_nr * 2 : 256;
+	array = realloc(array, new_nr * size);
+	if (!array)
+		die("out of memory\n");
+	memset((char *)array + *nr * size, 0, (new_nr - *nr) * size);
+	*nr = new_nr;
+	return array;
+}
+
+static int get_stream_file_number(unsigned int stream, unsigned int *number)
+{
+	struct stream_file_number *cache;
+
+	stream_file_numbers = grow_stream_array(stream_file_numbers,
+						&nr_stream_file_numbers,
+						sizeof(*stream_file_numbers),
+						stream);
+	cache = &stream_file_numbers[stream];
+	if (!cache->cached) {
+		cache->ret = get_file_number(stream_name(stream), &cache->number);
+		cache->cached = 1;
+	}
+	*number = cache->number;
+	return cache->ret;
+}
+
 static void save_tag(struct position *pos, const char *name,
 		     enum destination_type type, unsigned int dest,
 		     unsigned int dest_line, unsigned int dest_pos)
@@ -189,7 +235,7 @@ static void save_tag(struct position *pos, const char *name,
 	unsigned int file;
 
 	(void)name;
-	if (get_file_number(stream_name(pos->stream), &file))
+	if (get_stream_file_number(pos->stream, &file))
 		return;
 	if (file > MAX_FILE_NUMBER || pos->line > MAX_LINE_NUMBER ||
 	    pos->pos > MAX_POSITION || dest > MAX_FILE_NUMBER ||
@@ -230,7 +276,7 @@ static void save_global_implementation(struct symbol *sym,
 		if (!strcmp(definition->name, name))
 			return;
 	}
-	if (get_file_number(stream_name(pos->stream), &file))
+	if (get_stream_file_number(pos->stream, &file))
 		return;
 	if (file > MAX_FILE_NUMBER || pos->line > MAX_LINE_NUMBER ||
 	    pos->pos > MAX_POSITION)
@@ -317,63 +363,100 @@ static int same_position(struct position *one, struct position *two)
 	       one->pos == two->pos;
 }
 
-static struct source_reader *get_source_reader(const char *filename)
+static struct source_file *load_source_file(const char *filename)
 {
-	struct source_reader *reader;
-	struct source_reader **prev;
-	struct source_reader **last;
+	struct source_file *source;
+	size_t capacity = 0;
+	size_t len;
+	size_t i;
+	FILE *file;
 
-	for (prev = &source_readers; (reader = *prev); prev = &reader->next) {
-		if (!strcmp(reader->filename, filename)) {
-			*prev = reader->next;
-			reader->next = source_readers;
-			source_readers = reader;
-			return reader;
-		}
-	}
-	reader = calloc(1, sizeof(*reader));
-	if (!reader)
+	source = calloc(1, sizeof(*source));
+	if (!source)
 		die("out of memory\n");
-	reader->filename = filename;
-	reader->file = fopen(filename, "r");
-	if (!reader->file) {
-		free(reader);
-		return NULL;
-	}
-	reader->next = source_readers;
-	source_readers = reader;
-	nr_source_readers++;
-	if (nr_source_readers <= MAX_SOURCE_READERS)
-		return reader;
+	source->filename = filename;
+	file = fopen(filename, "r");
+	if (!file)
+		return source;
+	do {
+		if (source->size == capacity) {
+			capacity = capacity ? capacity * 2 : 65536;
+			source->data = realloc(source->data, capacity);
+			if (!source->data)
+				die("out of memory\n");
+		}
+		len = fread(source->data + source->size, 1,
+			    capacity - source->size, file);
+		source->size += len;
+	} while (len);
+	fclose(file);
 
-	last = &source_readers;
-	while ((*last)->next)
-		last = &(*last)->next;
-	fclose((*last)->file);
-	free((*last)->line);
-	free(*last);
-	*last = NULL;
-	nr_source_readers--;
-	return reader;
+	for (i = 0; i < source->size; i++) {
+		if (i && source->data[i - 1] != '\n')
+			continue;
+		if (source->nr_lines == source->lines_capacity) {
+			source->lines_capacity = source->lines_capacity ?
+						 source->lines_capacity * 2 :
+						 1024;
+			source->lines = realloc(source->lines,
+						source->lines_capacity *
+						sizeof(*source->lines));
+			if (!source->lines)
+				die("out of memory\n");
+		}
+		source->lines[source->nr_lines++] = i;
+	}
+	return source;
+}
+
+static struct source_file *get_source_file(unsigned int stream)
+{
+	struct source_file *source;
+	const char *filename;
+	unsigned int bucket;
+
+	stream_sources = grow_stream_array(stream_sources, &nr_stream_sources,
+					   sizeof(*stream_sources), stream);
+	if (stream_sources[stream])
+		return stream_sources[stream];
+
+	filename = stream_name(stream);
+	bucket = global_hash_bucket(filename);
+	for (source = source_hash[bucket]; source; source = source->hash_next) {
+		if (strcmp(source->filename, filename) == 0)
+			break;
+	}
+	if (!source) {
+		source = load_source_file(filename);
+		source->hash_next = source_hash[bucket];
+		source_hash[bucket] = source;
+	}
+	stream_sources[stream] = source;
+	return source;
 }
 
 static char *get_source_line(struct position *pos)
 {
-	struct source_reader *reader;
+	struct source_file *source;
+	size_t start, end;
 
-	reader = get_source_reader(stream_name(pos->stream));
-	if (!reader)
+	source = get_source_file(pos->stream);
+	if (pos->line < 1 || pos->line > source->nr_lines)
 		return NULL;
-	if (pos->line < reader->line_number) {
-		rewind(reader->file);
-		reader->line_number = 0;
+	start = source->lines[pos->line - 1];
+	if (pos->line < source->nr_lines)
+		end = source->lines[pos->line];
+	else
+		end = source->size;
+	if (end - start + 1 > source_line_size) {
+		source_line_size = end - start + 1;
+		source_line = realloc(source_line, source_line_size);
+		if (!source_line)
+			die("out of memory\n");
 	}
-	while (reader->line_number < pos->line) {
-		if (getline(&reader->line, &reader->capacity, reader->file) < 0)
-			return NULL;
-		reader->line_number++;
-	}
-	return reader->line;
+	memcpy(source_line, source->data + start, end - start);
+	source_line[end - start] = '\0';
+	return source_line;
 }
 
 static int identifier_char(char c)
@@ -636,7 +719,7 @@ static void save_definition_type(struct symbol *sym,
 		save_tag(&source_pos, name, BASE, 0, 0, 0);
 		return;
 	}
-	if (get_file_number(stream_name(dest_pos.stream), &dest))
+	if (get_stream_file_number(dest_pos.stream, &dest))
 		return;
 	save_tag(&source_pos, name, NORMAL, dest, dest_pos.line, dest_pos.pos);
 }
@@ -702,7 +785,7 @@ static void save_function_argument_positions(struct symbol *sym)
 			continue;
 		source_pos = argument_position(argument);
 		dest_pos = argument_position(destination);
-		if (get_file_number(stream_name(dest_pos.stream), &file))
+		if (get_stream_file_number(dest_pos.stream, &file))
 			continue;
 		save_tag(&source_pos, show_ident(argument->ident), NORMAL, file,
 			 dest_pos.line, dest_pos.pos);
@@ -769,7 +852,7 @@ static void record_macro_uses(void)
 	     expansion = expansion->next) {
 		if (!source_position(&expansion->pos))
 			continue;
-		if (get_file_number(stream_name(expansion->definition.stream),
+		if (get_stream_file_number(expansion->definition.stream,
 				    &dest))
 			continue;
 		record_macro_definition(expansion);
@@ -784,7 +867,7 @@ static void record_typedef_uses(void)
 	unsigned int dest;
 
 	for (use = get_typedef_uses(); use; use = use->next) {
-		if (get_file_number(stream_name(use->definition.stream), &dest))
+		if (get_stream_file_number(use->definition.stream, &dest))
 			continue;
 		save_tag(&use->definition, use->name, BASE, 0, 0, 0);
 		save_tag(&use->pos, use->name, NORMAL, dest,
@@ -831,7 +914,7 @@ static void save_function_position(struct symbol *sym, struct position *pos)
 		save_tag(pos, show_ident(sym->ident), BASE_FUNCTION, 0, 0, 0);
 		return;
 	}
-	if (get_file_number(stream_name(implementation_pos.stream), &file))
+	if (get_stream_file_number(implementation_pos.stream, &file))
 		return;
 	save_tag(pos, show_ident(sym->ident), NORMAL, file,
 		 implementation_pos.line, implementation_pos.pos);
@@ -929,7 +1012,7 @@ static void show_identifier(struct position *pos, struct symbol *sym,
 		return;
 	}
 
-	if (get_file_number(stream_name(implementation_pos.stream), &dest))
+	if (get_stream_file_number(implementation_pos.stream, &dest))
 		return;
 	save_tag(pos, show_ident(ident), NORMAL, dest,
 		 implementation_pos.line, implementation_pos.pos);
@@ -1286,7 +1369,7 @@ static void report_member_definition(struct symbol *sym, struct symbol *member)
 	if (sym && sym->ident && member->ident &&
 	    (sym->type == SYM_STRUCT || sym->type == SYM_UNION)) {
 		if (enclosing_compound_position(sym, &owner_pos) &&
-		    !get_file_number(stream_name(owner_pos.stream), &file)) {
+		    !get_stream_file_number(owner_pos.stream, &file)) {
 			save_tag(&pos, show_ident(member->ident), BASE_MEMBER,
 				 file, owner_pos.line, owner_pos.pos);
 			return;
@@ -1330,7 +1413,7 @@ static void report_label(struct position *pos, struct symbol *label,
 	if (!label->stmt)
 		return;
 	dest_pos = label->stmt->pos;
-	if (get_file_number(stream_name(dest_pos.stream), &file))
+	if (get_stream_file_number(dest_pos.stream, &file))
 		return;
 	save_tag(pos, show_ident(label->ident), NORMAL, file,
 		 dest_pos.line, dest_pos.pos);
