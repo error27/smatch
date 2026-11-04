@@ -61,6 +61,7 @@ struct global_definition {
 	unsigned int file;
 	unsigned int line;
 	unsigned int pos;
+	enum destination_type type;
 	struct global_definition *next;
 	struct global_definition *hash_next;
 };
@@ -109,6 +110,9 @@ static struct global_definition *global_definitions;
 static struct global_definition **next_global_definition =
 	&global_definitions;
 static struct global_definition *global_hash[GLOBAL_HASH_SIZE];
+static struct global_definition *definitions;
+static struct global_definition **next_definition = &definitions;
+static int definitions_only;
 static struct source_file *source_hash[SOURCE_HASH_SIZE];
 static struct source_file **stream_sources;
 static unsigned int nr_stream_sources;
@@ -297,6 +301,37 @@ static void save_global_implementation(struct symbol *sym,
 	next_global_definition = &definition->next;
 }
 
+static void save_definition(struct symbol *sym, struct position *pos)
+{
+	struct global_definition *definition;
+	struct symbol *type;
+	unsigned int file;
+
+	if (!sym->ident || sym->ident->reserved)
+		return;
+	type = sym->ctype.base_type;
+	if (type && type->type == SYM_FN && sym->definition != sym)
+		return;
+	if (get_stream_file_number(pos->stream, &file))
+		return;
+	if (file > MAX_FILE_NUMBER || pos->line > MAX_LINE_NUMBER ||
+	    pos->pos > MAX_POSITION)
+		return;
+
+	definition = calloc(1, sizeof(*definition));
+	if (!definition)
+		die("out of memory\n");
+	definition->name = strdup(show_ident(sym->ident));
+	if (!definition->name)
+		die("out of memory\n");
+	definition->file = file;
+	definition->line = pos->line;
+	definition->pos = pos->pos;
+	definition->type = type && type->type == SYM_FN ? BASE_FUNCTION : BASE;
+	*next_definition = definition;
+	next_definition = &definition->next;
+}
+
 static void save_global_symbol(struct symbol *sym, struct position *pos)
 {
 	struct symbol *type;
@@ -309,6 +344,9 @@ static void save_global_symbol(struct symbol *sym, struct position *pos)
 		return;
 	if (type && type->type == SYM_FN &&
 	    !type->stmt && !type->inline_stmt)
+		return;
+	save_definition(sym, pos);
+	if (definitions_only)
 		return;
 	save_global_implementation(sym, pos);
 }
@@ -1092,6 +1130,26 @@ static int put_global_definition(DB_TXN *txn, DB *globals,
 	return ret;
 }
 
+static int put_definition(DB_TXN *txn, DB *db,
+			  struct global_definition *definition)
+{
+	unsigned char value_buf[8];
+	DBT key = { 0 };
+	DBT value = { 0 };
+	int ret;
+
+	encode_position(value_buf, definition->file, definition->line,
+			definition->pos, definition->type);
+	key.data = (void *)definition->name;
+	key.size = strlen(definition->name);
+	value.data = value_buf;
+	value.size = sizeof(value_buf);
+	ret = db->put(db, txn, &key, &value, DB_NODUPDATA);
+	if (ret == DB_KEYEXIST)
+		return 0;
+	return ret;
+}
+
 static int mark_parsed_files(DB_ENV *env, DB *parsed)
 {
 	unsigned char key_buf[3];
@@ -1156,9 +1214,11 @@ retry:
 	return ret;
 }
 
-static int write_global_batch(DB_ENV *env, DB *globals,
+static int write_global_batch(DB_ENV *env, DB *db,
 			      struct global_definition *first,
-			      struct global_definition *end)
+			      struct global_definition *end,
+			      int (*put)(DB_TXN *txn, DB *db,
+					 struct global_definition *definition))
 {
 	struct global_definition *definition;
 	DB_TXN *txn;
@@ -1171,7 +1231,7 @@ retry:
 		return ret;
 	for (definition = first; definition != end;
 	     definition = definition->next) {
-		ret = put_global_definition(txn, globals, definition);
+		ret = put(txn, db, definition);
 		if (ret)
 			break;
 	}
@@ -1194,6 +1254,7 @@ static int write_tags(const char *db_dir)
 	DB *destination = NULL;
 	DB *globals = NULL;
 	DB *parsed = NULL;
+	DB *defs = NULL;
 	struct global_definition *first_global;
 	struct global_definition *end_global;
 	struct tag *first;
@@ -1259,6 +1320,16 @@ static int write_tags(const char *db_dir)
 			  DB_AUTO_COMMIT | DB_THREAD, 0);
 	if (ret)
 		goto out;
+	ret = db_create(&defs, env, 0);
+	if (ret)
+		goto out;
+	ret = defs->set_flags(defs, DB_DUPSORT);
+	if (ret)
+		goto out;
+	ret = defs->open(defs, NULL, "definitions.db", NULL, DB_BTREE,
+			 DB_AUTO_COMMIT | DB_CREATE | DB_THREAD, 0);
+	if (ret)
+		goto out;
 
 	first = tags;
 	while (first) {
@@ -1275,16 +1346,32 @@ static int write_tags(const char *db_dir)
 		end_global = first_global;
 		for (count = 0; end_global && count < TAG_BATCH_SIZE; count++)
 			end_global = end_global->next;
-		ret = write_global_batch(env, globals, first_global, end_global);
+		ret = write_global_batch(env, globals, first_global, end_global,
+					 put_global_definition);
 		if (ret)
 			goto out;
 		first_global = end_global;
 	}
-	ret = mark_parsed_files(env, parsed);
-	if (ret)
-		goto out;
+	first_global = definitions;
+	while (first_global) {
+		end_global = first_global;
+		for (count = 0; end_global && count < TAG_BATCH_SIZE; count++)
+			end_global = end_global->next;
+		ret = write_global_batch(env, defs, first_global, end_global,
+					 put_definition);
+		if (ret)
+			goto out;
+		first_global = end_global;
+	}
+	if (!definitions_only) {
+		ret = mark_parsed_files(env, parsed);
+		if (ret)
+			goto out;
+	}
 	ret = env->txn_checkpoint(env, 0, 0, 0);
 out:
+	if (defs)
+		defs->close(defs, 0);
 	if (parsed)
 		parsed->close(parsed, 0);
 	if (globals)
@@ -1425,6 +1512,20 @@ static void report_label(struct position *pos, struct symbol *label,
 		 dest_pos.line, dest_pos.pos);
 }
 
+static void record_definitions(void)
+{
+	struct position pos;
+	struct symbol *sym;
+
+	FOR_EACH_PTR(global_scope->symbols, sym) {
+		if (input_streams[sym->pos.stream].fd == -1 ||
+		    sym->namespace != NS_SYMBOL)
+			continue;
+		pos = identifier_position(&sym->pos, sym->ident);
+		save_global_symbol(sym, &pos);
+	} END_FOR_EACH_PTR(sym);
+}
+
 int main(int argc, char **argv)
 {
 	static struct reporter reporter = {
@@ -1437,10 +1538,18 @@ int main(int argc, char **argv)
 	};
 	struct string_list *filelist = NULL;
 	const char *db_dir;
+	char *file;
 	int i;
 
+	if (argc > 1 && strcmp(argv[1], "--definitions") == 0) {
+		definitions_only = 1;
+		for (i = 1; i < argc - 1; i++)
+			argv[i] = argv[i + 1];
+		argc--;
+		argv[argc] = NULL;
+	}
 	if (argc < 2)
-		die("usage: tagger <database directory> [sparse options] file.c\n");
+		die("usage: tagger [--definitions] <database directory> [sparse options] file.c\n");
 	db_dir = argv[1];
 	if (open_file_numbers(db_dir))
 		die("tagger: cannot open file number database\n");
@@ -1451,10 +1560,17 @@ int main(int argc, char **argv)
 
 	sparse_initialize(argc, argv, &filelist);
 	source_files = filelist;
-	dissect_show_all_symbols = 1;
-	dissect(&reporter, filelist);
-	record_macro_uses();
-	record_typedef_uses();
+	if (definitions_only) {
+		FOR_EACH_PTR(filelist, file) {
+			sparse(file);
+		} END_FOR_EACH_PTR(file);
+		record_definitions();
+	} else {
+		dissect_show_all_symbols = 1;
+		dissect(&reporter, filelist);
+		record_macro_uses();
+		record_typedef_uses();
+	}
 
 	i = write_tags(db_dir) != 0;
 	close_file_numbers();

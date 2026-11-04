@@ -50,6 +50,12 @@ try:
 			  db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
 	parsed_files.close()
 
+	definitions = db.DB(env)
+	definitions.set_flags(db.DB_DUPSORT)
+	definitions.open("definitions.db", None, db.DB_BTREE,
+			 db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
+	definitions.close()
+
 	file_numbers = db.DB(env)
 	file_numbers.open("file_numbers.db", None, db.DB_BTREE,
 			  db.DB_AUTO_COMMIT | db.DB_CREATE | db.DB_THREAD)
