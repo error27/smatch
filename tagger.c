@@ -1228,6 +1228,9 @@ static int write_tags(const char *db_dir)
 	ret = env->open(env, db_dir, flags, 0);
 	if (ret)
 		goto out;
+	ret = env->log_set_config(env, DB_LOG_AUTO_REMOVE, 1);
+	if (ret)
+		goto out;
 	ret = db_create(&source, env, 0);
 	if (ret)
 		goto out;
@@ -1278,6 +1281,9 @@ static int write_tags(const char *db_dir)
 		first_global = end_global;
 	}
 	ret = mark_parsed_files(env, parsed);
+	if (ret)
+		goto out;
+	ret = env->txn_checkpoint(env, 0, 0, 0);
 out:
 	if (parsed)
 		parsed->close(parsed, 0);

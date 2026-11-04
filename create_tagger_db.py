@@ -27,6 +27,7 @@ try:
 	env.set_lk_detect(db.DB_LOCK_DEFAULT)
 	env.open(db_dir, db.DB_CREATE | db.DB_INIT_LOCK | db.DB_INIT_LOG |
 		 db.DB_INIT_MPOOL | db.DB_INIT_TXN | db.DB_THREAD)
+	env.log_set_config(db.DB_LOG_AUTO_REMOVE, 1)
 
 	source = db.DB(env)
 	source.open("source.db", None, db.DB_BTREE,
@@ -80,5 +81,6 @@ try:
 	finally:
 		file_names.close()
 		file_numbers.close()
+	env.txn_checkpoint()
 finally:
 	env.close()
