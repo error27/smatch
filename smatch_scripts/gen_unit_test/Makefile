@@ -7,7 +7,7 @@ EXTRACT_CFLAGS = -std=gnu11 -fms-extensions -fno-strict-aliasing \
 		 -fno-builtin -fno-common -funsigned-char -fshort-wchar \
 		 -fno-pie -w
 LDFLAGS ?= -no-pie
-PROG ?= reproducer
+PROG ?= unit_test
 
 SRCS := $(filter-out ./stubs.c,$(shell find . -name '*.c'))
 OBJS := $(SRCS:.c=.o)

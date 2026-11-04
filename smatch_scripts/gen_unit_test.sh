@@ -15,7 +15,7 @@ extract=${EXTRACT:-$script_dir/../extract}
 db=smatch_db.sqlite
 out_dir=test
 depth=2
-stop_list=$script_dir/reproducer/kernel.stop_list
+stop_list=$script_dir/gen_unit_test/kernel.stop_list
 
 usage() {
 	echo "usage: $0 [-d db] [-o out_dir] [-D depth] [-s stop_list] function [file.c]" >&2
@@ -57,7 +57,7 @@ root_file=${2#./}
 calls=$db.calls
 defs=$db.defs
 if [ ! -s "$calls" ] || [ "$db" -nt "$calls" ]; then
-	echo "reproducer: reading the calls from $db"
+	echo "gen_unit_test: reading the calls from $db"
 	sqlite3 -separator ' ' "$db" "
 		SELECT DISTINCT h.value, c.caller, c.function, c.static
 		FROM caller_info c JOIN hash_string h ON c.file = h.hash
@@ -65,7 +65,7 @@ if [ ! -s "$calls" ] || [ "$db" -nt "$calls" ]; then
 	mv "$calls.tmp" "$calls"
 fi
 if [ ! -s "$defs" ] || [ "$db" -nt "$defs" ]; then
-	echo "reproducer: reading the function definitions from $db"
+	echo "gen_unit_test: reading the function definitions from $db"
 	sqlite3 -separator ' ' "$db" "
 		SELECT DISTINCT h.value, r.function, r.static
 		FROM return_states r JOIN hash_string h ON r.file = h.hash;" > "$defs.tmp"
@@ -175,7 +175,7 @@ log=$out_dir/extract.log
 : > "$log"
 for file in $(awk '!seen[$1]++ { print $1 }' "$out_dir/functions"); do
 	if ! mapfile -t flags < <(compile_flags "$file") || [ ${#flags[@]} -eq 0 ]; then
-		echo "reproducer: $file was not built, so it is stubbed"
+		echo "gen_unit_test: $file was not built, so it is stubbed"
 		continue
 	fi
 	names=$(awk -v f="$file" '$1 == f { print $2 }' "$out_dir/functions" | paste -sd,)
@@ -192,7 +192,7 @@ for file in $(awk '!seen[$1]++ { print $1 }' "$out_dir/functions"); do
 		if [ -z "$missing" ] || [ "$missing" = "$func" ] ||
 		   ! [[ ",$names," == *",$missing,"* ]]; then
 			[ "$file" != "$root_file" ] || die "extracting $file failed, see $log"
-			echo "reproducer: extracting $file failed, so it is stubbed"
+			echo "gen_unit_test: extracting $file failed, so it is stubbed"
 			break
 		fi
 		names=$(echo ",$names," | sed "s/,$missing,/,/; s/^,//; s/,$//")
@@ -200,7 +200,7 @@ for file in $(awk '!seen[$1]++ { print $1 }' "$out_dir/functions"); do
 	done
 done
 
-cp "$script_dir/reproducer/Makefile" "$script_dir/reproducer/gen_stubs.sh" "$out_dir/"
-echo "reproducer: extracted $(wc -l < "$out_dir/functions") functions from" \
+cp "$script_dir/gen_unit_test/Makefile" "$script_dir/gen_unit_test/gen_stubs.sh" "$out_dir/"
+echo "gen_unit_test: extracted $(wc -l < "$out_dir/functions") functions from" \
      "$(awk '!seen[$1]++' "$out_dir/functions" | wc -l) files into $out_dir"
 make -C "$out_dir"

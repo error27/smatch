@@ -1,4 +1,4 @@
-# reproducer.sh does not extract functions which match these.  They are
+# gen_unit_test.sh does not extract functions which match these.  They are
 # stubbed out instead.  Each line is "file REGEX" to match the source file
 # which defines the function or "func REGEX" to match its name.
 
