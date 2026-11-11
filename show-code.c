@@ -1267,6 +1267,7 @@ struct symbol *show_code_minimal_root;
  * extract's --cerberus sets them.
  */
 bool option_remove_typeof;
+bool option_remove_address_space;
 
 /*
  * With --minimal, everything which can be declared is declared, except the
@@ -1805,10 +1806,15 @@ static const char *show_gcc_modifiers(unsigned long modifiers)
 	return buffer;
 }
 
-/* GCC only knows the x86 named address spaces, not Sparse's __user etc. */
+/*
+ * GCC only knows the x86 named address spaces, not Sparse's __user etc.
+ * option_remove_address_space drops those too.  That changes what the
+ * code means: a __seg_gs access is relative to the GS base (the per-cpu
+ * area in the kernel), and without it the access is to the plain address.
+ */
 static const char *show_gcc_address_space(struct ident *as)
 {
-	if (!as)
+	if (!as || option_remove_address_space)
 		return "";
 	if (strcmp(as->name, "__seg_fs") == 0)
 		return "__seg_fs ";

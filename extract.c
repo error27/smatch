@@ -202,6 +202,7 @@ int main(int argc, char **argv)
 		} else if (strcmp(argv[1], "--cerberus") == 0) {
 			/* Print code the Cerberus C front end accepts. */
 			option_remove_typeof = true;
+			option_remove_address_space = true;
 		} else if (strncmp(argv[1], "--func=", 7) == 0) {
 			if (argv[1][7] == '\0')
 				die("function name is empty");
