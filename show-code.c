@@ -1263,6 +1263,12 @@ static void show_dependency_cycle(struct code_buffer *out,
 struct symbol *show_code_minimal_root;
 
 /*
+ * Options for C front ends which do not accept every GNU extension.
+ * extract's --cerberus sets them.
+ */
+bool option_remove_typeof;
+
+/*
  * With --minimal, everything which can be declared is declared, except the
  * root function and inline functions.
  */
@@ -1898,6 +1904,30 @@ static void show_typeof_expression(struct code_buffer *out,
 }
 
 /*
+ * With option_remove_typeof, __typeof_unqual__(expr) is printed as the type
+ * it stands for.  It removes the qualifiers and address space of the
+ * expression's type, which belong to the symbol nodes, so only the base type
+ * below them is kept; qualifiers further down, on a pointer's target or an
+ * array's elements, stay.  An anonymous struct, union or enum cannot be
+ * spelled outside its definition, so NULL keeps the __typeof_unqual__().
+ */
+static struct symbol *removed_typeof_unqual(struct symbol *type)
+{
+	struct symbol *base;
+
+	if (!option_remove_typeof || !is_typeof(type))
+		return NULL;
+	if (!type->typeof_is_unqual && type->type != SYM_TYPEOF_UNQUAL)
+		return NULL;
+	base = typeof_base_type(type);
+	while (base && (base->type == SYM_NODE || base->type == SYM_BITFIELD))
+		base = base->ctype.base_type;
+	if (!base || base == &bad_ctype || find_anonymous_tag(base))
+		return NULL;
+	return base;
+}
+
+/*
  * Based on show_c_typename(), but emit compilable GCC code rather than
  * Sparse checker types.  Keep source-preservation workarounds here for
  * evaluated types, including typeof(), __typeof_unqual__(), va_list, and
@@ -1929,6 +1959,10 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 				type_name_prepend(name, " ");
 			type_name_prepend(name, "__auto_type");
 			goto out;
+		}
+		if (removed_typeof_unqual(type)) {
+			type = removed_typeof_unqual(type);
+			continue;
 		}
 		if (is_typeof(type)) {
 			struct code_buffer expression_out = {
@@ -2294,6 +2328,14 @@ static void show_type_expression(struct code_buffer *out, struct expression *e)
 {
 	struct symbol *type = e->symbol ? e->symbol->ctype.base_type : NULL;
 
+	if (removed_typeof_unqual(e->symbol)) {
+		show_c_typename(out, removed_typeof_unqual(e->symbol));
+		return;
+	}
+	if (removed_typeof_unqual(type)) {
+		show_c_typename(out, removed_typeof_unqual(type));
+		return;
+	}
 	if (is_typeof(e->symbol)) {
 		append(out, "%s(", e->symbol->typeof_is_unqual ||
 		       e->symbol->type == SYM_TYPEOF_UNQUAL ?

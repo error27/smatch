@@ -374,6 +374,7 @@ extern void show_symbol_list(struct symbol_list *);
 extern void show_expr(struct expression *expr, char *buf, size_t len);
 extern void show_stmt(struct statement *stmt, char *buf, size_t len);
 extern struct symbol *show_code_minimal_root;
+extern bool option_remove_typeof;
 extern void show_code_reset(void);
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
 extern void show_main(struct symbol *function, char *buf, size_t len);

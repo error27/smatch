@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	FILE *out;
 
 	if (argc < 2)
-		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [--main] [--out-dir=DIR] [sparse options] file.c");
+		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [--main] [--cerberus] [--out-dir=DIR] [sparse options] file.c");
 	root_name = NULL;
 	out_dir = NULL;
 	all_funcs = false;
@@ -199,6 +199,9 @@ int main(int argc, char **argv)
 			minimal = true;
 		} else if (strcmp(argv[1], "--main") == 0) {
 			want_main = true;
+		} else if (strcmp(argv[1], "--cerberus") == 0) {
+			/* Print code the Cerberus C front end accepts. */
+			option_remove_typeof = true;
 		} else if (strncmp(argv[1], "--func=", 7) == 0) {
 			if (argv[1][7] == '\0')
 				die("function name is empty");
