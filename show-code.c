@@ -262,6 +262,32 @@ static void collect_dependencies(struct sym_dependency *dependency,
 static void add_type_dependency(struct sym_dependency *dependency,
 				struct symbol *type, bool decl_enough);
 
+static struct symbol *strip_type_wrappers(struct symbol *type);
+
+/*
+ * The type "*ptr" has.  Sparse keeps the qualifiers and address space of
+ * what a pointer points to on the SYM_PTR, so put them on a node above the
+ * target, or "&*ptr" would lose them.
+ */
+static struct symbol *pointer_target_type(struct position pos,
+					  struct symbol *ptr)
+{
+	struct symbol *target = strip_type_wrappers(show_base_type(ptr));
+	struct symbol *node;
+	unsigned long modifiers;
+
+	if (!ptr || ptr->type != SYM_PTR || !target)
+		return target;
+	modifiers = ptr->ctype.modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
+	if (!modifiers && !ptr->ctype.as)
+		return target;
+	node = alloc_symbol(pos, SYM_NODE);
+	node->ctype.base_type = target;
+	node->ctype.modifiers = modifiers;
+	node->ctype.as = ptr->ctype.as;
+	return node;
+}
+
 /*
  * Examining a typeof() evaluates the expression and changes the symbol to a
  * SYM_NODE in place, so a later output file would see different types.
@@ -950,7 +976,7 @@ static struct symbol *collect_expression_dependencies_rec(struct sym_dependency 
 		if (!type) {
 			if (e->op == '*' && expression_type) {
 				type = strip_type_wrappers(expression_type);
-				type = strip_type_wrappers(show_base_type(type));
+				type = pointer_target_type(e->pos, type);
 			} else if (e->op == '&' && expression_type) {
 				type = alloc_symbol(e->pos, SYM_PTR);
 				type->ctype.base_type = expression_type;
@@ -1268,6 +1294,7 @@ struct symbol *show_code_minimal_root;
  */
 bool option_remove_typeof;
 bool option_remove_address_space;
+bool option_remove_auto_type;
 
 /*
  * With --minimal, everything which can be declared is declared, except the
@@ -1934,6 +1961,52 @@ static struct symbol *removed_typeof_unqual(struct symbol *type)
 }
 
 /*
+ * With option_remove_auto_type, "__auto_type x = init" is printed with the
+ * type GCC gives x: the type of init after lvalue conversion.  That removes
+ * the qualifiers and address space of init, which belong to the symbol
+ * nodes, and turns an array into a pointer to its elements, which keep the
+ * array's qualifiers, and a function into a pointer to it.
+ *
+ * Sparse has evaluated init, so its ctype is the exact type.  Otherwise,
+ * typeof_base_type() works out the type from the symbol's initializer, as it
+ * does for a typeof().  NULL keeps the __auto_type, for the same reasons as
+ * removed_typeof_unqual().
+ */
+static struct symbol *get_auto_type(struct symbol *symbol)
+{
+	struct symbol *base, *node, *ptr;
+	unsigned long modifiers = 0;
+	struct ident *as = NULL;
+
+	if (!option_remove_auto_type || !symbol->initializer)
+		return NULL;
+	base = symbol->initializer->ctype;
+	if (!base || symbol->ctype.base_type == &autotype_ctype)
+		base = typeof_base_type(symbol);
+	while (base && (base->type == SYM_NODE || base->type == SYM_BITFIELD)) {
+		modifiers |= base->ctype.modifiers & (MOD_QUALIFIER | MOD_ATOMIC);
+		if (base->ctype.as)
+			as = base->ctype.as;
+		base = base->ctype.base_type;
+	}
+	if (!base || base == &bad_ctype || find_anonymous_tag(base))
+		return NULL;
+	if (base->type == SYM_ARRAY) {
+		node = alloc_symbol(symbol->pos, SYM_NODE);
+		node->ctype.base_type = base->ctype.base_type;
+		node->ctype.modifiers = modifiers | base->ctype.modifiers;
+		node->ctype.as = base->ctype.as ? base->ctype.as : as;
+		base = node;
+	}
+	if (base->type == SYM_NODE || base->type == SYM_FN) {
+		ptr = alloc_symbol(symbol->pos, SYM_PTR);
+		ptr->ctype.base_type = base;
+		base = ptr;
+	}
+	return base;
+}
+
+/*
  * Based on show_c_typename(), but emit compilable GCC code rather than
  * Sparse checker types.  Keep source-preservation workarounds here for
  * evaluated types, including typeof(), __typeof_unqual__(), va_list, and
@@ -1942,6 +2015,7 @@ static struct symbol *removed_typeof_unqual(struct symbol *type)
 static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbol,
 				   struct c_type_name *name)
 {
+	struct symbol *declared = symbol;
 	struct symbol copy;
 	struct symbol *type;
 	struct ident *as = NULL;
@@ -1961,6 +2035,16 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 
 		if (type == &autotype_ctype) {
 			modifiers &= ~MOD_SPECIFIER;
+			if (get_auto_type(declared)) {
+				/* Not the initializer's, which Sparse added. */
+				if (declared->orig_base_type == &autotype_ctype) {
+					modifiers = declared->orig_modifiers &
+						    ~(MOD_DECLARE | MOD_SPECIFIER);
+					as = declared->orig_as;
+				}
+				type = get_auto_type(declared);
+				continue;
+			}
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend(name, "__auto_type");

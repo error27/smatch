@@ -215,6 +215,9 @@ struct symbol {
 			struct alloc_size *alloc_size;
 			struct ctype ctype;
 			struct symbol *orig_base_type;
+			/* the declared ones, before __auto_type adds the initializer's */
+			unsigned long orig_modifiers;
+			struct ident *orig_as;
 			struct symbol_list *arguments;
 			struct statement *stmt;
 			struct symbol_list *symbol_list;
@@ -376,6 +379,7 @@ extern void show_stmt(struct statement *stmt, char *buf, size_t len);
 extern struct symbol *show_code_minimal_root;
 extern bool option_remove_typeof;
 extern bool option_remove_address_space;
+extern bool option_remove_auto_type;
 extern void show_code_reset(void);
 extern void show_sym(struct symbol *sym, char *buf, size_t len);
 extern void show_main(struct symbol *function, char *buf, size_t len);

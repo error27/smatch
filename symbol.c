@@ -331,8 +331,11 @@ static struct symbol *examine_base_type(struct symbol *sym)
 			sym->orig_initializer = copy_type_expression(sym->initializer);
 		type = evaluate_expression(sym->initializer);
 
-		if (!sym->orig_base_type)
+		if (!sym->orig_base_type) {
 			sym->orig_base_type = sym->ctype.base_type;
+			sym->orig_modifiers = sym->ctype.modifiers;
+			sym->orig_as = sym->ctype.as;
+		}
 		if (!type)
 			type = &bad_ctype;
 		if (is_bitfield_type(type)) {

@@ -178,7 +178,7 @@ static void usage(FILE *out)
 "                         uses, except inline functions\n"
 "  --main                 add a main() which calls FUNC (needs --func=FUNC)\n"
 "  --cerberus             print code the Cerberus C front end accepts: no\n"
-"                         __typeof_unqual__ and no __seg_gs/__seg_fs\n"
+"                         __typeof_unqual__, __auto_type or __seg_gs/__seg_fs\n"
 "  --out-dir=DIR          write to DIR/file.c instead\n"
 "  -h, --help             show this help\n"
 "\n"
@@ -237,6 +237,7 @@ int main(int argc, char **argv)
 			/* Print code the Cerberus C front end accepts. */
 			option_remove_typeof = true;
 			option_remove_address_space = true;
+			option_remove_auto_type = true;
 		} else if (strncmp(argv[1], "--func=", 7) == 0) {
 			if (argv[1][7] == '\0')
 				die("function name is empty");
