@@ -2035,19 +2035,21 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 
 		if (type == &autotype_ctype) {
 			modifiers &= ~MOD_SPECIFIER;
+			/* Not the initializer's, which Sparse added. */
+			if (declared->orig_base_type == &autotype_ctype) {
+				modifiers = declared->orig_modifiers &
+					    ~(MOD_DECLARE | MOD_SPECIFIER);
+				as = declared->orig_as;
+			}
 			if (get_auto_type(declared)) {
-				/* Not the initializer's, which Sparse added. */
-				if (declared->orig_base_type == &autotype_ctype) {
-					modifiers = declared->orig_modifiers &
-						    ~(MOD_DECLARE | MOD_SPECIFIER);
-					as = declared->orig_as;
-				}
 				type = get_auto_type(declared);
 				continue;
 			}
 			if (name->start != name->end)
 				type_name_prepend(name, " ");
 			type_name_prepend(name, "__auto_type");
+			type_name_prepend(name, show_gcc_modifiers(modifiers));
+			type_name_prepend(name, show_gcc_address_space(as));
 			goto out;
 		}
 		if (get_typeof_unqual_type(type)) {
