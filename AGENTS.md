@@ -82,6 +82,10 @@ C STYLE
   comparison functions); never write `!strcmp(a, b)`.
 - Kernel declarations must retain the explicit `int` in `signed int` and
   `unsigned int`; do not use bare `signed` or `unsigned`.
+- A function whose name reads as a condition must return bool.  This
+  includes `is_foo()`, `has_foo()` and names built on an adjective or past
+  participle, such as `removed_foo()`.  A function which returns anything
+  else, such as a pointer to a type, gets a verb name, such as `get_foo()`.
 
 
 REPOSITORY STATE
