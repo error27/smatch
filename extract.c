@@ -158,6 +158,34 @@ static void out_dir_path(char *path, size_t size, const char *out_dir,
 	}
 }
 
+static void usage(FILE *out)
+{
+	fprintf(out,
+"usage: extract [options] [sparse options] file.c\n"
+"\n"
+"Print the code in file.c, or some of its functions, as C with the\n"
+"declarations it depends on and without the preprocessor.\n"
+"\n"
+"With no function option, the whole file is written to file.c.extract.\n"
+"\n"
+"  --func=FUNC[,FUNC...]  write FUNC and what it needs to file.c.extract.FUNC\n"
+"                         (the first FUNC names the file)\n"
+"  --last-func            write the last function in file.c to\n"
+"                         file.c.extract.last\n"
+"  --all-funcs            write each function in file.c to file.c.extract.FUNC\n"
+"  --list-funcs           print the names of the functions in file.c\n"
+"  --minimal              only declare, rather than define, what the function\n"
+"                         uses, except inline functions\n"
+"  --main                 add a main() which calls FUNC (needs --func=FUNC)\n"
+"  --cerberus             print code the Cerberus C front end accepts: no\n"
+"                         __typeof_unqual__ and no __seg_gs/__seg_fs\n"
+"  --out-dir=DIR          write to DIR/file.c instead\n"
+"  -h, --help             show this help\n"
+"\n"
+"The extract options must come before the sparse options: the first\n"
+"argument extract does not know, and everything after it, goes to sparse.\n");
+}
+
 int main(int argc, char **argv)
 {
 	struct string_list *files = NULL;
@@ -179,8 +207,10 @@ int main(int argc, char **argv)
 	char *buf;
 	FILE *out;
 
-	if (argc < 2)
-		die("usage: extract [--func=FUNCTION[,FUNCTION...]|--last-func|--all-funcs|--list-funcs] [--minimal] [--main] [--cerberus] [--out-dir=DIR] [sparse options] file.c");
+	if (argc < 2) {
+		usage(stderr);
+		return 1;
+	}
 	root_name = NULL;
 	out_dir = NULL;
 	all_funcs = false;
@@ -189,7 +219,11 @@ int main(int argc, char **argv)
 	minimal = false;
 	want_main = false;
 	while (argc > 1) {
-		if (strcmp(argv[1], "--all-funcs") == 0) {
+		if (strcmp(argv[1], "-h") == 0 ||
+		    strcmp(argv[1], "--help") == 0) {
+			usage(stdout);
+			return 0;
+		} else if (strcmp(argv[1], "--all-funcs") == 0) {
 			all_funcs = true;
 		} else if (strcmp(argv[1], "--list-funcs") == 0) {
 			list_funcs = true;
