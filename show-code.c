@@ -1944,7 +1944,7 @@ static void show_typeof_expression(struct code_buffer *out,
  * array's elements, stay.  An anonymous struct, union or enum cannot be
  * spelled outside its definition, so NULL keeps the __typeof_unqual__().
  */
-static struct symbol *removed_typeof_unqual(struct symbol *type)
+static struct symbol *get_typeof_unqual_type(struct symbol *type)
 {
 	struct symbol *base;
 
@@ -1970,7 +1970,7 @@ static struct symbol *removed_typeof_unqual(struct symbol *type)
  * Sparse has evaluated init, so its ctype is the exact type.  Otherwise,
  * typeof_base_type() works out the type from the symbol's initializer, as it
  * does for a typeof().  NULL keeps the __auto_type, for the same reasons as
- * removed_typeof_unqual().
+ * get_typeof_unqual_type().
  */
 static struct symbol *get_auto_type(struct symbol *symbol)
 {
@@ -2050,8 +2050,8 @@ static void show_direct_c_typename(struct code_buffer *out, struct symbol *symbo
 			type_name_prepend(name, "__auto_type");
 			goto out;
 		}
-		if (removed_typeof_unqual(type)) {
-			type = removed_typeof_unqual(type);
+		if (get_typeof_unqual_type(type)) {
+			type = get_typeof_unqual_type(type);
 			continue;
 		}
 		if (is_typeof(type)) {
@@ -2418,12 +2418,12 @@ static void show_type_expression(struct code_buffer *out, struct expression *e)
 {
 	struct symbol *type = e->symbol ? e->symbol->ctype.base_type : NULL;
 
-	if (removed_typeof_unqual(e->symbol)) {
-		show_c_typename(out, removed_typeof_unqual(e->symbol));
+	if (get_typeof_unqual_type(e->symbol)) {
+		show_c_typename(out, get_typeof_unqual_type(e->symbol));
 		return;
 	}
-	if (removed_typeof_unqual(type)) {
-		show_c_typename(out, removed_typeof_unqual(type));
+	if (get_typeof_unqual_type(type)) {
+		show_c_typename(out, get_typeof_unqual_type(type));
 		return;
 	}
 	if (is_typeof(e->symbol)) {
